@@ -1,0 +1,61 @@
+:root{
+  --venus: #8c9668;
+  --venus-2: #cdd8a6;
+  --cream: #fff6e3;
+  --ink: #1b1b1b;
+  --muted: #6b6b6b;
+  --radius: 16px;
+}
+
+*{ box-sizing: border-box; }
+html,body{ margin:0; padding:0; background:var(--cream); color:var(--ink); font-family: system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial; }
+.container{ max-width: 720px; margin: 24px auto; padding: 0 16px; }
+
+.brand{ display:flex; gap:16px; align-items:center; margin-bottom: 18px; }
+.brand__logo{ width:56px; height:56px; border-radius: 50%; object-fit:cover; border:2px solid var(--venus-2); }
+.brand__title{ margin:0; font-weight:700; font-size: 22px; }
+.brand__subtitle{ margin:6px 0 0; color: var(--muted); }
+
+.card{ background:#fff; border:1px solid #e9e9e9; border-radius: var(--radius); padding: 18px; box-shadow: 0 10px 28px rgba(0,0,0,.04); }
+.hidden{ display:none; }
+
+.label{ display:block; font-size: 14px; margin: 12px 0; }
+.label input{
+  width:100%; padding: 12px 14px; border-radius: 12px; border:1px solid #ddd; background: #fafafa;
+}
+.help{ color: var(--muted); font-size: 13px; }
+
+.btn{
+  display:inline-block; background: var(--venus); color:#fff; border:0; border-radius: 12px;
+  padding:12px 16px; cursor:pointer; text-decoration:none; transition: transform .05s ease-in;
+}
+.btn:hover{ transform: translateY(-1px); }
+.btn--ghost{ background:#fff; color:var(--venus); border:1px solid var(--venus); }
+.btn.small{ padding:8px 12px; font-size: 13px; }
+
+.out{ margin-top: 12px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre-wrap; }
+
+.card__row{ display:flex; align-items:center; justify-content: space-between; gap:12px; }
+.hero{ width: 120px; height: 60px; object-fit: contain; opacity:.9; }
+
+.grid{
+  display:grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; margin: 18px 0 12px;
+}
+.dot{
+  height: 54px; border-radius: 14px; border:1px solid #e6e6e6; background:#fafafa;
+  display:flex; align-items:center; justify-content:center; font-weight:700; color:#bbb;
+}
+.dot.filled{
+  background: var(--venus); border-color: var(--venus); color:#fff; box-shadow: inset 0 0 0 2px rgba(255,255,255,.3);
+}
+
+.muted{ color: var(--muted); }
+.small{ font-size: 12px; }
+
+.cta-row{ display:flex; gap:10px; flex-wrap: wrap; }
+
+.qr{ margin-top: 10px; }
+.idline{ display:flex; align-items:center; gap: 8px; margin-top: 8px; }
+code{ background:#f3f3f3; padding: 6px 8px; border-radius: 8px; }
+
+.footer{ text-align:center; color: var(--muted); margin: 18px 0; }

@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Venus Lealtad</title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="icon" href="/assets/logo.png">
+</head>
+<body>
+  <main class="container">
+    <header class="brand">
+      <img src="/assets/logo.png" alt="Venus" class="brand__logo">
+      <div>
+        <h1 class="brand__title">Venus Lealtad</h1>
+        <p class="brand__subtitle">Gana sellos y canjea tu facial 🌿</p>
+      </div>
+    </header>
+
+    <!-- Vista: crear tarjeta (cuando no hay cardId) -->
+    <section id="view-create" class="card hidden">
+      <h2>Crea tu tarjeta</h2>
+      <p>Ingresa tu nombre y genera tu tarjeta digital.</p>
+      <form id="create-form">
+        <label class="label">
+          Nombre
+          <input id="name" name="name" placeholder="Tu nombre" required>
+        </label>
+        <label class="label">
+          Sellos para premio
+          <input id="max" name="max" type="number" min="1" value="8" required>
+        </label>
+        <button class="btn" type="submit">Crear tarjeta</button>
+      </form>
+      <p class="help">Al crearla verás tu progreso y podrás guardarla en Google Wallet.</p>
+      <div id="create-out" class="out"></div>
+    </section>
+
+    <!-- Vista: tarjeta existente -->
+    <section id="view-card" class="card hidden">
+      <div class="card__row">
+        <div>
+          <h2 id="c_name">Cliente</h2>
+          <p id="c_info" class="muted">Progreso…</p>
+        </div>
+        <img src="/assets/hero.png" alt="Venus" class="hero">
+      </div>
+
+      <div id="grid" class="grid"></div>
+
+      <div class="cta-row">
+        <a id="gwallet" class="btn" target="_blank" rel="noopener">Guardar en Google Wallet</a>
+        <a id="share" class="btn btn--ghost">Compartir</a>
+      </div>
+
+      <details class="qr">
+        <summary>Mostrar QR de mi tarjeta</summary>
+        <img id="qr" alt="QR" />
+        <p class="muted small">Este QR contiene tu <code>cardId</code>. Úsalo en recepción para sumar sellos.</p>
+        <div class="idline">
+          <code id="cid"></code>
+          <button id="copy" class="btn btn--ghost small">Copiar</button>
+        </div>
+      </details>
+    </section>
+
+    <footer class="footer">
+      <small>© Venus Cosmetología — Programa de Lealtad</small>
+    </footer>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>

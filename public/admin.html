@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Recepción · Venus Cosmetología</title>
+  <style>
+    :root{--g1:#898e78;--g2:#8c9668;--sage:#cdd8a6;--cream:#fff6e3;--ink:#1b1b1b}
+    *{box-sizing:border-box} body{margin:0;font-family:system-ui,Helvetica,Arial;background:var(--cream);color:var(--ink)}
+    .wrap{max-width:900px;margin:0 auto;padding:16px}
+    .card{background:#fff;border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,.08);padding:18px}
+    h1{margin:6px 0 2px} .muted{opacity:.75}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px} @media (max-width:800px){.row{grid-template-columns:1fr}}
+    label{display:block;margin:10px 0 4px;font-weight:600}
+    input{width:100%;padding:12px;border:1.5px solid var(--sage);border-radius:10px;background:#fcfcfc;outline:none}
+    input:focus{border-color:var(--g2)}
+    button{padding:12px 16px;border:none;border-radius:12px;background:var(--g2);color:#fff;font-weight:700;cursor:pointer}
+    button.ghost{background:transparent;border:2px solid var(--g2);color:var(--g2)}
+    .log{background:#0b1020;color:#c9e6ff;border-radius:12px;padding:12px;white-space:pre-wrap;overflow:auto;max-height:200px}
+    .ok{color:#0a7a29;font-weight:700} .err{color:#b00020;font-weight:700}
+    .pill{display:inline-block;background:var(--g1);color:#fff;padding:4px 10px;border-radius:999px;font-size:.8rem;margin-left:6px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>Recepción <span class="pill">Venus</span></h1>
+      <p class="muted">Agrega sellos a las tarjetas mostrando el ID o escaneando el código.</p>
+
+      <div class="row">
+        <div>
+          <label>Clave de staff</label>
+          <input id="key" type="password" placeholder="Ingresa tu clave (no se guarda en servidor)">
+          <small class="muted">Se guarda localmente en este navegador.</small>
+        </div>
+        <div>
+          <label>ID de tarjeta (cardId)</label>
+          <input id="card" placeholder="p.ej. card_1730930000000">
+          <small class="muted">Pega el ID o escanéalo desde la Wallet del cliente.</small>
+        </div>
+      </div>
+
+      <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
+        <button id="saveKey">Guardar clave</button>
+        <button id="add">+1 sello</button>
+        <button id="clear" class="ghost">Limpiar</button>
+      </div>
+
+      <h3 style="margin-top:20px">Resultado</h3>
+      <div id="out" class="log">Sin acciones…</div>
+
+      <details style="margin-top:14px">
+        <summary>Escanear con cámara (opcional)</summary>
+        <p class="muted">Puedes usar cualquier app de QR para leer el cardId y pegarlo aquí. Si quieres cámara directa, después integramos lector QR.</p>
+      </details>
+    </div>
+  </div>
+
+  <script>
+    // Persistir clave en el navegador (localStorage)
+    const keyInput = document.getElementById('key');
+    const cardInput = document.getElementById('card');
+    const out = document.getElementById('out');
+
+    // Carga inicial
+    keyInput.value = localStorage.getItem('venus_staff_key') || '';
+
+    // Guardar clave
+    document.getElementById('saveKey').onclick = () => {
+      localStorage.setItem('venus_staff_key', keyInput.value.trim());
+      log('✅ Clave guardada localmente.');
+    };
+
+    // Limpiar campos
+    document.getElementById('clear').onclick = () => {
+      cardInput.value = '';
+      log('Campos limpiados.');
+    };
+
+    // +1 sello
+    document.getElementById('add').onclick = async () => {
+      const key = (keyInput.value || '').trim();
+      const cardId = (cardInput.value || '').trim();
+      if(!key) return log('Falta clave de staff.', true);
+      if(!cardId) return log('Falta ID de tarjeta.', true);
+
+      try {
+        const r = await fetch(`/api/stamp/${encodeURIComponent(cardId)}`, {
+          method: 'POST',
+          headers: { 'x-staff-key': key }
+        });
+        const txt = await r.text();
+        let msg = txt;
+        try { msg = JSON.stringify(JSON.parse(txt), null, 2); } catch {}
+        if(!r.ok) return log('❌ Error ' + r.status + ':\n' + msg, true);
+        log('🟢 OK:\n' + msg);
+      } catch (e) {
+        log('❌ Error de red:\n' + e.message, true);
+      }
+    };
+
+    // Utilidad de log
+    function log(message, error=false){
+      out.innerHTML = (error ? '<span class="err">ERROR</span> ' : '<span class="ok">INFO</span> ') + message;
+    }
+
+    // Soporte para ?cardId=...
+    const params = new URLSearchParams(location.search);
+    if(params.get('cardId')) cardInput.value = params.get('cardId');
+  </script>
+</body>
+</html>
