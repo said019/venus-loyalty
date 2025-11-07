@@ -249,7 +249,8 @@ app.get("/api/export.csv", basicAuth, (req, res) => {
     res.status(500).send(e.message);
   }
 });
-
+   app.use(express.json());
+   app.use(express.urlencoded({ extended: true }));
 // =====================
 // SERVER
 // =====================
