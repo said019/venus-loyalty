@@ -5,12 +5,17 @@ import "dotenv/config";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-// Helpers Wallet
+// Wallet helpers
 import { buildGoogleSaveUrl } from "./lib/google.js";
 import { buildApplePassBuffer } from "./lib/apple.js";
 
 // DB
 import db from "./lib/db.js";
+
+// ===== Admin auth (NUEVO) =====
+import cookieParser from "cookie-parser";
+import bcrypt from "bcryptjs";
+import { adminAuth, signAdmin, setAdminCookie, clearAdminCookie } from "./lib/auth.js";
 
 // __dirname para ESModules
 const __filename = fileURLToPath(import.meta.url);
@@ -61,6 +66,7 @@ const listEvents = db.prepare(`
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use(cookieParser()); // <— necesario para admin (cookie JWT)
 
 // servir interfaz pública (cliente) desde /public
 app.use(express.static("public"));
@@ -82,7 +88,7 @@ function canStamp(cardId) {
 }
 
 // =====================
-// RUTAS
+// RUTAS PÚBLICAS / CLIENTE
 // =====================
 
 app.get("/", (_req, res) => {
@@ -249,8 +255,119 @@ app.get("/api/export.csv", basicAuth, (req, res) => {
     res.status(500).send(e.message);
   }
 });
-   app.use(express.json());
-   app.use(express.urlencoded({ extended: true }));
+
+// =====================
+// ===== ADMIN (NUEVO)
+// =====================
+
+// prepared statements admin
+const insertAdmin = db.prepare("INSERT INTO admins (id, email, pass_hash) VALUES (?, ?, ?)");
+const getAdminByEmail = db.prepare("SELECT * FROM admins WHERE email = ?");
+const countAdmins = db.prepare("SELECT COUNT(*) AS n FROM admins");
+
+// AUTH
+app.post("/api/admin/register", async (req, res) => {
+  try {
+    const allow = (process.env.ADMIN_ALLOW_SIGNUP || "false").toLowerCase() === "true";
+    const { n } = countAdmins.get();
+    if (!allow && n > 0) return res.status(403).json({ error: "signup_disabled" });
+
+    const { email, password } = req.body || {};
+    if (!email || !password) return res.status(400).json({ error: "missing_fields" });
+
+    const exists = getAdminByEmail.get(email.trim().toLowerCase());
+    if (exists) return res.status(409).json({ error: "email_in_use" });
+
+    const id = `adm_${Date.now()}`;
+    const pass_hash = await bcrypt.hash(password, 10);
+    insertAdmin.run(id, email.trim().toLowerCase(), pass_hash);
+
+    return res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post("/api/admin/login", async (req, res) => {
+  try {
+    const { email, password } = req.body || {};
+    if (!email || !password) return res.status(400).json({ error: "missing_fields" });
+
+    const admin = getAdminByEmail.get(email.trim().toLowerCase());
+    if (!admin) return res.status(401).json({ error: "invalid_credentials" });
+
+    const ok = await bcrypt.compare(password, admin.pass_hash);
+    if (!ok) return res.status(401).json({ error: "invalid_credentials" });
+
+    const token = signAdmin({ id: admin.id, email: admin.email });
+    setAdminCookie(res, token);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post("/api/admin/logout", (req, res) => {
+  clearAdminCookie(res);
+  res.json({ ok: true });
+});
+
+app.get("/api/admin/me", adminAuth, (req, res) => {
+  res.json({ uid: req.admin.uid, email: req.admin.email });
+});
+
+// DATA (cards + eventos) protegidas con adminAuth
+const listCardsStmt = db.prepare(`
+  SELECT id, name, stamps, max, status, created_at
+  FROM cards
+  WHERE 1=1
+    AND (LOWER(id) LIKE LOWER(@like) OR LOWER(name) LIKE LOWER(@like))
+  ORDER BY created_at DESC
+  LIMIT @limit OFFSET @offset
+`);
+const countCardsStmt = db.prepare(`
+  SELECT COUNT(*) AS n
+  FROM cards
+  WHERE 1=1
+    AND (LOWER(id) LIKE LOWER(@like) OR LOWER(name) LIKE LOWER(@like))
+`);
+
+app.get("/api/admin/cards", adminAuth, (req, res) => {
+  try {
+    const page = Math.max(1, parseInt(req.query.page || "1", 10));
+    const limit = 12;
+    const offset = (page - 1) * limit;
+    const like = `%${String(req.query.q || "").trim()}%`;
+
+    const items = listCardsStmt.all({ like, limit, offset });
+    const { n } = countCardsStmt.get({ like });
+    const totalPages = Math.max(1, Math.ceil(n / limit));
+
+    res.json({ page, totalPages, total: n, items });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+const listEventsByCard = db.prepare(`
+  SELECT id, type, meta, created_at
+  FROM events
+  WHERE card_id = ?
+  ORDER BY id DESC
+  LIMIT 200
+`);
+
+app.get("/api/admin/events", adminAuth, (req, res) => {
+  try {
+    const { cardId } = req.query || {};
+    if (!cardId) return res.status(400).json({ error: "missing_cardId" });
+    const items = listEventsByCard.all(cardId);
+    res.json({ items });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // =====================
 // SERVER
 // =====================
