@@ -120,15 +120,27 @@ function renderGrid(stamps, max, prevStamps=stamps){
   }
 }
 
+// === NUEVO: QR robusto con fallback automático ===
 function setQR(cardId){
-  const url = `${location.origin}${location.pathname}?card=${encodeURIComponent(cardId)}`;
   const img = $("#qr");
-  if(img){
-    // QR rápido sin librerías externas
-    img.src = `https://chart.googleapis.com/chart?cht=qr&chs=240x240&chl=${encodeURIComponent(url)}`;
-  }
+  if (!img || !cardId) return;
+
+  const shareUrl = `${location.origin}${location.pathname}?card=${encodeURIComponent(cardId)}`;
+  const primary  = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(shareUrl)}`;
+  const fallback = `https://chart.googleapis.com/chart?chs=240x240&cht=qr&chld=M|0&chl=${encodeURIComponent(shareUrl)}`;
+
+  img.loading = 'lazy';
+  img.alt = 'QR';
+  img.referrerPolicy = 'no-referrer';
+
+  img.src = primary;
+  img.onerror = () => {
+    img.onerror = null; // evita bucles
+    img.src = fallback;
+  };
+
   const cid = $("#cid");
-  if(cid) cid.textContent = cardId;
+  if (cid) cid.textContent = cardId;
 }
 
 async function renderCardById(cardId){
