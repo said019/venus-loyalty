@@ -38,20 +38,6 @@ html,body{ margin:0; padding:0; background:var(--cream); color:var(--ink); font-
 .card__row{ display:flex; align-items:center; justify-content: space-between; gap:12px; }
 .hero{ width: 120px; height: 60px; object-fit: contain; opacity:.9; }
 
-.grid{
-  display:grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; margin: 18px 0 12px;
-}
-.dot{
-  height: 54px; border-radius: 14px; border:1px solid #e6e6e6; background:#fafafa;
-  display:flex; align-items:center; justify-content:center; font-weight:700; color:#bbb;
-}
-.dot.filled{
-  background: var(--venus); border-color: var(--venus); color:#fff; box-shadow: inset 0 0 0 2px rgba(255,255,255,.3);
-}
-
-.muted{ color: var(--muted); }
-.small{ font-size: 12px; }
-
 .cta-row{ display:flex; gap:10px; flex-wrap: wrap; }
 
 .qr{ margin-top: 10px; }
@@ -59,3 +45,83 @@ html,body{ margin:0; padding:0; background:var(--cream); color:var(--ink); font-
 code{ background:#f3f3f3; padding: 6px 8px; border-radius: 8px; }
 
 .footer{ text-align:center; color: var(--muted); margin: 18px 0; }
+
+/* utilidades mínimas para que el JS funcione */
+.hidden { display: none !important; }
+.out { margin-top: 10px; font-size: 14px; }
+.out.ok { color: #15803d; }
+.out.err { color: #b91c1c; }
+
+/* --- Sellos cliente (PNG + animación) --- */
+.grid {
+  margin: 16px 0 10px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(34px, 1fr));
+  gap: 10px;
+}
+.stamp {
+  position: relative;
+  width: 34px; height: 34px; border-radius: 50%;
+  background: #eef2f7; border: 1px solid #e5e7eb; overflow: hidden;
+}
+.stamp.is-full {
+  background-image: url('/assets/stamp.png');
+  background-size: cover;
+  background-position: center;
+  background-color: transparent;
+  border: none;
+}
+@keyframes stampPulsePublic {
+  0%   { transform: scale(0.6); box-shadow: 0 0 0 0 rgba(140,150,104,0.00); opacity: 0.2; }
+  40%  { transform: scale(1.10); box-shadow: 0 0 0 8px rgba(140,150,104,0.18); opacity: 1; }
+  100% { transform: scale(1.00); box-shadow: 0 0 0 0 rgba(140,150,104,0.00); opacity: 1; }
+}
+.stamp.is-full.pulse {
+  animation: stampPulsePublic 650ms ease-out;
+  will-change: transform, box-shadow, opacity;
+}
+
+/* ------- Staff (estilos embebidos también en staff.html, por si quieres centralizar) ------- */
+.staff-wrap{max-width:1050px;margin:24px auto;padding:16px}
+.staff-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:18px}
+.panel{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px}
+.panel h2{margin-top:0}
+video{width:100%;border-radius:10px;background:#000;aspect-ratio:16/9;object-fit:cover}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.ok{color:#15803d}.err{color:#b91c1c}
+.stamp-preview{display:grid;grid-template-columns:repeat(auto-fill,minmax(28px,1fr));gap:8px;margin-top:10px}
+.stamp-pip{position:relative;width:28px;height:28px;border-radius:50%;background:#eef2f7;border:1px solid #e5e7eb;overflow:hidden}
+.stamp-pip.full{background-image:url('/assets/stamp.png');background-size:cover;background-position:center;background-color:transparent;border:none}
+@keyframes stampPulse {
+  0%   { transform: scale(0.6); box-shadow: 0 0 0 0 rgba(140,150,104,0.00); opacity: 0.2; }
+  40%  { transform: scale(1.08); box-shadow: 0 0 0 6px rgba(140,150,104,0.15); opacity: 1; }
+  100% { transform: scale(1.00); box-shadow: 0 0 0 0 rgba(140,150,104,0.00); opacity: 1; }
+}
+.stamp-pip.full.pulse { animation: stampPulse 600ms ease-out; will-change: transform, box-shadow, opacity; }
+/* ===== Modal (staff) ===== */
+.modal-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.35);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 9999;
+}
+.modal-card {
+  background: #fff; border-radius: 14px; padding: 18px;
+  width: min(520px, 92%); border: 1px solid #e5e7eb;
+  box-shadow: 0 18px 50px rgba(0,0,0,.18);
+}
+.modal-card h3 { margin: 0 0 8px; font-size: 20px; }
+.modal-card p { margin: 6px 0 14px; color: var(--muted); }
+.modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+.modal-btn {
+  background: var(--venus); color: #fff; border: 0; border-radius: 10px;
+  padding: 10px 14px; cursor: pointer;
+}
+.modal-btn.ghost {
+  background: #fff; color: var(--venus); border: 1px solid var(--venus);
+}
+
+/* ===== Canvas confetti (cliente y staff si quieres) ===== */
+.confetti-canvas {
+  position: fixed; inset: 0; pointer-events: none; z-index: 9998;
+}
