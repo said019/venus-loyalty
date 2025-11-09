@@ -6,7 +6,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 // Wallet helpers
-import { buildGoogleSaveUrl } from "./lib/google.js";
+import { buildGoogleSaveUrl, checkLoyaltyClass } from "./lib/google.js";
 import { buildApplePassBuffer } from "./lib/apple.js";
 
 // DB
@@ -66,21 +66,22 @@ const listEvents = db.prepare(`
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser()); // cookies JWT admin
 
 // servir interfaz pública (cliente) desde /public
 app.use(express.static("public"));
 
 // Páginas del Admin (HTML)
-app.get("/admin", (req, res) => {
+app.get("/admin", (_req, res) => {
   res.sendFile(path.join(__dirname, "public", "admin.html"));
 });
-app.get("/admin-login.html", (req, res) => {
+app.get("/admin-login.html", (_req, res) => {
   res.sendFile(path.join(__dirname, "public", "admin-login.html"));
 });
 
 // Proteger staff.html con Basic Auth
-app.get("/staff.html", basicAuth, (req, res) => {
+app.get("/staff.html", basicAuth, (_req, res) => {
   res.sendFile(path.join(__dirname, "public", "staff.html"));
 });
 
@@ -99,8 +100,19 @@ function canStamp(cardId) {
 // RUTAS PÚBLICAS / CLIENTE
 // =====================
 
+// Ping simple
 app.get("/", (_req, res) => {
   res.send("☕ Loyalty Wallet API funcionando correctamente");
+});
+
+// (Opcional) Debug Google Wallet: confirma que la clase existe/permisos OK
+app.get("/api/debug/google-class", async (_req, res) => {
+  try {
+    const info = await checkLoyaltyClass();
+    res.json(info);
+  } catch (e) {
+    res.status(500).json({ error: String(e.message || e) });
+  }
 });
 
 // Emitir tarjeta
@@ -173,7 +185,10 @@ app.get("/api/apple/pass", async (req, res) => {
     });
 
     res.setHeader("Content-Type", "application/vnd.apple.pkpass");
-    res.setHeader("Content-Disposition", `attachment; filename="${cardId}.pkpass"`);
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${cardId}.pkpass"`
+    );
     res.send(buffer);
   } catch (e) {
     res.status(500).send(e.message);
@@ -241,7 +256,7 @@ app.post("/api/redeem/:cardId", basicAuth, (req, res) => {
 });
 
 // Exportar CSV — protegido con Basic Auth
-app.get("/api/export.csv", basicAuth, (req, res) => {
+app.get("/api/export.csv", basicAuth, (_req, res) => {
   try {
     const rows = db.prepare(`
       SELECT id, name, stamps, max, status, created_at
@@ -315,7 +330,7 @@ app.post("/api/admin/login", async (req, res) => {
   }
 });
 
-app.post("/api/admin/logout", (req, res) => {
+app.post("/api/admin/logout", (_req, res) => {
   clearAdminCookie(res);
   res.json({ ok: true });
 });
@@ -435,7 +450,7 @@ const countEventsToday = db.prepare(`
   GROUP BY type
 `);
 
-app.get("/api/admin/metrics", adminAuth, (req, res) => {
+app.get("/api/admin/metrics", adminAuth, (_req, res) => {
   try {
     const total = countAllCards.get().n;
     const full = countFullCards.get().n;
