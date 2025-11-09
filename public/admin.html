@@ -3,108 +3,171 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Admin — Venus Lealtad</title>
+  <title>Panel Admin — Venus Lealtad</title>
   <link rel="stylesheet" href="/styles.css">
   <style>
-    .wrap{max-width:1000px;margin:24px auto;padding:16px}
-    .panel{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin-bottom:16px}
-    .row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-    table{width:100%;border-collapse:collapse}
-    th,td{padding:10px;border-bottom:1px solid #eee;text-align:left;font-size:14px}
-    th{background:#fafafa}
+    :root{
+      --venus:#8c9668; --muted:#6b7280; --line:#e5e7eb; --bg:#fff6e3;
+    }
+    body{background:var(--bg)}
+    .wrap{max-width:1100px;margin:24px auto;padding:16px}
+    .muted{color:var(--muted)}
+    .btn{background:var(--venus);color:#fff;border:none;border-radius:10px;padding:10px 14px;cursor:pointer}
+    .btn.ghost{background:#fff;color:var(--venus);border:1px solid var(--venus)}
+    .btn.icon{display:inline-flex;gap:8px;align-items:center}
+    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
     .right{display:flex;justify-content:flex-end}
-    .muted{color:#6b7280}
-    .err{color:#b91c1c}
-    .ok{color:#15803d}
-    input{padding:10px;border:1px solid #e5e7eb;border-radius:10px;width:100%}
-    .btn{background:#8c9668;border:0;color:#fff;border-radius:10px;padding:10px 14px;cursor:pointer}
-    .btn.ghost{background:#fff;color:#8c9668;border:1px solid #8c9668}
+    .panel{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;margin:12px 0}
+    .h1{display:flex;gap:10px;align-items:center;margin:0 0 8px}
+    .nav{display:flex;gap:8px;margin:6px 0 12px}
+    .nav a{padding:8px 12px;border-radius:10px;border:1px solid var(--line);background:#fff;color:#111;text-decoration:none}
+    .nav a.is-active{border-color:var(--venus);color:var(--venus)}
+    .grid-kpi{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+    .kpi{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px}
+    .kpi .big{font-size:28px;font-weight:700}
     .hidden{display:none!important}
+    input,select{padding:10px;border:1px solid var(--line);border-radius:10px;background:#fafafa}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:10px;border-bottom:1px solid #eee;font-size:14px;text-align:left;vertical-align:top}
+    th{background:#fafafa}
+    .tag{display:inline-block;background:#eef2f7;border:1px solid #e5e7eb;padding:4px 8px;border-radius:999px;font-size:12px}
+    .tools{display:flex;gap:8px;flex-wrap:wrap}
+    .pill{background:#eef2f7;border:1px solid #e5e7eb;padding:6px 10px;border-radius:999px}
+    dialog{border:none;border-radius:12px;max-width:560px;width:92%}
+    dialog .hd{display:flex;justify-content:space-between;align-items:center}
+    .qr-wrap{display:flex;gap:12px;align-items:center}
+    .small{font-size:12px}
   </style>
 </head>
 <body>
   <main class="wrap">
-    <header class="row" style="justify-content:space-between;margin-bottom:12px">
+    <header class="row" style="justify-content:space-between;margin-bottom:6px">
       <div class="row">
-        <img src="/assets/logo.png" style="width:40px;height:40px;border-radius:10px" alt="">
+        <img src="/assets/logo.png" alt="Venus" style="width:40px;height:40px;border-radius:10px">
         <div>
-          <h1 style="margin:0">Panel Admin — Venus Lealtad</h1>
-          <div class="muted">Gestiona cuentas, tarjetas y eventos</div>
+          <h1 class="h1">Panel Admin — Venus Lealtad</h1>
+          <div id="me-line" class="muted">Cargando…</div>
         </div>
       </div>
       <div class="row">
-        <a class="btn ghost" href="/" target="_blank" rel="noopener">Página clientes</a>
-        <a class="btn ghost" href="/staff.html" target="_blank" rel="noopener">Página staff</a>
+        <a class="btn ghost" href="/" target="_blank" rel="noopener">Clientes</a>
+        <a class="btn ghost" href="/staff.html" target="_blank" rel="noopener">Staff</a>
+        <button id="logout" class="btn ghost">Cerrar sesión</button>
       </div>
     </header>
 
-    <!-- VISTA AUTH -->
-    <section id="view-auth" class="panel">
-      <h2>Acceso</h2>
-      <p class="muted">Inicia sesión o regístrate (si está permitido).</p>
-      <div class="grid2">
-        <form id="form-login">
-          <h3>Iniciar sesión</h3>
-          <label>Email<input id="login-email" type="email" required></label>
-          <label>Contraseña<input id="login-pass" type="password" required></label>
-          <div class="right"><button class="btn" type="submit">Entrar</button></div>
-          <div id="login-out" class="muted"></div>
-        </form>
-        <form id="form-register">
-          <h3>Registrarse</h3>
-          <label>Email<input id="reg-email" type="email" required></label>
-          <label>Contraseña<input id="reg-pass" type="password" required minlength="6"></label>
-          <div class="right"><button class="btn" type="submit">Crear cuenta</button></div>
-          <div id="reg-out" class="muted"></div>
-          <small class="muted">Nota: el registro puede estar limitado por configuración del servidor.</small>
-        </form>
+    <nav class="nav">
+      <a href="#overview" class="is-active" data-tab>Resumen</a>
+      <a href="#cards" data-tab>Tarjetas</a>
+      <a href="#events" data-tab>Eventos</a>
+      <a href="#settings" data-tab>Configuración</a>
+    </nav>
+
+    <!-- ========== OVERVIEW ========== -->
+    <section id="tab-overview" class="panel">
+      <h2 style="margin:0 0 8px">Resumen</h2>
+      <p class="muted small">Indicadores rápidos de tu programa de lealtad.</p>
+      <div id="kpis" class="grid-kpi">
+        <div class="kpi"><div class="muted">Tarjetas totales</div><div id="k_total" class="big">—</div></div>
+        <div class="kpi"><div class="muted">Tarjetas completas</div><div id="k_full" class="big">—</div></div>
+        <div class="kpi"><div class="muted">Sellos hoy</div><div id="k_stamps" class="big">—</div></div>
+        <div class="kpi"><div class="muted">Canjes hoy</div><div id="k_redeems" class="big">—</div></div>
       </div>
+      <div id="kpi_note" class="muted small" style="margin-top:8px"></div>
     </section>
 
-    <!-- VISTA DASH -->
-    <section id="view-dash" class="panel hidden">
+    <!-- ========== CARDS ========== -->
+    <section id="tab-cards" class="panel hidden">
       <div class="row" style="justify-content:space-between">
-        <div>
-          <h2 style="margin:0">Dashboard</h2>
-          <div class="muted" id="me-line">Conectando…</div>
+        <h2 style="margin:0">Tarjetas</h2>
+        <div class="tools">
+          <button id="reload" class="btn ghost">Recargar</button>
+          <button id="export" class="btn ghost">Exportar CSV</button>
         </div>
-        <button id="logout" class="btn ghost">Cerrar sesión</button>
       </div>
 
-      <h3>Tarjetas</h3>
-      <div class="row" style="gap:6px;margin-bottom:8px">
-        <input id="q" placeholder="Buscar por ID o nombre…" style="max-width:360px">
-        <button id="reload" class="btn ghost">Recargar</button>
+      <div class="row" style="gap:8px;margin:8px 0">
+        <input id="q" placeholder="Buscar por ID o nombre…" style="min-width:260px">
+        <select id="f_status">
+          <option value="">Estado (todos)</option>
+          <option value="ACTIVE">Activas</option>
+          <option value="BLOCKED">Bloqueadas</option>
+        </select>
+        <select id="f_completed">
+          <option value="">Completas (todas)</option>
+          <option value="yes">Sí</option>
+          <option value="no">No</option>
+        </select>
+        <button id="clearFilters" class="btn ghost">Limpiar filtros</button>
       </div>
-      <div class="panel">
+
+      <div class="panel" style="margin:10px 0">
         <table>
           <thead>
-            <tr><th>ID</th><th>Cliente</th><th>Sellos</th><th>Max</th><th>Status</th><th>Creada</th></tr>
+            <tr>
+              <th>ID</th><th>Cliente</th><th>Sellos</th><th>Max</th><th>Estado</th><th>Creada</th><th>Acciones</th>
+            </tr>
           </thead>
           <tbody id="cards-tbody"></tbody>
         </table>
         <div class="row" style="justify-content:space-between;margin-top:8px">
           <button id="prev" class="btn ghost">Anterior</button>
-          <div class="muted" id="pageinfo"></div>
+          <div id="pageinfo" class="muted"></div>
           <button id="next" class="btn ghost">Siguiente</button>
         </div>
       </div>
+    </section>
 
-      <h3>Eventos de una tarjeta</h3>
-      <div class="row" style="gap:6px;margin-bottom:8px">
+    <!-- ========== EVENTS ========== -->
+    <section id="tab-events" class="panel hidden">
+      <h2 style="margin:0 0 8px">Eventos</h2>
+      <div class="row" style="gap:8px;margin-bottom:8px">
         <input id="eid" placeholder="card_...">
         <button id="eload" class="btn">Ver eventos</button>
       </div>
       <div class="panel">
         <table>
-          <thead>
-            <tr><th>#</th><th>Tipo</th><th>Meta</th><th>Fecha</th></tr>
-          </thead>
+          <thead><tr><th>#</th><th>Tipo</th><th>Meta</th><th>Fecha</th></tr></thead>
           <tbody id="events-tbody"></tbody>
         </table>
       </div>
     </section>
+
+    <!-- ========== SETTINGS (ligero, editable luego) ========== -->
+    <section id="tab-settings" class="panel hidden">
+      <h2 style="margin:0 0 6px">Configuración</h2>
+      <p class="muted small">Algunas opciones avanzadas se activan desde variables de entorno.</p>
+      <ul class="muted small" style="line-height:1.6">
+        <li><span class="pill">ADMIN_ALLOW_SIGNUP</span> habilita/deshabilita nuevos registros.</li>
+        <li><span class="pill">STAFF_USER / STAFF_PASS</span> para la página staff (QR).</li>
+        <li>Rutas admin para acciones: <code>/api/admin/stamp</code> y <code>/api/admin/redeem</code> (ver instrucciones abajo).</li>
+      </ul>
+    </section>
+
+    <!-- DIALOGO DETALLE TARJETA -->
+    <dialog id="cardDialog">
+      <div class="hd">
+        <h3 id="d_title" style="margin:0">Tarjeta</h3>
+        <button id="d_close" class="btn ghost">Cerrar</button>
+      </div>
+      <div id="d_body" class="muted small">Cargando…</div>
+      <div style="margin-top:10px" class="qr-wrap">
+        <img id="d_qr" alt="QR" width="120" height="120">
+        <div>
+          <div class="muted small">Comparte/usa este ID:</div>
+          <div class="pill" id="d_id" style="user-select:all"></div>
+          <div class="row" style="margin-top:8px">
+            <button id="d_copy" class="btn ghost">Copiar ID</button>
+            <a id="d_open" class="btn ghost" target="_blank" rel="noopener">Abrir como cliente</a>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:12px" class="row">
+        <button id="d_stamp" class="btn">+1 sello</button>
+        <button id="d_redeem" class="btn ghost">Canjear</button>
+      </div>
+      <div id="d_out" class="muted small" style="margin-top:6px"></div>
+    </dialog>
   </main>
 
   <script src="/admin.js"></script>

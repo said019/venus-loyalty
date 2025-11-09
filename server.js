@@ -12,7 +12,7 @@ import { buildApplePassBuffer } from "./lib/apple.js";
 // DB
 import db from "./lib/db.js";
 
-// ===== Admin auth (NUEVO) =====
+// ===== Admin auth =====
 import cookieParser from "cookie-parser";
 import bcrypt from "bcryptjs";
 import { adminAuth, signAdmin, setAdminCookie, clearAdminCookie } from "./lib/auth.js";
@@ -66,10 +66,18 @@ const listEvents = db.prepare(`
 const app = express();
 app.use(cors());
 app.use(express.json());
-app.use(cookieParser()); // <— necesario para admin (cookie JWT)
+app.use(cookieParser()); // cookies JWT admin
 
 // servir interfaz pública (cliente) desde /public
 app.use(express.static("public"));
+
+// Páginas del Admin (HTML)
+app.get("/admin", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "admin.html"));
+});
+app.get("/admin-login.html", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "admin-login.html"));
+});
 
 // Proteger staff.html con Basic Auth
 app.get("/staff.html", basicAuth, (req, res) => {
@@ -257,7 +265,7 @@ app.get("/api/export.csv", basicAuth, (req, res) => {
 });
 
 // =====================
-// ===== ADMIN (NUEVO)
+// ===== ADMIN
 // =====================
 
 // prepared statements admin
@@ -363,6 +371,83 @@ app.get("/api/admin/events", adminAuth, (req, res) => {
     if (!cardId) return res.status(400).json({ error: "missing_cardId" });
     const items = listEventsByCard.all(cardId);
     res.json({ items });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ==== Acciones Admin: sumar sello / canjear (protegidas con adminAuth) ====
+app.post("/api/admin/stamp", adminAuth, (req, res) => {
+  try {
+    const { cardId } = req.body || {};
+    if (!cardId) return res.status(400).json({ error: "missing_cardId" });
+
+    const card = getCard.get(cardId);
+    if (!card) return res.status(404).json({ error: "card not found" });
+
+    if (card.stamps >= card.max) {
+      return res.status(400).json({ error: "already_full" });
+    }
+
+    if (!canStamp(cardId)) {
+      return res.status(429).json({ error: "Solo 1 sello por día" });
+    }
+
+    const newStamps = card.stamps + 1;
+    updStamps.run(newStamps, cardId);
+    logEvent.run(cardId, "STAMP", JSON.stringify({ by: "admin" }));
+
+    return res.json({ ok: true, cardId, stamps: newStamps });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post("/api/admin/redeem", adminAuth, (req, res) => {
+  try {
+    const { cardId } = req.body || {};
+    if (!cardId) return res.status(400).json({ error: "missing_cardId" });
+
+    const card = getCard.get(cardId);
+    if (!card) return res.status(404).json({ error: "card not found" });
+
+    if (card.stamps < card.max) {
+      return res.status(400).json({ error: "not_enough_stamps" });
+    }
+
+    // reinicia para siguiente ciclo
+    updStamps.run(0, cardId);
+    logEvent.run(cardId, "REDEEM", JSON.stringify({ by: "admin" }));
+
+    return res.json({ ok: true, cardId });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ==== Métricas básicas para el dashboard (opcional) ====
+const countAllCards = db.prepare(`SELECT COUNT(*) AS n FROM cards`);
+const countFullCards = db.prepare(`SELECT COUNT(*) AS n FROM cards WHERE stamps >= max`);
+const countEventsToday = db.prepare(`
+  SELECT type, COUNT(*) AS n
+  FROM events
+  WHERE DATE(created_at) = DATE('now','localtime')
+  GROUP BY type
+`);
+
+app.get("/api/admin/metrics", adminAuth, (req, res) => {
+  try {
+    const total = countAllCards.get().n;
+    const full = countFullCards.get().n;
+    const rows = countEventsToday.all();
+    const m = { STAMP: 0, REDEEM: 0 };
+    for (const r of rows) m[r.type] = r.n;
+    res.json({
+      total,
+      full,
+      stampsToday: m.STAMP || 0,
+      redeemsToday: m.REDEEM || 0
+    });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
