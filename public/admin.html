@@ -6,37 +6,39 @@
   <title>Panel Admin — Venus Lealtad</title>
   <link rel="stylesheet" href="/styles.css">
   <style>
-    :root{
-      --venus:#8c9668; --muted:#6b7280; --line:#e5e7eb; --bg:#fff6e3;
-    }
-    body{background:var(--bg)}
-    .wrap{max-width:1100px;margin:24px auto;padding:16px}
-    .muted{color:var(--muted)}
-    .btn{background:var(--venus);color:#fff;border:none;border-radius:10px;padding:10px 14px;cursor:pointer}
-    .btn.ghost{background:#fff;color:var(--venus);border:1px solid var(--venus)}
-    .btn.icon{display:inline-flex;gap:8px;align-items:center}
-    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-    .right{display:flex;justify-content:flex-end}
-    .panel{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;margin:12px 0}
-    .h1{display:flex;gap:10px;align-items:center;margin:0 0 8px}
-    .nav{display:flex;gap:8px;margin:6px 0 12px}
-    .nav a{padding:8px 12px;border-radius:10px;border:1px solid var(--line);background:#fff;color:#111;text-decoration:none}
-    .nav a.is-active{border-color:var(--venus);color:var(--venus)}
-    .grid-kpi{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
-    .kpi{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px}
-    .kpi .big{font-size:28px;font-weight:700}
-    .hidden{display:none!important}
-    input,select{padding:10px;border:1px solid var(--line);border-radius:10px;background:#fafafa}
-    table{width:100%;border-collapse:collapse}
-    th,td{padding:10px;border-bottom:1px solid #eee;font-size:14px;text-align:left;vertical-align:top}
-    th{background:#fafafa}
-    .tag{display:inline-block;background:#eef2f7;border:1px solid #e5e7eb;padding:4px 8px;border-radius:999px;font-size:12px}
-    .tools{display:flex;gap:8px;flex-wrap:wrap}
-    .pill{background:#eef2f7;border:1px solid #e5e7eb;padding:6px 10px;border-radius:999px}
-    dialog{border:none;border-radius:12px;max-width:560px;width:92%}
-    dialog .hd{display:flex;justify-content:space-between;align-items:center}
-    .qr-wrap{display:flex;gap:12px;align-items:center}
-    .small{font-size:12px}
+    :root{ --venus:#8c9668; --venus-2:#cdd8a6; --muted:#6b7280; --line:#e5e7eb; --bg:#fff6e3; --ink:#1b1b1b; }
+    body{ background:var(--bg); color:var(--ink); }
+    .wrap{ max-width:1100px; margin:24px auto; padding:16px }
+    .muted{ color:var(--muted) }
+    .btn{ background:var(--venus); color:#fff; border:none; border-radius:10px; padding:10px 14px; cursor:pointer }
+    .btn.ghost{ background:#fff; color:var(--venus); border:1px solid var(--venus) }
+    .btn.icon{ display:inline-flex; gap:8px; align-items:center }
+    .row{ display:flex; gap:10px; align-items:center; flex-wrap:wrap }
+    .right{ display:flex; justify-content:flex-end }
+    .panel{ background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px; margin:12px 0 }
+    .h1{ display:flex; gap:10px; align-items:center; margin:0 0 8px }
+    .nav{ display:flex; gap:8px; margin:6px 0 12px }
+    .nav a{ padding:8px 12px; border-radius:10px; border:1px solid var(--line); background:#fff; color:#111; text-decoration:none }
+    .nav a.is-active{ border-color:var(--venus); color:var(--venus) }
+    .grid-kpi{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px }
+    .kpi{ background:#fff; border:1px solid var(--line); border-radius:12px; padding:12px }
+    .kpi .big{ font-size:28px; font-weight:700 }
+    .hidden{ display:none!important }
+    input,select{ padding:10px; border:1px solid var(--line); border-radius:10px; background:#fafafa }
+    table{ width:100%; border-collapse:collapse }
+    th,td{ padding:10px; border-bottom:1px solid #eee; font-size:14px; text-align:left; vertical-align:top }
+    th{ background:#fafafa }
+    .tag{ display:inline-block; background:#eef2f7; border:1px solid #e5e7eb; padding:4px 8px; border-radius:999px; font-size:12px }
+    .tools{ display:flex; gap:8px; flex-wrap:wrap }
+    .pill{ background:#eef2f7; border:1px solid #e5e7eb; padding:6px 10px; border-radius:999px }
+    dialog{ border:none; border-radius:12px; max-width:620px; width:92% }
+    dialog .hd{ display:flex; justify-content:space-between; align-items:center }
+    .qr-wrap{ display:flex; gap:12px; align-items:center; flex-wrap:wrap }
+    .small{ font-size:12px }
+
+    /* Escáner QR */
+    #scanDialog video{ width:100%; border-radius:12px; background:#000; aspect-ratio:16/9; object-fit:cover }
+    #scanDialog .row{ margin-top:10px }
   </style>
 </head>
 <body>
@@ -51,7 +53,7 @@
       </div>
       <div class="row">
         <a class="btn ghost" href="/" target="_blank" rel="noopener">Clientes</a>
-        <a class="btn ghost" href="/staff.html" target="_blank" rel="noopener">Staff</a>
+        <!-- Staff eliminado; todo se hace aquí -->
         <button id="logout" class="btn ghost">Cerrar sesión</button>
       </div>
     </header>
@@ -81,6 +83,7 @@
       <div class="row" style="justify-content:space-between">
         <h2 style="margin:0">Tarjetas</h2>
         <div class="tools">
+          <button id="scan" class="btn icon">📷 Escanear QR</button>
           <button id="reload" class="btn ghost">Recargar</button>
           <button id="export" class="btn ghost">Exportar CSV</button>
         </div>
@@ -133,14 +136,14 @@
       </div>
     </section>
 
-    <!-- ========== SETTINGS (ligero, editable luego) ========== -->
+    <!-- ========== SETTINGS ========== -->
     <section id="tab-settings" class="panel hidden">
       <h2 style="margin:0 0 6px">Configuración</h2>
       <p class="muted small">Algunas opciones avanzadas se activan desde variables de entorno.</p>
       <ul class="muted small" style="line-height:1.6">
         <li><span class="pill">ADMIN_ALLOW_SIGNUP</span> habilita/deshabilita nuevos registros.</li>
-        <li><span class="pill">STAFF_USER / STAFF_PASS</span> para la página staff (QR).</li>
-        <li>Rutas admin para acciones: <code>/api/admin/stamp</code> y <code>/api/admin/redeem</code> (ver instrucciones abajo).</li>
+        <li><span class="pill">STAFF_USER / STAFF_PASS</span> (legacy) — ya no es necesario: el escáner está en este panel.</li>
+        <li>Rutas admin: <code>/api/admin/stamp</code> y <code>/api/admin/redeem</code>.</li>
       </ul>
     </section>
 
@@ -152,7 +155,7 @@
       </div>
       <div id="d_body" class="muted small">Cargando…</div>
       <div style="margin-top:10px" class="qr-wrap">
-        <img id="d_qr" alt="QR" width="120" height="120">
+        <img id="d_qr" alt="QR" width="140" height="140">
         <div>
           <div class="muted small">Comparte/usa este ID:</div>
           <div class="pill" id="d_id" style="user-select:all"></div>
@@ -167,6 +170,21 @@
         <button id="d_redeem" class="btn ghost">Canjear</button>
       </div>
       <div id="d_out" class="muted small" style="margin-top:6px"></div>
+    </dialog>
+
+    <!-- DIALOGO ESCÁNER QR -->
+    <dialog id="scanDialog">
+      <div class="hd">
+        <h3 style="margin:0">Escanear QR</h3>
+        <button id="scan_close" class="btn ghost">Cerrar</button>
+      </div>
+      <video id="scan_video" playsinline muted></video>
+      <div class="row">
+        <select id="scan_cameras"></select>
+        <button id="scan_start" class="btn">Iniciar</button>
+        <button id="scan_stop" class="btn ghost" disabled>Detener</button>
+      </div>
+      <div id="scan_out" class="muted small" style="margin-top:8px">Apunta al QR del cliente.</div>
     </dialog>
   </main>
 
