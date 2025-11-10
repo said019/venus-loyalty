@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Restablecer contraseña</title>
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    :root{ --venus:#8c9668; --line:#e5e7eb; --bg:#fff6e3; --muted:#6b7280; --ok:#15803d; --err:#b91c1c; }
+    body{ background:var(--bg); font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial; }
+    .wrap{ max-width:520px; margin:60px auto; padding:0 16px }
+    .card{ background:#fff; border:1px solid var(--line); border-radius:16px; padding:22px }
+    h1{ margin:0 0 8px }
+    .muted{ color:var(--muted) }
+    label{ display:block; margin:12px 0 6px }
+    input{ width:100%; padding:12px 14px; border:1px solid var(--line); border-radius:12px; background:#fafafa }
+    .btn{ background:var(--venus); color:#fff; border:0; border-radius:12px; padding:10px 14px; cursor:pointer; margin-top:12px }
+    .alert{ border-radius:12px; padding:10px 12px; margin:12px 0 0; border:1px solid }
+    .alert--ok{ background:#f0fff4; border-color:#b7ebc6; color:var(--ok) }
+    .alert--err{ background:#fff1f1; border-color:#f3c7c7; color:var(--err) }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="card">
+      <h1>Restablecer contraseña</h1>
+      <p class="muted">Escribe tu nueva contraseña.</p>
+      <label>Nueva contraseña</label>
+      <input id="p1" type="password" placeholder="••••••••" minlength="6" required>
+      <label>Confirmar contraseña</label>
+      <input id="p2" type="password" placeholder="••••••••" minlength="6" required>
+      <button id="save" class="btn">Guardar</button>
+      <div id="out" class="alert" style="display:none"></div>
+    </section>
+  </main>
+
+  <script>
+    const $=(s,x=document)=>x.querySelector(s);
+    const params = new URLSearchParams(location.search);
+    const token = params.get('token');
+
+    function show(el,msg,ok=false){
+      el.textContent = msg;
+      el.className = 'alert ' + (ok?'alert--ok':'alert--err');
+      el.style.display = 'block';
+    }
+
+    $('#save').addEventListener('click', async ()=>{
+      const out = $('#out');
+      out.style.display='none';
+      const p1=$('#p1').value, p2=$('#p2').value;
+      if(p1.length<6 || p1!==p2) return show(out,'Las contraseñas no coinciden o son muy cortas');
+      try{
+        const r=await fetch('/api/admin/reset',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,password:p1})});
+        const j=await r.json();
+        if(!r.ok) throw new Error(j.error||'Error');
+        show(out,'Contraseña actualizada. Ya puedes iniciar sesión.',true);
+        setTimeout(()=>location.href='/admin-login.html',1400);
+      }catch(e){
+        show(out,'El enlace no es válido o expiró');
+      }
+    });
+  </script>
+</body>
+</html>

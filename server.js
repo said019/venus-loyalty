@@ -4,6 +4,8 @@ import cors from "cors";
 import "dotenv/config";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import crypto from "crypto";
+import nodemailer from "nodemailer";
 
 // Wallet helpers
 import { buildGoogleSaveUrl, checkLoyaltyClass } from "./lib/google.js";
@@ -61,6 +63,19 @@ const listEvents = db.prepare(`
 `);
 
 // =====================
+// TABLA PARA TOKENS DE RESET (si no existe)
+// =====================
+db.exec(`
+  CREATE TABLE IF NOT EXISTS admin_resets (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    admin_id TEXT NOT NULL,
+    token TEXT NOT NULL UNIQUE,
+    expires_at TEXT NOT NULL,
+    used INTEGER DEFAULT 0
+  );
+`);
+
+// =====================
 // APP BASE
 // =====================
 const app = express();
@@ -79,6 +94,9 @@ app.get("/admin", (_req, res) => {
 app.get("/admin-login.html", (_req, res) => {
   res.sendFile(path.join(__dirname, "public", "admin-login.html"));
 });
+app.get("/admin-reset.html", (_req, res) => {
+  res.sendFile(path.join(__dirname, "public", "admin-reset.html"));
+});
 
 // Proteger staff.html con Basic Auth
 app.get("/staff.html", basicAuth, (_req, res) => {
@@ -94,6 +112,36 @@ function canStamp(cardId) {
   const last = new Date(row.created_at);
   const now = new Date();
   return (now - last) > 24 * 60 * 60 * 1000; // 24 h
+}
+
+// =====================
+// HELPERS DE EMAIL (SMTP opcional)
+// =====================
+function buildTransport() {
+  const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS } = process.env;
+  if (!SMTP_HOST) return null;
+  return nodemailer.createTransport({
+    host: SMTP_HOST,
+    port: Number(SMTP_PORT || 587),
+    secure: Number(SMTP_PORT || 587) === 465,
+    auth: SMTP_USER ? { user: SMTP_USER, pass: SMTP_PASS } : undefined,
+  });
+}
+
+async function sendResetEmail(to, link) {
+  const transporter = buildTransport();
+  const from = process.env.SMTP_FROM || "no-reply@venus.local";
+  const html = `
+    <p>Hola,</p>
+    <p>Has solicitado restablecer tu contraseña del Panel Admin.</p>
+    <p><a href="${link}">${link}</a></p>
+    <p>El enlace expira en 1 hora. Si no fuiste tú, ignora este correo.</p>
+  `;
+  if (!transporter) {
+    console.log("[ResetLink]", link);
+    return;
+  }
+  await transporter.sendMail({ from, to, subject: "Restablecer contraseña", html });
 }
 
 // =====================
@@ -463,6 +511,65 @@ app.get("/api/admin/metrics", adminAuth, (_req, res) => {
       stampsToday: m.STAMP || 0,
       redeemsToday: m.REDEEM || 0
     });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// =====================
+// RECUPERACIÓN DE CONTRASEÑA (FORGOT / RESET)
+// =====================
+app.post("/api/admin/forgot", (req, res) => {
+  try {
+    const { email } = req.body || {};
+    if (!email) return res.status(400).json({ error: "missing_email" });
+
+    const admin = getAdminByEmail.get(String(email).trim().toLowerCase());
+
+    if (admin) {
+      const token = crypto.randomBytes(32).toString("hex");
+      const expires = new Date(Date.now() + 60 * 60 * 1000); // 1 hora
+      db.prepare(`
+        INSERT INTO admin_resets (admin_id, token, expires_at)
+        VALUES (?, ?, ?)
+      `).run(admin.id, token, expires.toISOString());
+
+      const base = process.env.APP_BASE_URL || process.env.BASE_URL || `http://localhost:${process.env.PORT || 3000}`;
+      const link = `${base}/admin-reset.html?token=${token}`;
+
+      // Enviar email o imprimir en logs si no hay SMTP
+      sendResetEmail(admin.email, link).catch(console.error);
+    }
+
+    // Respuesta genérica (para no filtrar usuarios)
+    return res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post("/api/admin/reset", async (req, res) => {
+  try {
+    const { token, password } = req.body || {};
+    if (!token || !password) return res.status(400).json({ error: "missing_fields" });
+
+    const row = db.prepare(`
+      SELECT * FROM admin_resets
+      WHERE token = ? AND used = 0
+      LIMIT 1
+    `).get(token);
+
+    if (!row) return res.status(400).json({ error: "invalid_token" });
+    if (new Date(row.expires_at) < new Date()) return res.status(400).json({ error: "expired" });
+
+    const admin = db.prepare(`SELECT * FROM admins WHERE id = ?`).get(row.admin_id);
+    if (!admin) return res.status(400).json({ error: "invalid_token" });
+
+    const pass_hash = await bcrypt.hash(password, 10);
+    db.prepare(`UPDATE admins SET pass_hash = ? WHERE id = ?`).run(pass_hash, admin.id);
+    db.prepare(`UPDATE admin_resets SET used = 1 WHERE id = ?`).run(row.id);
+
+    return res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
