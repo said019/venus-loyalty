@@ -24,24 +24,29 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 /* =========================================================
-   SMTP (Resend) — helper global
+   MAILER: SMTP con fallback a Resend HTTP API
+   Env vars soportadas:
+     - SMTP_HOST / SMTP_PORT / SMTP_USER / SMTP_PASS / SMTP_FROM
+     - RESEND_API_KEY / RESEND_FROM
    ========================================================= */
-function createTransport() {
+function withTimeout(promise, ms, label = "SMTP") {
+  return Promise.race([
+    promise,
+    new Promise((_, rej) => setTimeout(() => rej(new Error(`${label} timeout`)), ms)),
+  ]);
+}
+
+function buildSmtpTransport() {
   const host = process.env.SMTP_HOST;
   const port = Number(process.env.SMTP_PORT || 587);
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;
+  if (!host || !port || !user || !pass) return null;
 
-  if (!host || !port || !user || !pass) {
-    console.warn("[MAIL] SMTP env incompletas; envío deshabilitado.");
-    return null;
-  }
-
-  // Resend SMTP recomendado: host=smtp.resend.com, port=587, user=apikey, pass=re_...
   return nodemailer.createTransport({
     host,
     port,
-    secure: false, // STARTTLS (587)
+    secure: port === 465,
     auth: { user, pass },
     connectionTimeout: 15_000,
     greetingTimeout: 10_000,
@@ -49,12 +54,47 @@ function createTransport() {
   });
 }
 
-const MAILER = createTransport();
+const SMTP_TRANSPORT = buildSmtpTransport();
 
 async function sendMail({ to, subject, html, text }) {
-  if (!MAILER) throw new Error("SMTP no configurado (faltan envs)");
-  const from = process.env.SMTP_FROM || `Venus Admin <${process.env.SMTP_USER}>`;
-  return await MAILER.sendMail({ from, to, subject, html, text });
+  const from =
+    process.env.SMTP_FROM ||
+    process.env.RESEND_FROM ||
+    (process.env.SMTP_USER ? `Venus Admin <${process.env.SMTP_USER}>` : "onboarding@resend.dev");
+
+  // 1) SMTP si está configurado
+  if (SMTP_TRANSPORT) {
+    try {
+      const info = await withTimeout(
+        SMTP_TRANSPORT.sendMail({ from, to, subject, html, text }),
+        15000,
+        "SMTP"
+      );
+      return { ok: true, channel: "smtp", messageId: info?.messageId || null };
+    } catch (e) {
+      console.warn("[MAIL] SMTP falló/timeout, intento Resend HTTP…", e?.message || e);
+    }
+  }
+
+  // 2) Fallback Resend HTTP API
+  const key = process.env.RESEND_API_KEY;
+  if (!key) throw new Error("No hay SMTP operativo ni RESEND_API_KEY configurada");
+
+  const resp = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      from: process.env.RESEND_FROM || from,
+      to,
+      subject,
+      html,
+      text,
+    }),
+  });
+
+  const json = await resp.json();
+  if (!resp.ok) throw new Error(`Resend error: ${resp.status} ${JSON.stringify(json)}`);
+  return { ok: true, channel: "resend", messageId: json?.id || null };
 }
 
 /* =========================================================
@@ -543,22 +583,23 @@ app.post("/api/admin/reset", async (req, res) => {
   }
 });
 
-// Diagnóstico SMTP (envía un correo de prueba)
+// Diagnóstico de correo: SMTP con fallback a Resend
 app.post("/api/debug/smtp", async (req, res) => {
   try {
-    const to = String((req.body?.to || process.env.SMTP_USER || "")).trim();
+    const to =
+      String(req.body?.to || process.env.SMTP_USER || process.env.RESEND_FROM || "").trim();
     if (!to) return res.status(400).json({ error: "missing_to" });
 
     const r = await sendMail({
       to,
-      subject: "SMTP OK — Venus",
-      text: "Hola 👋 Este es un correo de prueba enviado vía Resend SMTP desde Render.",
-      html: "<p>Hola 👋</p><p>Correo de prueba enviado vía <strong>Resend SMTP</strong> desde Render.</p>",
+      subject: "Prueba de correo — Venus Lealtad",
+      text: "Hola 👋 Este es un correo de prueba desde el servidor (SMTP/Resend).",
+      html: "<p>Hola 👋</p><p>Correo de prueba desde el servidor (<b>SMTP/Resend</b>).</p>",
     });
 
-    res.json({ ok: true, messageId: r?.messageId, to });
+    res.json({ ok: true, ...r, to });
   } catch (e) {
-    console.error("[SMTP TEST]", e);
+    console.error("[MAIL TEST]", e);
     res.status(500).json({ error: String(e.message || e) });
   }
 });
