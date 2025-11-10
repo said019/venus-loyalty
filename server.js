@@ -14,17 +14,28 @@ import { buildApplePassBuffer } from "./lib/apple.js";
 // DB
 import db from "./lib/db.js";
 
-// ===== Admin auth =====
+// Admin auth
 import cookieParser from "cookie-parser";
 import bcrypt from "bcryptjs";
 import { adminAuth, signAdmin, setAdminCookie, clearAdminCookie } from "./lib/auth.js";
 
-// __dirname para ESModules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// ===== SMTP / correo (helpers) =====
+const smtpFrom = process.env.SMTP_FROM || "Venus Admin <no-reply@venus.com>";
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST,
+  port: Number(process.env.SMTP_PORT || 587),
+  secure: false,
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS
+  }
+});
+
 // =====================
-// BASIC AUTH (para staff)
+// BASIC AUTH (para staff) — puedes retirarlo si ya no lo usas
 // =====================
 function basicAuth(req, res, next) {
   const hdr = req.headers.authorization || "";
@@ -42,14 +53,10 @@ function basicAuth(req, res, next) {
 // =====================
 // PREPARED STATEMENTS
 // =====================
-const insertCard = db.prepare(
-  "INSERT INTO cards (id, name, max) VALUES (?, ?, ?)"
-);
+const insertCard = db.prepare("INSERT INTO cards (id, name, max) VALUES (?, ?, ?)");
 const getCard = db.prepare("SELECT * FROM cards WHERE id = ?");
 const updStamps = db.prepare("UPDATE cards SET stamps = ? WHERE id = ?");
-const logEvent = db.prepare(
-  "INSERT INTO events (card_id, type, meta) VALUES (?, ?, ?)"
-);
+const logEvent = db.prepare("INSERT INTO events (card_id, type, meta) VALUES (?, ?, ?)");
 const lastStampStmt = db.prepare(`
   SELECT created_at FROM events
   WHERE card_id = ? AND type = 'STAMP'
@@ -62,18 +69,20 @@ const listEvents = db.prepare(`
   ORDER BY id DESC
 `);
 
-// =====================
-// TABLA PARA TOKENS DE RESET (si no existe)
-// =====================
-db.exec(`
-  CREATE TABLE IF NOT EXISTS admin_resets (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    admin_id TEXT NOT NULL,
-    token TEXT NOT NULL UNIQUE,
-    expires_at TEXT NOT NULL,
-    used INTEGER DEFAULT 0
-  );
+// ==== Admin prepared statements ====
+const insertAdmin = db.prepare("INSERT INTO admins (id, email, pass_hash) VALUES (?, ?, ?)");
+const getAdminByEmail = db.prepare("SELECT * FROM admins WHERE email = ?");
+const countAdmins = db.prepare("SELECT COUNT(*) AS n FROM admins");
+
+// Reset password
+const insertReset = db.prepare(`
+  INSERT INTO admin_resets (token, admin_id, email, expires_at)
+  VALUES (@token, @admin_id, @email, @expires_at)
 `);
+const getResetByToken = db.prepare("SELECT * FROM admin_resets WHERE token = ?");
+const deleteResetsByEmail = db.prepare("DELETE FROM admin_resets WHERE email = ?");
+const deleteResetByToken = db.prepare("DELETE FROM admin_resets WHERE token = ?");
+const updateAdminPass = db.prepare("UPDATE admins SET pass_hash = ? WHERE id = ?");
 
 // =====================
 // APP BASE
@@ -82,7 +91,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser()); // cookies JWT admin
+app.use(cookieParser());
 
 // servir interfaz pública (cliente) desde /public
 app.use(express.static("public"));
@@ -94,11 +103,8 @@ app.get("/admin", (_req, res) => {
 app.get("/admin-login.html", (_req, res) => {
   res.sendFile(path.join(__dirname, "public", "admin-login.html"));
 });
-app.get("/admin-reset.html", (_req, res) => {
-  res.sendFile(path.join(__dirname, "public", "admin-reset.html"));
-});
 
-// Proteger staff.html con Basic Auth
+// (opcional) Staff antiguo
 app.get("/staff.html", basicAuth, (_req, res) => {
   res.sendFile(path.join(__dirname, "public", "staff.html"));
 });
@@ -115,45 +121,12 @@ function canStamp(cardId) {
 }
 
 // =====================
-// HELPERS DE EMAIL (SMTP opcional)
-// =====================
-function buildTransport() {
-  const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS } = process.env;
-  if (!SMTP_HOST) return null;
-  return nodemailer.createTransport({
-    host: SMTP_HOST,
-    port: Number(SMTP_PORT || 587),
-    secure: Number(SMTP_PORT || 587) === 465,
-    auth: SMTP_USER ? { user: SMTP_USER, pass: SMTP_PASS } : undefined,
-  });
-}
-
-async function sendResetEmail(to, link) {
-  const transporter = buildTransport();
-  const from = process.env.SMTP_FROM || "no-reply@venus.local";
-  const html = `
-    <p>Hola,</p>
-    <p>Has solicitado restablecer tu contraseña del Panel Admin.</p>
-    <p><a href="${link}">${link}</a></p>
-    <p>El enlace expira en 1 hora. Si no fuiste tú, ignora este correo.</p>
-  `;
-  if (!transporter) {
-    console.log("[ResetLink]", link);
-    return;
-  }
-  await transporter.sendMail({ from, to, subject: "Restablecer contraseña", html });
-}
-
-// =====================
 // RUTAS PÚBLICAS / CLIENTE
 // =====================
-
-// Ping simple
 app.get("/", (_req, res) => {
   res.send("☕ Loyalty Wallet API funcionando correctamente");
 });
 
-// (Opcional) Debug Google Wallet: confirma que la clase existe/permisos OK
 app.get("/api/debug/google-class", async (_req, res) => {
   try {
     const info = await checkLoyaltyClass();
@@ -163,7 +136,6 @@ app.get("/api/debug/google-class", async (_req, res) => {
   }
 });
 
-// Emitir tarjeta
 app.post("/api/issue", (req, res) => {
   try {
     let { name = "Cliente", max = 8 } = req.body;
@@ -171,18 +143,11 @@ app.post("/api/issue", (req, res) => {
     if (!Number.isInteger(max) || max <= 0) {
       return res.status(400).json({ error: "max debe ser entero > 0" });
     }
-
     const cardId = `card_${Date.now()}`;
-
     insertCard.run(cardId, String(name).trim() || "Cliente", max);
     logEvent.run(cardId, "ISSUE", JSON.stringify({ name, max }));
 
-    const addToGoogleUrl = buildGoogleSaveUrl({
-      cardId,
-      name,
-      stamps: 0,
-      max,
-    });
+    const addToGoogleUrl = buildGoogleSaveUrl({ cardId, name, stamps: 0, max });
     const addToAppleUrl = `${process.env.BASE_URL}/api/apple/pass?cardId=${cardId}`;
 
     res.json({ cardId, addToGoogleUrl, addToAppleUrl });
@@ -191,20 +156,17 @@ app.post("/api/issue", (req, res) => {
   }
 });
 
-// Leer tarjeta (para UI cliente)
 app.get("/api/card/:cardId", (req, res) => {
   const card = getCard.get(req.params.cardId);
   if (!card) return res.status(404).json({ error: "not_found" });
   res.json(card);
 });
 
-// Historial de eventos
 app.get("/api/events/:cardId", (req, res) => {
   const rows = listEvents.all(req.params.cardId);
   res.json(rows);
 });
 
-// Link "Guardar en Google Wallet" para una tarjeta existente
 app.get("/api/wallet-link/:cardId", (req, res) => {
   const card = getCard.get(req.params.cardId);
   if (!card) return res.status(404).json({ error: "not_found" });
@@ -219,7 +181,6 @@ app.get("/api/wallet-link/:cardId", (req, res) => {
   res.json({ addToGoogleUrl });
 });
 
-// Emitir pase Apple (placeholder)
 app.get("/api/apple/pass", async (req, res) => {
   try {
     const { cardId } = req.query;
@@ -233,17 +194,16 @@ app.get("/api/apple/pass", async (req, res) => {
     });
 
     res.setHeader("Content-Type", "application/vnd.apple.pkpass");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="${cardId}.pkpass"`
-    );
+    res.setHeader("Content-Disposition", `attachment; filename="${cardId}.pkpass"`);
     res.send(buffer);
   } catch (e) {
     res.status(500).send(e.message);
   }
 });
 
-// +1 sello (staff, 1/día) — protegido con Basic Auth
+// =====================
+// STAFF (sello/canje) — si ya no lo usas, puedes borrarlo
+// =====================
 app.post("/api/stamp/:cardId", basicAuth, (req, res) => {
   try {
     const { cardId } = req.params;
@@ -253,7 +213,6 @@ app.post("/api/stamp/:cardId", basicAuth, (req, res) => {
     if (card.stamps >= card.max) {
       return res.json({ ...card, message: "Tarjeta ya completa" });
     }
-
     if (!canStamp(cardId)) {
       return res.status(429).json({ error: "Solo 1 sello por día" });
     }
@@ -275,7 +234,6 @@ app.post("/api/stamp/:cardId", basicAuth, (req, res) => {
   }
 });
 
-// Canjear premio — protegido con Basic Auth
 app.post("/api/redeem/:cardId", basicAuth, (req, res) => {
   try {
     const { cardId } = req.params;
@@ -286,7 +244,6 @@ app.post("/api/redeem/:cardId", basicAuth, (req, res) => {
       return res.status(400).json({ error: "Aún no completa los sellos" });
     }
 
-    // reiniciar a 0 para siguiente ciclo
     updStamps.run(0, cardId);
     logEvent.run(cardId, "REDEEM", JSON.stringify({ by: "reception" }));
 
@@ -303,40 +260,11 @@ app.post("/api/redeem/:cardId", basicAuth, (req, res) => {
   }
 });
 
-// Exportar CSV — protegido con Basic Auth
-app.get("/api/export.csv", basicAuth, (_req, res) => {
-  try {
-    const rows = db.prepare(`
-      SELECT id, name, stamps, max, status, created_at
-      FROM cards
-      ORDER BY created_at DESC
-    `).all();
-
-    const header = "id,name,stamps,max,status,created_at";
-    const csvLines = rows.map(r =>
-      [r.id, r.name, r.stamps, r.max, r.status, r.created_at]
-        .map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")
-    );
-
-    const csv = [header, ...csvLines].join("\n");
-    res.setHeader("Content-Type", "text/csv; charset=utf-8");
-    res.setHeader("Content-Disposition", "attachment; filename=venus_cards.csv");
-    res.send(csv);
-  } catch (e) {
-    res.status(500).send(e.message);
-  }
-});
-
 // =====================
-// ===== ADMIN
+// ===== ADMIN (auth + data + acciones + forgot/reset)
 // =====================
 
-// prepared statements admin
-const insertAdmin = db.prepare("INSERT INTO admins (id, email, pass_hash) VALUES (?, ?, ?)");
-const getAdminByEmail = db.prepare("SELECT * FROM admins WHERE email = ?");
-const countAdmins = db.prepare("SELECT COUNT(*) AS n FROM admins");
-
-// AUTH
+// Registro
 app.post("/api/admin/register", async (req, res) => {
   try {
     const allow = (process.env.ADMIN_ALLOW_SIGNUP || "false").toLowerCase() === "true";
@@ -359,6 +287,7 @@ app.post("/api/admin/register", async (req, res) => {
   }
 });
 
+// Login
 app.post("/api/admin/login", async (req, res) => {
   try {
     const { email, password } = req.body || {};
@@ -378,29 +307,29 @@ app.post("/api/admin/login", async (req, res) => {
   }
 });
 
+// Logout
 app.post("/api/admin/logout", (_req, res) => {
   clearAdminCookie(res);
   res.json({ ok: true });
 });
 
+// Who am I
 app.get("/api/admin/me", adminAuth, (req, res) => {
   res.json({ uid: req.admin.uid, email: req.admin.email });
 });
 
-// DATA (cards + eventos) protegidas con adminAuth
+// Listado de tarjetas (paginado/filtrado básico)
 const listCardsStmt = db.prepare(`
   SELECT id, name, stamps, max, status, created_at
   FROM cards
-  WHERE 1=1
-    AND (LOWER(id) LIKE LOWER(@like) OR LOWER(name) LIKE LOWER(@like))
+  WHERE (LOWER(id) LIKE LOWER(@like) OR LOWER(name) LIKE LOWER(@like))
   ORDER BY created_at DESC
   LIMIT @limit OFFSET @offset
 `);
 const countCardsStmt = db.prepare(`
   SELECT COUNT(*) AS n
   FROM cards
-  WHERE 1=1
-    AND (LOWER(id) LIKE LOWER(@like) OR LOWER(name) LIKE LOWER(@like))
+  WHERE (LOWER(id) LIKE LOWER(@like) OR LOWER(name) LIKE LOWER(@like))
 `);
 
 app.get("/api/admin/cards", adminAuth, (req, res) => {
@@ -420,6 +349,7 @@ app.get("/api/admin/cards", adminAuth, (req, res) => {
   }
 });
 
+// Eventos por tarjeta
 const listEventsByCard = db.prepare(`
   SELECT id, type, meta, created_at
   FROM events
@@ -439,7 +369,7 @@ app.get("/api/admin/events", adminAuth, (req, res) => {
   }
 });
 
-// ==== Acciones Admin: sumar sello / canjear (protegidas con adminAuth) ====
+// Acciones admin
 app.post("/api/admin/stamp", adminAuth, (req, res) => {
   try {
     const { cardId } = req.body || {};
@@ -447,14 +377,8 @@ app.post("/api/admin/stamp", adminAuth, (req, res) => {
 
     const card = getCard.get(cardId);
     if (!card) return res.status(404).json({ error: "card not found" });
-
-    if (card.stamps >= card.max) {
-      return res.status(400).json({ error: "already_full" });
-    }
-
-    if (!canStamp(cardId)) {
-      return res.status(429).json({ error: "Solo 1 sello por día" });
-    }
+    if (card.stamps >= card.max) return res.status(400).json({ error: "already_full" });
+    if (!canStamp(cardId)) return res.status(429).json({ error: "Solo 1 sello por día" });
 
     const newStamps = card.stamps + 1;
     updStamps.run(newStamps, cardId);
@@ -473,22 +397,17 @@ app.post("/api/admin/redeem", adminAuth, (req, res) => {
 
     const card = getCard.get(cardId);
     if (!card) return res.status(404).json({ error: "card not found" });
+    if (card.stamps < card.max) return res.status(400).json({ error: "not_enough_stamps" });
 
-    if (card.stamps < card.max) {
-      return res.status(400).json({ error: "not_enough_stamps" });
-    }
-
-    // reinicia para siguiente ciclo
     updStamps.run(0, cardId);
     logEvent.run(cardId, "REDEEM", JSON.stringify({ by: "admin" }));
-
     return res.json({ ok: true, cardId });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
 });
 
-// ==== Métricas básicas para el dashboard (opcional) ====
+// Métricas
 const countAllCards = db.prepare(`SELECT COUNT(*) AS n FROM cards`);
 const countFullCards = db.prepare(`SELECT COUNT(*) AS n FROM cards WHERE stamps >= max`);
 const countEventsToday = db.prepare(`
@@ -505,44 +424,51 @@ app.get("/api/admin/metrics", adminAuth, (_req, res) => {
     const rows = countEventsToday.all();
     const m = { STAMP: 0, REDEEM: 0 };
     for (const r of rows) m[r.type] = r.n;
-    res.json({
-      total,
-      full,
-      stampsToday: m.STAMP || 0,
-      redeemsToday: m.REDEEM || 0
-    });
+    res.json({ total, full, stampsToday: m.STAMP || 0, redeemsToday: m.REDEEM || 0 });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
 });
 
-// =====================
-// RECUPERACIÓN DE CONTRASEÑA (FORGOT / RESET)
-// =====================
-app.post("/api/admin/forgot", (req, res) => {
+// ==== Olvidé / Reset password ====
+app.post("/api/admin/forgot", async (req, res) => {
   try {
     const { email } = req.body || {};
     if (!email) return res.status(400).json({ error: "missing_email" });
 
-    const admin = getAdminByEmail.get(String(email).trim().toLowerCase());
+    const admin = getAdminByEmail.get(email.trim().toLowerCase());
+    // No revelamos existencia (seguridad)
+    if (!admin) return res.json({ ok: true });
 
-    if (admin) {
-      const token = crypto.randomBytes(32).toString("hex");
-      const expires = new Date(Date.now() + 60 * 60 * 1000); // 1 hora
-      db.prepare(`
-        INSERT INTO admin_resets (admin_id, token, expires_at)
-        VALUES (?, ?, ?)
-      `).run(admin.id, token, expires.toISOString());
+    deleteResetsByEmail.run(admin.email);
 
-      const base = process.env.APP_BASE_URL || process.env.BASE_URL || `http://localhost:${process.env.PORT || 3000}`;
-      const link = `${base}/admin-reset.html?token=${token}`;
+    const token = crypto.randomBytes(48).toString("hex");
+    const expires = new Date(Date.now() + 1000 * 60 * 30); // 30 min
+    insertReset.run({
+      token,
+      admin_id: admin.id,
+      email: admin.email,
+      expires_at: expires.toISOString().slice(0,19).replace("T"," ")
+    });
 
-      // Enviar email o imprimir en logs si no hay SMTP
-      sendResetEmail(admin.email, link).catch(console.error);
-    }
+    const base = process.env.APP_BASE_URL || process.env.BASE_URL || "";
+    const link = `${base}/admin-login.html#reset?token=${token}`;
 
-    // Respuesta genérica (para no filtrar usuarios)
-    return res.json({ ok: true });
+    await transporter.sendMail({
+      from: smtpFrom,
+      to: admin.email,
+      subject: "Restablecer contraseña — Venus Admin",
+      html: `
+        <div style="font-family:system-ui,Segoe UI,Roboto,Arial">
+          <h2>Restablecer contraseña</h2>
+          <p>Recibimos una solicitud para restablecer tu contraseña.</p>
+          <p><a href="${link}" style="background:#8c9668;color:#fff;padding:10px 14px;border-radius:10px;text-decoration:none;display:inline-block">Restablecer ahora</a></p>
+          <p style="font-size:12px;color:#6b7280">El enlace expira en 30 minutos. Si no fuiste tú, ignora este correo.</p>
+        </div>
+      `
+    });
+
+    res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -553,23 +479,21 @@ app.post("/api/admin/reset", async (req, res) => {
     const { token, password } = req.body || {};
     if (!token || !password) return res.status(400).json({ error: "missing_fields" });
 
-    const row = db.prepare(`
-      SELECT * FROM admin_resets
-      WHERE token = ? AND used = 0
-      LIMIT 1
-    `).get(token);
-
+    const row = getResetByToken.get(token);
     if (!row) return res.status(400).json({ error: "invalid_token" });
-    if (new Date(row.expires_at) < new Date()) return res.status(400).json({ error: "expired" });
 
-    const admin = db.prepare(`SELECT * FROM admins WHERE id = ?`).get(row.admin_id);
-    if (!admin) return res.status(400).json({ error: "invalid_token" });
+    const now = new Date();
+    const exp = new Date(row.expires_at + "Z");
+    if (now > exp) {
+      deleteResetByToken.run(token);
+      return res.status(400).json({ error: "expired_token" });
+    }
 
-    const pass_hash = await bcrypt.hash(password, 10);
-    db.prepare(`UPDATE admins SET pass_hash = ? WHERE id = ?`).run(pass_hash, admin.id);
-    db.prepare(`UPDATE admin_resets SET used = 1 WHERE id = ?`).run(row.id);
+    const hash = await bcrypt.hash(password, 10);
+    updateAdminPass.run(hash, row.admin_id);
+    deleteResetByToken.run(token);
 
-    return res.json({ ok: true });
+    res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
