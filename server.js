@@ -24,81 +24,59 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 /* =========================================================
-   MAILER: SMTP con fallback a Resend HTTP API
-   Env vars soportadas:
-     - SMTP_HOST / SMTP_PORT / SMTP_USER / SMTP_PASS / SMTP_FROM
-     - RESEND_API_KEY / RESEND_FROM
+   MAIL: Resend API (preferido) o SMTP (respaldo)
    ========================================================= */
-function withTimeout(promise, ms, label = "SMTP") {
-  return Promise.race([
-    promise,
-    new Promise((_, rej) => setTimeout(() => rej(new Error(`${label} timeout`)), ms)),
-  ]);
-}
+async function sendMail({ to, subject, text, html }) {
+  // A) Resend API (más simple). Solo requiere RESEND_API_KEY y RESEND_FROM
+  if (process.env.RESEND_API_KEY) {
+    const sender = process.env.RESEND_FROM || "Venus Admin <no-reply@your-domain.com>";
+    const resp = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: sender,
+        to: Array.isArray(to) ? to : [to],
+        subject,
+        text,
+        html,
+      }),
+    });
+    const j = await resp.json().catch(() => ({}));
+    if (!resp.ok) {
+      throw new Error("Resend error: " + JSON.stringify(j));
+    }
+    return { channel: "resend", id: j?.id || null };
+  }
 
-function buildSmtpTransport() {
+  // B) SMTP (por ejemplo smtp.resend.com, Gmail u otro)
   const host = process.env.SMTP_HOST;
   const port = Number(process.env.SMTP_PORT || 587);
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;
-  if (!host || !port || !user || !pass) return null;
+  if (!host || !port || !user || !pass) {
+    throw new Error("No hay SMTP operativo ni RESEND_API_KEY configurada");
+  }
 
-  return nodemailer.createTransport({
+  const transporter = nodemailer.createTransport({
     host,
     port,
     secure: port === 465,
     auth: { user, pass },
-    connectionTimeout: 15_000,
-    greetingTimeout: 10_000,
-    socketTimeout: 20_000,
-  });
-}
-
-const SMTP_TRANSPORT = buildSmtpTransport();
-
-async function sendMail({ to, subject, html, text }) {
-  const from =
-    process.env.SMTP_FROM ||
-    process.env.RESEND_FROM ||
-    (process.env.SMTP_USER ? `Venus Admin <${process.env.SMTP_USER}>` : "onboarding@resend.dev");
-
-  // 1) SMTP si está configurado
-  if (SMTP_TRANSPORT) {
-    try {
-      const info = await withTimeout(
-        SMTP_TRANSPORT.sendMail({ from, to, subject, html, text }),
-        15000,
-        "SMTP"
-      );
-      return { ok: true, channel: "smtp", messageId: info?.messageId || null };
-    } catch (e) {
-      console.warn("[MAIL] SMTP falló/timeout, intento Resend HTTP…", e?.message || e);
-    }
-  }
-
-  // 2) Fallback Resend HTTP API
-  const key = process.env.RESEND_API_KEY;
-  if (!key) throw new Error("No hay SMTP operativo ni RESEND_API_KEY configurada");
-
-  const resp = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      from: process.env.RESEND_FROM || from,
-      to,
-      subject,
-      html,
-      text,
-    }),
+    connectionTimeout: 15000,
+    greetingTimeout: 10000,
+    socketTimeout: 20000,
   });
 
-  const json = await resp.json();
-  if (!resp.ok) throw new Error(`Resend error: ${resp.status} ${JSON.stringify(json)}`);
-  return { ok: true, channel: "resend", messageId: json?.id || null };
+  const from = process.env.SMTP_FROM || `Venus Admin <${process.env.SMTP_USER}>`;
+  const info = await transporter.sendMail({ from, to, subject, text, html });
+  return { channel: "smtp", id: info?.messageId || null };
 }
 
 /* =========================================================
-   BASIC AUTH (para staff QR)
+   BASIC AUTH (solo si mantienes /staff)
    ========================================================= */
 function basicAuth(req, res, next) {
   const hdr = req.headers.authorization || "";
@@ -117,16 +95,45 @@ function basicAuth(req, res, next) {
    SQL: tablas y prepared statements
    ========================================================= */
 
-// Tabla para reseteo de contraseña (token)
+// --- admins (asumido existente)
+const insertAdmin     = db.prepare("INSERT INTO admins (id, email, pass_hash) VALUES (?, ?, ?)");
+const getAdminByEmail = db.prepare("SELECT * FROM admins WHERE email = ?");
+const countAdmins     = db.prepare("SELECT COUNT(*) AS n FROM admins");
+
+// --- admin_resets (token de recuperación) con migración a admin_id NOT NULL
 db.exec(`
   CREATE TABLE IF NOT EXISTS admin_resets (
     token TEXT PRIMARY KEY,
+    admin_id TEXT NOT NULL,
     email TEXT NOT NULL,
     expires_at TEXT NOT NULL
   );
 `);
+function ensureAdminResetsSchema() {
+  const cols = db.prepare(`PRAGMA table_info(admin_resets)`).all();
+  const names = cols.map(c => c.name);
+  const need = ["token", "admin_id", "email", "expires_at"];
+  const ok = need.every(n => names.includes(n));
+  if (!ok) {
+    db.exec("DROP TABLE IF EXISTS admin_resets;");
+    db.exec(`
+      CREATE TABLE admin_resets (
+        token TEXT PRIMARY KEY,
+        admin_id TEXT NOT NULL,
+        email TEXT NOT NULL,
+        expires_at TEXT NOT NULL
+      );
+    `);
+    console.log("[DB] admin_resets recreada con admin_id NOT NULL");
+  }
+}
+ensureAdminResetsSchema();
 
-// Tarjetas / eventos
+const insertReset = db.prepare("INSERT INTO admin_resets (token, admin_id, email, expires_at) VALUES (?, ?, ?, ?)");
+const findReset   = db.prepare("SELECT * FROM admin_resets WHERE token = ?");
+const delReset    = db.prepare("DELETE FROM admin_resets WHERE token = ?");
+
+// --- tarjetas / eventos
 const insertCard = db.prepare("INSERT INTO cards (id, name, max) VALUES (?, ?, ?)");
 const getCard    = db.prepare("SELECT * FROM cards WHERE id = ?");
 const updStamps  = db.prepare("UPDATE cards SET stamps = ? WHERE id = ?");
@@ -143,20 +150,9 @@ const listEvents = db.prepare(`
   ORDER BY id DESC
 `);
 
-// Admin
-const insertAdmin     = db.prepare("INSERT INTO admins (id, email, pass_hash) VALUES (?, ?, ?)");
-const getAdminByEmail = db.prepare("SELECT * FROM admins WHERE email = ?");
-const countAdmins     = db.prepare("SELECT COUNT(*) AS n FROM admins");
-
-// Admin (reset)
-const insertReset = db.prepare("INSERT INTO admin_resets (token, email, expires_at) VALUES (?, ?, ?)");
-const findReset   = db.prepare("SELECT * FROM admin_resets WHERE token = ?");
-const delReset    = db.prepare("DELETE FROM admin_resets WHERE token = ?");
-const updatePass  = db.prepare("UPDATE admins SET pass_hash = ? WHERE email = ?");
-
-// Métricas
-const countAllCards   = db.prepare(`SELECT COUNT(*) AS n FROM cards`);
-const countFullCards  = db.prepare(`SELECT COUNT(*) AS n FROM cards WHERE stamps >= max`);
+// --- métricas
+const countAllCards    = db.prepare(`SELECT COUNT(*) AS n FROM cards`);
+const countFullCards   = db.prepare(`SELECT COUNT(*) AS n FROM cards WHERE stamps >= max`);
 const countEventsToday = db.prepare(`
   SELECT type, COUNT(*) AS n
   FROM events
@@ -164,7 +160,7 @@ const countEventsToday = db.prepare(`
   GROUP BY type
 `);
 
-// Listado/paginación para admin
+// --- listas para admin
 const listCardsStmt = db.prepare(`
   SELECT id, name, stamps, max, status, created_at
   FROM cards
@@ -189,10 +185,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// Archivos estáticos
+// estáticos
 app.use(express.static("public"));
 
-// Páginas HTML
+// páginas
 app.get("/admin", (_req, res) => {
   res.sendFile(path.join(__dirname, "public", "admin.html"));
 });
@@ -204,7 +200,7 @@ app.get("/staff.html", basicAuth, (_req, res) => {
 });
 
 /* =========================================================
-   ANTI-FRAUDE: 1 sello/día
+   ANTI-FRAUDE: 1 sello por día
    ========================================================= */
 function canStamp(cardId) {
   const row = lastStampStmt.get(cardId);
@@ -217,11 +213,13 @@ function canStamp(cardId) {
 /* =========================================================
    RUTAS PÚBLICAS / CLIENTE
    ========================================================= */
+
+// ping
 app.get("/", (_req, res) => {
   res.send("☕ Loyalty Wallet API funcionando correctamente");
 });
 
-// Debug Google Wallet: confirma clase
+// debug google wallet
 app.get("/api/debug/google-class", async (_req, res) => {
   try {
     const info = await checkLoyaltyClass();
@@ -231,7 +229,7 @@ app.get("/api/debug/google-class", async (_req, res) => {
   }
 });
 
-// Emitir tarjeta
+// emitir tarjeta
 app.post("/api/issue", (req, res) => {
   try {
     let { name = "Cliente", max = 8 } = req.body;
@@ -239,49 +237,45 @@ app.post("/api/issue", (req, res) => {
     if (!Number.isInteger(max) || max <= 0) {
       return res.status(400).json({ error: "max debe ser entero > 0" });
     }
-
     const cardId = `card_${Date.now()}`;
     insertCard.run(cardId, String(name).trim() || "Cliente", max);
     logEvent.run(cardId, "ISSUE", JSON.stringify({ name, max }));
 
     const addToGoogleUrl = buildGoogleSaveUrl({ cardId, name, stamps: 0, max });
     const addToAppleUrl  = `${process.env.BASE_URL}/api/apple/pass?cardId=${cardId}`;
-
     res.json({ cardId, addToGoogleUrl, addToAppleUrl });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// Obtener tarjeta
+// obtener tarjeta
 app.get("/api/card/:cardId", (req, res) => {
   const card = getCard.get(req.params.cardId);
   if (!card) return res.status(404).json({ error: "not_found" });
   res.json(card);
 });
 
-// Eventos de tarjeta
+// eventos de tarjeta
 app.get("/api/events/:cardId", (req, res) => {
   const rows = listEvents.all(req.params.cardId);
   res.json(rows);
 });
 
-// Link de “Guardar en Google Wallet”
+// link guardar en Google Wallet (tarjeta existente)
 app.get("/api/wallet-link/:cardId", (req, res) => {
   const card = getCard.get(req.params.cardId);
   if (!card) return res.status(404).json({ error: "not_found" });
-
   const addToGoogleUrl = buildGoogleSaveUrl({
     cardId: card.id,
     name  : card.name,
     stamps: card.stamps,
     max   : card.max,
   });
-
   res.json({ addToGoogleUrl });
 });
 
-// Emitir pase Apple (pkpass placeholder)
+// emitir pase Apple (placeholder)
 app.get("/api/apple/pass", async (req, res) => {
   try {
     const { cardId } = req.query;
@@ -302,58 +296,45 @@ app.get("/api/apple/pass", async (req, res) => {
   }
 });
 
-// +1 sello (staff, 1/día) — Basic Auth
+// +1 sello (staff)
 app.post("/api/stamp/:cardId", basicAuth, (req, res) => {
   try {
     const { cardId } = req.params;
     const card = getCard.get(cardId);
     if (!card) return res.status(404).json({ error: "card not found" });
-
-    if (card.stamps >= card.max) {
-      return res.json({ ...card, message: "Tarjeta ya completa" });
-    }
-    if (!canStamp(cardId)) {
-      return res.status(429).json({ error: "Solo 1 sello por día" });
-    }
+    if (card.stamps >= card.max) return res.json({ ...card, message: "Tarjeta ya completa" });
+    if (!canStamp(cardId)) return res.status(429).json({ error: "Solo 1 sello por día" });
 
     const newStamps = card.stamps + 1;
     updStamps.run(newStamps, cardId);
     logEvent.run(cardId, "STAMP", JSON.stringify({ by: "reception" }));
 
-    const addToGoogleUrl = buildGoogleSaveUrl({
-      cardId, name: card.name, stamps: newStamps, max: card.max,
-    });
-
+    const addToGoogleUrl = buildGoogleSaveUrl({ cardId, name: card.name, stamps: newStamps, max: card.max });
     res.json({ ...card, stamps: newStamps, addToGoogleUrl });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
 });
 
-// Canjear (staff) — Basic Auth
+// canjear (staff)
 app.post("/api/redeem/:cardId", basicAuth, (req, res) => {
   try {
     const { cardId } = req.params;
     const card = getCard.get(cardId);
     if (!card) return res.status(404).json({ error: "card not found" });
-    if (card.stamps < card.max) {
-      return res.status(400).json({ error: "Aún no completa los sellos" });
-    }
+    if (card.stamps < card.max) return res.status(400).json({ error: "Aún no completa los sellos" });
 
     updStamps.run(0, cardId);
     logEvent.run(cardId, "REDEEM", JSON.stringify({ by: "reception" }));
 
-    const addToGoogleUrl = buildGoogleSaveUrl({
-      cardId, name: card.name, stamps: 0, max: card.max,
-    });
-
+    const addToGoogleUrl = buildGoogleSaveUrl({ cardId, name: card.name, stamps: 0, max: card.max });
     res.json({ ok: true, message: "Canje realizado", cardId, addToGoogleUrl });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
 });
 
-// Export CSV — Basic Auth
+// export CSV (staff)
 app.get("/api/export.csv", basicAuth, (_req, res) => {
   try {
     const rows = db.prepare(`
@@ -381,7 +362,7 @@ app.get("/api/export.csv", basicAuth, (_req, res) => {
    ADMIN (auth + panel)
    ========================================================= */
 
-// Registro admin
+// registrar admin
 app.post("/api/admin/register", async (req, res) => {
   try {
     const allow = (process.env.ADMIN_ALLOW_SIGNUP || "false").toLowerCase() === "true";
@@ -405,7 +386,7 @@ app.post("/api/admin/register", async (req, res) => {
   }
 });
 
-// Login admin
+// login admin
 app.post("/api/admin/login", async (req, res) => {
   try {
     const { email, password } = req.body || {};
@@ -434,7 +415,7 @@ app.get("/api/admin/me", adminAuth, (req, res) => {
   res.json({ uid: req.admin.uid, email: req.admin.email });
 });
 
-// Listado tarjetas (admin)
+// tarjetas (admin)
 app.get("/api/admin/cards", adminAuth, (req, res) => {
   try {
     const page = Math.max(1, parseInt(req.query.page || "1", 10));
@@ -452,7 +433,7 @@ app.get("/api/admin/cards", adminAuth, (req, res) => {
   }
 });
 
-// Eventos por tarjeta (admin)
+// eventos por tarjeta (admin)
 app.get("/api/admin/events", adminAuth, (req, res) => {
   try {
     const { cardId } = req.query || {};
@@ -464,7 +445,7 @@ app.get("/api/admin/events", adminAuth, (req, res) => {
   }
 });
 
-// Acciones admin: +1 sello
+// +1 sello (admin)
 app.post("/api/admin/stamp", adminAuth, (req, res) => {
   try {
     const { cardId } = req.body || {};
@@ -478,13 +459,14 @@ app.post("/api/admin/stamp", adminAuth, (req, res) => {
     const newStamps = card.stamps + 1;
     updStamps.run(newStamps, cardId);
     logEvent.run(cardId, "STAMP", JSON.stringify({ by: "admin" }));
+
     res.json({ ok: true, cardId, stamps: newStamps });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
 });
 
-// Acciones admin: canjear
+// canjear (admin)
 app.post("/api/admin/redeem", adminAuth, (req, res) => {
   try {
     const { cardId } = req.body || {};
@@ -496,13 +478,14 @@ app.post("/api/admin/redeem", adminAuth, (req, res) => {
 
     updStamps.run(0, cardId);
     logEvent.run(cardId, "REDEEM", JSON.stringify({ by: "admin" }));
+
     res.json({ ok: true, cardId });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
 });
 
-// Métricas dashboard
+// métricas
 app.get("/api/admin/metrics", adminAuth, (_req, res) => {
   try {
     const total = countAllCards.get().n;
@@ -520,19 +503,19 @@ app.get("/api/admin/metrics", adminAuth, (_req, res) => {
    RECUPERACIÓN DE CONTRASEÑA (admin)
    ========================================================= */
 
-// Solicitar enlace “Olvidé mi contraseña”
+// solicitar link
 app.post("/api/admin/forgot", async (req, res) => {
   try {
     const email = String((req.body?.email || "")).trim().toLowerCase();
     if (!email) return res.status(400).json({ error: "missing_email" });
 
     const admin = getAdminByEmail.get(email);
-    // Siempre 200 para no revelar si existe o no
+    // Siempre 200 para no revelar si existe
     if (!admin) return res.json({ ok: true });
 
     const token = crypto.randomBytes(24).toString("hex");
     const expires = new Date(Date.now() + 30 * 60 * 1000).toISOString(); // 30 min
-    insertReset.run(token, email, expires);
+    insertReset.run(token, admin.id, email, expires);
 
     const base = process.env.APP_BASE_URL || process.env.BASE_URL || "";
     const link = `${base}/admin-login.html?view=reset&token=${token}`;
@@ -540,7 +523,12 @@ app.post("/api/admin/forgot", async (req, res) => {
     await sendMail({
       to: email,
       subject: "Restablecer tu contraseña — Venus Lealtad",
-      text: `Hola,\n\nPara restablecer tu contraseña usa este enlace (válido 30 minutos):\n${link}\n\nSi no fuiste tú, ignora este mensaje.`,
+      text: `Hola,
+
+Para restablecer tu contraseña usa este enlace (válido 30 minutos):
+${link}
+
+Si no fuiste tú, ignora este mensaje.`,
       html: `
         <div style="font-family:system-ui,Arial,sans-serif">
           <h2 style="margin:0 0 8px">Restablecer contraseña</h2>
@@ -558,7 +546,7 @@ app.post("/api/admin/forgot", async (req, res) => {
   }
 });
 
-// Aplicar nueva contraseña con token
+// aplicar nueva contraseña
 app.post("/api/admin/reset", async (req, res) => {
   try {
     const { token, password } = req.body || {};
@@ -573,7 +561,7 @@ app.post("/api/admin/reset", async (req, res) => {
     }
 
     const pass_hash = await bcrypt.hash(password, 10);
-    updatePass.run(pass_hash, row.email);
+    db.prepare("UPDATE admins SET pass_hash = ? WHERE id = ?").run(pass_hash, row.admin_id);
     delReset.run(token);
 
     res.json({ ok: true });
@@ -583,21 +571,22 @@ app.post("/api/admin/reset", async (req, res) => {
   }
 });
 
-// Diagnóstico de correo: SMTP con fallback a Resend
-app.post("/api/debug/smtp", async (req, res) => {
+/* =========================================================
+   DEBUG MAIL (prueba canal disponible)
+   ========================================================= */
+app.post("/api/debug/mail", async (req, res) => {
   try {
-    const to =
-      String(req.body?.to || process.env.SMTP_USER || process.env.RESEND_FROM || "").trim();
+    const to = String((req.body?.to || process.env.SMTP_USER || "").trim());
     if (!to) return res.status(400).json({ error: "missing_to" });
 
     const r = await sendMail({
       to,
-      subject: "Prueba de correo — Venus Lealtad",
-      text: "Hola 👋 Este es un correo de prueba desde el servidor (SMTP/Resend).",
-      html: "<p>Hola 👋</p><p>Correo de prueba desde el servidor (<b>SMTP/Resend</b>).</p>",
+      subject: "Prueba de correo — Venus",
+      text: "Hola 👋 Este es un correo de prueba.",
+      html: "<p>Hola 👋</p><p>Este es un correo de prueba.</p>",
     });
 
-    res.json({ ok: true, ...r, to });
+    res.json({ ok: true, channel: r.channel, messageId: r.id, to });
   } catch (e) {
     console.error("[MAIL TEST]", e);
     res.status(500).json({ error: String(e.message || e) });
