@@ -23,32 +23,43 @@ import { adminAuth, signAdmin, setAdminCookie, clearAdminCookie } from "./lib/au
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// =====================
-// SMTP helper
-// =====================
-function createTransporter() {
+/* =========================================================
+   SMTP (Resend) — helper global
+   ========================================================= */
+function createTransport() {
   const host = process.env.SMTP_HOST;
-  const port = parseInt(process.env.SMTP_PORT || "587", 10);
+  const port = Number(process.env.SMTP_PORT || 587);
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;
 
+  if (!host || !port || !user || !pass) {
+    console.warn("[MAIL] SMTP env incompletas; envío deshabilitado.");
+    return null;
+  }
+
+  // Resend SMTP recomendado: host=smtp.resend.com, port=587, user=apikey, pass=re_...
   return nodemailer.createTransport({
     host,
     port,
-    secure: port === 465, // SSL puro en 465, STARTTLS en 587/25
-    auth: user && pass ? { user, pass } : undefined,
-    tls: { rejectUnauthorized: false },
-    pool: true,
-    maxConnections: 3,
-    maxMessages: 50,
+    secure: false, // STARTTLS (587)
+    auth: { user, pass },
     connectionTimeout: 15_000,
+    greetingTimeout: 10_000,
     socketTimeout: 20_000,
   });
 }
 
-// =====================
-// BASIC AUTH (para staff QR)
-// =====================
+const MAILER = createTransport();
+
+async function sendMail({ to, subject, html, text }) {
+  if (!MAILER) throw new Error("SMTP no configurado (faltan envs)");
+  const from = process.env.SMTP_FROM || `Venus Admin <${process.env.SMTP_USER}>`;
+  return await MAILER.sendMail({ from, to, subject, html, text });
+}
+
+/* =========================================================
+   BASIC AUTH (para staff QR)
+   ========================================================= */
 function basicAuth(req, res, next) {
   const hdr = req.headers.authorization || "";
   if (!hdr.startsWith("Basic ")) {
@@ -62,9 +73,9 @@ function basicAuth(req, res, next) {
   return res.status(401).send("Invalid credentials");
 }
 
-// =====================
-// SQL: tablas y prepared statements
-// =====================
+/* =========================================================
+   SQL: tablas y prepared statements
+   ========================================================= */
 
 // Tabla para reseteo de contraseña (token)
 db.exec(`
@@ -129,9 +140,9 @@ const countCardsStmt = db.prepare(`
     AND (LOWER(id) LIKE LOWER(@like) OR LOWER(name) LIKE LOWER(@like))
 `);
 
-// =====================
-// APP base
-// =====================
+/* =========================================================
+   APP base
+   ========================================================= */
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -152,9 +163,9 @@ app.get("/staff.html", basicAuth, (_req, res) => {
   res.sendFile(path.join(__dirname, "public", "staff.html"));
 });
 
-// =====================
-// REGLA ANTI-FRAUDE: 1 sello/día
-// =====================
+/* =========================================================
+   ANTI-FRAUDE: 1 sello/día
+   ========================================================= */
 function canStamp(cardId) {
   const row = lastStampStmt.get(cardId);
   if (!row) return true;
@@ -163,9 +174,9 @@ function canStamp(cardId) {
   return (now - last) > 24 * 60 * 60 * 1000; // 24 h
 }
 
-// =====================
-// RUTAS PÚBLICAS / CLIENTE
-// =====================
+/* =========================================================
+   RUTAS PÚBLICAS / CLIENTE
+   ========================================================= */
 app.get("/", (_req, res) => {
   res.send("☕ Loyalty Wallet API funcionando correctamente");
 });
@@ -326,9 +337,9 @@ app.get("/api/export.csv", basicAuth, (_req, res) => {
   }
 });
 
-// =====================
-// ADMIN (auth + panel)
-// =====================
+/* =========================================================
+   ADMIN (auth + panel)
+   ========================================================= */
 
 // Registro admin
 app.post("/api/admin/register", async (req, res) => {
@@ -465,9 +476,9 @@ app.get("/api/admin/metrics", adminAuth, (_req, res) => {
   }
 });
 
-// =====================
-// RECUPERACIÓN DE CONTRASEÑA (admin)
-// =====================
+/* =========================================================
+   RECUPERACIÓN DE CONTRASEÑA (admin)
+   ========================================================= */
 
 // Solicitar enlace “Olvidé mi contraseña”
 app.post("/api/admin/forgot", async (req, res) => {
@@ -476,7 +487,7 @@ app.post("/api/admin/forgot", async (req, res) => {
     if (!email) return res.status(400).json({ error: "missing_email" });
 
     const admin = getAdminByEmail.get(email);
-    // Siempre 200 para no filtrar existencia
+    // Siempre 200 para no revelar si existe o no
     if (!admin) return res.json({ ok: true });
 
     const token = crypto.randomBytes(24).toString("hex");
@@ -486,25 +497,23 @@ app.post("/api/admin/forgot", async (req, res) => {
     const base = process.env.APP_BASE_URL || process.env.BASE_URL || "";
     const link = `${base}/admin-login.html?view=reset&token=${token}`;
 
-    const transport = createTransporter();
-    const from = process.env.SMTP_FROM || `Venus Admin <${process.env.SMTP_USER}>`;
-
-    await transport.sendMail({
-      from,
+    await sendMail({
       to: email,
-      subject: "Restablecer tu contraseña - Venus Lealtad",
-      text: `Hola,\n\nPara restablecer tu contraseña usa este enlace (30 min):\n${link}\n\nSi no fuiste tú, ignora este mensaje.`,
+      subject: "Restablecer tu contraseña — Venus Lealtad",
+      text: `Hola,\n\nPara restablecer tu contraseña usa este enlace (válido 30 minutos):\n${link}\n\nSi no fuiste tú, ignora este mensaje.`,
       html: `
-        <p>Hola,</p>
-        <p>Para restablecer tu contraseña usa este enlace (válido 30 minutos):</p>
-        <p><a href="${link}">${link}</a></p>
-        <p>Si no fuiste tú, ignora este mensaje.</p>
+        <div style="font-family:system-ui,Arial,sans-serif">
+          <h2 style="margin:0 0 8px">Restablecer contraseña</h2>
+          <p>Para restablecer tu contraseña usa este enlace (válido 30 minutos):</p>
+          <p><a href="${link}">${link}</a></p>
+          <p style="color:#6b7280">Si no fuiste tú, ignora este mensaje.</p>
+        </div>
       `,
     });
 
     res.json({ ok: true });
   } catch (e) {
-    console.error("[SMTP forgot] ", e);
+    console.error("[SMTP forgot]", e);
     res.status(500).json({ error: "mail_error" });
   }
 });
@@ -534,32 +543,29 @@ app.post("/api/admin/reset", async (req, res) => {
   }
 });
 
-// Diagnóstico SMTP (opcional)
+// Diagnóstico SMTP (envía un correo de prueba)
 app.post("/api/debug/smtp", async (req, res) => {
   try {
     const to = String((req.body?.to || process.env.SMTP_USER || "")).trim();
     if (!to) return res.status(400).json({ error: "missing_to" });
 
-    const transport = createTransporter();
-    const from = process.env.SMTP_FROM || `Venus Admin <${process.env.SMTP_USER}>`;
-
-    const info = await transport.sendMail({
-      from,
+    const r = await sendMail({
       to,
-      subject: "Prueba SMTP - Venus Lealtad",
-      text: "Este es un correo de prueba SMTP enviado desde el servidor.",
+      subject: "SMTP OK — Venus",
+      text: "Hola 👋 Este es un correo de prueba enviado vía Resend SMTP desde Render.",
+      html: "<p>Hola 👋</p><p>Correo de prueba enviado vía <strong>Resend SMTP</strong> desde Render.</p>",
     });
 
-    res.json({ ok: true, messageId: info?.messageId });
+    res.json({ ok: true, messageId: r?.messageId, to });
   } catch (e) {
-    console.error("[SMTP TEST] ", e);
+    console.error("[SMTP TEST]", e);
     res.status(500).json({ error: String(e.message || e) });
   }
 });
 
-// =====================
-// SERVER
-// =====================
+/* =========================================================
+   SERVER
+   ========================================================= */
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Servidor activo en http://localhost:${PORT}`);
