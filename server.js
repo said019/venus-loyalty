@@ -18,7 +18,79 @@ import db from "./lib/db.js";
 
 // Admin auth helpers (JWT en cookie)
 import { adminAuth, signAdmin, setAdminCookie, clearAdminCookie } from "./lib/auth.js";
+/* =========================================================
+   📧 Envío de correos vía Resend API (sin SMTP)
+   =========================================================
+   Requisitos:
+   - RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxxxxx
+   - RESEND_FROM="Venus Admin <onboarding@resend.dev>"
+   ========================================================= */
 
+async function sendMail({ to, subject, html, text }) {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    throw new Error("Falta RESEND_API_KEY en variables de entorno");
+  }
+
+  const from =
+    process.env.RESEND_FROM ||
+    `Venus Admin <onboarding@resend.dev>`; // Remitente verificado en Resend
+
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from,
+      to,
+      subject,
+      html,
+      text,
+    }),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    console.error("[Resend Error]", data);
+    throw new Error(`Resend API ${response.status}: ${JSON.stringify(data)}`);
+  }
+
+  console.log(`[MAIL] Enviado a ${to} con ID ${data.id}`);
+  return { messageId: data.id || null, provider: "resend" };
+}
+
+/* =========================================================
+   📬 Ruta de prueba de correo (para Postman)
+   ========================================================= */
+app.post("/api/debug/mail", async (req, res) => {
+  try {
+    const to = String((req.body?.to || "").trim());
+    if (!to) return res.status(400).json({ error: "missing_to" });
+
+    const result = await sendMail({
+      to,
+      subject: "Prueba de correo — Venus Lealtad",
+      text: "Hola 👋 Este es un correo de prueba enviado mediante Resend API.",
+      html: "<p>Hola 👋</p><p>Correo de prueba enviado mediante <b>Resend API</b>.</p>",
+    });
+
+    res.json({ ok: true, ...result, to });
+  } catch (error) {
+    console.error("[MAIL TEST]", error);
+    res.status(500).json({ error: String(error.message || error) });
+  }
+});
+
+/* =========================================================
+   🧩 Alias (compatibilidad con ruta antigua)
+   ========================================================= */
+app.post("/api/debug/smtp", (req, res) => {
+  req.url = "/api/debug/mail";
+  app._router.handle(req, res);
+});
 // __dirname para ESModules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
