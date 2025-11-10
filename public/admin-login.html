@@ -3,114 +3,187 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Acceso Admin — Venus Lealtad</title>
-  <link rel="stylesheet" href="/styles.css">
+  <title>Admin — Venus Lealtad</title>
+  <link rel="icon" href="/assets/logo.png">
   <style>
-    :root{ --venus:#8c9668; --line:#e5e7eb; --muted:#6b7280; }
-    body{ background:#fff6e3; }
-    .wrap{ max-width:560px; margin:36px auto; padding:0 16px; }
-    .card{ background:#fff; border:1px solid var(--line); border-radius:16px; padding:20px; box-shadow:0 10px 28px rgba(0,0,0,.05); }
-    .row{ display:flex; gap:10px; align-items:center; flex-wrap:wrap }
-    .brand{ display:flex; align-items:center; gap:12px; margin-bottom:12px }
-    .brand img{ width:44px; height:44px; border-radius:12px }
-    .muted{ color:var(--muted) }
-    label{ display:block; margin:10px 0 6px; font-size:14px }
-    input{ width:100%; padding:12px 14px; border:1px solid var(--line); border-radius:12px; background:#fafafa }
-    .btn{ background:var(--venus); color:#fff; border:0; border-radius:12px; padding:12px 16px; cursor:pointer }
-    .btn.ghost{ background:#fff; color:var(--venus); border:1px solid var(--venus) }
-    .tabs{ display:flex; gap:8px; margin:10px 0 14px }
-    .tabs a{ text-decoration:none; color:#111; background:#fff; border:1px solid var(--line); padding:8px 12px; border-radius:10px }
-    .tabs a.active{ border-color:var(--venus); color:var(--venus) }
-    .hidden{ display:none!important }
-
-    /* Toasts bonitos */
-    .toast{
-      display:none; margin-top:10px; padding:12px 14px; border-radius:12px; font-size:14px;
+    :root{
+      --venus:#8c9668; --venus-2:#cdd8a6; --bg:#fff6e3;
+      --ink:#1b1b1b; --muted:#6b7280; --line:#e5e7eb; --err:#b91c1c; --ok:#15803d;
+      --radius:14px;
     }
-    .toast.ok{ display:block; background:#ecfdf5; color:#065f46; border:1px solid #a7f3d0 }
-    .toast.err{ display:block; background:#fef2f2; color:#991b1b; border:1px solid #fecaca }
-
-    .foot{ text-align:center; color:var(--muted); margin-top:14px; font-size:12px }
+    *{box-sizing:border-box}
+    html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Inter,Roboto,Arial}
+    .wrap{max-width:880px;margin:28px auto;padding:0 16px}
+    .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+    .brand{display:flex;align-items:center;gap:10px}
+    .brand img{width:42px;height:42px;border-radius:12px}
+    h1{font-size:28px;margin:0}
+    .actions{display:flex;gap:8px}
+    .btn{display:inline-flex;gap:8px;align-items:center;border-radius:999px;padding:9px 14px;border:1px solid var(--line);background:#fff;color:#111;cursor:pointer;text-decoration:none}
+    .btn.primary{background:var(--venus);border-color:var(--venus);color:#fff}
+    .tabs{display:flex;gap:8px;margin:6px 0 16px}
+    .tabs button{border:1px solid var(--line);background:#fff;color:#111;border-radius:999px;padding:8px 12px;cursor:pointer}
+    .tabs button.active{border-color:var(--venus);color:var(--venus);background:#fff}
+    .card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:18px;box-shadow:0 10px 28px rgba(0,0,0,.06)}
+    .card h2{margin:0 0 8px}
+    .muted{color:var(--muted)}
+    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    label{display:block;margin:10px 0 6px;font-size:14px}
+    input{width:100%;padding:12px;border:1px solid var(--line);border-radius:12px;background:#fafafa}
+    .right{display:flex;justify-content:flex-end}
+    .footer{margin:18px 0;text-align:center;color:var(--muted);font-size:13px}
+    /* Alerts */
+    .alert{border-radius:12px;padding:10px 12px;margin:10px 0;font-size:14px}
+    .alert.ok{background:#ecfdf5;border:1px solid #a7f3d0;color:var(--ok)}
+    .alert.err{background:#fef2f2;border:1px solid #fecaca;color:var(--err)}
+    .link{color:var(--venus);text-decoration:none}
+    .link:hover{text-decoration:underline}
+    /* Layout columnas responsivo */
+    .grid{display:grid;grid-template-columns:1fr;gap:16px}
+    @media (min-width:760px){ .grid{grid-template-columns:1.1fr .9fr} }
   </style>
 </head>
 <body>
   <main class="wrap">
-    <header class="brand">
-      <img src="/assets/logo.png" alt="Venus">
-      <div>
-        <h1 style="margin:0">Admin — Venus Lealtad</h1>
-        <div class="muted">Inicia sesión para entrar al panel</div>
+    <header class="topbar">
+      <div class="brand">
+        <img src="/assets/logo.png" alt="Venus">
+        <div>
+          <h1>Admin — Venus Lealtad</h1>
+          <div class="muted" style="margin-top:2px">Inicia sesión para entrar al panel</div>
+        </div>
+      </div>
+      <div class="actions">
+        <a class="btn" href="/" target="_blank" rel="noopener">Página clientes</a>
       </div>
     </header>
 
-    <nav class="tabs">
-      <a href="#login"   id="tab-login">Iniciar sesión</a>
-      <a href="#register" id="tab-register">Crear cuenta</a>
-      <a href="#forgot"   id="tab-forgot">Olvidé mi contraseña</a>
-      <a href="#reset"    id="tab-reset" class="hidden">Restablecer</a>
+    <nav class="tabs" role="tablist" aria-label="Cambiar sección">
+      <button class="active" data-tab="login" aria-selected="true">Iniciar sesión</button>
+      <button data-tab="register" aria-selected="false">Crear cuenta</button>
+      <button data-tab="forgot" aria-selected="false">Olvidé mi contraseña</button>
     </nav>
 
-    <section class="card" id="view-login">
-      <h2 style="margin:0 0 8px">Iniciar sesión</h2>
+    <section id="tab-login" class="card">
+      <h2>Iniciar sesión</h2>
       <p class="muted">Escribe tu correo y contraseña.</p>
+      <div id="login-alert" class="alert hidden"></div>
       <form id="form-login">
         <label>Correo electrónico</label>
-        <input id="login-email" type="email" required>
+        <input id="login-email" type="email" required placeholder="tucorreo@dominio.com">
         <label>Contraseña</label>
-        <input id="login-pass" type="password" required>
+        <input id="login-pass" type="password" required placeholder="••••••••">
         <div class="row" style="justify-content:space-between;margin-top:10px">
-          <a class="btn ghost" href="#forgot">¿Olvidaste tu contraseña?</a>
-          <button class="btn" type="submit">Entrar</button>
+          <a class="link" data-goto="forgot">¿Olvidaste tu contraseña?</a>
+          <button class="btn primary" type="submit">Entrar</button>
         </div>
-        <div id="login-toast" class="toast"></div>
       </form>
     </section>
 
-    <section class="card hidden" id="view-register">
-      <h2 style="margin:0 0 8px">Crear cuenta</h2>
-      <p class="muted">Si el registro está deshabilitado y ya existe un admin, no se permitirá crear más.</p>
-      <form id="form-register">
-        <label>Correo electrónico</label>
-        <input id="reg-email" type="email" required>
-        <label>Contraseña</label>
-        <input id="reg-pass" type="password" required minlength="6">
-        <div class="row" style="justify-content:flex-end;margin-top:10px">
-          <button class="btn" type="submit">Crear cuenta</button>
-        </div>
-        <div id="reg-toast" class="toast"></div>
-      </form>
-    </section>
+    <div class="grid">
+      <section id="tab-register" class="card" hidden>
+        <h2>Crear cuenta</h2>
+        <p class="muted">Solo personal autorizado. Si el registro está cerrado, solicita acceso al administrador.</p>
+        <div id="reg-alert" class="alert hidden"></div>
+        <form id="form-register">
+          <label>Correo electrónico</label>
+          <input id="reg-email" type="email" required placeholder="tucorreo@dominio.com">
+          <label>Contraseña</label>
+          <input id="reg-pass" type="password" minlength="6" required placeholder="Mínimo 6 caracteres">
+          <div class="right" style="margin-top:10px">
+            <button class="btn primary" type="submit">Crear cuenta</button>
+          </div>
+        </form>
+      </section>
 
-    <section class="card hidden" id="view-forgot">
-      <h2 style="margin:0 0 8px">Recuperar acceso</h2>
-      <p class="muted">Te enviaremos un enlace para restablecer tu contraseña.</p>
-      <form id="form-forgot">
-        <label>Correo electrónico</label>
-        <input id="forgot-email" type="email" required>
-        <div class="row" style="justify-content:flex-end;margin-top:10px">
-          <button class="btn" type="submit">Enviar enlace</button>
-        </div>
-        <div id="forgot-toast" class="toast"></div>
-      </form>
-    </section>
+      <section id="tab-forgot" class="card" hidden>
+        <h2>Restablecer contraseña</h2>
+        <p class="muted">Te enviaremos un correo con un enlace para crear una nueva.</p>
+        <div id="forgot-alert" class="alert hidden"></div>
+        <form id="form-forgot">
+          <label>Correo electrónico</label>
+          <input id="forgot-email" type="email" required placeholder="tucorreo@dominio.com">
+          <div class="right" style="margin-top:10px">
+            <button class="btn primary" type="submit">Enviar enlace</button>
+          </div>
+        </form>
+      </section>
+    </div>
 
-    <section class="card hidden" id="view-reset">
-      <h2 style="margin:0 0 8px">Restablecer contraseña</h2>
-      <p class="muted">Escribe tu nueva contraseña. El enlace caduca en 30 minutos.</p>
-      <form id="form-reset">
-        <input id="reset-token" type="hidden">
-        <label>Nueva contraseña</label>
-        <input id="reset-pass" type="password" required minlength="6">
-        <div class="row" style="justify-content:flex-end;margin-top:10px">
-          <button class="btn" type="submit">Cambiar contraseña</button>
-        </div>
-        <div id="reset-toast" class="toast"></div>
-      </form>
-    </section>
-
-    <div class="foot">© Venus Cosmetología</div>
+    <footer class="footer">© Venus Cosmetología</footer>
   </main>
 
-  <script src="/admin-login.js"></script>
+  <script>
+    // UI tabs
+    const tabs = document.querySelectorAll('[data-tab]');
+    const sections = {
+      login:  document.getElementById('tab-login'),
+      register: document.getElementById('tab-register'),
+      forgot: document.getElementById('tab-forgot')
+    };
+    function activate(tab){
+      tabs.forEach(b=>{ b.classList.toggle('active', b.dataset.tab===tab); b.setAttribute('aria-selected', b.dataset.tab===tab) });
+      Object.entries(sections).forEach(([k,el])=>{ el.hidden = (k!==tab); });
+      const params = new URLSearchParams(location.search);
+      params.set('view', tab); history.replaceState(null,'','?'+params.toString());
+    }
+    tabs.forEach(b=> b.addEventListener('click', ()=>activate(b.dataset.tab)));
+    document.querySelectorAll('[data-goto]').forEach(a=> a.addEventListener('click', e=>{e.preventDefault(); activate(a.dataset.goto)}));
+    const urlView = new URLSearchParams(location.search).get('view');
+    if (urlView && sections[urlView]) activate(urlView);
+
+    // helpers alerts
+    function showAlert(id, type, msg){
+      const el = document.getElementById(id);
+      el.className = 'alert '+type;
+      el.textContent = msg;
+      el.classList.remove('hidden');
+    }
+    function clearAlert(id){
+      const el = document.getElementById(id);
+      el.className = 'alert hidden';
+      el.textContent = '';
+    }
+
+    // Submit: login
+    document.getElementById('form-login').addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      clearAlert('login-alert');
+      const email = document.getElementById('login-email').value.trim();
+      const password = document.getElementById('login-pass').value;
+      const r = await fetch('/api/admin/login', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email,password})});
+      const j = await r.json().catch(()=>({}));
+      if(!r.ok){ showAlert('login-alert','err', j.error==='invalid_credentials'?'Credenciales inválidas':'Error de inicio de sesión'); return; }
+      location.href = '/admin';
+    });
+
+    // Submit: register
+    document.getElementById('form-register').addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      clearAlert('reg-alert');
+      const email = document.getElementById('reg-email').value.trim();
+      const password = document.getElementById('reg-pass').value;
+      const r = await fetch('/api/admin/register', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email,password})});
+      const j = await r.json().catch(()=>({}));
+      if(!r.ok){
+        const map = { signup_disabled:'Registro deshabilitado', email_in_use:'Este correo ya está registrado', missing_fields:'Faltan datos' };
+        showAlert('reg-alert','err', map[j.error] || 'No se pudo crear la cuenta');
+        return;
+      }
+      showAlert('reg-alert','ok','Cuenta creada. Ya puedes iniciar sesión.');
+      setTimeout(()=> activate('login'), 1200);
+    });
+
+    // Submit: forgot
+    document.getElementById('form-forgot').addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      clearAlert('forgot-alert');
+      const email = document.getElementById('forgot-email').value.trim();
+      const r = await fetch('/api/admin/forgot', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email})});
+      const j = await r.json().catch(()=>({}));
+      if(!r.ok){ showAlert('forgot-alert','err', j.error==='not_found'?'No existe una cuenta con ese correo':'No se pudo enviar el correo'); return; }
+      showAlert('forgot-alert','ok','Te enviamos un enlace de restablecimiento si el correo existe en el sistema.');
+    });
+  </script>
 </body>
 </html>
