@@ -18,90 +18,28 @@ import db from "./lib/db.js";
 
 // Admin auth helpers (JWT en cookie)
 import { adminAuth, signAdmin, setAdminCookie, clearAdminCookie } from "./lib/auth.js";
-/* =========================================================
-   📧 Envío de correos vía Resend API (sin SMTP)
-   =========================================================
-   Requisitos:
-   - RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxxxxx
-   - RESEND_FROM="Venus Admin <onboarding@resend.dev>"
-   ========================================================= */
 
-async function sendMail({ to, subject, html, text }) {
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) {
-    throw new Error("Falta RESEND_API_KEY en variables de entorno");
-  }
-
-  const from =
-    process.env.RESEND_FROM ||
-    `Venus Admin <onboarding@resend.dev>`; // Remitente verificado en Resend
-
-  const response = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from,
-      to,
-      subject,
-      html,
-      text,
-    }),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    console.error("[Resend Error]", data);
-    throw new Error(`Resend API ${response.status}: ${JSON.stringify(data)}`);
-  }
-
-  console.log(`[MAIL] Enviado a ${to} con ID ${data.id}`);
-  return { messageId: data.id || null, provider: "resend" };
-}
-
-/* =========================================================
-   📬 Ruta de prueba de correo (para Postman)
-   ========================================================= */
-app.post("/api/debug/mail", async (req, res) => {
-  try {
-    const to = String((req.body?.to || "").trim());
-    if (!to) return res.status(400).json({ error: "missing_to" });
-
-    const result = await sendMail({
-      to,
-      subject: "Prueba de correo — Venus Lealtad",
-      text: "Hola 👋 Este es un correo de prueba enviado mediante Resend API.",
-      html: "<p>Hola 👋</p><p>Correo de prueba enviado mediante <b>Resend API</b>.</p>",
-    });
-
-    res.json({ ok: true, ...result, to });
-  } catch (error) {
-    console.error("[MAIL TEST]", error);
-    res.status(500).json({ error: String(error.message || error) });
-  }
-});
-
-/* =========================================================
-   🧩 Alias (compatibilidad con ruta antigua)
-   ========================================================= */
-app.post("/api/debug/smtp", (req, res) => {
-  req.url = "/api/debug/mail";
-  app._router.handle(req, res);
-});
 // __dirname para ESModules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 /* =========================================================
-   MAIL: Resend API (preferido) o SMTP (respaldo)
+   APP base (crear app ANTES de registrar rutas)
+   ========================================================= */
+const app = express();
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+app.use(express.static("public"));
+
+/* =========================================================
+   📧 Envío de correos: Resend API (preferido) o SMTP (respaldo)
    ========================================================= */
 async function sendMail({ to, subject, text, html }) {
-  // A) Resend API (más simple). Solo requiere RESEND_API_KEY y RESEND_FROM
+  // 1) Resend API HTTP (rápido y sin timeouts de SMTP)
   if (process.env.RESEND_API_KEY) {
-    const sender = process.env.RESEND_FROM || "Venus Admin <no-reply@your-domain.com>";
+    const from = process.env.RESEND_FROM || "Venus Admin <onboarding@resend.dev>";
     const resp = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -109,21 +47,22 @@ async function sendMail({ to, subject, text, html }) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: sender,
+        from,
         to: Array.isArray(to) ? to : [to],
         subject,
         text,
         html,
       }),
     });
-    const j = await resp.json().catch(() => ({}));
+    const data = await resp.json().catch(() => ({}));
     if (!resp.ok) {
-      throw new Error("Resend error: " + JSON.stringify(j));
+      console.error("[Resend Error]", data);
+      throw new Error(`Resend API ${resp.status}: ${JSON.stringify(data)}`);
     }
-    return { channel: "resend", id: j?.id || null };
+    return { channel: "resend", id: data?.id || null };
   }
 
-  // B) SMTP (por ejemplo smtp.resend.com, Gmail u otro)
+  // 2) SMTP (respaldo: smtp.resend.com, Gmail, etc.)
   const host = process.env.SMTP_HOST;
   const port = Number(process.env.SMTP_PORT || 587);
   const user = process.env.SMTP_USER;
@@ -167,12 +106,12 @@ function basicAuth(req, res, next) {
    SQL: tablas y prepared statements
    ========================================================= */
 
-// --- admins (asumido existente)
+// admins
 const insertAdmin     = db.prepare("INSERT INTO admins (id, email, pass_hash) VALUES (?, ?, ?)");
 const getAdminByEmail = db.prepare("SELECT * FROM admins WHERE email = ?");
 const countAdmins     = db.prepare("SELECT COUNT(*) AS n FROM admins");
 
-// --- admin_resets (token de recuperación) con migración a admin_id NOT NULL
+// admin_resets con admin_id NOT NULL
 db.exec(`
   CREATE TABLE IF NOT EXISTS admin_resets (
     token TEXT PRIMARY KEY,
@@ -181,12 +120,11 @@ db.exec(`
     expires_at TEXT NOT NULL
   );
 `);
-function ensureAdminResetsSchema() {
+(function ensureAdminResetsSchema() {
   const cols = db.prepare(`PRAGMA table_info(admin_resets)`).all();
   const names = cols.map(c => c.name);
   const need = ["token", "admin_id", "email", "expires_at"];
-  const ok = need.every(n => names.includes(n));
-  if (!ok) {
+  if (!need.every(n => names.includes(n))) {
     db.exec("DROP TABLE IF EXISTS admin_resets;");
     db.exec(`
       CREATE TABLE admin_resets (
@@ -198,14 +136,13 @@ function ensureAdminResetsSchema() {
     `);
     console.log("[DB] admin_resets recreada con admin_id NOT NULL");
   }
-}
-ensureAdminResetsSchema();
+})();
 
 const insertReset = db.prepare("INSERT INTO admin_resets (token, admin_id, email, expires_at) VALUES (?, ?, ?, ?)");
 const findReset   = db.prepare("SELECT * FROM admin_resets WHERE token = ?");
 const delReset    = db.prepare("DELETE FROM admin_resets WHERE token = ?");
 
-// --- tarjetas / eventos
+// tarjetas / eventos
 const insertCard = db.prepare("INSERT INTO cards (id, name, max) VALUES (?, ?, ?)");
 const getCard    = db.prepare("SELECT * FROM cards WHERE id = ?");
 const updStamps  = db.prepare("UPDATE cards SET stamps = ? WHERE id = ?");
@@ -222,7 +159,7 @@ const listEvents = db.prepare(`
   ORDER BY id DESC
 `);
 
-// --- métricas
+// métricas
 const countAllCards    = db.prepare(`SELECT COUNT(*) AS n FROM cards`);
 const countFullCards   = db.prepare(`SELECT COUNT(*) AS n FROM cards WHERE stamps >= max`);
 const countEventsToday = db.prepare(`
@@ -232,7 +169,7 @@ const countEventsToday = db.prepare(`
   GROUP BY type
 `);
 
-// --- listas para admin
+// listados admin
 const listCardsStmt = db.prepare(`
   SELECT id, name, stamps, max, status, created_at
   FROM cards
@@ -249,18 +186,8 @@ const countCardsStmt = db.prepare(`
 `);
 
 /* =========================================================
-   APP base
+   Páginas HTML
    ========================================================= */
-const app = express();
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser());
-
-// estáticos
-app.use(express.static("public"));
-
-// páginas
 app.get("/admin", (_req, res) => {
   res.sendFile(path.join(__dirname, "public", "admin.html"));
 });
@@ -279,19 +206,16 @@ function canStamp(cardId) {
   if (!row) return true;
   const last = new Date(row.created_at);
   const now  = new Date();
-  return (now - last) > 24 * 60 * 60 * 1000; // 24 h
+  return (now - last) > 24 * 60 * 60 * 1000;
 }
 
 /* =========================================================
    RUTAS PÚBLICAS / CLIENTE
    ========================================================= */
-
-// ping
 app.get("/", (_req, res) => {
   res.send("☕ Loyalty Wallet API funcionando correctamente");
 });
 
-// debug google wallet
 app.get("/api/debug/google-class", async (_req, res) => {
   try {
     const info = await checkLoyaltyClass();
@@ -301,7 +225,6 @@ app.get("/api/debug/google-class", async (_req, res) => {
   }
 });
 
-// emitir tarjeta
 app.post("/api/issue", (req, res) => {
   try {
     let { name = "Cliente", max = 8 } = req.body;
@@ -321,20 +244,17 @@ app.post("/api/issue", (req, res) => {
   }
 });
 
-// obtener tarjeta
 app.get("/api/card/:cardId", (req, res) => {
   const card = getCard.get(req.params.cardId);
   if (!card) return res.status(404).json({ error: "not_found" });
   res.json(card);
 });
 
-// eventos de tarjeta
 app.get("/api/events/:cardId", (req, res) => {
   const rows = listEvents.all(req.params.cardId);
   res.json(rows);
 });
 
-// link guardar en Google Wallet (tarjeta existente)
 app.get("/api/wallet-link/:cardId", (req, res) => {
   const card = getCard.get(req.params.cardId);
   if (!card) return res.status(404).json({ error: "not_found" });
@@ -347,7 +267,6 @@ app.get("/api/wallet-link/:cardId", (req, res) => {
   res.json({ addToGoogleUrl });
 });
 
-// emitir pase Apple (placeholder)
 app.get("/api/apple/pass", async (req, res) => {
   try {
     const { cardId } = req.query;
@@ -368,7 +287,6 @@ app.get("/api/apple/pass", async (req, res) => {
   }
 });
 
-// +1 sello (staff)
 app.post("/api/stamp/:cardId", basicAuth, (req, res) => {
   try {
     const { cardId } = req.params;
@@ -388,7 +306,6 @@ app.post("/api/stamp/:cardId", basicAuth, (req, res) => {
   }
 });
 
-// canjear (staff)
 app.post("/api/redeem/:cardId", basicAuth, (req, res) => {
   try {
     const { cardId } = req.params;
@@ -406,7 +323,6 @@ app.post("/api/redeem/:cardId", basicAuth, (req, res) => {
   }
 });
 
-// export CSV (staff)
 app.get("/api/export.csv", basicAuth, (_req, res) => {
   try {
     const rows = db.prepare(`
@@ -433,8 +349,6 @@ app.get("/api/export.csv", basicAuth, (_req, res) => {
 /* =========================================================
    ADMIN (auth + panel)
    ========================================================= */
-
-// registrar admin
 app.post("/api/admin/register", async (req, res) => {
   try {
     const allow = (process.env.ADMIN_ALLOW_SIGNUP || "false").toLowerCase() === "true";
@@ -458,7 +372,6 @@ app.post("/api/admin/register", async (req, res) => {
   }
 });
 
-// login admin
 app.post("/api/admin/login", async (req, res) => {
   try {
     const { email, password } = req.body || {};
@@ -487,7 +400,6 @@ app.get("/api/admin/me", adminAuth, (req, res) => {
   res.json({ uid: req.admin.uid, email: req.admin.email });
 });
 
-// tarjetas (admin)
 app.get("/api/admin/cards", adminAuth, (req, res) => {
   try {
     const page = Math.max(1, parseInt(req.query.page || "1", 10));
@@ -505,7 +417,6 @@ app.get("/api/admin/cards", adminAuth, (req, res) => {
   }
 });
 
-// eventos por tarjeta (admin)
 app.get("/api/admin/events", adminAuth, (req, res) => {
   try {
     const { cardId } = req.query || {};
@@ -517,7 +428,6 @@ app.get("/api/admin/events", adminAuth, (req, res) => {
   }
 });
 
-// +1 sello (admin)
 app.post("/api/admin/stamp", adminAuth, (req, res) => {
   try {
     const { cardId } = req.body || {};
@@ -538,7 +448,6 @@ app.post("/api/admin/stamp", adminAuth, (req, res) => {
   }
 });
 
-// canjear (admin)
 app.post("/api/admin/redeem", adminAuth, (req, res) => {
   try {
     const { cardId } = req.body || {};
@@ -557,7 +466,6 @@ app.post("/api/admin/redeem", adminAuth, (req, res) => {
   }
 });
 
-// métricas
 app.get("/api/admin/metrics", adminAuth, (_req, res) => {
   try {
     const total = countAllCards.get().n;
@@ -574,8 +482,6 @@ app.get("/api/admin/metrics", adminAuth, (_req, res) => {
 /* =========================================================
    RECUPERACIÓN DE CONTRASEÑA (admin)
    ========================================================= */
-
-// solicitar link
 app.post("/api/admin/forgot", async (req, res) => {
   try {
     const email = String((req.body?.email || "")).trim().toLowerCase();
@@ -618,7 +524,6 @@ Si no fuiste tú, ignora este mensaje.`,
   }
 });
 
-// aplicar nueva contraseña
 app.post("/api/admin/reset", async (req, res) => {
   try {
     const { token, password } = req.body || {};
@@ -644,11 +549,11 @@ app.post("/api/admin/reset", async (req, res) => {
 });
 
 /* =========================================================
-   DEBUG MAIL (prueba canal disponible)
+   DEBUG MAIL (para Postman)
    ========================================================= */
 app.post("/api/debug/mail", async (req, res) => {
   try {
-    const to = String((req.body?.to || process.env.SMTP_USER || "").trim());
+    const to = String((req.body?.to || "").trim());
     if (!to) return res.status(400).json({ error: "missing_to" });
 
     const r = await sendMail({
