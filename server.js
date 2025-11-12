@@ -27,7 +27,11 @@ const __dirname = path.dirname(__filename);
    APP base (crear app ANTES de registrar rutas)
    ========================================================= */
 const app = express();
-app.use(cors());
+app.set("trust proxy", true);
+
+// CORS “abierto” por defecto; si quieres lista blanca cámbialo aquí
+app.use(cors({ origin: true, credentials: true }));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -37,7 +41,7 @@ app.use(express.static("public"));
    📧 Envío de correos: Resend API (preferido) o SMTP (respaldo)
    ========================================================= */
 async function sendMail({ to, subject, text, html }) {
-  // 1) Resend API HTTP (rápido y sin timeouts de SMTP)
+  // 1) Resend API HTTP
   if (process.env.RESEND_API_KEY) {
     const from = process.env.RESEND_FROM || "Venus Admin <onboarding@resend.dev>";
     const resp = await fetch("https://api.resend.com/emails", {
@@ -62,7 +66,7 @@ async function sendMail({ to, subject, text, html }) {
     return { channel: "resend", id: data?.id || null };
   }
 
-  // 2) SMTP (respaldo: smtp.resend.com, Gmail, etc.)
+  // 2) SMTP
   const host = process.env.SMTP_HOST;
   const port = Number(process.env.SMTP_PORT || 587);
   const user = process.env.SMTP_USER;
@@ -216,6 +220,7 @@ app.get("/", (_req, res) => {
   res.send("☕ Loyalty Wallet API funcionando correctamente");
 });
 
+/* ---------- GOOGLE ---------- */
 app.get("/api/debug/google-class", async (_req, res) => {
   try {
     const info = await checkLoyaltyClass();
@@ -225,6 +230,7 @@ app.get("/api/debug/google-class", async (_req, res) => {
   }
 });
 
+/* ---------- emisión de tarjeta ---------- */
 app.post("/api/issue", (req, res) => {
   try {
     let { name = "Cliente", max = 8 } = req.body;
@@ -244,6 +250,7 @@ app.post("/api/issue", (req, res) => {
   }
 });
 
+/* ---------- obtener datos tarjeta ---------- */
 app.get("/api/card/:cardId", (req, res) => {
   const card = getCard.get(req.params.cardId);
   if (!card) return res.status(404).json({ error: "not_found" });
@@ -267,26 +274,58 @@ app.get("/api/wallet-link/:cardId", (req, res) => {
   res.json({ addToGoogleUrl });
 });
 
+/* ---------- APPLE: diagnósticos ---------- */
+app.get("/api/debug/apple-env", (_req, res) => {
+  const need = [
+    "APPLE_ORG_NAME",
+    "APPLE_PASS_CERT",
+    "APPLE_PASS_KEY",
+    "APPLE_WWDR",
+    "APPLE_PASS_TYPE_ID",
+    "APPLE_TEAM_ID",
+  ];
+  const status = {};
+  for (const k of need) {
+    status[k] = !!process.env[k];
+  }
+  res.json(status);
+});
+
+/* ---------- APPLE: generar y descargar .pkpass ---------- */
 app.get("/api/apple/pass", async (req, res) => {
   try {
-    const { cardId } = req.query;
+    const { cardId, name, stamps, max } = req.query;
     if (!cardId) return res.status(400).send("Falta cardId");
 
-    const buffer = await buildApplePassBuffer({
-      cardId,
-      name: "Cliente",
-      stamps: 0,
-      max: 8,
-    });
+    // Preferir datos reales desde la DB
+    const existing = getCard.get(cardId);
+    const payload = existing
+      ? { cardId: existing.id, name: existing.name, stamps: existing.stamps, max: existing.max }
+      : {
+          cardId,
+          name: name || "Cliente",
+          stamps: Number.isFinite(+stamps) ? +stamps : 0,
+          max: Number.isFinite(+max) ? +max : 8,
+        };
 
+    const buffer = await buildApplePassBuffer(payload);
+
+    // Cabeceras correctas para Apple Wallet
     res.setHeader("Content-Type", "application/vnd.apple.pkpass");
-    res.setHeader("Content-Disposition", `attachment; filename="${cardId}.pkpass"`);
-    res.send(buffer);
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${payload.cardId}.pkpass"`
+    );
+    // Evita caché agresiva de algunos proxies
+    res.setHeader("Cache-Control", "no-store, max-age=0");
+    res.status(200).send(buffer);
   } catch (e) {
-    res.status(500).send(e.message);
+    console.error("[APPLE PASS ERROR]", e);
+    res.status(500).send(e.message || "pkpass_error");
   }
 });
 
+/* ---------- sumar sello ---------- */
 app.post("/api/stamp/:cardId", basicAuth, (req, res) => {
   try {
     const { cardId } = req.params;
@@ -306,6 +345,7 @@ app.post("/api/stamp/:cardId", basicAuth, (req, res) => {
   }
 });
 
+/* ---------- canjear ---------- */
 app.post("/api/redeem/:cardId", basicAuth, (req, res) => {
   try {
     const { cardId } = req.params;
@@ -323,6 +363,7 @@ app.post("/api/redeem/:cardId", basicAuth, (req, res) => {
   }
 });
 
+/* ---------- export CSV ---------- */
 app.get("/api/export.csv", basicAuth, (_req, res) => {
   try {
     const rows = db.prepare(`
