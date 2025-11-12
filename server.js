@@ -17,33 +17,37 @@ import { buildApplePassBuffer } from "./lib/apple.js";
 import db from "./lib/db.js";
 
 // Admin auth helpers (JWT en cookie)
-import { adminAuth, signAdmin, setAdminCookie, clearAdminCookie } from "./lib/auth.js";
+import {
+  adminAuth,
+  signAdmin,
+  setAdminCookie,
+  clearAdminCookie,
+} from "./lib/auth.js";
 
 // __dirname para ESModules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 /* =========================================================
-   APP base (crear app ANTES de registrar rutas)
+   APP base
    ========================================================= */
 const app = express();
 app.set("trust proxy", true);
 
-// CORS “abierto” por defecto; si quieres lista blanca cámbialo aquí
 app.use(cors({ origin: true, credentials: true }));
-
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(express.static("public"));
 
 /* =========================================================
-   📧 Envío de correos: Resend API (preferido) o SMTP (respaldo)
+   📧 Envío de correos: Resend API o SMTP
    ========================================================= */
 async function sendMail({ to, subject, text, html }) {
-  // 1) Resend API HTTP
+  // 1) Resend
   if (process.env.RESEND_API_KEY) {
-    const from = process.env.RESEND_FROM || "Venus Admin <onboarding@resend.dev>";
+    const from =
+      process.env.RESEND_FROM || "Venus Admin <onboarding@resend.dev>";
     const resp = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -91,7 +95,7 @@ async function sendMail({ to, subject, text, html }) {
 }
 
 /* =========================================================
-   BASIC AUTH (solo si mantienes /staff)
+   BASIC AUTH (solo para endpoints protegidos tipo staff)
    ========================================================= */
 function basicAuth(req, res, next) {
   const hdr = req.headers.authorization || "";
@@ -101,7 +105,8 @@ function basicAuth(req, res, next) {
   }
   const b64 = hdr.split(" ")[1] || "";
   const [user, pass] = Buffer.from(b64, "base64").toString().split(":");
-  if (user === process.env.STAFF_USER && pass === process.env.STAFF_PASS) return next();
+  if (user === process.env.STAFF_USER && pass === process.env.STAFF_PASS)
+    return next();
   res.set("WWW-Authenticate", 'Basic realm="Staff"');
   return res.status(401).send("Invalid credentials");
 }
@@ -111,9 +116,11 @@ function basicAuth(req, res, next) {
    ========================================================= */
 
 // admins
-const insertAdmin     = db.prepare("INSERT INTO admins (id, email, pass_hash) VALUES (?, ?, ?)");
+const insertAdmin = db.prepare(
+  "INSERT INTO admins (id, email, pass_hash) VALUES (?, ?, ?)"
+);
 const getAdminByEmail = db.prepare("SELECT * FROM admins WHERE email = ?");
-const countAdmins     = db.prepare("SELECT COUNT(*) AS n FROM admins");
+const countAdmins = db.prepare("SELECT COUNT(*) AS n FROM admins");
 
 // admin_resets con admin_id NOT NULL
 db.exec(`
@@ -126,9 +133,9 @@ db.exec(`
 `);
 (function ensureAdminResetsSchema() {
   const cols = db.prepare(`PRAGMA table_info(admin_resets)`).all();
-  const names = cols.map(c => c.name);
+  const names = cols.map((c) => c.name);
   const need = ["token", "admin_id", "email", "expires_at"];
-  if (!need.every(n => names.includes(n))) {
+  if (!need.every((n) => names.includes(n))) {
     db.exec("DROP TABLE IF EXISTS admin_resets;");
     db.exec(`
       CREATE TABLE admin_resets (
@@ -142,15 +149,19 @@ db.exec(`
   }
 })();
 
-const insertReset = db.prepare("INSERT INTO admin_resets (token, admin_id, email, expires_at) VALUES (?, ?, ?, ?)");
-const findReset   = db.prepare("SELECT * FROM admin_resets WHERE token = ?");
-const delReset    = db.prepare("DELETE FROM admin_resets WHERE token = ?");
+const insertReset = db.prepare(
+  "INSERT INTO admin_resets (token, admin_id, email, expires_at) VALUES (?, ?, ?, ?)"
+);
+const findReset = db.prepare("SELECT * FROM admin_resets WHERE token = ?");
+const delReset = db.prepare("DELETE FROM admin_resets WHERE token = ?");
 
 // tarjetas / eventos
 const insertCard = db.prepare("INSERT INTO cards (id, name, max) VALUES (?, ?, ?)");
-const getCard    = db.prepare("SELECT * FROM cards WHERE id = ?");
-const updStamps  = db.prepare("UPDATE cards SET stamps = ? WHERE id = ?");
-const logEvent   = db.prepare("INSERT INTO events (card_id, type, meta) VALUES (?, ?, ?)");
+const getCard = db.prepare("SELECT * FROM cards WHERE id = ?");
+const updStamps = db.prepare("UPDATE cards SET stamps = ? WHERE id = ?");
+const logEvent = db.prepare(
+  "INSERT INTO events (card_id, type, meta) VALUES (?, ?, ?)"
+);
 const lastStampStmt = db.prepare(`
   SELECT created_at FROM events
   WHERE card_id = ? AND type = 'STAMP'
@@ -164,8 +175,10 @@ const listEvents = db.prepare(`
 `);
 
 // métricas
-const countAllCards    = db.prepare(`SELECT COUNT(*) AS n FROM cards`);
-const countFullCards   = db.prepare(`SELECT COUNT(*) AS n FROM cards WHERE stamps >= max`);
+const countAllCards = db.prepare(`SELECT COUNT(*) AS n FROM cards`);
+const countFullCards = db.prepare(
+  `SELECT COUNT(*) AS n FROM cards WHERE stamps >= max`
+);
 const countEventsToday = db.prepare(`
   SELECT type, COUNT(*) AS n
   FROM events
@@ -209,8 +222,8 @@ function canStamp(cardId) {
   const row = lastStampStmt.get(cardId);
   if (!row) return true;
   const last = new Date(row.created_at);
-  const now  = new Date();
-  return (now - last) > 24 * 60 * 60 * 1000;
+  const now = new Date();
+  return now - last > 24 * 60 * 60 * 1000;
 }
 
 /* =========================================================
@@ -242,8 +255,16 @@ app.post("/api/issue", (req, res) => {
     insertCard.run(cardId, String(name).trim() || "Cliente", max);
     logEvent.run(cardId, "ISSUE", JSON.stringify({ name, max }));
 
-    const addToGoogleUrl = buildGoogleSaveUrl({ cardId, name, stamps: 0, max });
-    const addToAppleUrl  = `${process.env.BASE_URL}/api/apple/pass?cardId=${cardId}`;
+    const addToGoogleUrl = buildGoogleSaveUrl({
+      cardId,
+      name,
+      stamps: 0,
+      max,
+    });
+    const base = process.env.BASE_URL || "";
+    const addToAppleUrl = `${base}/api/apple/pass?cardId=${encodeURIComponent(
+      cardId
+    )}`;
     res.json({ cardId, addToGoogleUrl, addToAppleUrl });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -267,9 +288,9 @@ app.get("/api/wallet-link/:cardId", (req, res) => {
   if (!card) return res.status(404).json({ error: "not_found" });
   const addToGoogleUrl = buildGoogleSaveUrl({
     cardId: card.id,
-    name  : card.name,
+    name: card.name,
     stamps: card.stamps,
-    max   : card.max,
+    max: card.max,
   });
   res.json({ addToGoogleUrl });
 });
@@ -285,38 +306,39 @@ app.get("/api/debug/apple-env", (_req, res) => {
     "APPLE_TEAM_ID",
   ];
   const status = {};
-  for (const k of need) {
-    status[k] = !!process.env[k];
-  }
+  for (const k of need) status[k] = !!process.env[k];
   res.json(status);
 });
 
 /* ---------- APPLE: generar y descargar .pkpass ---------- */
 app.get("/api/apple/pass", async (req, res) => {
   try {
-    const { cardId, name, stamps, max } = req.query;
+    const { cardId } = req.query;
     if (!cardId) return res.status(400).send("Falta cardId");
 
-    // Preferir datos reales desde la DB
+    // Usar DB si ya existe la tarjeta
     const existing = getCard.get(cardId);
     const payload = existing
-      ? { cardId: existing.id, name: existing.name, stamps: existing.stamps, max: existing.max }
+      ? {
+          cardId: existing.id,
+          name: existing.name,
+          stamps: existing.stamps,
+          max: existing.max,
+        }
       : {
-          cardId,
-          name: name || "Cliente",
-          stamps: Number.isFinite(+stamps) ? +stamps : 0,
-          max: Number.isFinite(+max) ? +max : 8,
+          cardId: String(cardId),
+          name: "Cliente",
+          stamps: 0,
+          max: 8,
         };
 
     const buffer = await buildApplePassBuffer(payload);
 
-    // Cabeceras correctas para Apple Wallet
     res.setHeader("Content-Type", "application/vnd.apple.pkpass");
     res.setHeader(
       "Content-Disposition",
       `attachment; filename="${payload.cardId}.pkpass"`
     );
-    // Evita caché agresiva de algunos proxies
     res.setHeader("Cache-Control", "no-store, max-age=0");
     res.status(200).send(buffer);
   } catch (e) {
@@ -331,14 +353,21 @@ app.post("/api/stamp/:cardId", basicAuth, (req, res) => {
     const { cardId } = req.params;
     const card = getCard.get(cardId);
     if (!card) return res.status(404).json({ error: "card not found" });
-    if (card.stamps >= card.max) return res.json({ ...card, message: "Tarjeta ya completa" });
-    if (!canStamp(cardId)) return res.status(429).json({ error: "Solo 1 sello por día" });
+    if (card.stamps >= card.max)
+      return res.json({ ...card, message: "Tarjeta ya completa" });
+    if (!canStamp(cardId))
+      return res.status(429).json({ error: "Solo 1 sello por día" });
 
     const newStamps = card.stamps + 1;
     updStamps.run(newStamps, cardId);
     logEvent.run(cardId, "STAMP", JSON.stringify({ by: "reception" }));
 
-    const addToGoogleUrl = buildGoogleSaveUrl({ cardId, name: card.name, stamps: newStamps, max: card.max });
+    const addToGoogleUrl = buildGoogleSaveUrl({
+      cardId,
+      name: card.name,
+      stamps: newStamps,
+      max: card.max,
+    });
     res.json({ ...card, stamps: newStamps, addToGoogleUrl });
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -351,12 +380,18 @@ app.post("/api/redeem/:cardId", basicAuth, (req, res) => {
     const { cardId } = req.params;
     const card = getCard.get(cardId);
     if (!card) return res.status(404).json({ error: "card not found" });
-    if (card.stamps < card.max) return res.status(400).json({ error: "Aún no completa los sellos" });
+    if (card.stamps < card.max)
+      return res.status(400).json({ error: "Aún no completa los sellos" });
 
     updStamps.run(0, cardId);
     logEvent.run(cardId, "REDEEM", JSON.stringify({ by: "reception" }));
 
-    const addToGoogleUrl = buildGoogleSaveUrl({ cardId, name: card.name, stamps: 0, max: card.max });
+    const addToGoogleUrl = buildGoogleSaveUrl({
+      cardId,
+      name: card.name,
+      stamps: 0,
+      max: card.max,
+    });
     res.json({ ok: true, message: "Canje realizado", cardId, addToGoogleUrl });
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -366,21 +401,29 @@ app.post("/api/redeem/:cardId", basicAuth, (req, res) => {
 /* ---------- export CSV ---------- */
 app.get("/api/export.csv", basicAuth, (_req, res) => {
   try {
-    const rows = db.prepare(`
+    const rows = db
+      .prepare(
+        `
       SELECT id, name, stamps, max, status, created_at
       FROM cards
       ORDER BY created_at DESC
-    `).all();
+    `
+      )
+      .all();
 
     const header = "id,name,stamps,max,status,created_at";
-    const csvLines = rows.map(r =>
+    const csvLines = rows.map((r) =>
       [r.id, r.name, r.stamps, r.max, r.status, r.created_at]
-        .map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")
+        .map((v) => `"${String(v).replace(/"/g, '""')}"`)
+        .join(",")
     );
 
     const csv = [header, ...csvLines].join("\n");
     res.setHeader("Content-Type", "text/csv; charset=utf-8");
-    res.setHeader("Content-Disposition", "attachment; filename=venus_cards.csv");
+    res.setHeader(
+      "Content-Disposition",
+      "attachment; filename=venus_cards.csv"
+    );
     res.send(csv);
   } catch (e) {
     res.status(500).send(e.message);
@@ -392,12 +435,14 @@ app.get("/api/export.csv", basicAuth, (_req, res) => {
    ========================================================= */
 app.post("/api/admin/register", async (req, res) => {
   try {
-    const allow = (process.env.ADMIN_ALLOW_SIGNUP || "false").toLowerCase() === "true";
+    const allow =
+      (process.env.ADMIN_ALLOW_SIGNUP || "false").toLowerCase() === "true";
     const { n } = countAdmins.get();
     if (!allow && n > 0) return res.status(403).json({ error: "signup_disabled" });
 
     const { email, password } = req.body || {};
-    if (!email || !password) return res.status(400).json({ error: "missing_fields" });
+    if (!email || !password)
+      return res.status(400).json({ error: "missing_fields" });
 
     const norm = String(email).trim().toLowerCase();
     const exists = getAdminByEmail.get(norm);
@@ -416,7 +461,8 @@ app.post("/api/admin/register", async (req, res) => {
 app.post("/api/admin/login", async (req, res) => {
   try {
     const { email, password } = req.body || {};
-    if (!email || !password) return res.status(400).json({ error: "missing_fields" });
+    if (!email || !password)
+      return res.status(400).json({ error: "missing_fields" });
 
     const admin = getAdminByEmail.get(String(email).trim().toLowerCase());
     if (!admin) return res.status(401).json({ error: "invalid_credentials" });
@@ -476,8 +522,10 @@ app.post("/api/admin/stamp", adminAuth, (req, res) => {
 
     const card = getCard.get(cardId);
     if (!card) return res.status(404).json({ error: "card not found" });
-    if (card.stamps >= card.max) return res.status(400).json({ error: "already_full" });
-    if (!canStamp(cardId)) return res.status(429).json({ error: "Solo 1 sello por día" });
+    if (card.stamps >= card.max)
+      return res.status(400).json({ error: "already_full" });
+    if (!canStamp(cardId))
+      return res.status(429).json({ error: "Solo 1 sello por día" });
 
     const newStamps = card.stamps + 1;
     updStamps.run(newStamps, cardId);
@@ -496,7 +544,8 @@ app.post("/api/admin/redeem", adminAuth, (req, res) => {
 
     const card = getCard.get(cardId);
     if (!card) return res.status(404).json({ error: "card not found" });
-    if (card.stamps < card.max) return res.status(400).json({ error: "not_enough_stamps" });
+    if (card.stamps < card.max)
+      return res.status(400).json({ error: "not_enough_stamps" });
 
     updStamps.run(0, cardId);
     logEvent.run(cardId, "REDEEM", JSON.stringify({ by: "admin" }));
@@ -514,7 +563,12 @@ app.get("/api/admin/metrics", adminAuth, (_req, res) => {
     const rows = countEventsToday.all();
     const m = { STAMP: 0, REDEEM: 0 };
     for (const r of rows) m[r.type] = r.n;
-    res.json({ total, full, stampsToday: m.STAMP || 0, redeemsToday: m.REDEEM || 0 });
+    res.json({
+      total,
+      full,
+      stampsToday: m.STAMP || 0,
+      redeemsToday: m.REDEEM || 0,
+    });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -568,7 +622,8 @@ Si no fuiste tú, ignora este mensaje.`,
 app.post("/api/admin/reset", async (req, res) => {
   try {
     const { token, password } = req.body || {};
-    if (!token || !password) return res.status(400).json({ error: "missing_fields" });
+    if (!token || !password)
+      return res.status(400).json({ error: "missing_fields" });
 
     const row = findReset.get(token);
     if (!row) return res.status(400).json({ error: "invalid_token" });
@@ -579,7 +634,10 @@ app.post("/api/admin/reset", async (req, res) => {
     }
 
     const pass_hash = await bcrypt.hash(password, 10);
-    db.prepare("UPDATE admins SET pass_hash = ? WHERE id = ?").run(pass_hash, row.admin_id);
+    db.prepare("UPDATE admins SET pass_hash = ? WHERE id = ?").run(
+      pass_hash,
+      row.admin_id
+    );
     delReset.run(token);
 
     res.json({ ok: true });
