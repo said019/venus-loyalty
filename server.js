@@ -677,6 +677,146 @@ app.post("/api/debug/mail", async (req, res) => {
 /* =========================================================
    SERVER
    ========================================================= */
+   /* =========================================================
+   DIAGNÓSTICOS APPLE WALLET
+   ========================================================= */
+
+// Diagnóstico básico de variables de entorno
+app.get("/api/debug/apple-env", (_req, res) => {
+  const need = [
+    "APPLE_ORG_NAME",
+    "APPLE_PASS_CERT",
+    "APPLE_PASS_KEY", 
+    "APPLE_WWDR",
+    "APPLE_PASS_TYPE_ID",
+    "APPLE_TEAM_ID",
+  ];
+  const status = {};
+  for (const k of need) status[k] = !!process.env[k];
+  res.json(status);
+});
+
+// Diagnóstico detallado de certificados
+app.get("/api/debug/apple-certs", (_req, res) => {
+  try {
+    const certPaths = {
+      APPLE_PASS_CERT: process.env.APPLE_PASS_CERT,
+      APPLE_PASS_KEY: process.env.APPLE_PASS_KEY,
+      APPLE_WWDR: process.env.APPLE_WWDR
+    };
+
+    const certChecks = {};
+    
+    for (const [key, filePath] of Object.entries(certPaths)) {
+      if (filePath && fs.existsSync(filePath)) {
+        const stats = fs.statSync(filePath);
+        const content = fs.readFileSync(filePath, 'utf8');
+        certChecks[key] = {
+          exists: true,
+          size: stats.size,
+          hasValidFormat: content.includes('BEGIN') && content.includes('END'),
+          firstLine: content.split('\n')[0],
+          path: filePath
+        };
+      } else {
+        certChecks[key] = { 
+          exists: false,
+          path: filePath
+        };
+      }
+    }
+
+    res.json(certChecks);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Diagnóstico completo de configuración Apple
+app.get("/api/debug/apple-full-check", async (req, res) => {
+  try {
+    const TEAM_ID = process.env.APPLE_TEAM_ID;
+    const PASS_TYPE_ID = process.env.APPLE_PASS_TYPE_ID;
+    
+    const diagnostics = {
+      teamId: TEAM_ID,
+      passTypeId: PASS_TYPE_ID,
+      expectedPassTypeId: "pass.com.venusloyalty.mx",
+      match: PASS_TYPE_ID === "pass.com.venusloyalty.mx",
+      certificateInfo: {},
+      canGenerateTestPass: false
+    };
+
+    // Verificar certificado del Pass Type ID
+    if (process.env.APPLE_PASS_CERT && fs.existsSync(process.env.APPLE_PASS_CERT)) {
+      const certContent = fs.readFileSync(process.env.APPLE_PASS_CERT, 'utf8');
+      const certificate = certContent.match(/-----BEGIN CERTIFICATE-----[\s\S]+?-----END CERTIFICATE-----/);
+      
+      if (certificate) {
+        const certLines = certificate[0].split('\n');
+        const subjectLine = certLines.find(line => line.includes('Subject:'));
+        diagnostics.certificateInfo = {
+          hasCertificate: true,
+          subject: subjectLine || 'No subject found',
+          containsPassTypeId: certContent.includes(PASS_TYPE_ID),
+          size: certContent.length
+        };
+      }
+    }
+
+    // Intentar generar un pase de prueba
+    try {
+      const testBuffer = await buildApplePassBuffer({
+        cardId: 'test-' + Date.now(),
+        name: 'Test Client',
+        stamps: 2,
+        max: 8
+      });
+      diagnostics.canGenerateTestPass = true;
+      diagnostics.testPassSize = testBuffer.length;
+    } catch (testError) {
+      diagnostics.canGenerateTestPass = false;
+      diagnostics.testError = testError.message;
+    }
+
+    res.json(diagnostics);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Pase de prueba para descargar
+app.get("/api/apple/test-pass", async (req, res) => {
+  try {
+    const testPayload = {
+      cardId: 'test-' + Date.now(),
+      name: 'Cliente Test',
+      stamps: 2,
+      max: 8
+    };
+
+    console.log('Generando pase de prueba con:', testPayload);
+    
+    const buffer = await buildApplePassBuffer(testPayload);
+
+    res.set({
+      'Content-Type': 'application/vnd.apple.pkpass',
+      'Content-Disposition': `attachment; filename="test-pass.pkpass"`,
+      'Content-Length': buffer.length,
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    });
+
+    res.send(buffer);
+  } catch (error) {
+    console.error('Error en test pass:', error);
+    res.status(500).json({ 
+      error: error.message,
+      stack: error.stack 
+    });
+  }
+});
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Servidor activo en http://localhost:${PORT}`);
