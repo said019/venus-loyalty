@@ -8,10 +8,10 @@ import cookieParser from "cookie-parser";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import nodemailer from "nodemailer";
-import fs from "fs"; // AÑADIR ESTA IMPORTACIÓN QUE FALTABA
+import fs from "fs";
 
 // Wallet helpers
-import { buildGoogleSaveUrl, checkLoyaltyClass } from "./lib/google.js";
+import { buildGoogleSaveUrl, checkLoyaltyClass, createLoyaltyClass, updateLoyaltyObject } from "./lib/google.js";
 import { buildApplePassBuffer } from "./lib/apple.js";
 
 // DB
@@ -234,7 +234,7 @@ app.get("/", (_req, res) => {
   res.send("☕ Loyalty Wallet API funcionando correctamente");
 });
 
-/* ---------- GOOGLE ---------- */
+/* ---------- GOOGLE WALLET ENDPOINTS ---------- */
 app.get("/api/debug/google-class", async (_req, res) => {
   try {
     const info = await checkLoyaltyClass();
@@ -242,6 +242,109 @@ app.get("/api/debug/google-class", async (_req, res) => {
   } catch (e) {
     res.status(500).json({ error: String(e.message || e) });
   }
+});
+
+// Crear la clase de lealtad
+app.post("/api/google/create-class", async (_req, res) => {
+  try {
+    const result = await createLoyaltyClass();
+    
+    if (result.success) {
+      res.status(200).json({ 
+        message: 'Clase creada exitosamente',
+        classId: result.classId,
+        data: result.data 
+      });
+    } else {
+      res.status(result.status).json({ 
+        error: 'Error creando clase',
+        details: result.data 
+      });
+    }
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Diagnóstico completo de Google Wallet
+app.get("/api/debug/google-setup", async (_req, res) => {
+  try {
+    const diagnostics = {
+      environment: {
+        GOOGLE_ISSUER_ID: !!process.env.GOOGLE_ISSUER_ID,
+        GOOGLE_CLASS_ID: !!process.env.GOOGLE_CLASS_ID,
+        GOOGLE_SA_EMAIL: !!process.env.GOOGLE_SA_EMAIL,
+        GOOGLE_SA_JSON: !!process.env.GOOGLE_SA_JSON,
+        BASE_URL: process.env.BASE_URL
+      },
+      loyaltyClass: null,
+      serviceAccount: null
+    };
+
+    // Verificar Service Account
+    try {
+      const { loadServiceAccount } = await import('./lib/google.js');
+      const { client_email } = loadServiceAccount();
+      diagnostics.serviceAccount = {
+        hasCredentials: true,
+        clientEmail: client_email
+      };
+    } catch (e) {
+      diagnostics.serviceAccount = {
+        hasCredentials: false,
+        error: e.message
+      };
+    }
+
+    // Verificar Loyalty Class
+    try {
+      const classCheck = await checkLoyaltyClass();
+      diagnostics.loyaltyClass = classCheck;
+    } catch (e) {
+      diagnostics.loyaltyClass = {
+        error: e.message
+      };
+    }
+
+    res.json(diagnostics);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Verificar configuración del Issuer ID
+app.get("/api/debug/google-issuer-check", (_req, res) => {
+  const currentConfig = {
+    console_issuer_id: "338800000002303846",
+    env_issuer_id: process.env.GOOGLE_ISSUER_ID,
+    env_class_id: process.env.GOOGLE_CLASS_ID,
+    match: process.env.GOOGLE_ISSUER_ID === "338800000002303846"
+  };
+  
+  res.json(currentConfig);
+});
+
+// Verificar caracteres del Class ID
+app.get("/api/debug/google-character-check", (_req, res) => {
+  const classId = process.env.GOOGLE_CLASS_ID || '';
+  
+  const characterCheck = {
+    classId: classId,
+    classIdRaw: JSON.stringify(classId),
+    length: classId.length,
+    hasSpaces: classId.includes(' '),
+    hasDoubleDots: classId.includes('..'),
+    characters: classId.split('').map((char, index) => ({
+      position: index,
+      char: char,
+      charCode: char.charCodeAt(0),
+      isProblematic: char === ' ' || char === '..'
+    })),
+    expected: "3388000000023035846.venus_loyalty_v1",
+    matchesExpected: classId === "3388000000023035846.venus_loyalty_v1"
+  };
+  
+  res.json(characterCheck);
 });
 
 /* ---------- emisión de tarjeta ---------- */
@@ -382,88 +485,7 @@ app.get("/api/debug/apple-full-check", async (req, res) => {
         };
       }
     }
-// En server.js - Agregar después de los otros diagnósticos
-app.get("/api/debug/google-setup", async (_req, res) => {
-  try {
-    const diagnostics = {
-      environment: {
-        GOOGLE_ISSUER_ID: !!process.env.GOOGLE_ISSUER_ID,
-        GOOGLE_CLASS_ID: !!process.env.GOOGLE_CLASS_ID,
-        GOOGLE_SA_EMAIL: !!process.env.GOOGLE_SA_EMAIL,
-        GOOGLE_SA_JSON: !!process.env.GOOGLE_SA_JSON,
-        BASE_URL: process.env.BASE_URL
-      },
-      loyaltyClass: null,
-      serviceAccount: null
-    };
 
-    // Verificar Service Account
-    try {
-      const { client_email } = await import('./lib/google.js').then(m => 
-        m.loadServiceAccount?.() || { client_email: 'No function' }
-      );
-      diagnostics.serviceAccount = {
-        hasCredentials: true,
-        clientEmail: client_email
-      };
-    } catch (e) {
-      diagnostics.serviceAccount = {
-        hasCredentials: false,
-        error: e.message
-      };
-    }
-
-    // Verificar Loyalty Class
-    try {
-      const classCheck = await import('./lib/google.js').then(m => 
-        m.checkLoyaltyClass?.() || { error: 'No function' }
-      );
-      diagnostics.loyaltyClass = classCheck;
-    } catch (e) {
-      diagnostics.loyaltyClass = {
-        error: e.message
-      };
-    }
-
-    res.json(diagnostics);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-// En server.js - Agregar esto temporalmente
-app.get("/api/debug/google-issuer-check", (_req, res) => {
-  const currentConfig = {
-    console_issuer_id: "338800000002303846", // El que ves en tu imagen
-    env_issuer_id: process.env.GOOGLE_ISSUER_ID,
-    env_class_id: process.env.GOOGLE_CLASS_ID,
-    match: process.env.GOOGLE_ISSUER_ID === "338800000002303846"
-  };
-  
-  res.json(currentConfig);
-});
-
-   // En server.js
-app.get("/api/debug/google-character-check", (_req, res) => {
-  const classId = process.env.GOOGLE_CLASS_ID || '';
-  
-  const characterCheck = {
-    classId: classId,
-    classIdRaw: JSON.stringify(classId),
-    length: classId.length,
-    hasSpaces: classId.includes(' '),
-    hasDoubleDots: classId.includes('..'),
-    characters: classId.split('').map((char, index) => ({
-      position: index,
-      char: char,
-      charCode: char.charCodeAt(0),
-      isProblematic: char === ' ' || char === '..'
-    })),
-    expected: "3388000000023035846.venus_loyalty_v1",
-    matchesExpected: classId === "3388000000023035846.venus_loyalty_v1"
-  };
-  
-  res.json(characterCheck);
-});
     // Intentar generar un pase de prueba
     try {
       const testBuffer = await buildApplePassBuffer({
