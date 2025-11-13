@@ -382,7 +382,54 @@ app.get("/api/debug/apple-full-check", async (req, res) => {
         };
       }
     }
+// En server.js - Agregar después de los otros diagnósticos
+app.get("/api/debug/google-setup", async (_req, res) => {
+  try {
+    const diagnostics = {
+      environment: {
+        GOOGLE_ISSUER_ID: !!process.env.GOOGLE_ISSUER_ID,
+        GOOGLE_CLASS_ID: !!process.env.GOOGLE_CLASS_ID,
+        GOOGLE_SA_EMAIL: !!process.env.GOOGLE_SA_EMAIL,
+        GOOGLE_SA_JSON: !!process.env.GOOGLE_SA_JSON,
+        BASE_URL: process.env.BASE_URL
+      },
+      loyaltyClass: null,
+      serviceAccount: null
+    };
 
+    // Verificar Service Account
+    try {
+      const { client_email } = await import('./lib/google.js').then(m => 
+        m.loadServiceAccount?.() || { client_email: 'No function' }
+      );
+      diagnostics.serviceAccount = {
+        hasCredentials: true,
+        clientEmail: client_email
+      };
+    } catch (e) {
+      diagnostics.serviceAccount = {
+        hasCredentials: false,
+        error: e.message
+      };
+    }
+
+    // Verificar Loyalty Class
+    try {
+      const classCheck = await import('./lib/google.js').then(m => 
+        m.checkLoyaltyClass?.() || { error: 'No function' }
+      );
+      diagnostics.loyaltyClass = classCheck;
+    } catch (e) {
+      diagnostics.loyaltyClass = {
+        error: e.message
+      };
+    }
+
+    res.json(diagnostics);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
     // Intentar generar un pase de prueba
     try {
       const testBuffer = await buildApplePassBuffer({
