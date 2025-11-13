@@ -332,14 +332,19 @@ app.get("/api/apple/pass", async (req, res) => {
           max: 8,
         };
 
+    // Generar el .pkpass (Buffer binario)
     const buffer = await buildApplePassBuffer(payload);
 
-    res.setHeader("Content-Type", "application/vnd.apple.pkpass");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="${payload.cardId}.pkpass"`
-    );
-    res.setHeader("Cache-Control", "no-store, max-age=0");
+    // Headers correctos para Apple Wallet
+    res.set({
+      "Content-Type": "application/vnd.apple.pkpass",
+      "Content-Disposition": `attachment; filename="${payload.cardId}.pkpass"`,
+      "Content-Transfer-Encoding": "binary",
+      "Cache-Control": "no-store, no-cache, must-revalidate, private",
+      Pragma: "no-cache",
+      Expires: "0",
+    });
+
     res.status(200).send(buffer);
   } catch (e) {
     console.error("[APPLE PASS ERROR]", e);
