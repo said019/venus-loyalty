@@ -430,6 +430,17 @@ app.get("/api/debug/google-setup", async (_req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+// En server.js - Agregar esto temporalmente
+app.get("/api/debug/google-issuer-check", (_req, res) => {
+  const currentConfig = {
+    console_issuer_id: "338800000002303846", // El que ves en tu imagen
+    env_issuer_id: process.env.GOOGLE_ISSUER_ID,
+    env_class_id: process.env.GOOGLE_CLASS_ID,
+    match: process.env.GOOGLE_ISSUER_ID === "338800000002303846"
+  };
+  
+  res.json(currentConfig);
+});
     // Intentar generar un pase de prueba
     try {
       const testBuffer = await buildApplePassBuffer({
