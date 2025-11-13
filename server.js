@@ -243,6 +243,55 @@ app.get("/api/debug/google-class", async (_req, res) => {
     res.status(500).json({ error: String(e.message || e) });
   }
 });
+// Agregar después de los otros endpoints de Google en server.js
+
+/* ---------- Diagnóstico de permisos ---------- */
+app.get("/api/debug/google-permissions", async (_req, res) => {
+  try {
+    const { getWalletAccessToken } = await import('./lib/google.js');
+    const token = await getWalletAccessToken();
+    
+    // Probar acceso a la API
+    const response = await fetch(
+      `https://walletobjects.googleapis.com/walletobjects/v1/loyaltyClass/${process.env.GOOGLE_CLASS_ID}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+    
+    const data = await response.json();
+    
+    res.json({
+      canGetToken: true,
+      tokenLength: token.length,
+      apiResponse: {
+        status: response.status,
+        statusText: response.statusText,
+        data: data
+      }
+    });
+  } catch (error) {
+    res.json({
+      canGetToken: false,
+      error: error.message
+    });
+  }
+});
+
+/* ---------- Probar creación de objeto ---------- */
+app.post("/api/debug/test-google-object", async (req, res) => {
+  try {
+    const { updateLoyaltyObject } = await import('./lib/google.js');
+    const result = await updateLoyaltyObject('test-card-123', 'Test Client', 2, 8);
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 
 // Crear la clase de lealtad
 app.post("/api/google/create-class", async (_req, res) => {
