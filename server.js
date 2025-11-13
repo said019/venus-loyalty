@@ -441,6 +441,29 @@ app.get("/api/debug/google-issuer-check", (_req, res) => {
   
   res.json(currentConfig);
 });
+
+   // En server.js
+app.get("/api/debug/google-character-check", (_req, res) => {
+  const classId = process.env.GOOGLE_CLASS_ID || '';
+  
+  const characterCheck = {
+    classId: classId,
+    classIdRaw: JSON.stringify(classId),
+    length: classId.length,
+    hasSpaces: classId.includes(' '),
+    hasDoubleDots: classId.includes('..'),
+    characters: classId.split('').map((char, index) => ({
+      position: index,
+      char: char,
+      charCode: char.charCodeAt(0),
+      isProblematic: char === ' ' || char === '..'
+    })),
+    expected: "3388000000023035846.venus_loyalty_v1",
+    matchesExpected: classId === "3388000000023035846.venus_loyalty_v1"
+  };
+  
+  res.json(characterCheck);
+});
     // Intentar generar un pase de prueba
     try {
       const testBuffer = await buildApplePassBuffer({
