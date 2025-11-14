@@ -1,4 +1,4 @@
-// server.js
+// server.js - ACTUALIZADO CON NUEVAS RUTAS GOOGLE WALLET
 import express from "express";
 import cors from "cors";
 import "dotenv/config";
@@ -13,6 +13,14 @@ import fs from "fs";
 // Wallet helpers
 import { buildGoogleSaveUrl, checkLoyaltyClass, createLoyaltyClass, updateLoyaltyObject } from "./lib/google.js";
 import { buildApplePassBuffer } from "./lib/apple.js";
+
+// Importar los nuevos handlers de Google Wallet
+import { 
+  createClassHandler, 
+  diagnosticsHandler, 
+  testHandler, 
+  saveCardHandler 
+} from "./lib/api/google.js";
 
 // DB
 import db from "./lib/db.js";
@@ -217,24 +225,24 @@ app.get("/staff.html", basicAuth, (_req, res) => {
 });
 
 /* =========================================================
-   ANTI-FRAUDE: 1 sello por día
+   NUEVAS RUTAS GOOGLE WALLET - SIMPLIFICADAS
    ========================================================= */
-function canStamp(cardId) {
-  const row = lastStampStmt.get(cardId);
-  if (!row) return true;
-  const last = new Date(row.created_at);
-  const now = new Date();
-  return now - last > 24 * 60 * 60 * 1000;
-}
+
+// Crear la clase de lealtad
+app.get("/api/google/create-class", createClassHandler);
+
+// Diagnóstico completo
+app.get("/api/google/diagnostics", diagnosticsHandler);
+
+// Probar Google Wallet
+app.get("/api/google/test", testHandler);
+
+// Generar enlace para guardar tarjeta
+app.get("/api/save-card", saveCardHandler);
 
 /* =========================================================
-   RUTAS PÚBLICAS / CLIENTE
+   RUTAS EXISTENTES GOOGLE WALLET (se mantienen)
    ========================================================= */
-app.get("/", (_req, res) => {
-  res.send("☕ Loyalty Wallet API funcionando correctamente");
-});
-
-/* ---------- GOOGLE WALLET ENDPOINTS ---------- */
 app.get("/api/debug/google-class", async (_req, res) => {
   try {
     const info = await checkLoyaltyClass();
@@ -243,9 +251,7 @@ app.get("/api/debug/google-class", async (_req, res) => {
     res.status(500).json({ error: String(e.message || e) });
   }
 });
-// Agregar después de los otros endpoints de Google en server.js
 
-/* ---------- Diagnóstico de permisos ---------- */
 app.get("/api/debug/google-permissions", async (_req, res) => {
   try {
     const { getWalletAccessToken } = await import('./lib/google.js');
@@ -253,7 +259,7 @@ app.get("/api/debug/google-permissions", async (_req, res) => {
     
     // Probar acceso a la API
     const response = await fetch(
-      `https://walletobjects.googleapis.com/walletobjects/v1/loyaltyClass/${process.env.GOOGLE_CLASS_ID}`,
+      `https://walletobjects.googleapis.com/walletobjects/v1/loyaltyClass/3388000000023035846.venus_loyalty_v1`,
       {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -281,7 +287,6 @@ app.get("/api/debug/google-permissions", async (_req, res) => {
   }
 });
 
-/* ---------- Probar creación de objeto ---------- */
 app.post("/api/debug/test-google-object", async (req, res) => {
   try {
     const { updateLoyaltyObject } = await import('./lib/google.js');
@@ -292,30 +297,7 @@ app.post("/api/debug/test-google-object", async (req, res) => {
   }
 });
 
-
-// Crear la clase de lealtad
-app.post("/api/google/create-class", async (_req, res) => {
-  try {
-    const result = await createLoyaltyClass();
-    
-    if (result.success) {
-      res.status(200).json({ 
-        message: 'Clase creada exitosamente',
-        classId: result.classId,
-        data: result.data 
-      });
-    } else {
-      res.status(result.status).json({ 
-        error: 'Error creando clase',
-        details: result.data 
-      });
-    }
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Diagnóstico completo de Google Wallet
+// Diagnóstico completo de Google Wallet (mantener compatibilidad)
 app.get("/api/debug/google-setup", async (_req, res) => {
   try {
     const diagnostics = {
@@ -959,4 +941,9 @@ app.post("/api/debug/mail", async (req, res) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Servidor activo en http://localhost:${PORT}`);
+  console.log(`📱 Google Wallet endpoints disponibles:`);
+  console.log(`   • Crear clase: http://localhost:${PORT}/api/google/create-class`);
+  console.log(`   • Diagnóstico: http://localhost:${PORT}/api/google/diagnostics`);
+  console.log(`   • Probar: http://localhost:${PORT}/api/google/test`);
+  console.log(`   • Generar enlace: http://localhost:${PORT}/api/save-card?cardId=test123&name=Maria&stamps=3&max=8`);
 });
