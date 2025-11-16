@@ -269,100 +269,125 @@
   </main>
 
   <script>
-    const createView = document.getElementById("view-create");
-    const cardView = document.getElementById("view-card");
-    const grid = document.getElementById("grid");
-    const errorMessage = document.getElementById("error-message");
-    const submitBtn = document.getElementById("submit-btn");
-    const params = new URLSearchParams(window.location.search);
-    const cardId = params.get("cardId");
+  const createView = document.getElementById("view-create");
+  const cardView = document.getElementById("view-card");
+  const grid = document.getElementById("grid");
+  const errorMessage = document.getElementById("error-message");
+  const submitBtn = document.getElementById("submit-btn");
+  const params = new URLSearchParams(window.location.search);
+  const urlCardId = params.get("cardId");
 
-    function showError(message) {
-      errorMessage.textContent = message;
-      errorMessage.style.display = 'block';
+  function showError(message) {
+    errorMessage.textContent = message;
+    errorMessage.style.display = "block";
+  }
+
+  function hideError() {
+    errorMessage.style.display = "none";
+  }
+
+  function setLoading(loading) {
+    if (loading) {
+      submitBtn.classList.add("loading");
+      submitBtn.textContent = "Creando...";
+      submitBtn.disabled = true;
+    } else {
+      submitBtn.classList.remove("loading");
+      submitBtn.textContent = "Crear tarjeta";
+      submitBtn.disabled = false;
+    }
+  }
+
+  function showCardView(data) {
+    createView.classList.add("hidden");
+    cardView.classList.remove("hidden");
+
+    // cardId puede venir como data.cardId (create-card) o data.id (DB)
+    const cardId = data.cardId || data.id;
+    const max = data.max || 8;
+    const stamps = data.stamps || 0;
+    const name = data.name || "Cliente";
+
+    document.getElementById("c_name").textContent = name;
+    document.getElementById("c_info").textContent = `Progreso: ${stamps}/${max}`;
+
+    // Sellos
+    grid.innerHTML = "";
+    for (let i = 1; i <= max; i++) {
+      const div = document.createElement("div");
+      div.textContent = i;
+      const activo = i <= stamps;
+      div.style.backgroundColor = activo ? "#fff" : "rgba(255,255,255,0.3)";
+      div.style.color = activo ? "#333" : "#fff";
+      grid.appendChild(div);
     }
 
-    function hideError() {
-      errorMessage.style.display = 'none';
-    }
+    if (!cardId) return;
 
-    function setLoading(loading) {
-      if (loading) {
-        submitBtn.classList.add('loading');
-        submitBtn.textContent = 'Creando...';
-        submitBtn.disabled = true;
+    // QR
+    const qr = document.getElementById("qr");
+    qr.src =
+      "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=" +
+      encodeURIComponent(cardId);
+    document.getElementById("cid").textContent = cardId;
+
+    // Enlace Google Wallet
+    const gwallet = document.getElementById("gwallet");
+    gwallet.href =
+      data.gwallet ||
+      `/api/save-card?cardId=${encodeURIComponent(
+        cardId
+      )}&name=${encodeURIComponent(name)}&stamps=${stamps}&max=${max}`;
+
+    // Enlace Apple Wallet
+    const applewallet = document.getElementById("applewallet");
+    applewallet.href =
+      data.applewallet ||
+      `/api/apple/pass?cardId=${encodeURIComponent(cardId)}`;
+
+    // Compartir
+    const shareBtn = document.getElementById("share");
+    shareBtn.onclick = () => {
+      const shareUrl = `${window.location.origin}?cardId=${cardId}`;
+      if (navigator.share) {
+        navigator.share({
+          title: "Mi tarjeta de lealtad Venus",
+          text: "Únete a mi programa de lealtad",
+          url: shareUrl,
+        });
       } else {
-        submitBtn.classList.remove('loading');
-        submitBtn.textContent = 'Crear tarjeta';
-        submitBtn.disabled = false;
+        navigator.clipboard.writeText(shareUrl);
+        alert("Enlace copiado al portapapeles");
       }
-    }
+    };
 
-    function showCardView(data) {
-      createView.classList.add("hidden");
-      cardView.classList.remove("hidden");
-      document.getElementById("c_name").textContent = data.name || "Cliente";
-      document.getElementById("c_info").textContent = `Progreso: ${data.stamps || 0}/8`;
+    // Copiar ID
+    const copyBtn = document.getElementById("copy");
+    copyBtn.onclick = () => {
+      navigator.clipboard.writeText(cardId);
+      alert("ID copiado al portapapeles");
+    };
+  }
 
-      grid.innerHTML = "";
-      const stamps = data.stamps || 0;
-      
-      for (let i = 1; i <= 8; i++) {
-        const div = document.createElement("div");
-        div.textContent = i;
-        div.style.backgroundColor = i <= stamps ? "#fff" : "rgba(255,255,255,0.3)";
-        div.style.color = i <= stamps ? "#333" : "#fff";
-        grid.appendChild(div);
-      }
+  // Si hay cardId en la URL, cargar la tarjeta desde el backend
+  if (urlCardId) {
+    fetch(`/api/card/${encodeURIComponent(urlCardId)}`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Tarjeta no encontrada");
+        return res.json();
+      })
+      .then(showCardView)
+      .catch(() => {
+        showError(
+          "No se pudo cargar la tarjeta. Verifica el enlace o crea una nueva."
+        );
+      });
+  }
 
-      // Generar QR
-      const qr = document.getElementById("qr");
-      if (data.cardId) {
-        qr.src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${data.cardId}`;
-        document.getElementById("cid").textContent = data.cardId;
-        
-        // Configurar URLs de wallets
-        document.getElementById("gwallet").href = `/api/google/${data.cardId}`;
-        document.getElementById("applewallet").href = `/api/apple/${data.cardId}`;
-        
-        // Configurar compartir
-        document.getElementById("share").addEventListener('click', () => {
-          const shareUrl = `${window.location.origin}?cardId=${data.cardId}`;
-          if (navigator.share) {
-            navigator.share({
-              title: 'Mi tarjeta de lealtad Venus',
-              text: 'Únete a mi programa de lealtad',
-              url: shareUrl
-            });
-          } else {
-            navigator.clipboard.writeText(shareUrl);
-            alert('Enlace copiado al portapapeles');
-          }
-        });
-
-        // Configurar copiar ID
-        document.getElementById("copy").addEventListener('click', () => {
-          navigator.clipboard.writeText(data.cardId);
-          alert('ID copiado al portapapeles');
-        });
-      }
-    }
-
-    // Si hay cardId en la URL, cargar la tarjeta
-    if (cardId) {
-      fetch(`/api/card/${cardId}`)
-        .then(res => {
-          if (!res.ok) throw new Error('Tarjeta no encontrada');
-          return res.json();
-        })
-        .then(showCardView)
-        .catch(() => {
-          showError("No se pudo cargar la tarjeta. Verifica el enlace o crea una nueva.");
-        });
-    }
-
-    // Manejar creación de tarjeta - USANDO GET COMO EN TU CÓDIGO ORIGINAL
-    document.getElementById("create-form").addEventListener("submit", async (e) => {
+  // Manejar creación de tarjeta (USANDO GET a /api/create-card)
+  document
+    .getElementById("create-form")
+    .addEventListener("submit", async (e) => {
       e.preventDefault();
       hideError();
       setLoading(true);
@@ -370,7 +395,6 @@
       const name = document.getElementById("name").value.trim();
       const phone = document.getElementById("phone").value.trim();
 
-      // Validación básica
       if (!name) {
         showError("Por favor ingresa tu nombre");
         setLoading(false);
@@ -384,54 +408,58 @@
       }
 
       try {
-        // USAR MÉTODO GET como en tu código original que funciona
-        const res = await fetch(`/api/create-card?name=${encodeURIComponent(name)}&phone=${encodeURIComponent(phone)}&max=8`);
-        
-        // Verificar si la respuesta es JSON
-        const contentType = res.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-          throw new Error('El servidor no respondió con JSON. Verifica la ruta del API.');
-        }
-        
-        const data = await res.json();
-        
-        if (!res.ok) {
-          throw new Error(data.error || 'Error al crear la tarjeta');
+        const res = await fetch(
+          `/api/create-card?name=${encodeURIComponent(
+            name
+          )}&phone=${encodeURIComponent(phone)}&max=8`
+        );
+
+        const contentType = res.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+          throw new Error(
+            "El servidor no respondió con JSON. Verifica la ruta del API."
+          );
         }
 
-        if (data?.url) {
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.error || "Error al crear la tarjeta");
+        }
+
+        if (data.url) {
+          // Redirigimos a la URL con ?cardId=...
           window.location.href = data.url;
-        } else if (data?.cardId) {
-          // Si tenemos cardId, actualizar la URL y mostrar la tarjeta
-          const newUrl = `${window.location.origin}${window.location.pathname}?cardId=${data.cardId}`;
-          window.history.pushState({}, '', newUrl);
-          showCardView(data);
         } else {
-          throw new Error('Respuesta inválida del servidor');
+          // Fallback: mostramos directamente
+          showCardView(data);
         }
       } catch (error) {
-        console.error('Error:', error);
-        showError(error.message || "Ocurrió un error al crear la tarjeta. Verifica que el servidor esté funcionando.");
+        console.error("Error:", error);
+        showError(
+          error.message ||
+            "Ocurrió un error al crear la tarjeta. Verifica que el servidor esté funcionando."
+        );
       } finally {
         setLoading(false);
       }
     });
 
-    // También probar con endpoint alternativo
-    async function tryAlternativeEndpoint(name, phone) {
-      try {
-        const res = await fetch('/api/cards', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ name, phone, max: 8 })
-        });
-        return await res.json();
-      } catch (error) {
-        throw new Error('Endpoint alternativo también falló');
-      }
+  // Endpoint alternativo (no se usa pero lo dejamos por si quieres probar después)
+  async function tryAlternativeEndpoint(name, phone) {
+    try {
+      const res = await fetch("/api/cards", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ name, phone, max: 8 }),
+      });
+      return await res.json();
+    } catch (error) {
+      throw new Error("Endpoint alternativo también falló");
     }
-  </script>
+  }
+</script>
 </body>
 </html>
