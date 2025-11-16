@@ -9,7 +9,7 @@
     body {
       margin: 0;
       font-family: 'Poppins', sans-serif;
-      background-color: #3f4037; /* Fondo exterior con contraste */
+      background-color: #3f4037;
     }
 
     .container {
@@ -100,6 +100,7 @@
       color: #222;
       margin-bottom: 1rem;
       font-size: 1rem;
+      box-sizing: border-box;
     }
 
     .btn {
@@ -113,6 +114,8 @@
       transition: 0.2s ease;
       width: 100%;
       max-width: 270px;
+      font-family: inherit;
+      font-size: 1rem;
     }
 
     .btn:hover {
@@ -168,6 +171,39 @@
       margin-top: 2rem;
     }
 
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 8px;
+      justify-items: center;
+      margin-top: 1rem;
+    }
+
+    .grid div {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .loading {
+      opacity: 0.7;
+      pointer-events: none;
+    }
+
+    .error {
+      color: #ff6b6b;
+      background: rgba(255,255,255,0.1);
+      padding: 10px;
+      border-radius: 8px;
+      margin-top: 10px;
+      display: none;
+    }
+
     @media (max-width: 480px) {
       .btn { max-width: 100%; }
       input { font-size: 0.95rem; }
@@ -194,7 +230,12 @@
         <input id="phone" name="phone" type="tel" placeholder="10 dígitos" pattern="[0-9]{10}" required>
 
         <input id="max" name="max" type="hidden" value="8">
-        <button class="btn btn--google" type="submit">Crear tarjeta</button>
+        
+        <div id="error-message" class="error"></div>
+        
+        <button class="btn btn--google" type="submit" id="submit-btn">
+          Crear tarjeta
+        </button>
       </form>
     </section>
 
@@ -204,7 +245,7 @@
         <p id="c_info" style="margin:0;">Progreso: 0/8</p>
       </div>
 
-      <div id="grid" style="display:grid;grid-template-columns:repeat(8,1fr);gap:8px;justify-items:center;margin-top:1rem;"></div>
+      <div id="grid" class="grid"></div>
 
       <div class="cta-row">
         <a id="gwallet" class="btn btn--google" target="_blank" rel="noopener">Guardar en Google Wallet</a>
@@ -230,56 +271,147 @@
     const createView = document.getElementById("view-create");
     const cardView = document.getElementById("view-card");
     const grid = document.getElementById("grid");
+    const errorMessage = document.getElementById("error-message");
+    const submitBtn = document.getElementById("submit-btn");
     const params = new URLSearchParams(window.location.search);
     const cardId = params.get("cardId");
+
+    function showError(message) {
+      errorMessage.textContent = message;
+      errorMessage.style.display = 'block';
+    }
+
+    function hideError() {
+      errorMessage.style.display = 'none';
+    }
+
+    function setLoading(loading) {
+      if (loading) {
+        submitBtn.classList.add('loading');
+        submitBtn.textContent = 'Creando...';
+      } else {
+        submitBtn.classList.remove('loading');
+        submitBtn.textContent = 'Crear tarjeta';
+      }
+    }
 
     function showCardView(data) {
       createView.classList.add("hidden");
       cardView.classList.remove("hidden");
       document.getElementById("c_name").textContent = data.name || "Cliente";
-      document.getElementById("c_info").textContent = `Progreso: ${data.stamps}/8`;
+      document.getElementById("c_info").textContent = `Progreso: ${data.stamps || 0}/8`;
 
       grid.innerHTML = "";
+      const stamps = data.stamps || 0;
+      
       for (let i = 1; i <= 8; i++) {
         const div = document.createElement("div");
         div.textContent = i;
-        div.style.width = "28px";
-        div.style.height = "28px";
-        div.style.borderRadius = "50%";
-        div.style.display = "flex";
-        div.style.alignItems = "center";
-        div.style.justifyContent = "center";
-        div.style.backgroundColor = i <= data.stamps ? "#fff" : "rgba(255,255,255,0.3)";
-        div.style.color = i <= data.stamps ? "#333" : "#fff";
+        div.style.backgroundColor = i <= stamps ? "#fff" : "rgba(255,255,255,0.3)";
+        div.style.color = i <= stamps ? "#333" : "#fff";
         grid.appendChild(div);
       }
 
+      // Generar QR
       const qr = document.getElementById("qr");
-      qr.src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${data.cardId}`;
-      document.getElementById("cid").textContent = data.cardId;
-      document.getElementById("gwallet").href = data.gwallet;
-      document.getElementById("applewallet").href = data.applewallet;
+      if (data.cardId) {
+        qr.src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${data.cardId}`;
+        document.getElementById("cid").textContent = data.cardId;
+        
+        // Configurar URLs de wallets
+        document.getElementById("gwallet").href = `/api/google/${data.cardId}`;
+        document.getElementById("applewallet").href = `/api/apple/${data.cardId}`;
+        
+        // Configurar compartir
+        document.getElementById("share").addEventListener('click', () => {
+          const shareUrl = `${window.location.origin}?cardId=${data.cardId}`;
+          if (navigator.share) {
+            navigator.share({
+              title: 'Mi tarjeta de lealtad Venus',
+              text: 'Únete a mi programa de lealtad',
+              url: shareUrl
+            });
+          } else {
+            navigator.clipboard.writeText(shareUrl);
+            alert('Enlace copiado al portapapeles');
+          }
+        });
+
+        // Configurar copiar ID
+        document.getElementById("copy").addEventListener('click', () => {
+          navigator.clipboard.writeText(data.cardId);
+          alert('ID copiado al portapapeles');
+        });
+      }
     }
 
+    // Si hay cardId en la URL, cargar la tarjeta
     if (cardId) {
       fetch(`/api/card/${cardId}`)
-        .then(res => res.json())
+        .then(res => {
+          if (!res.ok) throw new Error('Tarjeta no encontrada');
+          return res.json();
+        })
         .then(showCardView)
-        .catch(() => alert("No se pudo cargar la tarjeta"));
+        .catch(() => {
+          showError("No se pudo cargar la tarjeta. Verifica el enlace o crea una nueva.");
+        });
     }
 
+    // Manejar creación de tarjeta
     document.getElementById("create-form").addEventListener("submit", async (e) => {
       e.preventDefault();
+      hideError();
+      setLoading(true);
+
       const name = document.getElementById("name").value.trim();
       const phone = document.getElementById("phone").value.trim();
-      const max = 8;
+
+      // Validación básica
+      if (!name) {
+        showError("Por favor ingresa tu nombre");
+        setLoading(false);
+        return;
+      }
+
+      if (!phone.match(/^[0-9]{10}$/)) {
+        showError("Por favor ingresa un teléfono válido de 10 dígitos");
+        setLoading(false);
+        return;
+      }
+
       try {
-        const res = await fetch(`/api/create-card?name=${encodeURIComponent(name)}&phone=${encodeURIComponent(phone)}&max=${max}`);
+        const res = await fetch('/api/create-card', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            name: name,
+            phone: phone,
+            max: 8
+          })
+        });
+
         const data = await res.json();
-        if (data?.url) window.location.href = data.url;
-        else alert("No se pudo crear la tarjeta.");
-      } catch {
-        alert("Ocurrió un error al crear la tarjeta.");
+        
+        if (!res.ok) {
+          throw new Error(data.error || 'Error al crear la tarjeta');
+        }
+
+        if (data?.url) {
+          window.location.href = data.url;
+        } else if (data?.cardId) {
+          // Mostrar directamente si la API devuelve los datos
+          showCardView(data);
+        } else {
+          throw new Error('Respuesta inválida del servidor');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        showError(error.message || "Ocurrió un error al crear la tarjeta. Intenta nuevamente.");
+      } finally {
+        setLoading(false);
       }
     });
   </script>
