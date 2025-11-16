@@ -407,10 +407,44 @@ app.post("/api/issue", (req, res) => {
 });
 
 /* ---------- obtener datos tarjeta ---------- */
-app.get("/api/card/:cardId", (req, res) => {
-  const card = getCard.get(req.params.cardId);
-  if (!card) return res.status(404).json({ error: "not_found" });
-  res.json(card);
+app.post("/api/create-card", async (req, res) => {
+  try {
+    const { name, phone, max } = req.body || {};
+    if (!name || !phone) {
+      return res.status(400).json({ error: "Faltan datos" });
+    }
+
+    const maxVal = parseInt(max) || 8;
+    const cardId = `card_${Date.now()}`;
+    const cleanName = String(name).trim();
+
+    insertCard.run(cardId, cleanName, maxVal);
+    logEvent.run(cardId, "ISSUE", JSON.stringify({ name: cleanName, max: maxVal }));
+
+    const addToGoogleUrl = buildGoogleSaveUrl({
+      cardId,
+      name: cleanName,
+      stamps: 0,
+      max: maxVal,
+    });
+
+    const base = process.env.BASE_URL || "https://venus-loyalty.onrender.com";
+    const addToAppleUrl = `${base}/api/apple/pass?cardId=${encodeURIComponent(cardId)}`;
+    const url = `${base}/?cardId=${cardId}`;
+
+    res.json({
+      url,
+      cardId,
+      name: cleanName,
+      stamps: 0,
+      max: maxVal,
+      gwallet: addToGoogleUrl,
+      applewallet: addToAppleUrl,
+    });
+  } catch (err) {
+    console.error("❌ Error en POST /api/create-card:", err);
+    res.status(500).json({ error: "No se pudo crear la tarjeta" });
+  }
 });
 
 app.get("/api/events/:cardId", (req, res) => {
