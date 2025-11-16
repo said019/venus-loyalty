@@ -1,4 +1,4 @@
-// server.js - ACTUALIZADO CON NUEVAS RUTAS GOOGLE WALLET
+// server.js - ACTUALIZADO CON NUEVAS RUTAS GOOGLE WALLET + CREATE-CARD
 import express from "express";
 import cors from "cors";
 import "dotenv/config";
@@ -11,15 +11,20 @@ import nodemailer from "nodemailer";
 import fs from "fs";
 
 // Wallet helpers
-import { buildGoogleSaveUrl, checkLoyaltyClass, createLoyaltyClass, updateLoyaltyObject } from "./lib/google.js";
+import {
+  buildGoogleSaveUrl,
+  checkLoyaltyClass,
+  createLoyaltyClass,
+  updateLoyaltyObject,
+} from "./lib/google.js";
 import { buildApplePassBuffer } from "./lib/apple.js";
 
 // Importar los nuevos handlers de Google Wallet
-import { 
-  createClassHandler, 
-  diagnosticsHandler, 
-  testHandler, 
-  saveCardHandler 
+import {
+  createClassHandler,
+  diagnosticsHandler,
+  testHandler,
+  saveCardHandler,
 } from "./lib/api/google.js";
 
 // DB
@@ -211,6 +216,16 @@ const countCardsStmt = db.prepare(`
     AND (LOWER(id) LIKE LOWER(@like) OR LOWER(name) LIKE LOWER(@like))
 `);
 
+/* ---------- regla: sólo 1 sello por día ---------- */
+function canStamp(cardId) {
+  const row = lastStampStmt.get(cardId);
+  if (!row || !row.created_at) return true;
+  const last = new Date(row.created_at);
+  const now = new Date();
+  const diffMs = now - last;
+  return diffMs >= 23 * 60 * 60 * 1000; // ~1 día
+}
+
 /* =========================================================
    Páginas HTML
    ========================================================= */
@@ -254,43 +269,47 @@ app.get("/api/debug/google-class", async (_req, res) => {
 
 app.get("/api/debug/google-permissions", async (_req, res) => {
   try {
-    const { getWalletAccessToken } = await import('./lib/google.js');
+    const { getWalletAccessToken } = await import("./lib/google.js");
     const token = await getWalletAccessToken();
-    
-    // Probar acceso a la API
+
     const response = await fetch(
       `https://walletobjects.googleapis.com/walletobjects/v1/loyaltyClass/3388000000023035846.venus_loyalty_v1`,
       {
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
       }
     );
-    
+
     const data = await response.json();
-    
+
     res.json({
       canGetToken: true,
       tokenLength: token.length,
       apiResponse: {
         status: response.status,
         statusText: response.statusText,
-        data: data
-      }
+        data: data,
+      },
     });
   } catch (error) {
     res.json({
       canGetToken: false,
-      error: error.message
+      error: error.message,
     });
   }
 });
 
-app.post("/api/debug/test-google-object", async (req, res) => {
+app.post("/api/debug/test-google-object", async (_req, res) => {
   try {
-    const { updateLoyaltyObject } = await import('./lib/google.js');
-    const result = await updateLoyaltyObject('test-card-123', 'Test Client', 2, 8);
+    const { updateLoyaltyObject } = await import("./lib/google.js");
+    const result = await updateLoyaltyObject(
+      "test-card-123",
+      "Test Client",
+      2,
+      8
+    );
     res.json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -306,24 +325,24 @@ app.get("/api/debug/google-setup", async (_req, res) => {
         GOOGLE_CLASS_ID: !!process.env.GOOGLE_CLASS_ID,
         GOOGLE_SA_EMAIL: !!process.env.GOOGLE_SA_EMAIL,
         GOOGLE_SA_JSON: !!process.env.GOOGLE_SA_JSON,
-        BASE_URL: process.env.BASE_URL
+        BASE_URL: process.env.BASE_URL,
       },
       loyaltyClass: null,
-      serviceAccount: null
+      serviceAccount: null,
     };
 
     // Verificar Service Account
     try {
-      const { loadServiceAccount } = await import('./lib/google.js');
+      const { loadServiceAccount } = await import("./lib/google.js");
       const { client_email } = loadServiceAccount();
       diagnostics.serviceAccount = {
         hasCredentials: true,
-        clientEmail: client_email
+        clientEmail: client_email,
       };
     } catch (e) {
       diagnostics.serviceAccount = {
         hasCredentials: false,
-        error: e.message
+        error: e.message,
       };
     }
 
@@ -333,7 +352,7 @@ app.get("/api/debug/google-setup", async (_req, res) => {
       diagnostics.loyaltyClass = classCheck;
     } catch (e) {
       diagnostics.loyaltyClass = {
-        error: e.message
+        error: e.message,
       };
     }
 
@@ -349,36 +368,36 @@ app.get("/api/debug/google-issuer-check", (_req, res) => {
     console_issuer_id: "338800000002303846",
     env_issuer_id: process.env.GOOGLE_ISSUER_ID,
     env_class_id: process.env.GOOGLE_CLASS_ID,
-    match: process.env.GOOGLE_ISSUER_ID === "338800000002303846"
+    match: process.env.GOOGLE_ISSUER_ID === "338800000002303846",
   };
-  
+
   res.json(currentConfig);
 });
 
 // Verificar caracteres del Class ID
 app.get("/api/debug/google-character-check", (_req, res) => {
-  const classId = process.env.GOOGLE_CLASS_ID || '';
-  
+  const classId = process.env.GOOGLE_CLASS_ID || "";
+
   const characterCheck = {
     classId: classId,
     classIdRaw: JSON.stringify(classId),
     length: classId.length,
-    hasSpaces: classId.includes(' '),
-    hasDoubleDots: classId.includes('..'),
-    characters: classId.split('').map((char, index) => ({
+    hasSpaces: classId.includes(" "),
+    hasDoubleDots: classId.includes(".."),
+    characters: classId.split("").map((char, index) => ({
       position: index,
       char: char,
       charCode: char.charCodeAt(0),
-      isProblematic: char === ' ' || char === '..'
+      isProblematic: char === " " || char === "..",
     })),
     expected: "3388000000023035846.venus_loyalty_v1",
-    matchesExpected: classId === "3388000000023035846.venus_loyalty_v1"
+    matchesExpected: classId === "3388000000023035846.venus_loyalty_v1",
   };
-  
+
   res.json(characterCheck);
 });
 
-/* ---------- emisión de tarjeta ---------- */
+/* ---------- emisión de tarjeta (staff/admin) ---------- */
 app.post("/api/issue", (req, res) => {
   try {
     let { name = "Cliente", max = 8 } = req.body;
@@ -406,20 +425,26 @@ app.post("/api/issue", (req, res) => {
   }
 });
 
-/* ---------- obtener datos tarjeta ---------- */
-app.post("/api/create-card", async (req, res) => {
+/* ---------- crear tarjeta pública (web Venus) ---------- */
+
+// GET desde el frontend (como lo usas en el HTML)
+app.get("/api/create-card", (req, res) => {
   try {
-    const { name, phone, max } = req.body || {};
+    const { name, phone, max } = req.query;
     if (!name || !phone) {
       return res.status(400).json({ error: "Faltan datos" });
     }
 
-    const maxVal = parseInt(max) || 8;
+    const maxVal = parseInt(max, 10) || 8;
     const cardId = `card_${Date.now()}`;
     const cleanName = String(name).trim();
 
     insertCard.run(cardId, cleanName, maxVal);
-    logEvent.run(cardId, "ISSUE", JSON.stringify({ name: cleanName, max: maxVal }));
+    logEvent.run(
+      cardId,
+      "ISSUE",
+      JSON.stringify({ name: cleanName, phone, max: maxVal })
+    );
 
     const addToGoogleUrl = buildGoogleSaveUrl({
       cardId,
@@ -429,7 +454,56 @@ app.post("/api/create-card", async (req, res) => {
     });
 
     const base = process.env.BASE_URL || "https://venus-loyalty.onrender.com";
-    const addToAppleUrl = `${base}/api/apple/pass?cardId=${encodeURIComponent(cardId)}`;
+    const addToAppleUrl = `${base}/api/apple/pass?cardId=${encodeURIComponent(
+      cardId
+    )}`;
+    const url = `${base}/?cardId=${cardId}`;
+
+    res.json({
+      url,
+      cardId,
+      name: cleanName,
+      stamps: 0,
+      max: maxVal,
+      gwallet: addToGoogleUrl,
+      applewallet: addToAppleUrl,
+    });
+  } catch (err) {
+    console.error("❌ Error en GET /api/create-card:", err);
+    res.status(500).json({ error: "No se pudo crear la tarjeta" });
+  }
+});
+
+// POST opcional (compatibilidad)
+app.post("/api/create-card", (req, res) => {
+  try {
+    const { name, phone, max } = req.body || {};
+    if (!name || !phone) {
+      return res.status(400).json({ error: "Faltan datos" });
+    }
+
+    const maxVal = parseInt(max, 10) || 8;
+    const cardId = `card_${Date.now()}`;
+    const cleanName = String(name).trim();
+
+    insertCard.run(cardId, cleanName, maxVal);
+    logEvent.run(
+      cardId,
+      "ISSUE",
+      JSON.stringify({ name: cleanName, phone, max: maxVal })
+    );
+
+    const addToGoogleUrl = buildGoogleSaveUrl({
+      cardId,
+      name: cleanName,
+      stamps: 0,
+      max: maxVal,
+    });
+
+    const base = process.env.BASE_URL || "https://venus-loyalty.onrender.com";
+    const addToAppleUrl = `${base}/api/apple/pass?cardId=${encodeURIComponent(
+      cardId
+    )}`;
     const url = `${base}/?cardId=${cardId}`;
 
     res.json({
@@ -445,6 +519,13 @@ app.post("/api/create-card", async (req, res) => {
     console.error("❌ Error en POST /api/create-card:", err);
     res.status(500).json({ error: "No se pudo crear la tarjeta" });
   }
+});
+
+/* ---------- obtener datos tarjeta ---------- */
+app.get("/api/card/:cardId", (req, res) => {
+  const card = getCard.get(req.params.cardId);
+  if (!card) return res.status(404).json({ error: "not_found" });
+  res.json(card);
 });
 
 app.get("/api/events/:cardId", (req, res) => {
@@ -473,7 +554,7 @@ app.get("/api/debug/apple-env", (_req, res) => {
   const need = [
     "APPLE_ORG_NAME",
     "APPLE_PASS_CERT",
-    "APPLE_PASS_KEY", 
+    "APPLE_PASS_KEY",
     "APPLE_WWDR",
     "APPLE_PASS_TYPE_ID",
     "APPLE_TEAM_ID",
@@ -489,26 +570,26 @@ app.get("/api/debug/apple-certs", (_req, res) => {
     const certPaths = {
       APPLE_PASS_CERT: process.env.APPLE_PASS_CERT,
       APPLE_PASS_KEY: process.env.APPLE_PASS_KEY,
-      APPLE_WWDR: process.env.APPLE_WWDR
+      APPLE_WWDR: process.env.APPLE_WWDR,
     };
 
     const certChecks = {};
-    
+
     for (const [key, filePath] of Object.entries(certPaths)) {
       if (filePath && fs.existsSync(filePath)) {
         const stats = fs.statSync(filePath);
-        const content = fs.readFileSync(filePath, 'utf8');
+        const content = fs.readFileSync(filePath, "utf8");
         certChecks[key] = {
           exists: true,
           size: stats.size,
-          hasValidFormat: content.includes('BEGIN') && content.includes('END'),
-          firstLine: content.split('\n')[0],
-          path: filePath
+          hasValidFormat: content.includes("BEGIN") && content.includes("END"),
+          firstLine: content.split("\n")[0],
+          path: filePath,
         };
       } else {
-        certChecks[key] = { 
+        certChecks[key] = {
           exists: false,
-          path: filePath
+          path: filePath,
         };
       }
     }
@@ -520,44 +601,46 @@ app.get("/api/debug/apple-certs", (_req, res) => {
 });
 
 // Diagnóstico completo de configuración Apple
-app.get("/api/debug/apple-full-check", async (req, res) => {
+app.get("/api/debug/apple-full-check", async (_req, res) => {
   try {
     const TEAM_ID = process.env.APPLE_TEAM_ID;
     const PASS_TYPE_ID = process.env.APPLE_PASS_TYPE_ID;
-    
+
     const diagnostics = {
       teamId: TEAM_ID,
       passTypeId: PASS_TYPE_ID,
       expectedPassTypeId: "pass.com.venusloyalty.mx",
       match: PASS_TYPE_ID === "pass.com.venusloyalty.mx",
       certificateInfo: {},
-      canGenerateTestPass: false
+      canGenerateTestPass: false,
     };
 
-    // Verificar certificado del Pass Type ID
     if (process.env.APPLE_PASS_CERT && fs.existsSync(process.env.APPLE_PASS_CERT)) {
-      const certContent = fs.readFileSync(process.env.APPLE_PASS_CERT, 'utf8');
-      const certificate = certContent.match(/-----BEGIN CERTIFICATE-----[\s\S]+?-----END CERTIFICATE-----/);
-      
+      const certContent = fs.readFileSync(process.env.APPLE_PASS_CERT, "utf8");
+      const certificate = certContent.match(
+        /-----BEGIN CERTIFICATE-----[\s\S]+?-----END CERTIFICATE-----/
+      );
+
       if (certificate) {
-        const certLines = certificate[0].split('\n');
-        const subjectLine = certLines.find(line => line.includes('Subject:'));
+        const certLines = certificate[0].split("\n");
+        const subjectLine = certLines.find((line) =>
+          line.includes("Subject:")
+        );
         diagnostics.certificateInfo = {
           hasCertificate: true,
-          subject: subjectLine || 'No subject found',
+          subject: subjectLine || "No subject found",
           containsPassTypeId: certContent.includes(PASS_TYPE_ID),
-          size: certContent.length
+          size: certContent.length,
         };
       }
     }
 
-    // Intentar generar un pase de prueba
     try {
       const testBuffer = await buildApplePassBuffer({
-        cardId: 'test-' + Date.now(),
-        name: 'Test Client',
+        cardId: "test-" + Date.now(),
+        name: "Test Client",
         stamps: 2,
-        max: 8
+        max: 8,
       });
       diagnostics.canGenerateTestPass = true;
       diagnostics.testPassSize = testBuffer.length;
@@ -573,35 +656,34 @@ app.get("/api/debug/apple-full-check", async (req, res) => {
 });
 
 // Pase de prueba para descargar
-app.get("/api/apple/test-pass", async (req, res) => {
+app.get("/api/apple/test-pass", async (_req, res) => {
   try {
     const testPayload = {
-      cardId: 'test-' + Date.now(),
-      name: 'Cliente Test',
+      cardId: "test-" + Date.now(),
+      name: "Cliente Test",
       stamps: 2,
-      max: 8
+      max: 8,
     };
 
-    console.log('Generando pase de prueba con:', testPayload);
-    
+    console.log("Generando pase de prueba con:", testPayload);
+
     const buffer = await buildApplePassBuffer(testPayload);
 
     res.set({
-      'Content-Type': 'application/vnd.apple.pkpass',
-      'Content-Disposition': `attachment; filename="test-pass.pkpass"`,
-      'Content-Length': buffer.length,
-      'Cache-Control': 'no-cache, no-store, must-revalidate',
-      'Pragma': 'no-cache',
-      'Expires': '0'
+      "Content-Type": "application/vnd.apple.pkpass",
+      "Content-Disposition": `attachment; filename="test-pass.pkpass"`,
+      "Content-Length": buffer.length,
+      "Cache-Control": "no-cache, no-store, must-revalidate",
+      Pragma: "no-cache",
+      Expires: "0",
     });
 
     res.send(buffer);
   } catch (error) {
-    console.error('Error en test pass:', error);
-    res.status(500).json({ 
-      error: error.message,
-      stack: error.stack 
-    });
+    console.error("Error en test pass:", error);
+    res
+      .status(500)
+      .json({ error: error.message, stack: error.stack });
   }
 });
 
@@ -611,7 +693,6 @@ app.get("/api/apple/pass", async (req, res) => {
     const { cardId } = req.query;
     if (!cardId) return res.status(400).send("Falta cardId");
 
-    // Usar DB si ya existe la tarjeta
     const existing = getCard.get(cardId);
     const payload = existing
       ? {
@@ -627,10 +708,8 @@ app.get("/api/apple/pass", async (req, res) => {
           max: 8,
         };
 
-    // Generar el .pkpass (Buffer binario)
     const buffer = await buildApplePassBuffer(payload);
 
-    // Headers correctos para Apple Wallet
     res.set({
       "Content-Type": "application/vnd.apple.pkpass",
       "Content-Disposition": `attachment; filename="${payload.cardId}.pkpass"`,
@@ -738,7 +817,8 @@ app.post("/api/admin/register", async (req, res) => {
     const allow =
       (process.env.ADMIN_ALLOW_SIGNUP || "false").toLowerCase() === "true";
     const { n } = countAdmins.get();
-    if (!allow && n > 0) return res.status(403).json({ error: "signup_disabled" });
+    if (!allow && n > 0)
+      return res.status(403).json({ error: "signup_disabled" });
 
     const { email, password } = req.body || {};
     if (!email || !password)
@@ -883,11 +963,10 @@ app.post("/api/admin/forgot", async (req, res) => {
     if (!email) return res.status(400).json({ error: "missing_email" });
 
     const admin = getAdminByEmail.get(email);
-    // Siempre 200 para no revelar si existe
     if (!admin) return res.json({ ok: true });
 
     const token = crypto.randomBytes(24).toString("hex");
-    const expires = new Date(Date.now() + 30 * 60 * 1000).toISOString(); // 30 min
+    const expires = new Date(Date.now() + 30 * 60 * 1000).toISOString();
     insertReset.run(token, admin.id, email, expires);
 
     const base = process.env.APP_BASE_URL || process.env.BASE_URL || "";
@@ -976,8 +1055,17 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Servidor activo en http://localhost:${PORT}`);
   console.log(`📱 Google Wallet endpoints disponibles:`);
-  console.log(`   • Crear clase: http://localhost:${PORT}/api/google/create-class`);
-  console.log(`   • Diagnóstico: http://localhost:${PORT}/api/google/diagnostics`);
+  console.log(
+    `   • Crear clase: http://localhost:${PORT}/api/google/create-class`
+  );
+  console.log(
+    `   • Diagnóstico: http://localhost:${PORT}/api/google/diagnostics`
+  );
   console.log(`   • Probar: http://localhost:${PORT}/api/google/test`);
-  console.log(`   • Generar enlace: http://localhost:${PORT}/api/save-card?cardId=test123&name=Maria&stamps=3&max=8`);
+  console.log(
+    `   • Generar enlace: http://localhost:${PORT}/api/save-card?cardId=test123&name=Maria&stamps=3&max=8`
+  );
+  console.log(
+    `   • Crear tarjeta pública: http://localhost:${PORT}/api/create-card?name=Test&phone=4270000000&max=8`
+  );
 });
