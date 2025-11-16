@@ -6,6 +6,7 @@
   <title>Venus Lealtad</title>
   <link rel="icon" href="/assets/logo.png">
   <style>
+    /* Tus estilos actuales aquí (sin cambios) */
     body {
       margin: 0;
       font-family: 'Poppins', sans-serif;
@@ -289,9 +290,11 @@
       if (loading) {
         submitBtn.classList.add('loading');
         submitBtn.textContent = 'Creando...';
+        submitBtn.disabled = true;
       } else {
         submitBtn.classList.remove('loading');
         submitBtn.textContent = 'Crear tarjeta';
+        submitBtn.disabled = false;
       }
     }
 
@@ -358,7 +361,7 @@
         });
     }
 
-    // Manejar creación de tarjeta
+    // Manejar creación de tarjeta - USANDO GET COMO EN TU CÓDIGO ORIGINAL
     document.getElementById("create-form").addEventListener("submit", async (e) => {
       e.preventDefault();
       hideError();
@@ -381,18 +384,15 @@
       }
 
       try {
-        const res = await fetch('/api/create-card', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            name: name,
-            phone: phone,
-            max: 8
-          })
-        });
-
+        // USAR MÉTODO GET como en tu código original que funciona
+        const res = await fetch(`/api/create-card?name=${encodeURIComponent(name)}&phone=${encodeURIComponent(phone)}&max=8`);
+        
+        // Verificar si la respuesta es JSON
+        const contentType = res.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          throw new Error('El servidor no respondió con JSON. Verifica la ruta del API.');
+        }
+        
         const data = await res.json();
         
         if (!res.ok) {
@@ -402,18 +402,36 @@
         if (data?.url) {
           window.location.href = data.url;
         } else if (data?.cardId) {
-          // Mostrar directamente si la API devuelve los datos
+          // Si tenemos cardId, actualizar la URL y mostrar la tarjeta
+          const newUrl = `${window.location.origin}${window.location.pathname}?cardId=${data.cardId}`;
+          window.history.pushState({}, '', newUrl);
           showCardView(data);
         } else {
           throw new Error('Respuesta inválida del servidor');
         }
       } catch (error) {
         console.error('Error:', error);
-        showError(error.message || "Ocurrió un error al crear la tarjeta. Intenta nuevamente.");
+        showError(error.message || "Ocurrió un error al crear la tarjeta. Verifica que el servidor esté funcionando.");
       } finally {
         setLoading(false);
       }
     });
+
+    // También probar con endpoint alternativo
+    async function tryAlternativeEndpoint(name, phone) {
+      try {
+        const res = await fetch('/api/cards', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ name, phone, max: 8 })
+        });
+        return await res.json();
+      } catch (error) {
+        throw new Error('Endpoint alternativo también falló');
+      }
+    }
   </script>
 </body>
 </html>
