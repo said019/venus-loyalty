@@ -4,96 +4,115 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Venus Lealtad</title>
-  <link rel="stylesheet" href="/styles.css">
   <link rel="icon" href="/assets/logo.png">
   <style>
     body {
-      background-color: #f9f6ef;
       margin: 0;
       font-family: 'Poppins', sans-serif;
+      background-color: #3f4037; /* Fondo exterior con contraste */
     }
 
     .container {
       max-width: 480px;
       margin: 2rem auto;
       padding: 1rem;
-    }
-
-    .card {
-      background-color: #8c9668; /* Verde fuerte */
-      border-radius: 16px;
-      color: #fff;
-      padding: 1.5rem;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-    }
-
-    .brand__logo {
-      width: 50px;
-      height: 50px;
-      border-radius: 50%;
-      margin-right: 10px;
-    }
-
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 1rem;
-    }
-
-    .brand__title {
-      margin: 0;
-      font-size: 1.4rem;
-      font-weight: 700;
-      color: #2e2f2b;
-    }
-
-    .brand__subtitle {
-      margin: 0;
-      color: #4e4e4e;
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(8, 1fr);
-      gap: 8px;
-      margin: 1rem 0;
-      justify-items: center;
-    }
-
-    .grid div {
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      background-color: rgba(255,255,255,0.3);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 600;
-      font-size: 0.9rem;
-      color: #fff;
-    }
-
-    .cta-row {
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 10px;
-      margin-top: 1rem;
+    }
+
+    .card {
+      background-color: #8c9668;
+      border-radius: 20px;
+      color: #fff;
+      padding: 2rem;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+      width: 100%;
+      position: relative;
+      overflow: hidden;
+      text-align: center;
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 20% 30%, rgba(255,255,255,0.05), transparent 70%),
+                  radial-gradient(circle at 80% 60%, rgba(255,255,255,0.04), transparent 60%);
+      opacity: 0.7;
+      z-index: 0;
+    }
+
+    .card > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .brand__logo {
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      margin-bottom: 0.5rem;
+      background-color: #fff;
+      box-shadow: 0 0 10px rgba(255,255,255,0.3);
+    }
+
+    h1 {
+      margin: 0.5rem 0 0.25rem;
+      font-size: 1.6rem;
+      font-weight: 700;
+    }
+
+    p.subtitle {
+      margin: 0 0 1.5rem 0;
+      font-size: 1rem;
+      opacity: 0.9;
+    }
+
+    h2 {
+      margin-top: 0.5rem;
+      font-weight: 600;
+      font-size: 1.3rem;
+    }
+
+    p.desc {
+      font-size: 0.95rem;
+      opacity: 0.9;
+      margin-bottom: 1.2rem;
+    }
+
+    label {
+      display: block;
+      text-align: left;
+      font-weight: 600;
+      margin-top: 0.75rem;
+      margin-bottom: 0.25rem;
+      color: #fff;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      border-radius: 10px;
+      border: none;
+      background: #f5f5f5;
+      color: #222;
+      margin-bottom: 1rem;
+      font-size: 1rem;
     }
 
     .btn {
+      display: inline-block;
       text-decoration: none;
       border: none;
-      padding: 0.75rem 1.25rem;
-      border-radius: 8px;
+      border-radius: 10px;
+      padding: 12px 18px;
       font-weight: 600;
       cursor: pointer;
-      transition: 0.2s;
-      text-align: center;
+      transition: 0.2s ease;
       width: 100%;
-      max-width: 260px;
+      max-width: 270px;
     }
 
     .btn:hover {
@@ -120,6 +139,15 @@
       font-size: 1.4rem;
     }
 
+    .cta-row {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 1.5rem;
+    }
+
     details.qr {
       background-color: rgba(255,255,255,0.15);
       border-radius: 10px;
@@ -135,65 +163,48 @@
 
     footer {
       text-align: center;
-      font-size: 0.8rem;
+      color: #ccc;
+      font-size: 0.85rem;
       margin-top: 2rem;
-      color: #555;
     }
 
     @media (max-width: 480px) {
-      .btn {
-        max-width: 100%;
-      }
-      .grid div {
-        width: 26px;
-        height: 26px;
-        font-size: 0.8rem;
-      }
+      .btn { max-width: 100%; }
+      input { font-size: 0.95rem; }
     }
+
+    .hidden { display: none; }
   </style>
 </head>
 <body>
   <main class="container">
-    <header class="brand">
+    <section id="view-create" class="card">
       <img src="/assets/logo.png" alt="Venus" class="brand__logo">
-      <div>
-        <h1 class="brand__title">Venus Lealtad</h1>
-        <p class="brand__subtitle">Gana sellos y canjea tu facial 🌿</p>
-      </div>
-    </header>
+      <h1>Venus Lealtad</h1>
+      <p class="subtitle">Gana sellos y canjea tu facial 🌿</p>
 
-    <!-- Vista: crear tarjeta -->
-    <section id="view-create" class="card hidden">
-      <h2 style="text-align:center;color:#fff;">Crea tu tarjeta</h2>
-      <p style="text-align:center;">Ingresa tus datos para generar tu tarjeta digital.</p>
+      <h2>Crea tu tarjeta</h2>
+      <p class="desc">Ingresa tus datos para generar tu tarjeta digital.</p>
 
       <form id="create-form">
-        <label class="label" style="display:block;margin-bottom:1rem;">
-          Nombre
-          <input id="name" name="name" placeholder="Tu nombre" required style="width:100%;padding:10px;border-radius:6px;border:none;margin-top:5px;">
-        </label>
-        <label class="label" style="display:block;margin-bottom:1rem;">
-          Teléfono
-          <input id="phone" name="phone" type="tel" placeholder="10 dígitos" pattern="[0-9]{10}" required style="width:100%;padding:10px;border-radius:6px;border:none;margin-top:5px;">
-        </label>
+        <label>Nombre</label>
+        <input id="name" name="name" placeholder="Tu nombre" required>
+
+        <label>Teléfono</label>
+        <input id="phone" name="phone" type="tel" placeholder="10 dígitos" pattern="[0-9]{10}" required>
 
         <input id="max" name="max" type="hidden" value="8">
-
         <button class="btn btn--google" type="submit">Crear tarjeta</button>
       </form>
     </section>
 
-    <!-- Vista: tarjeta existente -->
     <section id="view-card" class="card hidden">
-      <div class="card__row" style="display:flex;justify-content:space-between;align-items:center;">
-        <div>
-          <h2 id="c_name">Cliente</h2>
-          <p id="c_info" class="muted" style="margin:0;">Progreso 0/8</p>
-        </div>
-        <img src="/assets/hero.png" alt="Venus" class="hero" style="height:40px;">
+      <div>
+        <h2 id="c_name">Cliente</h2>
+        <p id="c_info" style="margin:0;">Progreso: 0/8</p>
       </div>
 
-      <div id="grid" class="grid"></div>
+      <div id="grid" style="display:grid;grid-template-columns:repeat(8,1fr);gap:8px;justify-items:center;margin-top:1rem;"></div>
 
       <div class="cta-row">
         <a id="gwallet" class="btn btn--google" target="_blank" rel="noopener">Guardar en Google Wallet</a>
@@ -204,28 +215,73 @@
       <details class="qr">
         <summary>Mostrar QR de mi tarjeta</summary>
         <img id="qr" alt="QR" style="width:150px;margin-top:10px;" />
-        <p class="small" style="margin:8px 0;">Este QR contiene tu <code>cardId</code>. Úsalo en recepción para sumar sellos.</p>
-        <div class="idline" style="display:flex;align-items:center;gap:10px;">
+        <p class="small">Este QR contiene tu <code>cardId</code>. Úsalo en recepción para sumar sellos.</p>
+        <div style="display:flex;align-items:center;gap:10px;">
           <code id="cid"></code>
           <button id="copy" class="btn btn--google small" style="padding:5px 10px;">Copiar</button>
         </div>
       </details>
     </section>
 
-    <footer>
-      <small>© Venus Cosmetología — Programa de Lealtad</small>
-    </footer>
+    <footer>© Venus Cosmetología — Programa de Lealtad</footer>
   </main>
 
-  <script src="/app.js"></script>
   <script>
-    // Ajusta dinámicamente la URL del pase Apple Wallet
-    const appleBtn = document.getElementById('applewallet');
+    const createView = document.getElementById("view-create");
+    const cardView = document.getElementById("view-card");
+    const grid = document.getElementById("grid");
     const params = new URLSearchParams(window.location.search);
-    const cardId = params.get('cardId');
-    if (appleBtn && cardId) {
-      appleBtn.href = `${window.location.origin}/api/apple/${cardId}`;
+    const cardId = params.get("cardId");
+
+    function showCardView(data) {
+      createView.classList.add("hidden");
+      cardView.classList.remove("hidden");
+      document.getElementById("c_name").textContent = data.name || "Cliente";
+      document.getElementById("c_info").textContent = `Progreso: ${data.stamps}/8`;
+
+      grid.innerHTML = "";
+      for (let i = 1; i <= 8; i++) {
+        const div = document.createElement("div");
+        div.textContent = i;
+        div.style.width = "28px";
+        div.style.height = "28px";
+        div.style.borderRadius = "50%";
+        div.style.display = "flex";
+        div.style.alignItems = "center";
+        div.style.justifyContent = "center";
+        div.style.backgroundColor = i <= data.stamps ? "#fff" : "rgba(255,255,255,0.3)";
+        div.style.color = i <= data.stamps ? "#333" : "#fff";
+        grid.appendChild(div);
+      }
+
+      const qr = document.getElementById("qr");
+      qr.src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${data.cardId}`;
+      document.getElementById("cid").textContent = data.cardId;
+      document.getElementById("gwallet").href = data.gwallet;
+      document.getElementById("applewallet").href = data.applewallet;
     }
+
+    if (cardId) {
+      fetch(`/api/card/${cardId}`)
+        .then(res => res.json())
+        .then(showCardView)
+        .catch(() => alert("No se pudo cargar la tarjeta"));
+    }
+
+    document.getElementById("create-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const name = document.getElementById("name").value.trim();
+      const phone = document.getElementById("phone").value.trim();
+      const max = 8;
+      try {
+        const res = await fetch(`/api/create-card?name=${encodeURIComponent(name)}&phone=${encodeURIComponent(phone)}&max=${max}`);
+        const data = await res.json();
+        if (data?.url) window.location.href = data.url;
+        else alert("No se pudo crear la tarjeta.");
+      } catch {
+        alert("Ocurrió un error al crear la tarjeta.");
+      }
+    });
   </script>
 </body>
 </html>
