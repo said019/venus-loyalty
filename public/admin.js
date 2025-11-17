@@ -261,3 +261,52 @@ $('#scan_close').onclick = ()=> { stopScan(); sdlg.close(); };
 $('#scan_start').onclick = startScan;
 $('#scan_stop').onclick = stopScan;
 camSel.onchange = ()=> stream && startScan();
+// ====== Gift Cards (en pestaña Eventos) ======
+const giftForm = document.getElementById('gift-form');
+const giftPreview = document.getElementById('gift-preview');
+const giftQr = document.getElementById('gift-qr');
+const giftTitle = document.getElementById('gift-preview-title');
+const giftSub = document.getElementById('gift-preview-sub');
+const giftExp = document.getElementById('gift-preview-exp');
+
+if (giftForm) {
+  giftForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+
+    const name = document.getElementById('gift-name').value.trim();
+    const service = document.getElementById('gift-service').value.trim();
+    if (!service) return;
+
+    const now = new Date();
+    const expires = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    const expLabel = expires.toLocaleDateString(undefined, {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
+    });
+
+    // ID simple para la gift card (no está aún en la BD, es solo visual).
+    const giftId = `gift_${Date.now()}`;
+
+    // Payload para el QR: puedes cambiarlo luego para usar un endpoint real
+    // por ejemplo /gift?id=...
+    const payload = `VENUS_GIFT|id=${giftId}|service=${service}|name=${name || '-'}|exp=${expires.toISOString()}`;
+
+    // QR con Google Chart (como el de la tarjeta)
+    const qrUrl = `https://chart.googleapis.com/chart?cht=qr&chs=260x260&chld=M|0&chl=${encodeURIComponent(payload)}`;
+    giftQr.src = qrUrl;
+
+    // Texto en la tarjeta visual
+    giftTitle.textContent = service || 'Gift Card';
+    giftSub.textContent = name
+      ? `Para: ${name}`
+      : 'Gift Card sin nombre asignado';
+    giftExp.textContent = `Vigencia hasta: ${expLabel}`;
+
+    giftPreview.classList.remove('hidden');
+
+    // Por si quieres copiar el texto del payload rápido en consola:
+    console.log('[Gift Card generada]', { giftId, service, name, exp: expires, payload });
+    alert('Gift Card generada. Puedes hacer captura de pantalla y enviarla al cliente.');
+  });
+}

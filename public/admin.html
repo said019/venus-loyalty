@@ -4,195 +4,559 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Panel Admin — Venus Lealtad</title>
-  <link rel="stylesheet" href="/styles.css">
+  <link rel="icon" href="/assets/logo.png">
   <style>
-    :root{ --venus:#8c9668; --venus-2:#cdd8a6; --muted:#6b7280; --line:#e5e7eb; --bg:#fff6e3; --ink:#1b1b1b; }
-    body{ background:var(--bg); color:var(--ink); }
-    .wrap{ max-width:1100px; margin:24px auto; padding:16px }
-    .muted{ color:var(--muted) }
-    .btn{ background:var(--venus); color:#fff; border:none; border-radius:10px; padding:10px 14px; cursor:pointer }
-    .btn.ghost{ background:#fff; color:var(--venus); border:1px solid var(--venus) }
-    .btn.icon{ display:inline-flex; gap:8px; align-items:center }
-    .row{ display:flex; gap:10px; align-items:center; flex-wrap:wrap }
-    .right{ display:flex; justify-content:flex-end }
-    .panel{ background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px; margin:12px 0 }
-    .h1{ display:flex; gap:10px; align-items:center; margin:0 0 8px }
-    .nav{ display:flex; gap:8px; margin:6px 0 12px }
-    .nav a{ padding:8px 12px; border-radius:10px; border:1px solid var(--line); background:#fff; color:#111; text-decoration:none }
-    .nav a.is-active{ border-color:var(--venus); color:var(--venus) }
-    .grid-kpi{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px }
-    .kpi{ background:#fff; border:1px solid var(--line); border-radius:12px; padding:12px }
-    .kpi .big{ font-size:28px; font-weight:700 }
-    .hidden{ display:none!important }
-    input,select{ padding:10px; border:1px solid var(--line); border-radius:10px; background:#fafafa }
-    table{ width:100%; border-collapse:collapse }
-    th,td{ padding:10px; border-bottom:1px solid #eee; font-size:14px; text-align:left; vertical-align:top }
-    th{ background:#fafafa }
-    .tag{ display:inline-block; background:#eef2f7; border:1px solid #e5e7eb; padding:4px 8px; border-radius:999px; font-size:12px }
-    .tools{ display:flex; gap:8px; flex-wrap:wrap }
-    .pill{ background:#eef2f7; border:1px solid #e5e7eb; padding:6px 10px; border-radius:999px }
-    dialog{ border:none; border-radius:12px; max-width:620px; width:92% }
-    dialog .hd{ display:flex; justify-content:space-between; align-items:center }
-    .qr-wrap{ display:flex; gap:12px; align-items:center; flex-wrap:wrap }
-    .small{ font-size:12px }
+    :root{
+      --venus:#8c9668;
+      --venus-soft:#cdd8a6;
+      --bg:#fff6e3;
+      --ink:#1b1b1b;
+      --muted:#6b7280;
+      --line:#e5e7eb;
+      --err:#b91c1c;
+      --ok:#15803d;
+      --radius:14px;
+    }
+    *{box-sizing:border-box;}
+    html,body{
+      margin:0;
+      padding:0;
+      background:var(--bg);
+      color:var(--ink);
+      font-family:system-ui,-apple-system,Segoe UI,Inter,Roboto,Arial,sans-serif;
+    }
+    body{
+      min-height:100vh;
+      display:flex;
+      flex-direction:column;
+    }
+    .wrap{
+      max-width:1100px;
+      margin:16px auto;
+      padding:0 12px 32px;
+      width:100%;
+    }
 
-    /* Escáner QR */
-    #scanDialog video{ width:100%; border-radius:12px; background:#000; aspect-ratio:16/9; object-fit:cover }
-    #scanDialog .row{ margin-top:10px }
+    /* Topbar */
+    .topbar{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      margin-bottom:10px;
+      flex-wrap:wrap;
+    }
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+    .brand img{
+      width:40px;
+      height:40px;
+      border-radius:12px;
+      box-shadow:0 0 0 2px rgba(0,0,0,.04);
+    }
+    h1{
+      font-size:22px;
+      margin:0;
+    }
+    .muted{color:var(--muted);font-size:13px;}
+    .actions{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+
+    /* Botones */
+    .btn{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:6px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background:#fff;
+      padding:7px 13px;
+      font-size:13px;
+      cursor:pointer;
+      text-decoration:none;
+      color:var(--ink);
+      white-space:nowrap;
+    }
+    .btn.primary{
+      background:var(--venus);
+      border-color:var(--venus);
+      color:#fff;
+    }
+    .btn.ghost{
+      background:#fff;
+      border-color:var(--line);
+    }
+    .btn.small{
+      padding:5px 10px;
+      font-size:12px;
+    }
+
+    /* Nav tabs */
+    .nav{
+      display:flex;
+      gap:6px;
+      flex-wrap:wrap;
+      margin:8px 0 14px;
+    }
+    .nav a{
+      padding:7px 12px;
+      border-radius:999px;
+      border:1px solid transparent;
+      text-decoration:none;
+      font-size:13px;
+      color:var(--muted);
+      background:transparent;
+    }
+    .nav a.is-active{
+      background:#fff;
+      border-color:var(--venus);
+      color:var(--venus);
+      box-shadow:0 4px 14px rgba(0,0,0,.05);
+    }
+
+    /* Cards base */
+    .card{
+      background:#fff;
+      border-radius:var(--radius);
+      border:1px solid var(--line);
+      padding:16px 16px 14px;
+      box-shadow:0 10px 28px rgba(0,0,0,.06);
+      margin-bottom:14px;
+    }
+    .card h2{
+      margin:0 0 6px;
+      font-size:18px;
+    }
+    .card h3{
+      margin:0 0 6px;
+      font-size:15px;
+    }
+
+    /* Layouts */
+    .grid-2{
+      display:grid;
+      grid-template-columns:1.1fr .9fr;
+      gap:14px;
+    }
+    .grid-3-kpi{
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:10px;
+      margin-top:10px;
+    }
+    @media (max-width:900px){
+      .grid-2{ grid-template-columns:1fr; }
+    }
+    @media (max-width:700px){
+      .grid-3-kpi{grid-template-columns:repeat(2,minmax(0,1fr));}
+    }
+    @media (max-width:480px){
+      .grid-3-kpi{grid-template-columns:1fr;}
+      .topbar{align-items:flex-start;}
+    }
+
+    .kpi{
+      padding:10px 12px;
+      border-radius:12px;
+      background:#f9fafb;
+      border:1px solid #eef2ff;
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+      font-size:13px;
+    }
+    .kpi span.value{
+      font-size:20px;
+      font-weight:600;
+      color:#111827;
+    }
+
+    .row{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+
+    label{
+      display:block;
+      margin:8px 0 4px;
+      font-size:13px;
+      font-weight:500;
+    }
+    input,select,textarea{
+      width:100%;
+      padding:9px 10px;
+      border-radius:10px;
+      border:1px solid var(--line);
+      background:#f9fafb;
+      font-size:13px;
+    }
+    textarea{resize:vertical;min-height:70px;}
+
+    /* Tab containers */
+    .hidden{display:none!important;}
+
+    /* Tabla responsive */
+    .table-wrap{
+      width:100%;
+      overflow-x:auto;
+      -webkit-overflow-scrolling:touch;
+    }
+    table{
+      border-collapse:collapse;
+      width:100%;
+      font-size:13px;
+    }
+    thead{
+      background:#f9fafb;
+    }
+    th,td{
+      padding:6px 8px;
+      border-bottom:1px solid #eef2f7;
+      text-align:left;
+      white-space:nowrap;
+    }
+    tr:last-child td{border-bottom:none;}
+    code{
+      font-size:12px;
+      background:#f3f4f6;
+      padding:2px 4px;
+      border-radius:4px;
+    }
+    .tag{
+      display:inline-flex;
+      align-items:center;
+      padding:2px 6px;
+      border-radius:999px;
+      background:#ecfdf5;
+      color:#047857;
+      font-size:11px;
+    }
+
+    /* Dialog tarjeta */
+    dialog{
+      border:none;
+      padding:0;
+      border-radius:18px;
+      max-width:440px;
+      width:min(92vw,440px);
+      box-shadow:0 24px 80px rgba(15,23,42,.35);
+    }
+    dialog::backdrop{
+      background:rgba(15,23,42,.45);
+      backdrop-filter:blur(2px);
+    }
+    .dlg-inner{
+      padding:16px 16px 14px;
+    }
+    .dlg-header{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      margin-bottom:6px;
+    }
+    .dlg-title{
+      font-size:16px;
+      font-weight:600;
+    }
+    .dlg-body{
+      font-size:13px;
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+    .dlg-footer{
+      margin-top:10px;
+      display:flex;
+      justify-content:space-between;
+      gap:8px;
+      flex-wrap:wrap;
+      align-items:center;
+      font-size:12px;
+    }
+    #d_qr{
+      display:block;
+      margin:10px auto 8px;
+      width:190px;
+      max-width:70%;
+      height:auto;
+      border-radius:12px;
+      background:#f3f4f6;
+      padding:6px;
+    }
+    #d_out{
+      font-size:12px;
+      color:var(--muted);
+    }
+
+    /* Scan dialog */
+    #scan_video{
+      width:100%;
+      max-height:260px;
+      border-radius:12px;
+      background:#000;
+      object-fit:cover;
+    }
+
+    /* Gift card layout */
+    .gift-layout{
+      display:grid;
+      grid-template-columns:1.1fr .9fr;
+      gap:12px;
+      margin-top:6px;
+    }
+    @media (max-width:880px){
+      .gift-layout{grid-template-columns:1fr;}
+    }
+    .gift-preview{
+      border-radius:16px;
+      padding:14px;
+      background:linear-gradient(135deg,#8c9668,#cdd8a6);
+      color:#fff;
+      position:relative;
+      overflow:hidden;
+      min-height:180px;
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+    }
+    .gift-preview h4{
+      margin:0 0 4px;
+      font-size:15px;
+    }
+    .gift-preview small{font-size:12px;opacity:.9;}
+    .gift-preview-qr{
+      display:flex;
+      justify-content:flex-end;
+      margin-top:10px;
+    }
+    #gift-qr{
+      width:130px;
+      height:auto;
+      border-radius:12px;
+      background:rgba(255,255,255,.15);
+      padding:4px;
+    }
+    .chip{
+      display:inline-flex;
+      align-items:center;
+      padding:3px 7px;
+      border-radius:999px;
+      background:rgba(0,0,0,.18);
+      font-size:11px;
+      margin-top:4px;
+    }
+
+    /* Footer */
+    .footer{
+      margin-top:auto;
+      text-align:center;
+      padding:8px 0 14px;
+      font-size:12px;
+      color:var(--muted);
+    }
   </style>
 </head>
 <body>
   <main class="wrap">
-    <header class="row" style="justify-content:space-between;margin-bottom:6px">
-      <div class="row">
-        <img src="/assets/logo.png" alt="Venus" style="width:40px;height:40px;border-radius:10px">
+    <!-- Topbar -->
+    <header class="topbar">
+      <div class="brand">
+        <img src="/assets/logo.png" alt="Venus">
         <div>
-          <h1 class="h1">Panel Admin — Venus Lealtad</h1>
-          <div id="me-line" class="muted">Cargando…</div>
+          <h1>Admin — Venus Lealtad</h1>
+          <div class="muted" id="me-line">Sesión…</div>
         </div>
       </div>
-      <div class="row">
-        <a class="btn ghost" href="/" target="_blank" rel="noopener">Clientes</a>
-        <!-- Staff eliminado; todo se hace aquí -->
-        <button id="logout" class="btn ghost">Cerrar sesión</button>
+      <div class="actions">
+        <a class="btn" href="/" target="_blank" rel="noopener">Página clientes</a>
+        <button id="logout" class="btn">Cerrar sesión</button>
       </div>
     </header>
 
+    <!-- Tabs -->
     <nav class="nav">
-      <a href="#overview" class="is-active" data-tab>Resumen</a>
+      <a href="#overview" data-tab>Resumen</a>
       <a href="#cards" data-tab>Tarjetas</a>
-      <a href="#events" data-tab>Eventos</a>
+      <a href="#events" data-tab>Eventos & Gift cards</a>
       <a href="#settings" data-tab>Configuración</a>
     </nav>
 
-    <!-- ========== OVERVIEW ========== -->
-    <section id="tab-overview" class="panel">
-      <h2 style="margin:0 0 8px">Resumen</h2>
-      <p class="muted small">Indicadores rápidos de tu programa de lealtad.</p>
-      <div id="kpis" class="grid-kpi">
-        <div class="kpi"><div class="muted">Tarjetas totales</div><div id="k_total" class="big">—</div></div>
-        <div class="kpi"><div class="muted">Tarjetas completas</div><div id="k_full" class="big">—</div></div>
-        <div class="kpi"><div class="muted">Sellos hoy</div><div id="k_stamps" class="big">—</div></div>
-        <div class="kpi"><div class="muted">Canjes hoy</div><div id="k_redeems" class="big">—</div></div>
-      </div>
-      <div id="kpi_note" class="muted small" style="margin-top:8px"></div>
-    </section>
-
-    <!-- ========== CARDS ========== -->
-    <section id="tab-cards" class="panel hidden">
-      <div class="row" style="justify-content:space-between">
-        <h2 style="margin:0">Tarjetas</h2>
-        <div class="tools">
-          <button id="scan" class="btn icon">📷 Escanear QR</button>
-          <button id="reload" class="btn ghost">Recargar</button>
-          <button id="export" class="btn ghost">Exportar CSV</button>
+    <!-- TAB: Overview -->
+    <section id="tab-overview" class="card">
+      <h2>Resumen de hoy</h2>
+      <p class="muted" id="kpi_note">Cargando métricas…</p>
+      <div class="grid-3-kpi">
+        <div class="kpi">
+          <span class="value" id="k_total">—</span>
+          <span>Total de tarjetas</span>
+        </div>
+        <div class="kpi">
+          <span class="value" id="k_full">—</span>
+          <span>Tarjetas completas</span>
+        </div>
+        <div class="kpi">
+          <span class="value" id="k_stamps">—</span>
+          <span>Sellos hoy</span>
         </div>
       </div>
-
-      <div class="row" style="gap:8px;margin:8px 0">
-        <input id="q" placeholder="Buscar por ID o nombre…" style="min-width:260px">
-        <select id="f_status">
-          <option value="">Estado (todos)</option>
-          <option value="ACTIVE">Activas</option>
-          <option value="BLOCKED">Bloqueadas</option>
-        </select>
-        <select id="f_completed">
-          <option value="">Completas (todas)</option>
-          <option value="yes">Sí</option>
-          <option value="no">No</option>
-        </select>
-        <button id="clearFilters" class="btn ghost">Limpiar filtros</button>
+      <div class="grid-3-kpi" style="margin-top:10px;">
+        <div class="kpi">
+          <span class="value" id="k_redeems">—</span>
+          <span>Canjes hoy</span>
+        </div>
       </div>
+    </section>
 
-      <div class="panel" style="margin:10px 0">
+    <!-- TAB: Cards -->
+    <section id="tab-cards" class="card hidden">
+      <div class="row" style="justify-content:space-between;margin-bottom:8px;">
+        <div class="row" style="flex:1 1 auto;min-width:220px;">
+          <input id="q" placeholder="Buscar por ID o nombre…">
+        </div>
+        <div class="row">
+          <button id="reload" class="btn small">Recargar</button>
+          <button id="export" class="btn small">Exportar CSV</button>
+          <button id="scan" class="btn small">Escanear QR</button>
+        </div>
+      </div>
+      <div class="table-wrap">
         <table>
           <thead>
             <tr>
-              <th>ID</th><th>Cliente</th><th>Sellos</th><th>Max</th><th>Estado</th><th>Creada</th><th>Acciones</th>
+              <th>ID</th><th>Cliente</th><th>Sellos</th><th>Max</th><th>Status</th><th>Creada</th><th>Acciones</th>
             </tr>
           </thead>
           <tbody id="cards-tbody"></tbody>
         </table>
-        <div class="row" style="justify-content:space-between;margin-top:8px">
-          <button id="prev" class="btn ghost">Anterior</button>
-          <div id="pageinfo" class="muted"></div>
-          <button id="next" class="btn ghost">Siguiente</button>
+      </div>
+      <div class="row" style="justify-content:space-between;margin-top:8px;font-size:12px;">
+        <div id="pageinfo" class="muted">Página 1</div>
+        <div class="row">
+          <button id="prev" class="btn small">Anterior</button>
+          <button id="next" class="btn small">Siguiente</button>
         </div>
       </div>
     </section>
 
-    <!-- ========== EVENTS ========== -->
-    <section id="tab-events" class="panel hidden">
-      <h2 style="margin:0 0 8px">Eventos</h2>
-      <div class="row" style="gap:8px;margin-bottom:8px">
-        <input id="eid" placeholder="card_...">
-        <button id="eload" class="btn">Ver eventos</button>
-      </div>
-      <div class="panel">
-        <table>
-          <thead><tr><th>#</th><th>Tipo</th><th>Meta</th><th>Fecha</th></tr></thead>
-          <tbody id="events-tbody"></tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- ========== SETTINGS ========== -->
-    <section id="tab-settings" class="panel hidden">
-      <h2 style="margin:0 0 6px">Configuración</h2>
-      <p class="muted small">Algunas opciones avanzadas se activan desde variables de entorno.</p>
-      <ul class="muted small" style="line-height:1.6">
-        <li><span class="pill">ADMIN_ALLOW_SIGNUP</span> habilita/deshabilita nuevos registros.</li>
-        <li><span class="pill">STAFF_USER / STAFF_PASS</span> (legacy) — ya no es necesario: el escáner está en este panel.</li>
-        <li>Rutas admin: <code>/api/admin/stamp</code> y <code>/api/admin/redeem</code>.</li>
-      </ul>
-    </section>
-
-    <!-- DIALOGO DETALLE TARJETA -->
-    <dialog id="cardDialog">
-      <div class="hd">
-        <h3 id="d_title" style="margin:0">Tarjeta</h3>
-        <button id="d_close" class="btn ghost">Cerrar</button>
-      </div>
-      <div id="d_body" class="muted small">Cargando…</div>
-      <div style="margin-top:10px" class="qr-wrap">
-        <img id="d_qr" alt="QR" width="140" height="140">
+    <!-- TAB: Events + Gift Cards -->
+    <section id="tab-events" class="card hidden">
+      <h2>Eventos & Gift cards</h2>
+      <div class="gift-layout">
+        <!-- Eventos de tarjeta -->
         <div>
-          <div class="muted small">Comparte/usa este ID:</div>
-          <div class="pill" id="d_id" style="user-select:all"></div>
-          <div class="row" style="margin-top:8px">
-            <button id="d_copy" class="btn ghost">Copiar ID</button>
-            <a id="d_open" class="btn ghost" target="_blank" rel="noopener">Abrir como cliente</a>
+          <h3>Historial de una tarjeta</h3>
+          <p class="muted">Busca por <code>card_xxx</code> para ver sellos y canjes.</p>
+          <div class="row">
+            <input id="eid" placeholder="ID de tarjeta (card_…)">
+            <button id="eload" class="btn small">Ver eventos</button>
+          </div>
+          <div class="table-wrap" style="margin-top:8px;">
+            <table>
+              <thead>
+                <tr><th>ID</th><th>Tipo</th><th>Meta</th><th>Fecha</th></tr>
+              </thead>
+              <tbody id="events-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Gift card -->
+        <div>
+          <h3>Crear Gift Card</h3>
+          <p class="muted">
+            Genera una tarjeta de regalo digital con vigencia de <b>30 días</b>.
+            Podrás compartir el QR por WhatsApp o imprimirlo.
+          </p>
+          <form id="gift-form">
+            <label>Nombre del cliente (opcional)</label>
+            <input id="gift-name" placeholder="Ej. Ana López">
+            <label>Servicio a regalar</label>
+            <input id="gift-service" required placeholder="Ej. Facial hidratante, Masaje relajante…">
+            <button type="submit" class="btn primary" style="margin-top:10px;">Generar Gift Card</button>
+          </form>
+
+          <div id="gift-preview" class="gift-preview hidden" aria-live="polite">
+            <div>
+              <small>Venus Cosmetología</small>
+              <h4 id="gift-preview-title">Gift Card</h4>
+              <div id="gift-preview-sub" style="margin-top:4px;font-size:13px;"></div>
+              <div class="chip" id="gift-preview-exp"></div>
+            </div>
+            <div class="gift-preview-qr">
+              <img id="gift-qr" alt="QR Gift Card">
+            </div>
           </div>
         </div>
       </div>
-      <div style="margin-top:12px" class="row">
-        <button id="d_stamp" class="btn">+1 sello</button>
-        <button id="d_redeem" class="btn ghost">Canjear</button>
-      </div>
-      <div id="d_out" class="muted small" style="margin-top:6px"></div>
-    </dialog>
+    </section>
 
-    <!-- DIALOGO ESCÁNER QR -->
-    <dialog id="scanDialog">
-      <div class="hd">
-        <h3 style="margin:0">Escanear QR</h3>
-        <button id="scan_close" class="btn ghost">Cerrar</button>
-      </div>
-      <video id="scan_video" playsinline muted></video>
-      <div class="row">
-        <select id="scan_cameras"></select>
-        <button id="scan_start" class="btn">Iniciar</button>
-        <button id="scan_stop" class="btn ghost" disabled>Detener</button>
-      </div>
-      <div id="scan_out" class="muted small" style="margin-top:8px">Apunta al QR del cliente.</div>
-    </dialog>
+    <!-- TAB: Settings (placeholder) -->
+    <section id="tab-settings" class="card hidden">
+      <h2>Configuración</h2>
+      <p class="muted">Aquí puedes ajustar parámetros avanzados más adelante (por ahora es solo decorativo).</p>
+    </section>
+
+    <footer class="footer">© Venus Cosmetología — Panel de administración</footer>
   </main>
 
+  <!-- Dialog Tarjeta -->
+  <dialog id="cardDialog">
+    <div class="dlg-inner">
+      <header class="dlg-header">
+        <div class="dlg-title" id="d_title">Tarjeta</div>
+        <button class="btn small" id="d_close">Cerrar</button>
+      </header>
+      <section class="dlg-body">
+        <div id="d_body">Cargando…</div>
+        <img id="d_qr" alt="QR de la tarjeta">
+        <div style="margin-top:4px;">
+          <small class="muted">Comparte/usa este ID:</small>
+          <input id="d_id" readonly style="margin-top:4px;">
+        </div>
+      </section>
+      <footer class="dlg-footer">
+        <div id="d_out"></div>
+        <div class="row">
+          <button id="d_copy" class="btn small">Copiar ID</button>
+          <a id="d_open" class="btn small" target="_blank" rel="noopener">Abrir como cliente</a>
+          <button id="d_stamp" class="btn small primary">+1 sello</button>
+          <button id="d_redeem" class="btn small ghost">Canjear</button>
+        </div>
+      </footer>
+    </div>
+  </dialog>
+
+  <!-- Dialog Escáner -->
+  <dialog id="scanDialog">
+    <div class="dlg-inner">
+      <header class="dlg-header">
+        <div class="dlg-title">Escanear QR</div>
+        <button class="btn small" id="scan_close">Cerrar</button>
+      </header>
+      <section class="dlg-body">
+        <div class="row" style="justify-content:space-between;margin-bottom:6px;">
+          <select id="scan_cameras"></select>
+          <div class="row">
+            <button class="btn small" id="scan_start">Iniciar</button>
+            <button class="btn small ghost" id="scan_stop" disabled>Detener</button>
+          </div>
+        </div>
+        <video id="scan_video" playsinline></video>
+        <div id="scan_out" style="margin-top:6px;" class="muted">Selecciona una cámara y toca “Iniciar”.</div>
+      </section>
+    </div>
+  </dialog>
+
   <script src="/admin.js"></script>
-  <script>
-  if (location.hash === "#register" || location.hash === "#forgot" || location.hash.startsWith("#reset")) {
-    location.href = "/admin-login.html" + location.hash;
-  }
-</script>
 </body>
 </html>
