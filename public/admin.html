@@ -201,7 +201,6 @@
     }
     textarea{resize:vertical;min-height:70px;}
 
-    /* Tab containers */
     .hidden{display:none!important;}
 
     /* Tabla responsive */
@@ -307,88 +306,53 @@
       object-fit:cover;
     }
 
-    /* Layout Eventos + Gift */
-    .events-gift-layout{
+    /* Gift card layout */
+    .gift-layout{
       display:grid;
-      grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);
-      gap:18px;
+      grid-template-columns:1.1fr .9fr;
+      gap:12px;
       margin-top:6px;
     }
     @media (max-width:880px){
-      .events-gift-layout{grid-template-columns:1fr;}
+      .gift-layout{grid-template-columns:1fr;}
     }
-
-    .gift-panel input{
-      width:100%;
-      padding:10px 12px;
-      border-radius:12px;
-      border:1px solid var(--line);
-      background:#fafafa;
-    }
-
-    .gift-preview-card{
-      margin-top:14px;
-      position:relative;
-      border-radius:18px;
-      padding:16px 18px;
-      background:linear-gradient(120deg,#7c8b5a,#c3d19a);
+    .gift-preview{
+      border-radius:16px;
+      padding:14px;
+      background:linear-gradient(135deg,#8c9668,#cdd8a6);
       color:#fff;
-      box-shadow:0 10px 24px rgba(0,0,0,.12);
-      min-height:120px;
+      position:relative;
+      overflow:hidden;
+      min-height:180px;
       display:flex;
-      align-items:flex-start;
+      flex-direction:column;
       justify-content:space-between;
-      gap:10px;
     }
-    .gift-preview-body{
-      max-width:60%;
+    .gift-preview h4{
+      margin:0 0 4px;
+      font-size:15px;
     }
-    .gift-brand{
-      font-size:13px;
-      opacity:.9;
-    }
-    .gift-service{
-      font-size:20px;
-      font-weight:700;
-      margin-top:4px;
-    }
-    .gift-for{
-      margin-top:4px;
-      font-size:14px;
-    }
-    .gift-exp{
-      margin-top:6px;
-      font-size:12px;
-      padding:4px 10px;
-      border-radius:999px;
-      background:rgba(0,0,0,.16);
-      display:inline-block;
-    }
-    .gift-qr-box{
-      flex-shrink:0;
-      align-self:flex-end;
-      background:rgba(255,255,255,.92);
-      border-radius:14px;
-      padding:6px;
+    .gift-preview small{font-size:12px;opacity:.9;}
+    .gift-preview-qr{
       display:flex;
+      justify-content:flex-end;
+      margin-top:10px;
+    }
+    #gift-qr{
+      width:130px;
+      height:auto;
+      border-radius:12px;
+      background:rgba(255,255,255,.15);
+      padding:4px;
+    }
+    .chip{
+      display:inline-flex;
       align-items:center;
-      justify-content:center;
-    }
-    .gift-qr-box img{
-      max-width:82px;
-      max-height:82px;
-      display:block;
-    }
-    @media (max-width:900px){
-      .gift-preview-body{max-width:100%;}
-      .gift-qr-box{
-        position:absolute;
-        right:14px;
-        bottom:14px;
-      }
-    }
-    @media (max-width:600px){
-      .gift-preview-card{padding-right:110px;}
+      padding:3px 7px;
+      border-radius:999px;
+      background:rgba(0,0,0,.18);
+      font-size:11px;
+      margin-top:4px;
     }
 
     /* Footer */
@@ -420,7 +384,7 @@
 
     <!-- Tabs -->
     <nav class="nav">
-      <a href="#overview" data-tab class="is-active">Resumen</a>
+      <a href="#overview" data-tab>Resumen</a>
       <a href="#cards" data-tab>Tarjetas</a>
       <a href="#events" data-tab>Eventos & Gift cards</a>
       <a href="#settings" data-tab>Configuración</a>
@@ -486,9 +450,9 @@
     <!-- TAB: Events + Gift Cards -->
     <section id="tab-events" class="card hidden">
       <h2>Eventos & Gift cards</h2>
-      <div class="events-gift-layout">
+      <div class="gift-layout">
         <!-- Eventos de tarjeta -->
-        <div class="events-panel">
+        <div>
           <h3>Historial de una tarjeta</h3>
           <p class="muted">Busca por <code>card_xxx</code> para ver sellos y canjes.</p>
           <div class="row">
@@ -496,7 +460,7 @@
             <button id="eload" class="btn small">Ver eventos</button>
           </div>
           <div class="table-wrap" style="margin-top:8px;">
-            <table class="table">
+            <table>
               <thead>
                 <tr><th>ID</th><th>Tipo</th><th>Meta</th><th>Fecha</th></tr>
               </thead>
@@ -506,47 +470,41 @@
         </div>
 
         <!-- Gift card -->
-        <div class="gift-panel">
+        <div>
           <h3>Crear Gift Card</h3>
           <p class="muted">
             Genera una tarjeta de regalo digital con vigencia de <b>30 días</b>.
             Podrás compartir el QR por WhatsApp o imprimirla.
           </p>
+          <form id="gift-form">
+            <label>Nombre del cliente (opcional)</label>
+            <input id="gift-name" placeholder="Ej. Ana López">
+            <label>Servicio a regalar</label>
+            <input id="gift-service" required placeholder="Ej. Facial hidratante, Masaje relajante…">
+            <button type="submit" class="btn primary" style="margin-top:10px;">Generar Gift Card</button>
+          </form>
 
-          <label>Nombre del cliente (opcional)</label>
-          <input id="gift-name" placeholder="Ej. Ana Pérez">
-
-          <label>Servicio a regalar</label>
-          <input id="gift-service-input" placeholder="Ej. Facial hidratante">
-
-          <button id="gift-generate" class="btn primary" style="margin-top:10px;">
-            Generar Gift Card
-          </button>
-
-          <!-- PREVIEW -->
-          <div id="gift-preview" class="gift-preview-card" style="margin-top:14px;">
-            <div class="gift-preview-body">
-              <div class="gift-brand">Venus Cosmetología</div>
-              <div class="gift-service" id="gift-service-text">Servicio</div>
-              <div class="gift-for" id="gift-for-text">Para: —</div>
-              <div class="gift-exp" id="gift-exp-text">Vigencia: —</div>
+          <div id="gift-preview" class="gift-preview hidden" aria-live="polite">
+            <div>
+              <small>Venus Cosmetología</small>
+              <h4 id="gift-preview-title">Gift Card</h4>
+              <div id="gift-preview-sub" style="margin-top:4px;font-size:13px;"></div>
+              <div class="chip" id="gift-preview-exp"></div>
             </div>
-
-            <div class="gift-qr-box">
+            <div class="gift-preview-qr">
               <img id="gift-qr" alt="QR Gift Card">
             </div>
           </div>
 
-          <div class="row" style="gap:8px;margin-top:10px;flex-wrap:wrap;">
-            <button id="gift-copy" class="btn ghost" type="button">
-              Copiar texto
-            </button>
-            <a id="gift-wa" class="btn ghost" target="_blank" rel="noopener"
-               style="display:none;">
-              Enviar por WhatsApp
-            </a>
+          <div id="gift-actions" class="row hidden" style="margin-top:10px;flex-wrap:wrap;">
+            <button type="button" id="gift-copy" class="btn small">Copiar texto</button>
+            <button type="button" id="gift-whatsapp" class="btn small">Enviar por WhatsApp</button>
+            <button type="button" id="gift-download" class="btn small">Descargar imagen</button>
           </div>
-          <small id="gift-msg" class="muted"></small>
+          <p id="gift-note" class="muted hidden" style="margin-top:6px;">
+            Gift Card generada. El botón de WhatsApp envía el texto y con “Descargar imagen”
+            obtienes la tarjeta con diseño para adjuntarla como foto.
+          </p>
         </div>
       </div>
     </section>
@@ -554,7 +512,7 @@
     <!-- TAB: Settings (placeholder) -->
     <section id="tab-settings" class="card hidden">
       <h2>Configuración</h2>
-      <p class="muted">Aquí puedes ajustar parámetros avanzados más adelante (por ahora es solo decorativo).</p>
+      <p class="muted">Aquí podrás ajustar parámetros avanzados más adelante.</p>
     </section>
 
     <footer class="footer">© Venus Cosmetología — Panel de administración</footer>
@@ -608,6 +566,8 @@
     </div>
   </dialog>
 
+  <!-- html2canvas para exportar imagen de Gift Card -->
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="/admin.js"></script>
 </body>
 </html>
