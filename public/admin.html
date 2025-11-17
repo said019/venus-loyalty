@@ -8,14 +8,16 @@
   <style>
     :root{
       --venus:#8c9668;
-      --venus-soft:#cdd8a6;
-      --bg:#fff6e3;
-      --ink:#1b1b1b;
-      --muted:#6b7280;
-      --line:#e5e7eb;
-      --err:#b91c1c;
-      --ok:#15803d;
-      --radius:14px;
+      --venus-soft:#dfe6c1;
+      --bg:#3f4037;
+      --ink:#f9fafb;
+      --muted:#e5e7eb;
+      --line:rgba(255,255,255,0.25);
+      --err:#fecaca;
+      --err-text:#991b1b;
+      --ok:#bbf7d0;
+      --ok-text:#166534;
+      --radius:18px;
     }
     *{box-sizing:border-box;}
     html,body{
@@ -55,11 +57,12 @@
       width:40px;
       height:40px;
       border-radius:12px;
-      box-shadow:0 0 0 2px rgba(0,0,0,.04);
+      box-shadow:0 0 0 2px rgba(255,255,255,.1);
     }
     h1{
       font-size:22px;
       margin:0;
+      color:var(--ink);
     }
     .muted{color:var(--muted);font-size:13px;}
     .actions{
@@ -76,13 +79,14 @@
       gap:6px;
       border-radius:999px;
       border:1px solid var(--line);
-      background:#fff;
+      background:rgba(255,255,255,.1);
       padding:7px 13px;
       font-size:13px;
       cursor:pointer;
       text-decoration:none;
       color:var(--ink);
       white-space:nowrap;
+      backdrop-filter:blur(3px);
     }
     .btn.primary{
       background:var(--venus);
@@ -90,7 +94,7 @@
       color:#fff;
     }
     .btn.ghost{
-      background:#fff;
+      background:transparent;
       border-color:var(--line);
     }
     .btn.small{
@@ -115,28 +119,47 @@
       background:transparent;
     }
     .nav a.is-active{
-      background:#fff;
+      background:rgba(255,255,255,.15);
       border-color:var(--venus);
-      color:var(--venus);
-      box-shadow:0 4px 14px rgba(0,0,0,.05);
+      color:var(--venus-soft);
+      box-shadow:0 4px 14px rgba(0,0,0,.1);
     }
 
     /* Cards base */
     .card{
-      background:#fff;
+      background:rgba(255,255,255,.08);
       border-radius:var(--radius);
       border:1px solid var(--line);
       padding:16px 16px 14px;
-      box-shadow:0 10px 28px rgba(0,0,0,.06);
+      box-shadow:0 10px 28px rgba(0,0,0,.2);
       margin-bottom:14px;
+      backdrop-filter:blur(3px);
+      position:relative;
+      overflow:hidden;
+    }
+    .card::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:
+        radial-gradient(circle at 20% 20%,rgba(255,255,255,0.05),transparent 60%),
+        radial-gradient(circle at 80% 70%,rgba(255,255,255,0.03),transparent 60%);
+      opacity:.9;
+      pointer-events:none;
+    }
+    .card > *{
+      position:relative;
+      z-index:1;
     }
     .card h2{
       margin:0 0 6px;
       font-size:18px;
+      color:var(--ink);
     }
     .card h3{
       margin:0 0 6px;
       font-size:15px;
+      color:var(--ink);
     }
 
     /* Layouts */
@@ -165,17 +188,21 @@
     .kpi{
       padding:10px 12px;
       border-radius:12px;
-      background:#f9fafb;
-      border:1px solid #eef2ff;
+      background:rgba(255,255,255,.1);
+      border:1px solid rgba(255,255,255,.15);
       display:flex;
       flex-direction:column;
       gap:4px;
       font-size:13px;
+      backdrop-filter:blur(3px);
     }
     .kpi span.value{
       font-size:20px;
       font-weight:600;
-      color:#111827;
+      color:var(--ink);
+    }
+    .kpi span{
+      color:var(--muted);
     }
 
     .row{
@@ -190,14 +217,20 @@
       margin:8px 0 4px;
       font-size:13px;
       font-weight:500;
+      color:var(--ink);
     }
     input,select,textarea{
       width:100%;
       padding:9px 10px;
       border-radius:10px;
       border:1px solid var(--line);
-      background:#f9fafb;
+      background:rgba(255,255,255,.1);
       font-size:13px;
+      color:var(--ink);
+      backdrop-filter:blur(3px);
+    }
+    input::placeholder{
+      color:var(--muted);
     }
     textarea{resize:vertical;min-height:70px;}
 
@@ -215,28 +248,30 @@
       font-size:13px;
     }
     thead{
-      background:#f9fafb;
+      background:rgba(255,255,255,.1);
     }
     th,td{
       padding:6px 8px;
-      border-bottom:1px solid #eef2f7;
+      border-bottom:1px solid rgba(255,255,255,.1);
       text-align:left;
       white-space:nowrap;
+      color:var(--ink);
     }
     tr:last-child td{border-bottom:none;}
     code{
       font-size:12px;
-      background:#f3f4f6;
+      background:rgba(255,255,255,.15);
       padding:2px 4px;
       border-radius:4px;
+      color:var(--ink);
     }
     .tag{
       display:inline-flex;
       align-items:center;
       padding:2px 6px;
       border-radius:999px;
-      background:#ecfdf5;
-      color:#047857;
+      background:var(--ok);
+      color:var(--ok-text);
       font-size:11px;
     }
 
@@ -247,10 +282,13 @@
       border-radius:18px;
       max-width:440px;
       width:min(92vw,440px);
-      box-shadow:0 24px 80px rgba(15,23,42,.35);
+      box-shadow:0 24px 80px rgba(0,0,0,.5);
+      background:var(--bg);
+      border:1px solid var(--line);
+      color:var(--ink);
     }
     dialog::backdrop{
-      background:rgba(15,23,42,.45);
+      background:rgba(15,23,42,.75);
       backdrop-filter:blur(2px);
     }
     .dlg-inner{
@@ -266,12 +304,14 @@
     .dlg-title{
       font-size:16px;
       font-weight:600;
+      color:var(--ink);
     }
     .dlg-body{
       font-size:13px;
       display:flex;
       flex-direction:column;
       gap:6px;
+      color:var(--ink);
     }
     .dlg-footer{
       margin-top:10px;
@@ -289,7 +329,7 @@
       max-width:70%;
       height:auto;
       border-radius:12px;
-      background:#f3f4f6;
+      background:rgba(255,255,255,.1);
       padding:6px;
     }
     #d_out{
@@ -502,7 +542,7 @@
             <button type="button" id="gift-download" class="btn small">Descargar imagen</button>
           </div>
           <p id="gift-note" class="muted hidden" style="margin-top:6px;">
-            Gift Card generada. El botón de WhatsApp envía el texto y con “Descargar imagen”
+            Gift Card generada. El botón de WhatsApp envía el texto y con "Descargar imagen"
             obtienes la tarjeta con diseño para adjuntarla como foto.
           </p>
         </div>
@@ -561,7 +601,7 @@
           </div>
         </div>
         <video id="scan_video" playsinline></video>
-        <div id="scan_out" style="margin-top:6px;" class="muted">Selecciona una cámara y toca “Iniciar”.</div>
+        <div id="scan_out" style="margin-top:6px;" class="muted">Selecciona una cámara y toca "Iniciar".</div>
       </section>
     </div>
   </dialog>
