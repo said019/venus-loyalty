@@ -7,128 +7,378 @@
   <link rel="icon" href="/assets/logo.png">
   <style>
     :root{
-      --venus:#8c9668; --venus-2:#cdd8a6; --bg:#fff6e3;
-      --ink:#1b1b1b; --muted:#6b7280; --line:#e5e7eb; --err:#b91c1c; --ok:#15803d;
-      --radius:14px;
+      --venus:#8c9668;
+      --venus-soft:#dfe6c1;
+      --bg:#3f4037;
+      --ink:#1b1b1b;
+      --muted:#e5e7eb;
+      --line:rgba(255,255,255,0.25);
+      --err:#fecaca;
+      --err-text:#991b1b;
+      --ok:#bbf7d0;
+      --ok-text:#166534;
+      --radius:18px;
     }
-    *{box-sizing:border-box}
-    html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Inter,Roboto,Arial}
-    .wrap{max-width:880px;margin:28px auto;padding:0 16px}
-    .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
-    .brand{display:flex;align-items:center;gap:10px}
-    .brand img{width:42px;height:42px;border-radius:12px}
-    h1{font-size:28px;margin:0}
-    .actions{display:flex;gap:8px}
-    .btn{display:inline-flex;gap:8px;align-items:center;border-radius:999px;padding:9px 14px;border:1px solid var(--line);background:#fff;color:#111;cursor:pointer;text-decoration:none}
-    .btn.primary{background:var(--venus);border-color:var(--venus);color:#fff}
-    .tabs{display:flex;gap:8px;margin:6px 0 16px}
-    .tabs button{border:1px solid var(--line);background:#fff;color:#111;border-radius:999px;padding:8px 12px;cursor:pointer}
-    .tabs button.active{border-color:var(--venus);color:var(--venus);background:#fff}
-    .card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:18px;box-shadow:0 10px 28px rgba(0,0,0,.06)}
-    .card h2{margin:0 0 8px}
-    .muted{color:var(--muted)}
-    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-    label{display:block;margin:10px 0 6px;font-size:14px}
-    input{width:100%;padding:12px;border:1px solid var(--line);border-radius:12px;background:#fafafa}
-    .right{display:flex;justify-content:flex-end}
-    .footer{margin:18px 0;text-align:center;color:var(--muted);font-size:13px}
-    /* Alerts */
-    .alert{border-radius:12px;padding:10px 12px;margin:10px 0;font-size:14px}
-    .alert.ok{background:#ecfdf5;border:1px solid #a7f3d0;color:var(--ok)}
-    .alert.err{background:#fef2f2;border:1px solid #fecaca;color:var(--err)}
-    .link{color:var(--venus);text-decoration:none}
-    .link:hover{text-decoration:underline}
-    /* Layout columnas responsivo */
-    .grid{display:grid;grid-template-columns:1fr;gap:16px}
-    @media (min-width:760px){ .grid{grid-template-columns:1.1fr .9fr} }
+
+    *{box-sizing:border-box;margin:0;padding:0}
+
+    html,body{
+      height:100%;
+      font-family:system-ui,-apple-system,Segoe UI,Inter,Roboto,Arial,sans-serif;
+      background:var(--bg);
+      color:#fff;
+    }
+
+    /* Contenedor principal: centra pero permite scroll en pantallas bajas */
+    .page{
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:16px;
+    }
+
+    .container{
+      width:100%;
+      max-width:460px;
+    }
+
+    .card{
+      position:relative;
+      background:var(--venus);
+      border-radius:var(--radius);
+      padding:22px 18px 18px;
+      box-shadow:0 16px 40px rgba(0,0,0,.35);
+      overflow:hidden;
+    }
+    .card::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:
+        radial-gradient(circle at 20% 20%,rgba(255,255,255,0.12),transparent 60%),
+        radial-gradient(circle at 80% 70%,rgba(255,255,255,0.08),transparent 60%);
+      opacity:.9;
+      pointer-events:none;
+    }
+    .card > *{
+      position:relative;
+      z-index:1;
+    }
+
+    .logo{
+      width:64px;
+      height:64px;
+      border-radius:50%;
+      background:#fff;
+      margin:0 auto 6px;
+      display:block;
+      box-shadow:0 0 12px rgba(255,255,255,.4);
+    }
+    .title{
+      text-align:center;
+      font-size:1.4rem;
+      font-weight:700;
+    }
+    .subtitle{
+      text-align:center;
+      font-size:.9rem;
+      margin-top:3px;
+      color:var(--muted);
+    }
+
+    .top-actions{
+      display:flex;
+      justify-content:flex-end;
+      margin-top:6px;
+    }
+
+    .tabs{
+      display:flex;
+      gap:6px;
+      margin:16px 0 12px;
+      justify-content:center;
+      flex-wrap:wrap;
+    }
+    .tabs button{
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.35);
+      background:rgba(0,0,0,.08);
+      color:#f9fafb;
+      padding:5px 10px;
+      font-size:.8rem;
+      cursor:pointer;
+      backdrop-filter:blur(3px);
+      min-width:0;
+    }
+    .tabs button.active{
+      background:#f5f5f5;
+      color:#374151;
+      border-color:#f5f5f5;
+    }
+
+    .section-title{
+      font-size:1.02rem;
+      font-weight:600;
+      margin-bottom:4px;
+    }
+    .muted{
+      font-size:.85rem;
+      color:var(--muted);
+      margin-bottom:10px;
+    }
+
+    label{
+      display:block;
+      font-size:.8rem;
+      font-weight:600;
+      margin:8px 0 3px;
+    }
+    input{
+      width:100%;
+      padding:9px 11px;
+      border-radius:12px;
+      border:1px solid rgba(0,0,0,.12);
+      background:#f9fafb;
+      font-size:.9rem;
+      outline:none;
+    }
+    input:focus{
+      border-color:#4b5563;
+      box-shadow:0 0 0 1px rgba(0,0,0,.2);
+    }
+
+    .row{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+      margin-top:10px;
+      flex-wrap:wrap;
+    }
+
+    .btn{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:6px;
+      border-radius:999px;
+      border:none;
+      padding:8px 14px;
+      font-size:.85rem;
+      font-weight:600;
+      cursor:pointer;
+      text-decoration:none;
+      font-family:inherit;
+      white-space:nowrap;
+    }
+    .btn-primary{
+      background:#111827;
+      color:#f9fafb;
+    }
+    .btn-ghost{
+      background:transparent;
+      border:1px solid rgba(255,255,255,.4);
+      color:#f9fafb;
+    }
+    .btn-primary:hover,
+    .btn-ghost:hover{
+      opacity:.92;
+      transform:translateY(-1px);
+    }
+
+    .alert{
+      border-radius:12px;
+      padding:8px 10px;
+      font-size:.8rem;
+      margin-top:6px;
+    }
+    .alert.ok{
+      background:var(--ok);
+      color:var(--ok-text);
+      border:1px solid #4ade80;
+    }
+    .alert.err{
+      background:var(--err);
+      color:var(--err-text);
+      border:1px solid #fca5a5;
+    }
+
+    .link{
+      color:#f9fafb;
+      text-decoration:underline;
+      text-underline-offset:2px;
+      font-size:.8rem;
+      cursor:pointer;
+    }
+
+    .footer{
+      margin-top:10px;
+      text-align:center;
+      color:#9ca3af;
+      font-size:.75rem;
+    }
+
+    .hidden{display:none}
+
+    /* Celulares muy pequeños (ancho <= 360) */
+    @media (max-width:360px){
+      .card{
+        padding:18px 14px 14px;
+      }
+      .logo{
+        width:56px;
+        height:56px;
+      }
+      .title{
+        font-size:1.25rem;
+      }
+      .tabs button{
+        font-size:.75rem;
+        padding:4px 8px;
+      }
+      input{
+        font-size:.85rem;
+      }
+    }
+
+    /* Tablets y pantallas grandes */
+    @media (min-width:768px){
+      .container{
+        max-width:520px;
+      }
+      .card{
+        padding:26px 26px 22px;
+      }
+      .logo{
+        width:78px;
+        height:78px;
+      }
+      .title{
+        font-size:1.6rem;
+      }
+      .subtitle{
+        font-size:1rem;
+      }
+      .section-title{
+        font-size:1.1rem;
+      }
+      input{
+        font-size:.95rem;
+      }
+      .btn{
+        font-size:.9rem;
+      }
+    }
   </style>
 </head>
 <body>
-  <main class="wrap">
-    <header class="topbar">
-      <div class="brand">
-        <img src="/assets/logo.png" alt="Venus">
-        <div>
-          <h1>Admin — Venus Lealtad</h1>
-          <div class="muted" style="margin-top:2px">Inicia sesión para entrar al panel</div>
+  <div class="page">
+    <main class="container">
+      <section class="card">
+        <img class="logo" src="/assets/logo.png" alt="Venus">
+
+        <h1 class="title">Admin — Venus Lealtad</h1>
+        <p class="subtitle">Inicia sesión para entrar al panel</p>
+
+        <div class="top-actions">
+          <a class="btn btn-ghost" href="/" target="_blank" rel="noopener">Página clientes</a>
         </div>
-      </div>
-      <div class="actions">
-        <a class="btn" href="/" target="_blank" rel="noopener">Página clientes</a>
-      </div>
-    </header>
 
-    <nav class="tabs" role="tablist" aria-label="Cambiar sección">
-      <button class="active" data-tab="login" aria-selected="true">Iniciar sesión</button>
-      <button data-tab="register" aria-selected="false">Crear cuenta</button>
-      <button data-tab="forgot" aria-selected="false">Olvidé mi contraseña</button>
-    </nav>
+        <nav class="tabs" role="tablist" aria-label="Cambiar sección">
+          <button class="active" data-tab="login" aria-selected="true">Iniciar sesión</button>
+          <button data-tab="register" aria-selected="false">Crear cuenta</button>
+          <button data-tab="forgot" aria-selected="false">Olvidé mi contraseña</button>
+        </nav>
 
-    <section id="tab-login" class="card">
-      <h2>Iniciar sesión</h2>
-      <p class="muted">Escribe tu correo y contraseña.</p>
-      <div id="login-alert" class="alert hidden"></div>
-      <form id="form-login">
-        <label>Correo electrónico</label>
-        <input id="login-email" type="email" required placeholder="tucorreo@dominio.com">
-        <label>Contraseña</label>
-        <input id="login-pass" type="password" required placeholder="••••••••">
-        <div class="row" style="justify-content:space-between;margin-top:10px">
-          <a class="link" data-goto="forgot">¿Olvidaste tu contraseña?</a>
-          <button class="btn primary" type="submit">Entrar</button>
-        </div>
-      </form>
-    </section>
+        <!-- LOGIN -->
+        <section id="tab-login">
+          <h2 class="section-title">Iniciar sesión</h2>
+          <p class="muted">Escribe tu correo y contraseña.</p>
+          <div id="login-alert" class="alert hidden"></div>
+          <form id="form-login">
+            <label>Correo electrónico</label>
+            <input id="login-email" type="email" required placeholder="tucorreo@dominio.com">
 
-    <div class="grid">
-      <section id="tab-register" class="card" hidden>
-        <h2>Crear cuenta</h2>
-        <p class="muted">Solo personal autorizado. Si el registro está cerrado, solicita acceso al administrador.</p>
-        <div id="reg-alert" class="alert hidden"></div>
-        <form id="form-register">
-          <label>Correo electrónico</label>
-          <input id="reg-email" type="email" required placeholder="tucorreo@dominio.com">
-          <label>Contraseña</label>
-          <input id="reg-pass" type="password" minlength="6" required placeholder="Mínimo 6 caracteres">
-          <div class="right" style="margin-top:10px">
-            <button class="btn primary" type="submit">Crear cuenta</button>
-          </div>
-        </form>
+            <label>Contraseña</label>
+            <input id="login-pass" type="password" required placeholder="••••••••">
+
+            <div class="row">
+              <span class="link" data-goto="forgot">¿Olvidaste tu contraseña?</span>
+              <button class="btn btn-primary" type="submit">Entrar</button>
+            </div>
+          </form>
+        </section>
+
+        <!-- REGISTER -->
+        <section id="tab-register" class="hidden">
+          <h2 class="section-title">Crear cuenta</h2>
+          <p class="muted">Solo personal autorizado. Si el registro está cerrado, solicita acceso al administrador.</p>
+          <div id="reg-alert" class="alert hidden"></div>
+          <form id="form-register">
+            <label>Correo electrónico</label>
+            <input id="reg-email" type="email" required placeholder="tucorreo@dominio.com">
+
+            <label>Contraseña</label>
+            <input id="reg-pass" type="password" minlength="6" required placeholder="Mínimo 6 caracteres">
+
+            <div style="margin-top:12px;text-align:right;">
+              <button class="btn btn-primary" type="submit">Crear cuenta</button>
+            </div>
+          </form>
+        </section>
+
+        <!-- FORGOT -->
+        <section id="tab-forgot" class="hidden">
+          <h2 class="section-title">Restablecer contraseña</h2>
+          <p class="muted">Te enviaremos un correo con un enlace para crear una nueva.</p>
+          <div id="forgot-alert" class="alert hidden"></div>
+          <form id="form-forgot">
+            <label>Correo electrónico</label>
+            <input id="forgot-email" type="email" required placeholder="tucorreo@dominio.com">
+
+            <div style="margin-top:12px;text-align:right;">
+              <button class="btn btn-primary" type="submit">Enviar enlace</button>
+            </div>
+          </form>
+        </section>
       </section>
 
-      <section id="tab-forgot" class="card" hidden>
-        <h2>Restablecer contraseña</h2>
-        <p class="muted">Te enviaremos un correo con un enlace para crear una nueva.</p>
-        <div id="forgot-alert" class="alert hidden"></div>
-        <form id="form-forgot">
-          <label>Correo electrónico</label>
-          <input id="forgot-email" type="email" required placeholder="tucorreo@dominio.com">
-          <div class="right" style="margin-top:10px">
-            <button class="btn primary" type="submit">Enviar enlace</button>
-          </div>
-        </form>
-      </section>
-    </div>
-
-    <footer class="footer">© Venus Cosmetología</footer>
-  </main>
+      <div class="footer">© Venus Cosmetología</div>
+    </main>
+  </div>
 
   <script>
-    // UI tabs
+    // Tabs
     const tabs = document.querySelectorAll('[data-tab]');
     const sections = {
       login:  document.getElementById('tab-login'),
       register: document.getElementById('tab-register'),
       forgot: document.getElementById('tab-forgot')
     };
+
     function activate(tab){
-      tabs.forEach(b=>{ b.classList.toggle('active', b.dataset.tab===tab); b.setAttribute('aria-selected', b.dataset.tab===tab) });
-      Object.entries(sections).forEach(([k,el])=>{ el.hidden = (k!==tab); });
+      tabs.forEach(b=>{
+        const active = b.dataset.tab===tab;
+        b.classList.toggle('active', active);
+        b.setAttribute('aria-selected', active);
+      });
+      Object.entries(sections).forEach(([k,el])=>{
+        if(k===tab){ el.classList.remove('hidden'); }
+        else{ el.classList.add('hidden'); }
+      });
       const params = new URLSearchParams(location.search);
-      params.set('view', tab); history.replaceState(null,'','?'+params.toString());
+      params.set('view', tab);
+      history.replaceState(null,'','?'+params.toString());
     }
+
     tabs.forEach(b=> b.addEventListener('click', ()=>activate(b.dataset.tab)));
-    document.querySelectorAll('[data-goto]').forEach(a=> a.addEventListener('click', e=>{e.preventDefault(); activate(a.dataset.goto)}));
+    document.querySelectorAll('[data-goto]').forEach(a=>
+      a.addEventListener('click', e=>{
+        e.preventDefault();
+        activate(a.dataset.goto);
+      })
+    );
     const urlView = new URLSearchParams(location.search).get('view');
     if (urlView && sections[urlView]) activate(urlView);
 
@@ -151,9 +401,22 @@
       clearAlert('login-alert');
       const email = document.getElementById('login-email').value.trim();
       const password = document.getElementById('login-pass').value;
-      const r = await fetch('/api/admin/login', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email,password})});
+      const r = await fetch('/api/admin/login', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({email,password})
+      });
       const j = await r.json().catch(()=>({}));
-      if(!r.ok){ showAlert('login-alert','err', j.error==='invalid_credentials'?'Credenciales inválidas':'Error de inicio de sesión'); return; }
+      if(!r.ok){
+        showAlert(
+          'login-alert',
+          'err',
+          j.error==='invalid_credentials'
+            ? 'Credenciales inválidas'
+            : 'Error de inicio de sesión'
+        );
+        return;
+      }
       location.href = '/admin';
     });
 
@@ -163,10 +426,18 @@
       clearAlert('reg-alert');
       const email = document.getElementById('reg-email').value.trim();
       const password = document.getElementById('reg-pass').value;
-      const r = await fetch('/api/admin/register', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email,password})});
+      const r = await fetch('/api/admin/register', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({email,password})
+      });
       const j = await r.json().catch(()=>({}));
       if(!r.ok){
-        const map = { signup_disabled:'Registro deshabilitado', email_in_use:'Este correo ya está registrado', missing_fields:'Faltan datos' };
+        const map = {
+          signup_disabled:'Registro deshabilitado',
+          email_in_use:'Este correo ya está registrado',
+          missing_fields:'Faltan datos'
+        };
         showAlert('reg-alert','err', map[j.error] || 'No se pudo crear la cuenta');
         return;
       }
@@ -179,10 +450,21 @@
       e.preventDefault();
       clearAlert('forgot-alert');
       const email = document.getElementById('forgot-email').value.trim();
-      const r = await fetch('/api/admin/forgot', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email})});
-      const j = await r.json().catch(()=>({}));
-      if(!r.ok){ showAlert('forgot-alert','err', j.error==='not_found'?'No existe una cuenta con ese correo':'No se pudo enviar el correo'); return; }
-      showAlert('forgot-alert','ok','Te enviamos un enlace de restablecimiento si el correo existe en el sistema.');
+      const r = await fetch('/api/admin/forgot', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({email})
+      });
+      await r.json().catch(()=>({}));
+      if(!r.ok){
+        showAlert('forgot-alert','err','No se pudo enviar el correo');
+        return;
+      }
+      showAlert(
+        'forgot-alert',
+        'ok',
+        'Te enviamos un enlace de restablecimiento si el correo existe en el sistema.'
+      );
     });
   </script>
 </body>
