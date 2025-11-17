@@ -1,4 +1,4 @@
-// server.js - ACTUALIZADO CON NUEVAS RUTAS GOOGLE WALLET + CREATE-CARD
+// server.js - ACTUALIZADO CON FIRESTORE
 import express from "express";
 import cors from "cors";
 import "dotenv/config";
@@ -9,6 +9,7 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import nodemailer from "nodemailer";
 import fs from "fs";
+import { firestore, FieldValue } from "./lib/firebase.js";
 
 // Wallet helpers
 import {
@@ -19,7 +20,7 @@ import {
 } from "./lib/google.js";
 import { buildApplePassBuffer } from "./lib/apple.js";
 
-// Importar los nuevos handlers de Google Wallet
+// Handlers Google Wallet
 import {
   createClassHandler,
   diagnosticsHandler,
@@ -27,10 +28,10 @@ import {
   saveCardHandler,
 } from "./lib/api/google.js";
 
-// DB
+// DB local (SQLite)
 import db from "./lib/db.js";
 
-// Admin auth helpers (JWT en cookie)
+// Admin auth helpers
 import {
   adminAuth,
   signAdmin,
@@ -55,7 +56,7 @@ app.use(cookieParser());
 app.use(express.static("public"));
 
 /* =========================================================
-   📧 Envío de correos: Resend API o SMTP
+   📧 Envío de correos
    ========================================================= */
 async function sendMail({ to, subject, text, html }) {
   // 1) Resend
@@ -109,7 +110,7 @@ async function sendMail({ to, subject, text, html }) {
 }
 
 /* =========================================================
-   BASIC AUTH (solo para endpoints protegidos tipo staff)
+   BASIC AUTH (staff)
    ========================================================= */
 function basicAuth(req, res, next) {
   const hdr = req.headers.authorization || "";
@@ -227,6 +228,42 @@ function canStamp(cardId) {
 }
 
 /* =========================================================
+   Helpers Firestore (sin romper si falla)
+   ========================================================= */
+async function fsUpsertCard({ id, name, phone, max, stamps, status }) {
+  try {
+    await firestore.collection("cards").doc(id).set(
+      {
+        id,
+        name,
+        phone: phone || null,
+        max,
+        stamps,
+        status: status || "active",
+        updatedAt: FieldValue.serverTimestamp(),
+        createdAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+  } catch (e) {
+    console.error("[Firestore card]", e);
+  }
+}
+
+async function fsAddEvent(cardId, type, meta = {}) {
+  try {
+    await firestore.collection("events").add({
+      cardId,
+      type,
+      meta,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+  } catch (e) {
+    console.error("[Firestore event]", e);
+  }
+}
+
+/* =========================================================
    Páginas HTML
    ========================================================= */
 app.get("/admin", (_req, res) => {
@@ -240,23 +277,15 @@ app.get("/staff.html", basicAuth, (_req, res) => {
 });
 
 /* =========================================================
-   NUEVAS RUTAS GOOGLE WALLET - SIMPLIFICADAS
+   NUEVAS RUTAS GOOGLE WALLET
    ========================================================= */
-
-// Crear la clase de lealtad
 app.get("/api/google/create-class", createClassHandler);
-
-// Diagnóstico completo
 app.get("/api/google/diagnostics", diagnosticsHandler);
-
-// Probar Google Wallet
 app.get("/api/google/test", testHandler);
-
-// Generar enlace para guardar tarjeta
 app.get("/api/save-card", saveCardHandler);
 
 /* =========================================================
-   RUTAS EXISTENTES GOOGLE WALLET (se mantienen)
+   DEBUG GOOGLE WALLET
    ========================================================= */
 app.get("/api/debug/google-class", async (_req, res) => {
   try {
@@ -316,7 +345,6 @@ app.post("/api/debug/test-google-object", async (_req, res) => {
   }
 });
 
-// Diagnóstico completo de Google Wallet (mantener compatibilidad)
 app.get("/api/debug/google-setup", async (_req, res) => {
   try {
     const diagnostics = {
@@ -331,7 +359,6 @@ app.get("/api/debug/google-setup", async (_req, res) => {
       serviceAccount: null,
     };
 
-    // Verificar Service Account
     try {
       const { loadServiceAccount } = await import("./lib/google.js");
       const { client_email } = loadServiceAccount();
@@ -346,7 +373,6 @@ app.get("/api/debug/google-setup", async (_req, res) => {
       };
     }
 
-    // Verificar Loyalty Class
     try {
       const classCheck = await checkLoyaltyClass();
       diagnostics.loyaltyClass = classCheck;
@@ -362,7 +388,6 @@ app.get("/api/debug/google-setup", async (_req, res) => {
   }
 });
 
-// Verificar configuración del Issuer ID
 app.get("/api/debug/google-issuer-check", (_req, res) => {
   const currentConfig = {
     console_issuer_id: "338800000002303846",
@@ -374,7 +399,6 @@ app.get("/api/debug/google-issuer-check", (_req, res) => {
   res.json(currentConfig);
 });
 
-// Verificar caracteres del Class ID
 app.get("/api/debug/google-character-check", (_req, res) => {
   const classId = process.env.GOOGLE_CLASS_ID || "";
 
@@ -397,8 +421,10 @@ app.get("/api/debug/google-character-check", (_req, res) => {
   res.json(characterCheck);
 });
 
-/* ---------- emisión de tarjeta (staff/admin) ---------- */
-app.post("/api/issue", (req, res) => {
+/* =========================================================
+   EMISIÓN DE TARJETA (staff)
+   ========================================================= */
+app.post("/api/issue", async (req, res) => {
   try {
     let { name = "Cliente", max = 8 } = req.body;
     max = parseInt(max, 10);
@@ -406,12 +432,23 @@ app.post("/api/issue", (req, res) => {
       return res.status(400).json({ error: "max debe ser entero > 0" });
     }
     const cardId = `card_${Date.now()}`;
-    insertCard.run(cardId, String(name).trim() || "Cliente", max);
-    logEvent.run(cardId, "ISSUE", JSON.stringify({ name, max }));
+    const cleanName = String(name).trim() || "Cliente";
+
+    insertCard.run(cardId, cleanName, max);
+    logEvent.run(cardId, "ISSUE", JSON.stringify({ name: cleanName, max }));
+
+    await fsUpsertCard({
+      id: cardId,
+      name: cleanName,
+      max,
+      stamps: 0,
+      status: "active",
+    });
+    await fsAddEvent(cardId, "ISSUE", { name: cleanName, max });
 
     const addToGoogleUrl = buildGoogleSaveUrl({
       cardId,
-      name,
+      name: cleanName,
       stamps: 0,
       max,
     });
@@ -425,10 +462,12 @@ app.post("/api/issue", (req, res) => {
   }
 });
 
-/* ---------- crear tarjeta pública (web Venus) ---------- */
+/* =========================================================
+   CREAR TARJETA PÚBLICA (web Venus)
+   ========================================================= */
 
-// GET desde el frontend (como lo usas en el HTML)
-app.get("/api/create-card", (req, res) => {
+// GET (como lo usas en el HTML)
+app.get("/api/create-card", async (req, res) => {
   try {
     const { name, phone, max } = req.query;
     if (!name || !phone) {
@@ -445,6 +484,20 @@ app.get("/api/create-card", (req, res) => {
       "ISSUE",
       JSON.stringify({ name: cleanName, phone, max: maxVal })
     );
+
+    await fsUpsertCard({
+      id: cardId,
+      name: cleanName,
+      phone,
+      max: maxVal,
+      stamps: 0,
+      status: "active",
+    });
+    await fsAddEvent(cardId, "ISSUE", {
+      name: cleanName,
+      phone,
+      max: maxVal,
+    });
 
     const addToGoogleUrl = buildGoogleSaveUrl({
       cardId,
@@ -474,8 +527,8 @@ app.get("/api/create-card", (req, res) => {
   }
 });
 
-// POST opcional (compatibilidad)
-app.post("/api/create-card", (req, res) => {
+// POST opcional
+app.post("/api/create-card", async (req, res) => {
   try {
     const { name, phone, max } = req.body || {};
     if (!name || !phone) {
@@ -492,6 +545,20 @@ app.post("/api/create-card", (req, res) => {
       "ISSUE",
       JSON.stringify({ name: cleanName, phone, max: maxVal })
     );
+
+    await fsUpsertCard({
+      id: cardId,
+      name: cleanName,
+      phone,
+      max: maxVal,
+      stamps: 0,
+      status: "active",
+    });
+    await fsAddEvent(cardId, "ISSUE", {
+      name: cleanName,
+      phone,
+      max: maxVal,
+    });
 
     const addToGoogleUrl = buildGoogleSaveUrl({
       cardId,
@@ -521,7 +588,9 @@ app.post("/api/create-card", (req, res) => {
   }
 });
 
-/* ---------- obtener datos tarjeta ---------- */
+/* =========================================================
+   OBTENER DATOS TARJETA
+   ========================================================= */
 app.get("/api/card/:cardId", (req, res) => {
   const card = getCard.get(req.params.cardId);
   if (!card) return res.status(404).json({ error: "not_found" });
@@ -546,10 +615,8 @@ app.get("/api/wallet-link/:cardId", (req, res) => {
 });
 
 /* =========================================================
-   DIAGNÓSTICOS APPLE WALLET
+   DEBUG APPLE WALLET
    ========================================================= */
-
-// Diagnóstico básico de variables de entorno
 app.get("/api/debug/apple-env", (_req, res) => {
   const need = [
     "APPLE_ORG_NAME",
@@ -564,7 +631,6 @@ app.get("/api/debug/apple-env", (_req, res) => {
   res.json(status);
 });
 
-// Diagnóstico detallado de certificados
 app.get("/api/debug/apple-certs", (_req, res) => {
   try {
     const certPaths = {
@@ -600,7 +666,6 @@ app.get("/api/debug/apple-certs", (_req, res) => {
   }
 });
 
-// Diagnóstico completo de configuración Apple
 app.get("/api/debug/apple-full-check", async (_req, res) => {
   try {
     const TEAM_ID = process.env.APPLE_TEAM_ID;
@@ -655,7 +720,6 @@ app.get("/api/debug/apple-full-check", async (_req, res) => {
   }
 });
 
-// Pase de prueba para descargar
 app.get("/api/apple/test-pass", async (_req, res) => {
   try {
     const testPayload = {
@@ -681,13 +745,11 @@ app.get("/api/apple/test-pass", async (_req, res) => {
     res.send(buffer);
   } catch (error) {
     console.error("Error en test pass:", error);
-    res
-      .status(500)
-      .json({ error: error.message, stack: error.stack });
+    res.status(500).json({ error: error.message, stack: error.stack });
   }
 });
 
-/* ---------- APPLE: generar y descargar .pkpass ---------- */
+/* ---------- APPLE: generar pase real ---------- */
 app.get("/api/apple/pass", async (req, res) => {
   try {
     const { cardId } = req.query;
@@ -726,8 +788,10 @@ app.get("/api/apple/pass", async (req, res) => {
   }
 });
 
-/* ---------- sumar sello ---------- */
-app.post("/api/stamp/:cardId", basicAuth, (req, res) => {
+/* =========================================================
+   SUMAR SELLO (staff)
+   ========================================================= */
+app.post("/api/stamp/:cardId", basicAuth, async (req, res) => {
   try {
     const { cardId } = req.params;
     const card = getCard.get(cardId);
@@ -741,6 +805,15 @@ app.post("/api/stamp/:cardId", basicAuth, (req, res) => {
     updStamps.run(newStamps, cardId);
     logEvent.run(cardId, "STAMP", JSON.stringify({ by: "reception" }));
 
+    await fsUpsertCard({
+      id: cardId,
+      name: card.name,
+      max: card.max,
+      stamps: newStamps,
+      status: card.status,
+    });
+    await fsAddEvent(cardId, "STAMP", { by: "reception" });
+
     const addToGoogleUrl = buildGoogleSaveUrl({
       cardId,
       name: card.name,
@@ -753,8 +826,10 @@ app.post("/api/stamp/:cardId", basicAuth, (req, res) => {
   }
 });
 
-/* ---------- canjear ---------- */
-app.post("/api/redeem/:cardId", basicAuth, (req, res) => {
+/* =========================================================
+   CANJEAR (staff)
+   ========================================================= */
+app.post("/api/redeem/:cardId", basicAuth, async (req, res) => {
   try {
     const { cardId } = req.params;
     const card = getCard.get(cardId);
@@ -764,6 +839,15 @@ app.post("/api/redeem/:cardId", basicAuth, (req, res) => {
 
     updStamps.run(0, cardId);
     logEvent.run(cardId, "REDEEM", JSON.stringify({ by: "reception" }));
+
+    await fsUpsertCard({
+      id: cardId,
+      name: card.name,
+      max: card.max,
+      stamps: 0,
+      status: card.status,
+    });
+    await fsAddEvent(cardId, "REDEEM", { by: "reception" });
 
     const addToGoogleUrl = buildGoogleSaveUrl({
       cardId,
@@ -777,7 +861,9 @@ app.post("/api/redeem/:cardId", basicAuth, (req, res) => {
   }
 });
 
-/* ---------- export CSV ---------- */
+/* =========================================================
+   EXPORT CSV
+   ========================================================= */
 app.get("/api/export.csv", basicAuth, (_req, res) => {
   try {
     const rows = db
@@ -895,7 +981,7 @@ app.get("/api/admin/events", adminAuth, (req, res) => {
   }
 });
 
-app.post("/api/admin/stamp", adminAuth, (req, res) => {
+app.post("/api/admin/stamp", adminAuth, async (req, res) => {
   try {
     const { cardId } = req.body || {};
     if (!cardId) return res.status(400).json({ error: "missing_cardId" });
@@ -911,13 +997,22 @@ app.post("/api/admin/stamp", adminAuth, (req, res) => {
     updStamps.run(newStamps, cardId);
     logEvent.run(cardId, "STAMP", JSON.stringify({ by: "admin" }));
 
+    await fsUpsertCard({
+      id: cardId,
+      name: card.name,
+      max: card.max,
+      stamps: newStamps,
+      status: card.status,
+    });
+    await fsAddEvent(cardId, "STAMP", { by: "admin" });
+
     res.json({ ok: true, cardId, stamps: newStamps });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
 });
 
-app.post("/api/admin/redeem", adminAuth, (req, res) => {
+app.post("/api/admin/redeem", adminAuth, async (req, res) => {
   try {
     const { cardId } = req.body || {};
     if (!cardId) return res.status(400).json({ error: "missing_cardId" });
@@ -929,6 +1024,15 @@ app.post("/api/admin/redeem", adminAuth, (req, res) => {
 
     updStamps.run(0, cardId);
     logEvent.run(cardId, "REDEEM", JSON.stringify({ by: "admin" }));
+
+    await fsUpsertCard({
+      id: cardId,
+      name: card.name,
+      max: card.max,
+      stamps: 0,
+      status: card.status,
+    });
+    await fsAddEvent(cardId, "REDEEM", { by: "admin" });
 
     res.json({ ok: true, cardId });
   } catch (e) {
@@ -1027,7 +1131,7 @@ app.post("/api/admin/reset", async (req, res) => {
 });
 
 /* =========================================================
-   DEBUG MAIL (para Postman)
+   DEBUG MAIL
    ========================================================= */
 app.post("/api/debug/mail", async (req, res) => {
   try {
