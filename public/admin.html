@@ -3,19 +3,21 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Admin — Venus Lealtad</title>
+  <title>Panel Admin — Venus Lealtad</title>
   <link rel="icon" href="/assets/logo.png">
   <style>
     :root{
       --venus:#8c9668;
-      --venus-soft:#cdd8a6;
-      --bg:#fff6e3;
-      --ink:#1b1b1b;
-      --muted:#6b7280;
-      --line:#e5e7eb;
-      --err:#b91c1c;
-      --ok:#15803d;
-      --radius:14px;
+      --venus-soft:#dfe6c1;
+      --bg:#3f4037;
+      --ink:#f9fafb;
+      --muted:#e5e7eb;
+      --line:rgba(255,255,255,0.25);
+      --err:#fecaca;
+      --err-text:#991b1b;
+      --ok:#bbf7d0;
+      --ok-text:#166534;
+      --radius:18px;
     }
     *{box-sizing:border-box;}
     html,body{
@@ -55,11 +57,12 @@
       width:40px;
       height:40px;
       border-radius:12px;
-      box-shadow:0 0 0 2px rgba(0,0,0,.04);
+      box-shadow:0 0 0 2px rgba(255,255,255,.1);
     }
     h1{
       font-size:22px;
       margin:0;
+      color:var(--ink);
     }
     .muted{color:var(--muted);font-size:13px;}
     .actions{
@@ -76,18 +79,19 @@
       gap:6px;
       border-radius:999px;
       border:1px solid var(--line);
-      background:#fff;
+      background:rgba(255,255,255,.1);
       padding:7px 13px;
       font-size:13px;
       cursor:pointer;
       text-decoration:none;
       color:var(--ink);
       white-space:nowrap;
+      backdrop-filter:blur(3px);
       transition:all 0.2s ease;
     }
     .btn:hover{
       transform:translateY(-1px);
-      box-shadow:0 4px 8px rgba(0,0,0,0.1);
+      box-shadow:0 4px 12px rgba(0,0,0,0.2);
     }
     .btn.primary{
       background:var(--venus);
@@ -95,7 +99,7 @@
       color:#fff;
     }
     .btn.ghost{
-      background:#fff;
+      background:transparent;
       border-color:var(--line);
     }
     .btn.small{
@@ -103,22 +107,108 @@
       font-size:12px;
     }
 
+    /* Nav tabs */
+    .nav{
+      display:flex;
+      gap:6px;
+      flex-wrap:wrap;
+      margin:8px 0 14px;
+    }
+    .nav a{
+      padding:7px 12px;
+      border-radius:999px;
+      border:1px solid transparent;
+      text-decoration:none;
+      font-size:13px;
+      color:var(--muted);
+      background:transparent;
+      transition:all 0.2s ease;
+    }
+    .nav a.is-active{
+      background:rgba(255,255,255,.15);
+      border-color:var(--venus);
+      color:var(--venus-soft);
+      box-shadow:0 4px 14px rgba(0,0,0,.1);
+    }
+
     /* Cards base */
     .card{
-      background:#fff;
+      background:rgba(255,255,255,.08);
       border-radius:var(--radius);
       border:1px solid var(--line);
       padding:16px 16px 14px;
-      box-shadow:0 10px 28px rgba(0,0,0,.06);
+      box-shadow:0 10px 28px rgba(0,0,0,.2);
       margin-bottom:14px;
+      backdrop-filter:blur(3px);
+      position:relative;
+      overflow:hidden;
+    }
+    .card::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:
+        radial-gradient(circle at 20% 20%,rgba(255,255,255,0.05),transparent 60%),
+        radial-gradient(circle at 80% 70%,rgba(255,255,255,0.03),transparent 60%);
+      opacity:.9;
+      pointer-events:none;
+    }
+    .card > *{
+      position:relative;
+      z-index:1;
     }
     .card h2{
       margin:0 0 6px;
       font-size:18px;
+      color:var(--ink);
     }
     .card h3{
       margin:0 0 6px;
       font-size:15px;
+      color:var(--ink);
+    }
+
+    /* Layouts */
+    .grid-2{
+      display:grid;
+      grid-template-columns:1.1fr .9fr;
+      gap:14px;
+    }
+    .grid-3-kpi{
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:10px;
+      margin-top:10px;
+    }
+    @media (max-width:900px){
+      .grid-2{ grid-template-columns:1fr; }
+    }
+    @media (max-width:700px){
+      .grid-3-kpi{grid-template-columns:repeat(2,minmax(0,1fr));}
+    }
+    @media (max-width:480px){
+      .grid-3-kpi{grid-template-columns:1fr;}
+      .topbar{align-items:flex-start;}
+    }
+
+    .kpi{
+      padding:10px 12px;
+      border-radius:12px;
+      background:rgba(255,255,255,.1);
+      border:1px solid rgba(255,255,255,.15);
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+      font-size:13px;
+      backdrop-filter:blur(3px);
+    }
+    .kpi span.value{
+      font-size:20px;
+      font-weight:600;
+      color:var(--ink);
+    }
+    .kpi span{
+      color:var(--muted);
     }
 
     .row{
@@ -133,24 +223,150 @@
       margin:8px 0 4px;
       font-size:13px;
       font-weight:500;
+      color:var(--ink);
     }
     input,select,textarea{
       width:100%;
       padding:9px 10px;
       border-radius:10px;
       border:1px solid var(--line);
-      background:#f9fafb;
+      background:rgba(255,255,255,.1);
       font-size:13px;
-      transition:border-color 0.2s ease;
+      color:var(--ink);
+      backdrop-filter:blur(3px);
     }
-    input:focus{
-      outline:none;
-      border-color:var(--venus);
-      box-shadow:0 0 0 2px rgba(140,150,104,0.1);
+    input::placeholder{
+      color:var(--muted);
     }
+    textarea{resize:vertical;min-height:70px;}
 
     .hidden{display:none!important;}
 
+    /* Tabla responsive */
+    .table-wrap{
+      width:100%;
+      overflow-x:auto;
+      -webkit-overflow-scrolling:touch;
+    }
+    table{
+      border-collapse:collapse;
+      width:100%;
+      font-size:13px;
+    }
+    thead{
+      background:rgba(255,255,255,.1);
+    }
+    th,td{
+      padding:6px 8px;
+      border-bottom:1px solid rgba(255,255,255,.1);
+      text-align:left;
+      white-space:nowrap;
+      color:var(--ink);
+    }
+    tr:last-child td{border-bottom:none;}
+    code{
+      font-size:12px;
+      background:rgba(255,255,255,.15);
+      padding:2px 4px;
+      border-radius:4px;
+      color:var(--ink);
+    }
+    .tag{
+      display:inline-flex;
+      align-items:center;
+      padding:2px 6px;
+      border-radius:999px;
+      background:var(--ok);
+      color:var(--ok-text);
+      font-size:11px;
+    }
+
+    /* Gift card layout */
+    .gift-layout{
+      display:grid;
+      grid-template-columns:1.1fr .9fr;
+      gap:12px;
+      margin-top:6px;
+    }
+    @media (max-width:880px){
+      .gift-layout{grid-template-columns:1fr;}
+    }
+    
+    /* Gift Card Preview */
+    .gift-preview{
+      border-radius:16px;
+      padding:18px;
+      background:linear-gradient(135deg, #8c9668, #a8b380);
+      color:#fff;
+      position:relative;
+      overflow:hidden;
+      min-height:220px;
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+      box-shadow:0 8px 25px rgba(0,0,0,0.2);
+      margin-top: 12px;
+    }
+    .gift-preview::before{
+      content:"";
+      position:absolute;
+      top:0;
+      left:0;
+      right:0;
+      height:60%;
+      background:linear-gradient(135deg, rgba(255,255,255,0.1), transparent);
+      z-index:1;
+    }
+    .gift-preview > *{
+      position:relative;
+      z-index:2;
+    }
+    .gift-preview h4{
+      margin:0 0 8px;
+      font-size:18px;
+      font-weight:600;
+    }
+    .gift-preview small{font-size:12px;opacity:.9;}
+    .gift-preview-content{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-end;
+      margin-top:10px;
+    }
+    .gift-preview-info{
+      flex:1;
+    }
+    .gift-preview-qr{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+    }
+    .gift-qr{
+      width:120px;
+      height:120px;
+      border-radius:12px;
+      background:rgba(255,255,255,.15);
+      padding:8px;
+      margin-bottom:8px;
+    }
+    .chip{
+      display:inline-flex;
+      align-items:center;
+      padding:4px 10px;
+      border-radius:999px;
+      background:rgba(0,0,0,.18);
+      font-size:11px;
+      margin-top:6px;
+    }
+    
+    /* Gift Card Actions */
+    .gift-actions{
+      display:flex;
+      gap:8px;
+      margin-top:12px;
+      flex-wrap:wrap;
+    }
+    
     /* Footer */
     .footer{
       margin-top:auto;
@@ -160,171 +376,15 @@
       color:var(--muted);
     }
     
-    /* Estilos específicos para la página de login */
-    .login-container {
-      max-width: 460px;
-      margin: 40px auto;
-      padding: 0 12px;
-    }
-    
-    .login-card {
-      background:#fff;
-      border-radius:var(--radius);
-      border:1px solid var(--line);
-      padding:24px 20px 20px;
-      box-shadow:0 10px 28px rgba(0,0,0,.06);
-      margin-bottom:14px;
-    }
-    
-    .login-logo {
-      width: 64px;
-      height: 64px;
-      border-radius: 50%;
-      margin: 0 auto 12px;
-      display: block;
-      box-shadow: 0 0 0 2px rgba(0,0,0,.04);
-    }
-    
-    .login-title {
-      text-align: center;
-      font-size: 22px;
-      margin: 0 0 4px;
-    }
-    
-    .login-subtitle {
-      text-align: center;
-      font-size: 14px;
-      color: var(--muted);
-      margin-bottom: 16px;
-    }
-    
-    .login-tabs {
-      display: flex;
-      gap: 6px;
-      margin: 16px 0 20px;
-      justify-content: center;
-      flex-wrap: wrap;
-    }
-    
-    .login-tab {
-      padding: 7px 12px;
-      border-radius: 999px;
-      border: 1px solid transparent;
-      text-decoration: none;
-      font-size: 13px;
-      color: var(--muted);
-      background: transparent;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-    
-    .login-tab.active {
-      background: #fff;
-      border-color: var(--venus);
-      color: var(--venus);
-      box-shadow: 0 4px 14px rgba(0,0,0,.05);
-    }
-    
-    .login-tab:hover:not(.active) {
-      background: rgba(140,150,104,0.05);
-    }
-    
-    .login-section-title {
-      font-size: 18px;
-      margin: 0 0 6px;
-    }
-    
-    .login-alert {
-      border-radius: 10px;
-      padding: 8px 10px;
-      font-size: 13px;
-      margin-top: 10px;
-    }
-    
-    .login-alert.err {
-      background: #fef2f2;
-      color: var(--err);
-      border: 1px solid #fecaca;
-    }
-    
-    .login-alert.ok {
-      background: #f0fdf4;
-      color: var(--ok);
-      border: 1px solid #bbf7d0;
-    }
-    
-    .login-link {
-      color: var(--venus);
-      text-decoration: underline;
-      text-underline-offset: 2px;
-      font-size: 13px;
-      cursor: pointer;
-      transition: color 0.2s ease;
-    }
-    
-    .login-link:hover {
-      color: #6b754c;
-    }
-    
-    .login-footer {
-      text-align: center;
-      color: var(--muted);
-      font-size: 12px;
-      margin-top: 16px;
-    }
-    
-    @media (max-width: 480px) {
-      .login-container {
-        margin: 20px auto;
-      }
-      
-      .login-card {
-        padding: 20px 16px 16px;
-      }
-      
-      .login-logo {
-        width: 56px;
-        height: 56px;
-      }
-      
-      .login-title {
-        font-size: 20px;
-      }
-      
-      .login-tabs {
-        flex-direction: column;
-        align-items: center;
-      }
-      
-      .login-tab {
-        width: 100%;
-        text-align: center;
-      }
-      
-      .topbar {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 8px;
-      }
-      
-      .actions {
-        width: 100%;
-        justify-content: flex-start;
-      }
-    }
-    
-    @media (max-width: 360px) {
-      .login-card {
-        padding: 16px 12px 12px;
-      }
-      
-      .login-title {
-        font-size: 18px;
-      }
-      
-      .login-subtitle {
-        font-size: 13px;
-      }
+    /* Success Message */
+    .success-message{
+      background:rgba(187, 247, 208, 0.1);
+      border:1px solid rgba(34, 197, 94, 0.3);
+      border-radius:10px;
+      padding:10px 12px;
+      margin-top:10px;
+      font-size:13px;
+      color:#bbf7d0;
     }
   </style>
 </head>
@@ -336,203 +396,222 @@
         <img src="/assets/logo.png" alt="Venus">
         <div>
           <h1>Admin — Venus Lealtad</h1>
-          <div class="muted">Inicia sesión para entrar al panel</div>
+          <div class="muted" id="me-line">Sesión iniciada</div>
         </div>
       </div>
       <div class="actions">
         <a class="btn" href="/" target="_blank" rel="noopener">Página clientes</a>
+        <button id="logout" class="btn">Cerrar sesión</button>
       </div>
     </header>
-    
-    <!-- Login Section -->
-    <div class="login-container">
-      <div class="login-card">
-        <img class="login-logo" src="/assets/logo.png" alt="Venus">
-        
-        <h1 class="login-title">Admin — Venus Lealtad</h1>
-        <p class="login-subtitle">Inicia sesión para entrar al panel</p>
-        
-        <!-- Tabs -->
-        <nav class="login-tabs">
-          <button class="login-tab active" data-tab="login">Iniciar sesión</button>
-          <button class="login-tab" data-tab="register">Crear cuenta</button>
-          <button class="login-tab" data-tab="forgot">Olvidé mi contraseña</button>
-        </nav>
-        
-        <!-- LOGIN -->
-        <section id="tab-login">
-          <h2 class="login-section-title">Iniciar sesión</h2>
-          <p class="muted">Escribe tu correo y contraseña.</p>
-          <div id="login-alert" class="login-alert hidden"></div>
-          <form id="form-login">
-            <label>Correo electrónico</label>
-            <input id="login-email" type="email" required placeholder="tucorreo@dominio.com">
+
+    <!-- Tabs -->
+    <nav class="nav">
+      <a href="#overview" data-tab>Resumen</a>
+      <a href="#cards" data-tab>Tarjetas</a>
+      <a href="#events" data-tab class="is-active">Eventos & Gift cards</a>
+      <a href="#settings" data-tab>Configuración</a>
+    </nav>
+
+    <!-- TAB: Events + Gift Cards -->
+    <section id="tab-events" class="card">
+      <h2>Eventos & Gift cards</h2>
+      <div class="gift-layout">
+        <!-- Eventos de tarjeta -->
+        <div>
+          <h3>Historial de una tarjeta</h3>
+          <p class="muted">Busca por <code>card_xxx</code> para ver sellos y canjes.</p>
+          <div class="row">
+            <input id="eid" placeholder="ID de tarjeta (card_…)">
+            <button id="eload" class="btn small">Ver eventos</button>
+          </div>
+          <div class="table-wrap" style="margin-top:8px;">
+            <table>
+              <thead>
+                <tr><th>ID</th><th>Tipo</th><th>Meta</th><th>Fecha</th></tr>
+              </thead>
+              <tbody id="events-tbody">
+                <tr><td colspan="4" style="text-align:center;padding:12px;" class="muted">Ingresa un ID de tarjeta para ver eventos</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Gift card -->
+        <div>
+          <h3>Crear Gift Card</h3>
+          <p class="muted">
+            Genera una tarjeta de regalo digital con vigencia de <b>30 días</b>.
+            Podrás compartir el QR por WhatsApp o imprimirla.
+          </p>
+          <form id="gift-form">
+            <label>Nombre del cliente (opcional)</label>
+            <input id="gift-name" placeholder="Ej. Ana López">
             
-            <label>Contraseña</label>
-            <input id="login-pass" type="password" required placeholder="••••••••">
+            <label>Servicio a regalar</label>
+            <input id="gift-service" required placeholder="Ej. Facial hidratante, Masaje relajante…">
             
-            <div class="row" style="margin-top: 16px;">
-              <span class="login-link" data-goto="forgot">¿Olvidaste tu contraseña?</span>
-              <button class="btn primary" type="submit">Entrar</button>
-            </div>
+            <button type="submit" class="btn primary" style="margin-top:10px;">Generar Gift Card</button>
           </form>
-        </section>
-        
-        <!-- REGISTER -->
-        <section id="tab-register" class="hidden">
-          <h2 class="login-section-title">Crear cuenta</h2>
-          <p class="muted">Solo personal autorizado. Si el registro está cerrado, solicita acceso al administrador.</p>
-          <div id="reg-alert" class="login-alert hidden"></div>
-          <form id="form-register">
-            <label>Correo electrónico</label>
-            <input id="reg-email" type="email" required placeholder="tucorreo@dominio.com">
-            
-            <label>Contraseña</label>
-            <input id="reg-pass" type="password" minlength="6" required placeholder="Mínimo 6 caracteres">
-            
-            <div style="margin-top: 16px; text-align: right;">
-              <button class="btn primary" type="submit">Crear cuenta</button>
+
+          <!-- Gift Card Preview -->
+          <div id="gift-preview" class="gift-preview hidden">
+            <div>
+              <small>Venus Cosmetología</small>
+              <h4 id="gift-preview-title">Gift Card</h4>
+              <div id="gift-preview-sub" style="margin-top:4px;font-size:14px;"></div>
+              <div class="chip" id="gift-preview-exp"></div>
             </div>
-          </form>
-        </section>
-        
-        <!-- FORGOT -->
-        <section id="tab-forgot" class="hidden">
-          <h2 class="login-section-title">Restablecer contraseña</h2>
-          <p class="muted">Te enviaremos un correo con un enlace para crear una nueva.</p>
-          <div id="forgot-alert" class="login-alert hidden"></div>
-          <form id="form-forgot">
-            <label>Correo electrónico</label>
-            <input id="forgot-email" type="email" required placeholder="tucorreo@dominio.com">
-            
-            <div style="margin-top: 16px; text-align: right;">
-              <button class="btn primary" type="submit">Enviar enlace</button>
+            <div class="gift-preview-content">
+              <div class="gift-preview-info">
+                <div style="font-size:13px;margin-top:8px;">Presenta este código en tu visita</div>
+              </div>
+              <div class="gift-preview-qr">
+                <canvas id="gift-qr" class="gift-qr"></canvas>
+                <small style="font-size:10px;">Código QR</small>
+              </div>
             </div>
-          </form>
-        </section>
+          </div>
+
+          <div id="gift-actions" class="gift-actions hidden">
+            <button type="button" id="gift-copy" class="btn small">Copiar enlace</button>
+            <button type="button" id="gift-whatsapp" class="btn small primary">Enviar por WhatsApp</button>
+          </div>
+          
+          <div id="gift-success" class="success-message hidden">
+            ¡Gift Card generada exitosamente! Puedes enviarla por WhatsApp o copiar el enlace.
+          </div>
+        </div>
       </div>
-      
-      <div class="login-footer">© Venus Cosmetología</div>
-    </div>
+    </section>
+
+    <footer class="footer">© Venus Cosmetología — Panel de administración</footer>
   </main>
 
+  <!-- QR Code Library -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  
   <script>
-    // Tabs functionality - Fixed version
-    document.addEventListener('DOMContentLoaded', function() {
-      const tabs = document.querySelectorAll('.login-tab');
-      const sections = {
-        login: document.getElementById('tab-login'),
-        register: document.getElementById('tab-register'),
-        forgot: document.getElementById('tab-forgot')
+    // Tab Navigation
+    document.querySelectorAll('[data-tab]').forEach(tab => {
+      tab.addEventListener('click', function() {
+        document.querySelectorAll('.nav a').forEach(a => a.classList.remove('is-active'));
+        this.classList.add('is-active');
+      });
+    });
+
+    // Gift Card Generation
+    document.getElementById('gift-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const clientName = document.getElementById('gift-name').value || 'Cliente';
+      const service = document.getElementById('gift-service').value;
+      
+      if (!service) {
+        alert('Por favor ingresa un servicio para la Gift Card');
+        return;
+      }
+      
+      // Generate unique ID
+      const giftId = 'gift_' + Math.random().toString(36).substring(2, 10);
+      
+      // Calculate expiration date (30 days from now)
+      const expirationDate = new Date();
+      expirationDate.setDate(expirationDate.getDate() + 30);
+      const formattedDate = expirationDate.toLocaleDateString('es-ES', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric'
+      });
+      
+      // Update preview
+      document.getElementById('gift-preview-title').textContent = service;
+      document.getElementById('gift-preview-sub').textContent = `Para: ${clientName}`;
+      document.getElementById('gift-preview-exp').textContent = `Vigencia hasta: ${formattedDate}`;
+      
+      // Generate QR Code
+      const qrCanvas = document.getElementById('gift-qr');
+      const qrData = JSON.stringify({
+        id: giftId,
+        service: service,
+        client: clientName,
+        expires: expirationDate.toISOString()
+      });
+      
+      QRCode.toCanvas(qrCanvas, qrData, {
+        width: 120,
+        margin: 1,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        }
+      }, function(error) {
+        if (error) console.error(error);
+      });
+      
+      // Show preview and actions
+      document.getElementById('gift-preview').classList.remove('hidden');
+      document.getElementById('gift-actions').classList.remove('hidden');
+      document.getElementById('gift-success').classList.remove('hidden');
+      
+      // Store gift data for sharing
+      window.currentGiftCard = {
+        id: giftId,
+        service: service,
+        client: clientName,
+        expires: formattedDate,
+        qrData: qrData
       };
+    });
 
-      // Function to activate a tab
-      function activateTab(tabName) {
-        // Update tabs
-        tabs.forEach(tab => {
-          tab.classList.toggle('active', tab.dataset.tab === tabName);
-        });
-        
-        // Update sections
-        Object.keys(sections).forEach(key => {
-          sections[key].classList.toggle('hidden', key !== tabName);
-        });
-        
-        // Update URL
-        const params = new URLSearchParams(location.search);
-        params.set('view', tabName);
-        history.replaceState(null, '', '?' + params.toString());
-      }
-
-      // Add click events to tabs
-      tabs.forEach(tab => {
-        tab.addEventListener('click', function() {
-          activateTab(this.dataset.tab);
-        });
-      });
+    // Copy Link Functionality
+    document.getElementById('gift-copy').addEventListener('click', function() {
+      if (!window.currentGiftCard) return;
       
-      // Add click events to links
-      document.querySelectorAll('.login-link').forEach(link => {
-        link.addEventListener('click', function(e) {
-          e.preventDefault();
-          activateTab(this.dataset.goto);
-        });
+      const giftUrl = `${window.location.origin}/gift/${window.currentGiftCard.id}`;
+      navigator.clipboard.writeText(giftUrl).then(() => {
+        const originalText = this.textContent;
+        this.textContent = '¡Enlace copiado!';
+        setTimeout(() => {
+          this.textContent = originalText;
+        }, 2000);
       });
-      
-      // Check URL for initial tab
-      const urlParams = new URLSearchParams(window.location.search);
-      const initialTab = urlParams.get('view');
-      if (initialTab && sections[initialTab]) {
-        activateTab(initialTab);
-      }
+    });
 
-      // Alert helpers
-      function showAlert(id, type, msg) {
-        const el = document.getElementById(id);
-        el.className = 'login-alert ' + type;
-        el.textContent = msg;
-        el.classList.remove('hidden');
+    // WhatsApp Sharing Functionality
+    document.getElementById('gift-whatsapp').addEventListener('click', function() {
+      if (!window.currentGiftCard) return;
+      
+      const gift = window.currentGiftCard;
+      const message = `¡Hola ${gift.client}! 🎁\n\nTienes una Gift Card de Venus Cosmetología:\n\n✨ *${gift.service}*\n📅 Válida hasta: ${gift.expires}\n\nPresenta este mensaje en tu visita para canjear tu regalo.\n\n¡Te esperamos! 💚`;
+      
+      const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+      window.open(whatsappUrl, '_blank');
+    });
+
+    // Simulate events loading
+    document.getElementById('eload').addEventListener('click', function() {
+      const cardId = document.getElementById('eid').value;
+      if (!cardId) {
+        alert('Por favor ingresa un ID de tarjeta');
+        return;
       }
       
-      function clearAlert(id) {
-        const el = document.getElementById(id);
-        el.className = 'login-alert hidden';
-        el.textContent = '';
-      }
-
-      // Login form submission
-      document.getElementById('form-login').addEventListener('submit', function(e) {
-        e.preventDefault();
-        clearAlert('login-alert');
-        const email = document.getElementById('login-email').value.trim();
-        const password = document.getElementById('login-pass').value;
-        
-        if (email && password) {
-          showAlert('login-alert', 'ok', 'Inicio de sesión exitoso. Redirigiendo...');
-          setTimeout(() => {
-            window.location.href = '/admin';
-          }, 1500);
-        } else {
-          showAlert('login-alert', 'err', 'Por favor, completa todos los campos');
-        }
-      });
-
-      // Register form submission
-      document.getElementById('form-register').addEventListener('submit', function(e) {
-        e.preventDefault();
-        clearAlert('reg-alert');
-        const email = document.getElementById('reg-email').value.trim();
-        const password = document.getElementById('reg-pass').value;
-        
-        if (email && password) {
-          if (password.length < 6) {
-            showAlert('reg-alert', 'err', 'La contraseña debe tener al menos 6 caracteres');
-            return;
-          }
-          
-          showAlert('reg-alert', 'ok', 'Cuenta creada. Ya puedes iniciar sesión.');
-          setTimeout(() => activateTab('login'), 1200);
-        } else {
-          showAlert('reg-alert', 'err', 'Por favor, completa todos los campos');
-        }
-      });
-
-      // Forgot password form submission
-      document.getElementById('form-forgot').addEventListener('submit', function(e) {
-        e.preventDefault();
-        clearAlert('forgot-alert');
-        const email = document.getElementById('forgot-email').value.trim();
-        
-        if (email) {
-          showAlert(
-            'forgot-alert',
-            'ok',
-            'Te enviamos un enlace de restablecimiento si el correo existe en el sistema.'
-          );
-        } else {
-          showAlert('forgot-alert', 'err', 'Por favor, introduce tu correo electrónico');
-        }
-      });
+      const tbody = document.getElementById('events-tbody');
+      tbody.innerHTML = `
+        <tr>
+          <td>${cardId}_001</td>
+          <td><span class="tag">Sello</span></td>
+          <td>Facial hidratante</td>
+          <td>${new Date().toLocaleDateString()}</td>
+        </tr>
+        <tr>
+          <td>${cardId}_002</td>
+          <td><span class="tag">Sello</span></td>
+          <td>Masaje relajante</td>
+          <td>${new Date().toLocaleDateString()}</td>
+        </tr>
+      `;
     });
   </script>
 </body>
