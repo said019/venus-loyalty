@@ -1,14 +1,10 @@
-// ======================
-// Utilidades básicas
-// ======================
-const $  = (s, x = document) => x.querySelector(s);
+// Utilidades
+const $ = (s, x = document) => x.querySelector(s);
 const $$ = (s, x = document) => [...x.querySelectorAll(s)];
-
 function fmtDate(iso) {
   try { return new Date(iso).toLocaleString(); }
   catch { return iso; }
 }
-
 function toast(el, msg, ok = true) {
   if (!el) return;
   el.textContent = msg;
@@ -20,9 +16,7 @@ function toast(el, msg, ok = true) {
   }, 2000);
 }
 
-// ======================
 // Tabs
-// ======================
 $$("[data-tab]").forEach((a) => {
   a.addEventListener("click", (e) => {
     e.preventDefault();
@@ -35,20 +29,7 @@ $$("[data-tab]").forEach((a) => {
   });
 });
 
-// Dejar Resumen como pestaña inicial
-(() => {
-  const first = $(".nav a");
-  if (first) {
-    first.classList.add("is-active");
-    ["overview", "cards", "events", "settings"].forEach((t) => {
-      $("#tab-" + t).classList.toggle("hidden", t !== "overview");
-    });
-  }
-})();
-
-// ======================
-// Sesión (admin)
-// ======================
+// ====== Sesión (admin) ======
 async function me() {
   const r = await fetch("/api/admin/me");
   if (!r.ok) {
@@ -58,17 +39,13 @@ async function me() {
   const j = await r.json();
   $("#me-line").textContent = `Sesión: ${j.email}`;
 }
-
 $("#logout").onclick = async () => {
   await fetch("/api/admin/logout", { method: "POST" });
   location.href = "/admin-login.html";
 };
-
 me();
 
-// ======================
-// KPIs
-// ======================
+// ====== KPIs ======
 async function loadKpis() {
   try {
     const r = await fetch("/api/admin/metrics");
@@ -78,18 +55,16 @@ async function loadKpis() {
     $("#k_full").textContent = m.full ?? "—";
     $("#k_stamps").textContent = m.stampsToday ?? "—";
     $("#k_redeems").textContent = m.redeemsToday ?? "—";
-    $("#kpi_note").textContent = "Actualizado " + new Date().toLocaleTimeString();
+    $("#kpi_note").textContent =
+      "Actualizado " + new Date().toLocaleTimeString();
   } catch {
     /* silencioso */
   }
 }
 loadKpis();
 
-// ======================
-// Tabla de tarjetas
-// ======================
+// ====== Tabla de tarjetas ======
 let page = 1;
-
 async function loadCards() {
   const q = $("#q").value.trim();
   const r = await fetch(
@@ -118,12 +93,13 @@ async function loadCards() {
   }
   $("#pageinfo").textContent = `Página ${j.page} de ${j.totalPages} — ${j.total} registro(s)`;
 
-  // Acciones
+  // acciones
   tb.querySelectorAll(".btn-view").forEach(
     (b) => (b.onclick = () => openCardDialog(b.dataset.id))
   );
   tb.querySelectorAll(".btn-copy").forEach(
-    (b) => (b.onclick = () => navigator.clipboard.writeText(b.dataset.id))
+    (b) => (b.onclick = () =>
+      navigator.clipboard.writeText(b.dataset.id))
   );
   tb.querySelectorAll(".btn-open").forEach(
     (b) =>
@@ -137,7 +113,6 @@ async function loadCards() {
     (b) => (b.onclick = () => adminAction("redeem", b.dataset.id))
   );
 }
-
 $("#reload").onclick = () => loadCards();
 $("#prev").onclick = () => {
   page = Math.max(1, page - 1);
@@ -153,9 +128,7 @@ $("#q").addEventListener("input", () => {
 });
 loadCards();
 
-// ======================
-// Diálogo de tarjeta
-// ======================
+// ====== Diálogo de tarjeta ======
 const dlg = $("#cardDialog");
 $("#d_close").onclick = () => dlg.close();
 
@@ -175,11 +148,11 @@ async function openCardDialog(cardId) {
     $("#d_id").value = c.id;
     $("#d_open").href = `/?card=${encodeURIComponent(c.id)}`;
 
-    // QR que siempre carga (Google Chart) con link de cliente
+    // QR que **siempre carga** (Google Chart)
     const shareUrl = `${location.origin}/?card=${encodeURIComponent(c.id)}`;
-    $("#d_qr").src = `https://chart.googleapis.com/chart?cht=qr&chs=240x240&chld=M|0&chl=${encodeURIComponent(
-      shareUrl
-    )}`;
+    $("#d_qr").src =
+      "https://chart.googleapis.com/chart?cht=qr&chs=240x240&chld=M|0&chl=" +
+      encodeURIComponent(shareUrl);
 
     $("#d_copy").onclick = () => navigator.clipboard.writeText(c.id);
     $("#d_stamp").onclick = () => adminAction("stamp", c.id, true);
@@ -189,9 +162,7 @@ async function openCardDialog(cardId) {
   }
 }
 
-// ======================
-// Confeti minimalista
-// ======================
+// confeti minimalista
 function confettiQuick() {
   const cvs = document.createElement("canvas");
   document.body.appendChild(cvs);
@@ -229,9 +200,6 @@ function confettiQuick() {
   })();
 }
 
-// ======================
-// Acciones admin (sello / canje)
-// ======================
 async function adminAction(kind, cardId, fromDialog = false) {
   const url = kind === "stamp" ? "/api/admin/stamp" : "/api/admin/redeem";
   const r = await fetch(url, {
@@ -242,15 +210,19 @@ async function adminAction(kind, cardId, fromDialog = false) {
   const out = $("#d_out");
   if (r.ok) {
     await r.json().catch(() => ({}));
-    out && (out.textContent = kind === "stamp" ? "✅ Sello agregado" : "🎁 Canje realizado");
+    out && (out.textContent =
+      kind === "stamp" ? "✅ Sello agregado" : "🎁 Canje realizado");
+
     if (kind === "stamp") {
       try {
-        const c = await (await fetch("/api/card/" + encodeURIComponent(cardId))).json();
+        const c = await (
+          await fetch("/api/card/" + encodeURIComponent(cardId))
+        ).json();
         if (c.stamps >= c.max) confettiQuick();
       } catch {}
     }
     if (fromDialog) {
-      openCardDialog(cardId); // refrescar
+      openCardDialog(cardId);
     }
     loadCards();
     loadKpis();
@@ -260,13 +232,13 @@ async function adminAction(kind, cardId, fromDialog = false) {
   }
 }
 
-// ======================
-// Eventos (historial)
-// ======================
+// ====== Eventos ======
 $("#eload").onclick = async () => {
   const id = $("#eid").value.trim();
   if (!id) return;
-  const r = await fetch("/api/admin/events?cardId=" + encodeURIComponent(id));
+  const r = await fetch(
+    "/api/admin/events?cardId=" + encodeURIComponent(id)
+  );
   const j = await r.json();
   const tb = $("#events-tbody");
   tb.innerHTML = "";
@@ -279,17 +251,13 @@ $("#eload").onclick = async () => {
   }
 };
 
-// ======================
-// Export CSV
-// ======================
+// ====== Export ======
 $("#export").onclick = () => window.open("/api/export.csv", "_blank");
 
-// ======================
-// Escáner QR integrado
-// ======================
-const sdlg   = $("#scanDialog");
-const sOut   = $("#scan_out");
-const video  = $("#scan_video");
+// ====== Escáner QR integrado ======
+const sdlg = $("#scanDialog");
+const sOut = $("#scan_out");
+const video = $("#scan_video");
 const camSel = $("#scan_cameras");
 let stream = null;
 let raf = 0;
@@ -328,7 +296,8 @@ async function startScan() {
       loopBarcode();
     } else {
       const s = document.createElement("script");
-      s.src = "https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js";
+      s.src =
+        "https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js";
       await new Promise((r) => {
         s.onload = r;
         document.head.appendChild(s);
@@ -336,10 +305,10 @@ async function startScan() {
       loopJsQR();
     }
   } catch (e) {
-    sOut.textContent = "No se pudo iniciar la cámara: " + (e.message || e);
+    sOut.textContent =
+      "No se pudo iniciar la cámara: " + (e.message || e);
   }
 }
-
 function stopScan() {
   cancelAnimationFrame(raf);
   stream && stream.getTracks().forEach((t) => t.stop());
@@ -347,7 +316,6 @@ function stopScan() {
   $("#scan_stop").disabled = true;
   $("#scan_start").disabled = false;
 }
-
 async function loopBarcode() {
   if (!stream) return;
   try {
@@ -359,7 +327,6 @@ async function loopBarcode() {
   } catch {}
   raf = requestAnimationFrame(loopBarcode);
 }
-
 function loopJsQR() {
   if (!stream) return;
   const cvs = document.createElement("canvas"),
@@ -377,7 +344,6 @@ function loopJsQR() {
   }
   raf = requestAnimationFrame(loopJsQR);
 }
-
 function extractCardId(text) {
   try {
     const u = new URL(text);
@@ -387,7 +353,6 @@ function extractCardId(text) {
   if (/^card_\d+/.test(text)) return text;
   return null;
 }
-
 async function handleScan(value) {
   stopScan();
   const cid = extractCardId(value);
@@ -412,81 +377,106 @@ $("#scan_start").onclick = startScan;
 $("#scan_stop").onclick = stopScan;
 camSel.onchange = () => stream && startScan();
 
-// ======================
-// Gift Cards (Eventos & Gift cards)
-// ======================
-let currentGift = null;
-
-const giftForm  = $("#gift-form");
-const giftPrev  = $("#gift-preview");
+// ====== Gift Cards (Eventos & Gift cards) ======
+const giftForm = $("#gift-form");
+const giftPreview = $("#gift-preview");
+const giftQr = $("#gift-qr");
 const giftTitle = $("#gift-preview-title");
-const giftSub   = $("#gift-preview-sub");
-const giftExp   = $("#gift-preview-exp");
-const giftQr    = $("#gift-qr");
+const giftSub = $("#gift-preview-sub");
+const giftExp = $("#gift-preview-exp");
 
-const btnGiftCopy = $("#gift-copy");      // botón "Copiar texto" (opcional)
-const btnGiftWa   = $("#gift-whatsapp");  // botón "Enviar por WhatsApp" (opcional)
-const btnGiftDl   = $("#gift-download");  // botón "Descargar imagen" (opcional)
-const giftNote    = $("#gift-note");      // texto informativo (opcional)
+// botones opcionales (si los agregas en el HTML)
+const giftCopyBtn = $("#gift-copy");
+const giftWaLink = $("#gift-wa");
+const giftMsg = $("#gift-msg");
 
-giftForm?.addEventListener("submit", (e) => {
-  e.preventDefault();
-  const name    = $("#gift-name").value.trim();
-  const service = $("#gift-service").value.trim();
-  if (!service) return;
+let lastGiftText = "";
+let lastGiftCode = "";
 
-  const id  = "gift_" + Date.now();
-  const exp = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-  const expText = exp.toLocaleDateString("es-MX", {
+function addDays(base, days) {
+  const d = new Date(base.getTime());
+  d.setDate(d.getDate() + days);
+  return d;
+}
+function formatDateShort(d) {
+  return d.toLocaleDateString("es-MX", {
     day: "2-digit",
     month: "short",
     year: "numeric",
   });
+}
 
-  const url = `${location.origin}/?gift=${encodeURIComponent(id)}`;
+if (giftForm) {
+  giftForm.addEventListener("submit", (e) => {
+    e.preventDefault();
 
-  // Actualizar tarjeta visual
-  giftTitle.textContent = service;
-  giftSub.textContent   = name ? `Para: ${name}` : "Para: —";
-  giftExp.textContent   = `Vigencia hasta: ${expText}`;
-  giftQr.src            = `https://chart.googleapis.com/chart?cht=qr&chs=260x260&chld=M|0&chl=${encodeURIComponent(
-    url
-  )}`;
-  giftQr.alt            = "QR Gift Card";
+    const name = $("#gift-name").value.trim();
+    const service =
+      $("#gift-service").value.trim() || "Servicio Venus";
 
-  const text =
-    `Te regalo una Gift Card de Venus Cosmetología.\n` +
-    `Servicio: ${service}\n` +
-    (name ? `A nombre de: ${name}\n` : "") +
-    `Vigente hasta: ${expText}\n` +
-    `Código: ${id}\n` +
-    `Link: ${url}`;
+    const today = new Date();
+    const expiry = addDays(today, 30);
+    const expLabel = formatDateShort(expiry);
+    const code = "gift_" + Date.now();
 
-  currentGift = { id, text };
+    lastGiftCode = code;
 
-  giftPrev?.classList.remove("hidden");
-  btnGiftCopy?.classList.remove("hidden");
-  btnGiftWa?.classList.remove("hidden");
-  btnGiftDl?.classList.remove("hidden");
-  giftNote?.classList.remove("hidden");
-});
+    // Texto visual
+    giftTitle && (giftTitle.textContent = service);
+    giftSub &&
+      (giftSub.textContent = name ? `Para: ${name}` : "Para: Invitado");
+    giftExp &&
+      (giftExp.textContent = "Vigencia hasta: " + expLabel);
 
-btnGiftCopy?.addEventListener("click", () => {
-  if (!currentGift) return;
-  navigator.clipboard.writeText(currentGift.text);
-});
+    // Payload para el QR (se puede usar después en backend)
+    const payload =
+      `GIFT|codigo=${code}|servicio=${service}|cliente=${name || "Invitado"}|vence=${expiry.toISOString().slice(0,10)}`;
 
-btnGiftWa?.addEventListener("click", () => {
-  if (!currentGift) return;
-  const waUrl = "https://wa.me/?text=" + encodeURIComponent(currentGift.text);
-  window.open(waUrl, "_blank");
-});
+    const qrUrl =
+      "https://chart.googleapis.com/chart?cht=qr&chs=260x260&chld=M|0&chl=" +
+      encodeURIComponent(payload);
+    if (giftQr) {
+      giftQr.src = qrUrl;
+      giftQr.alt = "QR Gift Card";
+    }
 
-btnGiftDl?.addEventListener("click", async () => {
-  if (!currentGift || !window.html2canvas || !giftPrev) return;
-  const canvas = await html2canvas(giftPrev, { backgroundColor: null, scale: 2 });
-  const a = document.createElement("a");
-  a.href = canvas.toDataURL("image/png");
-  a.download = currentGift.id + ".png";
-  a.click();
-});
+    giftPreview && giftPreview.classList.remove("hidden");
+
+    // Texto para compartir
+    lastGiftText =
+      `Te regalo una Gift Card de Venus Cosmetología.\n` +
+      `Servicio: ${service}\n` +
+      (name ? `A nombre de: ${name}\n` : "") +
+      `Vigente hasta: ${expLabel}\n` +
+      `Código: ${code}`;
+
+    if (giftWaLink) {
+      const waUrl = "https://wa.me/?text=" + encodeURIComponent(lastGiftText);
+      giftWaLink.href = waUrl;
+      giftWaLink.style.display = "inline-flex";
+    }
+
+    if (giftMsg) {
+      giftMsg.textContent =
+        "Gift Card generada. Puedes compartir por WhatsApp o copiar el texto.";
+    }
+  });
+}
+
+giftCopyBtn &&
+  giftCopyBtn.addEventListener("click", () => {
+    if (!lastGiftText) return;
+    navigator.clipboard
+      .writeText(lastGiftText)
+      .then(() => {
+        if (giftMsg) {
+          giftMsg.textContent = "Texto copiado al portapapeles ✅";
+          setTimeout(() => (giftMsg.textContent = ""), 2000);
+        }
+      })
+      .catch(() => {
+        if (giftMsg) {
+          giftMsg.textContent = "No se pudo copiar el texto";
+        }
+      });
+  });
