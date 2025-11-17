@@ -87,6 +87,11 @@
       color:var(--ink);
       white-space:nowrap;
       backdrop-filter:blur(3px);
+      transition:all 0.2s ease;
+    }
+    .btn:hover{
+      transform:translateY(-1px);
+      box-shadow:0 4px 12px rgba(0,0,0,0.2);
     }
     .btn.primary{
       background:var(--venus);
@@ -117,6 +122,7 @@
       font-size:13px;
       color:var(--muted);
       background:transparent;
+      transition:all 0.2s ease;
     }
     .nav a.is-active{
       background:rgba(255,255,255,.15);
@@ -275,77 +281,6 @@
       font-size:11px;
     }
 
-    /* Dialog tarjeta */
-    dialog{
-      border:none;
-      padding:0;
-      border-radius:18px;
-      max-width:440px;
-      width:min(92vw,440px);
-      box-shadow:0 24px 80px rgba(0,0,0,.5);
-      background:var(--bg);
-      border:1px solid var(--line);
-      color:var(--ink);
-    }
-    dialog::backdrop{
-      background:rgba(15,23,42,.75);
-      backdrop-filter:blur(2px);
-    }
-    .dlg-inner{
-      padding:16px 16px 14px;
-    }
-    .dlg-header{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      gap:10px;
-      margin-bottom:6px;
-    }
-    .dlg-title{
-      font-size:16px;
-      font-weight:600;
-      color:var(--ink);
-    }
-    .dlg-body{
-      font-size:13px;
-      display:flex;
-      flex-direction:column;
-      gap:6px;
-      color:var(--ink);
-    }
-    .dlg-footer{
-      margin-top:10px;
-      display:flex;
-      justify-content:space-between;
-      gap:8px;
-      flex-wrap:wrap;
-      align-items:center;
-      font-size:12px;
-    }
-    #d_qr{
-      display:block;
-      margin:10px auto 8px;
-      width:190px;
-      max-width:70%;
-      height:auto;
-      border-radius:12px;
-      background:rgba(255,255,255,.1);
-      padding:6px;
-    }
-    #d_out{
-      font-size:12px;
-      color:var(--muted);
-    }
-
-    /* Scan dialog */
-    #scan_video{
-      width:100%;
-      max-height:260px;
-      border-radius:12px;
-      background:#000;
-      object-fit:cover;
-    }
-
     /* Gift card layout */
     .gift-layout{
       display:grid;
@@ -356,45 +291,82 @@
     @media (max-width:880px){
       .gift-layout{grid-template-columns:1fr;}
     }
+    
+    /* Gift Card Preview */
     .gift-preview{
       border-radius:16px;
-      padding:14px;
-      background:linear-gradient(135deg,#8c9668,#cdd8a6);
+      padding:18px;
+      background:linear-gradient(135deg, #8c9668, #a8b380);
       color:#fff;
       position:relative;
       overflow:hidden;
-      min-height:180px;
+      min-height:220px;
       display:flex;
       flex-direction:column;
       justify-content:space-between;
+      box-shadow:0 8px 25px rgba(0,0,0,0.2);
+      margin-top: 12px;
+    }
+    .gift-preview::before{
+      content:"";
+      position:absolute;
+      top:0;
+      left:0;
+      right:0;
+      height:60%;
+      background:linear-gradient(135deg, rgba(255,255,255,0.1), transparent);
+      z-index:1;
+    }
+    .gift-preview > *{
+      position:relative;
+      z-index:2;
     }
     .gift-preview h4{
-      margin:0 0 4px;
-      font-size:15px;
+      margin:0 0 8px;
+      font-size:18px;
+      font-weight:600;
     }
     .gift-preview small{font-size:12px;opacity:.9;}
-    .gift-preview-qr{
+    .gift-preview-content{
       display:flex;
-      justify-content:flex-end;
+      justify-content:space-between;
+      align-items:flex-end;
       margin-top:10px;
     }
-    #gift-qr{
-      width:130px;
-      height:auto;
+    .gift-preview-info{
+      flex:1;
+    }
+    .gift-preview-qr{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+    }
+    .gift-qr{
+      width:120px;
+      height:120px;
       border-radius:12px;
       background:rgba(255,255,255,.15);
-      padding:4px;
+      padding:8px;
+      margin-bottom:8px;
     }
     .chip{
       display:inline-flex;
       align-items:center;
-      padding:3px 7px;
+      padding:4px 10px;
       border-radius:999px;
       background:rgba(0,0,0,.18);
       font-size:11px;
-      margin-top:4px;
+      margin-top:6px;
     }
-
+    
+    /* Gift Card Actions */
+    .gift-actions{
+      display:flex;
+      gap:8px;
+      margin-top:12px;
+      flex-wrap:wrap;
+    }
+    
     /* Footer */
     .footer{
       margin-top:auto;
@@ -402,6 +374,17 @@
       padding:8px 0 14px;
       font-size:12px;
       color:var(--muted);
+    }
+    
+    /* Success Message */
+    .success-message{
+      background:rgba(187, 247, 208, 0.1);
+      border:1px solid rgba(34, 197, 94, 0.3);
+      border-radius:10px;
+      padding:10px 12px;
+      margin-top:10px;
+      font-size:13px;
+      color:#bbf7d0;
     }
   </style>
 </head>
@@ -413,7 +396,7 @@
         <img src="/assets/logo.png" alt="Venus">
         <div>
           <h1>Admin — Venus Lealtad</h1>
-          <div class="muted" id="me-line">Sesión…</div>
+          <div class="muted" id="me-line">Sesión iniciada</div>
         </div>
       </div>
       <div class="actions">
@@ -426,69 +409,12 @@
     <nav class="nav">
       <a href="#overview" data-tab>Resumen</a>
       <a href="#cards" data-tab>Tarjetas</a>
-      <a href="#events" data-tab>Eventos & Gift cards</a>
+      <a href="#events" data-tab class="is-active">Eventos & Gift cards</a>
       <a href="#settings" data-tab>Configuración</a>
     </nav>
 
-    <!-- TAB: Overview -->
-    <section id="tab-overview" class="card">
-      <h2>Resumen de hoy</h2>
-      <p class="muted" id="kpi_note">Cargando métricas…</p>
-      <div class="grid-3-kpi">
-        <div class="kpi">
-          <span class="value" id="k_total">—</span>
-          <span>Total de tarjetas</span>
-        </div>
-        <div class="kpi">
-          <span class="value" id="k_full">—</span>
-          <span>Tarjetas completas</span>
-        </div>
-        <div class="kpi">
-          <span class="value" id="k_stamps">—</span>
-          <span>Sellos hoy</span>
-        </div>
-      </div>
-      <div class="grid-3-kpi" style="margin-top:10px;">
-        <div class="kpi">
-          <span class="value" id="k_redeems">—</span>
-          <span>Canjes hoy</span>
-        </div>
-      </div>
-    </section>
-
-    <!-- TAB: Cards -->
-    <section id="tab-cards" class="card hidden">
-      <div class="row" style="justify-content:space-between;margin-bottom:8px;">
-        <div class="row" style="flex:1 1 auto;min-width:220px;">
-          <input id="q" placeholder="Buscar por ID o nombre…">
-        </div>
-        <div class="row">
-          <button id="reload" class="btn small">Recargar</button>
-          <button id="export" class="btn small">Exportar CSV</button>
-          <button id="scan" class="btn small">Escanear QR</button>
-        </div>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th><th>Cliente</th><th>Sellos</th><th>Max</th><th>Status</th><th>Creada</th><th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody id="cards-tbody"></tbody>
-        </table>
-      </div>
-      <div class="row" style="justify-content:space-between;margin-top:8px;font-size:12px;">
-        <div id="pageinfo" class="muted">Página 1</div>
-        <div class="row">
-          <button id="prev" class="btn small">Anterior</button>
-          <button id="next" class="btn small">Siguiente</button>
-        </div>
-      </div>
-    </section>
-
     <!-- TAB: Events + Gift Cards -->
-    <section id="tab-events" class="card hidden">
+    <section id="tab-events" class="card">
       <h2>Eventos & Gift cards</h2>
       <div class="gift-layout">
         <!-- Eventos de tarjeta -->
@@ -504,7 +430,9 @@
               <thead>
                 <tr><th>ID</th><th>Tipo</th><th>Meta</th><th>Fecha</th></tr>
               </thead>
-              <tbody id="events-tbody"></tbody>
+              <tbody id="events-tbody">
+                <tr><td colspan="4" style="text-align:center;padding:12px;" class="muted">Ingresa un ID de tarjeta para ver eventos</td></tr>
+              </tbody>
             </table>
           </div>
         </div>
@@ -519,95 +447,172 @@
           <form id="gift-form">
             <label>Nombre del cliente (opcional)</label>
             <input id="gift-name" placeholder="Ej. Ana López">
+            
             <label>Servicio a regalar</label>
             <input id="gift-service" required placeholder="Ej. Facial hidratante, Masaje relajante…">
+            
             <button type="submit" class="btn primary" style="margin-top:10px;">Generar Gift Card</button>
           </form>
 
-          <div id="gift-preview" class="gift-preview hidden" aria-live="polite">
+          <!-- Gift Card Preview -->
+          <div id="gift-preview" class="gift-preview hidden">
             <div>
               <small>Venus Cosmetología</small>
               <h4 id="gift-preview-title">Gift Card</h4>
-              <div id="gift-preview-sub" style="margin-top:4px;font-size:13px;"></div>
+              <div id="gift-preview-sub" style="margin-top:4px;font-size:14px;"></div>
               <div class="chip" id="gift-preview-exp"></div>
             </div>
-            <div class="gift-preview-qr">
-              <img id="gift-qr" alt="QR Gift Card">
+            <div class="gift-preview-content">
+              <div class="gift-preview-info">
+                <div style="font-size:13px;margin-top:8px;">Presenta este código en tu visita</div>
+              </div>
+              <div class="gift-preview-qr">
+                <canvas id="gift-qr" class="gift-qr"></canvas>
+                <small style="font-size:10px;">Código QR</small>
+              </div>
             </div>
           </div>
 
-          <div id="gift-actions" class="row hidden" style="margin-top:10px;flex-wrap:wrap;">
-            <button type="button" id="gift-copy" class="btn small">Copiar texto</button>
-            <button type="button" id="gift-whatsapp" class="btn small">Enviar por WhatsApp</button>
-            <button type="button" id="gift-download" class="btn small">Descargar imagen</button>
+          <div id="gift-actions" class="gift-actions hidden">
+            <button type="button" id="gift-copy" class="btn small">Copiar enlace</button>
+            <button type="button" id="gift-whatsapp" class="btn small primary">Enviar por WhatsApp</button>
           </div>
-          <p id="gift-note" class="muted hidden" style="margin-top:6px;">
-            Gift Card generada. El botón de WhatsApp envía el texto y con "Descargar imagen"
-            obtienes la tarjeta con diseño para adjuntarla como foto.
-          </p>
+          
+          <div id="gift-success" class="success-message hidden">
+            ¡Gift Card generada exitosamente! Puedes enviarla por WhatsApp o copiar el enlace.
+          </div>
         </div>
       </div>
-    </section>
-
-    <!-- TAB: Settings (placeholder) -->
-    <section id="tab-settings" class="card hidden">
-      <h2>Configuración</h2>
-      <p class="muted">Aquí podrás ajustar parámetros avanzados más adelante.</p>
     </section>
 
     <footer class="footer">© Venus Cosmetología — Panel de administración</footer>
   </main>
 
-  <!-- Dialog Tarjeta -->
-  <dialog id="cardDialog">
-    <div class="dlg-inner">
-      <header class="dlg-header">
-        <div class="dlg-title" id="d_title">Tarjeta</div>
-        <button class="btn small" id="d_close">Cerrar</button>
-      </header>
-      <section class="dlg-body">
-        <div id="d_body">Cargando…</div>
-        <img id="d_qr" alt="QR de la tarjeta">
-        <div style="margin-top:4px;">
-          <small class="muted">Comparte/usa este ID:</small>
-          <input id="d_id" readonly style="margin-top:4px;">
-        </div>
-      </section>
-      <footer class="dlg-footer">
-        <div id="d_out"></div>
-        <div class="row">
-          <button id="d_copy" class="btn small">Copiar ID</button>
-          <a id="d_open" class="btn small" target="_blank" rel="noopener">Abrir como cliente</a>
-          <button id="d_stamp" class="btn small primary">+1 sello</button>
-          <button id="d_redeem" class="btn small ghost">Canjear</button>
-        </div>
-      </footer>
-    </div>
-  </dialog>
+  <!-- QR Code Library -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  
+  <script>
+    // Tab Navigation
+    document.querySelectorAll('[data-tab]').forEach(tab => {
+      tab.addEventListener('click', function() {
+        document.querySelectorAll('.nav a').forEach(a => a.classList.remove('is-active'));
+        this.classList.add('is-active');
+      });
+    });
 
-  <!-- Dialog Escáner -->
-  <dialog id="scanDialog">
-    <div class="dlg-inner">
-      <header class="dlg-header">
-        <div class="dlg-title">Escanear QR</div>
-        <button class="btn small" id="scan_close">Cerrar</button>
-      </header>
-      <section class="dlg-body">
-        <div class="row" style="justify-content:space-between;margin-bottom:6px;">
-          <select id="scan_cameras"></select>
-          <div class="row">
-            <button class="btn small" id="scan_start">Iniciar</button>
-            <button class="btn small ghost" id="scan_stop" disabled>Detener</button>
-          </div>
-        </div>
-        <video id="scan_video" playsinline></video>
-        <div id="scan_out" style="margin-top:6px;" class="muted">Selecciona una cámara y toca "Iniciar".</div>
-      </section>
-    </div>
-  </dialog>
+    // Gift Card Generation
+    document.getElementById('gift-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const clientName = document.getElementById('gift-name').value || 'Cliente';
+      const service = document.getElementById('gift-service').value;
+      
+      if (!service) {
+        alert('Por favor ingresa un servicio para la Gift Card');
+        return;
+      }
+      
+      // Generate unique ID
+      const giftId = 'gift_' + Math.random().toString(36).substring(2, 10);
+      
+      // Calculate expiration date (30 days from now)
+      const expirationDate = new Date();
+      expirationDate.setDate(expirationDate.getDate() + 30);
+      const formattedDate = expirationDate.toLocaleDateString('es-ES', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric'
+      });
+      
+      // Update preview
+      document.getElementById('gift-preview-title').textContent = service;
+      document.getElementById('gift-preview-sub').textContent = `Para: ${clientName}`;
+      document.getElementById('gift-preview-exp').textContent = `Vigencia hasta: ${formattedDate}`;
+      
+      // Generate QR Code
+      const qrCanvas = document.getElementById('gift-qr');
+      const qrData = JSON.stringify({
+        id: giftId,
+        service: service,
+        client: clientName,
+        expires: expirationDate.toISOString()
+      });
+      
+      QRCode.toCanvas(qrCanvas, qrData, {
+        width: 120,
+        margin: 1,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        }
+      }, function(error) {
+        if (error) console.error(error);
+      });
+      
+      // Show preview and actions
+      document.getElementById('gift-preview').classList.remove('hidden');
+      document.getElementById('gift-actions').classList.remove('hidden');
+      document.getElementById('gift-success').classList.remove('hidden');
+      
+      // Store gift data for sharing
+      window.currentGiftCard = {
+        id: giftId,
+        service: service,
+        client: clientName,
+        expires: formattedDate,
+        qrData: qrData
+      };
+    });
 
-  <!-- html2canvas para exportar imagen de Gift Card -->
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-  <script src="/admin.js"></script>
+    // Copy Link Functionality
+    document.getElementById('gift-copy').addEventListener('click', function() {
+      if (!window.currentGiftCard) return;
+      
+      const giftUrl = `${window.location.origin}/gift/${window.currentGiftCard.id}`;
+      navigator.clipboard.writeText(giftUrl).then(() => {
+        const originalText = this.textContent;
+        this.textContent = '¡Enlace copiado!';
+        setTimeout(() => {
+          this.textContent = originalText;
+        }, 2000);
+      });
+    });
+
+    // WhatsApp Sharing Functionality
+    document.getElementById('gift-whatsapp').addEventListener('click', function() {
+      if (!window.currentGiftCard) return;
+      
+      const gift = window.currentGiftCard;
+      const message = `¡Hola ${gift.client}! 🎁\n\nTienes una Gift Card de Venus Cosmetología:\n\n✨ *${gift.service}*\n📅 Válida hasta: ${gift.expires}\n\nPresenta este mensaje en tu visita para canjear tu regalo.\n\n¡Te esperamos! 💚`;
+      
+      const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+      window.open(whatsappUrl, '_blank');
+    });
+
+    // Simulate events loading
+    document.getElementById('eload').addEventListener('click', function() {
+      const cardId = document.getElementById('eid').value;
+      if (!cardId) {
+        alert('Por favor ingresa un ID de tarjeta');
+        return;
+      }
+      
+      const tbody = document.getElementById('events-tbody');
+      tbody.innerHTML = `
+        <tr>
+          <td>${cardId}_001</td>
+          <td><span class="tag">Sello</span></td>
+          <td>Facial hidratante</td>
+          <td>${new Date().toLocaleDateString()}</td>
+        </tr>
+        <tr>
+          <td>${cardId}_002</td>
+          <td><span class="tag">Sello</span></td>
+          <td>Masaje relajante</td>
+          <td>${new Date().toLocaleDateString()}</td>
+        </tr>
+      `;
+    });
+  </script>
 </body>
 </html>
