@@ -8,413 +8,345 @@
   <style>
     :root{
       --venus:#8c9668;
-      --venus-soft:#cdd8a6;
-      --bg:#fff6e3;
+      --venus-soft:#dfe6c1;
+      --bg:#3f4037;
       --ink:#1b1b1b;
-      --muted:#6b7280;
-      --line:#e5e7eb;
-      --err:#b91c1c;
-      --ok:#15803d;
-      --radius:14px;
+      --muted:#e5e7eb;
+      --line:rgba(255,255,255,0.25);
+      --err:#fecaca;
+      --err-text:#991b1b;
+      --ok:#bbf7d0;
+      --ok-text:#166534;
+      --radius:18px;
     }
-    *{box-sizing:border-box;}
+
+    *{box-sizing:border-box;margin:0;padding:0}
+
     html,body{
-      margin:0;
-      padding:0;
-      background:var(--bg);
-      color:var(--ink);
+      height:100%;
       font-family:system-ui,-apple-system,Segoe UI,Inter,Roboto,Arial,sans-serif;
+      background:var(--bg);
+      color:#fff;
     }
-    body{
+
+    /* Contenedor principal: centra pero permite scroll en pantallas bajas */
+    .page{
       min-height:100vh;
       display:flex;
-      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      padding:16px;
     }
-    .wrap{
-      max-width:1100px;
-      margin:16px auto;
-      padding:0 12px 32px;
+
+    .container{
       width:100%;
+      max-width:460px;
     }
 
-    /* Topbar */
-    .topbar{
+    .card{
+      position:relative;
+      background:var(--venus);
+      border-radius:var(--radius);
+      padding:22px 18px 18px;
+      box-shadow:0 16px 40px rgba(0,0,0,.35);
+      overflow:hidden;
+    }
+    .card::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:
+        radial-gradient(circle at 20% 20%,rgba(255,255,255,0.12),transparent 60%),
+        radial-gradient(circle at 80% 70%,rgba(255,255,255,0.08),transparent 60%);
+      opacity:.9;
+      pointer-events:none;
+    }
+    .card > *{
+      position:relative;
+      z-index:1;
+    }
+
+    .logo{
+      width:64px;
+      height:64px;
+      border-radius:50%;
+      background:#fff;
+      margin:0 auto 6px;
+      display:block;
+      box-shadow:0 0 12px rgba(255,255,255,.4);
+    }
+    .title{
+      text-align:center;
+      font-size:1.4rem;
+      font-weight:700;
+    }
+    .subtitle{
+      text-align:center;
+      font-size:.9rem;
+      margin-top:3px;
+      color:var(--muted);
+    }
+
+    .top-actions{
       display:flex;
-      justify-content:space-between;
-      align-items:center;
-      gap:12px;
+      justify-content:flex-end;
+      margin-top:6px;
+    }
+
+    .tabs{
+      display:flex;
+      gap:6px;
+      margin:16px 0 12px;
+      justify-content:center;
+      flex-wrap:wrap;
+    }
+    .tabs button{
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.35);
+      background:rgba(0,0,0,.08);
+      color:#f9fafb;
+      padding:5px 10px;
+      font-size:.8rem;
+      cursor:pointer;
+      backdrop-filter:blur(3px);
+      min-width:0;
+    }
+    .tabs button.active{
+      background:#f5f5f5;
+      color:#374151;
+      border-color:#f5f5f5;
+    }
+
+    .section-title{
+      font-size:1.02rem;
+      font-weight:600;
+      margin-bottom:4px;
+    }
+    .muted{
+      font-size:.85rem;
+      color:var(--muted);
       margin-bottom:10px;
-      flex-wrap:wrap;
     }
-    .brand{
+
+    label{
+      display:block;
+      font-size:.8rem;
+      font-weight:600;
+      margin:8px 0 3px;
+    }
+    input{
+      width:100%;
+      padding:9px 11px;
+      border-radius:12px;
+      border:1px solid rgba(0,0,0,.12);
+      background:#f9fafb;
+      font-size:.9rem;
+      outline:none;
+    }
+    input:focus{
+      border-color:#4b5563;
+      box-shadow:0 0 0 1px rgba(0,0,0,.2);
+    }
+
+    .row{
       display:flex;
       align-items:center;
-      gap:10px;
-    }
-    .brand img{
-      width:40px;
-      height:40px;
-      border-radius:12px;
-      box-shadow:0 0 0 2px rgba(0,0,0,.04);
-    }
-    h1{
-      font-size:22px;
-      margin:0;
-    }
-    .muted{color:var(--muted);font-size:13px;}
-    .actions{
-      display:flex;
+      justify-content:space-between;
       gap:8px;
+      margin-top:10px;
       flex-wrap:wrap;
     }
 
-    /* Botones */
     .btn{
       display:inline-flex;
       align-items:center;
       justify-content:center;
       gap:6px;
       border-radius:999px;
-      border:1px solid var(--line);
-      background:#fff;
-      padding:7px 13px;
-      font-size:13px;
+      border:none;
+      padding:8px 14px;
+      font-size:.85rem;
+      font-weight:600;
       cursor:pointer;
       text-decoration:none;
-      color:var(--ink);
+      font-family:inherit;
       white-space:nowrap;
-      transition:all 0.2s ease;
     }
-    .btn:hover{
+    .btn-primary{
+      background:#111827;
+      color:#f9fafb;
+    }
+    .btn-ghost{
+      background:transparent;
+      border:1px solid rgba(255,255,255,.4);
+      color:#f9fafb;
+    }
+    .btn-primary:hover,
+    .btn-ghost:hover{
+      opacity:.92;
       transform:translateY(-1px);
-      box-shadow:0 4px 8px rgba(0,0,0,0.1);
-    }
-    .btn.primary{
-      background:var(--venus);
-      border-color:var(--venus);
-      color:#fff;
-    }
-    .btn.ghost{
-      background:#fff;
-      border-color:var(--line);
-    }
-    .btn.small{
-      padding:5px 10px;
-      font-size:12px;
     }
 
-    /* Cards base */
-    .card{
-      background:#fff;
-      border-radius:var(--radius);
-      border:1px solid var(--line);
-      padding:16px 16px 14px;
-      box-shadow:0 10px 28px rgba(0,0,0,.06);
-      margin-bottom:14px;
+    .alert{
+      border-radius:12px;
+      padding:8px 10px;
+      font-size:.8rem;
+      margin-top:6px;
     }
-    .card h2{
-      margin:0 0 6px;
-      font-size:18px;
+    .alert.ok{
+      background:var(--ok);
+      color:var(--ok-text);
+      border:1px solid #4ade80;
     }
-    .card h3{
-      margin:0 0 6px;
-      font-size:15px;
-    }
-
-    .row{
-      display:flex;
-      align-items:center;
-      gap:8px;
-      flex-wrap:wrap;
+    .alert.err{
+      background:var(--err);
+      color:var(--err-text);
+      border:1px solid #fca5a5;
     }
 
-    label{
-      display:block;
-      margin:8px 0 4px;
-      font-size:13px;
-      font-weight:500;
-    }
-    input,select,textarea{
-      width:100%;
-      padding:9px 10px;
-      border-radius:10px;
-      border:1px solid var(--line);
-      background:#f9fafb;
-      font-size:13px;
-      transition:border-color 0.2s ease;
-    }
-    input:focus{
-      outline:none;
-      border-color:var(--venus);
-      box-shadow:0 0 0 2px rgba(140,150,104,0.1);
+    .link{
+      color:#f9fafb;
+      text-decoration:underline;
+      text-underline-offset:2px;
+      font-size:.8rem;
+      cursor:pointer;
     }
 
-    .hidden{display:none!important;}
-
-    /* Footer */
     .footer{
-      margin-top:auto;
+      margin-top:10px;
       text-align:center;
-      padding:8px 0 14px;
-      font-size:12px;
-      color:var(--muted);
+      color:#9ca3af;
+      font-size:.75rem;
     }
-    
-    /* Estilos específicos para la página de login */
-    .login-container {
-      max-width: 460px;
-      margin: 40px auto;
-      padding: 0 12px;
-    }
-    
-    .login-card {
-      background:#fff;
-      border-radius:var(--radius);
-      border:1px solid var(--line);
-      padding:24px 20px 20px;
-      box-shadow:0 10px 28px rgba(0,0,0,.06);
-      margin-bottom:14px;
-    }
-    
-    .login-logo {
-      width: 64px;
-      height: 64px;
-      border-radius: 50%;
-      margin: 0 auto 12px;
-      display: block;
-      box-shadow: 0 0 0 2px rgba(0,0,0,.04);
-    }
-    
-    .login-title {
-      text-align: center;
-      font-size: 22px;
-      margin: 0 0 4px;
-    }
-    
-    .login-subtitle {
-      text-align: center;
-      font-size: 14px;
-      color: var(--muted);
-      margin-bottom: 16px;
-    }
-    
-    .login-tabs {
-      display: flex;
-      gap: 6px;
-      margin: 16px 0 20px;
-      justify-content: center;
-      flex-wrap: wrap;
-    }
-    
-    .login-tab {
-      padding: 7px 12px;
-      border-radius: 999px;
-      border: 1px solid transparent;
-      text-decoration: none;
-      font-size: 13px;
-      color: var(--muted);
-      background: transparent;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-    
-    .login-tab.active {
-      background: #fff;
-      border-color: var(--venus);
-      color: var(--venus);
-      box-shadow: 0 4px 14px rgba(0,0,0,.05);
-    }
-    
-    .login-tab:hover:not(.active) {
-      background: rgba(140,150,104,0.05);
-    }
-    
-    .login-section-title {
-      font-size: 18px;
-      margin: 0 0 6px;
-    }
-    
-    .login-alert {
-      border-radius: 10px;
-      padding: 8px 10px;
-      font-size: 13px;
-      margin-top: 10px;
-    }
-    
-    .login-alert.err {
-      background: #fef2f2;
-      color: var(--err);
-      border: 1px solid #fecaca;
-    }
-    
-    .login-alert.ok {
-      background: #f0fdf4;
-      color: var(--ok);
-      border: 1px solid #bbf7d0;
-    }
-    
-    .login-link {
-      color: var(--venus);
-      text-decoration: underline;
-      text-underline-offset: 2px;
-      font-size: 13px;
-      cursor: pointer;
-      transition: color 0.2s ease;
-    }
-    
-    .login-link:hover {
-      color: #6b754c;
-    }
-    
-    .login-footer {
-      text-align: center;
-      color: var(--muted);
-      font-size: 12px;
-      margin-top: 16px;
-    }
-    
-    @media (max-width: 480px) {
-      .login-container {
-        margin: 20px auto;
+
+    .hidden{display:none}
+
+    /* Celulares muy pequeños (ancho <= 360) */
+    @media (max-width:360px){
+      .card{
+        padding:18px 14px 14px;
       }
-      
-      .login-card {
-        padding: 20px 16px 16px;
+      .logo{
+        width:56px;
+        height:56px;
       }
-      
-      .login-logo {
-        width: 56px;
-        height: 56px;
+      .title{
+        font-size:1.25rem;
       }
-      
-      .login-title {
-        font-size: 20px;
+      .tabs button{
+        font-size:.75rem;
+        padding:4px 8px;
       }
-      
-      .login-tabs {
-        flex-direction: column;
-        align-items: center;
-      }
-      
-      .login-tab {
-        width: 100%;
-        text-align: center;
-      }
-      
-      .topbar {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 8px;
-      }
-      
-      .actions {
-        width: 100%;
-        justify-content: flex-start;
+      input{
+        font-size:.85rem;
       }
     }
-    
-    @media (max-width: 360px) {
-      .login-card {
-        padding: 16px 12px 12px;
+
+    /* Tablets y pantallas grandes */
+    @media (min-width:768px){
+      .container{
+        max-width:520px;
       }
-      
-      .login-title {
-        font-size: 18px;
+      .card{
+        padding:26px 26px 22px;
       }
-      
-      .login-subtitle {
-        font-size: 13px;
+      .logo{
+        width:78px;
+        height:78px;
+      }
+      .title{
+        font-size:1.6rem;
+      }
+      .subtitle{
+        font-size:1rem;
+      }
+      .section-title{
+        font-size:1.1rem;
+      }
+      input{
+        font-size:.95rem;
+      }
+      .btn{
+        font-size:.9rem;
       }
     }
   </style>
 </head>
 <body>
-  <main class="wrap">
-    <!-- Topbar -->
-    <header class="topbar">
-      <div class="brand">
-        <img src="/assets/logo.png" alt="Venus">
-        <div>
-          <h1>Admin — Venus Lealtad</h1>
-          <div class="muted">Inicia sesión para entrar al panel</div>
+  <div class="page">
+    <main class="container">
+      <section class="card">
+        <img class="logo" src="/assets/logo.png" alt="Venus">
+
+        <h1 class="title">Admin — Venus Lealtad</h1>
+        <p class="subtitle">Inicia sesión para entrar al panel</p>
+
+        <div class="top-actions">
+          <a class="btn btn-ghost" href="/" target="_blank" rel="noopener">Página clientes</a>
         </div>
-      </div>
-      <div class="actions">
-        <a class="btn" href="/" target="_blank" rel="noopener">Página clientes</a>
-      </div>
-    </header>
-    
-    <!-- Login Section -->
-    <div class="login-container">
-      <div class="login-card">
-        <img class="login-logo" src="/assets/logo.png" alt="Venus">
-        
-        <h1 class="login-title">Admin — Venus Lealtad</h1>
-        <p class="login-subtitle">Inicia sesión para entrar al panel</p>
-        
-        <!-- Tabs -->
-        <nav class="login-tabs">
-          <button class="login-tab active" data-tab="login">Iniciar sesión</button>
-          <button class="login-tab" data-tab="register">Crear cuenta</button>
-          <button class="login-tab" data-tab="forgot">Olvidé mi contraseña</button>
+
+        <nav class="tabs" role="tablist" aria-label="Cambiar sección">
+          <button class="active" data-tab="login" aria-selected="true">Iniciar sesión</button>
+          <button data-tab="register" aria-selected="false">Crear cuenta</button>
+          <button data-tab="forgot" aria-selected="false">Olvidé mi contraseña</button>
         </nav>
-        
+
         <!-- LOGIN -->
         <section id="tab-login">
-          <h2 class="login-section-title">Iniciar sesión</h2>
+          <h2 class="section-title">Iniciar sesión</h2>
           <p class="muted">Escribe tu correo y contraseña.</p>
-          <div id="login-alert" class="login-alert hidden"></div>
+          <div id="login-alert" class="alert hidden"></div>
           <form id="form-login">
             <label>Correo electrónico</label>
             <input id="login-email" type="email" required placeholder="tucorreo@dominio.com">
-            
+
             <label>Contraseña</label>
             <input id="login-pass" type="password" required placeholder="••••••••">
-            
-            <div class="row" style="margin-top: 16px;">
-              <span class="login-link" data-goto="forgot">¿Olvidaste tu contraseña?</span>
-              <button class="btn primary" type="submit">Entrar</button>
+
+            <div class="row">
+              <span class="link" data-goto="forgot">¿Olvidaste tu contraseña?</span>
+              <button class="btn btn-primary" type="submit">Entrar</button>
             </div>
           </form>
         </section>
-        
+
         <!-- REGISTER -->
         <section id="tab-register" class="hidden">
-          <h2 class="login-section-title">Crear cuenta</h2>
+          <h2 class="section-title">Crear cuenta</h2>
           <p class="muted">Solo personal autorizado. Si el registro está cerrado, solicita acceso al administrador.</p>
-          <div id="reg-alert" class="login-alert hidden"></div>
+          <div id="reg-alert" class="alert hidden"></div>
           <form id="form-register">
             <label>Correo electrónico</label>
             <input id="reg-email" type="email" required placeholder="tucorreo@dominio.com">
-            
+
             <label>Contraseña</label>
             <input id="reg-pass" type="password" minlength="6" required placeholder="Mínimo 6 caracteres">
-            
-            <div style="margin-top: 16px; text-align: right;">
-              <button class="btn primary" type="submit">Crear cuenta</button>
+
+            <div style="margin-top:12px;text-align:right;">
+              <button class="btn btn-primary" type="submit">Crear cuenta</button>
             </div>
           </form>
         </section>
-        
+
         <!-- FORGOT -->
         <section id="tab-forgot" class="hidden">
-          <h2 class="login-section-title">Restablecer contraseña</h2>
+          <h2 class="section-title">Restablecer contraseña</h2>
           <p class="muted">Te enviaremos un correo con un enlace para crear una nueva.</p>
-          <div id="forgot-alert" class="login-alert hidden"></div>
+          <div id="forgot-alert" class="alert hidden"></div>
           <form id="form-forgot">
             <label>Correo electrónico</label>
             <input id="forgot-email" type="email" required placeholder="tucorreo@dominio.com">
-            
-            <div style="margin-top: 16px; text-align: right;">
-              <button class="btn primary" type="submit">Enviar enlace</button>
+
+            <div style="margin-top:12px;text-align:right;">
+              <button class="btn btn-primary" type="submit">Enviar enlace</button>
             </div>
           </form>
         </section>
-      </div>
-      
-      <div class="login-footer">© Venus Cosmetología</div>
-    </div>
-  </main>
+      </section>
+
+      <div class="footer">© Venus Cosmetología</div>
+    </main>
+  </div>
 
   <script>
     // Tabs
@@ -426,104 +358,113 @@
     };
 
     function activate(tab){
-      tabs.forEach(b => {
-        const active = b.dataset.tab === tab;
+      tabs.forEach(b=>{
+        const active = b.dataset.tab===tab;
         b.classList.toggle('active', active);
+        b.setAttribute('aria-selected', active);
       });
-      Object.entries(sections).forEach(([k, el]) => {
-        if(k === tab){ 
-          el.classList.remove('hidden'); 
-        } else { 
-          el.classList.add('hidden'); 
-        }
+      Object.entries(sections).forEach(([k,el])=>{
+        if(k===tab){ el.classList.remove('hidden'); }
+        else{ el.classList.add('hidden'); }
       });
       const params = new URLSearchParams(location.search);
       params.set('view', tab);
-      history.replaceState(null, '', '?' + params.toString());
+      history.replaceState(null,'','?'+params.toString());
     }
 
-    tabs.forEach(b => b.addEventListener('click', () => activate(b.dataset.tab)));
-    document.querySelectorAll('[data-goto]').forEach(a =>
-      a.addEventListener('click', e => {
+    tabs.forEach(b=> b.addEventListener('click', ()=>activate(b.dataset.tab)));
+    document.querySelectorAll('[data-goto]').forEach(a=>
+      a.addEventListener('click', e=>{
         e.preventDefault();
         activate(a.dataset.goto);
       })
     );
-    
-    // Check URL parameter for initial tab
     const urlView = new URLSearchParams(location.search).get('view');
     if (urlView && sections[urlView]) activate(urlView);
 
     // helpers alerts
     function showAlert(id, type, msg){
       const el = document.getElementById(id);
-      el.className = 'login-alert ' + type;
+      el.className = 'alert '+type;
       el.textContent = msg;
       el.classList.remove('hidden');
     }
-    
     function clearAlert(id){
       const el = document.getElementById(id);
-      el.className = 'login-alert hidden';
+      el.className = 'alert hidden';
       el.textContent = '';
     }
 
     // Submit: login
-    document.getElementById('form-login').addEventListener('submit', async (e) => {
+    document.getElementById('form-login').addEventListener('submit', async (e)=>{
       e.preventDefault();
       clearAlert('login-alert');
       const email = document.getElementById('login-email').value.trim();
       const password = document.getElementById('login-pass').value;
-      
-      // Simulación de login exitoso
-      // En un caso real, aquí iría la llamada a la API
-      if (email && password) {
-        // Simulamos un login exitoso
-        showAlert('login-alert', 'ok', 'Inicio de sesión exitoso. Redirigiendo...');
-        setTimeout(() => {
-          window.location.href = '/admin';
-        }, 1500);
-      } else {
-        showAlert('login-alert', 'err', 'Por favor, completa todos los campos');
+      const r = await fetch('/api/admin/login', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({email,password})
+      });
+      const j = await r.json().catch(()=>({}));
+      if(!r.ok){
+        showAlert(
+          'login-alert',
+          'err',
+          j.error==='invalid_credentials'
+            ? 'Credenciales inválidas'
+            : 'Error de inicio de sesión'
+        );
+        return;
       }
+      location.href = '/admin';
     });
 
     // Submit: register
-    document.getElementById('form-register').addEventListener('submit', async (e) => {
+    document.getElementById('form-register').addEventListener('submit', async (e)=>{
       e.preventDefault();
       clearAlert('reg-alert');
       const email = document.getElementById('reg-email').value.trim();
       const password = document.getElementById('reg-pass').value;
-      
-      // Simulación de registro
-      if (email && password) {
-        if (password.length < 6) {
-          showAlert('reg-alert', 'err', 'La contraseña debe tener al menos 6 caracteres');
-          return;
-        }
-        
-        showAlert('reg-alert', 'ok', 'Cuenta creada. Ya puedes iniciar sesión.');
-        setTimeout(() => activate('login'), 1200);
-      } else {
-        showAlert('reg-alert', 'err', 'Por favor, completa todos los campos');
+      const r = await fetch('/api/admin/register', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({email,password})
+      });
+      const j = await r.json().catch(()=>({}));
+      if(!r.ok){
+        const map = {
+          signup_disabled:'Registro deshabilitado',
+          email_in_use:'Este correo ya está registrado',
+          missing_fields:'Faltan datos'
+        };
+        showAlert('reg-alert','err', map[j.error] || 'No se pudo crear la cuenta');
+        return;
       }
+      showAlert('reg-alert','ok','Cuenta creada. Ya puedes iniciar sesión.');
+      setTimeout(()=> activate('login'), 1200);
     });
 
     // Submit: forgot
-    document.getElementById('form-forgot').addEventListener('submit', async (e) => {
+    document.getElementById('form-forgot').addEventListener('submit', async (e)=>{
       e.preventDefault();
       clearAlert('forgot-alert');
       const email = document.getElementById('forgot-email').value.trim();
-      
-      if (email) {
-        showAlert(
-          'forgot-alert',
-          'ok',
-          'Te enviamos un enlace de restablecimiento si el correo existe en el sistema.'
-        );
-      } else {
-        showAlert('forgot-alert', 'err', 'Por favor, introduce tu correo electrónico');
+      const r = await fetch('/api/admin/forgot', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({email})
+      });
+      await r.json().catch(()=>({}));
+      if(!r.ok){
+        showAlert('forgot-alert','err','No se pudo enviar el correo');
+        return;
       }
+      showAlert(
+        'forgot-alert',
+        'ok',
+        'Te enviamos un enlace de restablecimiento si el correo existe en el sistema.'
+      );
     });
   </script>
 </body>
