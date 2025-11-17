@@ -268,7 +268,7 @@
     <footer>© Venus Cosmetología — Programa de Lealtad</footer>
   </main>
 
-  <script>
+ <script>
   const createView = document.getElementById("view-create");
   const cardView = document.getElementById("view-card");
   const grid = document.getElementById("grid");
@@ -331,21 +331,47 @@
       encodeURIComponent(cardId);
     document.getElementById("cid").textContent = cardId;
 
-    // Enlace Google Wallet
+    // --------- BOTÓN GOOGLE WALLET (usa saveUrl) ----------
     const gwallet = document.getElementById("gwallet");
-    gwallet.href =
-      data.gwallet ||
-      `/api/save-card?cardId=${encodeURIComponent(
-        cardId
-      )}&name=${encodeURIComponent(name)}&stamps=${stamps}&max=${max}`;
+    gwallet.href = "#"; // evitamos navegar al hacer click
 
-    // Enlace Apple Wallet
+    gwallet.onclick = async (ev) => {
+      ev.preventDefault();
+      try {
+        let saveUrl = data.gwallet; // cuando viene desde /api/create-card
+
+        if (!saveUrl) {
+          // si cargamos la tarjeta desde /api/card, generamos el pase aquí
+          const resp = await fetch(
+            `/api/save-card?cardId=${encodeURIComponent(
+              cardId
+            )}&name=${encodeURIComponent(name)}&stamps=${stamps}&max=${max}`
+          );
+          const j = await resp.json();
+          if (!resp.ok) {
+            throw new Error(j.error || "Error al generar pase");
+          }
+          saveUrl = j.saveUrl || j.addToGoogleUrl;
+        }
+
+        if (saveUrl) {
+          window.location.href = saveUrl; // abre Google Wallet
+        } else {
+          alert("No se pudo obtener la URL de Google Wallet.");
+        }
+      } catch (err) {
+        console.error(err);
+        alert("No se pudo generar el pase de Google Wallet.");
+      }
+    };
+
+    // --------- BOTÓN APPLE WALLET ----------
     const applewallet = document.getElementById("applewallet");
     applewallet.href =
       data.applewallet ||
       `/api/apple/pass?cardId=${encodeURIComponent(cardId)}`;
 
-    // Compartir
+    // --------- COMPARTIR ----------
     const shareBtn = document.getElementById("share");
     shareBtn.onclick = () => {
       const shareUrl = `${window.location.origin}?cardId=${cardId}`;
@@ -361,7 +387,7 @@
       }
     };
 
-    // Copiar ID
+    // --------- COPIAR ID ----------
     const copyBtn = document.getElementById("copy");
     copyBtn.onclick = () => {
       navigator.clipboard.writeText(cardId);
@@ -431,7 +457,6 @@
           // Redirigimos a la URL con ?cardId=...
           window.location.href = data.url;
         } else {
-          // Fallback: mostramos directamente
           showCardView(data);
         }
       } catch (error) {
@@ -445,7 +470,7 @@
       }
     });
 
-  // Endpoint alternativo (no se usa pero lo dejamos por si quieres probar después)
+  // Endpoint alternativo (por si luego quieres usarlo)
   async function tryAlternativeEndpoint(name, phone) {
     try {
       const res = await fetch("/api/cards", {
