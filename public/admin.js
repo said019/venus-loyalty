@@ -310,3 +310,92 @@ if (giftForm) {
     alert('Gift Card generada. Puedes hacer captura de pantalla y enviarla al cliente.');
   });
 }
+// ====== Gift Cards (Eventos & Gift cards) ======
+const giftNameInput    = $('#gift-name');
+const giftServiceInput = $('#gift-service-input');
+const giftGenerateBtn  = $('#gift-generate');
+const giftServiceText  = $('#gift-service-text');
+const giftForText      = $('#gift-for-text');
+const giftExpText      = $('#gift-exp-text');
+const giftQrImg        = $('#gift-qr');
+const giftWaLink       = $('#gift-wa');
+const giftCopyBtn      = $('#gift-copy');
+const giftMsg          = $('#gift-msg');
+
+function addDays(base, days){
+  const d = new Date(base.getTime());
+  d.setDate(d.getDate() + days);
+  return d;
+}
+
+function formatDateShort(d){
+  return d.toLocaleDateString('es-MX', {
+    day:'2-digit',
+    month:'short',
+    year:'numeric'
+  });
+}
+
+giftGenerateBtn?.addEventListener('click', () => {
+  const name    = (giftNameInput.value || '').trim();
+  const service = (giftServiceInput.value || '').trim() || 'Servicio Venus';
+
+  const today   = new Date();
+  const expiry  = addDays(today, 30);
+  const code    = 'gift_' + Date.now();
+
+  // Actualizar texto en la tarjeta
+  giftServiceText.textContent = service;
+  giftForText.textContent     = name ? `Para: ${name}` : 'Para: Invitado';
+  giftExpText.textContent     = 'Vigencia hasta: ' + formatDateShort(expiry);
+
+  // Payload que irá dentro del QR
+  const payloadText =
+    `GIFT|codigo=${code}|servicio=${service}|cliente=${name || 'Invitado'}|vence=${expiry.toISOString().slice(0,10)}`;
+
+  const qrUrl =
+    'https://chart.googleapis.com/chart?cht=qr&chs=260x260&chld=M|0&chl=' +
+    encodeURIComponent(payloadText);
+
+  giftQrImg.src = qrUrl;
+  giftQrImg.alt = 'QR Gift Card';
+
+  // Mensaje para WhatsApp
+  const waMessage =
+    `Te regalo una Gift Card de Venus Cosmetología.\n` +
+    `Servicio: ${service}\n` +
+    (name ? `A nombre de: ${name}\n` : '') +
+    `Vigente hasta: ${formatDateShort(expiry)}\n` +
+    `Código: ${code}`;
+
+  const waUrl = 'https://wa.me/?text=' + encodeURIComponent(waMessage);
+  giftWaLink.href = waUrl;
+  giftWaLink.style.display = 'inline-flex';
+
+  giftMsg.textContent = 'Gift Card generada. Puedes compartir por WhatsApp o copiar el texto.';
+});
+
+// Copiar texto de la Gift Card al portapapeles
+giftCopyBtn?.addEventListener('click', () => {
+  const name    = (giftNameInput.value || '').trim();
+  const service = (giftServiceInput.value || '').trim() || 'Servicio Venus';
+  const today   = new Date();
+  const expiry  = addDays(today, 30);
+  const code    = 'gift_' + Date.now(); // solo informativo para el texto
+
+  const text =
+    `Gift Card Venus Cosmetología\n` +
+    `Servicio: ${service}\n` +
+    (name ? `A nombre de: ${name}\n` : '') +
+    `Vigente hasta: ${formatDateShort(expiry)}\n` +
+    `Código: ${code}`;
+
+  navigator.clipboard.writeText(text)
+    .then(() => {
+      giftMsg.textContent = 'Texto copiado al portapapeles ✅';
+      setTimeout(()=> giftMsg.textContent='', 2000);
+    })
+    .catch(() => {
+      giftMsg.textContent = 'No se pudo copiar el texto';
+    });
+});
