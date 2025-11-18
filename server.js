@@ -894,6 +894,33 @@ app.get("/api/export.csv", basicAuth, (_req, res) => {
     res.status(500).send(e.message);
   }
 });
+/* =========================================================
+   DEBUG FIREBASE
+   ========================================================= */
+app.get("/api/debug/firebase-test", async (_req, res) => {
+  try {
+    // 1) Referencia a un doc de prueba
+    const docRef = firestore.collection("debug").doc("ping");
+
+    // 2) Escribir algo (merge para no borrar si ya existía)
+    await docRef.set(
+      {
+        lastPing: new Date().toISOString(),
+        note: "Hola desde venus-loyalty 🪐",
+      },
+      { merge: true }
+    );
+
+    // 3) Leer lo que quedó
+    const snap = await docRef.get();
+    const data = snap.data();
+
+    res.json({ ok: true, projectId: firestore.projectId, data });
+  } catch (e) {
+    console.error("[FIREBASE TEST ERROR]", e);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
 
 /* =========================================================
    ADMIN (auth + panel)
