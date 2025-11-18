@@ -822,6 +822,8 @@
         const searchQuery = document.getElementById('search-cards').value;
         const url = `/api/admin/cards-firebase?page=${page}&q=${encodeURIComponent(searchQuery)}`;
         
+        console.log('[DEBUG] Cargando tarjetas desde:', url);
+        
         const response = await fetch(url, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('adminToken') || ''}`,
@@ -829,22 +831,32 @@
           credentials: 'include'
         });
 
-        if (!response.ok) throw new Error('Error cargando tarjetas');
+        console.log('[DEBUG] Response status:', response.status);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('[DEBUG] Error response:', errorText);
+          throw new Error('Error cargando tarjetas: ' + response.status);
+        }
 
         const data = await response.json();
+        console.log('[DEBUG] Datos recibidos:', data);
+        
         const tbody = document.getElementById('cards-tbody');
 
         if (!data.items || data.items.length === 0) {
+          console.log('[DEBUG] No hay items');
           tbody.innerHTML = `
             <tr>
               <td colspan="6" style="text-align:center;padding:12px;" class="muted">
-                No hay tarjetas
+                No hay tarjetas (total en BD: ${data.total || 0})
               </td>
             </tr>
           `;
           return;
         }
 
+        console.log('[DEBUG] Renderizando', data.items.length, 'tarjetas');
         tbody.innerHTML = data.items.map(card => `
           <tr>
             <td><code>${card.id}</code></td>
@@ -862,11 +874,11 @@
         
         currentPage = data.page;
       } catch (error) {
-        console.error('Error cargando tarjetas:', error);
+        console.error('[ERROR] Cargando tarjetas:', error);
         document.getElementById('cards-tbody').innerHTML = `
           <tr>
             <td colspan="6" style="text-align:center;padding:12px;color:#fecaca;">
-              Error cargando tarjetas: ${error.message}
+              Error: ${error.message}
             </td>
           </tr>
         `;
