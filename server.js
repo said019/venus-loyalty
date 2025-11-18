@@ -171,7 +171,9 @@ const findReset = db.prepare("SELECT * FROM admin_resets WHERE token = ?");
 const delReset = db.prepare("DELETE FROM admin_resets WHERE token = ?");
 
 // tarjetas / eventos
-const insertCard = db.prepare("INSERT INTO cards (id, name, max) VALUES (?, ?, ?)");
+const insertCard = db.prepare(
+  "INSERT INTO cards (id, name, max) VALUES (?, ?, ?)"
+);
 const getCard = db.prepare("SELECT * FROM cards WHERE id = ?");
 const updStamps = db.prepare("UPDATE cards SET stamps = ? WHERE id = ?");
 const logEvent = db.prepare(
@@ -232,6 +234,8 @@ function canStamp(cardId) {
    ========================================================= */
 async function fsUpsertCard({ id, name, phone, max, stamps, status }) {
   try {
+    if (!firestore) return;
+    const now = new Date().toISOString();
     await firestore.collection("cards").doc(id).set(
       {
         id,
@@ -240,8 +244,7 @@ async function fsUpsertCard({ id, name, phone, max, stamps, status }) {
         max,
         stamps,
         status: status || "active",
-        updatedAt: FieldValue.serverTimestamp(),
-        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: now,
       },
       { merge: true }
     );
@@ -252,11 +255,12 @@ async function fsUpsertCard({ id, name, phone, max, stamps, status }) {
 
 async function fsAddEvent(cardId, type, meta = {}) {
   try {
+    if (!firestore) return;
     await firestore.collection("events").add({
       cardId,
       type,
       meta,
-      createdAt: FieldValue.serverTimestamp(),
+      createdAt: new Date().toISOString(),
     });
   } catch (e) {
     console.error("[Firestore event]", e);
@@ -680,7 +684,10 @@ app.get("/api/debug/apple-full-check", async (_req, res) => {
       canGenerateTestPass: false,
     };
 
-    if (process.env.APPLE_PASS_CERT && fs.existsSync(process.env.APPLE_PASS_CERT)) {
+    if (
+      process.env.APPLE_PASS_CERT &&
+      fs.existsSync(process.env.APPLE_PASS_CERT)
+    ) {
       const certContent = fs.readFileSync(process.env.APPLE_PASS_CERT, "utf8");
       const certificate = certContent.match(
         /-----BEGIN CERTIFICATE-----[\s\S]+?-----END CERTIFICATE-----/
@@ -894,15 +901,14 @@ app.get("/api/export.csv", basicAuth, (_req, res) => {
     res.status(500).send(e.message);
   }
 });
+
 /* =========================================================
    DEBUG FIREBASE
    ========================================================= */
 app.get("/api/debug/firebase-test", async (_req, res) => {
   try {
-    // 1) Referencia a un doc de prueba
     const docRef = firestore.collection("debug").doc("ping");
 
-    // 2) Escribir algo (merge para no borrar si ya existía)
     await docRef.set(
       {
         lastPing: new Date().toISOString(),
@@ -911,7 +917,6 @@ app.get("/api/debug/firebase-test", async (_req, res) => {
       { merge: true }
     );
 
-    // 3) Leer lo que quedó
     const snap = await docRef.get();
     const data = snap.data();
 
