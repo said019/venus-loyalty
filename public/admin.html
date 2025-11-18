@@ -427,9 +427,9 @@
       <p class="muted">Gestiona todas las tarjetas de tus clientes.</p>
       
       <div class="row" style="margin-top:12px;">
-        <input placeholder="Buscar por ID o nombre..." style="flex:1;min-width:200px;">
-        <button class="btn primary">🔍 Buscar</button>
-        <button class="btn">📤 Exportar</button>
+        <input id="search-cards" placeholder="Buscar por ID o nombre..." style="flex:1;min-width:200px;">
+        <button id="btn-search-cards" class="btn primary">🔍 Buscar</button>
+        <button id="btn-reload-cards" class="btn">🔄 Recargar</button>
       </div>
 
       <div class="table-wrap" style="margin-top:12px;">
@@ -442,106 +442,64 @@
               <th>Max</th>
               <th>Estado</th>
               <th>Creada</th>
-              <th>Acciones</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody id="cards-tbody">
             <tr>
-              <td><code>card_abc123</code></td>
-              <td>María González</td>
-              <td>5</td>
-              <td>10</td>
-              <td><span class="tag">Activa</span></td>
-              <td>15 Nov 2025</td>
-              <td>
-                <button class="btn small">Ver</button>
-              </td>
-            </tr>
-            <tr>
-              <td><code>card_def456</code></td>
-              <td>Juan Pérez</td>
-              <td>10</td>
-              <td>10</td>
-              <td><span class="tag">Completa</span></td>
-              <td>10 Nov 2025</td>
-              <td>
-                <button class="btn small">Ver</button>
-              </td>
+              <td colspan="6" style="text-align:center;padding:12px;" class="muted">Cargando tarjetas...</td>
             </tr>
           </tbody>
         </table>
+      </div>
+
+      <div class="row" style="justify-content:space-between;margin-top:12px;">
+        <button id="btn-prev-page" class="btn small ghost">← Anterior</button>
+        <span id="page-info" class="muted">Página 1</span>
+        <button id="btn-next-page" class="btn small ghost">Siguiente →</button>
       </div>
     </section>
 
     <!-- TAB: Events + Gift Cards -->
     <section id="tab-events" class="card hidden">
-      <h2>Eventos & Gift cards</h2>
-      <div class="gift-layout">
-        <!-- Eventos de tarjeta -->
+      <h2>Crear Gift Card</h2>
+      <p class="muted">Genera una tarjeta de regalo digital con vigencia de 30 días. Podrás compartir el QR por WhatsApp o imprimirla.</p>
+      
+      <form id="gift-form" style="max-width:500px;">
+        <label>Nombre del cliente (opcional)</label>
+        <input id="gift-name" placeholder="Ej. Ana López">
+        
+        <label>Servicio a regalar</label>
+        <input id="gift-service" required placeholder="Ej. Facial hidratante, Masaje relajante…">
+        
+        <button type="submit" class="btn primary" style="margin-top:10px;">Generar Gift Card</button>
+      </form>
+
+      <!-- Gift Card Preview -->
+      <div id="gift-preview" class="gift-preview hidden">
         <div>
-          <h3>Historial de una tarjeta</h3>
-          <p class="muted">Busca por <code>card_xxx</code> para ver sellos y canjes.</p>
-          <div class="row">
-            <input id="eid" placeholder="ID de tarjeta (card_…)">
-            <button id="eload" class="btn small">Ver eventos</button>
+          <small>Venus Cosmetología</small>
+          <h4 id="gift-preview-title">Gift Card</h4>
+          <div id="gift-preview-sub" style="margin-top:4px;font-size:14px;"></div>
+          <div class="chip" id="gift-preview-exp"></div>
+        </div>
+        <div class="gift-preview-content">
+          <div class="gift-preview-info">
+            <div style="font-size:13px;margin-top:8px;">Presenta este código en tu visita</div>
           </div>
-          <div class="table-wrap" style="margin-top:8px;">
-            <table>
-              <thead>
-                <tr><th>ID</th><th>Tipo</th><th>Meta</th><th>Fecha</th></tr>
-              </thead>
-              <tbody id="events-tbody">
-                <tr><td colspan="4" style="text-align:center;padding:12px;" class="muted">Ingresa un ID de tarjeta para ver eventos</td></tr>
-              </tbody>
-            </table>
+          <div class="gift-preview-qr">
+            <canvas id="gift-qr" class="gift-qr"></canvas>
+            <small style="font-size:10px;">Código QR</small>
           </div>
         </div>
+      </div>
 
-        <!-- Gift card -->
-        <div>
-          <h3>Crear Gift Card</h3>
-          <p class="muted">
-            Genera una tarjeta de regalo digital con vigencia de <b>30 días</b>.
-            Podrás compartir el QR por WhatsApp o imprimirla.
-          </p>
-          <form id="gift-form">
-            <label>Nombre del cliente (opcional)</label>
-            <input id="gift-name" placeholder="Ej. Ana López">
-            
-            <label>Servicio a regalar</label>
-            <input id="gift-service" required placeholder="Ej. Facial hidratante, Masaje relajante…">
-            
-            <button type="submit" class="btn primary" style="margin-top:10px;">Generar Gift Card</button>
-          </form>
-
-          <!-- Gift Card Preview -->
-          <div id="gift-preview" class="gift-preview hidden">
-            <div>
-              <small>Venus Cosmetología</small>
-              <h4 id="gift-preview-title">Gift Card</h4>
-              <div id="gift-preview-sub" style="margin-top:4px;font-size:14px;"></div>
-              <div class="chip" id="gift-preview-exp"></div>
-            </div>
-            <div class="gift-preview-content">
-              <div class="gift-preview-info">
-                <div style="font-size:13px;margin-top:8px;">Presenta este código en tu visita</div>
-              </div>
-              <div class="gift-preview-qr">
-                <canvas id="gift-qr" class="gift-qr"></canvas>
-                <small style="font-size:10px;">Código QR</small>
-              </div>
-            </div>
-          </div>
-
-          <div id="gift-actions" class="gift-actions hidden">
-            <button type="button" id="gift-copy" class="btn small">Copiar enlace</button>
-            <button type="button" id="gift-whatsapp" class="btn small primary">Enviar por WhatsApp</button>
-          </div>
-          
-          <div id="gift-success" class="success-message hidden">
-            ¡Gift Card generada exitosamente! Puedes enviarla por WhatsApp o copiar el enlace.
-          </div>
-        </div>
+      <div id="gift-actions" class="gift-actions hidden">
+        <button type="button" id="gift-copy" class="btn small">Copiar enlace</button>
+        <button type="button" id="gift-whatsapp" class="btn small primary">Enviar por WhatsApp</button>
+      </div>
+      
+      <div id="gift-success" class="success-message hidden">
+        ✅ Gift Card generada exitosamente! Puedes enviarla por WhatsApp o copiar el enlace.
       </div>
     </section>
 
@@ -611,14 +569,13 @@
                 <th>Fecha</th>
                 <th>Título</th>
                 <th>Tipo</th>
-                <th>Google Wallet</th>
-                <th>Apple Wallet</th>
+                <th>Enviadas</th>
                 <th>Errores</th>
               </tr>
             </thead>
             <tbody id="notifications-history">
               <tr>
-                <td colspan="6" style="text-align:center;padding:12px;" class="muted">Cargando historial...</td>
+                <td colspan="5" style="text-align:center;padding:12px;" class="muted">Cargando historial...</td>
               </tr>
             </tbody>
           </table>
@@ -836,6 +793,107 @@
       `;
     });
 
+    // ========== CARGAR MÉTRICAS DEL RESUMEN ==========
+    async function loadMetrics() {
+      try {
+        const response = await fetch('/api/admin/metrics-firebase', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('adminToken') || ''}`,
+          },
+          credentials: 'include'
+        });
+
+        if (!response.ok) throw new Error('Error cargando métricas');
+
+        const data = await response.json();
+        document.getElementById('kpi-total').textContent = data.total || 0;
+        document.getElementById('kpi-full').textContent = data.full || 0;
+        document.getElementById('kpi-stamps').textContent = data.stampsToday || 0;
+      } catch (error) {
+        console.error('Error cargando métricas:', error);
+      }
+    }
+
+    // ========== CARGAR TARJETAS ==========
+    let currentPage = 1;
+    
+    async function loadCards(page = 1) {
+      try {
+        const searchQuery = document.getElementById('search-cards').value;
+        const url = `/api/admin/cards-firebase?page=${page}&q=${encodeURIComponent(searchQuery)}`;
+        
+        const response = await fetch(url, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('adminToken') || ''}`,
+          },
+          credentials: 'include'
+        });
+
+        if (!response.ok) throw new Error('Error cargando tarjetas');
+
+        const data = await response.json();
+        const tbody = document.getElementById('cards-tbody');
+
+        if (!data.items || data.items.length === 0) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="6" style="text-align:center;padding:12px;" class="muted">
+                No hay tarjetas
+              </td>
+            </tr>
+          `;
+          return;
+        }
+
+        tbody.innerHTML = data.items.map(card => `
+          <tr>
+            <td><code>${card.id}</code></td>
+            <td>${card.name}</td>
+            <td>${card.stamps}</td>
+            <td>${card.max}</td>
+            <td><span class="tag">${card.status === 'active' ? 'Activa' : 'Bloqueada'}</span></td>
+            <td>${new Date(card.created_at).toLocaleDateString('es-ES')}</td>
+          </tr>
+        `).join('');
+
+        document.getElementById('page-info').textContent = `Página ${data.page} de ${data.totalPages} (${data.total} total)`;
+        document.getElementById('btn-prev-page').disabled = data.page === 1;
+        document.getElementById('btn-next-page').disabled = data.page === data.totalPages;
+        
+        currentPage = data.page;
+      } catch (error) {
+        console.error('Error cargando tarjetas:', error);
+        document.getElementById('cards-tbody').innerHTML = `
+          <tr>
+            <td colspan="6" style="text-align:center;padding:12px;color:#fecaca;">
+              Error cargando tarjetas: ${error.message}
+            </td>
+          </tr>
+        `;
+      }
+    }
+
+    // Botones de paginación
+    document.getElementById('btn-prev-page').addEventListener('click', () => {
+      if (currentPage > 1) loadCards(currentPage - 1);
+    });
+
+    document.getElementById('btn-next-page').addEventListener('click', () => {
+      loadCards(currentPage + 1);
+    });
+
+    document.getElementById('btn-search-cards').addEventListener('click', () => {
+      loadCards(1);
+    });
+
+    document.getElementById('btn-reload-cards').addEventListener('click', () => {
+      loadCards(currentPage);
+    });
+
+    document.getElementById('search-cards').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') loadCards(1);
+    });
+
     // ========== CARGAR HISTORIAL DE NOTIFICACIONES ==========
     async function loadNotificationsHistory() {
       try {
@@ -881,7 +939,6 @@
               <td>${n.title}</td>
               <td>${typeEmojis[n.type] || n.type}</td>
               <td>${n.googleSent}/${n.cardsSent}</td>
-              <td>${n.appleSent}/${n.cardsSent}</td>
               <td>${n.errors > 0 ? `<span style="color:#fecaca">${n.errors}</span>` : '0'}</td>
             </tr>
           `;
@@ -891,7 +948,7 @@
         console.error('Error cargando historial:', error);
         document.getElementById('notifications-history').innerHTML = `
           <tr>
-            <td colspan="6" style="text-align:center;padding:12px;color:#fecaca;">
+            <td colspan="5" style="text-align:center;padding:12px;color:#fecaca;">
               Error cargando historial
             </td>
           </tr>
@@ -899,15 +956,24 @@
       }
     }
 
-    // Cargar historial al cambiar a la pestaña de configuración
+    // Cargar datos al cambiar de pestaña
     document.querySelectorAll('[data-tab]').forEach(tab => {
-      const originalClick = tab.onclick;
       tab.addEventListener('click', function() {
-        if (this.getAttribute('data-tab') === 'settings') {
+        const tabName = this.getAttribute('data-tab');
+        if (tabName === 'overview') {
+          loadMetrics();
+        } else if (tabName === 'cards') {
+          loadCards(1);
+        } else if (tabName === 'events') {
+          // Gift cards tab - no need to load anything
+        } else if (tabName === 'settings') {
           loadNotificationsHistory();
         }
       });
     });
+
+    // Cargar métricas al iniciar
+    loadMetrics();
 
     // Botón para refrescar historial
     document.getElementById('refresh-history').addEventListener('click', loadNotificationsHistory);
@@ -1003,7 +1069,6 @@
           <td>${title}</td>
           <td>${typeEmojis[type]}</td>
           <td>${data.googleSent}/${passCount}</td>
-          <td>${data.appleSent}/${passCount}</td>
           <td>${data.errors > 0 ? `<span style="color:#fecaca">${data.errors}</span>` : '0'}</td>
         `;
         

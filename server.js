@@ -638,6 +638,107 @@ app.get("/api/debug/apple-env", (_req, res) => {
   for (const k of need) status[k] = !!process.env[k];
   res.json(status);
 });
+app.get("/api/admin/metrics-firebase", adminAuth, async (req, res) => {
+  try {
+    const cardsSnap = await firestore.collection('cards').get();
+    const cards = cardsSnap.docs.map(d => d.data());
+    
+    const total = cards.length;
+    const full = cards.filter(c => (c.stamps || 0) >= (c.max || 8)).length;
+    
+    // Eventos de hoy
+    const today = new Date().toISOString().slice(0, 10);
+    const eventsSnap = await firestore.collection('events')
+      .where('createdAt', '>=', today)
+      .get();
+    
+    const events = eventsSnap.docs.map(d => d.data());
+    const stampsToday = events.filter(e => e.type === 'STAMP').length;
+    const redeemsToday = events.filter(e => e.type === 'REDEEM').length;
+    
+    res.json({
+      total,
+      full,
+      stampsToday,
+      redeemsToday
+    });
+  } catch (e) {
+    console.error('[METRICS FIREBASE]', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Listar tarjetas desde Firestore
+app.get("/api/admin/cards-firebase", adminAuth, async (req, res) => {
+  try {
+    const page = Math.max(1, parseInt(req.query.page || "1", 10));
+    const limit = 12;
+    const q = (req.query.q || '').toLowerCase().trim();
+    
+    // Obtener todas las tarjetas
+    const cardsSnap = await firestore.collection('cards')
+      .orderBy('updatedAt', 'desc')
+      .get();
+    
+    let cards = cardsSnap.docs.map(d => d.data());
+    
+    // Filtrar por búsqueda
+    if (q) {
+      cards = cards.filter(c => 
+        (c.id || '').toLowerCase().includes(q) ||
+        (c.name || '').toLowerCase().includes(q)
+      );
+    }
+    
+    const total = cards.length;
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+    const start = (page - 1) * limit;
+    const items = cards.slice(start, start + limit);
+    
+    res.json({ 
+      page, 
+      totalPages, 
+      total, 
+      items: items.map(c => ({
+        id: c.id,
+        name: c.name,
+        stamps: c.stamps || 0,
+        max: c.max || 8,
+        status: c.status || 'active',
+        created_at: c.updatedAt || new Date().toISOString()
+      }))
+    });
+  } catch (e) {
+    console.error('[CARDS FIREBASE]', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Eventos desde Firestore
+app.get("/api/admin/events-firebase", adminAuth, async (req, res) => {
+  try {
+    const { cardId } = req.query || {};
+    if (!cardId) return res.status(400).json({ error: 'missing_cardId' });
+    
+    const eventsSnap = await firestore.collection('events')
+      .where('cardId', '==', cardId)
+      .orderBy('createdAt', 'desc')
+      .limit(50)
+      .get();
+    
+    const items = eventsSnap.docs.map(d => ({
+      id: d.id,
+      type: d.data().type,
+      meta: d.data().meta,
+      created_at: d.data().createdAt
+    }));
+    
+    res.json({ items });
+  } catch (e) {
+    console.error('[EVENTS FIREBASE]', e);
+    res.status(500).json({ error: e.message });
+  }
+});
 
 app.get("/api/debug/apple-certs", (_req, res) => {
   try {
