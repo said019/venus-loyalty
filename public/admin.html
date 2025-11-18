@@ -408,15 +408,15 @@
       <div class="grid-3-kpi">
         <div class="kpi">
           <span>Tarjetas totales</span>
-          <span class="value">127</span>
+          <span class="value" id="kpi-total">—</span>
         </div>
         <div class="kpi">
           <span>Tarjetas completas</span>
-          <span class="value">23</span>
+          <span class="value" id="kpi-full">—</span>
         </div>
         <div class="kpi">
           <span>Sellos hoy</span>
-          <span class="value">8</span>
+          <span class="value" id="kpi-stamps">—</span>
         </div>
       </div>
     </section>
@@ -836,6 +836,82 @@
       `;
     });
 
+    // ========== CARGAR HISTORIAL DE NOTIFICACIONES ==========
+    async function loadNotificationsHistory() {
+      try {
+        const response = await fetch('/api/admin/notifications', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('adminToken') || ''}`,
+          },
+          credentials: 'include'
+        });
+
+        if (!response.ok) {
+          throw new Error('Error cargando historial');
+        }
+
+        const data = await response.json();
+        const tbody = document.getElementById('notifications-history');
+
+        if (!data.notifications || data.notifications.length === 0) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="6" style="text-align:center;padding:12px;" class="muted">
+                No hay notificaciones enviadas aún
+              </td>
+            </tr>
+          `;
+          return;
+        }
+
+        tbody.innerHTML = data.notifications.map(n => {
+          const date = new Date(n.createdAt);
+          const dateStr = date.toLocaleDateString('es-ES', { 
+            day: 'numeric', 
+            month: 'short', 
+            year: 'numeric' 
+          }) + ', ' + date.toLocaleTimeString('es-ES', { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+          });
+
+          return `
+            <tr>
+              <td>${dateStr}</td>
+              <td>${n.title}</td>
+              <td>${typeEmojis[n.type] || n.type}</td>
+              <td>${n.googleSent}/${n.cardsSent}</td>
+              <td>${n.appleSent}/${n.cardsSent}</td>
+              <td>${n.errors > 0 ? `<span style="color:#fecaca">${n.errors}</span>` : '0'}</td>
+            </tr>
+          `;
+        }).join('');
+
+      } catch (error) {
+        console.error('Error cargando historial:', error);
+        document.getElementById('notifications-history').innerHTML = `
+          <tr>
+            <td colspan="6" style="text-align:center;padding:12px;color:#fecaca;">
+              Error cargando historial
+            </td>
+          </tr>
+        `;
+      }
+    }
+
+    // Cargar historial al cambiar a la pestaña de configuración
+    document.querySelectorAll('[data-tab]').forEach(tab => {
+      const originalClick = tab.onclick;
+      tab.addEventListener('click', function() {
+        if (this.getAttribute('data-tab') === 'settings') {
+          loadNotificationsHistory();
+        }
+      });
+    });
+
+    // Botón para refrescar historial
+    document.getElementById('refresh-history').addEventListener('click', loadNotificationsHistory);
+
     // ========== PUSH NOTIFICATIONS ==========
     // Preview update in real-time
     const pushTitle = document.getElementById('push-title');
@@ -926,10 +1002,18 @@
           <td>${dateStr}</td>
           <td>${title}</td>
           <td>${typeEmojis[type]}</td>
-          <td>${passCount}</td>
-          <td><span class="tag">Enviada</span></td>
+          <td>${data.googleSent}/${passCount}</td>
+          <td>${data.appleSent}/${passCount}</td>
+          <td>${data.errors > 0 ? `<span style="color:#fecaca">${data.errors}</span>` : '0'}</td>
         `;
-        historyTable.insertBefore(newRow, historyTable.firstChild);
+        
+        // Solo agregar si la tabla no está vacía
+        if (historyTable.children.length > 0 && historyTable.children[0].children.length === 6) {
+          historyTable.insertBefore(newRow, historyTable.firstChild);
+        } else {
+          // Si está vacía, recargar todo el historial
+          loadNotificationsHistory();
+        }
         
         // Reset form
         this.reset();
