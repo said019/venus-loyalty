@@ -633,22 +633,7 @@
     </section>
 
     <!-- DIALOG: Detalle tarjeta -->
-    <dialog id="cardDialog">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-        <h3 style="margin:0;font-size:16px;">Tarjeta</h3>
-        <button type="button" id="card-close" class="btn small ghost">Cerrar</button>
-      </div>
-      <div id="card-body" class="muted" style="font-size:13px;margin-bottom:8px;">Cargando…</div>
-      <div id="card-qr-wrap" style="display:flex;justify-content:center;margin:8px 0;">
-        <img id="card-qr" alt="QR tarjeta" style="width:180px;height:180px;border-radius:12px;background:#111827;object-fit:contain;">
-      </div>
-      <div class="row" style="margin-top:8px;flex-wrap:wrap;">
-        <button class="btn small" id="card-stamp-btn">+1 sello</button>
-        <button class="btn small ghost" id="card-redeem-btn">Canjear</button>
-        <button class="btn small ghost" id="card-copy-btn">Copiar ID</button>
-      </div>
-      <div id="card-msg" class="muted" style="margin-top:8px;font-size:12px;"></div>
-    </dialog>
+ 
 
     <!-- DIALOG: Escáner QR -->
     <dialog id="scanDialog">
@@ -868,109 +853,7 @@
       }
     });
 
-    /* ===== DIALOG TARJETA ===== */
-    const cardDialog = $("#cardDialog");
-    const cardBody   = $("#card-body");
-    const cardQrImg  = $("#card-qr");
-    const cardMsg    = $("#card-msg");
-
-    $("#card-close").addEventListener("click", () => cardDialog.close());
-
-    async function openCardDialog(cardId){
-      currentCardId = cardId;
-      cardMsg.textContent = "";
-      cardBody.textContent = "Cargando…";
-      cardDialog.showModal();
-      try{
-        const r = await fetch('/api/card/' + encodeURIComponent(cardId), {credentials:'include'});
-        if(!r.ok) throw new Error("No se encontró la tarjeta");
-        const c = await r.json();
-        cardBody.innerHTML = `
-          <div><b>ID:</b> <code>${c.id}</code></div>
-          <div><b>Cliente:</b> ${c.name || '—'}</div>
-          <div><b>Sellos:</b> ${c.stamps} / ${c.max}</div>
-          <div><b>Estado:</b> ${c.status || 'Activa'}</div>
-        `;
-        const url = location.origin + '/?card=' + encodeURIComponent(c.id);
-        const qrUrl = 'https://chart.googleapis.com/chart?cht=qr&chs=220x220&chld=M|0&chl=' + encodeURIComponent(url);
-        cardQrImg.src = qrUrl;
-      }catch(e){
-        cardBody.textContent = e.message || 'Error cargando tarjeta';
-      }
-    }
-
-    async function adminStamp(cardId){
-      try{
-        const r = await fetch('/api/admin/stamp', {
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          credentials:'include',
-          body:JSON.stringify({cardId})
-        });
-        const j = await r.json();
-        if(!r.ok) throw new Error(j.error || 'Error al agregar sello');
-        cardMsg.textContent = '✅ Sello agregado';
-        loadCards(currentPage);
-        if(currentCardId === cardId) openCardDialog(cardId);
-      }catch(e){
-        alert(e.message);
-      }
-    }
-
-    async function adminRedeem(cardId){
-      if(!confirm('¿Canjear esta tarjeta?')) return;
-      try{
-        const r = await fetch('/api/admin/redeem', {
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          credentials:'include',
-          body:JSON.stringify({cardId})
-        });
-        const j = await r.json();
-        if(!r.ok) throw new Error(j.error || 'Error al canjear');
-        cardMsg.textContent = '🎁 Canje realizado';
-        loadCards(currentPage);
-        if(currentCardId === cardId) openCardDialog(cardId);
-      }catch(e){
-        alert(e.message);
-      }
-    }
-
-    async function adminDelete(cardId){
-      if(!confirm('¿Eliminar esta tarjeta? Esta acción no se puede deshacer.')) return;
-      try{
-        // Ajusta esta ruta a la que tengas en tu server para borrar
-        const r = await fetch('/api/admin/card-delete', {
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          credentials:'include',
-          body:JSON.stringify({cardId})
-        });
-        const j = await r.json().catch(()=>({}));
-        if(!r.ok) throw new Error(j.error || 'Error al eliminar');
-        alert('Tarjeta eliminada');
-        loadCards(1);
-        if(cardDialog.open && currentCardId === cardId) cardDialog.close();
-      }catch(e){
-        alert(e.message);
-      }
-    }
-
-    $("#card-stamp-btn").addEventListener("click", () => {
-      if(currentCardId) adminStamp(currentCardId);
-    });
-    $("#card-redeem-btn").addEventListener("click", () => {
-      if(currentCardId) adminRedeem(currentCardId);
-    });
-    $("#card-copy-btn").addEventListener("click", async () => {
-      if(!currentCardId) return;
-      try{
-        await navigator.clipboard.writeText(currentCardId);
-        cardMsg.textContent = 'ID copiado';
-      }catch{
-        cardMsg.textContent = 'No se pudo copiar';
-      }
-    });
+  
 
     /* ===== ESCÁNER QR ===== */
     const scanDialog = $("#scanDialog");
@@ -998,18 +881,20 @@
         scanStatus.textContent = "Apunta al QR de la tarjeta…";
         if("BarcodeDetector" in window){
           const detector = new BarcodeDetector({formats:['qr_code']});
-          const loop = async () => {
-            if(!scanStream) return;
+            const loop = async () => {
+             if (!scanStream) return;
             try{
-              const codes = await detector.detect(scanVideo);
-              if(codes && codes[0]){
-                handleScan(codes[0].rawValue);
-                return;
-              }
-            }catch{}
-            scanRaf = requestAnimationFrame(loop);
-          };
-          loop();
+                const codes = await detector.detect(scanVideo);
+                if (codes && codes[0]) {
+                    await handleScan(codes[0].rawValue);
+                    return; // detenemos el loop después de un QR válido
+                }
+            }catch(e){
+                console.error('Error detectando QR', e);
+            }
+                scanRaf = requestAnimationFrame(loop);
+            };
+            loop();
         }else{
           scanStatus.textContent = "Tu navegador no soporta escaneo nativo de QR.";
         }
@@ -1027,25 +912,53 @@
     }
 
     function extractCardId(text){
-      try{
-        const u = new URL(text);
-        const c = u.searchParams.get("card");
-        if(c) return c;
-      }catch{}
-      if(/^card_\d+/.test(text)) return text;
-      return null;
-    }
+  try{
+    const u = new URL(text);
+    // Primero intenta ?cardId=...
+    let c = u.searchParams.get("cardId");
+    if (c) return c;
+    // Compatibilidad por si algún QR viejo usa ?card=...
+    c = u.searchParams.get("card");
+    if (c) return c;
+  }catch{}
+  // Si el QR trae solo "card_123..."
+  if(/^card_\d+/.test(text)) return text;
+  return null;
+}
 
-    function handleScan(raw){
-      const cid = extractCardId(raw);
-      if(!cid){
-        scanStatus.textContent = "QR inválido.";
-        return;
+    async function handleScan(raw){
+  const cid = extractCardId(raw);
+  if (!cid) {
+    scanStatus.textContent = "QR inválido.";
+    return;
+  }
+
+  stopScan();
+  scanDialog.close();
+
+  let card = cardsCache[cid];
+
+  // Si no está en la página actual, intenta cargarla del backend
+  if (!card) {
+    try {
+      const r = await fetch('/api/card/' + encodeURIComponent(cid), {
+        credentials: 'include'
+      });
+      if (r.ok) {
+        card = await r.json();
       }
-      stopScan();
-      scanDialog.close();
-      openCardDialog(cid);
+    } catch (e) {
+      console.error('Error buscando tarjeta por ID', e);
     }
+  }
+
+  if (!card) {
+    alert('Tarjeta no encontrada');
+    return;
+  }
+
+  openCardModal(card);
+}
 
     /* ===== GIFT CARDS (como antes, QR imagen + texto) ===== */
     window.currentGiftCard = null;
