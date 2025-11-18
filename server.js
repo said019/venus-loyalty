@@ -47,6 +47,10 @@ import {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+
+// 👇 Pon esto donde tienes el resto de prepares de cards/events
+const deleteCardStmt = db.prepare("DELETE FROM cards WHERE id = ?");
+const deleteEventsByCardStmt = db.prepare("DELETE FROM events WHERE card_id = ?");
 /* =========================================================
    APP base
    ========================================================= */
@@ -1137,7 +1141,57 @@ app.get("/api/export.csv", basicAuth, (_req, res) => {
     res.status(500).send(e.message);
   }
 });
+/* =========================================================
+   ADMIN: Eliminar tarjeta EN TODOS LADOS
+   ========================================================= */
+app.post("/api/admin/card-delete", adminAuth, async (req, res) => {
+  try {
+    const { cardId } = req.body || {};
+    if (!cardId) {
+      return res.status(400).json({ error: "missing_cardId" });
+    }
 
+    const card = getCard.get(cardId);
+    if (!card) {
+      return res.status(404).json({ error: "card_not_found" });
+    }
+
+    // 1) Borrar en SQLite: eventos + tarjeta
+    const tx = db.transaction((id) => {
+      deleteEventsByCardStmt.run(id);
+      deleteCardStmt.run(id);
+    });
+    tx(cardId);
+
+    // 2) Borrar en Firestore: doc de la tarjeta
+    try {
+      await firestore.collection("cards").doc(cardId).delete();
+    } catch (e) {
+      console.error("[Firestore delete card doc]", e);
+    }
+
+    // 3) Borrar eventos en Firestore
+    try {
+      const snap = await firestore
+        .collection("events")
+        .where("cardId", "==", cardId)
+        .get();
+
+      if (!snap.empty) {
+        const batch = firestore.batch();
+        snap.forEach((doc) => batch.delete(doc.ref));
+        await batch.commit();
+      }
+    } catch (e) {
+      console.error("[Firestore delete events]", e);
+    }
+
+    return res.json({ ok: true, cardId });
+  } catch (e) {
+    console.error("[ADMIN CARD DELETE]", e);
+    res.status(500).json({ error: "delete_error", detail: e.message });
+  }
+});
 /* =========================================================
    DEBUG FIREBASE
    ========================================================= */
