@@ -270,7 +270,25 @@ async function fsAddEvent(cardId, type, meta = {}) {
     console.error("[Firestore event]", e);
   }
 }
-
+// Admins en Firestore
+async function fsUpsertAdmin({ id, email, pass_hash }) {
+  try {
+    if (!firestore) return;
+    const now = new Date().toISOString();
+    await firestore.collection("admins").doc(id).set(
+      {
+        id,
+        email,
+        pass_hash,
+        updatedAt: now,
+        createdAt: now,
+      },
+      { merge: true }
+    );
+  } catch (e) {
+    console.error("[Firestore admin]", e);
+  }
+}
 /* =========================================================
    Páginas HTML
    ========================================================= */
@@ -1166,10 +1184,16 @@ app.post("/api/admin/register", async (req, res) => {
 
     const id = `adm_${Date.now()}`;
     const pass_hash = await bcrypt.hash(password, 10);
+
+    // Guardar en SQLite
     insertAdmin.run(id, norm, pass_hash);
+
+    // Guardar también en Firestore
+    await fsUpsertAdmin({ id, email: norm, pass_hash });
 
     res.json({ ok: true });
   } catch (e) {
+    console.error("[ADMIN REGISTER]", e);
     res.status(500).json({ error: e.message });
   }
 });
@@ -1180,16 +1204,25 @@ app.post("/api/admin/login", async (req, res) => {
     if (!email || !password)
       return res.status(400).json({ error: "missing_fields" });
 
-    const admin = getAdminByEmail.get(String(email).trim().toLowerCase());
+    const norm = String(email).trim().toLowerCase();
+    const admin = getAdminByEmail.get(norm);
     if (!admin) return res.status(401).json({ error: "invalid_credentials" });
 
     const ok = await bcrypt.compare(password, admin.pass_hash);
     if (!ok) return res.status(401).json({ error: "invalid_credentials" });
 
+    // En cada login exitoso, aseguramos que exista en Firestore
+    await fsUpsertAdmin({
+      id: admin.id,
+      email: admin.email,
+      pass_hash: admin.pass_hash,
+    });
+
     const token = signAdmin({ id: admin.id, email: admin.email });
     setAdminCookie(res, token);
     res.json({ ok: true });
   } catch (e) {
+    console.error("[ADMIN LOGIN]", e);
     res.status(500).json({ error: e.message });
   }
 });

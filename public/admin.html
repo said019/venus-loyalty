@@ -318,6 +318,7 @@
       background:rgba(255,255,255,.15);
       padding:8px;
       margin-bottom:8px;
+      object-fit:contain;
     }
     .chip{
       display:inline-flex;
@@ -352,6 +353,20 @@
       margin-top:10px;
       font-size:13px;
       color:#bbf7d0;
+    }
+
+    /* Dialogs */
+    dialog{
+      border-radius:16px;
+      border:1px solid var(--line);
+      background:#111827;
+      color:var(--ink);
+      padding:16px 18px 14px;
+      max-width:420px;
+      width:90%;
+    }
+    dialog::backdrop{
+      background:rgba(0,0,0,.6);
     }
   </style>
 </head>
@@ -407,6 +422,7 @@
         <input id="search-cards" placeholder="Buscar por ID o nombre..." style="flex:1;min-width:200px;">
         <button id="btn-search-cards" class="btn primary">🔍 Buscar</button>
         <button id="btn-reload-cards" class="btn">🔄 Recargar</button>
+        <button id="btn-scan-card" class="btn ghost">📷 Escanear QR</button>
       </div>
 
       <div class="table-wrap" style="margin-top:12px;">
@@ -465,19 +481,19 @@
             <div style="font-size:13px;margin-top:8px;">Presenta este código en tu visita</div>
           </div>
           <div class="gift-preview-qr">
-            <canvas id="gift-qr" class="gift-qr"></canvas>
+            <img id="gift-qr" class="gift-qr" alt="QR Gift Card">
             <small style="font-size:10px;">Código QR</small>
           </div>
         </div>
       </div>
 
       <div id="gift-actions" class="gift-actions hidden">
-        <button type="button" id="gift-copy" class="btn small">Copiar enlace</button>
+        <button type="button" id="gift-copy" class="btn small">Copiar texto</button>
         <button type="button" id="gift-whatsapp" class="btn small primary">Enviar por WhatsApp</button>
       </div>
       
       <div id="gift-success" class="success-message hidden">
-        ✅ Gift Card generada exitosamente! Puedes enviarla por WhatsApp o copiar el enlace.
+        ✅ Gift Card generada exitosamente. Puedes enviarla por WhatsApp o compartir el texto.
       </div>
     </section>
 
@@ -558,13 +574,63 @@
       </div>
     </section>
 
+    <!-- DIALOG: Detalle tarjeta -->
+    <dialog id="cardDialog">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <h3 style="margin:0;font-size:16px;">Tarjeta</h3>
+        <button type="button" id="card-close" class="btn small ghost">Cerrar</button>
+      </div>
+      <div id="card-body" class="muted" style="font-size:13px;margin-bottom:8px;">Cargando…</div>
+      <div id="card-qr-wrap" style="display:flex;justify-content:center;margin:8px 0;">
+        <img id="card-qr" alt="QR tarjeta" style="width:180px;height:180px;border-radius:12px;background:#111827;object-fit:contain;">
+      </div>
+      <div class="row" style="margin-top:8px;flex-wrap:wrap;">
+        <button class="btn small" id="card-stamp-btn">+1 sello</button>
+        <button class="btn small ghost" id="card-redeem-btn">Canjear</button>
+        <button class="btn small ghost" id="card-copy-btn">Copiar ID</button>
+      </div>
+      <div id="card-msg" class="muted" style="margin-top:8px;font-size:12px;"></div>
+    </dialog>
+
+    <!-- DIALOG: Escáner QR -->
+    <dialog id="scanDialog">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <h3 style="margin:0;font-size:16px;">Escanear tarjeta</h3>
+        <button type="button" id="scan-close" class="btn small ghost">Cerrar</button>
+      </div>
+      <video id="scan-video" autoplay playsinline style="width:100%;max-height:260px;border-radius:12px;background:#000;"></video>
+      <div class="muted" id="scan-status" style="margin-top:8px;font-size:12px;">Iniciando cámara…</div>
+    </dialog>
+
     <footer class="footer">© Venus Cosmetología</footer>
   </main>
 
+  <!-- QRCode lib (puede quedar aunque ahora usemos Google Chart para Gift) -->
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
   
   <script>
-    // TAB NAVIGATION
+    const $ = s => document.querySelector(s);
+
+    /* ===== SESIÓN ===== */
+    async function loadMe(){
+      try{
+        const r = await fetch("/api/admin/me",{credentials:"include"});
+        if(!r.ok) return;
+        const j = await r.json();
+        $("#me-line").textContent = "Sesión: " + (j.email || j.uid || "admin");
+      }catch{}
+    }
+    loadMe();
+
+    $("#logout").addEventListener("click", async () => {
+      if(!confirm("¿Cerrar sesión?")) return;
+      try{
+        await fetch("/api/admin/logout",{method:"POST",credentials:"include"});
+      }catch{}
+      location.href = "/admin-login.html";
+    });
+
+    /* ===== TABS ===== */
     document.querySelectorAll('[data-tab]').forEach(tab => {
       tab.addEventListener('click', function(e) {
         e.preventDefault();
@@ -580,7 +646,6 @@
           targetSection.classList.remove('hidden');
         }
         
-        // Cargar datos según pestaña
         const tabName = this.getAttribute('data-tab');
         if (tabName === 'overview') {
           loadMetrics();
@@ -592,7 +657,7 @@
       });
     });
 
-    // LOAD METRICS
+    /* ===== METRICS (Firestore) ===== */
     async function loadMetrics() {
       try {
         const response = await fetch('/api/admin/metrics-firebase', {
@@ -607,12 +672,12 @@
       }
     }
 
-    // LOAD CARDS
+    /* ===== CARDS (Firestore + menú de acciones) ===== */
     let currentPage = 1;
     
     async function loadCards(page = 1) {
       try {
-        const searchQuery = document.getElementById('search-cards').value;
+        const searchQuery = document.getElementById('search-cards').value || "";
         const url = `/api/admin/cards-firebase?page=${page}&q=${encodeURIComponent(searchQuery)}`;
         
         const response = await fetch(url, {
@@ -636,10 +701,50 @@
             <td>${card.phone || '—'}</td>
             <td>${card.stamps}</td>
             <td>${card.max}</td>
-            <td><span class="tag">Activa</span></td>
-            <td>${new Date(card.created_at).toLocaleDateString('es-ES')}</td>
+            <td><span class="tag">${card.status || 'Activa'}</span></td>
+            <td>${card.created_at ? new Date(card.created_at).toLocaleDateString('es-ES') : '—'}</td>
+            <td>
+              <div class="row">
+                <button class="btn small ghost btn-view" data-id="${card.id}">Ver</button>
+                <button class="btn small ghost btn-copy" data-id="${card.id}">Copiar ID</button>
+                <button class="btn small ghost btn-open" data-id="${card.id}">Abrir cliente</button>
+                <button class="btn small primary btn-stamp" data-id="${card.id}">+1 sello</button>
+                <button class="btn small ghost btn-redeem" data-id="${card.id}">Canjear</button>
+                <button class="btn small ghost btn-delete" data-id="${card.id}">Eliminar</button>
+              </div>
+            </td>
           </tr>
         `).join('');
+
+        // Enlazar acciones
+        tbody.querySelectorAll('.btn-view').forEach(b => {
+          b.addEventListener('click', () => openCardDialog(b.dataset.id));
+        });
+        tbody.querySelectorAll('.btn-copy').forEach(b => {
+          b.addEventListener('click', async () => {
+            try{
+              await navigator.clipboard.writeText(b.dataset.id);
+              alert('ID copiado');
+            }catch{
+              alert('No se pudo copiar');
+            }
+          });
+        });
+        tbody.querySelectorAll('.btn-open').forEach(b => {
+          b.addEventListener('click', () => {
+            const url = `/?card=${encodeURIComponent(b.dataset.id)}`;
+            window.open(url,'_blank');
+          });
+        });
+        tbody.querySelectorAll('.btn-stamp').forEach(b => {
+          b.addEventListener('click', () => adminStamp(b.dataset.id));
+        });
+        tbody.querySelectorAll('.btn-redeem').forEach(b => {
+          b.addEventListener('click', () => adminRedeem(b.dataset.id));
+        });
+        tbody.querySelectorAll('.btn-delete').forEach(b => {
+          b.addEventListener('click', () => adminDelete(b.dataset.id));
+        });
 
         document.getElementById('page-info').textContent = `Página ${data.page} de ${data.totalPages} (${data.total} total)`;
         document.getElementById('btn-prev-page').disabled = data.page === 1;
@@ -647,7 +752,8 @@
         currentPage = data.page;
       } catch (error) {
         console.error('Error:', error);
-        document.getElementById('cards-tbody').innerHTML = `<tr><td colspan="6" style="text-align:center;padding:12px;color:#fecaca;">Error: ${error.message}</td></tr>`;
+        document.getElementById('cards-tbody').innerHTML =
+          `<tr><td colspan="8" style="text-align:center;padding:12px;color:#fecaca;">Error: ${error.message}</td></tr>`;
       }
     }
 
@@ -662,15 +768,200 @@
     document.getElementById('btn-search-cards').addEventListener('click', () => loadCards(1));
     document.getElementById('btn-reload-cards').addEventListener('click', () => loadCards(currentPage));
     document.getElementById('search-cards').addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') loadCards(1);
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        loadCards(1);
+      }
     });
 
-    // GIFT CARDS
+    /* ===== DIALOG TARJETA ===== */
+    const cardDialog = $("#cardDialog");
+    const cardBody   = $("#card-body");
+    const cardQrImg  = $("#card-qr");
+    const cardMsg    = $("#card-msg");
+    let currentCardId = null;
+
+    $("#card-close").addEventListener("click", () => cardDialog.close());
+
+    async function openCardDialog(cardId){
+      currentCardId = cardId;
+      cardMsg.textContent = "";
+      cardBody.textContent = "Cargando…";
+      cardDialog.showModal();
+      try{
+        const r = await fetch('/api/card/' + encodeURIComponent(cardId), {credentials:'include'});
+        if(!r.ok) throw new Error("No se encontró la tarjeta");
+        const c = await r.json();
+        cardBody.innerHTML = `
+          <div><b>ID:</b> <code>${c.id}</code></div>
+          <div><b>Cliente:</b> ${c.name || '—'}</div>
+          <div><b>Sellos:</b> ${c.stamps} / ${c.max}</div>
+          <div><b>Estado:</b> ${c.status || 'Activa'}</div>
+        `;
+        const url = location.origin + '/?card=' + encodeURIComponent(c.id);
+        const qrUrl = 'https://chart.googleapis.com/chart?cht=qr&chs=220x220&chld=M|0&chl=' + encodeURIComponent(url);
+        cardQrImg.src = qrUrl;
+      }catch(e){
+        cardBody.textContent = e.message || 'Error cargando tarjeta';
+      }
+    }
+
+    async function adminStamp(cardId){
+      try{
+        const r = await fetch('/api/admin/stamp', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          credentials:'include',
+          body:JSON.stringify({cardId})
+        });
+        const j = await r.json();
+        if(!r.ok) throw new Error(j.error || 'Error al agregar sello');
+        cardMsg.textContent = '✅ Sello agregado';
+        loadCards(currentPage);
+        if(currentCardId === cardId) openCardDialog(cardId);
+      }catch(e){
+        alert(e.message);
+      }
+    }
+
+    async function adminRedeem(cardId){
+      if(!confirm('¿Canjear esta tarjeta?')) return;
+      try{
+        const r = await fetch('/api/admin/redeem', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          credentials:'include',
+          body:JSON.stringify({cardId})
+        });
+        const j = await r.json();
+        if(!r.ok) throw new Error(j.error || 'Error al canjear');
+        cardMsg.textContent = '🎁 Canje realizado';
+        loadCards(currentPage);
+        if(currentCardId === cardId) openCardDialog(cardId);
+      }catch(e){
+        alert(e.message);
+      }
+    }
+
+    async function adminDelete(cardId){
+      if(!confirm('¿Eliminar esta tarjeta? Esta acción no se puede deshacer.')) return;
+      try{
+        // Ajusta esta ruta a la que tengas en tu server para borrar
+        const r = await fetch('/api/admin/card-delete', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          credentials:'include',
+          body:JSON.stringify({cardId})
+        });
+        const j = await r.json().catch(()=>({}));
+        if(!r.ok) throw new Error(j.error || 'Error al eliminar');
+        alert('Tarjeta eliminada');
+        loadCards(1);
+        if(cardDialog.open && currentCardId === cardId) cardDialog.close();
+      }catch(e){
+        alert(e.message);
+      }
+    }
+
+    $("#card-stamp-btn").addEventListener("click", () => {
+      if(currentCardId) adminStamp(currentCardId);
+    });
+    $("#card-redeem-btn").addEventListener("click", () => {
+      if(currentCardId) adminRedeem(currentCardId);
+    });
+    $("#card-copy-btn").addEventListener("click", async () => {
+      if(!currentCardId) return;
+      try{
+        await navigator.clipboard.writeText(currentCardId);
+        cardMsg.textContent = 'ID copiado';
+      }catch{
+        cardMsg.textContent = 'No se pudo copiar';
+      }
+    });
+
+    /* ===== ESCÁNER QR ===== */
+    const scanDialog = $("#scanDialog");
+    const scanVideo  = $("#scan-video");
+    const scanStatus = $("#scan-status");
+    let scanStream = null;
+    let scanRaf = 0;
+
+    $("#btn-scan-card").addEventListener("click", async () => {
+      scanDialog.showModal();
+      await startScan();
+    });
+    $("#scan-close").addEventListener("click", () => {
+      stopScan();
+      scanDialog.close();
+    });
+
+    async function startScan(){
+      try{
+        stopScan();
+        scanStatus.textContent = "Abriendo cámara…";
+        scanStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
+        scanVideo.srcObject = scanStream;
+        await scanVideo.play();
+        scanStatus.textContent = "Apunta al QR de la tarjeta…";
+        if("BarcodeDetector" in window){
+          const detector = new BarcodeDetector({formats:['qr_code']});
+          const loop = async () => {
+            if(!scanStream) return;
+            try{
+              const codes = await detector.detect(scanVideo);
+              if(codes && codes[0]){
+                handleScan(codes[0].rawValue);
+                return;
+              }
+            }catch{}
+            scanRaf = requestAnimationFrame(loop);
+          };
+          loop();
+        }else{
+          scanStatus.textContent = "Tu navegador no soporta escaneo nativo de QR.";
+        }
+      }catch(e){
+        scanStatus.textContent = "No se pudo iniciar la cámara: " + (e.message || e);
+      }
+    }
+
+    function stopScan(){
+      cancelAnimationFrame(scanRaf);
+      if(scanStream){
+        scanStream.getTracks().forEach(t=>t.stop());
+        scanStream = null;
+      }
+    }
+
+    function extractCardId(text){
+      try{
+        const u = new URL(text);
+        const c = u.searchParams.get("card");
+        if(c) return c;
+      }catch{}
+      if(/^card_\d+/.test(text)) return text;
+      return null;
+    }
+
+    function handleScan(raw){
+      const cid = extractCardId(raw);
+      if(!cid){
+        scanStatus.textContent = "QR inválido.";
+        return;
+      }
+      stopScan();
+      scanDialog.close();
+      openCardDialog(cid);
+    }
+
+    /* ===== GIFT CARDS (como antes, QR imagen + texto) ===== */
+    window.currentGiftCard = null;
+
     document.getElementById('gift-form').addEventListener('submit', function(e) {
       e.preventDefault();
       
-      const clientName = document.getElementById('gift-name').value || 'Cliente';
-      const service = document.getElementById('gift-service').value;
+      const clientName = (document.getElementById('gift-name').value || '').trim() || 'Cliente';
+      const service = (document.getElementById('gift-service').value || '').trim();
       
       if (!service) {
         alert('Ingresa un servicio');
@@ -680,56 +971,59 @@
       const giftId = 'gift_' + Date.now();
       const expirationDate = new Date();
       expirationDate.setDate(expirationDate.getDate() + 30);
-      const formattedDate = expirationDate.toLocaleDateString('es-ES', {
-        day: 'numeric',
+      const formattedDate = expirationDate.toLocaleDateString('es-MX', {
+        day: '2-digit',
         month: 'short',
         year: 'numeric'
       });
       
       document.getElementById('gift-preview-title').textContent = service;
       document.getElementById('gift-preview-sub').textContent = `Para: ${clientName}`;
-      document.getElementById('gift-preview-exp').textContent = `Vigencia: ${formattedDate}`;
+      document.getElementById('gift-preview-exp').textContent = `Vigencia hasta: ${formattedDate}`;
       
-      const qrCanvas = document.getElementById('gift-qr');
-      const qrData = JSON.stringify({
-        id: giftId,
-        service: service,
-        client: clientName,
-        expires: expirationDate.toISOString()
-      });
+      // Payload tipo texto (como antes)
+      const payloadText =
+        `GIFT|codigo=${giftId}|servicio=${service}|cliente=${clientName}|vence=${expirationDate.toISOString().slice(0,10)}`;
       
-      QRCode.toCanvas(qrCanvas, qrData, {
-        width: 120,
-        margin: 1,
-        color: {
-          dark: '#000000',
-          light: '#FFFFFF'
-        }
-      });
+      const qrUrl =
+        'https://chart.googleapis.com/chart?cht=qr&chs=260x260&chld=M|0&chl=' +
+        encodeURIComponent(payloadText);
       
+      const qrImg = document.getElementById('gift-qr');
+      qrImg.src = qrUrl;
+      qrImg.alt = 'QR Gift Card';
+
       document.getElementById('gift-preview').classList.remove('hidden');
       document.getElementById('gift-actions').classList.remove('hidden');
       document.getElementById('gift-success').classList.remove('hidden');
       
       window.currentGiftCard = {
         id: giftId,
-        service: service,
+        service,
         client: clientName,
         expires: formattedDate,
-        qrData: qrData
+        payload: payloadText
       };
     });
 
     document.getElementById('gift-copy').addEventListener('click', function() {
       if (!window.currentGiftCard) return;
+      const gift = window.currentGiftCard;
+      const text =
+        `Gift Card Venus Cosmetología\n` +
+        `Servicio: ${gift.service}\n` +
+        `A nombre de: ${gift.client}\n` +
+        `Vigente hasta: ${gift.expires}\n` +
+        `Código: ${gift.id}`;
       
-      const giftUrl = `${window.location.origin}/gift/${window.currentGiftCard.id}`;
-      navigator.clipboard.writeText(giftUrl).then(() => {
+      navigator.clipboard.writeText(text).then(() => {
         const originalText = this.textContent;
-        this.textContent = '¡Copiado!';
+        this.textContent = 'Texto copiado ✅';
         setTimeout(() => {
           this.textContent = originalText;
         }, 2000);
+      }).catch(() => {
+        alert('No se pudo copiar el texto');
       });
     });
 
@@ -737,13 +1031,19 @@
       if (!window.currentGiftCard) return;
       
       const gift = window.currentGiftCard;
-      const message = `¡Hola ${gift.client}! 🎁\n\nTienes una Gift Card de Venus Cosmetología:\n\n✨ *${gift.service}*\n📅 Válida hasta: ${gift.expires}\n\n¡Te esperamos! 💚`;
+      const message =
+        `¡Hola ${gift.client}! 🎁\n\n` +
+        `Tienes una Gift Card de Venus Cosmetología:\n\n` +
+        `✨ ${gift.service}\n` +
+        `📅 Válida hasta: ${gift.expires}\n` +
+        `Código: ${gift.id}\n\n` +
+        `Muéstrame este mensaje en tu cita 💚`;
       
       const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
       window.open(whatsappUrl, '_blank');
     });
 
-    // PUSH NOTIFICATIONS
+    /* ===== PUSH NOTIFICATIONS ===== */
     const typeEmojis = {
       'promo': '🎁 Promoción',
       'reminder': '⏰ Recordatorio',
@@ -799,7 +1099,7 @@
         
         setTimeout(() => {
           document.getElementById('push-success').classList.add('hidden');
-}, 5000);
+        }, 5000);
         
       } catch (error) {
         console.error('Error:', error);
@@ -847,7 +1147,6 @@
       }
     });
 
-    // LOAD NOTIFICATIONS HISTORY
     async function loadNotificationsHistory() {
       try {
         const response = await fetch('/api/admin/notifications', {
@@ -888,20 +1187,14 @@
 
       } catch (error) {
         console.error('Error:', error);
-        document.getElementById('notifications-history').innerHTML = `<tr><td colspan="5" style="text-align:center;padding:12px;color:#fecaca;">Error cargando historial</td></tr>`;
+        document.getElementById('notifications-history').innerHTML =
+          `<tr><td colspan="5" style="text-align:center;padding:12px;color:#fecaca;">Error cargando historial</td></tr>`;
       }
     }
 
     document.getElementById('refresh-history').addEventListener('click', loadNotificationsHistory);
 
-    // LOGOUT
-    document.getElementById('logout').addEventListener('click', function() {
-      if (confirm('¿Cerrar sesión?')) {
-        window.location.href = '/admin-login.html';
-      }
-    });
-
-    // INIT
+    /* INIT */
     loadMetrics();
   </script>
 </body>
