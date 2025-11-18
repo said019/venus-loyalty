@@ -368,6 +368,64 @@
     dialog::backdrop{
       background:rgba(0,0,0,.6);
     }
+        /* ===== Modal tarjeta ===== */
+    .modal-backdrop{
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,.55);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      z-index:50;
+    }
+    .modal-backdrop.hidden{
+      display:none!important;
+    }
+    .modal-card{
+      background:#111827;
+      border-radius:24px;
+      border:1px solid rgba(255,255,255,.15);
+      padding:18px 20px 16px;
+      max-width:420px;
+      width:100%;
+      box-shadow:0 20px 60px rgba(0,0,0,.6);
+      color:#f9fafb;
+    }
+    .modal-header{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-bottom:10px;
+    }
+    .modal-header h3{
+      margin:0;
+      font-size:18px;
+    }
+    .modal-body p{
+      margin:4px 0;
+      font-size:14px;
+    }
+    .modal-body strong{
+      font-weight:600;
+    }
+    .modal-footer{
+      margin-top:14px;
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+    }
+    .qr-box{
+      margin-top:10px;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      min-height:150px;
+    }
+    .qr-box canvas{
+      background:#000;
+      border-radius:12px;
+      padding:6px;
+    }
   </style>
 </head>
 <body>
@@ -603,6 +661,32 @@
     </dialog>
 
     <footer class="footer">© Venus Cosmetología</footer>
+        <!-- Modal Tarjeta -->
+    <div id="card-modal-backdrop" class="modal-backdrop hidden">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3>Tarjeta</h3>
+          <button id="cm-close" class="btn small ghost">Cerrar</button>
+        </div>
+        <div class="modal-body">
+          <p><strong>ID:</strong> <code id="cm-id"></code></p>
+          <p><strong>Cliente:</strong> <span id="cm-name"></span></p>
+          <p><strong>Teléfono:</strong> <span id="cm-phone"></span></p>
+          <p><strong>Sellos:</strong> <span id="cm-stamps"></span></p>
+          <p><strong>Estado:</strong> <span id="cm-status"></span></p>
+          <div class="qr-box">
+            <canvas id="card-qr" width="170" height="170"></canvas>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="cm-stamp"   class="btn small primary">+1 sello</button>
+          <button id="cm-redeem"  class="btn small">Canjear</button>
+          <button id="cm-copy"    class="btn small">Copiar ID</button>
+          <button id="cm-open"    class="btn small ghost">Abrir cliente</button>
+          <button id="cm-notify"  class="btn small">Notificar solo esta tarjeta</button>
+        </div>
+      </div>
+    </div>
   </main>
 
   <!-- QRCode lib (puede quedar aunque ahora usemos Google Chart para Gift) -->
@@ -674,10 +758,12 @@
 
     /* ===== CARDS (Firestore + menú de acciones) ===== */
     let currentPage = 1;
+    let cardsCache = {};
+    let currentCardId = null;
     
-    async function loadCards(page = 1) {
+       async function loadCards(page = 1) {
       try {
-        const searchQuery = document.getElementById('search-cards').value || "";
+        const searchQuery = document.getElementById('search-cards').value;
         const url = `/api/admin/cards-firebase?page=${page}&q=${encodeURIComponent(searchQuery)}`;
         
         const response = await fetch(url, {
@@ -694,59 +780,34 @@
           return;
         }
 
+        // cache local
+        cardsCache = {};
+        data.items.forEach(c => { cardsCache[c.id] = c; });
+
         tbody.innerHTML = data.items.map(card => `
-          <tr>
+          <tr data-card-id="${card.id}">
             <td><code>${card.id}</code></td>
-            <td>${card.name}</td>
+            <td>${card.name || '—'}</td>
             <td>${card.phone || '—'}</td>
             <td>${card.stamps}</td>
             <td>${card.max}</td>
-            <td><span class="tag">${card.status || 'Activa'}</span></td>
+            <td><span class="tag">${card.status || 'active'}</span></td>
             <td>${card.created_at ? new Date(card.created_at).toLocaleDateString('es-ES') : '—'}</td>
             <td>
-              <div class="row">
-                <button class="btn small ghost btn-view" data-id="${card.id}">Ver</button>
-                <button class="btn small ghost btn-copy" data-id="${card.id}">Copiar ID</button>
-                <button class="btn small ghost btn-open" data-id="${card.id}">Abrir cliente</button>
-                <button class="btn small primary btn-stamp" data-id="${card.id}">+1 sello</button>
-                <button class="btn small ghost btn-redeem" data-id="${card.id}">Canjear</button>
-                <button class="btn small ghost btn-delete" data-id="${card.id}">Eliminar</button>
+              <div class="row" style="gap:4px;flex-wrap:wrap;">
+                <button class="btn small" data-action="view">Ver</button>
+                <button class="btn small" data-action="copy">Copiar ID</button>
+                <button class="btn small" data-action="open">Abrir cliente</button>
+                <button class="btn small" data-action="stamp">+1 sello</button>
+                <button class="btn small" data-action="redeem">Canjear</button>
+                <button class="btn small ghost" data-action="delete">Eliminar</button>
               </div>
             </td>
           </tr>
         `).join('');
 
-        // Enlazar acciones
-        tbody.querySelectorAll('.btn-view').forEach(b => {
-          b.addEventListener('click', () => openCardDialog(b.dataset.id));
-        });
-        tbody.querySelectorAll('.btn-copy').forEach(b => {
-          b.addEventListener('click', async () => {
-            try{
-              await navigator.clipboard.writeText(b.dataset.id);
-              alert('ID copiado');
-            }catch{
-              alert('No se pudo copiar');
-            }
-          });
-        });
-        tbody.querySelectorAll('.btn-open').forEach(b => {
-          b.addEventListener('click', () => {
-            const url = `/?card=${encodeURIComponent(b.dataset.id)}`;
-            window.open(url,'_blank');
-          });
-        });
-        tbody.querySelectorAll('.btn-stamp').forEach(b => {
-          b.addEventListener('click', () => adminStamp(b.dataset.id));
-        });
-        tbody.querySelectorAll('.btn-redeem').forEach(b => {
-          b.addEventListener('click', () => adminRedeem(b.dataset.id));
-        });
-        tbody.querySelectorAll('.btn-delete').forEach(b => {
-          b.addEventListener('click', () => adminDelete(b.dataset.id));
-        });
-
-        document.getElementById('page-info').textContent = `Página ${data.page} de ${data.totalPages} (${data.total} total)`;
+        document.getElementById('page-info').textContent =
+          `Página ${data.page} de ${data.totalPages} (${data.total} total)`;
         document.getElementById('btn-prev-page').disabled = data.page === 1;
         document.getElementById('btn-next-page').disabled = data.page === data.totalPages;
         currentPage = data.page;
@@ -771,6 +832,39 @@
       if (e.key === 'Enter') {
         e.preventDefault();
         loadCards(1);
+      }
+    });
+        // Acciones por tarjeta (tabla)
+    document.getElementById('cards-tbody').addEventListener('click', async (e) => {
+      const btn = e.target.closest('button[data-action]');
+      if (!btn) return;
+
+      const tr = btn.closest('tr[data-card-id]');
+      if (!tr) return;
+
+      const cardId = tr.dataset.cardId;
+      const card = cardsCache[cardId] || { id: cardId };
+      const action = btn.dataset.action;
+
+      switch (action) {
+        case 'view':
+          openCardModal(card);
+          break;
+        case 'copy':
+          await copyCardId(cardId);
+          break;
+        case 'open':
+          openClientPage(cardId);
+          break;
+        case 'stamp':
+          await stampCard(cardId);
+          break;
+        case 'redeem':
+          await redeemCard(cardId);
+          break;
+        case 'delete':
+          await deleteCard(cardId);
+          break;
       }
     });
 
@@ -1193,7 +1287,155 @@
     }
 
     document.getElementById('refresh-history').addEventListener('click', loadNotificationsHistory);
+    // ===== Modal Tarjeta =====
+    const modalBackdrop = document.getElementById('card-modal-backdrop');
+    const modalCloseBtn = document.getElementById('cm-close');
+    const modalId    = document.getElementById('cm-id');
+    const modalName  = document.getElementById('cm-name');
+    const modalPhone = document.getElementById('cm-phone');
+    const modalStamps= document.getElementById('cm-stamps');
+    const modalStatus= document.getElementById('cm-status');
+    const modalQrCanvas = document.getElementById('card-qr');
 
+    function openCardModal(card){
+      currentCardId = card.id;
+      modalId.textContent    = card.id;
+      modalName.textContent  = card.name || '—';
+      modalPhone.textContent = card.phone || '—';
+      modalStamps.textContent= `${card.stamps} / ${card.max}`;
+      modalStatus.textContent= card.status || 'active';
+
+      const url = `${window.location.origin}/?cardId=${encodeURIComponent(card.id)}`;
+      QRCode.toCanvas(modalQrCanvas, url, {
+        width: 160,
+        margin: 1,
+        color: { dark: '#000000', light: '#FFFFFF' }
+      }, (err) => { if (err) console.error('QR error', err); });
+
+      modalBackdrop.classList.remove('hidden');
+    }
+
+    function closeCardModal(){
+      modalBackdrop.classList.add('hidden');
+      currentCardId = null;
+    }
+
+    modalCloseBtn.addEventListener('click', closeCardModal);
+    modalBackdrop.addEventListener('click', (e)=>{
+      if (e.target === modalBackdrop) closeCardModal();
+    });
+    document.addEventListener('keydown', (e)=>{
+      if (e.key === 'Escape' && !modalBackdrop.classList.contains('hidden')){
+        closeCardModal();
+      }
+    });
+
+    // ===== Helpers acciones tarjeta =====
+    async function copyCardId(cardId){
+      try{
+        await navigator.clipboard.writeText(cardId);
+        alert('ID copiado al portapapeles');
+      }catch(e){
+        alert('No se pudo copiar el ID');
+      }
+    }
+
+    function openClientPage(cardId){
+      const url = `${window.location.origin}/?cardId=${encodeURIComponent(cardId)}`;
+      window.open(url, '_blank');
+    }
+
+    async function stampCard(cardId){
+      if (!confirm('¿Agregar 1 sello a esta tarjeta?')) return;
+      try{
+        const r = await fetch('/api/admin/stamp', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          credentials:'include',
+          body: JSON.stringify({ cardId })
+        });
+        const data = await r.json();
+        if (!r.ok || !data.ok){
+          throw new Error(data.error || 'No se pudo agregar sello');
+        }
+        await loadCards(currentPage);
+        if (currentCardId === cardId) {
+          const updated = cardsCache[cardId];
+          if (updated) openCardModal(updated);
+        }
+        alert('Sello agregado');
+      }catch(e){
+        alert('Error: ' + e.message);
+      }
+    }
+
+    async function redeemCard(cardId){
+      if (!confirm('¿Canjear esta tarjeta? Se reiniciarán los sellos.')) return;
+      try{
+        const r = await fetch('/api/admin/redeem', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          credentials:'include',
+          body: JSON.stringify({ cardId })
+        });
+        const data = await r.json();
+        if (!r.ok || !data.ok){
+          throw new Error(data.error || 'No se pudo canjear');
+        }
+        await loadCards(currentPage);
+        if (currentCardId === cardId) {
+          const updated = cardsCache[cardId];
+          if (updated) openCardModal(updated);
+        }
+        alert('Canje realizado');
+      }catch(e){
+        alert('Error: ' + e.message);
+      }
+    }
+
+    async function deleteCard(cardId){
+      if (!confirm('⚠️ Esto eliminará la tarjeta de la base de datos, eventos y Firestore. ¿Continuar?')) return;
+      try{
+        const r = await fetch(`/api/admin/card/${encodeURIComponent(cardId)}`, {
+          method:'DELETE',
+          credentials:'include'
+        });
+        const data = await r.json();
+        if (!r.ok || !data.ok){
+          throw new Error(data.error || 'No se pudo eliminar');
+        }
+        closeCardModal();
+        await loadCards(currentPage);
+        alert('Tarjeta eliminada');
+      }catch(e){
+        alert('Error: ' + e.message);
+      }
+    }
+
+    // Notificación solo a esta tarjeta
+    document.getElementById('cm-notify').addEventListener('click', async ()=>{
+      if (!currentCardId) return;
+      const title = prompt('Título de la notificación', 'Recordatorio Venus');
+      if (!title) return;
+      const message = prompt('Mensaje', 'Te recordamos que tienes sellos acumulados en tu tarjeta.');
+      if (!message) return;
+
+      try{
+        const r = await fetch('/api/admin/push-one', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          credentials:'include',
+          body: JSON.stringify({ cardId: currentCardId, title, message, type: 'personal' })
+        });
+        const data = await r.json();
+        if (!r.ok || !data.success){
+          throw new Error(data.error || 'No se pudo enviar la notificación');
+        }
+        alert('✅ Notificación enviada');
+      }catch(e){
+        alert('Error: ' + e.message);
+      }
+    });
     /* INIT */
     loadMetrics();
   </script>

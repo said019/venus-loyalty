@@ -1107,6 +1107,61 @@ app.post("/api/redeem/:cardId", basicAuth, async (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
+// Notificar a una sola tarjeta (push Google Wallet)
+app.post("/api/admin/push-one", adminAuth, async (req, res) => {
+  try {
+    const { cardId, title, message, type } = req.body || {};
+    if (!cardId || !title || !message) {
+      return res.status(400).json({ error: "missing_fields" });
+    }
+
+    const card = getCard.get(cardId);
+    if (!card) return res.status(404).json({ error: "card not found" });
+
+    const { getWalletAccessToken } = await import("./lib/google.js");
+    const token = await getWalletAccessToken();
+
+    const issuerId = process.env.GOOGLE_ISSUER_ID;
+    if (!issuerId) {
+      return res.status(500).json({ error: "missing_GOOGLE_ISSUER_ID" });
+    }
+
+    const objectId = `${issuerId}.${cardId}`;
+
+    const resp = await fetch(
+      `https://walletobjects.googleapis.com/walletobjects/v1/loyaltyObject/${encodeURIComponent(
+        objectId
+      )}/addMessage`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message: {
+            header: title,
+            body: message,
+            kind: "walletobjects#message",
+          },
+        }),
+      }
+    );
+
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok) {
+      console.error("[push-one error]", resp.status, data);
+      return res
+        .status(500)
+        .json({ error: "google_api_error", details: data });
+    }
+
+    res.json({ success: true, cardId, googleStatus: resp.status });
+  } catch (e) {
+    console.error("[push-one]", e);
+    res.status(500).json({ error: e.message });
+  }
+});
 
 /* =========================================================
    EXPORT CSV
@@ -1190,6 +1245,40 @@ app.post("/api/admin/card-delete", adminAuth, async (req, res) => {
   } catch (e) {
     console.error("[ADMIN CARD DELETE]", e);
     res.status(500).json({ error: "delete_error", detail: e.message });
+  }
+});
+// Eliminar tarjeta (SQLite + Firestore + eventos)
+app.delete("/api/admin/card/:cardId", adminAuth, async (req, res) => {
+  try {
+    const { cardId } = req.params;
+    if (!cardId) return res.status(400).json({ error: "missing_cardId" });
+
+    const card = getCard.get(cardId);
+    if (!card) return res.status(404).json({ error: "card not found" });
+
+    // 1) SQLite
+    db.prepare("DELETE FROM events WHERE card_id = ?").run(cardId);
+    db.prepare("DELETE FROM cards WHERE id = ?").run(cardId);
+
+    // 2) Firestore
+    try {
+      const cardDoc = firestore.collection("cards").doc(cardId);
+      await cardDoc.delete();
+
+      const evSnap = await firestore
+        .collection("events")
+        .where("cardId", "==", cardId)
+        .get();
+      const batch = firestore.batch();
+      evSnap.forEach((doc) => batch.delete(doc.ref));
+      await batch.commit();
+    } catch (e) {
+      console.error("[Firestore delete card]", e);
+    }
+
+    res.json({ ok: true, cardId });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
   }
 });
 /* =========================================================
