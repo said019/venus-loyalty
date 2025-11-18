@@ -10,7 +10,11 @@ import crypto from "crypto";
 import nodemailer from "nodemailer";
 import fs from "fs";
 import { firestore } from "./lib/firebase.js";
-
+import {
+  sendMassPushNotification,
+  sendTestPushNotification,
+  getNotifications,
+} from "./api/push.js";
 // Wallet helpers
 import {
   buildGoogleSaveUrl,
@@ -832,6 +836,18 @@ app.post("/api/stamp/:cardId", basicAuth, async (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
+/* =========================================================
+   PUSH NOTIFICATIONS (admin only)
+   ========================================================= */
+
+// Enviar notificación masiva
+app.post("/api/admin/push-notification", adminAuth, sendMassPushNotification);
+
+// Enviar notificación de prueba
+app.post("/api/admin/push-test", adminAuth, sendTestPushNotification);
+
+// Obtener historial de notificaciones
+app.get("/api/admin/notifications", adminAuth, getNotifications);
 
 /* =========================================================
    CANJEAR (staff)

@@ -550,21 +550,143 @@
       <h2>Configuración</h2>
       <p class="muted">Personaliza el comportamiento del sistema.</p>
       
-      <h3 style="margin-top:16px;">Variables de entorno</h3>
-      <ul class="muted" style="line-height:1.6;font-size:13px;">
-        <li><code>ADMIN_ALLOW_SIGNUP</code> - Habilita/deshabilita nuevos registros</li>
-        <li><code>STAFF_USER / STAFF_PASS</code> - Credenciales del personal (legacy)</li>
-        <li>Rutas admin: <code>/api/admin/stamp</code> y <code>/api/admin/redeem</code></li>
-      </ul>
+      <!-- Notificaciones Push a Wallets -->
+      <div style="background:rgba(140,150,104,0.1);border:1px solid rgba(140,150,104,0.3);border-radius:12px;padding:14px;margin:12px 0;">
+        <h3 style="margin:0 0 8px;">📲 Notificaciones Push a Wallets</h3>
+        <p class="muted" style="margin-bottom:12px;">Envía notificaciones instantáneas a todos los pases en Apple Wallet y Google Wallet.</p>
+        
+        <form id="push-notification-form">
+          <label>Título de la notificación</label>
+          <input id="push-title" placeholder="Ej. ¡Nueva promoción!" required maxlength="50">
+          <small class="muted">Máximo 50 caracteres</small>
+          
+          <label style="margin-top:10px;">Mensaje</label>
+          <textarea id="push-message" placeholder="Ej. Hoy tenemos 20% de descuento en todos los faciales. ¡Reserva ya!" required maxlength="200" rows="3"></textarea>
+          <small class="muted">Máximo 200 caracteres</small>
+          
+          <label style="margin-top:10px;">Tipo de notificación</label>
+          <select id="push-type">
+            <option value="promo">🎁 Promoción</option>
+            <option value="reminder">⏰ Recordatorio</option>
+            <option value="update">ℹ️ Actualización</option>
+            <option value="alert">⚠️ Alerta importante</option>
+          </select>
+          
+          <div style="margin-top:12px;padding:10px;background:rgba(255,255,255,0.05);border-radius:8px;">
+            <div class="row" style="justify-content:space-between;margin-bottom:8px;">
+              <span class="muted" style="font-size:12px;">Vista previa en Wallet:</span>
+              <span id="preview-type" style="font-size:12px;">🎁 Promoción</span>
+            </div>
+            <div style="background:rgba(255,255,255,0.1);border-radius:8px;padding:10px;">
+              <div id="preview-title" style="font-weight:600;margin-bottom:4px;">¡Nueva promoción!</div>
+              <div id="preview-message" class="muted" style="font-size:12px;">Tu mensaje aparecerá aquí...</div>
+            </div>
+          </div>
+          
+          <div class="row" style="margin-top:14px;gap:10px;">
+            <button type="submit" class="btn primary">Enviar a todos los pases</button>
+            <button type="button" id="test-push" class="btn ghost">Enviar prueba</button>
+          </div>
+        </form>
+        
+        <div id="push-success" class="success-message hidden" style="margin-top:12px;">
+          ✅ Notificación enviada exitosamente a <span id="push-count">0</span> pases
+        </div>
+        
+        <div id="push-error" class="hidden" style="background:rgba(254,202,202,0.1);border:1px solid rgba(153,27,27,0.3);border-radius:10px;padding:10px 12px;margin-top:12px;font-size:13px;color:#fecaca;">
+          ❌ Error al enviar notificación. Verifica la configuración de Apple/Google Wallet.
+        </div>
+      </div>
 
-      <h3 style="margin-top:16px;">Personalización</h3>
-      <label>Número de sellos por tarjeta</label>
-      <input type="number" value="10" min="1" max="20">
-      
-      <label>Mensaje de bienvenida</label>
-      <textarea placeholder="Bienvenido a Venus...">¡Bienvenido a Venus Cosmetología! Acumula sellos y obtén servicios gratis.</textarea>
-      
-      <button class="btn primary" style="margin-top:12px;">Guardar cambios</button>
+      <!-- Historial de notificaciones -->
+      <div style="margin-top:16px;">
+        <div class="row" style="justify-content:space-between;margin-bottom:8px;">
+          <h3 style="margin:0;">📋 Historial de notificaciones enviadas</h3>
+          <button id="refresh-history" class="btn small ghost">🔄 Actualizar</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Título</th>
+                <th>Tipo</th>
+                <th>Google Wallet</th>
+                <th>Apple Wallet</th>
+                <th>Errores</th>
+              </tr>
+            </thead>
+            <tbody id="notifications-history">
+              <tr>
+                <td colspan="6" style="text-align:center;padding:12px;" class="muted">Cargando historial...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Configuración de Wallets -->
+      <div style="margin-top:20px;padding-top:20px;border-top:1px solid var(--line);">
+        <h3 style="margin:0 0 8px;">⚙️ Configuración de Wallet APIs</h3>
+        <p class="muted" style="margin-bottom:12px;">Configura las credenciales para Apple Wallet y Google Wallet</p>
+        
+        <details style="margin-bottom:10px;">
+          <summary style="cursor:pointer;padding:8px;background:rgba(255,255,255,0.05);border-radius:8px;font-weight:500;">
+            🍎 Apple Wallet (PKPass)
+          </summary>
+          <div style="padding:12px 8px;">
+            <label>Team ID</label>
+            <input id="apple-team-id" placeholder="Ej. ABC123DEF4" type="text">
+            
+            <label>Pass Type ID</label>
+            <input id="apple-pass-type" placeholder="Ej. pass.com.venus.loyalty" type="text">
+            
+            <label>Certificate (.p12)</label>
+            <input type="file" accept=".p12">
+            <small class="muted">Certificado de firma de Apple Developer</small>
+            
+            <button class="btn ghost" style="margin-top:10px;">Guardar configuración Apple</button>
+          </div>
+        </details>
+        
+        <details>
+          <summary style="cursor:pointer;padding:8px;background:rgba(255,255,255,0.05);border-radius:8px;font-weight:500;">
+            🤖 Google Wallet
+          </summary>
+          <div style="padding:12px 8px;">
+            <label>Issuer ID</label>
+            <input id="google-issuer-id" placeholder="Ej. 3388000000012345678" type="text">
+            
+            <label>Service Account JSON</label>
+            <input type="file" accept=".json">
+            <small class="muted">Credenciales de Google Cloud Console</small>
+            
+            <label style="margin-top:10px;">Class ID</label>
+            <input id="google-class-id" placeholder="Ej. venus_loyalty_card" type="text">
+            
+            <button class="btn ghost" style="margin-top:10px;">Guardar configuración Google</button>
+          </div>
+        </details>
+      </div>
+
+      <!-- Otras configuraciones -->
+      <div style="margin-top:20px;padding-top:20px;border-top:1px solid var(--line);">
+        <h3>Variables de entorno</h3>
+        <ul class="muted" style="line-height:1.6;font-size:13px;">
+          <li><code>ADMIN_ALLOW_SIGNUP</code> - Habilita/deshabilita nuevos registros</li>
+          <li><code>STAFF_USER / STAFF_PASS</code> - Credenciales del personal (legacy)</li>
+          <li>Rutas admin: <code>/api/admin/stamp</code> y <code>/api/admin/redeem</code></li>
+        </ul>
+
+        <h3 style="margin-top:16px;">Personalización</h3>
+        <label>Número de sellos por tarjeta</label>
+        <input type="number" value="10" min="1" max="20">
+        
+        <label>Mensaje de bienvenida</label>
+        <textarea placeholder="Bienvenido a Venus...">¡Bienvenido a Venus Cosmetología! Acumula sellos y obtén servicios gratis.</textarea>
+        
+        <button class="btn primary" style="margin-top:12px;">Guardar cambios</button>
+      </div>
     </section>
 
     <footer class="footer">© Venus Cosmetología — Panel de administración</footer>
@@ -712,6 +834,167 @@
           <td>${new Date().toLocaleDateString()}</td>
         </tr>
       `;
+    });
+
+    // ========== PUSH NOTIFICATIONS ==========
+    // Preview update in real-time
+    const pushTitle = document.getElementById('push-title');
+    const pushMessage = document.getElementById('push-message');
+    const pushType = document.getElementById('push-type');
+    const previewTitle = document.getElementById('preview-title');
+    const previewMessage = document.getElementById('preview-message');
+    const previewType = document.getElementById('preview-type');
+
+    const typeEmojis = {
+      'promo': '🎁 Promoción',
+      'reminder': '⏰ Recordatorio',
+      'update': 'ℹ️ Actualización',
+      'alert': '⚠️ Alerta importante'
+    };
+
+    pushTitle.addEventListener('input', function() {
+      previewTitle.textContent = this.value || '¡Nueva promoción!';
+    });
+
+    pushMessage.addEventListener('input', function() {
+      previewMessage.textContent = this.value || 'Tu mensaje aparecerá aquí...';
+    });
+
+    pushType.addEventListener('change', function() {
+      previewType.textContent = typeEmojis[this.value];
+    });
+
+    // Send push notification
+    document.getElementById('push-notification-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const title = document.getElementById('push-title').value;
+      const message = document.getElementById('push-message').value;
+      const type = document.getElementById('push-type').value;
+      
+      if (!title || !message) {
+        alert('Por favor completa todos los campos');
+        return;
+      }
+
+      // Show loading state
+      const submitBtn = this.querySelector('button[type="submit"]');
+      const originalText = submitBtn.textContent;
+      submitBtn.textContent = 'Enviando...';
+      submitBtn.disabled = true;
+
+      try {
+        // Llamar a tu API real
+        const response = await fetch('/api/admin/push-notification', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('adminToken') || ''}`
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            title: title,
+            message: message,
+            type: type
+          })
+        });
+        
+        if (!response.ok) {
+          throw new Error('Error en la respuesta del servidor');
+        }
+        
+        const data = await response.json();
+        
+        if (!data.success) {
+          throw new Error(data.error || 'Error desconocido');
+        }
+        
+        // Show success message
+        const passCount = data.passCount || 0;
+        document.getElementById('push-count').textContent = passCount;
+        document.getElementById('push-success').classList.remove('hidden');
+        document.getElementById('push-error').classList.add('hidden');
+        
+        // Add to history table
+        const historyTable = document.getElementById('notifications-history');
+        const now = new Date();
+        const dateStr = now.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }) + 
+                       ', ' + now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+        
+        const newRow = document.createElement('tr');
+        newRow.innerHTML = `
+          <td>${dateStr}</td>
+          <td>${title}</td>
+          <td>${typeEmojis[type]}</td>
+          <td>${passCount}</td>
+          <td><span class="tag">Enviada</span></td>
+        `;
+        historyTable.insertBefore(newRow, historyTable.firstChild);
+        
+        // Reset form
+        this.reset();
+        previewTitle.textContent = '¡Nueva promoción!';
+        previewMessage.textContent = 'Tu mensaje aparecerá aquí...';
+        previewType.textContent = '🎁 Promoción';
+        
+        // Hide success message after 5 seconds
+        setTimeout(() => {
+          document.getElementById('push-success').classList.add('hidden');
+        }, 5000);
+        
+      } catch (error) {
+        console.error('Error sending notification:', error);
+        document.getElementById('push-error').classList.remove('hidden');
+        document.getElementById('push-success').classList.add('hidden');
+      } finally {
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
+      }
+    });
+
+    // Test push notification (single device)
+    document.getElementById('test-push').addEventListener('click', async function() {
+      const title = document.getElementById('push-title').value;
+      const message = document.getElementById('push-message').value;
+      
+      if (!title || !message) {
+        alert('Por favor completa el título y mensaje primero');
+        return;
+      }
+
+      const originalText = this.textContent;
+      this.textContent = 'Enviando prueba...';
+      this.disabled = true;
+
+      try {
+        // Llamar a API de prueba
+        const response = await fetch('/api/admin/push-test', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('adminToken') || ''}`
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            title: title,
+            message: message,
+            type: type
+          })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          alert(`✅ Notificación de prueba enviada a la tarjeta: ${data.cardId}`);
+        } else {
+          throw new Error(data.error || 'Error enviando prueba');
+        }
+      } catch (error) {
+        alert('❌ Error al enviar prueba');
+      } finally {
+        this.textContent = originalText;
+        this.disabled = false;
+      }
     });
 
     // ========== LOGOUT ==========
