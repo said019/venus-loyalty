@@ -539,7 +539,7 @@
             <div style="font-size:13px;margin-top:8px;">Presenta este código en tu visita</div>
           </div>
           <div class="gift-preview-qr">
-            <img id="gift-qr" class="gift-qr" alt="QR Gift Card">
+            <canvas id="gift-qr" class="gift-qr"></canvas>
             <small style="font-size:10px;">Código QR</small>
           </div>
         </div>
@@ -632,9 +632,6 @@
       </div>
     </section>
 
-    <!-- DIALOG: Detalle tarjeta -->
- 
-
     <!-- DIALOG: Escáner QR -->
     <dialog id="scanDialog">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
@@ -674,7 +671,7 @@
     </div>
   </main>
 
-  <!-- QRCode lib (puede quedar aunque ahora usemos Google Chart para Gift) -->
+  <!-- QRCode lib -->
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
   
   <script>
@@ -746,7 +743,7 @@
     let cardsCache = {};
     let currentCardId = null;
     
-       async function loadCards(page = 1) {
+    async function loadCards(page = 1) {
       try {
         const searchQuery = document.getElementById('search-cards').value;
         const url = `/api/admin/cards-firebase?page=${page}&q=${encodeURIComponent(searchQuery)}`;
@@ -819,7 +816,8 @@
         loadCards(1);
       }
     });
-        // Acciones por tarjeta (tabla)
+
+    // Acciones por tarjeta (tabla)
     document.getElementById('cards-tbody').addEventListener('click', async (e) => {
       const btn = e.target.closest('button[data-action]');
       if (!btn) return;
@@ -852,8 +850,6 @@
           break;
       }
     });
-
-  
 
     /* ===== ESCÁNER QR ===== */
     const scanDialog = $("#scanDialog");
@@ -912,55 +908,55 @@
     }
 
     function extractCardId(text){
-  try{
-    const u = new URL(text);
-    // Primero intenta ?cardId=...
-    let c = u.searchParams.get("cardId");
-    if (c) return c;
-    // Compatibilidad por si algún QR viejo usa ?card=...
-    c = u.searchParams.get("card");
-    if (c) return c;
-  }catch{}
-  // Si el QR trae solo "card_123..."
-  if(/^card_\d+/.test(text)) return text;
-  return null;
-}
+      try{
+        const u = new URL(text);
+        // Primero intenta ?cardId=...
+        let c = u.searchParams.get("cardId");
+        if (c) return c;
+        // Compatibilidad por si algún QR viejo usa ?card=...
+        c = u.searchParams.get("card");
+        if (c) return c;
+      }catch{}
+      // Si el QR trae solo "card_123..."
+      if(/^card_\d+/.test(text)) return text;
+      return null;
+    }
 
     async function handleScan(raw){
-  const cid = extractCardId(raw);
-  if (!cid) {
-    scanStatus.textContent = "QR inválido.";
-    return;
-  }
-
-  stopScan();
-  scanDialog.close();
-
-  let card = cardsCache[cid];
-
-  // Si no está en la página actual, intenta cargarla del backend
-  if (!card) {
-    try {
-      const r = await fetch('/api/card/' + encodeURIComponent(cid), {
-        credentials: 'include'
-      });
-      if (r.ok) {
-        card = await r.json();
+      const cid = extractCardId(raw);
+      if (!cid) {
+        scanStatus.textContent = "QR inválido.";
+        return;
       }
-    } catch (e) {
-      console.error('Error buscando tarjeta por ID', e);
+
+      stopScan();
+      scanDialog.close();
+
+      let card = cardsCache[cid];
+
+      // Si no está en la página actual, intenta cargarla del backend
+      if (!card) {
+        try {
+          const r = await fetch('/api/card/' + encodeURIComponent(cid), {
+            credentials: 'include'
+          });
+          if (r.ok) {
+            card = await r.json();
+          }
+        } catch (e) {
+          console.error('Error buscando tarjeta por ID', e);
+        }
+      }
+
+      if (!card) {
+        alert('Tarjeta no encontrada');
+        return;
+      }
+
+      openCardModal(card);
     }
-  }
 
-  if (!card) {
-    alert('Tarjeta no encontrada');
-    return;
-  }
-
-  openCardModal(card);
-}
-
-    /* ===== GIFT CARDS (como antes, QR imagen + texto) ===== */
+    /* ===== GIFT CARDS (QR local con librería) ===== */
     window.currentGiftCard = null;
 
     document.getElementById('gift-form').addEventListener('submit', function(e) {
@@ -987,17 +983,23 @@
       document.getElementById('gift-preview-sub').textContent = `Para: ${clientName}`;
       document.getElementById('gift-preview-exp').textContent = `Vigencia hasta: ${formattedDate}`;
       
-      // Payload tipo texto (como antes)
+      // Payload tipo texto
       const payloadText =
         `GIFT|codigo=${giftId}|servicio=${service}|cliente=${clientName}|vence=${expirationDate.toISOString().slice(0,10)}`;
       
-      const qrUrl =
-        'https://chart.googleapis.com/chart?cht=qr&chs=260x260&chld=M|0&chl=' +
-        encodeURIComponent(payloadText);
-      
-      const qrImg = document.getElementById('gift-qr');
-      qrImg.src = qrUrl;
-      qrImg.alt = 'QR Gift Card';
+      const giftCanvas = document.getElementById('gift-qr');
+
+      if (window.QRCode && giftCanvas) {
+        QRCode.toCanvas(giftCanvas, payloadText, {
+          width: 220,
+          margin: 1,
+          color: { dark: '#000000', light: '#ffffff' }
+        }, (err) => {
+          if (err) console.error('QR gift error', err);
+        });
+      } else {
+        console.warn('QRCode no disponible, no se pudo generar el QR de la gift card');
+      }
 
       document.getElementById('gift-preview').classList.remove('hidden');
       document.getElementById('gift-actions').classList.remove('hidden');
@@ -1199,6 +1201,7 @@
     }
 
     document.getElementById('refresh-history').addEventListener('click', loadNotificationsHistory);
+
     // ===== Modal Tarjeta =====
     const modalBackdrop = document.getElementById('card-modal-backdrop');
     const modalCloseBtn = document.getElementById('cm-close');
@@ -1217,14 +1220,24 @@
       modalStamps.textContent= `${card.stamps} / ${card.max}`;
       modalStatus.textContent= card.status || 'active';
 
-      const url = `${window.location.origin}/?cardId=${encodeURIComponent(card.id)}`;
-      QRCode.toCanvas(modalQrCanvas, url, {
-        width: 160,
-        margin: 1,
-        color: { dark: '#000000', light: '#FFFFFF' }
-      }, (err) => { if (err) console.error('QR error', err); });
-
+      // Mostrar modal SIEMPRE
       modalBackdrop.classList.remove('hidden');
+
+      // URL que meteremos en el QR
+      const url = `${window.location.origin}/?cardId=${encodeURIComponent(card.id)}`;
+
+      // Generar QR solo si la librería está disponible
+      if (window.QRCode && modalQrCanvas) {
+        QRCode.toCanvas(modalQrCanvas, url, {
+          width: 160,
+          margin: 1,
+          color: { dark: '#000000', light: '#ffffff' }
+        }, (err) => {
+          if (err) console.error('QR error', err);
+        });
+      } else {
+        console.warn('QRCode no disponible, no se pudo generar el QR de la tarjeta');
+      }
     }
 
     function closeCardModal(){
@@ -1348,6 +1361,7 @@
         alert('Error: ' + e.message);
       }
     });
+
     /* INIT */
     loadMetrics();
   </script>
