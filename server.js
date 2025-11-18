@@ -9,7 +9,7 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import nodemailer from "nodemailer";
 import fs from "fs";
-import { firestore, FieldValue } from "./lib/firebase.js";
+import { firestore } from "./lib/firebase.js";
 
 // Wallet helpers
 import {
