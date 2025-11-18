@@ -47,6 +47,30 @@ import {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+/* =========================================================
+   MIGRACIÓN DE BASE DE DATOS - AGREGAR COLUMNA PHONE
+   ========================================================= */
+function runMigrations() {
+  try {
+    // Verificar si la columna phone existe en cards
+    const tableInfo = db.prepare("PRAGMA table_info(cards)").all();
+    const hasPhoneColumn = tableInfo.some(column => column.name === 'phone');
+    
+    if (!hasPhoneColumn) {
+      console.log('[DB MIGRATION] Agregando columna phone a tabla cards...');
+      db.exec("ALTER TABLE cards ADD COLUMN phone TEXT");
+      console.log('[DB MIGRATION] Columna phone agregada exitosamente');
+    } else {
+      console.log('[DB MIGRATION] Columna phone ya existe en tabla cards');
+    }
+  } catch (error) {
+    console.error('[DB MIGRATION ERROR]', error);
+  }
+}
+
+// Ejecutar migraciones al inicio
+runMigrations();
+
 // 👇 Prepara statements para eliminación
 const deleteCardStmt = db.prepare("DELETE FROM cards WHERE id = ?");
 const deleteEventsByCardStmt = db.prepare("DELETE FROM events WHERE card_id = ?");

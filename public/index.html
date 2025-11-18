@@ -33,6 +33,7 @@
       position: relative;
       overflow: hidden;
       text-align: center;
+      box-sizing: border-box;
     }
 
     .card::before {
@@ -117,6 +118,7 @@
       max-width: 270px;
       font-family: inherit;
       font-size: 1rem;
+      box-sizing: border-box;
     }
 
     .btn:hover {
@@ -139,7 +141,7 @@
     }
 
     .btn--apple::before {
-      content: "";
+      content: "";
       font-size: 1.4rem;
     }
 
@@ -150,6 +152,8 @@
       justify-content: center;
       gap: 10px;
       margin-top: 1.5rem;
+      width: 100%;
+      padding: 0;
     }
 
     details.qr {
@@ -158,6 +162,8 @@
       padding: 0.75rem;
       margin-top: 1rem;
       color: #fff;
+      width: 100%;
+      box-sizing: border-box;
     }
 
     summary {
@@ -178,6 +184,9 @@
       gap: 8px;
       justify-items: center;
       margin-top: 1rem;
+      width: 100%;
+      padding: 0 10px;
+      box-sizing: border-box;
     }
 
     .grid div {
@@ -206,8 +215,39 @@
     }
 
     @media (max-width: 480px) {
-      .btn { max-width: 100%; }
-      input { font-size: 0.95rem; }
+      .container {
+        padding: 0.5rem;
+        margin: 1rem auto;
+      }
+      
+      .card {
+        padding: 1.5rem;
+      }
+      
+      .btn { 
+        max-width: 100%;
+        width: 100%;
+      }
+      
+      .cta-row {
+        padding: 0;
+        gap: 12px;
+      }
+      
+      input { 
+        font-size: 0.95rem; 
+      }
+      
+      .grid {
+        gap: 6px;
+        padding: 0;
+      }
+      
+      .grid div {
+        width: 32px;
+        height: 32px;
+        font-size: 0.85rem;
+      }
     }
 
     .hidden { display: none; }
