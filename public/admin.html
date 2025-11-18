@@ -35,7 +35,6 @@
       width:100%;
     }
 
-    /* Topbar */
     .topbar{
       display:flex;
       justify-content:space-between;
@@ -67,7 +66,6 @@
       flex-wrap:wrap;
     }
 
-    /* Botones */
     .btn{
       display:inline-flex;
       align-items:center;
@@ -103,7 +101,6 @@
       font-size:12px;
     }
 
-    /* Nav tabs */
     .nav{
       display:flex;
       gap:6px;
@@ -128,7 +125,6 @@
       box-shadow:0 4px 14px rgba(0,0,0,.1);
     }
 
-    /* Cards base */
     .card{
       background:rgba(255,255,255,.08);
       border-radius:var(--radius);
@@ -165,7 +161,6 @@
       color:var(--ink);
     }
 
-    /* KPIs */
     .grid-3-kpi{
       display:grid;
       grid-template-columns:repeat(3,minmax(0,1fr));
@@ -230,7 +225,6 @@
 
     .hidden{display:none!important;}
 
-    /* Tabla responsive */
     .table-wrap{
       width:100%;
       overflow-x:auto;
@@ -269,18 +263,6 @@
       font-size:11px;
     }
 
-    /* Gift card layout */
-    .gift-layout{
-      display:grid;
-      grid-template-columns:1.1fr .9fr;
-      gap:12px;
-      margin-top:6px;
-    }
-    @media (max-width:880px){
-      .gift-layout{grid-template-columns:1fr;}
-    }
-    
-    /* Gift Card Preview */
     .gift-preview{
       border-radius:16px;
       padding:18px;
@@ -347,7 +329,6 @@
       margin-top:6px;
     }
     
-    /* Gift Card Actions */
     .gift-actions{
       display:flex;
       gap:8px;
@@ -355,7 +336,6 @@
       flex-wrap:wrap;
     }
     
-    /* Footer */
     .footer{
       margin-top:auto;
       text-align:center;
@@ -364,7 +344,6 @@
       color:var(--muted);
     }
     
-    /* Success Message */
     .success-message{
       background:rgba(187, 247, 208, 0.1);
       border:1px solid rgba(34, 197, 94, 0.3);
@@ -378,7 +357,6 @@
 </head>
 <body>
   <main class="wrap">
-    <!-- Topbar -->
     <header class="topbar">
       <div class="brand">
         <img src="/assets/logo.png" alt="Venus">
@@ -393,11 +371,10 @@
       </div>
     </header>
 
-    <!-- Tabs -->
     <nav class="nav">
       <a href="#overview" data-tab="overview" class="is-active">Resumen</a>
       <a href="#cards" data-tab="cards">Tarjetas</a>
-      <a href="#events" data-tab="events">Eventos & Gift cards</a>
+      <a href="#events" data-tab="events">Gift Cards</a>
       <a href="#settings" data-tab="settings">Configuración</a>
     </nav>
 
@@ -459,7 +436,7 @@
       </div>
     </section>
 
-    <!-- TAB: Events + Gift Cards -->
+    <!-- TAB: Gift Cards -->
     <section id="tab-events" class="card hidden">
       <h2>Crear Gift Card</h2>
       <p class="muted">Genera una tarjeta de regalo digital con vigencia de 30 días. Podrás compartir el QR por WhatsApp o imprimirla.</p>
@@ -474,7 +451,6 @@
         <button type="submit" class="btn primary" style="margin-top:10px;">Generar Gift Card</button>
       </form>
 
-      <!-- Gift Card Preview -->
       <div id="gift-preview" class="gift-preview hidden">
         <div>
           <small>Venus Cosmetología</small>
@@ -506,12 +482,10 @@
     <!-- TAB: Settings -->
     <section id="tab-settings" class="card hidden">
       <h2>Configuración</h2>
-      <p class="muted">Personaliza el comportamiento del sistema.</p>
+      <p class="muted">Envía notificaciones push a todos los pases en Google Wallet.</p>
       
-      <!-- Notificaciones Push a Wallets -->
       <div style="background:rgba(140,150,104,0.1);border:1px solid rgba(140,150,104,0.3);border-radius:12px;padding:14px;margin:12px 0;">
-        <h3 style="margin:0 0 8px;">📲 Notificaciones Push a Wallets</h3>
-        <p class="muted" style="margin-bottom:12px;">Envía notificaciones instantáneas a todos los pases en Apple Wallet y Google Wallet.</p>
+        <h3 style="margin:0 0 8px;">📲 Notificaciones Push</h3>
         
         <form id="push-notification-form">
           <label>Título de la notificación</label>
@@ -519,20 +493,20 @@
           <small class="muted">Máximo 50 caracteres</small>
           
           <label style="margin-top:10px;">Mensaje</label>
-          <textarea id="push-message" placeholder="Ej. Hoy tenemos 20% de descuento en todos los faciales. ¡Reserva ya!" required maxlength="200" rows="3"></textarea>
+          <textarea id="push-message" placeholder="Ej. Hoy tenemos 20% de descuento..." required maxlength="200" rows="3"></textarea>
           <small class="muted">Máximo 200 caracteres</small>
           
-          <label style="margin-top:10px;">Tipo de notificación</label>
+          <label style="margin-top:10px;">Tipo</label>
           <select id="push-type">
             <option value="promo">🎁 Promoción</option>
             <option value="reminder">⏰ Recordatorio</option>
             <option value="update">ℹ️ Actualización</option>
-            <option value="alert">⚠️ Alerta importante</option>
+            <option value="alert">⚠️ Alerta</option>
           </select>
           
           <div style="margin-top:12px;padding:10px;background:rgba(255,255,255,0.05);border-radius:8px;">
             <div class="row" style="justify-content:space-between;margin-bottom:8px;">
-              <span class="muted" style="font-size:12px;">Vista previa en Wallet:</span>
+              <span class="muted" style="font-size:12px;">Vista previa:</span>
               <span id="preview-type" style="font-size:12px;">🎁 Promoción</span>
             </div>
             <div style="background:rgba(255,255,255,0.1);border-radius:8px;padding:10px;">
@@ -542,25 +516,24 @@
           </div>
           
           <div class="row" style="margin-top:14px;gap:10px;">
-            <button type="submit" class="btn primary">Enviar a todos los pases</button>
+            <button type="submit" class="btn primary">Enviar a todos</button>
             <button type="button" id="test-push" class="btn ghost">Enviar prueba</button>
           </div>
         </form>
         
         <div id="push-success" class="success-message hidden" style="margin-top:12px;">
-          ✅ Notificación enviada exitosamente a <span id="push-count">0</span> pases
+          ✅ Notificación enviada a <span id="push-count">0</span> pases
         </div>
         
         <div id="push-error" class="hidden" style="background:rgba(254,202,202,0.1);border:1px solid rgba(153,27,27,0.3);border-radius:10px;padding:10px 12px;margin-top:12px;font-size:13px;color:#fecaca;">
-          ❌ Error al enviar notificación. Verifica la configuración de Apple/Google Wallet.
+          ❌ Error al enviar notificación
         </div>
       </div>
 
-      <!-- Historial de notificaciones -->
       <div style="margin-top:16px;">
         <div class="row" style="justify-content:space-between;margin-bottom:8px;">
-          <h3 style="margin:0;">📋 Historial de notificaciones enviadas</h3>
-          <button id="refresh-history" class="btn small ghost">🔄 Actualizar</button>
+          <h3 style="margin:0;">📋 Historial</h3>
+          <button id="refresh-history" class="btn small ghost">🔄</button>
         </div>
         <div class="table-wrap">
           <table>
@@ -575,111 +548,121 @@
             </thead>
             <tbody id="notifications-history">
               <tr>
-                <td colspan="5" style="text-align:center;padding:12px;" class="muted">Cargando historial...</td>
+                <td colspan="5" style="text-align:center;padding:12px;" class="muted">Cargando...</td>
               </tr>
             </tbody>
           </table>
         </div>
       </div>
-
-      <!-- Configuración de Wallets -->
-      <div style="margin-top:20px;padding-top:20px;border-top:1px solid var(--line);">
-        <h3 style="margin:0 0 8px;">⚙️ Configuración de Wallet APIs</h3>
-        <p class="muted" style="margin-bottom:12px;">Configura las credenciales para Apple Wallet y Google Wallet</p>
-        
-        <details style="margin-bottom:10px;">
-          <summary style="cursor:pointer;padding:8px;background:rgba(255,255,255,0.05);border-radius:8px;font-weight:500;">
-            🍎 Apple Wallet (PKPass)
-          </summary>
-          <div style="padding:12px 8px;">
-            <label>Team ID</label>
-            <input id="apple-team-id" placeholder="Ej. ABC123DEF4" type="text">
-            
-            <label>Pass Type ID</label>
-            <input id="apple-pass-type" placeholder="Ej. pass.com.venus.loyalty" type="text">
-            
-            <label>Certificate (.p12)</label>
-            <input type="file" accept=".p12">
-            <small class="muted">Certificado de firma de Apple Developer</small>
-            
-            <button class="btn ghost" style="margin-top:10px;">Guardar configuración Apple</button>
-          </div>
-        </details>
-        
-        <details>
-          <summary style="cursor:pointer;padding:8px;background:rgba(255,255,255,0.05);border-radius:8px;font-weight:500;">
-            🤖 Google Wallet
-          </summary>
-          <div style="padding:12px 8px;">
-            <label>Issuer ID</label>
-            <input id="google-issuer-id" placeholder="Ej. 3388000000012345678" type="text">
-            
-            <label>Service Account JSON</label>
-            <input type="file" accept=".json">
-            <small class="muted">Credenciales de Google Cloud Console</small>
-            
-            <label style="margin-top:10px;">Class ID</label>
-            <input id="google-class-id" placeholder="Ej. venus_loyalty_card" type="text">
-            
-            <button class="btn ghost" style="margin-top:10px;">Guardar configuración Google</button>
-          </div>
-        </details>
-      </div>
-
-      <!-- Otras configuraciones -->
-      <div style="margin-top:20px;padding-top:20px;border-top:1px solid var(--line);">
-        <h3>Variables de entorno</h3>
-        <ul class="muted" style="line-height:1.6;font-size:13px;">
-          <li><code>ADMIN_ALLOW_SIGNUP</code> - Habilita/deshabilita nuevos registros</li>
-          <li><code>STAFF_USER / STAFF_PASS</code> - Credenciales del personal (legacy)</li>
-          <li>Rutas admin: <code>/api/admin/stamp</code> y <code>/api/admin/redeem</code></li>
-        </ul>
-
-        <h3 style="margin-top:16px;">Personalización</h3>
-        <label>Número de sellos por tarjeta</label>
-        <input type="number" value="10" min="1" max="20">
-        
-        <label>Mensaje de bienvenida</label>
-        <textarea placeholder="Bienvenido a Venus...">¡Bienvenido a Venus Cosmetología! Acumula sellos y obtén servicios gratis.</textarea>
-        
-        <button class="btn primary" style="margin-top:12px;">Guardar cambios</button>
-      </div>
     </section>
 
-    <footer class="footer">© Venus Cosmetología — Panel de administración</footer>
+    <footer class="footer">© Venus Cosmetología</footer>
   </main>
 
-  <!-- QR Code Library -->
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
   
   <script>
-    // ========== TAB NAVIGATION ==========
-    const tabs = document.querySelectorAll('[data-tab]');
-    const sections = document.querySelectorAll('[id^="tab-"]');
-
-    tabs.forEach(tab => {
+    // TAB NAVIGATION
+    document.querySelectorAll('[data-tab]').forEach(tab => {
       tab.addEventListener('click', function(e) {
         e.preventDefault();
         
-        // Remove active class from all tabs
-        tabs.forEach(t => t.classList.remove('is-active'));
-        
-        // Add active class to clicked tab
+        document.querySelectorAll('.nav a').forEach(a => a.classList.remove('is-active'));
         this.classList.add('is-active');
         
-        // Hide all sections
-        sections.forEach(s => s.classList.add('hidden'));
+        document.querySelectorAll('[id^="tab-"]').forEach(s => s.classList.add('hidden'));
         
-        // Show the selected section
         const targetId = 'tab-' + this.getAttribute('data-tab');
         const targetSection = document.getElementById(targetId);
         if (targetSection) {
           targetSection.classList.remove('hidden');
         }
+        
+        // Cargar datos según pestaña
+        const tabName = this.getAttribute('data-tab');
+        if (tabName === 'overview') {
+          loadMetrics();
+        } else if (tabName === 'cards') {
+          loadCards(1);
+        } else if (tabName === 'settings') {
+          loadNotificationsHistory();
+        }
       });
     });
 
-    // ========== GIFT CARD GENERATION ==========
+    // LOAD METRICS
+    async function loadMetrics() {
+      try {
+        const response = await fetch('/api/admin/metrics-firebase', {
+          credentials: 'include'
+        });
+        const data = await response.json();
+        document.getElementById('kpi-total').textContent = data.total || 0;
+        document.getElementById('kpi-full').textContent = data.full || 0;
+        document.getElementById('kpi-stamps').textContent = data.stampsToday || 0;
+      } catch (error) {
+        console.error('Error:', error);
+      }
+    }
+
+    // LOAD CARDS
+    let currentPage = 1;
+    
+    async function loadCards(page = 1) {
+      try {
+        const searchQuery = document.getElementById('search-cards').value;
+        const url = `/api/admin/cards-firebase?page=${page}&q=${encodeURIComponent(searchQuery)}`;
+        
+        const response = await fetch(url, {
+          credentials: 'include'
+        });
+
+        if (!response.ok) throw new Error('Error ' + response.status);
+
+        const data = await response.json();
+        const tbody = document.getElementById('cards-tbody');
+
+        if (!data.items || data.items.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:12px;" class="muted">No hay tarjetas</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = data.items.map(card => `
+          <tr>
+            <td><code>${card.id}</code></td>
+            <td>${card.name}</td>
+            <td>${card.stamps}</td>
+            <td>${card.max}</td>
+            <td><span class="tag">Activa</span></td>
+            <td>${new Date(card.created_at).toLocaleDateString('es-ES')}</td>
+          </tr>
+        `).join('');
+
+        document.getElementById('page-info').textContent = `Página ${data.page} de ${data.totalPages} (${data.total} total)`;
+        document.getElementById('btn-prev-page').disabled = data.page === 1;
+        document.getElementById('btn-next-page').disabled = data.page === data.totalPages;
+        currentPage = data.page;
+      } catch (error) {
+        console.error('Error:', error);
+        document.getElementById('cards-tbody').innerHTML = `<tr><td colspan="6" style="text-align:center;padding:12px;color:#fecaca;">Error: ${error.message}</td></tr>`;
+      }
+    }
+
+    document.getElementById('btn-prev-page').addEventListener('click', () => {
+      if (currentPage > 1) loadCards(currentPage - 1);
+    });
+
+    document.getElementById('btn-next-page').addEventListener('click', () => {
+      loadCards(currentPage + 1);
+    });
+
+    document.getElementById('btn-search-cards').addEventListener('click', () => loadCards(1));
+    document.getElementById('btn-reload-cards').addEventListener('click', () => loadCards(currentPage));
+    document.getElementById('search-cards').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') loadCards(1);
+    });
+
+    // GIFT CARDS
     document.getElementById('gift-form').addEventListener('submit', function(e) {
       e.preventDefault();
       
@@ -687,14 +670,11 @@
       const service = document.getElementById('gift-service').value;
       
       if (!service) {
-        alert('Por favor ingresa un servicio para la Gift Card');
+        alert('Ingresa un servicio');
         return;
       }
       
-      // Generate unique ID
-      const giftId = 'gift_' + Math.random().toString(36).substring(2, 10);
-      
-      // Calculate expiration date (30 days from now)
+      const giftId = 'gift_' + Date.now();
       const expirationDate = new Date();
       expirationDate.setDate(expirationDate.getDate() + 30);
       const formattedDate = expirationDate.toLocaleDateString('es-ES', {
@@ -703,12 +683,10 @@
         year: 'numeric'
       });
       
-      // Update preview
       document.getElementById('gift-preview-title').textContent = service;
       document.getElementById('gift-preview-sub').textContent = `Para: ${clientName}`;
-      document.getElementById('gift-preview-exp').textContent = `Vigencia hasta: ${formattedDate}`;
+      document.getElementById('gift-preview-exp').textContent = `Vigencia: ${formattedDate}`;
       
-      // Generate QR Code
       const qrCanvas = document.getElementById('gift-qr');
       const qrData = JSON.stringify({
         id: giftId,
@@ -724,16 +702,12 @@
           dark: '#000000',
           light: '#FFFFFF'
         }
-      }, function(error) {
-        if (error) console.error(error);
       });
       
-      // Show preview and actions
       document.getElementById('gift-preview').classList.remove('hidden');
       document.getElementById('gift-actions').classList.remove('hidden');
       document.getElementById('gift-success').classList.remove('hidden');
       
-      // Store gift data for sharing
       window.currentGiftCard = {
         id: giftId,
         service: service,
@@ -743,194 +717,147 @@
       };
     });
 
-    // ========== COPY LINK ==========
     document.getElementById('gift-copy').addEventListener('click', function() {
       if (!window.currentGiftCard) return;
       
       const giftUrl = `${window.location.origin}/gift/${window.currentGiftCard.id}`;
       navigator.clipboard.writeText(giftUrl).then(() => {
         const originalText = this.textContent;
-        this.textContent = '¡Enlace copiado!';
+        this.textContent = '¡Copiado!';
         setTimeout(() => {
           this.textContent = originalText;
         }, 2000);
       });
     });
 
-    // ========== WHATSAPP SHARING ==========
     document.getElementById('gift-whatsapp').addEventListener('click', function() {
       if (!window.currentGiftCard) return;
       
       const gift = window.currentGiftCard;
-      const message = `¡Hola ${gift.client}! 🎁\n\nTienes una Gift Card de Venus Cosmetología:\n\n✨ *${gift.service}*\n📅 Válida hasta: ${gift.expires}\n\nPresenta este mensaje en tu visita para canjear tu regalo.\n\n¡Te esperamos! 💚`;
+      const message = `¡Hola ${gift.client}! 🎁\n\nTienes una Gift Card de Venus Cosmetología:\n\n✨ *${gift.service}*\n📅 Válida hasta: ${gift.expires}\n\n¡Te esperamos! 💚`;
       
       const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
       window.open(whatsappUrl, '_blank');
     });
 
-    // ========== EVENTS LOADING ==========
-    document.getElementById('eload').addEventListener('click', function() {
-      const cardId = document.getElementById('eid').value;
-      if (!cardId) {
-        alert('Por favor ingresa un ID de tarjeta');
+    // PUSH NOTIFICATIONS
+    const typeEmojis = {
+      'promo': '🎁 Promoción',
+      'reminder': '⏰ Recordatorio',
+      'update': 'ℹ️ Actualización',
+      'alert': '⚠️ Alerta'
+    };
+
+    document.getElementById('push-title').addEventListener('input', function() {
+      document.getElementById('preview-title').textContent = this.value || '¡Nueva promoción!';
+    });
+
+    document.getElementById('push-message').addEventListener('input', function() {
+      document.getElementById('preview-message').textContent = this.value || 'Tu mensaje aparecerá aquí...';
+    });
+
+    document.getElementById('push-type').addEventListener('change', function() {
+      document.getElementById('preview-type').textContent = typeEmojis[this.value];
+    });
+
+    document.getElementById('push-notification-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const title = document.getElementById('push-title').value;
+      const message = document.getElementById('push-message').value;
+      const type = document.getElementById('push-type').value;
+      
+      const submitBtn = this.querySelector('button[type="submit"]');
+      const originalText = submitBtn.textContent;
+      submitBtn.textContent = 'Enviando...';
+      submitBtn.disabled = true;
+
+      try {
+        const response = await fetch('/api/admin/push-notification', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ title, message, type })
+        });
+        
+        const data = await response.json();
+        
+        if (!data.success) throw new Error(data.error);
+        
+        document.getElementById('push-count').textContent = data.passCount;
+        document.getElementById('push-success').classList.remove('hidden');
+        document.getElementById('push-error').classList.add('hidden');
+        
+        this.reset();
+        document.getElementById('preview-title').textContent = '¡Nueva promoción!';
+        document.getElementById('preview-message').textContent = 'Tu mensaje aparecerá aquí...';
+        
+        loadNotificationsHistory();
+        
+        setTimeout(() => {
+          document.getElementById('push-success').classList.add('hidden');
+}, 5000);
+        
+      } catch (error) {
+        console.error('Error:', error);
+        document.getElementById('push-error').classList.remove('hidden');
+        document.getElementById('push-success').classList.add('hidden');
+      } finally {
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
+      }
+    });
+
+    document.getElementById('test-push').addEventListener('click', async function() {
+      const title = document.getElementById('push-title').value;
+      const message = document.getElementById('push-message').value;
+      
+      if (!title || !message) {
+        alert('Completa título y mensaje primero');
         return;
       }
-      
-      const tbody = document.getElementById('events-tbody');
-      tbody.innerHTML = `
-        <tr>
-          <td>${cardId}_001</td>
-          <td><span class="tag">Sello</span></td>
-          <td>Facial hidratante</td>
-          <td>${new Date().toLocaleDateString()}</td>
-        </tr>
-        <tr>
-          <td>${cardId}_002</td>
-          <td><span class="tag">Sello</span></td>
-          <td>Masaje relajante</td>
-          <td>${new Date().toLocaleDateString()}</td>
-        </tr>
-      `;
-    });
 
-    // ========== CARGAR MÉTRICAS DEL RESUMEN ==========
-    async function loadMetrics() {
+      const originalText = this.textContent;
+      this.textContent = 'Enviando...';
+      this.disabled = true;
+
       try {
-        const response = await fetch('/api/admin/metrics-firebase', {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('adminToken') || ''}`,
-          },
-          credentials: 'include'
+        const response = await fetch('/api/admin/push-test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ title, message, type: document.getElementById('push-type').value })
         });
-
-        if (!response.ok) throw new Error('Error cargando métricas');
-
+        
         const data = await response.json();
-        document.getElementById('kpi-total').textContent = data.total || 0;
-        document.getElementById('kpi-full').textContent = data.full || 0;
-        document.getElementById('kpi-stamps').textContent = data.stampsToday || 0;
-      } catch (error) {
-        console.error('Error cargando métricas:', error);
-      }
-    }
-
-    // ========== CARGAR TARJETAS ==========
-    let currentPage = 1;
-    
-    async function loadCards(page = 1) {
-      try {
-        const searchQuery = document.getElementById('search-cards').value;
-        const url = `/api/admin/cards-firebase?page=${page}&q=${encodeURIComponent(searchQuery)}`;
         
-        console.log('[DEBUG] Cargando tarjetas desde:', url);
-        
-        const response = await fetch(url, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('adminToken') || ''}`,
-          },
-          credentials: 'include'
-        });
-
-        console.log('[DEBUG] Response status:', response.status);
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('[DEBUG] Error response:', errorText);
-          throw new Error('Error cargando tarjetas: ' + response.status);
+        if (data.success) {
+          alert(`✅ Prueba enviada a: ${data.cardId}`);
+        } else {
+          throw new Error(data.error);
         }
-
-        const data = await response.json();
-        console.log('[DEBUG] Datos recibidos:', data);
-        
-        const tbody = document.getElementById('cards-tbody');
-
-        if (!data.items || data.items.length === 0) {
-          console.log('[DEBUG] No hay items');
-          tbody.innerHTML = `
-            <tr>
-              <td colspan="6" style="text-align:center;padding:12px;" class="muted">
-                No hay tarjetas (total en BD: ${data.total || 0})
-              </td>
-            </tr>
-          `;
-          return;
-        }
-
-        console.log('[DEBUG] Renderizando', data.items.length, 'tarjetas');
-        tbody.innerHTML = data.items.map(card => `
-          <tr>
-            <td><code>${card.id}</code></td>
-            <td>${card.name}</td>
-            <td>${card.stamps}</td>
-            <td>${card.max}</td>
-            <td><span class="tag">${card.status === 'active' ? 'Activa' : 'Bloqueada'}</span></td>
-            <td>${new Date(card.created_at).toLocaleDateString('es-ES')}</td>
-          </tr>
-        `).join('');
-
-        document.getElementById('page-info').textContent = `Página ${data.page} de ${data.totalPages} (${data.total} total)`;
-        document.getElementById('btn-prev-page').disabled = data.page === 1;
-        document.getElementById('btn-next-page').disabled = data.page === data.totalPages;
-        
-        currentPage = data.page;
       } catch (error) {
-        console.error('[ERROR] Cargando tarjetas:', error);
-        document.getElementById('cards-tbody').innerHTML = `
-          <tr>
-            <td colspan="6" style="text-align:center;padding:12px;color:#fecaca;">
-              Error: ${error.message}
-            </td>
-          </tr>
-        `;
+        alert('❌ Error: ' + error.message);
+      } finally {
+        this.textContent = originalText;
+        this.disabled = false;
       }
-    }
-
-    // Botones de paginación
-    document.getElementById('btn-prev-page').addEventListener('click', () => {
-      if (currentPage > 1) loadCards(currentPage - 1);
     });
 
-    document.getElementById('btn-next-page').addEventListener('click', () => {
-      loadCards(currentPage + 1);
-    });
-
-    document.getElementById('btn-search-cards').addEventListener('click', () => {
-      loadCards(1);
-    });
-
-    document.getElementById('btn-reload-cards').addEventListener('click', () => {
-      loadCards(currentPage);
-    });
-
-    document.getElementById('search-cards').addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') loadCards(1);
-    });
-
-    // ========== CARGAR HISTORIAL DE NOTIFICACIONES ==========
+    // LOAD NOTIFICATIONS HISTORY
     async function loadNotificationsHistory() {
       try {
         const response = await fetch('/api/admin/notifications', {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('adminToken') || ''}`,
-          },
           credentials: 'include'
         });
 
-        if (!response.ok) {
-          throw new Error('Error cargando historial');
-        }
+        if (!response.ok) throw new Error('Error cargando historial');
 
         const data = await response.json();
         const tbody = document.getElementById('notifications-history');
 
         if (!data.notifications || data.notifications.length === 0) {
-          tbody.innerHTML = `
-            <tr>
-              <td colspan="6" style="text-align:center;padding:12px;" class="muted">
-                No hay notificaciones enviadas aún
-              </td>
-            </tr>
-          `;
+          tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:12px;" class="muted">No hay notificaciones</td></tr>`;
           return;
         }
 
@@ -957,213 +884,22 @@
         }).join('');
 
       } catch (error) {
-        console.error('Error cargando historial:', error);
-        document.getElementById('notifications-history').innerHTML = `
-          <tr>
-            <td colspan="5" style="text-align:center;padding:12px;color:#fecaca;">
-              Error cargando historial
-            </td>
-          </tr>
-        `;
+        console.error('Error:', error);
+        document.getElementById('notifications-history').innerHTML = `<tr><td colspan="5" style="text-align:center;padding:12px;color:#fecaca;">Error cargando historial</td></tr>`;
       }
     }
 
-    // Cargar datos al cambiar de pestaña
-    document.querySelectorAll('[data-tab]').forEach(tab => {
-      tab.addEventListener('click', function() {
-        const tabName = this.getAttribute('data-tab');
-        if (tabName === 'overview') {
-          loadMetrics();
-        } else if (tabName === 'cards') {
-          loadCards(1);
-        } else if (tabName === 'events') {
-          // Gift cards tab - no need to load anything
-        } else if (tabName === 'settings') {
-          loadNotificationsHistory();
-        }
-      });
-    });
-
-    // Cargar métricas al iniciar
-    loadMetrics();
-
-    // Botón para refrescar historial
     document.getElementById('refresh-history').addEventListener('click', loadNotificationsHistory);
 
-    // ========== PUSH NOTIFICATIONS ==========
-    // Preview update in real-time
-    const pushTitle = document.getElementById('push-title');
-    const pushMessage = document.getElementById('push-message');
-    const pushType = document.getElementById('push-type');
-    const previewTitle = document.getElementById('preview-title');
-    const previewMessage = document.getElementById('preview-message');
-    const previewType = document.getElementById('preview-type');
-
-    const typeEmojis = {
-      'promo': '🎁 Promoción',
-      'reminder': '⏰ Recordatorio',
-      'update': 'ℹ️ Actualización',
-      'alert': '⚠️ Alerta importante'
-    };
-
-    pushTitle.addEventListener('input', function() {
-      previewTitle.textContent = this.value || '¡Nueva promoción!';
-    });
-
-    pushMessage.addEventListener('input', function() {
-      previewMessage.textContent = this.value || 'Tu mensaje aparecerá aquí...';
-    });
-
-    pushType.addEventListener('change', function() {
-      previewType.textContent = typeEmojis[this.value];
-    });
-
-    // Send push notification
-    document.getElementById('push-notification-form').addEventListener('submit', async function(e) {
-      e.preventDefault();
-      
-      const title = document.getElementById('push-title').value;
-      const message = document.getElementById('push-message').value;
-      const type = document.getElementById('push-type').value;
-      
-      if (!title || !message) {
-        alert('Por favor completa todos los campos');
-        return;
-      }
-
-      // Show loading state
-      const submitBtn = this.querySelector('button[type="submit"]');
-      const originalText = submitBtn.textContent;
-      submitBtn.textContent = 'Enviando...';
-      submitBtn.disabled = true;
-
-      try {
-        // Llamar a tu API real
-        const response = await fetch('/api/admin/push-notification', {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('adminToken') || ''}`
-          },
-          credentials: 'include',
-          body: JSON.stringify({
-            title: title,
-            message: message,
-            type: type
-          })
-        });
-        
-        if (!response.ok) {
-          throw new Error('Error en la respuesta del servidor');
-        }
-        
-        const data = await response.json();
-        
-        if (!data.success) {
-          throw new Error(data.error || 'Error desconocido');
-        }
-        
-        // Show success message
-        const passCount = data.passCount || 0;
-        document.getElementById('push-count').textContent = passCount;
-        document.getElementById('push-success').classList.remove('hidden');
-        document.getElementById('push-error').classList.add('hidden');
-        
-        // Add to history table
-        const historyTable = document.getElementById('notifications-history');
-        const now = new Date();
-        const dateStr = now.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }) + 
-                       ', ' + now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-        
-        const newRow = document.createElement('tr');
-        newRow.innerHTML = `
-          <td>${dateStr}</td>
-          <td>${title}</td>
-          <td>${typeEmojis[type]}</td>
-          <td>${data.googleSent}/${passCount}</td>
-          <td>${data.errors > 0 ? `<span style="color:#fecaca">${data.errors}</span>` : '0'}</td>
-        `;
-        
-        // Solo agregar si la tabla no está vacía
-        if (historyTable.children.length > 0 && historyTable.children[0].children.length === 6) {
-          historyTable.insertBefore(newRow, historyTable.firstChild);
-        } else {
-          // Si está vacía, recargar todo el historial
-          loadNotificationsHistory();
-        }
-        
-        // Reset form
-        this.reset();
-        previewTitle.textContent = '¡Nueva promoción!';
-        previewMessage.textContent = 'Tu mensaje aparecerá aquí...';
-        previewType.textContent = '🎁 Promoción';
-        
-        // Hide success message after 5 seconds
-        setTimeout(() => {
-          document.getElementById('push-success').classList.add('hidden');
-        }, 5000);
-        
-      } catch (error) {
-        console.error('Error sending notification:', error);
-        document.getElementById('push-error').classList.remove('hidden');
-        document.getElementById('push-success').classList.add('hidden');
-      } finally {
-        submitBtn.textContent = originalText;
-        submitBtn.disabled = false;
-      }
-    });
-
-    // Test push notification (single device)
-    document.getElementById('test-push').addEventListener('click', async function() {
-      const title = document.getElementById('push-title').value;
-      const message = document.getElementById('push-message').value;
-      
-      if (!title || !message) {
-        alert('Por favor completa el título y mensaje primero');
-        return;
-      }
-
-      const originalText = this.textContent;
-      this.textContent = 'Enviando prueba...';
-      this.disabled = true;
-
-      try {
-        // Llamar a API de prueba
-        const response = await fetch('/api/admin/push-test', {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('adminToken') || ''}`
-          },
-          credentials: 'include',
-          body: JSON.stringify({
-            title: title,
-            message: message,
-            type: type
-          })
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-          alert(`✅ Notificación de prueba enviada a la tarjeta: ${data.cardId}`);
-        } else {
-          throw new Error(data.error || 'Error enviando prueba');
-        }
-      } catch (error) {
-        alert('❌ Error al enviar prueba');
-      } finally {
-        this.textContent = originalText;
-        this.disabled = false;
-      }
-    });
-
-    // ========== LOGOUT ==========
+    // LOGOUT
     document.getElementById('logout').addEventListener('click', function() {
       if (confirm('¿Cerrar sesión?')) {
-        alert('Sesión cerrada (conecta con tu backend)');
+        window.location.href = '/admin-login.html';
       }
     });
+
+    // INIT
+    loadMetrics();
   </script>
 </body>
 </html>
