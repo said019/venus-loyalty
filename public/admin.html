@@ -13,10 +13,6 @@
       --ink:#f9fafb;
       --muted:#e5e7eb;
       --line:rgba(255,255,255,0.25);
-      --err:#fecaca;
-      --err-text:#991b1b;
-      --ok:#bbf7d0;
-      --ok-text:#166534;
       --radius:18px;
     }
     *{box-sizing:border-box;}
@@ -123,6 +119,7 @@
       color:var(--muted);
       background:transparent;
       transition:all 0.2s ease;
+      cursor:pointer;
     }
     .nav a.is-active{
       background:rgba(255,255,255,.15);
@@ -168,27 +165,18 @@
       color:var(--ink);
     }
 
-    /* Layouts */
-    .grid-2{
-      display:grid;
-      grid-template-columns:1.1fr .9fr;
-      gap:14px;
-    }
+    /* KPIs */
     .grid-3-kpi{
       display:grid;
       grid-template-columns:repeat(3,minmax(0,1fr));
       gap:10px;
       margin-top:10px;
     }
-    @media (max-width:900px){
-      .grid-2{ grid-template-columns:1fr; }
-    }
     @media (max-width:700px){
       .grid-3-kpi{grid-template-columns:repeat(2,minmax(0,1fr));}
     }
     @media (max-width:480px){
       .grid-3-kpi{grid-template-columns:1fr;}
-      .topbar{align-items:flex-start;}
     }
 
     .kpi{
@@ -276,8 +264,8 @@
       align-items:center;
       padding:2px 6px;
       border-radius:999px;
-      background:var(--ok);
-      color:var(--ok-text);
+      background:#bbf7d0;
+      color:#166534;
       font-size:11px;
     }
 
@@ -407,14 +395,86 @@
 
     <!-- Tabs -->
     <nav class="nav">
-      <a href="#overview" data-tab>Resumen</a>
-      <a href="#cards" data-tab>Tarjetas</a>
-      <a href="#events" data-tab class="is-active">Eventos & Gift cards</a>
-      <a href="#settings" data-tab>Configuración</a>
+      <a href="#overview" data-tab="overview" class="is-active">Resumen</a>
+      <a href="#cards" data-tab="cards">Tarjetas</a>
+      <a href="#events" data-tab="events">Eventos & Gift cards</a>
+      <a href="#settings" data-tab="settings">Configuración</a>
     </nav>
 
+    <!-- TAB: Overview -->
+    <section id="tab-overview" class="card">
+      <h2>Resumen</h2>
+      <p class="muted">Indicadores rápidos de tu programa de lealtad.</p>
+      <div class="grid-3-kpi">
+        <div class="kpi">
+          <span>Tarjetas totales</span>
+          <span class="value">127</span>
+        </div>
+        <div class="kpi">
+          <span>Tarjetas completas</span>
+          <span class="value">23</span>
+        </div>
+        <div class="kpi">
+          <span>Sellos hoy</span>
+          <span class="value">8</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB: Cards -->
+    <section id="tab-cards" class="card hidden">
+      <h2>Tarjetas de lealtad</h2>
+      <p class="muted">Gestiona todas las tarjetas de tus clientes.</p>
+      
+      <div class="row" style="margin-top:12px;">
+        <input placeholder="Buscar por ID o nombre..." style="flex:1;min-width:200px;">
+        <button class="btn primary">🔍 Buscar</button>
+        <button class="btn">📤 Exportar</button>
+      </div>
+
+      <div class="table-wrap" style="margin-top:12px;">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Cliente</th>
+              <th>Sellos</th>
+              <th>Max</th>
+              <th>Estado</th>
+              <th>Creada</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>card_abc123</code></td>
+              <td>María González</td>
+              <td>5</td>
+              <td>10</td>
+              <td><span class="tag">Activa</span></td>
+              <td>15 Nov 2025</td>
+              <td>
+                <button class="btn small">Ver</button>
+              </td>
+            </tr>
+            <tr>
+              <td><code>card_def456</code></td>
+              <td>Juan Pérez</td>
+              <td>10</td>
+              <td>10</td>
+              <td><span class="tag">Completa</span></td>
+              <td>10 Nov 2025</td>
+              <td>
+                <button class="btn small">Ver</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
     <!-- TAB: Events + Gift Cards -->
-    <section id="tab-events" class="card">
+    <section id="tab-events" class="card hidden">
       <h2>Eventos & Gift cards</h2>
       <div class="gift-layout">
         <!-- Eventos de tarjeta -->
@@ -485,6 +545,28 @@
       </div>
     </section>
 
+    <!-- TAB: Settings -->
+    <section id="tab-settings" class="card hidden">
+      <h2>Configuración</h2>
+      <p class="muted">Personaliza el comportamiento del sistema.</p>
+      
+      <h3 style="margin-top:16px;">Variables de entorno</h3>
+      <ul class="muted" style="line-height:1.6;font-size:13px;">
+        <li><code>ADMIN_ALLOW_SIGNUP</code> - Habilita/deshabilita nuevos registros</li>
+        <li><code>STAFF_USER / STAFF_PASS</code> - Credenciales del personal (legacy)</li>
+        <li>Rutas admin: <code>/api/admin/stamp</code> y <code>/api/admin/redeem</code></li>
+      </ul>
+
+      <h3 style="margin-top:16px;">Personalización</h3>
+      <label>Número de sellos por tarjeta</label>
+      <input type="number" value="10" min="1" max="20">
+      
+      <label>Mensaje de bienvenida</label>
+      <textarea placeholder="Bienvenido a Venus...">¡Bienvenido a Venus Cosmetología! Acumula sellos y obtén servicios gratis.</textarea>
+      
+      <button class="btn primary" style="margin-top:12px;">Guardar cambios</button>
+    </section>
+
     <footer class="footer">© Venus Cosmetología — Panel de administración</footer>
   </main>
 
@@ -492,15 +574,33 @@
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
   
   <script>
-    // Tab Navigation
-    document.querySelectorAll('[data-tab]').forEach(tab => {
-      tab.addEventListener('click', function() {
-        document.querySelectorAll('.nav a').forEach(a => a.classList.remove('is-active'));
+    // ========== TAB NAVIGATION ==========
+    const tabs = document.querySelectorAll('[data-tab]');
+    const sections = document.querySelectorAll('[id^="tab-"]');
+
+    tabs.forEach(tab => {
+      tab.addEventListener('click', function(e) {
+        e.preventDefault();
+        
+        // Remove active class from all tabs
+        tabs.forEach(t => t.classList.remove('is-active'));
+        
+        // Add active class to clicked tab
         this.classList.add('is-active');
+        
+        // Hide all sections
+        sections.forEach(s => s.classList.add('hidden'));
+        
+        // Show the selected section
+        const targetId = 'tab-' + this.getAttribute('data-tab');
+        const targetSection = document.getElementById(targetId);
+        if (targetSection) {
+          targetSection.classList.remove('hidden');
+        }
       });
     });
 
-    // Gift Card Generation
+    // ========== GIFT CARD GENERATION ==========
     document.getElementById('gift-form').addEventListener('submit', function(e) {
       e.preventDefault();
       
@@ -564,7 +664,7 @@
       };
     });
 
-    // Copy Link Functionality
+    // ========== COPY LINK ==========
     document.getElementById('gift-copy').addEventListener('click', function() {
       if (!window.currentGiftCard) return;
       
@@ -578,7 +678,7 @@
       });
     });
 
-    // WhatsApp Sharing Functionality
+    // ========== WHATSAPP SHARING ==========
     document.getElementById('gift-whatsapp').addEventListener('click', function() {
       if (!window.currentGiftCard) return;
       
@@ -589,7 +689,7 @@
       window.open(whatsappUrl, '_blank');
     });
 
-    // Simulate events loading
+    // ========== EVENTS LOADING ==========
     document.getElementById('eload').addEventListener('click', function() {
       const cardId = document.getElementById('eid').value;
       if (!cardId) {
@@ -612,6 +712,13 @@
           <td>${new Date().toLocaleDateString()}</td>
         </tr>
       `;
+    });
+
+    // ========== LOGOUT ==========
+    document.getElementById('logout').addEventListener('click', function() {
+      if (confirm('¿Cerrar sesión?')) {
+        alert('Sesión cerrada (conecta con tu backend)');
+      }
     });
   </script>
 </body>
