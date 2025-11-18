@@ -739,7 +739,7 @@ app.get("/api/admin/events-firebase", adminAuth, async (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
-pp.get("/api/admin/metrics-firebase", adminAuth, async (req, res) => {
+app.get("/api/admin/metrics-firebase", adminAuth, async (req, res) => {
   try {
     const cardsSnap = await firestore.collection('cards').get();
     const cards = cardsSnap.docs.map(d => d.data());
