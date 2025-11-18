@@ -14,7 +14,7 @@ import {
   sendMassPushNotification,
   sendTestPushNotification,
   getNotifications,
-} from "./api/push.js";
+} from "./lib/api/push.js";
 // Wallet helpers
 import {
   buildGoogleSaveUrl,
