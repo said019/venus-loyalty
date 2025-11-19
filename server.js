@@ -326,41 +326,6 @@ if (process.env.APPLE_APNS_KEY_BASE64 && !process.env.APPLE_APNS_KEY_PATH) {
   }
 }
 
-// ✅ 2. MIDDLEWARE DE DEBUG MEJORADO (después de body parsers)
-app.use('/api/apple/v1', (req, res, next) => {
-  console.log('[APPLE DEBUG] ==================');
-  console.log('[APPLE DEBUG] Method:', req.method);
-  console.log('[APPLE DEBUG] URL:', req.url);
-  console.log('[APPLE DEBUG] Path:', req.path);
-  console.log('[APPLE DEBUG] Auth:', req.headers.authorization?.substring(0, 20) + '...');
-  
-  // Manejo seguro del body
-  if (req.method === 'POST' || req.method === 'PUT') {
-    console.log('[APPLE DEBUG] Body:', req.body);
-  } else {
-    console.log('[APPLE DEBUG] Body: (no body for ' + req.method + ')');
-  }
-  console.log('[APPLE DEBUG] ==================');
-  next();
-});
-
-// ✅ 3. MIDDLEWARE DE DEBUG PARA /v1 (sin /api)
-app.use('/v1', (req, res, next) => {
-  console.log('[APPLE DEBUG] ==================');
-  console.log('[APPLE DEBUG] Method:', req.method);
-  console.log('[APPLE DEBUG] URL:', req.url);
-  console.log('[APPLE DEBUG] Path:', req.path);
-  console.log('[APPLE DEBUG] Auth:', req.headers.authorization?.substring(0, 20) + '...');
-  
-  // Manejo seguro del body
-  if (req.method === 'POST' || req.method === 'PUT') {
-    console.log('[APPLE DEBUG] Body:', req.body);
-  } else {
-    console.log('[APPLE DEBUG] Body: (no body for ' + req.method + ')');
-  }
-  console.log('[APPLE DEBUG] ==================');
-  next();
-});
 
 /* =========================================================
    📧 Envío de correos
@@ -456,56 +421,29 @@ app.get("/api/save-card", saveCardHandler);
    ========================================================= */
 console.log('[APPLE] Configurando endpoints del web service...');
 
-const appleAuth = appleWebService.appleAuthMiddleware;
-
-// ========== ENDPOINTS PRINCIPALES CON PARÁMETROS CORRECTOS ==========
-app.post(
-  '/api/apple/v1/devices/:deviceLibraryIdentifier/registrations/:passTypeIdentifier/:serialNumber',
-  appleAuth,
+// ========== ENDPOINTS /v1 PARA APPLE (SIN MIDDLEWARE, CON AUTH INLINE) ==========
+app.post('/v1/devices/:deviceId/registrations/:passTypeId/:serial',
   appleWebService.registerDeviceHandler
 );
 
-app.get(
-  '/api/apple/v1/devices/:deviceLibraryIdentifier/registrations/:passTypeIdentifier',
-  appleAuth,
+app.get('/v1/devices/:deviceId/registrations/:passTypeId',
   appleWebService.getUpdatablePassesHandler
 );
 
-app.get(
-  '/api/apple/v1/passes/:passTypeIdentifier/:serialNumber',
-  appleAuth,
+app.get('/v1/passes/:passTypeId/:serial',
   appleWebService.getLatestPassHandler
 );
 
-app.delete(
-  '/api/apple/v1/devices/:deviceLibraryIdentifier/registrations/:passTypeIdentifier/:serialNumber',
-  appleAuth,
+app.delete('/v1/devices/:deviceId/registrations/:passTypeId/:serial',
   appleWebService.unregisterDeviceHandler
 );
 
-app.post(
-  '/api/apple/v1/log',
-  appleAuth,
+app.post('/v1/log',
   appleWebService.logHandler
 );
 
-// ========== ENDPOINTS CORTOS (sin /api - para Apple) ==========
-app.post('/v1/devices/:deviceLibraryIdentifier/registrations/:passTypeIdentifier/:serialNumber',
-  appleAuth, appleWebService.registerDeviceHandler);
+console.log('[APPLE] ✅ Endpoints Apple configurados correctamente');
 
-app.get('/v1/devices/:deviceLibraryIdentifier/registrations/:passTypeIdentifier',
-  appleAuth, appleWebService.getUpdatablePassesHandler);
-
-app.get('/v1/passes/:passTypeIdentifier/:serialNumber',
-  appleAuth, appleWebService.getLatestPassHandler);
-
-app.delete('/v1/devices/:deviceLibraryIdentifier/registrations/:passTypeIdentifier/:serialNumber',
-  appleAuth, appleWebService.unregisterDeviceHandler);
-
-app.post('/v1/log',
-  appleAuth, appleWebService.logHandler);
-
-console.log('[APPLE] ✅ Endpoints configurados');
 
 /* =========================================================
    DEBUG ENDPOINTS - MEJORADOS
