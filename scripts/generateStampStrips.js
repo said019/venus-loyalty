@@ -5,43 +5,66 @@ import path from 'path';
 
 // Configuración
 const CONFIG = {
-  width: 750,          // 750px para @2x (375px normal)
-  height: 246,         // 246px para @2x (123px normal)
+  width: 375,          // 375px EXACTO para iPhone (no 750)
+  height: 123,         // 123px EXACTO para iPhone (no 246)
   stampCount: 8,       // Total de sellos
   bgColor: '#E8E4D0',  // Fondo crema/beige
-  logoPath: 'public/assets/logo.png', // Ruta a tu logo Venus
-  stampSize: 70,       // Tamaño de cada sello
-  padding: 30,         // Espacio lateral
-  spacing: 15,         // Espacio entre sellos
+  logoPath: 'public/assets/stamp.png', // Ruta a tu logo Venus
+  stampSize: 45,       // Tamaño de cada sello (ajustado para 375px)
+  padding: 20,         // Espacio lateral
+  spacing: 8,          // Espacio entre sellos
 };
+
+// Función para convertir imagen a escala de grises
+function toGrayscale(ctx, img, x, y, size) {
+  // Crear canvas temporal para manipular la imagen
+  const tempCanvas = createCanvas(size, size);
+  const tempCtx = tempCanvas.getContext('2d');
+  
+  // Dibujar imagen original en canvas temporal
+  tempCtx.drawImage(img, 0, 0, size, size);
+  
+  // Obtener datos de píxeles
+  const imageData = tempCtx.getImageData(0, 0, size, size);
+  const data = imageData.data;
+  
+  // Convertir a escala de grises
+  for (let i = 0; i < data.length; i += 4) {
+    const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+    data[i] = gray;       // R
+    data[i + 1] = gray;   // G
+    data[i + 2] = gray;   // B
+    // data[i + 3] mantiene el alpha
+  }
+  
+  // Poner los datos modificados de vuelta
+  tempCtx.putImageData(imageData, 0, 0);
+  
+  // Dibujar en el canvas principal
+  ctx.drawImage(tempCanvas, x - size / 2, y - size / 2, size, size);
+}
 
 // Función para aplicar efecto de sello activo/inactivo
 function applyStampEffect(ctx, img, x, y, size, isActive) {
   ctx.save();
   
   if (isActive) {
-    // Sello activo: sombra y color normal
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.25)';
-    ctx.shadowBlur = 12;
+    // Sello activo: COLOR ORIGINAL con sombra
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+    ctx.shadowBlur = 10;
     ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 5;
+    ctx.shadowOffsetY = 4;
     ctx.globalAlpha = 1.0;
-  } else {
-    // Sello inactivo: sin sombra, opacidad reducida y desaturado
-    ctx.globalAlpha = 0.35;
-    ctx.shadowColor = 'transparent';
-  }
-  
-  // Dibujar la imagen del logo
-  ctx.drawImage(img, x - size / 2, y - size / 2, size, size);
-  
-  // Si está inactivo, agregar overlay gris claro
-  if (!isActive) {
-    ctx.globalAlpha = 0.4;
-    ctx.fillStyle = '#B5B8A8';
-    ctx.globalCompositeOperation = 'multiply';
+    
+    // Dibujar logo en color original
     ctx.drawImage(img, x - size / 2, y - size / 2, size, size);
-    ctx.globalCompositeOperation = 'source-over';
+  } else {
+    // Sello inactivo: ESCALA DE GRISES con opacidad reducida
+    ctx.shadowColor = 'transparent';
+    ctx.globalAlpha = 0.4; // Más transparente
+    
+    // Dibujar logo en escala de grises
+    toGrayscale(ctx, img, x, y, size);
   }
   
   ctx.restore();
@@ -125,6 +148,7 @@ async function generateAllStrips() {
     console.log('🎨 Generando strips de sellos...\n');
     
     // Generar imagen para cada estado (0-8 sellos activos)
+    // Generar SOLO versión 1x (375x123px) - Apple Wallet la escala automáticamente
     for (let i = 0; i <= CONFIG.stampCount; i++) {
       const filename = `stamp-strip-${i}.png`;
       const filepath = path.join(outputDir, filename);
@@ -132,14 +156,16 @@ async function generateAllStrips() {
     }
     
     console.log(`\n✅ ¡Listo! Se generaron ${CONFIG.stampCount + 1} strips en: public/assets/`);
-    console.log('\n📋 Archivos creados:');
+    console.log(`   Dimensiones: ${CONFIG.width}x${CONFIG.height}px (exactas para iPhone)\n`);
+    console.log('📋 Archivos creados:');
     console.log('   stamp-strip-0.png  (sin sellos)');
     for (let i = 1; i < CONFIG.stampCount; i++) {
       console.log(`   stamp-strip-${i}.png  (${i}/${CONFIG.stampCount} sellos)`);
     }
     console.log(`   stamp-strip-${CONFIG.stampCount}.png  (¡completo! 🎉)\n`);
     
-    console.log('💡 Tip: Puedes ajustar colores y tamaños en CONFIG al inicio del script');
+    console.log('💡 Tip: Apple Wallet escala automáticamente para Retina');
+    console.log('💡 Si quieres @2x, cambia CONFIG.width a 750 y CONFIG.height a 246');
     
   } catch (error) {
     console.error('\n❌ Error:', error.message);

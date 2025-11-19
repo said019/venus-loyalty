@@ -303,7 +303,9 @@ async function fsMetrics() {
 const app = express();
 app.set("trust proxy", true);
 
+// ========== MIDDLEWARES GLOBALES ==========
 app.use(cors({ origin: true, credentials: true }));
+// ✅ 1. BODY PARSERS PRIMERO (antes de cualquier middleware que use req.body)
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -323,6 +325,42 @@ if (process.env.APPLE_APNS_KEY_BASE64 && !process.env.APPLE_APNS_KEY_PATH) {
     console.error('[APPLE APNs] ❌ Error decodificando key:', e);
   }
 }
+
+// ✅ 2. MIDDLEWARE DE DEBUG MEJORADO (después de body parsers)
+app.use('/api/apple/v1', (req, res, next) => {
+  console.log('[APPLE DEBUG] ==================');
+  console.log('[APPLE DEBUG] Method:', req.method);
+  console.log('[APPLE DEBUG] URL:', req.url);
+  console.log('[APPLE DEBUG] Path:', req.path);
+  console.log('[APPLE DEBUG] Auth:', req.headers.authorization?.substring(0, 20) + '...');
+  
+  // Manejo seguro del body
+  if (req.method === 'POST' || req.method === 'PUT') {
+    console.log('[APPLE DEBUG] Body:', req.body);
+  } else {
+    console.log('[APPLE DEBUG] Body: (no body for ' + req.method + ')');
+  }
+  console.log('[APPLE DEBUG] ==================');
+  next();
+});
+
+// ✅ 3. MIDDLEWARE DE DEBUG PARA /v1 (sin /api)
+app.use('/v1', (req, res, next) => {
+  console.log('[APPLE DEBUG] ==================');
+  console.log('[APPLE DEBUG] Method:', req.method);
+  console.log('[APPLE DEBUG] URL:', req.url);
+  console.log('[APPLE DEBUG] Path:', req.path);
+  console.log('[APPLE DEBUG] Auth:', req.headers.authorization?.substring(0, 20) + '...');
+  
+  // Manejo seguro del body
+  if (req.method === 'POST' || req.method === 'PUT') {
+    console.log('[APPLE DEBUG] Body:', req.body);
+  } else {
+    console.log('[APPLE DEBUG] Body: (no body for ' + req.method + ')');
+  }
+  console.log('[APPLE DEBUG] ==================');
+  next();
+});
 
 /* =========================================================
    📧 Envío de correos
@@ -412,30 +450,6 @@ app.get("/api/google/create-class", createClassHandler);
 app.get("/api/google/diagnostics", diagnosticsHandler);
 app.get("/api/google/test", testHandler);
 app.get("/api/save-card", saveCardHandler);
-/* ===== DEBUG: APPLE REQUESTS ===== */
-app.use('/api/apple/v1', (req, res, next) => {
-  console.log('[APPLE DEBUG] ==================');
-  console.log('[APPLE DEBUG] Petición recibida:');
-  console.log('[APPLE DEBUG] Method:', req.method);
-  console.log('[APPLE DEBUG] URL:', req.url);
-  console.log('[APPLE DEBUG] Path:', req.path);
-  console.log('[APPLE DEBUG] Headers:', JSON.stringify(req.headers, null, 2));
-  console.log('[APPLE DEBUG] Body:', req.body);
-  console.log('[APPLE DEBUG] ==================');
-  next();
-});
-// ⭐ AGREGAR OTRO DEBUG PARA /v1 (sin /api)
-app.use('/v1', (req, res, next) => {
-  console.log('[APPLE DEBUG] ==================');
-  console.log('[APPLE DEBUG] Petición recibida:');
-  console.log('[APPLE DEBUG] Method:', req.method);
-  console.log('[APPLE DEBUG] URL:', req.url);
-  console.log('[APPLE DEBUG] Path:', req.path);
-  console.log('[APPLE DEBUG] Headers:', JSON.stringify(req.headers, null, 2));
-  console.log('[APPLE DEBUG] Body:', req.body);
-  console.log('[APPLE DEBUG] ==================');
-  next();
-});
 
 /* =========================================================
    🍎 APPLE WALLET WEB SERVICE ENDPOINTS
