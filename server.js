@@ -420,7 +420,7 @@ app.use('/api/apple/v1', (req, res, next) => {
   console.log('[APPLE DEBUG] URL:', req.url);
   console.log('[APPLE DEBUG] Path:', req.path);
   console.log('[APPLE DEBUG] Headers:', JSON.stringify(req.headers, null, 2));
-  console.log('[APPLE DEBUG] Body:', JSON.stringify(req.body, null, 2));
+  console.log('[APPLE DEBUG] Body:', req.body);
   console.log('[APPLE DEBUG] ==================');
   next();
 });
@@ -432,7 +432,7 @@ app.use('/v1', (req, res, next) => {
   console.log('[APPLE DEBUG] URL:', req.url);
   console.log('[APPLE DEBUG] Path:', req.path);
   console.log('[APPLE DEBUG] Headers:', JSON.stringify(req.headers, null, 2));
-  console.log('[APPLE DEBUG] Body:', JSON.stringify(req.body, null, 2));
+  console.log('[APPLE DEBUG] Body:', req.body);
   console.log('[APPLE DEBUG] ==================');
   next();
 });
@@ -442,22 +442,7 @@ app.use('/v1', (req, res, next) => {
    ========================================================= */
 console.log('[APPLE] Configurando endpoints del web service...');
 
-const appleAuth = (req, res, next) => {
-  console.log('[APPLE AUTH INLINE] 🔐 Middleware ejecutándose');
-  const authHeader = req.headers.authorization;
-  const expectedToken = process.env.APPLE_AUTH_TOKEN;
-  
-  console.log('[APPLE AUTH INLINE] Token recibido:', authHeader?.substring(0, 50));
-  console.log('[APPLE AUTH INLINE] Token esperado:', `ApplePass ${expectedToken?.substring(0, 10)}...`);
-  
-  if (!authHeader || authHeader !== `ApplePass ${expectedToken}`) {
-    console.warn('[APPLE AUTH INLINE] ❌ Auth falló');
-    return res.status(401).send('Unauthorized');
-  }
-  
-  console.log('[APPLE AUTH INLINE] ✅ Auth OK');
-  next();
-};
+const appleAuth = appleWebService.appleAuthMiddleware;
 
 app.post(
   '/api/apple/v1/devices/:deviceId/registrations/:passTypeId/:serial',
