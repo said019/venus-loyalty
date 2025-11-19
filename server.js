@@ -413,7 +413,7 @@ app.get("/api/google/diagnostics", diagnosticsHandler);
 app.get("/api/google/test", testHandler);
 app.get("/api/save-card", saveCardHandler);
 /* ===== DEBUG: APPLE REQUESTS ===== */
-app.use('/api/apple/v1/*', (req, res, next) => {
+app.use('/api/apple/v1', (req, res, next) => {
   console.log('[APPLE DEBUG] ==================');
   console.log('[APPLE DEBUG] Petición recibida:');
   console.log('[APPLE DEBUG] Method:', req.method);
