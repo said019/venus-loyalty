@@ -315,10 +315,9 @@
       width:120px;
       height:120px;
       border-radius:12px;
-      background:rgba(255,255,255,.15);
+      background:#fff;
       padding:8px;
       margin-bottom:8px;
-      object-fit:contain;
     }
     .chip{
       display:inline-flex;
@@ -355,7 +354,6 @@
       color:#bbf7d0;
     }
 
-    /* Dialogs */
     dialog{
       border-radius:16px;
       border:1px solid var(--line);
@@ -368,7 +366,7 @@
     dialog::backdrop{
       background:rgba(0,0,0,.6);
     }
-        /* ===== Modal tarjeta ===== */
+
     .modal-backdrop{
       position:fixed;
       inset:0;
@@ -387,7 +385,9 @@
       border:1px solid rgba(255,255,255,.15);
       padding:18px 20px 16px;
       max-width:420px;
-      width:100%;
+      width:90%;
+      max-height:90vh;
+      overflow-y:auto;
       box-shadow:0 20px 60px rgba(0,0,0,.6);
       color:#f9fafb;
     }
@@ -419,12 +419,17 @@
       display:flex;
       justify-content:center;
       align-items:center;
-      min-height:150px;
+      min-height:180px;
+      background:rgba(255,255,255,0.05);
+      border-radius:12px;
+      padding:10px;
     }
     .qr-box canvas{
-      background:#000;
-      border-radius:12px;
-      padding:6px;
+      background:#fff;
+      border-radius:8px;
+      padding:8px;
+      max-width:100%;
+      height:auto;
     }
   </style>
 </head>
@@ -548,6 +553,7 @@
       <div id="gift-actions" class="gift-actions hidden">
         <button type="button" id="gift-copy" class="btn small">Copiar texto</button>
         <button type="button" id="gift-whatsapp" class="btn small primary">Enviar por WhatsApp</button>
+        <button type="button" id="gift-whatsapp-image" class="btn small primary">📷 WhatsApp con imagen</button>
       </div>
       
       <div id="gift-success" class="success-message hidden">
@@ -643,7 +649,8 @@
     </dialog>
 
     <footer class="footer">© Venus Cosmetología</footer>
-        <!-- Modal Tarjeta -->
+
+    <!-- Modal Tarjeta -->
     <div id="card-modal-backdrop" class="modal-backdrop hidden">
       <div class="modal-card">
         <div class="modal-header">
@@ -657,15 +664,15 @@
           <p><strong>Sellos:</strong> <span id="cm-stamps"></span></p>
           <p><strong>Estado:</strong> <span id="cm-status"></span></p>
           <div class="qr-box">
-            <canvas id="card-qr" width="170" height="170"></canvas>
+            <canvas id="card-qr"></canvas>
           </div>
         </div>
         <div class="modal-footer">
-          <button id="cm-stamp"   class="btn small primary">+1 sello</button>
-          <button id="cm-redeem"  class="btn small">Canjear</button>
-          <button id="cm-copy"    class="btn small">Copiar ID</button>
-          <button id="cm-open"    class="btn small ghost">Abrir cliente</button>
-          <button id="cm-notify"  class="btn small">Notificar solo esta tarjeta</button>
+          <button id="cm-stamp" class="btn small primary">+1 sello</button>
+          <button id="cm-redeem" class="btn small">Canjear</button>
+          <button id="cm-copy" class="btn small">Copiar ID</button>
+          <button id="cm-open" class="btn small ghost">Abrir cliente</button>
+          <button id="cm-notify" class="btn small">Notificar solo esta tarjeta</button>
         </div>
       </div>
     </div>
@@ -762,7 +769,6 @@
           return;
         }
 
-        // cache local
         cardsCache = {};
         data.items.forEach(c => { cardsCache[c.id] = c; });
 
@@ -817,7 +823,6 @@
       }
     });
 
-    // Acciones por tarjeta (tabla)
     document.getElementById('cards-tbody').addEventListener('click', async (e) => {
       const btn = e.target.closest('button[data-action]');
       if (!btn) return;
@@ -853,7 +858,7 @@
 
     /* ===== ESCÁNER QR ===== */
     const scanDialog = $("#scanDialog");
-    const scanVideo  = $("#scan-video");
+    const scanVideo = $("#scan-video");
     const scanStatus = $("#scan-status");
     let scanStream = null;
     let scanRaf = 0;
@@ -877,20 +882,20 @@
         scanStatus.textContent = "Apunta al QR de la tarjeta…";
         if("BarcodeDetector" in window){
           const detector = new BarcodeDetector({formats:['qr_code']});
-            const loop = async () => {
-             if (!scanStream) return;
+          const loop = async () => {
+            if (!scanStream) return;
             try{
-                const codes = await detector.detect(scanVideo);
-                if (codes && codes[0]) {
-                    await handleScan(codes[0].rawValue);
-                    return; // detenemos el loop después de un QR válido
-                }
+              const codes = await detector.detect(scanVideo);
+              if (codes && codes[0]) {
+                await handleScan(codes[0].rawValue);
+                return;
+              }
             }catch(e){
-                console.error('Error detectando QR', e);
+              console.error('Error detectando QR', e);
             }
-                scanRaf = requestAnimationFrame(loop);
-            };
-            loop();
+            scanRaf = requestAnimationFrame(loop);
+          };
+          loop();
         }else{
           scanStatus.textContent = "Tu navegador no soporta escaneo nativo de QR.";
         }
@@ -910,14 +915,11 @@
     function extractCardId(text){
       try{
         const u = new URL(text);
-        // Primero intenta ?cardId=...
         let c = u.searchParams.get("cardId");
         if (c) return c;
-        // Compatibilidad por si algún QR viejo usa ?card=...
         c = u.searchParams.get("card");
         if (c) return c;
       }catch{}
-      // Si el QR trae solo "card_123..."
       if(/^card_\d+/.test(text)) return text;
       return null;
     }
@@ -934,7 +936,6 @@
 
       let card = cardsCache[cid];
 
-      // Si no está en la página actual, intenta cargarla del backend
       if (!card) {
         try {
           const r = await fetch('/api/card/' + encodeURIComponent(cid), {
@@ -959,7 +960,7 @@
     /* ===== GIFT CARDS (QR local con librería) ===== */
     window.currentGiftCard = null;
 
-    document.getElementById('gift-form').addEventListener('submit', function(e) {
+    document.getElementById('gift-form').addEventListener('submit', async function(e) {
       e.preventDefault();
       
       const clientName = (document.getElementById('gift-name').value || '').trim() || 'Cliente';
@@ -983,22 +984,33 @@
       document.getElementById('gift-preview-sub').textContent = `Para: ${clientName}`;
       document.getElementById('gift-preview-exp').textContent = `Vigencia hasta: ${formattedDate}`;
       
-      // Payload tipo texto
       const payloadText =
         `GIFT|codigo=${giftId}|servicio=${service}|cliente=${clientName}|vence=${expirationDate.toISOString().slice(0,10)}`;
       
       const giftCanvas = document.getElementById('gift-qr');
 
-      if (window.QRCode && giftCanvas) {
-        QRCode.toCanvas(giftCanvas, payloadText, {
-          width: 220,
-          margin: 1,
-          color: { dark: '#000000', light: '#ffffff' }
-        }, (err) => {
-          if (err) console.error('QR gift error', err);
-        });
+      // CORRECCIÓN: Esperar a que la librería cargue y generar QR correctamente
+      if (typeof QRCode !== 'undefined' && giftCanvas) {
+        try {
+          await QRCode.toCanvas(giftCanvas, payloadText, {
+            width: 120,
+            height: 120,
+            margin: 1,
+            color: { 
+              dark: '#000000', 
+              light: '#ffffff' 
+            }
+          });
+          console.log('QR Gift Card generado exitosamente');
+        } catch (err) {
+          console.error('Error generando QR gift card:', err);
+          alert('Error al generar el código QR. Por favor intenta de nuevo.');
+          return;
+        }
       } else {
-        console.warn('QRCode no disponible, no se pudo generar el QR de la gift card');
+        console.error('QRCode library no disponible o canvas no encontrado');
+        alert('Error: No se pudo generar el código QR');
+        return;
       }
 
       document.getElementById('gift-preview').classList.remove('hidden');
@@ -1018,15 +1030,16 @@
       if (!window.currentGiftCard) return;
       const gift = window.currentGiftCard;
       const text =
-        `Gift Card Venus Cosmetología\n` +
-        `Servicio: ${gift.service}\n` +
-        `A nombre de: ${gift.client}\n` +
-        `Vigente hasta: ${gift.expires}\n` +
-        `Código: ${gift.id}`;
+        `🎁 Gift Card Venus Cosmetología\n\n` +
+        `✨ Servicio: ${gift.service}\n` +
+        `👤 A nombre de: ${gift.client}\n` +
+        `📅 Vigente hasta: ${gift.expires}\n` +
+        `🔑 Código: ${gift.id}\n\n` +
+        `Presenta este mensaje en tu visita 💚`;
       
       navigator.clipboard.writeText(text).then(() => {
         const originalText = this.textContent;
-        this.textContent = 'Texto copiado ✅';
+        this.textContent = '✅ Copiado';
         setTimeout(() => {
           this.textContent = originalText;
         }, 2000);
@@ -1040,16 +1053,70 @@
       
       const gift = window.currentGiftCard;
       const message =
-        `¡Hola ${gift.client}! 🎁\n\n` +
+        `🎁 ¡Hola ${gift.client}!\n\n` +
         `Tienes una Gift Card de Venus Cosmetología:\n\n` +
-        `✨ ${gift.service}\n` +
+        `✨ Servicio: ${gift.service}\n` +
         `📅 Válida hasta: ${gift.expires}\n` +
-        `Código: ${gift.id}\n\n` +
-        `Muéstrame este mensaje en tu cita 💚`;
+        `🔑 Código: ${gift.id}\n\n` +
+        `Presenta este código en tu cita 💚`;
       
       const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
       window.open(whatsappUrl, '_blank');
     });
+
+    // Nueva función para enviar con imagen
+    document.getElementById('gift-whatsapp-image').addEventListener('click', async function() {
+      if (!window.currentGiftCard) return;
+      
+      try {
+        const canvas = document.getElementById('gift-qr');
+        const imageDataURL = canvas.toDataURL('image/png');
+        
+        const gift = window.currentGiftCard;
+        const message =
+          `🎁 ¡Hola ${gift.client}!\n\n` +
+          `Tienes una Gift Card de Venus Cosmetología:\n\n` +
+          `✨ ${gift.service}\n` +
+          `📅 Válida hasta: ${gift.expires}\n\n` +
+          `Muestra este QR en tu cita 💚`;
+        
+        // Intentar usar Web Share API si está disponible
+        if (navigator.share && navigator.canShare) {
+          const blob = await (await fetch(imageDataURL)).blob();
+          const file = new File([blob], 'gift-card-venus.png', { type: 'image/png' });
+          
+          try {
+            await navigator.share({
+              title: 'Gift Card Venus',
+              text: message,
+              files: [file]
+            });
+          } catch (err) {
+            // Si falla, usar método alternativo
+            fallbackWhatsAppShare(message, imageDataURL);
+          }
+        } else {
+          fallbackWhatsAppShare(message, imageDataURL);
+        }
+      } catch (err) {
+        console.error('Error compartiendo:', err);
+        alert('No se pudo compartir la imagen. Intenta con "Enviar por WhatsApp" sin imagen.');
+      }
+    });
+
+    function fallbackWhatsAppShare(message, imageDataURL) {
+      // Descargar la imagen
+      const link = document.createElement('a');
+      link.download = 'gift-card-venus.png';
+      link.href = imageDataURL;
+      link.click();
+      
+      // Esperar un momento y abrir WhatsApp
+      setTimeout(() => {
+        const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message + '\n\n(Adjunta la imagen que se descargó)')}`;
+        window.open(whatsappUrl, '_blank');
+      }, 500);
+    }
 
     /* ===== PUSH NOTIFICATIONS ===== */
     const typeEmojis = {
@@ -1205,38 +1272,56 @@
     // ===== Modal Tarjeta =====
     const modalBackdrop = document.getElementById('card-modal-backdrop');
     const modalCloseBtn = document.getElementById('cm-close');
-    const modalId    = document.getElementById('cm-id');
-    const modalName  = document.getElementById('cm-name');
+    const modalId = document.getElementById('cm-id');
+    const modalName = document.getElementById('cm-name');
     const modalPhone = document.getElementById('cm-phone');
-    const modalStamps= document.getElementById('cm-stamps');
-    const modalStatus= document.getElementById('cm-status');
+    const modalStamps = document.getElementById('cm-stamps');
+    const modalStatus = document.getElementById('cm-status');
     const modalQrCanvas = document.getElementById('card-qr');
 
-    function openCardModal(card){
+    async function openCardModal(card){
       currentCardId = card.id;
-      modalId.textContent    = card.id;
-      modalName.textContent  = card.name || '—';
+      modalId.textContent = card.id;
+      modalName.textContent = card.name || '—';
       modalPhone.textContent = card.phone || '—';
-      modalStamps.textContent= `${card.stamps} / ${card.max}`;
-      modalStatus.textContent= card.status || 'active';
+      modalStamps.textContent = `${card.stamps} / ${card.max}`;
+      modalStatus.textContent = card.status || 'active';
 
-      // Mostrar modal SIEMPRE
       modalBackdrop.classList.remove('hidden');
 
-      // URL que meteremos en el QR
       const url = `${window.location.origin}/?cardId=${encodeURIComponent(card.id)}`;
 
-      // Generar QR solo si la librería está disponible
-      if (window.QRCode && modalQrCanvas) {
-        QRCode.toCanvas(modalQrCanvas, url, {
-          width: 160,
-          margin: 1,
-          color: { dark: '#000000', light: '#ffffff' }
-        }, (err) => {
-          if (err) console.error('QR error', err);
-        });
+      // CORRECCIÓN CRÍTICA: Generar QR correctamente esperando a que esté lista la librería
+      if (typeof QRCode !== 'undefined' && modalQrCanvas) {
+        try {
+          // Limpiar canvas anterior
+          const ctx = modalQrCanvas.getContext('2d');
+          ctx.clearRect(0, 0, modalQrCanvas.width, modalQrCanvas.height);
+          
+          // Generar nuevo QR
+          await QRCode.toCanvas(modalQrCanvas, url, {
+            width: 170,
+            height: 170,
+            margin: 2,
+            color: { 
+              dark: '#000000', 
+              light: '#ffffff' 
+            }
+          });
+          console.log('QR de tarjeta generado exitosamente');
+        } catch (err) {
+          console.error('Error generando QR de tarjeta:', err);
+          // Mostrar mensaje de error en el canvas
+          const ctx = modalQrCanvas.getContext('2d');
+          ctx.fillStyle = '#fff';
+          ctx.fillRect(0, 0, 170, 170);
+          ctx.fillStyle = '#000';
+          ctx.font = '12px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('Error generando QR', 85, 85);
+        }
       } else {
-        console.warn('QRCode no disponible, no se pudo generar el QR de la tarjeta');
+        console.error('QRCode library no disponible');
       }
     }
 
@@ -1259,7 +1344,7 @@
     async function copyCardId(cardId){
       try{
         await navigator.clipboard.writeText(cardId);
-        alert('ID copiado al portapapeles');
+        alert('✅ ID copiado al portapapeles');
       }catch(e){
         alert('No se pudo copiar el ID');
       }
@@ -1288,9 +1373,9 @@
           const updated = cardsCache[cardId];
           if (updated) openCardModal(updated);
         }
-        alert('Sello agregado');
+        alert('✅ Sello agregado');
       }catch(e){
-        alert('Error: ' + e.message);
+        alert('❌ Error: ' + e.message);
       }
     }
 
@@ -1312,9 +1397,9 @@
           const updated = cardsCache[cardId];
           if (updated) openCardModal(updated);
         }
-        alert('Canje realizado');
+        alert('✅ Canje realizado');
       }catch(e){
-        alert('Error: ' + e.message);
+        alert('❌ Error: ' + e.message);
       }
     }
 
@@ -1331,13 +1416,12 @@
         }
         closeCardModal();
         await loadCards(currentPage);
-        alert('Tarjeta eliminada');
+        alert('✅ Tarjeta eliminada');
       }catch(e){
-        alert('Error: ' + e.message);
+        alert('❌ Error: ' + e.message);
       }
     }
 
-    // Notificación solo a esta tarjeta
     document.getElementById('cm-notify').addEventListener('click', async ()=>{
       if (!currentCardId) return;
       const title = prompt('Título de la notificación', 'Recordatorio Venus');
@@ -1358,8 +1442,25 @@
         }
         alert('✅ Notificación enviada');
       }catch(e){
-        alert('Error: ' + e.message);
+        alert('❌ Error: ' + e.message);
       }
+    });
+
+    // Acciones desde el modal
+    document.getElementById('cm-stamp').addEventListener('click', async () => {
+      if (currentCardId) await stampCard(currentCardId);
+    });
+
+    document.getElementById('cm-redeem').addEventListener('click', async () => {
+      if (currentCardId) await redeemCard(currentCardId);
+    });
+
+    document.getElementById('cm-copy').addEventListener('click', async () => {
+      if (currentCardId) await copyCardId(currentCardId);
+    });
+
+    document.getElementById('cm-open').addEventListener('click', () => {
+      if (currentCardId) openClientPage(currentCardId);
     });
 
     /* INIT */
