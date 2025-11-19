@@ -424,7 +424,18 @@ app.use('/api/apple/v1', (req, res, next) => {
   console.log('[APPLE DEBUG] ==================');
   next();
 });
-
+// ⭐ AGREGAR OTRO DEBUG PARA /v1 (sin /api)
+app.use('/v1', (req, res, next) => {
+  console.log('[APPLE DEBUG] ==================');
+  console.log('[APPLE DEBUG] Petición recibida:');
+  console.log('[APPLE DEBUG] Method:', req.method);
+  console.log('[APPLE DEBUG] URL:', req.url);
+  console.log('[APPLE DEBUG] Path:', req.path);
+  console.log('[APPLE DEBUG] Headers:', JSON.stringify(req.headers, null, 2));
+  console.log('[APPLE DEBUG] Body:', JSON.stringify(req.body, null, 2));
+  console.log('[APPLE DEBUG] ==================');
+  next();
+});
 
 /* =========================================================
    🍎 APPLE WALLET WEB SERVICE ENDPOINTS
