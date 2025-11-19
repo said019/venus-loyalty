@@ -405,10 +405,30 @@
       }
     };
 
-    // --------- BOTÓN APPLE WALLET ----------
-    const applewallet = document.getElementById("applewallet");
-    applewallet.href =
-      data.applewallet ||
+  // --------- BOTÓN APPLE WALLET ----------
+const applewallet = document.getElementById("applewallet");
+applewallet.href = "#"; // Evitar navegación directa
+
+applewallet.onclick = async (ev) => {
+  ev.preventDefault();
+  
+  const passUrl = data.applewallet || `/api/apple/pass?cardId=${encodeURIComponent(cardId)}`;
+  
+  // Crear link temporal para descarga
+  const tempLink = document.createElement('a');
+  tempLink.href = passUrl;
+  tempLink.download = `venus-loyalty-${cardId}.pkpass`;
+  document.body.appendChild(tempLink);
+  tempLink.click();
+  document.body.removeChild(tempLink);
+  
+  // Mostrar mensaje de ayuda después de 1 segundo
+  setTimeout(() => {
+    if (confirm('El pase se ha descargado. ¿Necesitas ayuda para instalarlo?')) {
+      alert('Pasos para instalar:\n\n1. Abre la app "Archivos" en tu iPhone\n2. Ve a "Descargas"\n3. Toca el archivo .pkpass\n4. Toca "Agregar" en la esquina superior\n5. ¡Listo! Tu pase estará en Wallet');
+    }
+  }, 1500);
+};
       `/api/apple/pass?cardId=${encodeURIComponent(cardId)}`;
 
     // --------- COMPARTIR ----------

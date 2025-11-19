@@ -1317,4 +1317,4 @@ app.listen(PORT, () => {
       console.error("Error leyendo estado inicial Firestore:", e);
     }
   })();
-});
+}); 
