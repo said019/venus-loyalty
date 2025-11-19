@@ -613,7 +613,22 @@ app.get('/api/debug/apple-routes-test', async (req, res) => {
 
   res.json({ testResults });
 });
-
+// En server.js - agregar después de los otros endpoints
+app.get('/api/debug/apple-auth-config', (req, res) => {
+  const authToken = process.env.APPLE_AUTH_TOKEN;
+  
+  res.json({
+    appleAuthToken: {
+      configured: !!authToken,
+      value: authToken ? authToken.substring(0, 10) + '...' : 'NO CONFIGURADO',
+      length: authToken ? authToken.length : 0
+    },
+    expectedHeader: `ApplePass ${authToken ? authToken.substring(0, 10) + '...' : '???'}`,
+    recommendation: authToken ? 
+      '✅ Token configurado correctamente' : 
+      '❌ APPLE_AUTH_TOKEN no está configurado en las variables de entorno'
+  });
+});
 /* =========================================================
    EMISIÓN DE TARJETA
    ========================================================= */
