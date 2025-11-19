@@ -6,13 +6,13 @@ import path from 'path';
 // Configuración
 const CONFIG = {
   width: 375,          // 375px EXACTO para iPhone (no 750)
-  height: 123,         // 123px EXACTO para iPhone (no 246)
+  height: 98,          // Reducido de 123px a 98px (más compacto, como Airbnb)
   stampCount: 8,       // Total de sellos
   bgColor: '#E8E4D0',  // Fondo crema/beige
   logoPath: 'public/assets/stamp.png', // Ruta a tu logo Venus
-  stampSize: 45,       // Tamaño de cada sello (ajustado para 375px)
-  padding: 20,         // Espacio lateral
-  spacing: 8,          // Espacio entre sellos
+  stampSize: 35,       // Reducido de 45px a 35px
+  padding: 15,         // Reducido de 20px a 15px
+  spacing: 6,          // Reducido de 8px a 6px
 };
 
 // Función para convertir imagen a escala de grises
