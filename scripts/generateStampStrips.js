@@ -103,14 +103,13 @@ async function generateStripImage(logoImage, activeStamps, outputPath) {
     // Aplicar efecto según estado
     applyStampEffect(ctx, logoImage, x, centerY, stampSize, isActive);
     
-    // Borde circular sutil para sellos inactivos
+    // Borde circular sutil para sellos inactivos (opcional)
     if (!isActive) {
       ctx.save();
-      ctx.strokeStyle = '#A5A89D';
-      ctx.lineWidth = 3;
-      ctx.globalAlpha = 0.5;
+      ctx.strokeStyle = 'rgba(150, 150, 150, 0.3)';
+      ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.arc(x, centerY, stampSize / 2 + 5, 0, Math.PI * 2);
+      ctx.arc(x, centerY, stampSize / 2 + 3, 0, Math.PI * 2);
       ctx.stroke();
       ctx.restore();
     }
@@ -145,27 +144,63 @@ async function generateAllStrips() {
       fs.mkdirSync(outputDir, { recursive: true });
     }
     
-    console.log('🎨 Generando strips de sellos...\n');
+    // ============= VERSIÓN 1x (375x123px) =============
+    console.log('🎨 Generando strips 1x (375x123px)...\n');
     
-    // Generar imagen para cada estado (0-8 sellos activos)
-    // Generar SOLO versión 1x (375x123px) - Apple Wallet la escala automáticamente
     for (let i = 0; i <= CONFIG.stampCount; i++) {
       const filename = `stamp-strip-${i}.png`;
       const filepath = path.join(outputDir, filename);
       await generateStripImage(logoImage, i, filepath);
     }
     
-    console.log(`\n✅ ¡Listo! Se generaron ${CONFIG.stampCount + 1} strips en: public/assets/`);
-    console.log(`   Dimensiones: ${CONFIG.width}x${CONFIG.height}px (exactas para iPhone)\n`);
-    console.log('📋 Archivos creados:');
-    console.log('   stamp-strip-0.png  (sin sellos)');
-    for (let i = 1; i < CONFIG.stampCount; i++) {
-      console.log(`   stamp-strip-${i}.png  (${i}/${CONFIG.stampCount} sellos)`);
-    }
-    console.log(`   stamp-strip-${CONFIG.stampCount}.png  (¡completo! 🎉)\n`);
+    console.log('\n✅ Versiones 1x generadas\n');
     
-    console.log('💡 Tip: Apple Wallet escala automáticamente para Retina');
-    console.log('💡 Si quieres @2x, cambia CONFIG.width a 750 y CONFIG.height a 246');
+    // ============= VERSIÓN 2x (750x246px) =============
+    console.log('🎨 Generando strips @2x (750x246px para Retina)...\n');
+    
+    // Guardar configuración original
+    const originalWidth = CONFIG.width;
+    const originalHeight = CONFIG.height;
+    const originalStampSize = CONFIG.stampSize;
+    const originalPadding = CONFIG.padding;
+    const originalSpacing = CONFIG.spacing;
+    
+    // Duplicar tamaños para versión @2x
+    CONFIG.width = 750;
+    CONFIG.height = 246;
+    CONFIG.stampSize = 90;
+    CONFIG.padding = 40;
+    CONFIG.spacing = 16;
+    
+    for (let i = 0; i <= CONFIG.stampCount; i++) {
+      const filename = `stamp-strip-${i}@2x.png`;
+      const filepath = path.join(outputDir, filename);
+      await generateStripImage(logoImage, i, filepath);
+    }
+    
+    // Restaurar configuración original
+    CONFIG.width = originalWidth;
+    CONFIG.height = originalHeight;
+    CONFIG.stampSize = originalStampSize;
+    CONFIG.padding = originalPadding;
+    CONFIG.spacing = originalSpacing;
+    
+    console.log('\n✅ Versiones @2x generadas\n');
+    
+    // ============= RESUMEN =============
+    console.log(`✅ ¡Listo! Se generaron ${(CONFIG.stampCount + 1) * 2} imágenes en: public/assets/`);
+    console.log('   - 9 versiones 1x (375x123px) para pantallas normales');
+    console.log('   - 9 versiones @2x (750x246px) para pantallas Retina\n');
+    
+    console.log('📋 Archivos creados:');
+    for (let i = 0; i <= CONFIG.stampCount; i++) {
+      const status = i === 0 ? 'sin sellos' : 
+                     i === CONFIG.stampCount ? '¡completo! 🎉' : 
+                     `${i}/${CONFIG.stampCount} sellos`;
+      console.log(`   - stamp-strip-${i}.png + @2x.png → ${status}`);
+    }
+    
+    console.log('\n💡 Ahora reinicia tu servidor y genera un nuevo pase');
     
   } catch (error) {
     console.error('\n❌ Error:', error.message);
