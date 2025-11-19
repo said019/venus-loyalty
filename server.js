@@ -1,4 +1,4 @@
-// server.js - COMPLETO CON APPLE WALLET APNs - MIGRADO A FIRESTORE
+// server.js - COMPLETO CON APPLE WALLET APNs - MIGRADO A FIRESTORE - CORREGIDO
 import express from "express";
 import cors from "cors";
 import "dotenv/config";
@@ -326,7 +326,41 @@ if (process.env.APPLE_APNS_KEY_BASE64 && !process.env.APPLE_APNS_KEY_PATH) {
   }
 }
 
+// ✅ 2. MIDDLEWARE DE DEBUG MEJORADO (después de body parsers)
+app.use('/api/apple/v1', (req, res, next) => {
+  console.log('[APPLE DEBUG] ==================');
+  console.log('[APPLE DEBUG] Method:', req.method);
+  console.log('[APPLE DEBUG] URL:', req.url);
+  console.log('[APPLE DEBUG] Path:', req.path);
+  console.log('[APPLE DEBUG] Auth:', req.headers.authorization?.substring(0, 20) + '...');
+  
+  // Manejo seguro del body
+  if (req.method === 'POST' || req.method === 'PUT') {
+    console.log('[APPLE DEBUG] Body:', req.body);
+  } else {
+    console.log('[APPLE DEBUG] Body: (no body for ' + req.method + ')');
+  }
+  console.log('[APPLE DEBUG] ==================');
+  next();
+});
 
+// ✅ 3. MIDDLEWARE DE DEBUG PARA /v1 (sin /api)
+app.use('/v1', (req, res, next) => {
+  console.log('[APPLE DEBUG] ==================');
+  console.log('[APPLE DEBUG] Method:', req.method);
+  console.log('[APPLE DEBUG] URL:', req.url);
+  console.log('[APPLE DEBUG] Path:', req.path);
+  console.log('[APPLE DEBUG] Auth:', req.headers.authorization?.substring(0, 20) + '...');
+  
+  // Manejo seguro del body
+  if (req.method === 'POST' || req.method === 'PUT') {
+    console.log('[APPLE DEBUG] Body:', req.body);
+  } else {
+    console.log('[APPLE DEBUG] Body: (no body for ' + req.method + ')');
+  }
+  console.log('[APPLE DEBUG] ==================');
+  next();
+});
 
 /* =========================================================
    📧 Envío de correos
@@ -418,32 +452,33 @@ app.get("/api/google/test", testHandler);
 app.get("/api/save-card", saveCardHandler);
 
 /* =========================================================
-   🍎 APPLE WALLET WEB SERVICE ENDPOINTS
+   🍎 APPLE WALLET WEB SERVICE ENDPOINTS - CORREGIDOS
    ========================================================= */
 console.log('[APPLE] Configurando endpoints del web service...');
 
 const appleAuth = appleWebService.appleAuthMiddleware;
 
+// ========== ENDPOINTS PRINCIPALES CON PARÁMETROS CORRECTOS ==========
 app.post(
-  '/api/apple/v1/devices/:deviceId/registrations/:passTypeId/:serial',
+  '/api/apple/v1/devices/:deviceLibraryIdentifier/registrations/:passTypeIdentifier/:serialNumber',
   appleAuth,
   appleWebService.registerDeviceHandler
 );
 
 app.get(
-  '/api/apple/v1/devices/:deviceId/registrations/:passTypeId',
+  '/api/apple/v1/devices/:deviceLibraryIdentifier/registrations/:passTypeIdentifier',
   appleAuth,
   appleWebService.getUpdatablePassesHandler
 );
 
 app.get(
-  '/api/apple/v1/passes/:passTypeId/:serial',
+  '/api/apple/v1/passes/:passTypeIdentifier/:serialNumber',
   appleAuth,
   appleWebService.getLatestPassHandler
 );
 
 app.delete(
-  '/api/apple/v1/devices/:deviceId/registrations/:passTypeId/:serial',
+  '/api/apple/v1/devices/:deviceLibraryIdentifier/registrations/:passTypeIdentifier/:serialNumber',
   appleAuth,
   appleWebService.unregisterDeviceHandler
 );
@@ -453,17 +488,18 @@ app.post(
   appleAuth,
   appleWebService.logHandler
 );
+
 // ========== ENDPOINTS CORTOS (sin /api - para Apple) ==========
-app.post('/v1/devices/:deviceId/registrations/:passTypeId/:serial',
+app.post('/v1/devices/:deviceLibraryIdentifier/registrations/:passTypeIdentifier/:serialNumber',
   appleAuth, appleWebService.registerDeviceHandler);
 
-app.get('/v1/devices/:deviceId/registrations/:passTypeId',
+app.get('/v1/devices/:deviceLibraryIdentifier/registrations/:passTypeIdentifier',
   appleAuth, appleWebService.getUpdatablePassesHandler);
 
-app.get('/v1/passes/:passTypeId/:serial',
+app.get('/v1/passes/:passTypeIdentifier/:serialNumber',
   appleAuth, appleWebService.getLatestPassHandler);
 
-app.delete('/v1/devices/:deviceId/registrations/:passTypeId/:serial',
+app.delete('/v1/devices/:deviceLibraryIdentifier/registrations/:passTypeIdentifier/:serialNumber',
   appleAuth, appleWebService.unregisterDeviceHandler);
 
 app.post('/v1/log',
@@ -472,7 +508,7 @@ app.post('/v1/log',
 console.log('[APPLE] ✅ Endpoints configurados');
 
 /* =========================================================
-   DEBUG ENDPOINTS
+   DEBUG ENDPOINTS - MEJORADOS
    ========================================================= */
 app.get("/api/debug/google-class", async (_req, res) => {
   try {
@@ -497,7 +533,7 @@ app.get('/api/debug/apple-apns', (req, res) => {
       keyId: process.env.APPLE_KEY_ID,
       teamId: process.env.APPLE_TEAM_ID,
       passTypeId: process.env.APPLE_PASS_TYPE_ID,
-      webServiceUrl: process.env.BASE_URL + '/api/apple/v1'
+      webServiceUrl: process.env.BASE_URL + '/v1' // ✅ Cambiado a /v1
     }
   });
 });
@@ -522,6 +558,60 @@ app.get('/api/debug/apple-devices', async (req, res) => {
     console.error("[APPLE DEBUG DEVICES]", e);
     res.status(500).json({ error: e.message });
   }
+});
+
+// ✅ NUEVO ENDPOINT PARA DEBUG DE RUTAS APPLE
+app.get('/api/debug/apple-routes-test', async (req, res) => {
+  const baseUrl = 'https://venus-loyalty.onrender.com';
+  const testResults = [];
+  
+  // Test rutas /v1
+  try {
+    const testResponse = await fetch(`${baseUrl}/v1/devices/test-device-123/registrations/pass.com.venusloyalty.mx/test-card-123`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `ApplePass ${process.env.APPLE_AUTH_TOKEN}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ pushToken: 'test-push-token-123' })
+    });
+    testResults.push({
+      route: 'POST /v1/devices/.../registrations/...',
+      status: testResponse.status,
+      working: testResponse.status !== 404
+    });
+  } catch (error) {
+    testResults.push({
+      route: 'POST /v1/devices/.../registrations/...',
+      error: error.message,
+      working: false
+    });
+  }
+
+  // Test rutas /api/apple/v1
+  try {
+    const testResponse = await fetch(`${baseUrl}/api/apple/v1/devices/test-device-123/registrations/pass.com.venusloyalty.mx/test-card-123`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `ApplePass ${process.env.APPLE_AUTH_TOKEN}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ pushToken: 'test-push-token-123' })
+    });
+    testResults.push({
+      route: 'POST /api/apple/v1/devices/.../registrations/...',
+      status: testResponse.status,
+      working: testResponse.status !== 404
+    });
+  } catch (error) {
+    testResults.push({
+      route: 'POST /api/apple/v1/devices/.../registrations/...',
+      error: error.message,
+      working: false
+    });
+  }
+
+  res.json({ testResults });
 });
 
 /* =========================================================
@@ -1271,6 +1361,7 @@ app.listen(PORT, () => {
   console.log(`   • Google Wallet: http://localhost:${PORT}/api/google/diagnostics`);
   console.log(`   • Apple APNs Status: http://localhost:${PORT}/api/debug/apple-apns`);
   console.log(`   • DB Status (Firestore): http://localhost:${PORT}/api/debug/database-status`);
+  console.log(`   • Apple Routes Test: http://localhost:${PORT}/api/debug/apple-routes-test`);
 
   (async () => {
     try {
@@ -1283,4 +1374,4 @@ app.listen(PORT, () => {
       console.error("Error leyendo estado inicial Firestore:", e);
     }
   })();
-}); 
+});
