@@ -1,4 +1,4 @@
-// server.js - CORREGIDO - Sincronización SQLite + Firestore
+// server.js - COMPLETO CON APPLE WALLET APNs
 import express from "express";
 import cors from "cors";
 import "dotenv/config";
@@ -43,6 +43,9 @@ import {
   clearAdminCookie,
 } from "./lib/auth.js";
 
+// 🍎 Apple Wallet Web Service
+import appleWebService from './lib/apple-webservice.js';
+
 // __dirname para ESModules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -52,7 +55,6 @@ const __dirname = path.dirname(__filename);
    ========================================================= */
 function runMigrations() {
   try {
-    // Verificar si la columna phone existe en cards
     const tableInfo = db.prepare("PRAGMA table_info(cards)").all();
     const hasPhoneColumn = tableInfo.some(column => column.name === 'phone');
     
@@ -68,10 +70,8 @@ function runMigrations() {
   }
 }
 
-// Ejecutar migraciones al inicio
 runMigrations();
 
-// 👇 Prepara statements para operaciones comunes
 const deleteCardStmt = db.prepare("DELETE FROM cards WHERE id = ?");
 const deleteEventsByCardStmt = db.prepare("DELETE FROM events WHERE card_id = ?");
 
@@ -88,10 +88,24 @@ app.use(cookieParser());
 app.use(express.static("public"));
 
 /* =========================================================
+   🍎 DECODIFICAR APNs KEY DE BASE64 (para Render)
+   ========================================================= */
+if (process.env.APPLE_APNS_KEY_BASE64 && !process.env.APPLE_APNS_KEY_PATH) {
+  try {
+    const keyContent = Buffer.from(process.env.APPLE_APNS_KEY_BASE64, 'base64').toString('utf8');
+    const tempPath = '/tmp/apns-key.p8';
+    fs.writeFileSync(tempPath, keyContent);
+    process.env.APPLE_APNS_KEY_PATH = tempPath;
+    console.log('[APPLE APNs] ✅ Key decodificada desde base64');
+  } catch (e) {
+    console.error('[APPLE APNs] ❌ Error decodificando key:', e);
+  }
+}
+
+/* =========================================================
    📧 Envío de correos
    ========================================================= */
 async function sendMail({ to, subject, text, html }) {
-  // 1) Resend
   if (process.env.RESEND_API_KEY) {
     const from = process.env.RESEND_FROM || "Venus Admin <onboarding@resend.dev>";
     const resp = await fetch("https://api.resend.com/emails", {
@@ -116,7 +130,6 @@ async function sendMail({ to, subject, text, html }) {
     return { channel: "resend", id: data?.id || null };
   }
 
-  // 2) SMTP
   const host = process.env.SMTP_HOST;
   const port = Number(process.env.SMTP_PORT || 587);
   const user = process.env.SMTP_USER;
@@ -161,7 +174,6 @@ function basicAuth(req, res, next) {
    SQL: tablas y prepared statements
    ========================================================= */
 
-// admins
 const insertAdmin = db.prepare(
   "INSERT INTO admins (id, email, pass_hash) VALUES (?, ?, ?)"
 );
@@ -169,7 +181,6 @@ const getAdminByEmail = db.prepare("SELECT * FROM admins WHERE email = ?");
 const getAdminById = db.prepare("SELECT * FROM admins WHERE id = ?");
 const countAdmins = db.prepare("SELECT COUNT(*) AS n FROM admins");
 
-// admin_resets
 db.exec(`
   CREATE TABLE IF NOT EXISTS admin_resets (
     token TEXT PRIMARY KEY,
@@ -185,7 +196,6 @@ const insertReset = db.prepare(
 const findReset = db.prepare("SELECT * FROM admin_resets WHERE token = ?");
 const delReset = db.prepare("DELETE FROM admin_resets WHERE token = ?");
 
-// tarjetas / eventos
 const insertCard = db.prepare(
   "INSERT INTO cards (id, name, max, phone) VALUES (?, ?, ?, ?)"
 );
@@ -206,7 +216,6 @@ const listEvents = db.prepare(`
   ORDER BY id DESC
 `);
 
-// métricas
 const countAllCards = db.prepare(`SELECT COUNT(*) AS n FROM cards`);
 const countFullCards = db.prepare(
   `SELECT COUNT(*) AS n FROM cards WHERE stamps >= max`
@@ -218,7 +227,6 @@ const countEventsToday = db.prepare(`
   GROUP BY type
 `);
 
-// listados admin
 const listCardsStmt = db.prepare(`
   SELECT id, name, phone, stamps, max, status, created_at
   FROM cards
@@ -234,18 +242,17 @@ const countCardsStmt = db.prepare(`
     AND (LOWER(id) LIKE LOWER(@like) OR LOWER(name) LIKE LOWER(@like) OR LOWER(phone) LIKE LOWER(@like))
 `);
 
-/* ---------- regla: sólo 1 sello por día ---------- */
 function canStamp(cardId) {
   const row = lastStampStmt.get(cardId);
   if (!row || !row.created_at) return true;
   const last = new Date(row.created_at);
   const now = new Date();
   const diffMs = now - last;
-  return diffMs >= 23 * 60 * 60 * 1000; // ~1 día
+  return diffMs >= 23 * 60 * 60 * 1000;
 }
 
 /* =========================================================
-   🔥 HELPERS FIRESTORE MEJORADOS (con mejor manejo de errores)
+   HELPERS FIRESTORE
    ========================================================= */
 async function fsUpsertCard({ id, name, phone, max, stamps, status }) {
   try {
@@ -286,7 +293,6 @@ async function fsAddEvent(cardId, type, meta = {}) {
   }
 }
 
-// Admins en Firestore
 async function fsUpsertAdmin({ id, email, pass_hash }) {
   try {
     if (!firestore) return;
@@ -306,16 +312,13 @@ async function fsUpsertAdmin({ id, email, pass_hash }) {
   }
 }
 
-// 🔥 NUEVO: Eliminar de Firestore
 async function fsDeleteCard(cardId) {
   try {
     if (!firestore) return;
     
-    // Eliminar documento de tarjeta
     await firestore.collection("cards").doc(cardId).delete();
     console.log(`[Firestore] ✅ Card ${cardId} eliminada`);
     
-    // Eliminar eventos relacionados
     const evSnap = await firestore
       .collection("events")
       .where("cardId", "==", cardId)
@@ -354,7 +357,46 @@ app.get("/api/google/test", testHandler);
 app.get("/api/save-card", saveCardHandler);
 
 /* =========================================================
-   DEBUG GOOGLE WALLET
+   🍎 APPLE WALLET WEB SERVICE ENDPOINTS
+   ========================================================= */
+console.log('[APPLE] Configurando endpoints del web service...');
+
+const appleAuth = appleWebService.appleAuthMiddleware;
+
+app.post(
+  '/api/apple/v1/devices/:deviceId/registrations/:passTypeId/:serial',
+  appleAuth,
+  appleWebService.registerDeviceHandler
+);
+
+app.get(
+  '/api/apple/v1/devices/:deviceId/registrations/:passTypeId',
+  appleAuth,
+  appleWebService.getUpdatablePassesHandler
+);
+
+app.get(
+  '/api/apple/v1/passes/:passTypeId/:serial',
+  appleAuth,
+  appleWebService.getLatestPassHandler
+);
+
+app.delete(
+  '/api/apple/v1/devices/:deviceId/registrations/:passTypeId/:serial',
+  appleAuth,
+  appleWebService.unregisterDeviceHandler
+);
+
+app.post(
+  '/api/apple/v1/log',
+  appleAuth,
+  appleWebService.logHandler
+);
+
+console.log('[APPLE] ✅ Endpoints configurados');
+
+/* =========================================================
+   DEBUG ENDPOINTS
    ========================================================= */
 app.get("/api/debug/google-class", async (_req, res) => {
   try {
@@ -365,42 +407,37 @@ app.get("/api/debug/google-class", async (_req, res) => {
   }
 });
 
-app.get("/api/debug/google-permissions", async (_req, res) => {
+app.get('/api/debug/apple-apns', (req, res) => {
+  res.json({
+    configured: {
+      keyId: !!process.env.APPLE_KEY_ID,
+      teamId: !!process.env.APPLE_TEAM_ID,
+      keyPath: !!process.env.APPLE_APNS_KEY_PATH,
+      authToken: !!process.env.APPLE_AUTH_TOKEN,
+      passTypeId: !!process.env.APPLE_PASS_TYPE_ID,
+      baseUrl: !!process.env.BASE_URL
+    },
+    values: {
+      keyId: process.env.APPLE_KEY_ID,
+      teamId: process.env.APPLE_TEAM_ID,
+      passTypeId: process.env.APPLE_PASS_TYPE_ID,
+      webServiceUrl: process.env.BASE_URL + '/api/apple/v1'
+    }
+  });
+});
+
+app.get('/api/debug/apple-devices', (req, res) => {
   try {
-    const { getWalletAccessToken } = await import("./lib/google.js");
-    const token = await getWalletAccessToken();
-
-    const response = await fetch(
-      `https://walletobjects.googleapis.com/walletobjects/v1/loyaltyClass/3388000000023035846.venus_loyalty_v1`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    const data = await response.json();
-
-    res.json({
-      canGetToken: true,
-      tokenLength: token.length,
-      apiResponse: {
-        status: response.status,
-        statusText: response.statusText,
-        data: data,
-      },
-    });
-  } catch (error) {
-    res.json({
-      canGetToken: false,
-      error: error.message,
-    });
+    const devices = db.prepare('SELECT * FROM apple_devices').all();
+    const updates = db.prepare('SELECT * FROM apple_updates ORDER BY id DESC LIMIT 10').all();
+    res.json({ devices, recentUpdates: updates });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
   }
 });
 
 /* =========================================================
-   EMISIÓN DE TARJETA (staff)
+   EMISIÓN DE TARJETA
    ========================================================= */
 app.post("/api/issue", async (req, res) => {
   try {
@@ -440,10 +477,8 @@ app.post("/api/issue", async (req, res) => {
 });
 
 /* =========================================================
-   CREAR TARJETA PÚBLICA (web Venus)
+   CREAR TARJETA PÚBLICA
    ========================================================= */
-
-// GET
 app.get("/api/create-card", async (req, res) => {
   try {
     const { name, phone, max } = req.query;
@@ -502,7 +537,6 @@ app.get("/api/create-card", async (req, res) => {
   }
 });
 
-// POST
 app.post("/api/create-card", async (req, res) => {
   try {
     const { name, phone, max } = req.body || {};
@@ -562,7 +596,7 @@ app.post("/api/create-card", async (req, res) => {
 });
 
 /* =========================================================
-   OBTENER DATOS TARJETA - CORREGIDO: buscar en SQLite primero
+   OBTENER DATOS TARJETA
    ========================================================= */
 app.get("/api/card/:cardId", (req, res) => {
   try {
@@ -593,22 +627,8 @@ app.get("/api/wallet-link/:cardId", (req, res) => {
 });
 
 /* =========================================================
-   DEBUG APPLE WALLET
+   APPLE WALLET - GENERAR PASE
    ========================================================= */
-app.get("/api/debug/apple-env", (_req, res) => {
-  const need = [
-    "APPLE_ORG_NAME",
-    "APPLE_PASS_CERT",
-    "APPLE_PASS_KEY",
-    "APPLE_WWDR",
-    "APPLE_PASS_TYPE_ID",
-    "APPLE_TEAM_ID",
-  ];
-  const status = {};
-  for (const k of need) status[k] = !!process.env[k];
-  res.json(status);
-});
-
 app.get("/api/apple/test-pass", async (_req, res) => {
   try {
     const testPayload = {
@@ -617,8 +637,6 @@ app.get("/api/apple/test-pass", async (_req, res) => {
       stamps: 2,
       max: 8,
     };
-
-    console.log("Generando pase de prueba con:", testPayload);
 
     const buffer = await buildApplePassBuffer(testPayload);
 
@@ -638,7 +656,6 @@ app.get("/api/apple/test-pass", async (_req, res) => {
   }
 });
 
-/* ---------- APPLE: generar pase real ---------- */
 app.get("/api/apple/pass", async (req, res) => {
   try {
     const { cardId } = req.query;
@@ -678,11 +695,10 @@ app.get("/api/apple/pass", async (req, res) => {
 });
 
 /* =========================================================
-   🔥 MÉTRICAS Y TARJETAS - UNIFICADO: SQLite como fuente primaria
+   MÉTRICAS Y TARJETAS
    ========================================================= */
 app.get("/api/admin/metrics-firebase", adminAuth, async (req, res) => {
   try {
-    // Usar SQLite como fuente primaria
     const total = countAllCards.get().n;
     const full = countFullCards.get().n;
     
@@ -703,7 +719,6 @@ app.get("/api/admin/metrics-firebase", adminAuth, async (req, res) => {
   }
 });
 
-// 🔥 CORREGIDO: Listar tarjetas desde SQLite (no Firestore)
 app.get("/api/admin/cards-firebase", adminAuth, async (req, res) => {
   try {
     const page = Math.max(1, parseInt(req.query.page || "1", 10));
@@ -712,12 +727,9 @@ app.get("/api/admin/cards-firebase", adminAuth, async (req, res) => {
     const q = (req.query.q || '').trim();
     const like = q ? `%${q}%` : '%';
     
-    // Usar SQLite como fuente primaria
     const items = listCardsStmt.all({ like, limit, offset });
     const { n } = countCardsStmt.get({ like });
     const totalPages = Math.max(1, Math.ceil(n / limit));
-    
-    console.log(`[CARDS LIST] Página ${page}, total: ${n}, query: "${q}"`);
     
     res.json({ 
       page, 
@@ -732,7 +744,6 @@ app.get("/api/admin/cards-firebase", adminAuth, async (req, res) => {
   }
 });
 
-// Eventos desde SQLite
 app.get("/api/admin/events-firebase", adminAuth, async (req, res) => {
   try {
     const { cardId } = req.query || {};
@@ -748,7 +759,7 @@ app.get("/api/admin/events-firebase", adminAuth, async (req, res) => {
 });
 
 /* =========================================================
-   SUMAR SELLO (staff)
+   SUMAR SELLO (staff) - CON NOTIFICACIÓN APPLE
    ========================================================= */
 app.post("/api/stamp/:cardId", basicAuth, async (req, res) => {
   try {
@@ -774,6 +785,13 @@ app.post("/api/stamp/:cardId", basicAuth, async (req, res) => {
     });
     await fsAddEvent(cardId, "STAMP", { by: "reception" });
 
+    // 🍎 Notificar a Apple Wallet
+    try {
+      await appleWebService.updatePassAndNotify(cardId, card.stamps, newStamps);
+    } catch (err) {
+      console.error('[APPLE] Error notificando:', err);
+    }
+
     const addToGoogleUrl = buildGoogleSaveUrl({
       cardId,
       name: card.name,
@@ -787,20 +805,14 @@ app.post("/api/stamp/:cardId", basicAuth, async (req, res) => {
 });
 
 /* =========================================================
-   PUSH NOTIFICATIONS (admin only)
+   PUSH NOTIFICATIONS
    ========================================================= */
-
-// Enviar notificación masiva
 app.post("/api/admin/push-notification", adminAuth, sendMassPushNotification);
-
-// Enviar notificación de prueba
 app.post("/api/admin/push-test", adminAuth, sendTestPushNotification);
-
-// Obtener historial de notificaciones
 app.get("/api/admin/notifications", adminAuth, getNotifications);
 
 /* =========================================================
-   CANJEAR (staff)
+   CANJEAR (staff) - CON NOTIFICACIÓN APPLE
    ========================================================= */
 app.post("/api/redeem/:cardId", basicAuth, async (req, res) => {
   try {
@@ -823,6 +835,13 @@ app.post("/api/redeem/:cardId", basicAuth, async (req, res) => {
     });
     await fsAddEvent(cardId, "REDEEM", { by: "reception" });
 
+    // 🍎 Notificar a Apple Wallet
+    try {
+      await appleWebService.updatePassAndNotify(cardId, card.stamps, 0);
+    } catch (err) {
+      console.error('[APPLE] Error notificando:', err);
+    }
+
     const addToGoogleUrl = buildGoogleSaveUrl({
       cardId,
       name: card.name,
@@ -836,7 +855,7 @@ app.post("/api/redeem/:cardId", basicAuth, async (req, res) => {
 });
 
 /* =========================================================
-   NOTIFICAR A UNA SOLA TARJETA (push Google Wallet)
+   NOTIFICAR A UNA SOLA TARJETA
    ========================================================= */
 app.post("/api/admin/push-one", adminAuth, async (req, res) => {
   try {
@@ -924,35 +943,21 @@ app.get("/api/export.csv", basicAuth, (_req, res) => {
 });
 
 /* =========================================================
-   🔥 ELIMINAR TARJETA (admin) - CORREGIDO: Buscar en SQLite
+   ELIMINAR TARJETA
    ========================================================= */
 app.delete("/api/admin/card/:cardId", adminAuth, async (req, res) => {
   try {
     const { cardId } = req.params;
     if (!cardId) return res.status(400).json({ error: "missing_cardId" });
 
-    console.log(`[DELETE CARD] Intentando eliminar: ${cardId}`);
-
-    // 1) Verificar que existe en SQLite
     const card = getCard.get(cardId);
     if (!card) {
-      console.log(`[DELETE CARD] ❌ Tarjeta no encontrada en SQLite: ${cardId}`);
       return res.status(404).json({ error: "card not found" });
     }
 
-    console.log(`[DELETE CARD] ✅ Tarjeta encontrada en SQLite:`, card);
+    deleteEventsByCardStmt.run(cardId);
+    deleteCardStmt.run(cardId);
 
-    // 2) Eliminar de SQLite
-    try {
-      deleteEventsByCardStmt.run(cardId);
-      deleteCardStmt.run(cardId);
-      console.log(`[DELETE CARD] ✅ Eliminada de SQLite`);
-    } catch (sqlError) {
-      console.error(`[DELETE CARD] Error en SQLite:`, sqlError);
-      throw sqlError;
-    }
-
-    // 3) Eliminar de Firestore (no crítico si falla)
     await fsDeleteCard(cardId);
 
     res.json({ ok: true, cardId, message: 'Tarjeta eliminada correctamente' });
@@ -963,32 +968,7 @@ app.delete("/api/admin/card/:cardId", adminAuth, async (req, res) => {
 });
 
 /* =========================================================
-   DEBUG FIREBASE
-   ========================================================= */
-app.get("/api/debug/firebase-test", async (_req, res) => {
-  try {
-    const docRef = firestore.collection("debug").doc("ping");
-
-    await docRef.set(
-      {
-        lastPing: new Date().toISOString(),
-        note: "Hola desde venus-loyalty 🪐",
-      },
-      { merge: true }
-    );
-
-    const snap = await docRef.get();
-    const data = snap.data();
-
-    res.json({ ok: true, projectId: firestore.projectId, data });
-  } catch (e) {
-    console.error("[FIREBASE TEST ERROR]", e);
-    res.status(500).json({ ok: false, error: e.message });
-  }
-});
-
-/* =========================================================
-   🔥 ADMIN (auth + panel) - CORREGIDO: Prevenir duplicados
+   ADMIN AUTH
    ========================================================= */
 app.post("/api/admin/register", async (req, res) => {
   try {
@@ -1001,10 +981,8 @@ app.post("/api/admin/register", async (req, res) => {
 
     const norm = String(email).trim().toLowerCase();
     
-    // CORREGIDO: Verificar duplicados
     const exists = getAdminByEmail.get(norm);
     if (exists) {
-      console.log(`[ADMIN REGISTER] ❌ Email ya existe: ${norm}`);
       return res.status(409).json({ error: "email_in_use" });
     }
 
@@ -1012,8 +990,6 @@ app.post("/api/admin/register", async (req, res) => {
     const pass_hash = await bcrypt.hash(password, 10);
 
     insertAdmin.run(id, norm, pass_hash);
-    console.log(`[ADMIN REGISTER] ✅ Admin creado en SQLite: ${norm}`);
-    
     await fsUpsertAdmin({ id, email: norm, pass_hash });
 
     res.json({ ok: true });
@@ -1030,28 +1006,21 @@ app.post("/api/admin/login", async (req, res) => {
 
     const norm = String(email).trim().toLowerCase();
     
-    // CORREGIDO: Buscar en SQLite
     const admin = getAdminByEmail.get(norm);
     if (!admin) {
-      console.log(`[ADMIN LOGIN] ❌ Usuario no encontrado: ${norm}`);
       return res.status(401).json({ error: "invalid_credentials" });
     }
-
-    console.log(`[ADMIN LOGIN] ✅ Usuario encontrado:`, admin.email);
 
     const ok = await bcrypt.compare(password, admin.pass_hash);
     if (!ok) {
-      console.log(`[ADMIN LOGIN] ❌ Contraseña incorrecta`);
       return res.status(401).json({ error: "invalid_credentials" });
     }
 
-    // Sincronizar con Firestore (opcional)
     await fsUpsertAdmin({ id: admin.id, email: admin.email, pass_hash: admin.pass_hash });
 
     const token = signAdmin({ id: admin.id, email: admin.email });
     setAdminCookie(res, token);
     
-    console.log(`[ADMIN LOGIN] ✅ Login exitoso: ${admin.email}`);
     res.json({ ok: true });
   } catch (e) {
     console.error("[ADMIN LOGIN]", e);
@@ -1103,7 +1072,6 @@ app.post("/api/admin/stamp", adminAuth, async (req, res) => {
 
     const card = getCard.get(cardId);
     if (!card) {
-      console.log(`[ADMIN STAMP] ❌ Tarjeta no encontrada: ${cardId}`);
       return res.status(404).json({ error: "card not found" });
     }
     
@@ -1124,7 +1092,13 @@ app.post("/api/admin/stamp", adminAuth, async (req, res) => {
     });
     await fsAddEvent(cardId, "STAMP", { by: "admin" });
 
-    console.log(`[ADMIN STAMP] ✅ Sello agregado: ${cardId}, nuevo total: ${newStamps}`);
+    // 🍎 Notificar a Apple Wallet
+    try {
+      await appleWebService.updatePassAndNotify(cardId, card.stamps, newStamps);
+    } catch (err) {
+      console.error('[APPLE] Error notificando:', err);
+    }
+
     res.json({ ok: true, cardId, stamps: newStamps });
   } catch (e) {
     console.error('[ADMIN STAMP]', e);
@@ -1154,6 +1128,13 @@ app.post("/api/admin/redeem", adminAuth, async (req, res) => {
     });
     await fsAddEvent(cardId, "REDEEM", { by: "admin" });
 
+    // 🍎 Notificar a Apple Wallet
+    try {
+      await appleWebService.updatePassAndNotify(cardId, card.stamps, 0);
+    } catch (err) {
+      console.error('[APPLE] Error notificando:', err);
+    }
+
     res.json({ ok: true, cardId });
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -1179,7 +1160,7 @@ app.get("/api/admin/metrics", adminAuth, (_req, res) => {
 });
 
 /* =========================================================
-   RECUPERACIÓN DE CONTRASEÑA (admin)
+   RECUPERACIÓN DE CONTRASEÑA
    ========================================================= */
 app.post("/api/admin/forgot", async (req, res) => {
   try {
@@ -1251,37 +1232,13 @@ app.post("/api/admin/reset", async (req, res) => {
 });
 
 /* =========================================================
-   DEBUG MAIL
-   ========================================================= */
-app.post("/api/debug/mail", async (req, res) => {
-  try {
-    const to = String((req.body?.to || "").trim());
-    if (!to) return res.status(400).json({ error: "missing_to" });
-
-    const r = await sendMail({
-      to,
-      subject: "Prueba de correo — Venus",
-      text: "Hola 👋 Este es un correo de prueba.",
-      html: "<p>Hola 👋</p><p>Este es un correo de prueba.</p>",
-    });
-
-    res.json({ ok: true, channel: r.channel, messageId: r.id, to });
-  } catch (e) {
-    console.error("[MAIL TEST]", e);
-    res.status(500).json({ error: String(e.message || e) });
-  }
-});
-
-/* =========================================================
-   🔧 ENDPOINT DE DIAGNÓSTICO
+   DEBUG
    ========================================================= */
 app.get("/api/debug/database-status", adminAuth, async (req, res) => {
   try {
-    // Contar en SQLite
     const sqliteCards = countAllCards.get().n;
     const sqliteAdmins = countAdmins.get().n;
     
-    // Contar en Firestore
     let firestoreCards = 0;
     let firestoreAdmins = 0;
     
@@ -1323,12 +1280,11 @@ app.listen(PORT, () => {
   console.log(`\n📱 Endpoints disponibles:`);
   console.log(`   • Admin: http://localhost:${PORT}/admin`);
   console.log(`   • Staff: http://localhost:${PORT}/staff.html`);
-  console.log(`   • Crear tarjeta: http://localhost:${PORT}/api/create-card`);
   console.log(`   • Google Wallet: http://localhost:${PORT}/api/google/diagnostics`);
+  console.log(`   • Apple APNs Status: http://localhost:${PORT}/api/debug/apple-apns`);
   console.log(`\n🔍 Diagnóstico:`);
   console.log(`   • DB Status: http://localhost:${PORT}/api/debug/database-status`);
   
-  // Mostrar conteo inicial
   try {
     const cards = countAllCards.get().n;
     const admins = countAdmins.get().n;
