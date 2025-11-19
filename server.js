@@ -462,6 +462,21 @@ app.post(
   appleAuth,
   appleWebService.logHandler
 );
+// ========== ENDPOINTS CORTOS (sin /api - para Apple) ==========
+app.post('/v1/devices/:deviceId/registrations/:passTypeId/:serial',
+  appleAuth, appleWebService.registerDeviceHandler);
+
+app.get('/v1/devices/:deviceId/registrations/:passTypeId',
+  appleAuth, appleWebService.getUpdatablePassesHandler);
+
+app.get('/v1/passes/:passTypeId/:serial',
+  appleAuth, appleWebService.getLatestPassHandler);
+
+app.delete('/v1/devices/:deviceId/registrations/:passTypeId/:serial',
+  appleAuth, appleWebService.unregisterDeviceHandler);
+
+app.post('/v1/log',
+  appleAuth, appleWebService.logHandler);
 
 console.log('[APPLE] ✅ Endpoints configurados');
 
