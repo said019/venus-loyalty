@@ -757,7 +757,10 @@ app.get("/api/apple/test-pass", async (_req, res) => {
       name: "Cliente Test",
       stamps: 2,
       max: 8,
+      latestMessage: "¡Este es un mensaje de prueba para las notificaciones!" // ⭐ AGREGAR ESTA LÍNEA
     };
+
+    console.log("[APPLE TEST] 🔨 Generando pase de prueba con payload:", testPayload);
 
     const buffer = await buildApplePassBuffer(testPayload);
 
@@ -770,6 +773,7 @@ app.get("/api/apple/test-pass", async (_req, res) => {
       Expires: "0",
     });
 
+    console.log("[APPLE TEST] ✅ Pase de prueba generado exitosamente");
     res.send(buffer);
   } catch (error) {
     console.error("Error en test pass:", error);
@@ -789,26 +793,34 @@ app.get("/api/apple/pass", async (req, res) => {
           name: existing.name,
           stamps: existing.stamps,
           max: existing.max,
+          latestMessage: existing.latestMessage || null // ⭐ AGREGAR ESTO
         }
       : {
           cardId: String(cardId),
           name: "Cliente",
           stamps: 0,
           max: 8,
+          latestMessage: null // ⭐ AGREGAR ESTO
         };
 
+    console.log("[APPLE PASS] 📥 Generando pase con datos:", payload);
+    
     const buffer = await buildApplePassBuffer(payload);
 
+    // ✅ HEADERS CRÍTICOS PARA QUE SE ABRA EN WALLET
     res.set({
-      "Content-Type": "application/vnd.apple.pkpass",
-      "Content-Disposition": `attachment; filename="${payload.cardId}.pkpass"`,
-      "Content-Transfer-Encoding": "binary",
-      "Cache-Control": "no-store, no-cache, must-revalidate, private",
-      Pragma: "no-cache",
-      Expires: "0",
+      'Content-Type': 'application/vnd.apple.pkpass',
+      'Content-Disposition': `attachment; filename="${payload.cardId}.pkpass"`,
+      'Content-Transfer-Encoding': 'binary',
+      'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+      'Pragma': 'no-cache',
+      'Expires': '0',
+      'Content-Length': buffer.length
     });
 
+    console.log(`[APPLE PASS] 📤 Enviando pase para: ${payload.cardId}`);
     res.status(200).send(buffer);
+    
   } catch (e) {
     console.error("[APPLE PASS ERROR]", e);
     res.status(500).send(e.message || "pkpass_error");
