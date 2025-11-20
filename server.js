@@ -950,6 +950,16 @@ app.post("/api/stamp/:cardId", basicAuth, async (req, res) => {
     const updated = await fsUpdateCardStamps(cardId, newStamps);
     await fsAddEvent(cardId, "STAMP", { by: "reception" });
 
+    // ✅ AGREGAR: Actualizar Google Wallet
+    try {
+      const { updateLoyaltyObject } = await import("./lib/google.js");
+      await updateLoyaltyObject(cardId, newStamps);
+      console.log(`[GOOGLE WALLET] ✅ Stamp actualizado para: ${cardId}`);
+    } catch (googleError) {
+      console.error(`[GOOGLE WALLET] ❌ Error actualizando stamp:`, googleError.message);
+    }
+
+    // ... resto del código igual para Apple
     try {
        await appleWebService.notifyCardUpdate(cardId);
     } catch (err) {
@@ -1009,6 +1019,88 @@ app.post("/api/redeem/:cardId", basicAuth, async (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
+
+/* =========================================================
+   HELPERS GOOGLE DEVICES (similar a Apple)
+   ========================================================= */
+
+const COL_GOOGLE_DEVICES = "google_devices";
+
+async function fsRegisterGoogleDevice(cardId, pushToken, deviceId = null) {
+  try {
+    const deviceKey = deviceId || `google_${cardId}_${Date.now()}`;
+    await firestore.collection(COL_GOOGLE_DEVICES).doc(deviceKey).set({
+      card_id: cardId,
+      push_token: pushToken,
+      device_id: deviceId,
+      registered_at: new Date().toISOString(),
+      last_updated: new Date().toISOString()
+    });
+    console.log(`[GOOGLE DEVICE] ✅ Dispositivo registrado para: ${cardId}`);
+  } catch (error) {
+    console.error('[GOOGLE DEVICE] Error registrando dispositivo:', error);
+    throw error;
+  }
+}
+
+async function fsGetGoogleDevicesByCard(cardId) {
+  try {
+    const snap = await firestore
+      .collection(COL_GOOGLE_DEVICES)
+      .where('card_id', '==', cardId)
+      .get();
+    
+    return snap.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+  } catch (error) {
+    console.error('[GOOGLE DEVICE] Error obteniendo dispositivos:', error);
+    return [];
+  }
+}
+
+async function fsUnregisterGoogleDevice(deviceId) {
+  try {
+    await firestore.collection(COL_GOOGLE_DEVICES).doc(deviceId).delete();
+  } catch (error) {
+    console.error('[GOOGLE DEVICE] Error desregistrando:', error);
+  }
+}
+
+/* =========================================================
+   REGISTRAR DISPOSITIVO GOOGLE
+   ========================================================= */
+app.post('/api/google/register-device', async (req, res) => {
+  try {
+    const { cardId, pushToken, deviceId } = req.body;
+    
+    if (!cardId || !pushToken) {
+      return res.status(400).json({ error: "Faltan cardId o pushToken" });
+    }
+
+    console.log(`[GOOGLE] 📱 Registrando dispositivo para: ${cardId}`);
+
+    // Verificar que la tarjeta existe
+    const card = await fsGetCard(cardId);
+    if (!card) {
+      return res.status(404).json({ error: "Tarjeta no encontrada" });
+    }
+
+    await fsRegisterGoogleDevice(cardId, pushToken, deviceId);
+
+    res.json({ 
+      success: true, 
+      message: "Dispositivo Google registrado exitosamente" 
+    });
+    
+  } catch (error) {
+    console.error('[GOOGLE] ❌ Error registrando dispositivo:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
 /* =========================================================
    HELPER: CREAR/ACTUALIZAR OBJETO GOOGLE WALLET
    ========================================================= */
@@ -1718,6 +1810,123 @@ app.post("/api/admin/reset", async (req, res) => {
   } catch (e) {
     console.error("[RESET]", e);
     res.status(500).json({ error: "reset_error" });
+  }
+});
+/* =========================================================
+   DEBUG: ESTADO GOOGLE WALLET
+   ========================================================= */
+app.get('/api/debug/google-wallet-state/:cardId', async (req, res) => {
+  try {
+    const cardId = req.params.cardId;
+    
+    console.log(`[DEBUG GOOGLE] 🔍 Verificando estado para: ${cardId}`);
+    
+    const card = await fsGetCard(cardId);
+    if (!card) {
+      return res.json({ exists: false, message: 'Tarjeta no encontrada' });
+    }
+
+    const { getWalletAccessToken } = await import("./lib/google.js");
+    const token = await getWalletAccessToken();
+    const issuerId = process.env.GOOGLE_ISSUER_ID;
+    const objectId = `${issuerId}.${cardId}`;
+
+    // Verificar si el objeto existe en Google Wallet
+    const checkResp = await fetch(
+      `https://walletobjects.googleapis.com/walletobjects/v1/loyaltyObject/${encodeURIComponent(objectId)}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    const googleObjectExists = checkResp.status === 200;
+    let googleObjectData = null;
+
+    if (googleObjectExists) {
+      googleObjectData = await checkResp.json();
+    }
+
+    // Verificar dispositivos Google registrados
+    const googleDevices = await fsGetGoogleDevicesByCard(cardId);
+
+    res.json({
+      firestore: {
+        exists: true,
+        cardData: {
+          id: card.id,
+          name: card.name,
+          stamps: card.stamps,
+          max: card.max
+        }
+      },
+      googleWallet: {
+        objectExists: googleObjectExists,
+        objectId: objectId,
+        objectData: googleObjectData ? {
+          loyaltyPoints: googleObjectData.loyaltyPoints,
+          state: googleObjectData.state
+        } : null,
+        error: !googleObjectExists ? `Objeto no existe (status: ${checkResp.status})` : null
+      },
+      googleDevices: {
+        count: googleDevices.length,
+        devices: googleDevices.map(d => ({
+          deviceId: d.device_id,
+          hasToken: !!d.push_token,
+          registeredAt: d.registered_at
+        }))
+      }
+    });
+    
+  } catch (error) {
+    console.error(`[DEBUG GOOGLE] ❌ Error:`, error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/* =========================================================
+   DEBUG: CREAR/ACTUALIZAR OBJETO GOOGLE WALLET MANUALMENTE
+   ========================================================= */
+app.post('/api/debug/fix-google-wallet/:cardId', async (req, res) => {
+  try {
+    const cardId = req.params.cardId;
+    
+    console.log(`[DEBUG GOOGLE] 🔧 Reparando objeto para: ${cardId}`);
+    
+    const card = await fsGetCard(cardId);
+    if (!card) {
+      return res.status(404).json({ error: "Tarjeta no encontrada" });
+    }
+
+    const { createLoyaltyObject, updateLoyaltyObject } = await import("./lib/google.js");
+    
+    // Intentar actualizar primero (si existe)
+    try {
+      await updateLoyaltyObject(cardId, card.stamps);
+      console.log(`[DEBUG GOOGLE] ✅ Objeto actualizado: ${cardId}`);
+      return res.json({ success: true, action: "updated", stamps: card.stamps });
+    } catch (updateError) {
+      // Si falla la actualización, crear uno nuevo
+      if (updateError.message.includes('404') || updateError.message.includes('not found')) {
+        await createLoyaltyObject({
+          cardId,
+          name: card.name,
+          stamps: card.stamps,
+          max: card.max
+        });
+        console.log(`[DEBUG GOOGLE] ✅ Objeto creado: ${cardId}`);
+        return res.json({ success: true, action: "created", stamps: card.stamps });
+      } else {
+        throw updateError;
+      }
+    }
+    
+  } catch (error) {
+    console.error(`[DEBUG GOOGLE] ❌ Error reparando:`, error);
+    res.status(500).json({ error: error.message });
   }
 });
 /* =========================================================
