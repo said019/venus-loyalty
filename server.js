@@ -950,7 +950,7 @@ app.post("/api/stamp/:cardId", basicAuth, async (req, res) => {
     await fsAddEvent(cardId, "STAMP", { by: "reception" });
 
     try {
-      await appleWebService.updatePassAndNotify(cardId, card.stamps, newStamps);
+       await appleWebService.notifyCardUpdate(cardId);
     } catch (err) {
       console.error("[APPLE] Error notificando:", err);
     }
@@ -991,7 +991,7 @@ app.post("/api/redeem/:cardId", basicAuth, async (req, res) => {
     await fsAddEvent(cardId, "REDEEM", { by: "reception" });
 
     try {
-      await appleWebService.updatePassAndNotify(cardId, prev, 0);
+      await appleWebService.notifyCardUpdate(cardId);
     } catch (err) {
       console.error("[APPLE] Error notificando:", err);
     }
@@ -1081,18 +1081,18 @@ app.post("/api/admin/push-one", adminAuth, async (req, res) => {
       results.google.error = googleError.message;
     }
 
-    // 2. Apple Wallet - ✅ FLUJO CORREGIDO SEGÚN TU DIAGNÓSTICO
+        // 2. Apple Wallet (alerta visible) - ✅ PARA NOTIFICACIONES MANUALES
     try {
-      // ⭐ PASO 1: Guardar el mensaje en Firestore para que esté disponible al generar el pase
+      // 1. PRIMERO: Guardamos el mensaje en Firestore
       await firestore.collection(COL_CARDS).doc(cardId).set({
-        latestMessage: message,    // Mensaje que verá el usuario
-        latestMessageTitle: title, // Título opcional
+        latestMessage: message,
+        latestMessageTitle: title,
         messageUpdatedAt: new Date().toISOString()
       }, { merge: true });
 
       console.log(`[PUSH ONE] 💾 Mensaje guardado en Firestore: "${message}"`);
 
-      // ⭐ PASO 2: Buscar dispositivos Apple registrados para esta tarjeta
+      // 2. Buscar dispositivos Apple registrados
       const appleDevicesSnap = await firestore
         .collection(COL_DEVICES)
         .where("serial_number", "==", cardId)
@@ -1102,28 +1102,27 @@ app.post("/api/admin/push-one", adminAuth, async (req, res) => {
         console.log(`[PUSH ONE] 📱 No hay dispositivos Apple registrados para ${cardId}`);
         results.apple.error = "Sin dispositivos Apple registrados";
       } else {
-        console.log(`[PUSH ONE] 🍏 Enviando notificaciones a ${appleDevicesSnap.size} dispositivo(s) Apple`);
+        console.log(`[PUSH ONE] 🍏 Enviando alertas visibles a ${appleDevicesSnap.size} dispositivo(s) Apple`);
         
         let sentCount = 0;
         let errorCount = 0;
 
-        // ⭐ PASO 3: Enviar notificación SILENCIOSA a cada dispositivo
+        // 3. Enviar ALERTA VISIBLE (notificación inmediata como WhatsApp)
         for (const doc of appleDevicesSnap.docs) {
           const deviceData = doc.data();
           const pushToken = deviceData.push_token;
 
           if (pushToken) {
             try {
-              // ✅ CORRECTO: Usamos notificación SILENCIOSA (content-available: 1)
-              // Esto triggereará la descarga del pase actualizado
-              await appleWebService.sendAPNsPushNotification(pushToken);
+              // ✅ USAR sendAlertToCardDevices para notificaciones visibles inmediatas
+              await appleWebService.sendAlertToCardDevices(cardId, title, message);
               sentCount++;
-              console.log(`[PUSH ONE] ✅ Notificación silenciosa enviada a dispositivo ${deviceData.device_id.substring(0, 10)}...`);
+              console.log(`[PUSH ONE] ✅ Alerta visible enviada a dispositivo ${deviceData.device_id.substring(0, 10)}...`);
             } catch (apnsError) {
               errorCount++;
               console.error(`[PUSH ONE] ❌ Error enviando a ${deviceData.device_id}:`, apnsError.message);
               
-              // Si el token es inválido, podríamos eliminarlo de la base de datos
+              // Eliminar token inválido
               if (apnsError.message.includes('BadDeviceToken') || apnsError.message.includes('Unregistered')) {
                 console.log(`[PUSH ONE] 🗑️ Eliminando token inválido: ${deviceData.device_id}`);
                 await doc.ref.delete();
@@ -1364,7 +1363,8 @@ app.post("/api/admin/redeem", adminAuth, async (req, res) => {
     await fsAddEvent(cardId, "REDEEM", { by: "admin" });
 
     try {
-      await appleWebService.updatePassAndNotify(cardId, prev, 0);
+      await appleWebService.notifyCardUpdate(cardId);
+
     } catch (err) {
       console.error("[APPLE] Error notificando:", err);
     }
@@ -1507,6 +1507,7 @@ app.listen(PORT, () => {
       console.log(`   • Admins: ${adminsSnap.size}`);
     } catch (e) {
       console.error("Error leyendo estado inicial Firestore:", e);
+
     }
   })();
 });
