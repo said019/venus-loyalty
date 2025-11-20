@@ -271,55 +271,79 @@ body.auth-verified {
       color:#166534;
       font-size:11px;
     }
+    /* Estilos adaptados de index.html para la Gift Card */
+.gift-card-visual {
+  background-color: #8c9668; /* Tu color original */
+  border-radius: 20px;
+  color: #fff;
+  padding: 2rem;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+  width: 100%;
+  max-width: 320px; /* Tamaño proporcional para compartir */
+  position: relative;
+  overflow: hidden;
+  text-align: center;
+  margin: 0 auto; /* Centrado */
+  font-family: 'Poppins', sans-serif;
+}
 
-    .gift-preview{
-      border-radius:16px;
-      padding:18px;
-      background:linear-gradient(135deg, #8c9668, #a8b380);
-      color:#fff;
-      position:relative;
-      overflow:hidden;
-      min-height:220px;
-      display:flex;
-      flex-direction:column;
-      justify-content:space-between;
-      box-shadow:0 8px 25px rgba(0,0,0,0.2);
-      margin-top: 12px;
-    }
-    .gift-preview::before{
-      content:"";
-      position:absolute;
-      top:0;
-      left:0;
-      right:0;
-      height:60%;
-      background:linear-gradient(135deg, rgba(255,255,255,0.1), transparent);
-      z-index:1;
-    }
-    .gift-preview > *{
-      position:relative;
-      z-index:2;
-    }
-    .gift-preview h4{
-      margin:0 0 8px;
-      font-size:18px;
-      font-weight:600;
-    }
-    .gift-preview small{font-size:12px;opacity:.9;}
-    .gift-preview-content{
-      display:flex;
-      justify-content:space-between;
-      align-items:flex-end;
-      margin-top:10px;
-    }
-    .gift-preview-info{
-      flex:1;
-    }
-    .gift-preview-qr{
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-    }
+.gift-card-visual::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 20% 30%, rgba(255,255,255,0.05), transparent 70%),
+              radial-gradient(circle at 80% 60%, rgba(255,255,255,0.04), transparent 60%);
+  opacity: 0.7;
+  z-index: 0;
+}
+
+.gift-card-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.gift-brand-logo {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background-color: #fff;
+  margin-bottom: 10px;
+  box-shadow: 0 0 10px rgba(255,255,255,0.3);
+  object-fit: contain;
+  padding: 2px;
+}
+
+.gift-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin: 5px 0;
+}
+
+.gift-service {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin: 10px 0 5px;
+  color: #dfe6c1; /* Venus soft color */
+}
+
+.gift-meta {
+  font-size: 0.9rem;
+  opacity: 0.9;
+  margin-bottom: 15px;
+}
+
+.gift-qr-container {
+  background: #fff;
+  padding: 10px;
+  border-radius: 12px;
+  margin-top: 10px;
+  display: inline-block;
+}
+
+    
     .gift-qr{
       width:120px;
       height:120px;
@@ -441,6 +465,8 @@ body.auth-verified {
       height:auto;
     }
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body class="checking-auth">
 
@@ -609,23 +635,27 @@ body.auth-verified {
         <button type="submit" class="btn primary" style="margin-top:10px;">Generar Gift Card</button>
       </form>
 
-      <div id="gift-preview" class="gift-preview hidden">
-        <div>
-          <small>Venus Cosmetología</small>
-          <h4 id="gift-preview-title">Gift Card</h4>
-          <div id="gift-preview-sub" style="margin-top:4px;font-size:14px;"></div>
-          <div class="chip" id="gift-preview-exp"></div>
-        </div>
-        <div class="gift-preview-content">
-          <div class="gift-preview-info">
-            <div style="font-size:13px;margin-top:8px;">Presenta este código en tu visita</div>
-          </div>
-          <div class="gift-preview-qr">
-            <canvas id="gift-qr" class="gift-qr"></canvas>
-            <small style="font-size:10px;">Código QR</small>
-          </div>
-        </div>
+      <div id="gift-preview-container" class="hidden" style="margin-top: 20px;">
+  <div id="gift-card-visual" class="gift-card-visual">
+    <div class="gift-card-content">
+      <img src="/assets/logo.png" alt="Venus" class="gift-brand-logo">
+      
+      <div class="gift-title">Venus Lealtad</div>
+      <div style="font-size: 0.9rem; opacity: 0.9;">¡Tienes un regalo! 🎁</div>
+      
+      <hr style="width: 50%; border: 0; border-top: 1px solid rgba(255,255,255,0.3); margin: 15px 0;">
+
+      <div id="gift-visual-service" class="gift-service">Servicio</div>
+      <div id="gift-visual-client" class="gift-meta">Para: Cliente</div>
+      <div id="gift-visual-date" class="gift-meta" style="font-size: 0.8rem; margin-top:0;">Vence: --/--/--</div>
+
+      <div class="gift-qr-container">
+        <canvas id="gift-qr"></canvas>
       </div>
+      <div style="font-size: 10px; color: #333; margin-top: 4px; color: #fff; opacity: 0.8;">Muestra este código</div>
+    </div>
+  </div>
+</div>
 
       <div id="gift-actions" class="gift-actions hidden">
         <button type="button" id="gift-copy" class="btn small">Copiar texto</button>
@@ -1209,75 +1239,126 @@ async function stopScan() {
 
       openCardModal(card);
     }
+    /* ===== GIFT CARDS MEJORADO ===== */
+window.currentGiftCard = null;
 
-    /* ===== GIFT CARDS (QR local con librería) ===== */
-    window.currentGiftCard = null;
+document.getElementById('gift-form').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  
+  // 1. Obtener datos
+  const clientName = (document.getElementById('gift-name').value || '').trim() || 'Cliente';
+  const service = (document.getElementById('gift-service').value || '').trim();
+  
+  if (!service) { alert('Ingresa un servicio'); return; }
 
-    document.getElementById('gift-form').addEventListener('submit', async function(e) {
-      e.preventDefault();
-      
-      const clientName = (document.getElementById('gift-name').value || '').trim() || 'Cliente';
-      const service = (document.getElementById('gift-service').value || '').trim();
-      
-      if (!service) {
-        alert('Ingresa un servicio');
-        return;
-      }
-      
-      const giftId = 'gift_' + Date.now();
-      const expirationDate = new Date();
-      expirationDate.setDate(expirationDate.getDate() + 30);
-      const formattedDate = expirationDate.toLocaleDateString('es-MX', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric'
-      });
-      
-      document.getElementById('gift-preview-title').textContent = service;
-      document.getElementById('gift-preview-sub').textContent = `Para: ${clientName}`;
-      document.getElementById('gift-preview-exp').textContent = `Vigencia hasta: ${formattedDate}`;
-      
-      const payloadText =
-        `GIFT|codigo=${giftId}|servicio=${service}|cliente=${clientName}|vence=${expirationDate.toISOString().slice(0,10)}`;
-      
-      const giftCanvas = document.getElementById('gift-qr');
+  // 2. Calcular fechas e IDs
+  const giftId = 'gift_' + Date.now();
+  const expirationDate = new Date();
+  expirationDate.setDate(expirationDate.getDate() + 30);
+  const formattedDate = expirationDate.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
 
-      // CORRECCIÓN: Esperar a que la librería cargue y generar QR correctamente
-      if (typeof QRCode !== 'undefined' && giftCanvas) {
-        try {
-          await QRCode.toCanvas(giftCanvas, payloadText, {
-            width: 120,
-            height: 120,
-            margin: 1,
-            color: { 
-              dark: '#000000', 
-              light: '#ffffff' 
-            }
-          });
-          console.log('QR Gift Card generado exitosamente');
-        } catch (err) {
-          console.error('Error generando QR gift card:', err);
-          alert('Error al generar el código QR. Por favor intenta de nuevo.');
-          return;
-        }
-      } else {
-        console.error('QRCode library no disponible o canvas no encontrado');
-        alert('Error: No se pudo generar el código QR');
-        return;
-      }
+  // 3. Actualizar la VISTA VISUAL (Nuevo diseño)
+  document.getElementById('gift-visual-service').textContent = service;
+  document.getElementById('gift-visual-client').textContent = `Para: ${clientName}`;
+  document.getElementById('gift-visual-date').textContent = `Válida hasta: ${formattedDate}`;
 
-      document.getElementById('gift-preview').classList.remove('hidden');
-      document.getElementById('gift-actions').classList.remove('hidden');
-      document.getElementById('gift-success').classList.remove('hidden');
-      
-      window.currentGiftCard = {
-        id: giftId,
-        service,
-        client: clientName,
-        expires: formattedDate,
-        payload: payloadText
-      };
+  // 4. Generar QR
+  const payloadText = `GIFT|codigo=${giftId}|servicio=${service}|cliente=${clientName}|vence=${expirationDate.toISOString().slice(0,10)}`;
+  const giftCanvas = document.getElementById('gift-qr');
+
+  try {
+    // Aseguramos que el canvas esté limpio
+    const ctx = giftCanvas.getContext('2d');
+    ctx.clearRect(0, 0, giftCanvas.width, giftCanvas.height);
+
+    // Usamos la librería qrcode (asegúrate de haberla importado en el head)
+    await QRCode.toCanvas(giftCanvas, payloadText, { 
+      width: 150, 
+      margin: 0,
+      color: { dark: '#000000', light: '#ffffff' }
     });
+    
+  } catch (err) {
+    console.error(err);
+    alert('Error generando QR. Verifica que la librería qrcode.min.js esté en el <head>');
+    return;
+  }
+
+  // 5. Mostrar resultados
+  document.getElementById('gift-preview-container').classList.remove('hidden');
+  document.getElementById('gift-actions').classList.remove('hidden');
+  document.getElementById('gift-success').classList.remove('hidden');
+  
+  // Guardar referencia global
+  window.currentGiftCard = { id: giftId, client: clientName, service, expires: formattedDate };
+});
+
+// --- Lógica para compartir IMAGEN COMPLETA en WhatsApp ---
+document.getElementById('gift-whatsapp-image').addEventListener('click', async function() {
+    if (!window.currentGiftCard) return;
+    
+    const btn = this;
+    const originalText = btn.textContent;
+    btn.textContent = 'Generando imagen...';
+    
+    try {
+        // Seleccionamos el div con el diseño completo
+        const elementToCapture = document.getElementById('gift-card-visual');
+        
+        // Usamos html2canvas para crear una imagen de todo el div
+        const canvasFull = await html2canvas(elementToCapture, {
+            scale: 2, // Mejor calidad
+            backgroundColor: null // Transparencia si aplica
+        });
+
+        const imageDataURL = canvasFull.toDataURL('image/png');
+        const gift = window.currentGiftCard;
+        
+        const message = `🎁 ¡Hola ${gift.client}!\n\n` +
+                        `Te envío una Gift Card de Venus Cosmetología para:\n` +
+                        `✨ *${gift.service}*\n\n` +
+                        `Presenta la imagen adjunta en tu próxima visita. 🌿`;
+
+        // Lógica de envío (Web Share API o Descarga)
+        if (navigator.share && navigator.canShare) {
+            const blob = await (await fetch(imageDataURL)).blob();
+            const file = new File([blob], 'gift-card-venus.png', { type: 'image/png' });
+            try {
+                await navigator.share({
+                    title: 'Gift Card Venus',
+                    text: message,
+                    files: [file]
+                });
+            } catch (err) {
+                if (err.name !== 'AbortError') fallbackWhatsAppShare(message, imageDataURL);
+            }
+        } else {
+            fallbackWhatsAppShare(message, imageDataURL);
+        }
+    } catch (e) {
+        console.error(e);
+        alert('Error al generar la imagen');
+    } finally {
+        btn.textContent = originalText;
+    }
+});
+
+function fallbackWhatsAppShare(message, imageDataURL) {
+    // Crea un enlace de descarga automático
+    const link = document.createElement('a');
+    link.download = 'gift-card-venus.png';
+    link.href = imageDataURL;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    setTimeout(() => {
+        const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message + '\n\n(Adjunta la imagen descargada)')}`;
+        window.open(whatsappUrl, '_blank');
+    }, 1000);
+}
+
+    
 
     document.getElementById('gift-copy').addEventListener('click', function() {
       if (!window.currentGiftCard) return;
