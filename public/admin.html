@@ -704,17 +704,19 @@
         </div>
       </div>
     </section>
-
     <!-- DIALOG: Escáner QR -->
-    <dialog id="scanDialog">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-        <h3 style="margin:0;font-size:16px;">Escanear tarjeta</h3>
-        <button type="button" id="scan-close" class="btn small ghost">Cerrar</button>
-      </div>
-      <video id="scan-video" autoplay playsinline style="width:100%;max-height:260px;border-radius:12px;background:#000;"></video>
-      <div class="muted" id="scan-status" style="margin-top:8px;font-size:12px;">Iniciando cámara…</div>
-    </dialog>
+<dialog id="scanDialog">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+    <h3 style="margin:0;font-size:16px;">Escanear tarjeta</h3>
+    <button type="button" id="scan-close" class="btn small ghost">Cerrar</button>
+  </div>
+  <div id="qr-reader" style="width:100%;"></div>
+  <div class="muted" id="scan-status" style="margin-top:8px;font-size:12px;">Iniciando cámara…</div>
+</dialog>
+    
 
+
+    
     <footer class="footer">© Venus Cosmetología</footer>
 
     <!-- Modal Tarjeta -->
@@ -748,6 +750,7 @@
   <!-- QRCode lib -->
   
 <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <!-- Chart.js lib -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
@@ -1074,61 +1077,78 @@ async function loadWalletStats() {
       }
     });
 
-    /* ===== ESCÁNER QR ===== */
-    const scanDialog = $("#scanDialog");
-    const scanVideo = $("#scan-video");
-    const scanStatus = $("#scan-status");
-    let scanStream = null;
-    let scanRaf = 0;
+    /* ===== ESCÁNER QR (html5-qrcode) ===== */
+const scanDialog = $("#scanDialog");
+const scanStatus = $("#scan-status");
+let html5QrCode = null;
 
-    $("#btn-scan-card").addEventListener("click", async () => {
-      scanDialog.showModal();
-      await startScan();
-    });
-    $("#scan-close").addEventListener("click", () => {
-      stopScan();
-      scanDialog.close();
-    });
+$("#btn-scan-card").addEventListener("click", async () => {
+  scanDialog.showModal();
+  await startScan();
+});
 
-    async function startScan(){
-      try{
-        stopScan();
-        scanStatus.textContent = "Abriendo cámara…";
-        scanStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
-        scanVideo.srcObject = scanStream;
-        await scanVideo.play();
-        scanStatus.textContent = "Apunta al QR de la tarjeta…";
-        if("BarcodeDetector" in window){
-          const detector = new BarcodeDetector({formats:['qr_code']});
-          const loop = async () => {
-            if (!scanStream) return;
-            try{
-              const codes = await detector.detect(scanVideo);
-              if (codes && codes[0]) {
-                await handleScan(codes[0].rawValue);
-                return;
-              }
-            }catch(e){
-              console.error('Error detectando QR', e);
-            }
-            scanRaf = requestAnimationFrame(loop);
-          };
-          loop();
-        }else{
-          scanStatus.textContent = "Tu navegador no soporta escaneo nativo de QR.";
-        }
-      }catch(e){
-        scanStatus.textContent = "No se pudo iniciar la cámara: " + (e.message || e);
+$("#scan-close").addEventListener("click", () => {
+  stopScan();
+  scanDialog.close();
+});
+
+async function startScan() {
+  try {
+    scanStatus.textContent = "Iniciando cámara...";
+    
+    // Crear instancia de html5-qrcode
+    html5QrCode = new Html5Qrcode("qr-reader");
+    
+    // Iniciar escaneo
+    await html5QrCode.start(
+      { facingMode: "environment" }, // Cámara trasera
+      {
+        fps: 10,
+        qrbox: { width: 250, height: 250 }
+      },
+      async (decodedText, decodedResult) => {
+        // ✅ QR detectado exitosamente
+        console.log("QR detectado:", decodedText);
+        scanStatus.textContent = "✅ QR detectado";
+        
+        // Detener escáner
+        await stopScan();
+        
+        // Procesar el QR
+        await handleScan(decodedText);
+        
+        // Cerrar diálogo
+        scanDialog.close();
+      },
+      (errorMessage) => {
+        // Ignorar errores de no detectar QR (son normales)
       }
+    );
+    
+    scanStatus.textContent = "📷 Apunta al QR de la tarjeta...";
+    
+  } catch (err) {
+    console.error("Error iniciando cámara:", err);
+    scanStatus.textContent = "❌ No se pudo acceder a la cámara";
+    
+    // Si falla, pedir permisos explícitamente
+    if (err.name === 'NotAllowedError') {
+      scanStatus.textContent = "⚠️ Por favor permite el acceso a la cámara";
     }
+  }
+}
 
-    function stopScan(){
-      cancelAnimationFrame(scanRaf);
-      if(scanStream){
-        scanStream.getTracks().forEach(t=>t.stop());
-        scanStream = null;
-      }
+async function stopScan() {
+  if (html5QrCode && html5QrCode.isScanning) {
+    try {
+      await html5QrCode.stop();
+      console.log("Escáner detenido");
+    } catch (err) {
+      console.error("Error deteniendo escáner:", err);
     }
+  }
+  html5QrCode = null;
+}
 
     function extractCardId(text){
       try{
