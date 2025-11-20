@@ -1010,6 +1010,48 @@ app.post("/api/redeem/:cardId", basicAuth, async (req, res) => {
   }
 });
 /* =========================================================
+   HELPER: CREAR/ACTUALIZAR OBJETO GOOGLE WALLET
+   ========================================================= */
+async function ensureGoogleWalletObject(cardId, cardData) {
+  try {
+    const { getWalletAccessToken, createLoyaltyObject, updateLoyaltyObject } = await import("./lib/google.js");
+    const token = await getWalletAccessToken();
+    const issuerId = process.env.GOOGLE_ISSUER_ID;
+    const objectId = `${issuerId}.${cardId}`;
+
+    // Verificar si el objeto existe
+    const checkResp = await fetch(
+      `https://walletobjects.googleapis.com/walletobjects/v1/loyaltyObject/${encodeURIComponent(objectId)}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (checkResp.status === 404) {
+      // Crear objeto si no existe
+      console.log(`[GOOGLE WALLET] 🆕 Creando nuevo objeto para: ${cardId}`);
+      await createLoyaltyObject({
+        cardId,
+        name: cardData.name,
+        stamps: cardData.stamps,
+        max: cardData.max
+      });
+    } else if (checkResp.ok) {
+      // Actualizar objeto existente
+      console.log(`[GOOGLE WALLET] 🔄 Actualizando objeto existente para: ${cardId}`);
+      await updateLoyaltyObject(cardId, cardData.stamps);
+    }
+
+    return true;
+  } catch (error) {
+    console.error(`[GOOGLE WALLET] ❌ Error asegurando objeto:`, error);
+    return false;
+  }
+}
+/* =========================================================
    NOTIFICAR A UNA SOLA TARJETA (Google + Apple) - MEJORADO CON DEBUG
    ========================================================= */
 app.post("/api/admin/push-one", adminAuth, async (req, res) => {
@@ -1047,56 +1089,51 @@ app.post("/api/admin/push-one", adminAuth, async (req, res) => {
       google: { sent: false, error: null },
       apple: { sent: 0, error: null }
     };
+// 1. Google Wallet (MODIFICADO)
+try {
+  // ✅ PRIMERO asegurar que el objeto existe
+  const googleReady = await ensureGoogleWalletObject(cardId, card);
+  
+  if (googleReady) {
+    const { getWalletAccessToken } = await import("./lib/google.js");
+    const token = await getWalletAccessToken();
+    const issuerId = process.env.GOOGLE_ISSUER_ID;
+    const objectId = `${issuerId}.${cardId}`;
 
-    // 1. Google Wallet (mantener tu lógica existente)
-    try {
-      const { getWalletAccessToken } = await import("./lib/google.js");
-      const token = await getWalletAccessToken();
-
-      const issuerId = process.env.GOOGLE_ISSUER_ID;
-      if (!issuerId) {
-        throw new Error("GOOGLE_ISSUER_ID no configurado");
-      }
-
-      const objectId = `${issuerId}.${cardId}`;
-
-      const resp = await fetch(
-        `https://walletobjects.googleapis.com/walletobjects/v1/loyaltyObject/${encodeURIComponent(
-          objectId
-        )}/addMessage`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
+    const resp = await fetch(
+      `https://walletobjects.googleapis.com/walletobjects/v1/loyaltyObject/${encodeURIComponent(objectId)}/addMessage`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message: {
+            header: title,
+            body: message,
+            kind: "walletobjects#message",
           },
-          body: JSON.stringify({
-            message: {
-              header: title,
-              body: message,
-              kind: "walletobjects#message",
-            },
-          }),
-        }
-      );
-
-      const data = await resp.json().catch(() => ({}));
-      
-      if (resp.ok) {
-        results.google.sent = true;
-        console.log(`[PUSH ONE] ✅ Google Wallet notificado`);
-      } else {
-        if (resp.status === 404) {
-          results.google.error = "Objeto no existe en Google Wallet";
-          console.log(`[PUSH ONE] ⚠️ Google: objeto no existe`);
-        } else {
-          throw new Error(`Google API ${resp.status}: ${data.error?.message || 'error'}`);
-        }
+        }),
       }
-    } catch (googleError) {
-      console.error(`[PUSH ONE] ❌ Google Wallet:`, googleError.message);
-      results.google.error = googleError.message;
+    );
+
+    const data = await resp.json().catch(() => ({}));
+    
+    if (resp.ok) {
+      results.google.sent = true;
+      console.log(`[PUSH ONE] ✅ Google Wallet notificado`);
+    } else {
+      results.google.error = `Google API ${resp.status}: ${data.error?.message || 'error'}`;
+      console.log(`[PUSH ONE] ⚠️ Google: ${results.google.error}`);
     }
+  } else {
+    results.google.error = "No se pudo crear/actualizar objeto Google Wallet";
+  }
+} catch (googleError) {
+  console.error(`[PUSH ONE] ❌ Google Wallet:`, googleError.message);
+  results.google.error = googleError.message;
+}
 
     // 2. Apple Wallet (alerta visible) - ✅ MEJORADO CON DEBUG COMPLETO
     try {
@@ -1519,7 +1556,96 @@ app.get("/api/admin/metrics", adminAuth, async (_req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
+/* =========================================================
+   PRUEBA DIRECTA: NOTIFICACIÓN APPLE
+   ========================================================= */
+app.post('/api/debug/test-apple-push', adminAuth, async (req, res) => {
+  try {
+    const { cardId, title, message } = req.body;
+    
+    console.log(`[DEBUG APPLE PUSH] 🧪 Probando notificación para: ${cardId}`);
+    
+    // Usar la función de alerta visible directamente
+    const result = await appleWebService.sendAlertToCardDevices(
+      cardId, 
+      title || "🔥 PRUEBA DIRECTA", 
+      message || "Esta notificación DEBE verse en pantalla de bloqueo"
+    );
+    
+    res.json({
+      success: result.sent > 0,
+      result,
+      message: result.sent > 0 
+        ? `✅ Notificación enviada a ${result.sent} dispositivo(s)`
+        : `❌ No se pudo enviar a ningún dispositivo`
+    });
+  } catch (error) {
+    console.error('[DEBUG APPLE PUSH] ❌ Error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
 
+/* =========================================================
+   PRUEBA DIRECTA: GOOGLE WALLET
+   ========================================================= */
+app.post('/api/debug/test-google-push', adminAuth, async (req, res) => {
+  try {
+    const { cardId, title, message } = req.body;
+    
+    console.log(`[DEBUG GOOGLE PUSH] 🧪 Probando Google Wallet para: ${cardId}`);
+    
+    const card = await fsGetCard(cardId);
+    if (!card) {
+      return res.status(404).json({ error: "Tarjeta no encontrada" });
+    }
+    
+    // Asegurar objeto existe
+    const googleReady = await ensureGoogleWalletObject(cardId, card);
+    
+    if (!googleReady) {
+      return res.json({ success: false, error: "No se pudo crear/actualizar objeto Google Wallet" });
+    }
+    
+    // Enviar mensaje
+    const { getWalletAccessToken } = await import("./lib/google.js");
+    const token = await getWalletAccessToken();
+    const issuerId = process.env.GOOGLE_ISSUER_ID;
+    const objectId = `${issuerId}.${cardId}`;
+
+    const resp = await fetch(
+      `https://walletobjects.googleapis.com/walletobjects/v1/loyaltyObject/${encodeURIComponent(objectId)}/addMessage`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message: {
+            header: title || "🔥 PRUEBA GOOGLE",
+            body: message || "Esta notificación DEBE verse en Google Wallet",
+            kind: "walletobjects#message",
+          },
+        }),
+      }
+    );
+
+    const data = await resp.json().catch(() => ({}));
+    
+    res.json({
+      success: resp.ok,
+      status: resp.status,
+      data: data,
+      message: resp.ok 
+        ? "✅ Mensaje enviado a Google Wallet"
+        : `❌ Error Google API: ${resp.status}`
+    });
+    
+  } catch (error) {
+    console.error('[DEBUG GOOGLE PUSH] ❌ Error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
 /* =========================================================
    RECUPERACIÓN DE CONTRASEÑA
    ========================================================= */
