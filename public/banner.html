@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Venus Lealtad – Registro</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <style>
+    /* ------ Hero / banner registro Venus ------ */
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+        "Helvetica Neue", Arial, sans-serif;
+      background: #111;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    main {
+      width: 100%;
+      max-width: 1200px;
+      padding: 1.5rem 1rem 3rem;
+      box-sizing: border-box;
+    }
+
+    .venus-hero {
+      display: grid;
+      grid-template-columns: minmax(0, 3fr) minmax(280px, 2fr);
+      gap: 2.5rem;
+      align-items: center;
+      padding: 2.5rem 1.5rem;
+      border-radius: 24px;
+      background: linear-gradient(
+        135deg,
+        #9a9f82 0%,
+        #b3b89a 45%,
+        #8f9478 100%
+      );
+      color: #ffffff;
+      max-width: 1040px;
+      margin: 1.5rem auto 2.5rem;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.22);
+    }
+
+    .venus-hero__content {
+      display: flex;
+      flex-direction: column;
+      gap: 1.2rem;
+    }
+
+    .venus-hero__badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.25rem 0.75rem;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.12);
+      font-size: 0.8rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .venus-hero__title {
+      font-size: 2rem;
+      line-height: 1.2;
+      font-weight: 700;
+      margin: 0;
+    }
+
+    .venus-hero__title span {
+      display: block;
+    }
+
+    .venus-hero__text {
+      margin: 0;
+      font-size: 0.98rem;
+      line-height: 1.6;
+      max-width: 36rem;
+    }
+
+    .venus-hero__actions {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      margin-top: 0.4rem;
+    }
+
+    .venus-hero__btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.8rem 1.4rem;
+      border-radius: 999px;
+      background: #ffffff;
+      color: #52563f;
+      font-weight: 600;
+      font-size: 0.95rem;
+      text-decoration: none;
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25);
+      transition: transform 0.12s ease, box-shadow 0.12s ease,
+        background 0.12s ease, color 0.12s ease;
+      white-space: nowrap;
+    }
+
+    .venus-hero__btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 14px 26px rgba(0, 0, 0, 0.3);
+      background: #f4f4ee;
+    }
+
+    .venus-hero__note {
+      margin: 0;
+      font-size: 0.8rem;
+      opacity: 0.88;
+    }
+
+    /* Tarjetita de vista previa */
+    .venus-hero__card {
+      display: flex;
+      justify-content: center;
+    }
+
+    .venus-hero-card {
+      width: 260px;
+      border-radius: 22px;
+      background: #d9dac6;
+      color: #3a3a30;
+      padding: 1rem 1rem 1.2rem;
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.3);
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+
+    .venus-hero-card__logo {
+      font-size: 0.9rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .venus-hero-card__strip {
+      margin-top: 0.4rem;
+      padding: 0.4rem 0.3rem;
+      border-radius: 14px;
+      background: #eeeadd;
+      overflow: hidden;
+    }
+
+    .venus-hero-card__dots {
+      height: 22px;
+      background-image: radial-gradient(
+        circle at center,
+        rgba(154, 159, 130, 0.9) 35%,
+        transparent 36%
+      );
+      background-size: 28px 22px;
+      background-repeat: repeat-x;
+      opacity: 0.55;
+    }
+
+    .venus-hero-card__info {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-top: 0.2rem;
+    }
+
+    .venus-hero-card__label {
+      display: block;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      opacity: 0.7;
+    }
+
+    .venus-hero-card__value {
+      display: block;
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+
+    .venus-hero-card__footer {
+      margin-top: 0.2rem;
+      font-size: 0.7rem;
+      opacity: 0.8;
+    }
+
+    /* Responsive */
+    @media (max-width: 800px) {
+      .venus-hero {
+        grid-template-columns: 1fr;
+        padding: 1.8rem 1.2rem;
+      }
+
+      .venus-hero__card {
+        order: -1;
+      }
+
+      .venus-hero-card {
+        width: 100%;
+        max-width: 290px;
+      }
+
+      .venus-hero__title {
+        font-size: 1.6rem;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main>
+    <!-- BANNER DE REGISTRO VENUS -->
+    <section class="venus-hero">
+      <div class="venus-hero__content">
+        <p class="venus-hero__badge">Nuevo • Tarjeta digital de lealtad</p>
+
+        <h1 class="venus-hero__title">
+          Activa aquí tu tarjeta
+          <span>Venus Cosmetología</span>
+        </h1>
+
+        <p class="venus-hero__text">
+          Regístrate en menos de 1 minuto, guarda tu tarjeta en
+          <strong>Apple Wallet o Google Wallet</strong> y comienza a acumular
+          sellos cada vez que vengas a tu facial.
+        </p>
+
+        <div class="venus-hero__actions">
+          <!-- Cambia el href si tu formulario está en otra ruta o sección -->
+          <a class="venus-hero__btn" href="#registro">
+            💳 Crear mi tarjeta de lealtad
+          </a>
+          <p class="venus-hero__note">
+            Sin costo • Se genera un código QR único para tu cuenta
+          </p>
+        </div>
+      </div>
+
+      <div class="venus-hero__card">
+        <div class="venus-hero-card">
+          <div class="venus-hero-card__logo">Venus Cosmetología</div>
+          <div class="venus-hero-card__strip">
+            <div class="venus-hero-card__dots"></div>
+          </div>
+          <div class="venus-hero-card__info">
+            <div>
+              <span class="venus-hero-card__label">Cliente</span>
+              <span class="venus-hero-card__value">Tu nombre aquí</span>
+            </div>
+            <div>
+              <span class="venus-hero-card__label">Sellos</span>
+              <span class="venus-hero-card__value">0 / 8</span>
+            </div>
+          </div>
+          <div class="venus-hero-card__footer">
+            Tarjeta digital · Escanea tu QR en recepción
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Aquí iría tu formulario real de registro -->
+    <section id="registro">
+      <!-- Conéctalo a tu lógica existente de /api/create-card -->
+      <!-- Ejemplo mínimo: -->
+      <!--
+      <form>
+        ...
+      </form>
+      -->
+    </section>
+  </main>
+</body>
+</html>
