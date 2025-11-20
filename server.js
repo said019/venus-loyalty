@@ -1109,8 +1109,9 @@ app.post("/api/admin/push-one", adminAuth, async (req, res) => {
 
       // 1. PRIMERO: Guardamos el mensaje en Firestore con más campos de debug
       const updateData = {
-        latestMessage: message,
-        latestMessageTitle: title,
+         _last_push_title: title,     // Solo para debug, no se muestra en pase
+         _last_push_body: message  ,   // Solo para debug, no se muestra en pase
+    
         messageUpdatedAt: new Date().toISOString(),
         // ⭐ Agregar campo de debug para verificar la escritura
         _debug_push_sent: new Date().toISOString()
