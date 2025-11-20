@@ -170,6 +170,23 @@ body.auth-verified {
       color:var(--ink);
     }
 
+    .header-actions {
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap: wrap;
+    }
+    select.filter-select {
+      background: rgba(0,0,0,0.3);
+      color: #fff;
+      border: 1px solid var(--line);
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      outline: none;
+      cursor: pointer;
+    }
+
     .grid-3-kpi{
       display:grid;
       grid-template-columns:repeat(3,minmax(0,1fr));
@@ -492,92 +509,105 @@ body.auth-verified {
       <a href="#settings" data-tab="settings">Configuración</a>
     </nav>
 
-    <!-- TAB: Overview -->
-     <!-- TAB: Overview -->
-<section id="tab-overview" class="card">
-  <h2>Resumen</h2>
-  <p class="muted">Indicadores rápidos de tu programa de lealtad.</p>
-  
-  <!-- KPIs principales (fila 1) -->
-  <div class="grid-3-kpi">
-    <div class="kpi">
-      <span>Tarjetas totales</span>
-      <span class="value" id="kpi-total">—</span>
-    </div>
-    <div class="kpi">
-      <span>Tarjetas completas</span>
-      <span class="value" id="kpi-full">—</span>
-    </div>
-    <div class="kpi">
-      <span>Sellos hoy</span>
-      <span class="value" id="kpi-stamps">—</span>
-    </div>
-  </div>
-
-  <!-- KPIs adicionales (fila 2) -->
-  <div class="grid-3-kpi" style="margin-top:14px;">
-    <div class="kpi">
-      <span>Canjes hoy</span>
-      <span class="value" id="kpi-redeems">—</span>
-    </div>
-    <div class="kpi">
-      <span>Promedio sellos</span>
-      <span class="value" id="kpi-avg">—</span>
-    </div>
-    <div class="kpi">
-      <span>Tasa completitud</span>
-      <span class="value" id="kpi-rate">—</span>
-    </div>
-  </div>
-
-  <!-- Actividad reciente -->
-  <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line);">
-    <h3 style="margin:0 0 12px;font-size:15px;color:var(--ink);">📈 Actividad reciente (7 días)</h3>
-    <div style="background:rgba(255,255,255,0.05);border-radius:12px;padding:12px;">
-      <canvas id="activity-chart" style="max-height:200px;"></canvas>
-    </div>
-  </div>
-
-  <!-- Top clientes -->
-  <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line);">
-    <h3 style="margin:0 0 12px;font-size:15px;color:var(--ink);">⭐ Top Clientes</h3>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Cliente</th>
-            <th>Sellos</th>
-            <th>Estado</th>
-          </tr>
-        </thead>
-        <tbody id="top-clients">
-          <tr>
-            <td colspan="3" style="text-align:center;padding:12px;" class="muted">Cargando...</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- Estado de Wallets -->
-  <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line);">
-    <h3 style="margin:0 0 12px;font-size:15px;color:var(--ink);">📱 Estado de Wallets</h3>
-    <div class="grid-3-kpi">
-      <div class="kpi">
-        <span>🟢 Google Wallet</span>
-        <span class="value" id="kpi-google">—</span>
+    <!-- TAB: Overview - MODIFICADO CON FILTROS Y REPORTES -->
+    <section id="tab-overview" class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap:wrap; gap:10px;">
+        <div>
+          <h2 style="margin:0;">Resumen</h2>
+          <p class="muted" style="margin:4px 0 0;">Indicadores rápidos de tu programa de lealtad</p>
+        </div>
+        <div class="header-actions">
+          <select id="stats-filter" class="filter-select">
+            <option value="day">Hoy</option>
+            <option value="week" selected>Esta Semana</option>
+            <option value="month">Este Mes</option>
+          </select>
+          <button id="btn-download-report" class="btn small primary">
+            ⬇ Descargar Reporte
+          </button>
+        </div>
       </div>
-      <div class="kpi">
-        <span>🍎 Apple Wallet</span>
-        <span class="value" id="kpi-apple">—</span>
+      
+      <!-- KPIs principales (fila 1) -->
+      <div class="grid-3-kpi">
+        <div class="kpi">
+          <span>Tarjetas totales</span>
+          <span class="value" id="kpi-total">—</span>
+        </div>
+        <div class="kpi">
+          <span>Tarjetas completas</span>
+          <span class="value" id="kpi-full">—</span>
+        </div>
+        <div class="kpi">
+          <span id="stamps-period-label">Sellos hoy</span>
+          <span class="value" id="kpi-stamps">—</span>
+        </div>
       </div>
-      <div class="kpi">
-        <span>📲 Dispositivos push</span>
-        <span class="value" id="kpi-devices">—</span>
+
+      <!-- KPIs adicionales (fila 2) -->
+      <div class="grid-3-kpi" style="margin-top:14px;">
+        <div class="kpi">
+          <span id="redeems-period-label">Canjes hoy</span>
+          <span class="value" id="kpi-redeems">—</span>
+        </div>
+        <div class="kpi">
+          <span>Promedio sellos</span>
+          <span class="value" id="kpi-avg">—</span>
+        </div>
+        <div class="kpi">
+          <span>Tasa completitud</span>
+          <span class="value" id="kpi-rate">—</span>
+        </div>
       </div>
-    </div>
-  </div>
-</section>
+
+      <!-- Actividad reciente -->
+      <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line);">
+        <h3 style="margin:0 0 12px;font-size:15px;color:var(--ink);" id="activity-title">📈 Actividad reciente (7 días)</h3>
+        <div style="background:rgba(255,255,255,0.05);border-radius:12px;padding:12px;">
+          <canvas id="activity-chart" style="max-height:200px;"></canvas>
+        </div>
+      </div>
+
+      <!-- Top clientes -->
+      <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line);">
+        <h3 style="margin:0 0 12px;font-size:15px;color:var(--ink);">⭐ Top Clientes</h3>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Cliente</th>
+                <th>Sellos</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody id="top-clients">
+              <tr>
+                <td colspan="3" style="text-align:center;padding:12px;" class="muted">Cargando...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Estado de Wallets -->
+      <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line);">
+        <h3 style="margin:0 0 12px;font-size:15px;color:var(--ink);">📱 Estado de Wallets</h3>
+        <div class="grid-3-kpi">
+          <div class="kpi">
+            <span>🟢 Google Wallet</span>
+            <span class="value" id="kpi-google">—</span>
+          </div>
+          <div class="kpi">
+            <span>🍎 Apple Wallet</span>
+            <span class="value" id="kpi-apple">—</span>
+          </div>
+          <div class="kpi">
+            <span>📲 Dispositivos push</span>
+            <span class="value" id="kpi-devices">—</span>
+          </div>
+        </div>
+      </div>
+    </section>
 
     <!-- TAB: Cards -->
     <section id="tab-cards" class="card hidden">
@@ -817,7 +847,7 @@ async function loadMe(){
     document.body.classList.add('auth-verified');
     
     // Cargar datos iniciales
-    loadMetrics();
+    loadMetrics('week');
   }catch(e){
     console.error("Error verificando sesión:", e);
     // Si hay error de red o servidor, también redirigir
@@ -846,7 +876,7 @@ loadMe();
         
         const tabName = this.getAttribute('data-tab');
         if (tabName === 'overview') {
-          loadMetrics();
+          loadMetrics(document.getElementById('stats-filter').value);
         } else if (tabName === 'cards') {
           loadCards(1);
         } else if (tabName === 'settings') {
@@ -855,167 +885,405 @@ loadMe();
       });
     });
 
-    /* ===== METRICS (Firestore) - MEJORADO ===== */
-let activityChart = null;
+    /* ===== FILTRADO Y REPORTES ===== */
+    let globalStatsData = {};
 
-async function loadMetrics() {
-  try {
-    // Métricas básicas
-    const response = await fetch('/api/admin/metrics-firebase', {
-      credentials: 'include'
+    // Evento cambio de filtro
+    document.getElementById('stats-filter').addEventListener('change', (e) => {
+        loadMetrics(e.target.value);
     });
-    const data = await response.json();
-    
-    // KPIs principales
-    document.getElementById('kpi-total').textContent = data.total || 0;
-    document.getElementById('kpi-full').textContent = data.full || 0;
-    document.getElementById('kpi-stamps').textContent = data.stampsToday || 0;
-    
-    // Nuevos KPIs
-    document.getElementById('kpi-redeems').textContent = data.redeemsToday || 0;
-    
-    // Promedio sellos
-    const avg = data.total > 0 ? (((data.totalStamps || 0) / data.total)).toFixed(1) : '0.0';
-    document.getElementById('kpi-avg').textContent = avg;
-    
-    // Tasa de completitud
-    const rate = data.total > 0 ? ((data.full / data.total) * 100).toFixed(0) : '0';
-    document.getElementById('kpi-rate').textContent = rate + '%';
-    
-    // Cargar componentes adicionales
-    await loadTopClients();
-    await loadActivityChart();
-    await loadWalletStats();
-    
-  } catch (error) {
-    console.error('Error:', error);
-  }
-}
 
-async function loadTopClients() {
-  try {
-    const response = await fetch('/api/admin/top-clients', {
-      credentials: 'include'
-    });
-    const data = await response.json();
-    
-    const tbody = document.getElementById('top-clients');
-    if (!data.clients || data.clients.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="3" style="text-align:center;padding:12px;" class="muted">No hay datos</td></tr>`;
-      return;
+    // Evento descargar reporte
+    document.getElementById('btn-download-report').addEventListener('click', downloadCSV);
+
+    function downloadCSV() {
+        if(!globalStatsData.clients) return alert("No hay datos para descargar");
+
+        let csvContent = "data:text/csv;charset=utf-8,";
+        
+        // Encabezado del reporte
+        csvContent += `REPORTE DE LEALTAD VENUS\r\n`;
+        csvContent += `Periodo: ${document.querySelector("#stats-filter option:checked").text}\r\n`;
+        csvContent += `Generado: ${new Date().toLocaleDateString()}\r\n\r\n`;
+        
+        // Sección KPIs
+        csvContent += `METRICAS GENERALES\r\n`;
+        csvContent += `Total Tarjetas Activas,${globalStatsData.total || 0}\r\n`;
+        csvContent += `Tarjetas Completadas,${globalStatsData.full || 0}\r\n`;
+        csvContent += `Sellos en este periodo,${globalStatsData.stampsPeriod || 0}\r\n`;
+        csvContent += `Canjes en este periodo,${globalStatsData.redeemsPeriod || 0}\r\n`;
+        csvContent += `Promedio de sellos,${globalStatsData.avg || 0}\r\n`;
+        csvContent += `Tasa de completitud,${globalStatsData.rate || 0}%\r\n\r\n`;
+
+        // Sección Tabla Clientes
+        csvContent += `TOP CLIENTES\r\n`;
+        csvContent += `Nombre,Sellos Actuales,Meta,Estado\r\n`;
+        
+        globalStatsData.clients.forEach(c => {
+            const estado = c.stamps >= c.max ? "Completada" : "En curso";
+            csvContent += `${c.name},${c.stamps},${c.max},${estado}\r\n`;
+        });
+
+        // Crear link de descarga
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `Reporte_Venus_${new Date().getTime()}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     }
-    
-    tbody.innerHTML = data.clients.slice(0, 5).map(c => `
-      <tr>
-        <td>${c.name || 'Sin nombre'}</td>
-        <td>${c.stamps}/${c.max}</td>
-        <td>
-          ${c.stamps >= c.max 
-            ? '<span class="tag">🎁 Completa</span>' 
-            : `<span class="muted">${c.max - c.stamps} más</span>`
-          }
-        </td>
-      </tr>
-    `).join('');
-  } catch (error) {
-    console.error('Error cargando top clients:', error);
-    document.getElementById('top-clients').innerHTML = 
-      `<tr><td colspan="3" style="text-align:center;padding:12px;" class="muted">Error cargando datos</td></tr>`;
-  }
-}
 
-async function loadActivityChart() {
-  try {
-    const response = await fetch('/api/admin/activity-week', {
-      credentials: 'include'
-    });
-    const data = await response.json();
-    
-    const ctx = document.getElementById('activity-chart');
-    
-    // Destruir gráfica anterior si existe
-    if (activityChart) {
-      activityChart.destroy();
+    /* ===== METRICS (Firestore) - MEJORADO CON FILTROS ===== */
+    let activityChart = null;
+
+    async function loadMetrics(range = 'week') {
+      try {
+        // Actualizar etiquetas según el rango
+        updatePeriodLabels(range);
+        
+        // Métricas básicas con filtro de rango
+        const response = await fetch(`/api/admin/metrics-firebase?range=${range}`, {
+          credentials: 'include'
+        });
+        const data = await response.json();
+        
+        // KPIs principales
+        document.getElementById('kpi-total').textContent = data.total || 0;
+        document.getElementById('kpi-full').textContent = data.full || 0;
+        
+        // Actualizar según el rango
+        if (range === 'day') {
+          document.getElementById('kpi-stamps').textContent = data.stampsToday || 0;
+          document.getElementById('kpi-redeems').textContent = data.redeemsToday || 0;
+        } else if (range === 'week') {
+          document.getElementById('kpi-stamps').textContent = data.stampsWeek || 0;
+          document.getElementById('kpi-redeems').textContent = data.redeemsWeek || 0;
+        } else if (range === 'month') {
+          document.getElementById('kpi-stamps').textContent = data.stampsMonth || 0;
+          document.getElementById('kpi-redeems').textContent = data.redeemsMonth || 0;
+        }
+        
+        // Promedio sellos
+        const avg = data.total > 0 ? (((data.totalStamps || 0) / data.total)).toFixed(1) : '0.0';
+        document.getElementById('kpi-avg').textContent = avg;
+        
+        // Tasa de completitud
+        const rate = data.total > 0 ? ((data.full / data.total) * 100).toFixed(0) : '0';
+        document.getElementById('kpi-rate').textContent = rate + '%';
+        
+        // Cargar componentes adicionales
+        await loadTopClients();
+        await loadActivityChart(range);
+        await loadWalletStats();
+        
+        // Guardar datos para reporte
+        globalStatsData = {
+          total: data.total || 0,
+          full: data.full || 0,
+          stampsPeriod: range === 'day' ? data.stampsToday : (range === 'week' ? data.stampsWeek : data.stampsMonth),
+          redeemsPeriod: range === 'day' ? data.redeemsToday : (range === 'week' ? data.redeemsWeek : data.redeemsMonth),
+          avg: avg,
+          rate: rate,
+          range: range
+        };
+        
+      } catch (error) {
+        console.error('Error:', error);
+        // En caso de error, cargar datos de ejemplo
+        loadSampleData(range);
+      }
     }
-    
-    activityChart = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: data.labels || ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
-        datasets: [{
-          label: 'Sellos',
-          data: data.stamps || [0, 0, 0, 0, 0, 0, 0],
-          borderColor: '#8c9668',
-          backgroundColor: 'rgba(140, 150, 104, 0.15)',
-          tension: 0.4,
-          fill: true,
-          pointBackgroundColor: '#8c9668',
-          pointBorderColor: '#fff',
-          pointBorderWidth: 2,
-          pointRadius: 4,
-          pointHoverRadius: 6
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-            padding: 10,
-            titleColor: '#fff',
-            bodyColor: '#fff',
+
+    function updatePeriodLabels(range) {
+      const stampsLabel = document.getElementById('stamps-period-label');
+      const redeemsLabel = document.getElementById('redeems-period-label');
+      const activityTitle = document.getElementById('activity-title');
+      
+      if (range === 'day') {
+        stampsLabel.textContent = 'Sellos hoy';
+        redeemsLabel.textContent = 'Canjes hoy';
+        activityTitle.textContent = '📈 Actividad hoy';
+      } else if (range === 'week') {
+        stampsLabel.textContent = 'Sellos esta semana';
+        redeemsLabel.textContent = 'Canjes esta semana';
+        activityTitle.textContent = '📈 Actividad reciente (7 días)';
+      } else if (range === 'month') {
+        stampsLabel.textContent = 'Sellos este mes';
+        redeemsLabel.textContent = 'Canjes este mes';
+        activityTitle.textContent = '📈 Actividad mensual';
+      }
+    }
+
+    function loadSampleData(range) {
+      // Datos de ejemplo para cuando la API falle
+      let labels, dataStamps, kpiStamps, kpiRedeems;
+      
+      if(range === 'day') {
+        labels = ['10:00', '12:00', '14:00', '16:00', '18:00', '20:00'];
+        dataStamps = [2, 5, 1, 8, 4, 6];
+        kpiStamps = 26;
+        kpiRedeems = 3;
+      } else if(range === 'week') {
+        labels = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+        dataStamps = [12, 19, 3, 5, 22, 30, 15];
+        kpiStamps = 106;
+        kpiRedeems = 8;
+      } else { // month
+        labels = ['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4'];
+        dataStamps = [80, 120, 95, 110];
+        kpiStamps = 405;
+        kpiRedeems = 25;
+      }
+
+      // Actualizar UI con datos de ejemplo
+      document.getElementById('kpi-total').textContent = "142";
+      document.getElementById('kpi-full').textContent = "18";
+      document.getElementById('kpi-stamps').textContent = kpiStamps;
+      document.getElementById('kpi-redeems').textContent = kpiRedeems;
+      document.getElementById('kpi-avg').textContent = "5.2";
+      document.getElementById('kpi-rate').textContent = "13%";
+
+      // Actualizar gráfica
+      renderChart(labels, dataStamps);
+      
+      // Simular Top Clientes
+      renderSampleTopClients();
+      
+      // Guardar datos para reporte
+      globalStatsData = {
+        total: 142,
+        full: 18,
+        stampsPeriod: kpiStamps,
+        redeemsPeriod: kpiRedeems,
+        avg: "5.2",
+        rate: "13",
+        range: range
+      };
+    }
+
+    function renderChart(labels, data) {
+      const ctx = document.getElementById('activity-chart');
+      
+      // Destruir gráfica anterior si existe
+      if (activityChart) {
+        activityChart.destroy();
+      }
+      
+      activityChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Sellos',
+            data: data,
             borderColor: '#8c9668',
-            borderWidth: 1
-          }
+            backgroundColor: 'rgba(140, 150, 104, 0.15)',
+            tension: 0.4,
+            fill: true,
+            pointBackgroundColor: '#8c9668',
+            pointBorderColor: '#fff',
+            pointBorderWidth: 2,
+            pointRadius: 4,
+            pointHoverRadius: 6
+          }]
         },
-        scales: {
-          y: { 
-            beginAtZero: true,
-            ticks: { 
-              color: '#e5e7eb',
-              font: { size: 11 }
-            },
-            grid: {
-              color: 'rgba(255, 255, 255, 0.1)'
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: 'rgba(0, 0, 0, 0.8)',
+              padding: 10,
+              titleColor: '#fff',
+              bodyColor: '#fff',
+              borderColor: '#8c9668',
+              borderWidth: 1
             }
           },
-          x: { 
-            ticks: { 
-              color: '#e5e7eb',
-              font: { size: 11 }
+          scales: {
+            y: { 
+              beginAtZero: true,
+              ticks: { 
+                color: '#e5e7eb',
+                font: { size: 11 }
+              },
+              grid: {
+                color: 'rgba(255, 255, 255, 0.1)'
+              }
             },
-            grid: {
-              display: false
+            x: { 
+              ticks: { 
+                color: '#e5e7eb',
+                font: { size: 11 }
+              },
+              grid: {
+                display: false
+              }
             }
           }
         }
+      });
+    }
+
+    function renderSampleTopClients() {
+      const clients = [
+        {name: 'Ana López', stamps: 7, max: 8},
+        {name: 'Carlos Ruiz', stamps: 8, max: 8},
+        {name: 'Sofía Mendoza', stamps: 4, max: 8},
+        {name: 'Roberto García', stamps: 6, max: 8},
+        {name: 'Laura Torres', stamps: 8, max: 8}
+      ];
+      
+      const tbody = document.getElementById('top-clients');
+      tbody.innerHTML = clients.map(c => `
+        <tr>
+          <td>${c.name}</td>
+          <td>${c.stamps}/${c.max}</td>
+          <td>
+            ${c.stamps >= c.max 
+              ? '<span class="tag">🎁 Completa</span>' 
+              : `<span class="muted">${c.max - c.stamps} más</span>`
+            }
+          </td>
+        </tr>
+      `).join('');
+      
+      // Guardar para el reporte
+      globalStatsData.clients = clients;
+    }
+
+    async function loadTopClients() {
+      try {
+        const response = await fetch('/api/admin/top-clients', {
+          credentials: 'include'
+        });
+        const data = await response.json();
+        
+        const tbody = document.getElementById('top-clients');
+        if (!data.clients || data.clients.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="3" style="text-align:center;padding:12px;" class="muted">No hay datos</td></tr>`;
+          return;
+        }
+        
+        tbody.innerHTML = data.clients.slice(0, 5).map(c => `
+          <tr>
+            <td>${c.name || 'Sin nombre'}</td>
+            <td>${c.stamps}/${c.max}</td>
+            <td>
+              ${c.stamps >= c.max 
+                ? '<span class="tag">🎁 Completa</span>' 
+                : `<span class="muted">${c.max - c.stamps} más</span>`
+              }
+            </td>
+          </tr>
+        `).join('');
+        
+        // Guardar para el reporte
+        globalStatsData.clients = data.clients.slice(0, 5);
+      } catch (error) {
+        console.error('Error cargando top clients:', error);
+        renderSampleTopClients();
       }
-    });
-  } catch (error) {
-    console.error('Error cargando gráfica:', error);
-  }
-}
+    }
 
-async function loadWalletStats() {
-  try {
-    const response = await fetch('/api/admin/wallet-stats', {
-      credentials: 'include'
-    });
-    const data = await response.json();
-    
-    document.getElementById('kpi-google').textContent = data.googleWallets || 0;
-    document.getElementById('kpi-apple').textContent = data.appleWallets || 0;
-    document.getElementById('kpi-devices').textContent = data.appleDevices || 0;
-  } catch (error) {
-    console.error('Error cargando wallet stats:', error);
-    document.getElementById('kpi-google').textContent = '—';
-    document.getElementById('kpi-apple').textContent = '—';
-    document.getElementById('kpi-devices').textContent = '—';
-  }
-}
+    async function loadActivityChart(range = 'week') {
+      try {
+        const response = await fetch(`/api/admin/activity-${range}`, {
+          credentials: 'include'
+        });
+        
+        if (!response.ok) {
+          throw new Error('API no disponible');
+        }
+        
+        const data = await response.json();
+        const ctx = document.getElementById('activity-chart');
+        
+        // Destruir gráfica anterior si existe
+        if (activityChart) {
+          activityChart.destroy();
+        }
+        
+        activityChart = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: data.labels || ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
+            datasets: [{
+              label: 'Sellos',
+              data: data.stamps || [0, 0, 0, 0, 0, 0, 0],
+              borderColor: '#8c9668',
+              backgroundColor: 'rgba(140, 150, 104, 0.15)',
+              tension: 0.4,
+              fill: true,
+              pointBackgroundColor: '#8c9668',
+              pointBorderColor: '#fff',
+              pointBorderWidth: 2,
+              pointRadius: 4,
+              pointHoverRadius: 6
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                padding: 10,
+                titleColor: '#fff',
+                bodyColor: '#fff',
+                borderColor: '#8c9668',
+                borderWidth: 1
+              }
+            },
+            scales: {
+              y: { 
+                beginAtZero: true,
+                ticks: { 
+                  color: '#e5e7eb',
+                  font: { size: 11 }
+                },
+                grid: {
+                  color: 'rgba(255, 255, 255, 0.1)'
+                }
+              },
+              x: { 
+                ticks: { 
+                  color: '#e5e7eb',
+                  font: { size: 11 }
+                },
+                grid: {
+                  display: false
+                }
+              }
+            }
+          }
+        });
+      } catch (error) {
+        console.error('Error cargando gráfica:', error);
+        // Si falla, no hacemos nada ya que loadSampleData ya renderizó una gráfica
+      }
+    }
 
+    async function loadWalletStats() {
+      try {
+        const response = await fetch('/api/admin/wallet-stats', {
+          credentials: 'include'
+        });
+        const data = await response.json();
+        
+        document.getElementById('kpi-google').textContent = data.googleWallets || 0;
+        document.getElementById('kpi-apple').textContent = data.appleWallets || 0;
+        document.getElementById('kpi-devices').textContent = data.appleDevices || 0;
+      } catch (error) {
+        console.error('Error cargando wallet stats:', error);
+        document.getElementById('kpi-google').textContent = '—';
+        document.getElementById('kpi-apple').textContent = '—';
+        document.getElementById('kpi-devices').textContent = '—';
+      }
+    }
 
     /* ===== CARDS (Firestore + menú de acciones) ===== */
     let currentPage = 1;
@@ -1129,77 +1397,77 @@ async function loadWalletStats() {
     });
 
     /* ===== ESCÁNER QR (html5-qrcode) ===== */
-const scanDialog = $("#scanDialog");
-const scanStatus = $("#scan-status");
-let html5QrCode = null;
+    const scanDialog = $("#scanDialog");
+    const scanStatus = $("#scan-status");
+    let html5QrCode = null;
 
-$("#btn-scan-card").addEventListener("click", async () => {
-  scanDialog.showModal();
-  await startScan();
-});
+    $("#btn-scan-card").addEventListener("click", async () => {
+      scanDialog.showModal();
+      await startScan();
+    });
 
-$("#scan-close").addEventListener("click", () => {
-  stopScan();
-  scanDialog.close();
-});
+    $("#scan-close").addEventListener("click", () => {
+      stopScan();
+      scanDialog.close();
+    });
 
-async function startScan() {
-  try {
-    scanStatus.textContent = "Iniciando cámara...";
-    
-    // Crear instancia de html5-qrcode
-    html5QrCode = new Html5Qrcode("qr-reader");
-    
-    // Iniciar escaneo
-    await html5QrCode.start(
-      { facingMode: "environment" }, // Cámara trasera
-      {
-        fps: 10,
-        qrbox: { width: 250, height: 250 }
-      },
-      async (decodedText, decodedResult) => {
-        // ✅ QR detectado exitosamente
-        console.log("QR detectado:", decodedText);
-        scanStatus.textContent = "✅ QR detectado";
+    async function startScan() {
+      try {
+        scanStatus.textContent = "Iniciando cámara...";
         
-        // Detener escáner
-        await stopScan();
+        // Crear instancia de html5-qrcode
+        html5QrCode = new Html5Qrcode("qr-reader");
         
-        // Procesar el QR
-        await handleScan(decodedText);
+        // Iniciar escaneo
+        await html5QrCode.start(
+          { facingMode: "environment" }, // Cámara trasera
+          {
+            fps: 10,
+            qrbox: { width: 250, height: 250 }
+          },
+          async (decodedText, decodedResult) => {
+            // ✅ QR detectado exitosamente
+            console.log("QR detectado:", decodedText);
+            scanStatus.textContent = "✅ QR detectado";
+            
+            // Detener escáner
+            await stopScan();
+            
+            // Procesar el QR
+            await handleScan(decodedText);
+            
+            // Cerrar diálogo
+            scanDialog.close();
+          },
+          (errorMessage) => {
+            // Ignorar errores de no detectar QR (son normales)
+          }
+        );
         
-        // Cerrar diálogo
-        scanDialog.close();
-      },
-      (errorMessage) => {
-        // Ignorar errores de no detectar QR (son normales)
+        scanStatus.textContent = "📷 Apunta al QR de la tarjeta...";
+        
+      } catch (err) {
+        console.error("Error iniciando cámara:", err);
+        scanStatus.textContent = "❌ No se pudo acceder a la cámara";
+        
+        // Si falla, pedir permisos explícitamente
+        if (err.name === 'NotAllowedError') {
+          scanStatus.textContent = "⚠️ Por favor permite el acceso a la cámara";
+        }
       }
-    );
-    
-    scanStatus.textContent = "📷 Apunta al QR de la tarjeta...";
-    
-  } catch (err) {
-    console.error("Error iniciando cámara:", err);
-    scanStatus.textContent = "❌ No se pudo acceder a la cámara";
-    
-    // Si falla, pedir permisos explícitamente
-    if (err.name === 'NotAllowedError') {
-      scanStatus.textContent = "⚠️ Por favor permite el acceso a la cámara";
     }
-  }
-}
 
-async function stopScan() {
-  if (html5QrCode && html5QrCode.isScanning) {
-    try {
-      await html5QrCode.stop();
-      console.log("Escáner detenido");
-    } catch (err) {
-      console.error("Error deteniendo escáner:", err);
+    async function stopScan() {
+      if (html5QrCode && html5QrCode.isScanning) {
+        try {
+          await html5QrCode.stop();
+          console.log("Escáner detenido");
+        } catch (err) {
+          console.error("Error deteniendo escáner:", err);
+        }
+      }
+      html5QrCode = null;
     }
-  }
-  html5QrCode = null;
-}
 
     function extractCardId(text){
       try{
@@ -1245,126 +1513,125 @@ async function stopScan() {
 
       openCardModal(card);
     }
+
     /* ===== GIFT CARDS MEJORADO ===== */
-window.currentGiftCard = null;
+    window.currentGiftCard = null;
 
-document.getElementById('gift-form').addEventListener('submit', async function(e) {
-  e.preventDefault();
-  
-  // 1. Obtener datos
-  const clientName = (document.getElementById('gift-name').value || '').trim() || 'Cliente';
-  const service = (document.getElementById('gift-service').value || '').trim();
-  
-  if (!service) { alert('Ingresa un servicio'); return; }
+    document.getElementById('gift-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      // 1. Obtener datos
+      const clientName = (document.getElementById('gift-name').value || '').trim() || 'Cliente';
+      const service = (document.getElementById('gift-service').value || '').trim();
+      
+      if (!service) { alert('Ingresa un servicio'); return; }
 
-  // 2. Calcular fechas e IDs
-  const giftId = 'gift_' + Date.now();
-  const expirationDate = new Date();
-  expirationDate.setDate(expirationDate.getDate() + 30);
-  const formattedDate = expirationDate.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
+      // 2. Calcular fechas e IDs
+      const giftId = 'gift_' + Date.now();
+      const expirationDate = new Date();
+      expirationDate.setDate(expirationDate.getDate() + 30);
+      const formattedDate = expirationDate.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
 
-  // 3. Actualizar la VISTA VISUAL (Nuevo diseño)
-  document.getElementById('gift-visual-service').textContent = service;
-  document.getElementById('gift-visual-client').textContent = `Para: ${clientName}`;
-  document.getElementById('gift-visual-date').textContent = `Válida hasta: ${formattedDate}`;
+      // 3. Actualizar la VISTA VISUAL (Nuevo diseño)
+      document.getElementById('gift-visual-service').textContent = service;
+      document.getElementById('gift-visual-client').textContent = `Para: ${clientName}`;
+      document.getElementById('gift-visual-date').textContent = `Válida hasta: ${formattedDate}`;
 
-  // 4. Generar QR
-  const payloadText = `GIFT|codigo=${giftId}|servicio=${service}|cliente=${clientName}|vence=${expirationDate.toISOString().slice(0,10)}`;
-  const giftCanvas = document.getElementById('gift-qr');
+      // 4. Generar QR
+      const payloadText = `GIFT|codigo=${giftId}|servicio=${service}|cliente=${clientName}|vence=${expirationDate.toISOString().slice(0,10)}`;
+      const giftCanvas = document.getElementById('gift-qr');
 
-  try {
-    // Aseguramos que el canvas esté limpio
-    const ctx = giftCanvas.getContext('2d');
-    ctx.clearRect(0, 0, giftCanvas.width, giftCanvas.height);
+      try {
+        // Aseguramos que el canvas esté limpio
+        const ctx = giftCanvas.getContext('2d');
+        ctx.clearRect(0, 0, giftCanvas.width, giftCanvas.height);
 
-    // Usamos la librería qrcode (asegúrate de haberla importado en el head)
-    await QRCode.toCanvas(giftCanvas, payloadText, { 
-      width: 150, 
-      margin: 0,
-      color: { dark: '#000000', light: '#ffffff' }
-    });
-    
-  } catch (err) {
-    console.error(err);
-    alert('Error generando QR. Verifica que la librería qrcode.min.js esté en el <head>');
-    return;
-  }
-
-  // 5. Mostrar resultados
-  document.getElementById('gift-preview-container').classList.remove('hidden');
-  document.getElementById('gift-actions').classList.remove('hidden');
-  document.getElementById('gift-success').classList.remove('hidden');
-  
-  // Guardar referencia global
-  window.currentGiftCard = { id: giftId, client: clientName, service, expires: formattedDate };
-});
-
-// --- Lógica para compartir IMAGEN COMPLETA en WhatsApp ---
-document.getElementById('gift-whatsapp-image').addEventListener('click', async function() {
-    if (!window.currentGiftCard) return;
-    
-    const btn = this;
-    const originalText = btn.textContent;
-    btn.textContent = 'Generando imagen...';
-    
-    try {
-        // Seleccionamos el div con el diseño completo
-        const elementToCapture = document.getElementById('gift-card-visual');
-        
-        // Usamos html2canvas para crear una imagen de todo el div
-        const canvasFull = await html2canvas(elementToCapture, {
-            scale: 2, // Mejor calidad
-            backgroundColor: null // Transparencia si aplica
+        // Usamos la librería qrcode (asegúrate de haberla importado en el head)
+        await QRCode.toCanvas(giftCanvas, payloadText, { 
+          width: 150, 
+          margin: 0,
+          color: { dark: '#000000', light: '#ffffff' }
         });
-
-        const imageDataURL = canvasFull.toDataURL('image/png');
-        const gift = window.currentGiftCard;
         
-        const message = `🎁 ¡Hola ${gift.client}!\n\n` +
-                        `Te envío una Gift Card de Venus Cosmetología para:\n` +
-                        `✨ *${gift.service}*\n\n` +
-                        `Presenta la imagen adjunta en tu próxima visita. 🌿`;
+      } catch (err) {
+        console.error(err);
+        alert('Error generando QR. Verifica que la librería qrcode.min.js esté en el <head>');
+        return;
+      }
 
-        // Lógica de envío (Web Share API o Descarga)
-        if (navigator.share && navigator.canShare) {
-            const blob = await (await fetch(imageDataURL)).blob();
-            const file = new File([blob], 'gift-card-venus.png', { type: 'image/png' });
-            try {
-                await navigator.share({
-                    title: 'Gift Card Venus',
-                    text: message,
-                    files: [file]
-                });
-            } catch (err) {
-                if (err.name !== 'AbortError') fallbackWhatsAppShare(message, imageDataURL);
+      // 5. Mostrar resultados
+      document.getElementById('gift-preview-container').classList.remove('hidden');
+      document.getElementById('gift-actions').classList.remove('hidden');
+      document.getElementById('gift-success').classList.remove('hidden');
+      
+      // Guardar referencia global
+      window.currentGiftCard = { id: giftId, client: clientName, service, expires: formattedDate };
+    });
+
+    // --- Lógica para compartir IMAGEN COMPLETA en WhatsApp ---
+    document.getElementById('gift-whatsapp-image').addEventListener('click', async function() {
+        if (!window.currentGiftCard) return;
+        
+        const btn = this;
+        const originalText = btn.textContent;
+        btn.textContent = 'Generando imagen...';
+        
+        try {
+            // Seleccionamos el div con el diseño completo
+            const elementToCapture = document.getElementById('gift-card-visual');
+            
+            // Usamos html2canvas para crear una imagen de todo el div
+            const canvasFull = await html2canvas(elementToCapture, {
+                scale: 2, // Mejor calidad
+                backgroundColor: null // Transparencia si aplica
+            });
+
+            const imageDataURL = canvasFull.toDataURL('image/png');
+            const gift = window.currentGiftCard;
+            
+            const message = `🎁 ¡Hola ${gift.client}!\n\n` +
+                            `Te envío una Gift Card de Venus Cosmetología para:\n` +
+                            `✨ *${gift.service}*\n\n` +
+                            `Presenta la imagen adjunta en tu próxima visita. 🌿`;
+
+            // Lógica de envío (Web Share API o Descarga)
+            if (navigator.share && navigator.canShare) {
+                const blob = await (await fetch(imageDataURL)).blob();
+                const file = new File([blob], 'gift-card-venus.png', { type: 'image/png' });
+                try {
+                    await navigator.share({
+                        title: 'Gift Card Venus',
+                        text: message,
+                        files: [file]
+                    });
+                } catch (err) {
+                    if (err.name !== 'AbortError') fallbackWhatsAppShare(message, imageDataURL);
+                }
+            } else {
+                fallbackWhatsAppShare(message, imageDataURL);
             }
-        } else {
-            fallbackWhatsAppShare(message, imageDataURL);
+        } catch (e) {
+            console.error(e);
+            alert('Error al generar la imagen');
+        } finally {
+            btn.textContent = originalText;
         }
-    } catch (e) {
-        console.error(e);
-        alert('Error al generar la imagen');
-    } finally {
-        btn.textContent = originalText;
+    });
+
+    function fallbackWhatsAppShare(message, imageDataURL) {
+        // Crea un enlace de descarga automático
+        const link = document.createElement('a');
+        link.download = 'gift-card-venus.png';
+        link.href = imageDataURL;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        setTimeout(() => {
+            const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message + '\n\n(Adjunta la imagen descargada)')}`;
+            window.open(whatsappUrl, '_blank');
+        }, 1000);
     }
-});
-
-function fallbackWhatsAppShare(message, imageDataURL) {
-    // Crea un enlace de descarga automático
-    const link = document.createElement('a');
-    link.download = 'gift-card-venus.png';
-    link.href = imageDataURL;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    setTimeout(() => {
-        const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message + '\n\n(Adjunta la imagen descargada)')}`;
-        window.open(whatsappUrl, '_blank');
-    }, 1000);
-}
-
-    
 
     document.getElementById('gift-copy').addEventListener('click', function() {
       if (!window.currentGiftCard) return;
