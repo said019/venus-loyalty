@@ -811,6 +811,13 @@ async function loadMe(){
     
     const j = await r.json();
     $("#me-line").textContent = "Sesión: " + (j.email || j.uid || "admin");
+    
+    // ⭐ CRÍTICO: Quitar la pantalla negra solo cuando la sesión sea válida
+    document.body.classList.remove('checking-auth');
+    document.body.classList.add('auth-verified');
+    
+    // Cargar datos iniciales
+    loadMetrics();
   }catch(e){
     console.error("Error verificando sesión:", e);
     // Si hay error de red o servidor, también redirigir
@@ -848,7 +855,6 @@ loadMe();
       });
     });
 
-    /* ===== METRICS (Firestore) ===== */
     /* ===== METRICS (Firestore) - MEJORADO ===== */
 let activityChart = null;
 
@@ -1398,60 +1404,6 @@ function fallbackWhatsAppShare(message, imageDataURL) {
       window.open(whatsappUrl, '_blank');
     });
 
-    // Nueva función para enviar con imagen
-    document.getElementById('gift-whatsapp-image').addEventListener('click', async function() {
-      if (!window.currentGiftCard) return;
-      
-      try {
-        const canvas = document.getElementById('gift-qr');
-        const imageDataURL = canvas.toDataURL('image/png');
-        
-        const gift = window.currentGiftCard;
-        const message =
-          `🎁 ¡Hola ${gift.client}!\n\n` +
-          `Tienes una Gift Card de Venus Cosmetología:\n\n` +
-          `✨ ${gift.service}\n` +
-          `📅 Válida hasta: ${gift.expires}\n\n` +
-          `Muestra este QR en tu cita 💚`;
-        
-        // Intentar usar Web Share API si está disponible
-        if (navigator.share && navigator.canShare) {
-          const blob = await (await fetch(imageDataURL)).blob();
-          const file = new File([blob], 'gift-card-venus.png', { type: 'image/png' });
-          
-          try {
-            await navigator.share({
-              title: 'Gift Card Venus',
-              text: message,
-              files: [file]
-            });
-          } catch (err) {
-            // Si falla, usar método alternativo
-            fallbackWhatsAppShare(message, imageDataURL);
-          }
-        } else {
-          fallbackWhatsAppShare(message, imageDataURL);
-        }
-      } catch (err) {
-        console.error('Error compartiendo:', err);
-        alert('No se pudo compartir la imagen. Intenta con "Enviar por WhatsApp" sin imagen.');
-      }
-    });
-
-    function fallbackWhatsAppShare(message, imageDataURL) {
-      // Descargar la imagen
-      const link = document.createElement('a');
-      link.download = 'gift-card-venus.png';
-      link.href = imageDataURL;
-      link.click();
-      
-      // Esperar un momento y abrir WhatsApp
-      setTimeout(() => {
-        const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message + '\n\n(Adjunta la imagen que se descargó)')}`;
-        window.open(whatsappUrl, '_blank');
-      }, 500);
-    }
-
     /* ===== PUSH NOTIFICATIONS ===== */
     const typeEmojis = {
       'promo': '🎁 Promoción',
@@ -1797,8 +1749,16 @@ function fallbackWhatsAppShare(message, imageDataURL) {
       if (currentCardId) openClientPage(currentCardId);
     });
 
-    /* INIT */
-    loadMetrics();
+    // Logout
+    document.getElementById('logout').addEventListener('click', async () => {
+      try {
+        await fetch('/api/logout', { method: 'POST', credentials: 'include' });
+        window.location.href = '/admin-login.html';
+      } catch (error) {
+        console.error('Error al cerrar sesión:', error);
+        window.location.href = '/admin-login.html';
+      }
+    });
   </script>
 </body>
 </html>
