@@ -6,6 +6,15 @@
   <title>Panel Admin — Venus Lealtad</title>
   <link rel="icon" href="/assets/logo.png">
   <style>
+    body.checking-auth {
+  opacity: 0;
+  pointer-events: none;
+}
+
+body.auth-verified {
+  opacity: 1;
+  transition: opacity 0.3s ease;
+}
     :root{
       --venus:#8c9668;
       --venus-soft:#dfe6c1;
@@ -433,7 +442,8 @@
     }
   </style>
 </head>
-<body>
+<body class="checking-auth">
+
   <main class="wrap">
     <header class="topbar">
       <div class="brand">
@@ -757,24 +767,29 @@
   <script>
     const $ = s => document.querySelector(s);
 
-    /* ===== SESIÓN ===== */
-    async function loadMe(){
-      try{
-        const r = await fetch("/api/admin/me",{credentials:"include"});
-        if(!r.ok) return;
-        const j = await r.json();
-        $("#me-line").textContent = "Sesión: " + (j.email || j.uid || "admin");
-      }catch{}
+    /* ===== SESIÓN Y PROTECCIÓN ===== */
+async function loadMe(){
+  try{
+    const r = await fetch("/api/admin/me",{credentials:"include"});
+    
+    // ⭐ CRÍTICO: Si no hay sesión válida, redirigir al login
+    if(!r.ok) {
+      console.log("Sin sesión válida, redirigiendo a login...");
+      window.location.href = "/admin-login.html";
+      return;
     }
-    loadMe();
+    
+    const j = await r.json();
+    $("#me-line").textContent = "Sesión: " + (j.email || j.uid || "admin");
+  }catch(e){
+    console.error("Error verificando sesión:", e);
+    // Si hay error de red o servidor, también redirigir
+    window.location.href = "/admin-login.html";
+  }
+}
 
-    $("#logout").addEventListener("click", async () => {
-      if(!confirm("¿Cerrar sesión?")) return;
-      try{
-        await fetch("/api/admin/logout",{method:"POST",credentials:"include"});
-      }catch{}
-      location.href = "/admin-login.html";
-    });
+// ⭐ CRÍTICO: Verificar sesión ANTES de mostrar cualquier cosa
+loadMe();
 
     /* ===== TABS ===== */
     document.querySelectorAll('[data-tab]').forEach(tab => {
