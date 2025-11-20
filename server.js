@@ -998,10 +998,8 @@ app.post("/api/redeem/:cardId", basicAuth, async (req, res) => {
 });
 
 /* =========================================================
-   NOTIFICAR A UNA SOLA TARJETA (Google + Apple)
+   NOTIFICAR A UNA SOLA TARJETA (Google + Apple) - CORREGIDO CON LA LÓGICA APPLE CORRECTA
    ========================================================= */
-// 🔧 REEMPLAZAR en server.js el endpoint /api/admin/push-one
-
 app.post("/api/admin/push-one", adminAuth, async (req, res) => {
   try {
     const { cardId, title, message, type } = req.body || {};
@@ -1021,7 +1019,7 @@ app.post("/api/admin/push-one", adminAuth, async (req, res) => {
       apple: { sent: 0, error: null }
     };
 
-    // 1. Google Wallet
+    // 1. Google Wallet (mantener tu lógica existente)
     try {
       const { getWalletAccessToken } = await import("./lib/google.js");
       const token = await getWalletAccessToken();
@@ -1071,21 +1069,68 @@ app.post("/api/admin/push-one", adminAuth, async (req, res) => {
       results.google.error = googleError.message;
     }
 
-    // 2. Apple Wallet (alerta visible)
+    // 2. Apple Wallet - ✅ FLUJO CORREGIDO SEGÚN TU DIAGNÓSTICO
     try {
-      const alertResult = await appleWebService.sendAlertToCardDevices(cardId, title, message);
-      results.apple.sent = alertResult.sent;
-      
-      if (alertResult.sent > 0) {
-        console.log(`[PUSH ONE] ✅ Apple Wallet: ${alertResult.sent} dispositivo(s) notificado(s)`);
-      } else if (alertResult.total === 0) {
-        console.log(`[PUSH ONE] ℹ️ Apple Wallet: sin dispositivos registrados`);
-        results.apple.error = "Sin dispositivos registrados";
+      // ⭐ PASO 1: Guardar el mensaje en Firestore para que esté disponible al generar el pase
+      await firestore.collection(COL_CARDS).doc(cardId).set({
+        latestMessage: message,    // Mensaje que verá el usuario
+        latestMessageTitle: title, // Título opcional
+        messageUpdatedAt: new Date().toISOString()
+      }, { merge: true });
+
+      console.log(`[PUSH ONE] 💾 Mensaje guardado en Firestore: "${message}"`);
+
+      // ⭐ PASO 2: Buscar dispositivos Apple registrados para esta tarjeta
+      const appleDevicesSnap = await firestore
+        .collection(COL_DEVICES)
+        .where("serial_number", "==", cardId)
+        .get();
+
+      if (appleDevicesSnap.empty) {
+        console.log(`[PUSH ONE] 📱 No hay dispositivos Apple registrados para ${cardId}`);
+        results.apple.error = "Sin dispositivos Apple registrados";
       } else {
-        console.log(`[PUSH ONE] ⚠️ Apple Wallet: ${alertResult.errors} error(es)`);
+        console.log(`[PUSH ONE] 🍏 Enviando notificaciones a ${appleDevicesSnap.size} dispositivo(s) Apple`);
+        
+        let sentCount = 0;
+        let errorCount = 0;
+
+        // ⭐ PASO 3: Enviar notificación SILENCIOSA a cada dispositivo
+        for (const doc of appleDevicesSnap.docs) {
+          const deviceData = doc.data();
+          const pushToken = deviceData.push_token;
+
+          if (pushToken) {
+            try {
+              // ✅ CORRECTO: Usamos notificación SILENCIOSA (content-available: 1)
+              // Esto triggereará la descarga del pase actualizado
+              await appleWebService.sendAPNsPushNotification(pushToken);
+              sentCount++;
+              console.log(`[PUSH ONE] ✅ Notificación silenciosa enviada a dispositivo ${deviceData.device_id.substring(0, 10)}...`);
+            } catch (apnsError) {
+              errorCount++;
+              console.error(`[PUSH ONE] ❌ Error enviando a ${deviceData.device_id}:`, apnsError.message);
+              
+              // Si el token es inválido, podríamos eliminarlo de la base de datos
+              if (apnsError.message.includes('BadDeviceToken') || apnsError.message.includes('Unregistered')) {
+                console.log(`[PUSH ONE] 🗑️ Eliminando token inválido: ${deviceData.device_id}`);
+                await doc.ref.delete();
+              }
+            }
+            
+            // Pequeña pausa entre notificaciones
+            await new Promise(resolve => setTimeout(resolve, 100));
+          }
+        }
+
+        results.apple.sent = sentCount;
+        results.apple.errors = errorCount;
+        results.apple.total = appleDevicesSnap.size;
+        
+        console.log(`[PUSH ONE] 📊 Resultado Apple: ${sentCount} enviadas, ${errorCount} errores`);
       }
     } catch (appleError) {
-      console.error(`[PUSH ONE] ❌ Apple Wallet:`, appleError.message);
+      console.error(`[PUSH ONE] ❌ Error en lógica Apple:`, appleError.message);
       results.apple.error = appleError.message;
     }
 
@@ -1099,17 +1144,16 @@ app.post("/api/admin/push-one", adminAuth, async (req, res) => {
       message: success 
         ? "Notificación enviada exitosamente" 
         : "No se pudo enviar a ninguna plataforma",
-      note: !success 
-        ? "El usuario debe agregar la tarjeta a sus wallets primero" 
+      note: !results.apple.sent && results.apple.total === 0 
+        ? "El usuario debe agregar la tarjeta a Apple Wallet primero" 
         : undefined
     });
 
   } catch (e) {
-    console.error("[PUSH ONE]", e);
+    console.error("[PUSH ONE] Error General:", e);
     res.status(500).json({ error: e.message });
   }
 });
-
 
 /* =========================================================
    EXPORT CSV
