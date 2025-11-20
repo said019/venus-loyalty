@@ -5,14 +5,17 @@ import path from 'path';
 
 // Configuración
 const CONFIG = {
-  width: 375,          // 375px EXACTO para iPhone (no 750)
-  height: 98,          // Reducido de 123px a 98px (más compacto, como Airbnb)
+  width: 375,          // 375px EXACTO para iPhone
+  height: 120,         // Ajustado para 2 filas
   stampCount: 8,       // Total de sellos
+  stampsPerRow: 4,     // 4 sellos por fila
   bgColor: '#E8E4D0',  // Fondo crema/beige
   logoPath: 'public/assets/stamp.png', // Ruta a tu logo Venus
-  stampSize: 35,       // Reducido de 45px a 35px
-  padding: 15,         // Reducido de 20px a 15px
-  spacing: 6,          // Reducido de 8px a 6px
+  stampSize: 40,       // Tamaño de cada sello
+  paddingX: 20,        // Espacio lateral
+  paddingY: 10,        // Espacio vertical
+  spacingX: 15,        // Espacio horizontal entre sellos
+  spacingY: 10,        // Espacio vertical entre filas
 };
 
 // Función para convertir imagen a escala de grises
@@ -167,10 +170,10 @@ async function generateAllStrips() {
     
     // Duplicar tamaños para versión @2x
     CONFIG.width = 750;
-    CONFIG.height = 246;
-    CONFIG.stampSize = 90;
-    CONFIG.padding = 40;
-    CONFIG.spacing = 16;
+    CONFIG.height = 196;  // 98px * 2
+    CONFIG.stampSize = 70; // 35px * 2
+    CONFIG.padding = 30;   // 15px * 2
+    CONFIG.spacing = 12;   // 6px * 2
     
     for (let i = 0; i <= CONFIG.stampCount; i++) {
       const filename = `stamp-strip-${i}@2x.png`;
