@@ -827,6 +827,74 @@ app.get("/api/admin/metrics-firebase", adminAuth, async (_req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
+// Top clientes (después de /api/admin/metrics-firebase)
+app.get("/api/admin/top-clients", adminAuth, async (req, res) => {
+  try {
+    const snap = await firestore
+      .collection(COL_CARDS)
+      .orderBy("stamps", "desc")
+      .limit(10)
+      .get();
+    
+    const clients = snap.docs.map(d => d.data());
+    res.json({ clients });
+  } catch (e) {
+    console.error("[TOP CLIENTS]", e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Actividad semanal
+app.get("/api/admin/activity-week", adminAuth, async (req, res) => {
+  try {
+    const labels = [];
+    const stamps = [];
+    const today = new Date();
+    
+    for (let i = 6; i >= 0; i--) {
+      const day = new Date(today);
+      day.setDate(day.getDate() - i);
+      day.setHours(0, 0, 0, 0);
+      
+      const nextDay = new Date(day);
+      nextDay.setDate(nextDay.getDate() + 1);
+      
+      const snap = await firestore
+        .collection(COL_EVENTS)
+        .where("type", "==", "STAMP")
+        .where("createdAt", ">=", day.toISOString())
+        .where("createdAt", "<", nextDay.toISOString())
+        .get();
+      
+      labels.push(day.toLocaleDateString('es-ES', { weekday: 'short' }));
+      stamps.push(snap.size);
+    }
+    
+    res.json({ labels, stamps });
+  } catch (e) {
+    console.error("[ACTIVITY WEEK]", e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Stats de wallets
+app.get("/api/admin/wallet-stats", adminAuth, async (req, res) => {
+  try {
+    // Contar dispositivos Apple registrados
+    const devicesSnap = await firestore.collection(COL_DEVICES).get();
+    const appleDevices = devicesSnap.size;
+    
+    res.json({
+      appleDevices,
+      appleWallets: appleDevices, // Cada dispositivo = 1 wallet instalado
+      googleWallets: 0 // Por ahora en 0, puedes implementar si guardas esa info
+    });
+  } catch (e) {
+    console.error("[WALLET STATS]", e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 
 app.get("/api/admin/cards-firebase", adminAuth, async (req, res) => {
   try {

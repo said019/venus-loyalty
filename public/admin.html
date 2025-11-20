@@ -457,24 +457,91 @@
     </nav>
 
     <!-- TAB: Overview -->
-    <section id="tab-overview" class="card">
-      <h2>Resumen</h2>
-      <p class="muted">Indicadores rápidos de tu programa de lealtad.</p>
-      <div class="grid-3-kpi">
-        <div class="kpi">
-          <span>Tarjetas totales</span>
-          <span class="value" id="kpi-total">—</span>
-        </div>
-        <div class="kpi">
-          <span>Tarjetas completas</span>
-          <span class="value" id="kpi-full">—</span>
-        </div>
-        <div class="kpi">
-          <span>Sellos hoy</span>
-          <span class="value" id="kpi-stamps">—</span>
-        </div>
+     <!-- TAB: Overview -->
+<section id="tab-overview" class="card">
+  <h2>Resumen</h2>
+  <p class="muted">Indicadores rápidos de tu programa de lealtad.</p>
+  
+  <!-- KPIs principales (fila 1) -->
+  <div class="grid-3-kpi">
+    <div class="kpi">
+      <span>Tarjetas totales</span>
+      <span class="value" id="kpi-total">—</span>
+    </div>
+    <div class="kpi">
+      <span>Tarjetas completas</span>
+      <span class="value" id="kpi-full">—</span>
+    </div>
+    <div class="kpi">
+      <span>Sellos hoy</span>
+      <span class="value" id="kpi-stamps">—</span>
+    </div>
+  </div>
+
+  <!-- KPIs adicionales (fila 2) -->
+  <div class="grid-3-kpi" style="margin-top:14px;">
+    <div class="kpi">
+      <span>Canjes hoy</span>
+      <span class="value" id="kpi-redeems">—</span>
+    </div>
+    <div class="kpi">
+      <span>Promedio sellos</span>
+      <span class="value" id="kpi-avg">—</span>
+    </div>
+    <div class="kpi">
+      <span>Tasa completitud</span>
+      <span class="value" id="kpi-rate">—</span>
+    </div>
+  </div>
+
+  <!-- Actividad reciente -->
+  <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line);">
+    <h3 style="margin:0 0 12px;font-size:15px;color:var(--ink);">📈 Actividad reciente (7 días)</h3>
+    <div style="background:rgba(255,255,255,0.05);border-radius:12px;padding:12px;">
+      <canvas id="activity-chart" style="max-height:200px;"></canvas>
+    </div>
+  </div>
+
+  <!-- Top clientes -->
+  <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line);">
+    <h3 style="margin:0 0 12px;font-size:15px;color:var(--ink);">⭐ Top Clientes</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Cliente</th>
+            <th>Sellos</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody id="top-clients">
+          <tr>
+            <td colspan="3" style="text-align:center;padding:12px;" class="muted">Cargando...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Estado de Wallets -->
+  <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line);">
+    <h3 style="margin:0 0 12px;font-size:15px;color:var(--ink);">📱 Estado de Wallets</h3>
+    <div class="grid-3-kpi">
+      <div class="kpi">
+        <span>🟢 Google Wallet</span>
+        <span class="value" id="kpi-google">—</span>
       </div>
-    </section>
+      <div class="kpi">
+        <span>🍎 Apple Wallet</span>
+        <span class="value" id="kpi-apple">—</span>
+      </div>
+      <div class="kpi">
+        <span>📲 Dispositivos push</span>
+        <span class="value" id="kpi-devices">—</span>
+      </div>
+    </div>
+  </div>
+</section>
 
     <!-- TAB: Cards -->
     <section id="tab-cards" class="card hidden">
@@ -679,8 +746,11 @@
   </main>
 
   <!-- QRCode lib -->
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
   
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<!-- Chart.js lib -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
   <script>
     const $ = s => document.querySelector(s);
 
@@ -731,19 +801,167 @@
     });
 
     /* ===== METRICS (Firestore) ===== */
-    async function loadMetrics() {
-      try {
-        const response = await fetch('/api/admin/metrics-firebase', {
-          credentials: 'include'
-        });
-        const data = await response.json();
-        document.getElementById('kpi-total').textContent = data.total || 0;
-        document.getElementById('kpi-full').textContent = data.full || 0;
-        document.getElementById('kpi-stamps').textContent = data.stampsToday || 0;
-      } catch (error) {
-        console.error('Error:', error);
-      }
+    /* ===== METRICS (Firestore) - MEJORADO ===== */
+let activityChart = null;
+
+async function loadMetrics() {
+  try {
+    // Métricas básicas
+    const response = await fetch('/api/admin/metrics-firebase', {
+      credentials: 'include'
+    });
+    const data = await response.json();
+    
+    // KPIs principales
+    document.getElementById('kpi-total').textContent = data.total || 0;
+    document.getElementById('kpi-full').textContent = data.full || 0;
+    document.getElementById('kpi-stamps').textContent = data.stampsToday || 0;
+    
+    // Nuevos KPIs
+    document.getElementById('kpi-redeems').textContent = data.redeemsToday || 0;
+    
+    // Promedio sellos
+    const avg = data.total > 0 ? (((data.totalStamps || 0) / data.total)).toFixed(1) : '0.0';
+    document.getElementById('kpi-avg').textContent = avg;
+    
+    // Tasa de completitud
+    const rate = data.total > 0 ? ((data.full / data.total) * 100).toFixed(0) : '0';
+    document.getElementById('kpi-rate').textContent = rate + '%';
+    
+    // Cargar componentes adicionales
+    await loadTopClients();
+    await loadActivityChart();
+    await loadWalletStats();
+    
+  } catch (error) {
+    console.error('Error:', error);
+  }
+}
+
+async function loadTopClients() {
+  try {
+    const response = await fetch('/api/admin/top-clients', {
+      credentials: 'include'
+    });
+    const data = await response.json();
+    
+    const tbody = document.getElementById('top-clients');
+    if (!data.clients || data.clients.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="3" style="text-align:center;padding:12px;" class="muted">No hay datos</td></tr>`;
+      return;
     }
+    
+    tbody.innerHTML = data.clients.slice(0, 5).map(c => `
+      <tr>
+        <td>${c.name || 'Sin nombre'}</td>
+        <td>${c.stamps}/${c.max}</td>
+        <td>
+          ${c.stamps >= c.max 
+            ? '<span class="tag">🎁 Completa</span>' 
+            : `<span class="muted">${c.max - c.stamps} más</span>`
+          }
+        </td>
+      </tr>
+    `).join('');
+  } catch (error) {
+    console.error('Error cargando top clients:', error);
+    document.getElementById('top-clients').innerHTML = 
+      `<tr><td colspan="3" style="text-align:center;padding:12px;" class="muted">Error cargando datos</td></tr>`;
+  }
+}
+
+async function loadActivityChart() {
+  try {
+    const response = await fetch('/api/admin/activity-week', {
+      credentials: 'include'
+    });
+    const data = await response.json();
+    
+    const ctx = document.getElementById('activity-chart');
+    
+    // Destruir gráfica anterior si existe
+    if (activityChart) {
+      activityChart.destroy();
+    }
+    
+    activityChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: data.labels || ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
+        datasets: [{
+          label: 'Sellos',
+          data: data.stamps || [0, 0, 0, 0, 0, 0, 0],
+          borderColor: '#8c9668',
+          backgroundColor: 'rgba(140, 150, 104, 0.15)',
+          tension: 0.4,
+          fill: true,
+          pointBackgroundColor: '#8c9668',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+          pointRadius: 4,
+          pointHoverRadius: 6
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            padding: 10,
+            titleColor: '#fff',
+            bodyColor: '#fff',
+            borderColor: '#8c9668',
+            borderWidth: 1
+          }
+        },
+        scales: {
+          y: { 
+            beginAtZero: true,
+            ticks: { 
+              color: '#e5e7eb',
+              font: { size: 11 }
+            },
+            grid: {
+              color: 'rgba(255, 255, 255, 0.1)'
+            }
+          },
+          x: { 
+            ticks: { 
+              color: '#e5e7eb',
+              font: { size: 11 }
+            },
+            grid: {
+              display: false
+            }
+          }
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error cargando gráfica:', error);
+  }
+}
+
+async function loadWalletStats() {
+  try {
+    const response = await fetch('/api/admin/wallet-stats', {
+      credentials: 'include'
+    });
+    const data = await response.json();
+    
+    document.getElementById('kpi-google').textContent = data.googleWallets || 0;
+    document.getElementById('kpi-apple').textContent = data.appleWallets || 0;
+    document.getElementById('kpi-devices').textContent = data.appleDevices || 0;
+  } catch (error) {
+    console.error('Error cargando wallet stats:', error);
+    document.getElementById('kpi-google').textContent = '—';
+    document.getElementById('kpi-apple').textContent = '—';
+    document.getElementById('kpi-devices').textContent = '—';
+  }
+}
+
 
     /* ===== CARDS (Firestore + menú de acciones) ===== */
     let currentPage = 1;
