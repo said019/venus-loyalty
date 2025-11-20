@@ -1720,7 +1720,20 @@ app.post("/api/admin/reset", async (req, res) => {
     res.status(500).json({ error: "reset_error" });
   }
 });
-
+/* =========================================================
+   ENDPOINT PARA OBTENER TOKEN DE ADMIN (para pruebas)
+   ========================================================= */
+app.get('/api/debug/admin-token', adminAuth, (req, res) => {
+  // Este endpoint solo funciona si ya estás autenticado como admin
+  res.json({
+    token: req.admin.token, // Si tu middleware guarda el token decodificado
+    admin: {
+      uid: req.admin.uid,
+      email: req.admin.email
+    },
+    instructions: "Usa este token en el header Authorization: Bearer <token>"
+  });
+});
 /* =========================================================
    DEBUG
    ========================================================= */
