@@ -82,29 +82,40 @@ async function generateStripImage(logoImage, activeStamps, outputPath) {
   ctx.fillStyle = CONFIG.bgColor;
   ctx.fillRect(0, 0, CONFIG.width, CONFIG.height);
   
-  // Calcular distribución de sellos
-  const totalStamps = CONFIG.stampCount;
-  const availableWidth = CONFIG.width - (CONFIG.padding * 2);
-  const totalSpacing = CONFIG.spacing * (totalStamps - 1);
+  // Calcular distribución de sellos (2 filas de 4)
+  const stampsPerRow = CONFIG.stampsPerRow;
+  const rows = Math.ceil(CONFIG.stampCount / stampsPerRow);
+  
+  // Calcular ancho disponible para una fila
+  const availableWidth = CONFIG.width - (CONFIG.paddingX * 2);
+  const totalSpacingX = CONFIG.spacingX * (stampsPerRow - 1);
   const stampSize = Math.min(
     CONFIG.stampSize,
-    (availableWidth - totalSpacing) / totalStamps
+    (availableWidth - totalSpacingX) / stampsPerRow
   );
   
-  // Centrar verticalmente
-  const centerY = CONFIG.height / 2;
+  // Calcular inicio X para centrar la fila
+  const totalRowWidth = (stampSize * stampsPerRow) + (CONFIG.spacingX * (stampsPerRow - 1));
+  const startX = (CONFIG.width - totalRowWidth) / 2;
   
-  // Calcular inicio para centrar horizontalmente
-  const totalWidth = (stampSize * totalStamps) + (CONFIG.spacing * (totalStamps - 1));
-  const startX = (CONFIG.width - totalWidth) / 2;
+  // Calcular posiciones Y para las dos filas
+  const totalHeight = (stampSize * rows) + (CONFIG.spacingY * (rows - 1));
+  const startY = (CONFIG.height - totalHeight) / 2;
   
   // Dibujar cada sello
-  for (let i = 0; i < totalStamps; i++) {
+  for (let i = 0; i < CONFIG.stampCount; i++) {
     const isActive = i < activeStamps;
-    const x = startX + (i * (stampSize + CONFIG.spacing)) + (stampSize / 2);
+    
+    // Calcular fila y columna
+    const row = Math.floor(i / stampsPerRow);
+    const col = i % stampsPerRow;
+    
+    // Posición X e Y
+    const x = startX + (col * (stampSize + CONFIG.spacingX)) + (stampSize / 2);
+    const y = startY + (row * (stampSize + CONFIG.spacingY)) + (stampSize / 2);
     
     // Aplicar efecto según estado
-    applyStampEffect(ctx, logoImage, x, centerY, stampSize, isActive);
+    applyStampEffect(ctx, logoImage, x, y, stampSize, isActive);
     
     // Borde circular sutil para sellos inactivos (opcional)
     if (!isActive) {
@@ -112,7 +123,7 @@ async function generateStripImage(logoImage, activeStamps, outputPath) {
       ctx.strokeStyle = 'rgba(150, 150, 150, 0.3)';
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.arc(x, centerY, stampSize / 2 + 3, 0, Math.PI * 2);
+      ctx.arc(x, y, stampSize / 2 + 3, 0, Math.PI * 2);
       ctx.stroke();
       ctx.restore();
     }
@@ -123,8 +134,8 @@ async function generateStripImage(logoImage, activeStamps, outputPath) {
   fs.writeFileSync(outputPath, buffer);
   
   const activeText = activeStamps === 0 ? 'sin sellos' : 
-                     activeStamps === totalStamps ? 'completo ✨' : 
-                     `${activeStamps}/${totalStamps} sellos`;
+                     activeStamps === CONFIG.stampCount ? 'completo ✨' : 
+                     `${activeStamps}/${CONFIG.stampCount} sellos`;
   console.log(`✓ stamp-strip-${activeStamps}.png → ${activeText}`);
 }
 
@@ -147,8 +158,8 @@ async function generateAllStrips() {
       fs.mkdirSync(outputDir, { recursive: true });
     }
     
-    // ============= VERSIÓN 1x (375x123px) =============
-    console.log('🎨 Generando strips 1x (375x123px)...\n');
+    // ============= VERSIÓN 1x (375x120px) =============
+    console.log('🎨 Generando strips 1x (375x120px - 2 filas)...\n');
     
     for (let i = 0; i <= CONFIG.stampCount; i++) {
       const filename = `stamp-strip-${i}.png`;
@@ -158,22 +169,26 @@ async function generateAllStrips() {
     
     console.log('\n✅ Versiones 1x generadas\n');
     
-    // ============= VERSIÓN 2x (750x246px) =============
-    console.log('🎨 Generando strips @2x (750x246px para Retina)...\n');
+    // ============= VERSIÓN 2x (750x240px) =============
+    console.log('🎨 Generando strips @2x (750x240px para Retina)...\n');
     
     // Guardar configuración original
     const originalWidth = CONFIG.width;
     const originalHeight = CONFIG.height;
     const originalStampSize = CONFIG.stampSize;
-    const originalPadding = CONFIG.padding;
-    const originalSpacing = CONFIG.spacing;
+    const originalPaddingX = CONFIG.paddingX;
+    const originalPaddingY = CONFIG.paddingY;
+    const originalSpacingX = CONFIG.spacingX;
+    const originalSpacingY = CONFIG.spacingY;
     
     // Duplicar tamaños para versión @2x
     CONFIG.width = 750;
-    CONFIG.height = 196;  // 98px * 2
-    CONFIG.stampSize = 70; // 35px * 2
-    CONFIG.padding = 30;   // 15px * 2
-    CONFIG.spacing = 12;   // 6px * 2
+    CONFIG.height = 240;   // 120px * 2
+    CONFIG.stampSize = 80; // 40px * 2
+    CONFIG.paddingX = 40;  // 20px * 2
+    CONFIG.paddingY = 20;  // 10px * 2
+    CONFIG.spacingX = 30;  // 15px * 2
+    CONFIG.spacingY = 20;  // 10px * 2
     
     for (let i = 0; i <= CONFIG.stampCount; i++) {
       const filename = `stamp-strip-${i}@2x.png`;
@@ -185,25 +200,29 @@ async function generateAllStrips() {
     CONFIG.width = originalWidth;
     CONFIG.height = originalHeight;
     CONFIG.stampSize = originalStampSize;
-    CONFIG.padding = originalPadding;
-    CONFIG.spacing = originalSpacing;
+    CONFIG.paddingX = originalPaddingX;
+    CONFIG.paddingY = originalPaddingY;
+    CONFIG.spacingX = originalSpacingX;
+    CONFIG.spacingY = originalSpacingY;
     
     console.log('\n✅ Versiones @2x generadas\n');
     
     // ============= RESUMEN =============
     console.log(`✅ ¡Listo! Se generaron ${(CONFIG.stampCount + 1) * 2} imágenes en: public/assets/`);
-    console.log('   - 9 versiones 1x (375x123px) para pantallas normales');
-    console.log('   - 9 versiones @2x (750x246px) para pantallas Retina\n');
+    console.log('   - 9 versiones 1x (375x120px) para pantallas normales');
+    console.log('   - 9 versiones @2x (750x240px) para pantallas Retina\n');
     
     console.log('📋 Archivos creados:');
     for (let i = 0; i <= CONFIG.stampCount; i++) {
-      const status = i === 0 ? 'sin sellos' : 
-                     i === CONFIG.stampCount ? '¡completo! 🎉' : 
-                     `${i}/${CONFIG.stampCount} sellos`;
+      const status = i === 0 ? 'sin sellos (todo gris)' : 
+                     i <= 4 ? `fila superior: ${i} sellos` :
+                     i === CONFIG.stampCount ? '¡completo! 🎉 (ambas filas)' : 
+                     `ambas filas: ${i}/${CONFIG.stampCount} sellos`;
       console.log(`   - stamp-strip-${i}.png + @2x.png → ${status}`);
     }
     
     console.log('\n💡 Ahora reinicia tu servidor y genera un nuevo pase');
+    console.log('💡 Layout: 2 filas × 4 columnas (más compacto)');
     
   } catch (error) {
     console.error('\n❌ Error:', error.message);
