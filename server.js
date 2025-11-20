@@ -998,8 +998,10 @@ app.post("/api/redeem/:cardId", basicAuth, async (req, res) => {
 });
 
 /* =========================================================
-   NOTIFICAR A UNA SOLA TARJETA
+   NOTIFICAR A UNA SOLA TARJETA (Google + Apple)
    ========================================================= */
+// 🔧 REEMPLAZAR en server.js el endpoint /api/admin/push-one
+
 app.post("/api/admin/push-one", adminAuth, async (req, res) => {
   try {
     const { cardId, title, message, type } = req.body || {};
@@ -1010,48 +1012,104 @@ app.post("/api/admin/push-one", adminAuth, async (req, res) => {
     const card = await fsGetCard(cardId);
     if (!card) return res.status(404).json({ error: "card not found" });
 
-    const { getWalletAccessToken } = await import("./lib/google.js");
-    const token = await getWalletAccessToken();
+    console.log(`[PUSH ONE] 🎯 Enviando notificación a tarjeta: ${cardId}`);
 
-    const issuerId = process.env.GOOGLE_ISSUER_ID;
-    if (!issuerId) {
-      return res.status(500).json({ error: "missing_GOOGLE_ISSUER_ID" });
-    }
+    const results = {
+      cardId,
+      cardName: card.name,
+      google: { sent: false, error: null },
+      apple: { sent: 0, error: null }
+    };
 
-    const objectId = `${issuerId}.${cardId}`;
+    // 1. Google Wallet
+    try {
+      const { getWalletAccessToken } = await import("./lib/google.js");
+      const token = await getWalletAccessToken();
 
-    const resp = await fetch(
-      `https://walletobjects.googleapis.com/walletobjects/v1/loyaltyObject/${encodeURIComponent(
-        objectId
-      )}/addMessage`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          message: {
-            header: title,
-            body: message,
-            kind: "walletobjects#message",
-          },
-        }),
+      const issuerId = process.env.GOOGLE_ISSUER_ID;
+      if (!issuerId) {
+        throw new Error("GOOGLE_ISSUER_ID no configurado");
       }
-    );
 
-    const data = await resp.json().catch(() => ({}));
-    if (!resp.ok) {
-      console.error("[push-one error]", resp.status, data);
-      return res.status(500).json({ error: "google_api_error", details: data });
+      const objectId = `${issuerId}.${cardId}`;
+
+      const resp = await fetch(
+        `https://walletobjects.googleapis.com/walletobjects/v1/loyaltyObject/${encodeURIComponent(
+          objectId
+        )}/addMessage`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            message: {
+              header: title,
+              body: message,
+              kind: "walletobjects#message",
+            },
+          }),
+        }
+      );
+
+      const data = await resp.json().catch(() => ({}));
+      
+      if (resp.ok) {
+        results.google.sent = true;
+        console.log(`[PUSH ONE] ✅ Google Wallet notificado`);
+      } else {
+        if (resp.status === 404) {
+          results.google.error = "Objeto no existe en Google Wallet";
+          console.log(`[PUSH ONE] ⚠️ Google: objeto no existe`);
+        } else {
+          throw new Error(`Google API ${resp.status}: ${data.error?.message || 'error'}`);
+        }
+      }
+    } catch (googleError) {
+      console.error(`[PUSH ONE] ❌ Google Wallet:`, googleError.message);
+      results.google.error = googleError.message;
     }
 
-    res.json({ success: true, cardId, googleStatus: resp.status });
+    // 2. Apple Wallet (alerta visible)
+    try {
+      const alertResult = await appleWebService.sendAlertToCardDevices(cardId, title, message);
+      results.apple.sent = alertResult.sent;
+      
+      if (alertResult.sent > 0) {
+        console.log(`[PUSH ONE] ✅ Apple Wallet: ${alertResult.sent} dispositivo(s) notificado(s)`);
+      } else if (alertResult.total === 0) {
+        console.log(`[PUSH ONE] ℹ️ Apple Wallet: sin dispositivos registrados`);
+        results.apple.error = "Sin dispositivos registrados";
+      } else {
+        console.log(`[PUSH ONE] ⚠️ Apple Wallet: ${alertResult.errors} error(es)`);
+      }
+    } catch (appleError) {
+      console.error(`[PUSH ONE] ❌ Apple Wallet:`, appleError.message);
+      results.apple.error = appleError.message;
+    }
+
+    const success = results.google.sent || results.apple.sent > 0;
+
+    res.json({
+      success,
+      cardId,
+      cardName: card.name,
+      results,
+      message: success 
+        ? "Notificación enviada exitosamente" 
+        : "No se pudo enviar a ninguna plataforma",
+      note: !success 
+        ? "El usuario debe agregar la tarjeta a sus wallets primero" 
+        : undefined
+    });
+
   } catch (e) {
-    console.error("[push-one]", e);
+    console.error("[PUSH ONE]", e);
     res.status(500).json({ error: e.message });
   }
 });
+
 
 /* =========================================================
    EXPORT CSV
