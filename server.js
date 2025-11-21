@@ -1434,122 +1434,86 @@ app.post("/api/admin/push-one", adminAuth, async (req, res) => {
   }
 });
 /* =========================================================
-   ENDPOINT: NOTIFICACIÓN MASIVA (Lógica idéntica a Push One)
+   ENDPOINT: NOTIFICACIÓN MASIVA (LÓGICA EXACTA DE PUSH ONE)
    ========================================================= */
 app.post("/api/admin/push-all", adminAuth, async (req, res) => {
   try {
     const { title, message } = req.body || {};
 
-    if (!title || !message) {
-      return res.status(400).json({ error: "Faltan título o mensaje" });
-    }
+    if (!title || !message) return res.status(400).json({ error: "Faltan datos" });
 
-    console.log(`[PUSH ALL] 🚀 Iniciando envío masivo: "${title}"`);
+    console.log(`[PUSH ALL] 🚀 Iniciando masivo...`);
 
-    // 1. OBTENER TODAS LAS TARJETAS
+    // PASO 1: ACTUALIZAR BASE DE DATOS (Igual que Push One, pero para todos)
+    // Esto es indispensable para que el iPhone vea el texto nuevo
     const cardsSnap = await firestore.collection(COL_CARDS).get();
-    if (cardsSnap.empty) return res.json({ success: true, msg: "No hay tarjetas." });
+    
+    if (cardsSnap.empty) return res.json({ success: true, msg: "Sin tarjetas" });
 
-    console.log(`[PUSH ALL] 📦 Preparando actualización de ${cardsSnap.size} tarjetas...`);
-
-    // 2. ACTUALIZACIÓN MASIVA EN FIRESTORE (Igual que Push One pero en lote)
-    // Firestore tiene límite de 500 operaciones por lote, así que lo dividimos.
-    const batches = [];
-    let currentBatch = firestore.batch();
-    let operationCount = 0;
-
-    const updateData = {
-      latestMessage: message,
-      latestMessageTitle: title,
-      messageUpdatedAt: new Date().toISOString(),
-      _debug_push_all: new Date().toISOString()
-    };
-
-    cardsSnap.docs.forEach((doc) => {
-      currentBatch.set(doc.ref, updateData, { merge: true });
-      operationCount++;
-
-      if (operationCount === 500) {
-        batches.push(currentBatch.commit());
-        currentBatch = firestore.batch();
-        operationCount = 0;
-      }
+    // Usamos batch para escribir rápido en todas las tarjetas
+    // (Es como hacer el "Update" de Push One 500 veces en un segundo)
+    const batch = firestore.batch();
+    cardsSnap.docs.forEach(doc => {
+      batch.update(doc.ref, { 
+        latestMessage: message, 
+        updatedAt: new Date() 
+      });
     });
+    await batch.commit(); 
     
-    // Commit del último lote si quedaron pendientes
-    if (operationCount > 0) batches.push(currentBatch.commit());
+    console.log(`[PUSH ALL] ✅ DB actualizada con mensaje: "${message}"`);
 
-    // Esperamos a que se guarde todo en la BD
-    await Promise.all(batches);
+    // Pequeña pausa para asegurar que Firestore guardó los datos
+    await new Promise(r => setTimeout(r, 1000));
+
+    const results = { apple: 0, google: 0 };
+
+    // PASO 2: ENVIAR ALERTAS (Igual que Push One)
     
-    console.log(`[PUSH ALL] ✅ Mensaje guardado en TODAS las tarjetas: "${message}"`);
-
-    // Pequeña pausa de seguridad (Igual que en tu Push One) para asegurar propagación
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    const results = { google: 0, apple: 0, errors: 0 };
-
-    // 3. ENVIAR A DISPOSITIVOS APPLE (Usando sendAlertToCardDevices)
+    // --- A) APPLE ---
     const appleDevicesSnap = await firestore.collection(COL_DEVICES).get();
     
     if (!appleDevicesSnap.empty) {
-        console.log(`[PUSH ALL] 🍏 Procesando ${appleDevicesSnap.size} dispositivos Apple...`);
-        
-        // Procesamos en paralelo pero esperando a que terminen
-        const applePromises = appleDevicesSnap.docs.map(async (doc) => {
-            const data = doc.data();
-            const pushToken = data.push_token;
-            const cardId = data.serial_number; // El ID de la tarjeta asociada
-
-            if (pushToken && cardId) {
-                 try {
-                     // ✅ USAMOS LA MISMA FUNCIÓN QUE EN PUSH ONE
-                     // Esta función envía el payload { alert, sound, mutable-content }
-                     await appleWebService.sendAlertToCardDevices(cardId, title, message);
-                     results.apple++;
-                     // Log reducido para no saturar terminal
-                     // console.log(`[PUSH ALL] ✅ Enviado a ${data.device_id.substring(0,8)}...`);
-                 } catch (err) {
-                     results.errors++;
-                     console.error(`[PUSH ALL] ❌ Error Apple ${data.device_id}:`, err.message);
-                     
-                     // Limpieza de tokens inválidos (Igual que Push One)
-                     if (err.message.includes('BadDeviceToken') || err.message.includes('Unregistered')) {
-                        await doc.ref.delete();
-                     }
-                 }
+        const promises = appleDevicesSnap.docs.map(async (doc) => {
+            const d = doc.data();
+            if (d.push_token && d.serial_number) {
+                try {
+                    // ⭐ AQUÍ ESTÁ LA CLAVE: Usamos la misma función que Push One
+                    // Esta es la que fuerza el sonido y el banner visible
+                    await appleWebService.sendAlertToCardDevices(d.serial_number, title, message);
+                    results.apple++;
+                } catch (e) {
+                    console.error(`Error Apple ${d.device_id}:`, e.message);
+                }
             }
         });
-        
-        await Promise.all(applePromises);
+        await Promise.all(promises);
     }
 
-    // 4. ENVIAR A DISPOSITIVOS GOOGLE (Lógica existente)
+    // --- B) GOOGLE ---
     const googleDevicesSnap = await firestore.collection(COL_GOOGLE_DEVICES).get();
     if (!googleDevicesSnap.empty) {
-        console.log(`[PUSH ALL] 🤖 Procesando ${googleDevicesSnap.size} dispositivos Google...`);
-        const googlePromises = googleDevicesSnap.docs.map(async (doc) => {
-            const data = doc.data();
-            if (data.card_id) {
+        const promisesG = googleDevicesSnap.docs.map(async (doc) => {
+            const d = doc.data();
+            if (d.card_id) {
                 try {
-                    await sendGoogleMessage(data.card_id, title, message);
+                    await sendGoogleMessage(d.card_id, title, message);
                     results.google++;
-                } catch(e) { /* ignorar error individual */ }
+                } catch(e) {}
             }
         });
-        await Promise.all(googlePromises);
+        await Promise.all(promisesG);
     }
 
-    console.log(`[PUSH ALL] 🏁 Finalizado. Apple: ${results.apple}, Google: ${results.google}`);
+    console.log(`[PUSH ALL] 🏁 Terminado: ${results.apple} iOS / ${results.google} Android`);
     
     res.json({ 
       success: true, 
-      results,
-      message: `Enviado a ${results.apple} iOS y ${results.google} Android.` 
+      message: `Enviado a ${results.apple} iPhones y ${results.google} Androids.` 
     });
 
   } catch (e) {
-    console.error("[PUSH ALL] ❌ Error Fatal:", e);
+    console.error("[PUSH ALL] Error:", e);
     res.status(500).json({ error: e.message });
   }
 });
