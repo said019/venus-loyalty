@@ -127,7 +127,7 @@ async function fsDeleteResetToken(token) {
 
 // ---------- HELPERS CARDS + EVENTS ----------
 
-async function fsCreateCard({ id, name, phone, max }) {
+async function fsCreateCard({ id, name, phone, birthdate, max }) {
   const now = new Date().toISOString();
   const doc = {
     id,
@@ -664,8 +664,8 @@ app.post("/api/issue", async (req, res) => {
     const cardId = `card_${Date.now()}`;
     const cleanName = String(name).trim() || "Cliente";
 
-    const card = await fsCreateCard({ id: cardId, name: cleanName, phone, max });
-    await fsAddEvent(cardId, "ISSUE", { name: cleanName, max, phone });
+    const card = await fsCreateCard({ id: cardId, name: cleanName, phone, birthdate, max });
+    await fsAddEvent(cardId, "ISSUE", { name: cleanName, max, phone, birthdate });
 
     const addToGoogleUrl = buildGoogleSaveUrl({
       cardId,
