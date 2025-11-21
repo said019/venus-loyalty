@@ -2322,6 +2322,50 @@ loadMe();
         window.location.href = '/admin-login.html';
       }
     });
+    /* ===========================================================
+       ACTIVAR BOTÓN "ENVIAR A TODOS" (Pestaña Configuración)
+       =========================================================== */
+    const btnGlobal = document.querySelector('#tab-settings button.btn.primary');
+
+    if (btnGlobal) {
+        btnGlobal.removeAttribute('onclick');
+        btnGlobal.onclick = async function() {
+            const title = document.getElementById('global-push-title').value.trim();
+            const message = document.getElementById('global-push-message').value.trim();
+
+            if (!title || !message) return alert('⚠️ Escribe título y mensaje.');
+            
+            if (!confirm(`🚨 ¿ENVIAR A TODOS?\n\n"${title}"`)) return;
+
+            const originalText = btnGlobal.textContent;
+            btnGlobal.textContent = "🚀 Enviando...";
+            btnGlobal.disabled = true;
+
+            try {
+                const r = await fetch('/api/admin/push-all', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title, message })
+                });
+                const data = await r.json();
+                if (r.ok && data.success) {
+                    alert(`✅ ÉXITO\n🍏 Apple: ${data.results.apple}\n🤖 Google: ${data.results.google}`);
+                    document.getElementById('global-push-title').value = '';
+                    document.getElementById('global-push-message').value = '';
+                } else {
+                    alert('❌ Error: ' + (data.error || 'Falló el envío'));
+                }
+            } catch (e) { alert('❌ Error de conexión'); } 
+            finally { 
+                btnGlobal.textContent = originalText;
+                btnGlobal.disabled = false;
+            }
+        };
+    }
+
+    // 👆👆👆 FIN DEL CÓDIGO PEGADO 👆👆👆
+
+    init(); // <--- ESTA LÍNEA YA LA TIENES AL FINAL
   </script>
 </body>
 </html>
