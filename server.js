@@ -1434,7 +1434,7 @@ app.post("/api/admin/push-one", adminAuth, async (req, res) => {
   }
 });
 /* =========================================================
-   ENDPOINT: NOTIFICACIÓN MASIVA (CORREGIDO Y ROBUSTO)
+   ENDPOINT: NOTIFICACIÓN MASIVA (Lógica idéntica a Push One)
    ========================================================= */
 app.post("/api/admin/push-all", adminAuth, async (req, res) => {
   try {
@@ -1444,69 +1444,90 @@ app.post("/api/admin/push-all", adminAuth, async (req, res) => {
       return res.status(400).json({ error: "Faltan título o mensaje" });
     }
 
-    console.log(`[MASS PUSH] 🚀 Iniciando envío masivo: "${title}" - "${message}"`);
+    console.log(`[PUSH ALL] 🚀 Iniciando envío masivo: "${title}"`);
 
-    // 1. ACTUALIZACIÓN DE BASE DE DATOS (Lotes de 500 para seguridad)
-    // Firestore tiene límite de 500 operaciones por batch. Si tienes muchos usuarios, esto evita errores.
+    // 1. OBTENER TODAS LAS TARJETAS
     const cardsSnap = await firestore.collection(COL_CARDS).get();
-    
-    if (cardsSnap.empty) {
-      return res.json({ success: true, msg: "No hay tarjetas." });
-    }
+    if (cardsSnap.empty) return res.json({ success: true, msg: "No hay tarjetas." });
 
-    console.log(`[MASS PUSH] 📦 Actualizando ${cardsSnap.size} tarjetas en DB...`);
+    console.log(`[PUSH ALL] 📦 Preparando actualización de ${cardsSnap.size} tarjetas...`);
 
+    // 2. ACTUALIZACIÓN MASIVA EN FIRESTORE (Igual que Push One pero en lote)
+    // Firestore tiene límite de 500 operaciones por lote, así que lo dividimos.
     const batches = [];
     let currentBatch = firestore.batch();
-    let count = 0;
+    let operationCount = 0;
 
-    cardsSnap.docs.forEach(doc => {
-      currentBatch.update(doc.ref, { 
-        latestMessage: message, 
-        updatedAt: new Date() 
-      });
-      count++;
-      if (count % 500 === 0) {
+    const updateData = {
+      latestMessage: message,
+      latestMessageTitle: title,
+      messageUpdatedAt: new Date().toISOString(),
+      _debug_push_all: new Date().toISOString()
+    };
+
+    cardsSnap.docs.forEach((doc) => {
+      currentBatch.set(doc.ref, updateData, { merge: true });
+      operationCount++;
+
+      if (operationCount === 500) {
         batches.push(currentBatch.commit());
         currentBatch = firestore.batch();
+        operationCount = 0;
       }
     });
-    if (count % 500 !== 0) batches.push(currentBatch.commit());
     
+    // Commit del último lote si quedaron pendientes
+    if (operationCount > 0) batches.push(currentBatch.commit());
+
+    // Esperamos a que se guarde todo en la BD
     await Promise.all(batches);
-    console.log(`[MASS PUSH] ✅ DB Actualizada. Iniciando envío a APNs/Google...`);
+    
+    console.log(`[PUSH ALL] ✅ Mensaje guardado en TODAS las tarjetas: "${message}"`);
 
-    const results = { google: 0, apple: 0 };
+    // Pequeña pausa de seguridad (Igual que en tu Push One) para asegurar propagación
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
-    // 2. APPLE WALLET (Usando Alerta Visible)
+    const results = { google: 0, apple: 0, errors: 0 };
+
+    // 3. ENVIAR A DISPOSITIVOS APPLE (Usando sendAlertToCardDevices)
     const appleDevicesSnap = await firestore.collection(COL_DEVICES).get();
     
     if (!appleDevicesSnap.empty) {
-        // Enviamos en paralelo pero esperamos el resultado
+        console.log(`[PUSH ALL] 🍏 Procesando ${appleDevicesSnap.size} dispositivos Apple...`);
+        
+        // Procesamos en paralelo pero esperando a que terminen
         const applePromises = appleDevicesSnap.docs.map(async (doc) => {
             const data = doc.data();
-            if (data.serial_number && data.push_token) {
+            const pushToken = data.push_token;
+            const cardId = data.serial_number; // El ID de la tarjeta asociada
+
+            if (pushToken && cardId) {
                  try {
-                     // ⭐ CLAVE: Usamos sendAlertToCardDevices si existe, o notifyCardUpdate
-                     // Asegúrate de que esta función envíe el payload con {alert:..., sound:...}
-                     await appleWebService.sendAPNsAlertNotification(
-                        data.push_token, 
-                        title, 
-                        message
-                     );
+                     // ✅ USAMOS LA MISMA FUNCIÓN QUE EN PUSH ONE
+                     // Esta función envía el payload { alert, sound, mutable-content }
+                     await appleWebService.sendAlertToCardDevices(cardId, title, message);
                      results.apple++;
+                     // Log reducido para no saturar terminal
+                     // console.log(`[PUSH ALL] ✅ Enviado a ${data.device_id.substring(0,8)}...`);
                  } catch (err) {
-                     console.error(`[MASS PUSH] ❌ Error Apple ${data.serial_number}:`, err.message);
+                     results.errors++;
+                     console.error(`[PUSH ALL] ❌ Error Apple ${data.device_id}:`, err.message);
+                     
+                     // Limpieza de tokens inválidos (Igual que Push One)
+                     if (err.message.includes('BadDeviceToken') || err.message.includes('Unregistered')) {
+                        await doc.ref.delete();
+                     }
                  }
             }
         });
+        
         await Promise.all(applePromises);
     }
 
-    // 3. GOOGLE WALLET
+    // 4. ENVIAR A DISPOSITIVOS GOOGLE (Lógica existente)
     const googleDevicesSnap = await firestore.collection(COL_GOOGLE_DEVICES).get();
-    
     if (!googleDevicesSnap.empty) {
+        console.log(`[PUSH ALL] 🤖 Procesando ${googleDevicesSnap.size} dispositivos Google...`);
         const googlePromises = googleDevicesSnap.docs.map(async (doc) => {
             const data = doc.data();
             if (data.card_id) {
@@ -1519,7 +1540,7 @@ app.post("/api/admin/push-all", adminAuth, async (req, res) => {
         await Promise.all(googlePromises);
     }
 
-    console.log(`[MASS PUSH] 🏁 Finalizado. Apple: ${results.apple}, Google: ${results.google}`);
+    console.log(`[PUSH ALL] 🏁 Finalizado. Apple: ${results.apple}, Google: ${results.google}`);
     
     res.json({ 
       success: true, 
@@ -1528,7 +1549,7 @@ app.post("/api/admin/push-all", adminAuth, async (req, res) => {
     });
 
   } catch (e) {
-    console.error("[MASS PUSH] ❌ Error Fatal:", e);
+    console.error("[PUSH ALL] ❌ Error Fatal:", e);
     res.status(500).json({ error: e.message });
   }
 });
