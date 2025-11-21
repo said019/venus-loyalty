@@ -133,6 +133,7 @@ async function fsCreateCard({ id, name, phone, max }) {
     id,
     name,
     phone: phone || null,
+    birthdate: birthdate || null, 
     max,
     stamps: 0,
     status: "active",
@@ -232,7 +233,7 @@ async function fsDeleteCard(cardId) {
 
 // ---------- LISTADO / MÉTRICAS ----------
 
-async function fsListCardsPage({ page = 1, limit = 12, q = "" }) {
+async function fsListCardsPage({ page = 1, limit = 12, q = "", sortBy = "createdAt", sortOrder = "desc" }) {
   const offset = (page - 1) * limit;
   const like = q.trim().toLowerCase();
 
@@ -246,8 +247,9 @@ async function fsListCardsPage({ page = 1, limit = 12, q = "" }) {
         const id = (c.id || "").toLowerCase();
         const name = (c.name || "").toLowerCase();
         const phone = (c.phone || "").toLowerCase();
+        const birthdate = (c.birthdate || "").toLowerCase();
         return (
-          id.includes(like) || name.includes(like) || phone.includes(like)
+          id.includes(like) || name.includes(like) || phone.includes(like) || birthdate.includes(like)
         );
       })
     : allDocs;
@@ -255,16 +257,57 @@ async function fsListCardsPage({ page = 1, limit = 12, q = "" }) {
   const total = filtered.length;
   const totalPages = Math.max(1, Math.ceil(total / limit));
 
-  const slice = filtered
-    .sort((a, b) => {
-      const ca = a.data();
-      const cb = b.data();
-      return (cb.createdAt || "").localeCompare(ca.createdAt || "");
-    })
+  // Aplicar ordenamiento
+  const sorted = filtered.sort((a, b) => {
+    const ca = a.data();
+    const cb = b.data();
+    
+    let aValue, bValue;
+
+    switch (sortBy) {
+      case "name":
+        aValue = (ca.name || "").toLowerCase();
+        bValue = (cb.name || "").toLowerCase();
+        break;
+      case "phone":
+        aValue = ca.phone || "";
+        bValue = cb.phone || "";
+        break;
+      case "birthdate":
+        aValue = ca.birthdate || "";
+        bValue = cb.birthdate || "";
+        break;
+      case "stamps":
+        aValue = ca.stamps || 0;
+        bValue = cb.stamps || 0;
+        break;
+      case "max":
+        aValue = ca.max || 0;
+        bValue = cb.max || 0;
+        break;
+      case "createdAt":
+      default:
+        aValue = ca.createdAt || "";
+        bValue = cb.createdAt || "";
+        break;
+    }
+
+    // Comparar según el tipo de dato
+    if (typeof aValue === 'number' && typeof bValue === 'number') {
+      return sortOrder === "asc" ? aValue - bValue : bValue - aValue;
+    } else {
+      // Para strings y fechas
+      if (aValue < bValue) return sortOrder === "asc" ? -1 : 1;
+      if (aValue > bValue) return sortOrder === "asc" ? 1 : -1;
+      return 0;
+    }
+  });
+
+  const slice = sorted
     .slice(offset, offset + limit)
     .map((d) => d.data());
 
-  return { page, totalPages, total, items: slice };
+  return { page, totalPages, total, items: slice, sortBy, sortOrder };
 }
 
 async function fsMetrics() {
@@ -646,7 +689,7 @@ app.post("/api/issue", async (req, res) => {
    ========================================================= */
 app.get("/api/create-card", async (req, res) => {
   try {
-    const { name, phone, max } = req.query;
+    const { name, phone, max, birthdate } = req.query;  // <- Agregar birthdate
     if (!name || !phone) {
       return res.status(400).json({ error: "Faltan datos" });
     }
@@ -659,11 +702,13 @@ app.get("/api/create-card", async (req, res) => {
       id: cardId,
       name: cleanName,
       phone,
+      birthdate,  // <- Agregar esta línea
       max: maxVal,
     });
     await fsAddEvent(cardId, "ISSUE", {
       name: cleanName,
       phone,
+      birthdate,  // <- Agregar en el evento también
       max: maxVal,
     });
 
@@ -697,7 +742,7 @@ app.get("/api/create-card", async (req, res) => {
 
 app.post("/api/create-card", async (req, res) => {
   try {
-    const { name, phone, max } = req.body || {};
+    const { name, phone, max, birthdate } = req.body || {};  // <- Agregar birthdate
     if (!name || !phone) {
       return res.status(400).json({ error: "Faltan datos" });
     }
@@ -710,11 +755,13 @@ app.post("/api/create-card", async (req, res) => {
       id: cardId,
       name: cleanName,
       phone,
+      birthdate,  // <- Agregar esta línea
       max: maxVal,
     });
     await fsAddEvent(cardId, "ISSUE", {
       name: cleanName,
       phone,
+      birthdate,  // <- Agregar en el evento también
       max: maxVal,
     });
 
@@ -956,7 +1003,16 @@ app.get("/api/admin/cards-firebase", adminAuth, async (req, res) => {
   try {
     const page = Math.max(1, parseInt(req.query.page || "1", 10));
     const q = (req.query.q || "").trim();
-    const data = await fsListCardsPage({ page, limit: 12, q });
+    const sortBy = req.query.sortBy || "createdAt";
+    const sortOrder = req.query.sortOrder || "desc";
+    
+    const data = await fsListCardsPage({ 
+      page, 
+      limit: 12, 
+      q, 
+      sortBy, 
+      sortOrder 
+    });
     res.json({ ...data, source: "firestore" });
   } catch (e) {
     console.error("[CARDS-FIREBASE]", e);
@@ -1255,51 +1311,66 @@ app.post("/api/admin/push-one", adminAuth, async (req, res) => {
       apple: { sent: 0, error: null }
     };
 
-    // 1. Google Wallet (MODIFICADO)
-    try {
-      // ✅ PRIMERO asegurar que el objeto existe
-      const googleReady = await ensureGoogleWalletObject(cardId, card);
-      
-      if (googleReady) {
-        const { getWalletAccessToken } = await import("./lib/google.js");
-        const token = await getWalletAccessToken();
-        const issuerId = process.env.GOOGLE_ISSUER_ID;
-        const objectId = `${issuerId}.${cardId}`;
-
-        const resp = await fetch(
-          `https://walletobjects.googleapis.com/walletobjects/v1/loyaltyObject/${encodeURIComponent(objectId)}/addMessage`,
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              message: {
-                header: title,
-                body: message,
-                kind: "walletobjects#message",
-              },
-            }),
-          }
-        );
-
-        const data = await resp.json().catch(() => ({}));
-        
-        if (resp.ok) {
-          results.google.sent = true;
-          console.log(`[PUSH ONE] ✅ Google Wallet notificado`);
-        } else {
-          results.google.error = `Google API ${resp.status}: ${data.error?.message || 'error'}`;
-          console.log(`[PUSH ONE] ⚠️ Google: ${results.google.error}`);
-        }
-      } else {
-        results.google.error = "No se pudo crear/actualizar objeto Google Wallet";
-      }
-    } catch (googleError) {
-      console.error(`[PUSH ONE] ❌ Google Wallet:`, googleError.message);
-      results.google.error = googleError.message;
-    }
+       // 1. Google Wallet (CON MÁS DEBUG)
+   try {
+     console.log(`[PUSH ONE] 🔧 Intentando asegurar objeto Google Wallet para ${cardId}...`);
+     
+     const googleReady = await ensureGoogleWalletObject(cardId, card);
+     console.log(`[PUSH ONE] 🔍 ensureGoogleWalletObject resultado: ${googleReady}`);
+     
+     if (googleReady) {
+       console.log(`[PUSH ONE] ✅ Objeto Google Wallet listo. Obteniendo token...`);
+       
+       const { getWalletAccessToken } = await import("./lib/google.js");
+       const token = await getWalletAccessToken();
+       console.log(`[PUSH ONE] 🔑 Token obtenido (preview): ${token ? token.substring(0, 20) + '...' : 'NULL'}`);
+       
+       const issuerId = process.env.GOOGLE_ISSUER_ID;
+       const objectId = `${issuerId}.${cardId}`;
+       console.log(`[PUSH ONE] 🆔 objectId construido: ${objectId}`);
+       
+       const requestBody = {
+         message: {
+           header: title,
+           body: message,
+           kind: "walletobjects#message",
+         },
+       };
+       console.log(`[PUSH ONE] 📨 Body del request:`, JSON.stringify(requestBody, null, 2));
+       
+       const resp = await fetch(
+         `https://walletobjects.googleapis.com/walletobjects/v1/loyaltyObject/${encodeURIComponent(objectId)}/addMessage`,
+         {
+           method: "POST",
+           headers: {
+             Authorization: `Bearer ${token}`,
+             "Content-Type": "application/json",
+           },
+           body: JSON.stringify(requestBody),
+         }
+       );
+       
+       console.log(`[PUSH ONE] 🌐 Respuesta de Google API: Status ${resp.status}`);
+       const data = await resp.json().catch(() => ({}));
+       console.log(`[PUSH ONE] 📄 Datos de respuesta:`, data);
+       
+       if (resp.ok) {
+         results.google.sent = true;
+         console.log(`[PUSH ONE] ✅ Google Wallet notificado`);
+       } else {
+         results.google.error = `Google API ${resp.status}: ${data.error?.message || 'error desconocido'}`;
+         console.log(`[PUSH ONE] ❌ Google: ${results.google.error}`);
+       }
+     } else {
+       results.google.error = "No se pudo crear/actualizar objeto Google Wallet";
+       console.log(`[PUSH ONE] ❌ ensureGoogleWalletObject falló`);
+     }
+   } catch (googleError) {
+     console.error(`[PUSH ONE] ❌ Error en Google Wallet:`, googleError.message);
+     console.error(`[PUSH ONE] ❌ Stack trace:`, googleError.stack);
+     results.google.error = googleError.message;
+   }
+   
 
     // 2. Apple Wallet (alerta visible) - ✅ MEJORADO CON DEBUG COMPLETO
     try {
@@ -1469,26 +1540,56 @@ app.post("/api/admin/push-all", adminAuth, async (req, res) => {
     const results = { apple: 0, google: 0 };
 
     // PASO 2: ENVIAR ALERTAS (Igual que Push One)
+
+// --- A) APPLE --- (MODIFICADO PARA SER MÁS ROBUSTO COMO PUSH-ONE)
+const appleDevicesSnap = await firestore.collection(COL_DEVICES).get();
+
+if (!appleDevicesSnap.empty) {
+    console.log(`[PUSH ALL] 🍏 Enviando alertas visibles a ${appleDevicesSnap.size} dispositivo(s) Apple`);
     
-    // --- A) APPLE ---
-    const appleDevicesSnap = await firestore.collection(COL_DEVICES).get();
-    
-    if (!appleDevicesSnap.empty) {
-        const promises = appleDevicesSnap.docs.map(async (doc) => {
-            const d = doc.data();
-            if (d.push_token && d.serial_number) {
-                try {
-                    // ⭐ AQUÍ ESTÁ LA CLAVE: Usamos la misma función que Push One
-                    // Esta es la que fuerza el sonido y el banner visible
-                    await appleWebService.sendAlertToCardDevices(d.serial_number, title, message);
-                    results.apple++;
-                } catch (e) {
-                    console.error(`Error Apple ${d.device_id}:`, e.message);
+    let sentCount = 0;
+    let errorCount = 0;
+
+    // ⭐ CAMBIO: Enviar SECUENCIALMENTE (como push-one) para evitar rate limiting
+    for (const doc of appleDevicesSnap.docs) {
+        const d = doc.data();
+        
+        console.log(`[PUSH ALL] 🔍 Procesando dispositivo:`, {
+            deviceId: d.device_id,
+            hasToken: !!d.push_token,
+            serialNumber: d.serial_number
+        });
+
+        if (d.push_token && d.serial_number) {
+            try {
+                // ⭐ AQUÍ ESTÁ LA CLAVE: Usamos la misma función que Push One
+                console.log(`[PUSH ALL] 📤 Enviando alerta a APNs para ${d.serial_number}...`);
+                await appleWebService.sendAlertToCardDevices(d.serial_number, title, message);
+                sentCount++;
+                console.log(`[PUSH ALL] ✅ Alerta visible enviada a dispositivo ${d.device_id.substring(0, 10)}...`);
+            } catch (apnsError) {
+                errorCount++;
+                console.error(`[PUSH ALL] ❌ Error enviando a ${d.device_id}:`, apnsError.message);
+                
+                // Eliminar token inválido (como en push-one)
+                if (apnsError.message.includes('BadDeviceToken') || apnsError.message.includes('Unregistered')) {
+                    console.log(`[PUSH ALL] 🗑️ Eliminando token inválido: ${d.device_id}`);
+                    await doc.ref.delete();
                 }
             }
-        });
-        await Promise.all(promises);
+        } else {
+            console.log(`[PUSH ALL] ⚠️ Dispositivo sin token o serial_number: ${d.device_id}`);
+        }
+        
+        // ⭐ CAMBIO: Pausa entre notificaciones (como push-one, para evitar rate limits)
+        await new Promise(resolve => setTimeout(resolve, 200)); // 200ms pausa (ajusta si es necesario)
     }
+
+    results.apple = sentCount; // Actualizar contador
+    console.log(`[PUSH ALL] 📊 Resultado Apple: ${sentCount} enviadas, ${errorCount} errores de ${appleDevicesSnap.size} dispositivos`);
+} else {
+    console.log(`[PUSH ALL] 📱 No hay dispositivos Apple registrados`);
+}
 
     // --- B) GOOGLE ---
     const googleDevicesSnap = await firestore.collection(COL_GOOGLE_DEVICES).get();
@@ -1607,12 +1708,13 @@ app.get("/api/export.csv", basicAuth, async (_req, res) => {
 
     const rows = snap.docs.map((d) => d.data());
 
-    const header = "id,name,phone,stamps,max,status,created_at";
+    const header = "id,name,phone,birthdate,stamps,max,status,created_at";  // <- Agregar birthdate
     const csvLines = rows.map((r) =>
       [
         r.id,
         r.name,
         r.phone || "",
+        r.birthdate || "",  // <- Agregar esta línea
         r.stamps || 0,
         r.max || 0,
         r.status || "active",
@@ -1634,7 +1736,6 @@ app.get("/api/export.csv", basicAuth, async (_req, res) => {
     res.status(500).send(e.message);
   }
 });
-
 /* =========================================================
    ELIMINAR TARJETA
    ========================================================= */
@@ -1728,13 +1829,23 @@ app.get("/api/admin/cards", adminAuth, async (req, res) => {
   try {
     const page = Math.max(1, parseInt(req.query.page || "1", 10));
     const q = (req.query.q || "").trim();
-    const data = await fsListCardsPage({ page, limit: 12, q });
+    const sortBy = req.query.sortBy || "createdAt";
+    const sortOrder = req.query.sortOrder || "desc";
+    
+    const data = await fsListCardsPage({ 
+      page, 
+      limit: 12, 
+      q, 
+      sortBy, 
+      sortOrder 
+    });
     res.json(data);
   } catch (e) {
     console.error("[CARDS]", e);
     res.status(500).json({ error: e.message });
   }
 });
+
 
 app.get("/api/admin/events", adminAuth, async (req, res) => {
   try {

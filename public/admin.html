@@ -501,6 +501,37 @@
       white-space:pre-wrap;
       margin-top:10px;
     }
+
+    .sortable-header {
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+  padding-right: 20px !important;
+}
+
+.sortable-header:hover {
+  background-color: #f8f9fa;
+}
+
+.sortable-header::after {
+  content: '↕';
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 12px;
+  opacity: 0.5;
+}
+
+.sortable-header.asc::after {
+  content: '↑';
+  opacity: 1;
+}
+
+.sortable-header.desc::after {
+  content: '↓';
+  opacity: 1;
+}
   </style>
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -646,18 +677,18 @@
 
       <div class="table-wrap" style="margin-top:12px;">
         <table>
-         <thead>
-           <tr>
-            <th>ID</th>
-            <th>Cliente</th>
-            <th>Teléfono</th>
-            <th>Sellos</th>
-            <th>Max</th>
-            <th>Estado</th>
-            <th>Creada</th>
-            <th>Acciones</th>
-        </tr>
-        </thead>
+       <thead>
+  <tr>
+    <th class="sortable-header" data-sort="id">ID</th>
+    <th class="sortable-header" data-sort="name">Cliente</th>
+    <th class="sortable-header" data-sort="phone">Teléfono</th>
+    <th class="sortable-header" data-sort="birthdate">F. Nacimiento</th>
+    <th class="sortable-header" data-sort="stamps">Sellos</th>
+    <th class="sortable-header" data-sort="max">Max</th>
+    <th class="sortable-header" data-sort="createdAt">Creada</th>
+    <th>Acciones</th>
+  </tr>
+</thead>
          <tbody id="cards-tbody">
              <tr>
                  <td colspan="8" style="text-align:center;padding:12px;" class="muted">Cargando tarjetas...</td>
@@ -1354,79 +1385,130 @@ loadMe();
     let currentPage = 1;
     let cardsCache = {};
     let currentCardId = null;
+    let currentSort = 'createdAt';
+let currentOrder = 'desc';
+async function loadCards(page = 1, sortBy = currentSort, sortOrder = currentOrder) {
+  try {
+    const searchQuery = document.getElementById('search-cards').value;
+    const params = new URLSearchParams({
+      page: page.toString(),
+      ...(searchQuery && { q: searchQuery }),
+      sortBy: sortBy,
+      sortOrder: sortOrder
+    });
     
-    async function loadCards(page = 1) {
-      try {
-        const searchQuery = document.getElementById('search-cards').value;
-        const url = `/api/admin/cards-firebase?page=${page}&q=${encodeURIComponent(searchQuery)}`;
-        
-        const response = await fetch(url, {
-          credentials: 'include'
-        });
+    const url = `/api/admin/cards-firebase?${params}`;
+    
+    const response = await fetch(url, {
+      credentials: 'include'
+    });
 
-        if (!response.ok) throw new Error('Error ' + response.status);
+    if (!response.ok) throw new Error('Error ' + response.status);
 
-        const data = await response.json();
-        const tbody = document.getElementById('cards-tbody');
+    const data = await response.json();
+    const tbody = document.getElementById('cards-tbody');
 
-        if (!data.items || data.items.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:12px;" class="muted">No hay tarjetas</td></tr>`;
-          return;
-        }
-
-        cardsCache = {};
-        data.items.forEach(c => { cardsCache[c.id] = c; });
-
-        tbody.innerHTML = data.items.map(card => `
-          <tr data-card-id="${card.id}">
-            <td><code>${card.id}</code></td>
-            <td>${card.name || '—'}</td>
-            <td>${card.phone || '—'}</td>
-            <td>${card.stamps}</td>
-            <td>${card.max}</td>
-            <td><span class="tag">${card.status || 'active'}</span></td>
-            <td>${card.created_at ? new Date(card.created_at).toLocaleDateString('es-ES') : '—'}</td>
-            <td>
-              <div class="row" style="gap:4px;flex-wrap:wrap;">
-                <button class="btn small" data-action="view">Ver</button>
-                <button class="btn small" data-action="copy">Copiar ID</button>
-                <button class="btn small" data-action="open">Abrir cliente</button>
-                <button class="btn small" data-action="stamp">+1 sello</button>
-                <button class="btn small" data-action="redeem">Canjear</button>
-                <button class="btn small ghost" data-action="delete">Eliminar</button>
-              </div>
-            </td>
-          </tr>
-        `).join('');
-
-        document.getElementById('page-info').textContent =
-          `Página ${data.page} de ${data.totalPages} (${data.total} total)`;
-        document.getElementById('btn-prev-page').disabled = data.page === 1;
-        document.getElementById('btn-next-page').disabled = data.page === data.totalPages;
-        currentPage = data.page;
-      } catch (error) {
-        console.error('Error:', error);
-        document.getElementById('cards-tbody').innerHTML =
-          `<tr><td colspan="8" style="text-align:center;padding:12px;color:#fecaca;">Error: ${error.message}</td></tr>`;
-      }
+    if (!data.items || data.items.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:12px;" class="muted">No hay tarjetas</td></tr>`;
+      return;
     }
 
-    document.getElementById('btn-prev-page').addEventListener('click', () => {
-      if (currentPage > 1) loadCards(currentPage - 1);
-    });
+    cardsCache = {};
+    data.items.forEach(c => { cardsCache[c.id] = c; });
 
-    document.getElementById('btn-next-page').addEventListener('click', () => {
-      loadCards(currentPage + 1);
-    });
+    tbody.innerHTML = data.items.map(card => `
+      <tr data-card-id="${card.id}">
+        <td><code>${card.id}</code></td>
+        <td>${card.name || '—'}</td>
+        <td>${card.phone || '—'}</td>
+        <td>${card.birthdate || '—'}</td>
+        <td>${card.stamps}</td>
+        <td>${card.max}</td>
+        <td>${card.createdAt ? new Date(card.createdAt).toLocaleDateString('es-ES') : '—'}</td>
+        <td>
+          <div class="row" style="gap:4px;flex-wrap:wrap;">
+            <button class="btn small" data-action="view">Ver</button>
+            <button class="btn small" data-action="copy">Copiar ID</button>
+            <button class="btn small" data-action="open">Abrir cliente</button>
+            <button class="btn small" data-action="stamp">+1 sello</button>
+            <button class="btn small" data-action="redeem">Canjear</button>
+            <button class="btn small ghost" data-action="delete">Eliminar</button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
 
-    document.getElementById('btn-search-cards').addEventListener('click', () => loadCards(1));
-    document.getElementById('btn-reload-cards').addEventListener('click', () => loadCards(currentPage));
-    document.getElementById('search-cards').addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        loadCards(1);
+    document.getElementById('page-info').textContent =
+      `Página ${data.page} de ${data.totalPages} (${data.total} total)`;
+    document.getElementById('btn-prev-page').disabled = data.page === 1;
+    document.getElementById('btn-next-page').disabled = data.page === data.totalPages;
+    
+    // Actualizar estado actual
+    currentPage = data.page;
+    currentSort = sortBy;
+    currentOrder = sortOrder;
+    
+    // Actualizar clases de los headers
+    updateSortableHeaders();
+    
+  } catch (error) {
+    console.error('Error:', error);
+    document.getElementById('cards-tbody').innerHTML =
+      `<tr><td colspan="8" style="text-align:center;padding:12px;color:#fecaca;">Error: ${error.message}</td></tr>`;
+  }
+}
+   
+/* ===== FUNCIONES DE ORDENAMIENTO ===== */
+function setupSortableHeaders() {
+  document.addEventListener('click', (e) => {
+    if (e.target.classList.contains('sortable-header')) {
+      const sortBy = e.target.dataset.sort;
+      
+      // Si ya está ordenado por esta columna, cambiar la dirección
+      if (currentSort === sortBy) {
+        currentOrder = currentOrder === 'asc' ? 'desc' : 'asc';
+      } else {
+        // Si es una columna nueva, ordenar ascendente por defecto
+        currentSort = sortBy;
+        currentOrder = 'asc';
       }
-    });
+      
+      // Recargar los datos con el nuevo ordenamiento
+      loadCards(1, currentSort, currentOrder);
+    }
+  });
+}
+
+function updateSortableHeaders() {
+  // Remover todas las clases de ordenamiento
+  document.querySelectorAll('.sortable-header').forEach(header => {
+    header.classList.remove('asc', 'desc');
+  });
+  
+  // Agregar clase al header actual
+  const currentHeader = document.querySelector(`.sortable-header[data-sort="${currentSort}"]`);
+  if (currentHeader) {
+    currentHeader.classList.add(currentOrder);
+  }
+}
+
+
+    document.getElementById('btn-prev-page').addEventListener('click', () => {
+  if (currentPage > 1) loadCards(currentPage - 1, currentSort, currentOrder);
+});
+
+document.getElementById('btn-next-page').addEventListener('click', () => {
+  loadCards(currentPage + 1, currentSort, currentOrder);
+});
+
+document.getElementById('btn-search-cards').addEventListener('click', () => loadCards(1, currentSort, currentOrder));
+document.getElementById('btn-reload-cards').addEventListener('click', () => loadCards(currentPage, currentSort, currentOrder));
+document.getElementById('search-cards').addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    loadCards(1, currentSort, currentOrder);
+  }
+});
 
     document.getElementById('cards-tbody').addEventListener('click', async (e) => {
       const btn = e.target.closest('button[data-action]');
@@ -2362,10 +2444,14 @@ loadMe();
             }
         };
     }
-
-    // 👆👆👆 FIN DEL CÓDIGO PEGADO 👆👆👆
-
-    init(); // <--- ESTA LÍNEA YA LA TIENES AL FINAL
+// Inicializar la página
+document.addEventListener('DOMContentLoaded', function() {
+  // Configurar headers ordenables
+  setupSortableHeaders();
+  
+  // Cargar tarjetas con ordenamiento por defecto
+  loadCards(1, 'createdAt', 'desc');
+});
   </script>
 </body>
 </html>

@@ -6,7 +6,6 @@
   <title>Venus Lealtad</title>
   <link rel="icon" href="/assets/logo.png">
   <style>
-    /* Tus estilos actuales aquí (sin cambios) */
     body {
       margin: 0;
       font-family: 'Poppins', sans-serif;
@@ -270,6 +269,9 @@
         <label>Teléfono</label>
         <input id="phone" name="phone" type="tel" placeholder="10 dígitos" pattern="[0-9]{10}" required>
 
+        <label>Fecha de nacimiento</label>
+        <input id="birthdate" name="birthdate" type="date" required>
+
         <input id="max" name="max" type="hidden" value="8">
         
         <div id="error-message" class="error"></div>
@@ -405,31 +407,30 @@
       }
     };
 
-  // --------- BOTÓN APPLE WALLET ----------
-const applewallet = document.getElementById("applewallet");
-applewallet.href = "#"; // Evitar navegación directa
+    // --------- BOTÓN APPLE WALLET ----------
+    const applewallet = document.getElementById("applewallet");
+    applewallet.href = "#"; // Evitar navegación directa
 
-applewallet.onclick = async (ev) => {
-  ev.preventDefault();
-  
-  const passUrl = data.applewallet || `/api/apple/pass?cardId=${encodeURIComponent(cardId)}`;
-  
-  // Crear link temporal para descarga
-  const tempLink = document.createElement('a');
-  tempLink.href = passUrl;
-  tempLink.download = `venus-loyalty-${cardId}.pkpass`;
-  document.body.appendChild(tempLink);
-  tempLink.click();
-  document.body.removeChild(tempLink);
-  
-  // Mostrar mensaje de ayuda después de 1 segundo
-  setTimeout(() => {
-    if (confirm('El pase se ha descargado. ¿Necesitas ayuda para instalarlo?')) {
-      alert('Pasos para instalar:\n\n1. Abre la app "Archivos" en tu iPhone\n2. Ve a "Descargas"\n3. Toca el archivo .pkpass\n4. Toca "Agregar" en la esquina superior\n5. ¡Listo! Tu pase estará en Wallet');
-    }
-  }, 1500);
-};
-      `/api/apple/pass?cardId=${encodeURIComponent(cardId)}`;
+    applewallet.onclick = async (ev) => {
+      ev.preventDefault();
+      
+      const passUrl = data.applewallet || `/api/apple/pass?cardId=${encodeURIComponent(cardId)}`;
+      
+      // Crear link temporal para descarga
+      const tempLink = document.createElement('a');
+      tempLink.href = passUrl;
+      tempLink.download = `venus-loyalty-${cardId}.pkpass`;
+      document.body.appendChild(tempLink);
+      tempLink.click();
+      document.body.removeChild(tempLink);
+      
+      // Mostrar mensaje de ayuda después de 1 segundo
+      setTimeout(() => {
+        if (confirm('El pase se ha descargado. ¿Necesitas ayuda para instalarlo?')) {
+          alert('Pasos para instalar:\n\n1. Abre la app "Archivos" en tu iPhone\n2. Ve a "Descargas"\n3. Toca el archivo .pkpass\n4. Toca "Agregar" en la esquina superior\n5. ¡Listo! Tu pase estará en Wallet');
+        }
+      }, 1500);
+    };
 
     // --------- COMPARTIR ----------
     const shareBtn = document.getElementById("share");
@@ -480,6 +481,7 @@ applewallet.onclick = async (ev) => {
 
       const name = document.getElementById("name").value.trim();
       const phone = document.getElementById("phone").value.trim();
+      const birthdate = document.getElementById("birthdate").value;
 
       if (!name) {
         showError("Por favor ingresa tu nombre");
@@ -493,11 +495,17 @@ applewallet.onclick = async (ev) => {
         return;
       }
 
+      if (!birthdate) {
+        showError("Por favor ingresa tu fecha de nacimiento");
+        setLoading(false);
+        return;
+      }
+
       try {
         const res = await fetch(
           `/api/create-card?name=${encodeURIComponent(
             name
-          )}&phone=${encodeURIComponent(phone)}&max=8`
+          )}&phone=${encodeURIComponent(phone)}&birthdate=${encodeURIComponent(birthdate)}&max=8`
         );
 
         const contentType = res.headers.get("content-type");
@@ -531,14 +539,14 @@ applewallet.onclick = async (ev) => {
     });
 
   // Endpoint alternativo (por si luego quieres usarlo)
-  async function tryAlternativeEndpoint(name, phone) {
+  async function tryAlternativeEndpoint(name, phone, birthdate) {
     try {
       const res = await fetch("/api/cards", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ name, phone, max: 8 }),
+        body: JSON.stringify({ name, phone, birthdate, max: 8 }),
       });
       return await res.json();
     } catch (error) {
