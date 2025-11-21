@@ -1434,7 +1434,7 @@ app.post("/api/admin/push-one", adminAuth, async (req, res) => {
   }
 });
 /* =========================================================
-   ENDPOINT: NOTIFICACIÓN MASIVA (Google + Apple)
+   ENDPOINT: NOTIFICACIÓN MASIVA (CORREGIDO Y ROBUSTO)
    ========================================================= */
 app.post("/api/admin/push-all", adminAuth, async (req, res) => {
   try {
@@ -1444,79 +1444,91 @@ app.post("/api/admin/push-all", adminAuth, async (req, res) => {
       return res.status(400).json({ error: "Faltan título o mensaje" });
     }
 
-    console.log(`[MASS PUSH] 🚀 Iniciando envío masivo: "${title}"`);
+    console.log(`[MASS PUSH] 🚀 Iniciando envío masivo: "${title}" - "${message}"`);
 
-    // 1. Obtener TODAS las tarjetas de Firestore
+    // 1. ACTUALIZACIÓN DE BASE DE DATOS (Lotes de 500 para seguridad)
+    // Firestore tiene límite de 500 operaciones por batch. Si tienes muchos usuarios, esto evita errores.
     const cardsSnap = await firestore.collection(COL_CARDS).get();
     
     if (cardsSnap.empty) {
-      return res.json({ success: true, msg: "No hay tarjetas para notificar." });
+      return res.json({ success: true, msg: "No hay tarjetas." });
     }
 
-    console.log(`[MASS PUSH] 📦 Actualizando ${cardsSnap.size} tarjetas en base de datos...`);
+    console.log(`[MASS PUSH] 📦 Actualizando ${cardsSnap.size} tarjetas en DB...`);
 
-    // 2. Escribir el mensaje en la BD para TODAS las tarjetas (Requisito VITAL para Apple)
-    // Usamos 'batch' para hacerlo en una sola operación rápida y no bloquear el servidor
-    const batch = firestore.batch();
+    const batches = [];
+    let currentBatch = firestore.batch();
+    let count = 0;
+
     cardsSnap.docs.forEach(doc => {
-      batch.update(doc.ref, { 
+      currentBatch.update(doc.ref, { 
         latestMessage: message, 
         updatedAt: new Date() 
       });
+      count++;
+      if (count % 500 === 0) {
+        batches.push(currentBatch.commit());
+        currentBatch = firestore.batch();
+      }
     });
-    await batch.commit(); 
+    if (count % 500 !== 0) batches.push(currentBatch.commit());
     
-    console.log(`[MASS PUSH] ✅ Base de datos actualizada (Mensajes guardados)`);
+    await Promise.all(batches);
+    console.log(`[MASS PUSH] ✅ DB Actualizada. Iniciando envío a APNs/Google...`);
 
     const results = { google: 0, apple: 0 };
 
-    // 3. Notificar APPLE (Iterar dispositivos registrados)
-    // Como ya actualizamos la BD, al enviar la señal, el iPhone descargará el mensaje nuevo.
-    const appleDevicesSnap = await firestore.collection(COL_DEVICES).get(); // "apple_devices"
+    // 2. APPLE WALLET (Usando Alerta Visible)
+    const appleDevicesSnap = await firestore.collection(COL_DEVICES).get();
     
     if (!appleDevicesSnap.empty) {
-        const promises = appleDevicesSnap.docs.map(async (doc) => {
+        // Enviamos en paralelo pero esperamos el resultado
+        const applePromises = appleDevicesSnap.docs.map(async (doc) => {
             const data = doc.data();
-            // data.serial_number es el cardId
             if (data.serial_number && data.push_token) {
-                 // Enviamos la señal de actualización silenciosa
-                 await appleWebService.notifyCardUpdate(data.serial_number);
-                 results.apple++;
+                 try {
+                     // ⭐ CLAVE: Usamos sendAlertToCardDevices si existe, o notifyCardUpdate
+                     // Asegúrate de que esta función envíe el payload con {alert:..., sound:...}
+                     await appleWebService.sendAPNsAlertNotification(
+                        data.push_token, 
+                        title, 
+                        message
+                     );
+                     results.apple++;
+                 } catch (err) {
+                     console.error(`[MASS PUSH] ❌ Error Apple ${data.serial_number}:`, err.message);
+                 }
             }
         });
-        // No esperamos a que terminen todos para responder rápido al admin, 
-        // pero se ejecutarán en background.
-        Promise.all(promises).catch(e => console.error("Error background Apple:", e));
+        await Promise.all(applePromises);
     }
 
-    // 4. Notificar GOOGLE (Iterar dispositivos registrados)
+    // 3. GOOGLE WALLET
     const googleDevicesSnap = await firestore.collection(COL_GOOGLE_DEVICES).get();
     
     if (!googleDevicesSnap.empty) {
-        const promisesG = googleDevicesSnap.docs.map(async (doc) => {
+        const googlePromises = googleDevicesSnap.docs.map(async (doc) => {
             const data = doc.data();
-            // data.card_id es el ID de la tarjeta
             if (data.card_id) {
                 try {
                     await sendGoogleMessage(data.card_id, title, message);
                     results.google++;
-                } catch(e) { 
-                    console.error(`[MASS PUSH] Error Google ${data.card_id}:`, e.message);
-                }
+                } catch(e) { /* ignorar error individual */ }
             }
         });
-        Promise.all(promisesG).catch(e => console.error("Error background Google:", e));
+        await Promise.all(googlePromises);
     }
 
-    console.log(`[MASS PUSH] 🏁 Proceso iniciado para ${results.apple} iOS y ${results.google} Android.`);
+    console.log(`[MASS PUSH] 🏁 Finalizado. Apple: ${results.apple}, Google: ${results.google}`);
     
     res.json({ 
       success: true, 
-      message: `Enviando a ${results.apple} dispositivos Apple y ${results.google} Android.` 
+      results,
+      message: `Enviado a ${results.apple} iOS y ${results.google} Android.` 
     });
 
   } catch (e) {
-    console.error("[MASS PUSH] ❌ Error:", e);
+    console.error("[MASS PUSH] ❌ Error Fatal:", e);
     res.status(500).json({ error: e.message });
   }
 });
