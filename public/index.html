@@ -102,6 +102,17 @@
       margin-bottom: 1rem;
       font-size: 1rem;
       box-sizing: border-box;
+      -webkit-appearance: none;
+    }
+
+    /* Estilo específico para el campo de fecha en iOS */
+    input[type="date"] {
+      min-height: 44px; /* Tamaño mínimo para mejor accesibilidad en móviles */
+    }
+
+    /* Estilos para el placeholder en iOS */
+    input[type="date"]::-webkit-datetime-edit {
+      color: #666;
     }
 
     .btn {
@@ -235,6 +246,7 @@
       
       input { 
         font-size: 0.95rem; 
+        padding: 14px; /* Más padding para mejor tacto en móviles */
       }
       
       .grid {
@@ -246,6 +258,13 @@
         width: 32px;
         height: 32px;
         font-size: 0.85rem;
+      }
+      
+      /* Ajustes específicos para iPhone */
+      @supports (-webkit-touch-callout: none) {
+        input[type="date"] {
+          padding: 12px 8px; /* Ajuste específico para iOS */
+        }
       }
     }
 
@@ -263,13 +282,13 @@
       <p class="desc">Ingresa tus datos para generar tu tarjeta digital.</p>
 
       <form id="create-form">
-        <label>Nombre</label>
+        <label for="name">Nombre</label>
         <input id="name" name="name" placeholder="Tu nombre" required>
 
-        <label>Teléfono</label>
+        <label for="phone">Teléfono</label>
         <input id="phone" name="phone" type="tel" placeholder="10 dígitos" pattern="[0-9]{10}" required>
 
-        <label>Fecha de nacimiento</label>
+        <label for="birthdate">Fecha de nacimiento</label>
         <input id="birthdate" name="birthdate" type="date" required>
 
         <input id="max" name="max" type="hidden" value="8">
