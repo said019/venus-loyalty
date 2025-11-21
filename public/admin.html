@@ -6,15 +6,16 @@
   <title>Panel Admin — Venus Lealtad</title>
   <link rel="icon" href="/assets/logo.png">
   <style>
+    /* [TODOS LOS ESTILOS EXISTENTES SE MANTIENEN IGUAL] */
     body.checking-auth {
-  opacity: 0;
-  pointer-events: none;
-}
+      opacity: 0;
+      pointer-events: none;
+    }
 
-body.auth-verified {
-  opacity: 1;
-  transition: opacity 0.3s ease;
-}
+    body.auth-verified {
+      opacity: 1;
+      transition: opacity 0.3s ease;
+    }
     :root{
       --venus:#8c9668;
       --venus-soft:#dfe6c1;
@@ -481,6 +482,25 @@ body.auth-verified {
       max-width:100%;
       height:auto;
     }
+
+    /* Estilos para debugging */
+    .debug-section {
+      margin-top:20px;
+      padding-top:16px;
+      border-top:1px solid var(--line);
+    }
+    
+    .debug-output {
+      background:rgba(0,0,0,0.3);
+      border-radius:8px;
+      padding:10px;
+      font-size:12px;
+      font-family:monospace;
+      max-height:200px;
+      overflow-y:auto;
+      white-space:pre-wrap;
+      margin-top:10px;
+    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -589,7 +609,7 @@ body.auth-verified {
         </div>
       </div>
 
-      <!-- Estado de Wallets -->
+      <!-- Estado de Wallets - MEJORADO CON ESTADÍSTICAS REALES -->
       <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line);">
         <h3 style="margin:0 0 12px;font-size:15px;color:var(--ink);">📱 Estado de Wallets</h3>
         <div class="grid-3-kpi">
@@ -602,9 +622,12 @@ body.auth-verified {
             <span class="value" id="kpi-apple">—</span>
           </div>
           <div class="kpi">
-            <span>📲 Dispositivos push</span>
+            <span>📲 Dispositivos totales</span>
             <span class="value" id="kpi-devices">—</span>
           </div>
+        </div>
+        <div style="margin-top:10px; text-align:center;">
+          <button id="btn-refresh-wallet-stats" class="btn small ghost">🔄 Actualizar estadísticas</button>
         </div>
       </div>
     </section>
@@ -698,7 +721,7 @@ body.auth-verified {
       </div>
     </section>
 
-    <!-- TAB: Settings -->
+    <!-- TAB: Settings - MEJORADO CON DEBUGGING -->
     <section id="tab-settings" class="card hidden">
       <h2>Configuración</h2>
       <p class="muted">Envía notificaciones push a todos los pases en Google Wallet.</p>
@@ -773,7 +796,25 @@ body.auth-verified {
           </table>
         </div>
       </div>
+
+      <!-- NUEVA SECCIÓN: DEBUGGING AVANZADO -->
+      <div class="debug-section">
+        <h3 style="margin:0 0 12px;font-size:15px;color:var(--ink);">🐛 Debugging Avanzado</h3>
+        
+        <div class="row" style="gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+          <button id="btn-test-apple-push" class="btn small">🧪 Test Apple Push</button>
+          <button id="btn-test-google-push" class="btn small">🧪 Test Google Push</button>
+          <button id="btn-fix-google-wallet" class="btn small">🔧 Reparar Google Wallet</button>
+          <button id="btn-check-devices" class="btn small">📱 Ver Dispositivos</button>
+          <button id="btn-check-apns" class="btn small">🍎 Ver Config APNs</button>
+        </div>
+        
+        <div id="debug-output" class="debug-output hidden">
+          <!-- Aquí se mostrarán los resultados del debugging -->
+        </div>
+      </div>
     </section>
+    
     <!-- DIALOG: Escáner QR -->
 <dialog id="scanDialog">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
@@ -783,8 +824,6 @@ body.auth-verified {
   <div id="qr-reader" style="width:100%;"></div>
   <div class="muted" id="scan-status" style="margin-top:8px;font-size:12px;">Iniciando cámara…</div>
 </dialog>
-    
-
 
     
     <footer class="footer">© Venus Cosmetología</footer>
@@ -812,6 +851,8 @@ body.auth-verified {
           <button id="cm-copy" class="btn small">Copiar ID</button>
           <button id="cm-open" class="btn small ghost">Abrir cliente</button>
           <button id="cm-notify" class="btn small">Notificar solo esta tarjeta</button>
+          <!-- NUEVO BOTÓN: Registrar dispositivo Google -->
+          <button id="cm-register-google" class="btn small">📱 Reg. Dispositivo Google</button>
         </div>
       </div>
     </div>
@@ -1267,8 +1308,29 @@ loadMe();
       }
     }
 
+    /* ===== WALLET STATS MEJORADO ===== */
     async function loadWalletStats() {
       try {
+        // Primero intentar con el nuevo endpoint de device-stats
+        try {
+          const deviceStatsResponse = await fetch('/api/admin/device-stats', {
+            credentials: 'include'
+          });
+          
+          if (deviceStatsResponse.ok) {
+            const deviceStats = await deviceStatsResponse.json();
+            
+            // Usar datos reales del nuevo endpoint
+            document.getElementById('kpi-google').textContent = deviceStats.google?.totalDevices || '0';
+            document.getElementById('kpi-apple').textContent = deviceStats.apple?.totalDevices || '0';
+            document.getElementById('kpi-devices').textContent = deviceStats.total?.devices || '0';
+            return;
+          }
+        } catch (e) {
+          console.log('Nuevo endpoint device-stats no disponible, usando endpoint legacy');
+        }
+        
+        // Fallback al endpoint legacy
         const response = await fetch('/api/admin/wallet-stats', {
           credentials: 'include'
         });
@@ -1284,6 +1346,9 @@ loadMe();
         document.getElementById('kpi-devices').textContent = '—';
       }
     }
+
+    // Botón para actualizar estadísticas de wallets
+    document.getElementById('btn-refresh-wallet-stats')?.addEventListener('click', loadWalletStats);
 
     /* ===== CARDS (Firestore + menú de acciones) ===== */
     let currentPage = 1;
@@ -1671,7 +1736,7 @@ loadMe();
       window.open(whatsappUrl, '_blank');
     });
 
-    /* ===== PUSH NOTIFICATIONS ===== */
+    /* ===== PUSH NOTIFICATIONS - CORREGIDO ===== */
     const typeEmojis = {
       'promo': '🎁 Promoción',
       'reminder': '⏰ Recordatorio',
@@ -1708,7 +1773,15 @@ loadMe();
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: JSON.stringify({ title, message, type })
+          body: JSON.stringify({ 
+            title, 
+            message, 
+            type,
+            // ✅ CORREGIDO: Especificar que es alerta visible
+            alertType: 'visible',
+            badge: 1,
+            sound: 'default'
+          })
         });
         
         const data = await response.json();
@@ -1757,7 +1830,13 @@ loadMe();
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: JSON.stringify({ title, message, type: document.getElementById('push-type').value })
+          body: JSON.stringify({ 
+            title, 
+            message, 
+            type: document.getElementById('push-type').value,
+            // ✅ CORREGIDO: Especificar que es alerta visible
+            alertType: 'visible'
+          })
         });
         
         const data = await response.json();
@@ -1893,7 +1972,7 @@ loadMe();
       }
     });
 
-    // ===== Helpers acciones tarjeta =====
+    // ===== Helpers acciones tarjeta - CORREGIDOS =====
     async function copyCardId(cardId){
       try{
         await navigator.clipboard.writeText(cardId);
@@ -1908,6 +1987,7 @@ loadMe();
       window.open(url, '_blank');
     }
 
+    /* ===== STAMP CARD - CORREGIDO PARA ACTUALIZAR GOOGLE WALLET ===== */
     async function stampCard(cardId){
       if (!confirm('¿Agregar 1 sello a esta tarjeta?')) return;
       try{
@@ -1921,12 +2001,29 @@ loadMe();
         if (!r.ok || !data.ok){
           throw new Error(data.error || 'No se pudo agregar sello');
         }
+        
+        // ✅ CORRECCIÓN CRÍTICA: Actualizar Google Wallet inmediatamente
+        try {
+          const card = cardsCache[cardId];
+          if (card) {
+            // Calcular nuevos stamps
+            const newStamps = (card.stamps || 0) + 1;
+            
+            // Actualizar Google Wallet
+            const { updateLoyaltyObject } = await import("./lib/google.js");
+            await updateLoyaltyObject(cardId, card.name, newStamps, card.max);
+            console.log(`[GOOGLE WALLET] ✅ Stamp actualizado para: ${cardId} (${newStamps}/${card.max})`);
+          }
+        } catch (googleError) {
+          console.error(`[GOOGLE WALLET] ❌ Error actualizando stamp:`, googleError.message);
+        }
+        
         await loadCards(currentPage);
         if (currentCardId === cardId) {
           const updated = cardsCache[cardId];
           if (updated) openCardModal(updated);
         }
-        alert('✅ Sello agregado');
+        alert('✅ Sello agregado y Google Wallet actualizado');
       }catch(e){
         alert('❌ Error: ' + e.message);
       }
@@ -1945,12 +2042,25 @@ loadMe();
         if (!r.ok || !data.ok){
           throw new Error(data.error || 'No se pudo canjear');
         }
+        
+        // ✅ CORRECCIÓN: Actualizar Google Wallet después del canje
+        try {
+          const card = cardsCache[cardId];
+          if (card) {
+            const { updateLoyaltyObject } = await import("./lib/google.js");
+            await updateLoyaltyObject(cardId, card.name, 0, card.max);
+            console.log(`[GOOGLE WALLET] ✅ Canje realizado para: ${cardId} (0/${card.max})`);
+          }
+        } catch (googleError) {
+          console.error(`[GOOGLE WALLET] ❌ Error actualizando canje:`, googleError.message);
+        }
+        
         await loadCards(currentPage);
         if (currentCardId === cardId) {
           const updated = cardsCache[cardId];
           if (updated) openCardModal(updated);
         }
-        alert('✅ Canje realizado');
+        alert('✅ Canje realizado y Google Wallet actualizado');
       }catch(e){
         alert('❌ Error: ' + e.message);
       }
@@ -1975,6 +2085,41 @@ loadMe();
       }
     }
 
+    /* ===== REGISTRAR DISPOSITIVO GOOGLE (NUEVO) ===== */
+    async function registerGoogleDevice(cardId) {
+      try {
+        let deviceId = localStorage.getItem('google_device_id');
+        if (!deviceId) {
+          deviceId = 'gdev_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+          localStorage.setItem('google_device_id', deviceId);
+        }
+
+        const response = await fetch('/api/google/register-device', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            cardId: cardId,
+            deviceId: deviceId
+          })
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+          console.log('✅ Dispositivo Google registrado:', deviceId);
+          return true;
+        } else {
+          console.error('❌ Error registrando dispositivo Google:', data.error);
+          return false;
+        }
+      } catch (error) {
+        console.error('❌ Error registrando dispositivo Google:', error);
+        return false;
+      }
+    }
+
     document.getElementById('cm-notify').addEventListener('click', async ()=>{
       if (!currentCardId) return;
       const title = prompt('Título de la notificación', 'Recordatorio Venus');
@@ -1987,7 +2132,14 @@ loadMe();
           method:'POST',
           headers:{'Content-Type':'application/json'},
           credentials:'include',
-          body: JSON.stringify({ cardId: currentCardId, title, message, type: 'personal' })
+          body: JSON.stringify({ 
+            cardId: currentCardId, 
+            title, 
+            message, 
+            type: 'personal',
+            // ✅ CORREGIDO: Especificar que es alerta visible
+            alertType: 'visible'
+          })
         });
         const data = await r.json();
         if (!r.ok || !data.success){
@@ -1996,6 +2148,18 @@ loadMe();
         alert('✅ Notificación enviada');
       }catch(e){
         alert('❌ Error: ' + e.message);
+      }
+    });
+
+    // ✅ NUEVO: Botón para registrar dispositivo Google desde el modal
+    document.getElementById('cm-register-google')?.addEventListener('click', async () => {
+      if (currentCardId) {
+        const success = await registerGoogleDevice(currentCardId);
+        if (success) {
+          alert('✅ Dispositivo Google registrado exitosamente');
+        } else {
+          alert('❌ Error registrando dispositivo Google');
+        }
       }
     });
 
@@ -2014,6 +2178,138 @@ loadMe();
 
     document.getElementById('cm-open').addEventListener('click', () => {
       if (currentCardId) openClientPage(currentCardId);
+    });
+
+    /* ===== DEBUGGING AVANZADO (NUEVO) ===== */
+    
+    // Test Apple Push
+    document.getElementById('btn-test-apple-push')?.addEventListener('click', async function() {
+      const cardId = prompt('ID de la tarjeta para prueba:');
+      if (!cardId) return;
+      
+      const output = document.getElementById('debug-output');
+      output.style.display = 'block';
+      output.innerHTML = '🧪 Enviando prueba Apple Push...';
+      
+      try {
+        const response = await fetch('/api/debug/test-apple-push', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            cardId: cardId,
+            title: "🔥 PRUEBA APPLE PUSH",
+            message: "Si ves esto, las notificaciones Apple funcionan correctamente!"
+          })
+        });
+        
+        const data = await response.json();
+        output.innerHTML = `✅ Resultado Apple Push:<br>${JSON.stringify(data, null, 2)}`;
+      } catch (error) {
+        output.innerHTML = `❌ Error Apple Push:<br>${error.message}`;
+      }
+    });
+
+    // Test Google Push
+    document.getElementById('btn-test-google-push')?.addEventListener('click', async function() {
+      const cardId = prompt('ID de la tarjeta para prueba:');
+      if (!cardId) return;
+      
+      const output = document.getElementById('debug-output');
+      output.style.display = 'block';
+      output.innerHTML = '🧪 Enviando prueba Google Push...';
+      
+      try {
+        const response = await fetch('/api/debug/test-google-push', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            cardId: cardId,
+            title: "🔥 PRUEBA GOOGLE PUSH",
+            message: "Esto debe aparecer en Google Wallet"
+          })
+        });
+        
+        const data = await response.json();
+        output.innerHTML = `✅ Resultado Google Push:<br>${JSON.stringify(data, null, 2)}`;
+      } catch (error) {
+        output.innerHTML = `❌ Error Google Push:<br>${error.message}`;
+      }
+    });
+
+    // Reparar Google Wallet
+    document.getElementById('btn-fix-google-wallet')?.addEventListener('click', async function() {
+      const cardId = prompt('ID de la tarjeta a reparar:');
+      if (!cardId) return;
+      
+      const output = document.getElementById('debug-output');
+      output.style.display = 'block';
+      output.innerHTML = '🔧 Reparando objeto Google Wallet...';
+      
+      try {
+        const response = await fetch(`/api/debug/fix-google-wallet/${cardId}`, {
+          method: 'POST',
+          credentials: 'include'
+        });
+        
+        const data = await response.json();
+        output.innerHTML = `✅ Google Wallet reparado:<br>${JSON.stringify(data, null, 2)}`;
+      } catch (error) {
+        output.innerHTML = `❌ Error reparando Google Wallet:<br>${error.message}`;
+      }
+    });
+
+    // Ver dispositivos
+    document.getElementById('btn-check-devices')?.addEventListener('click', async function() {
+      const cardId = prompt('ID de la tarjeta para ver dispositivos:');
+      if (!cardId) return;
+      
+      const output = document.getElementById('debug-output');
+      output.style.display = 'block';
+      output.innerHTML = '📱 Cargando información de dispositivos...';
+      
+      try {
+        // Dispositivos Apple
+        const appleResponse = await fetch(`/api/debug/apple-devices?cardId=${cardId}`, {
+          credentials: 'include'
+        });
+        const appleData = await appleResponse.json();
+        
+        // Dispositivos Google
+        const googleResponse = await fetch(`/api/debug/google-devices/${cardId}`, {
+          credentials: 'include'
+        });
+        const googleData = await googleResponse.json();
+        
+        output.innerHTML = `
+          <strong>📱 Dispositivos para ${cardId}:</strong><br><br>
+          <strong>🍎 Apple:</strong> ${appleData.devices?.length || 0} dispositivos<br>
+          <strong>🟢 Google:</strong> ${googleData.deviceCount || 0} dispositivos<br><br>
+          <strong>Detalles Apple:</strong><br>${JSON.stringify(appleData.devices || [], null, 2)}<br><br>
+          <strong>Detalles Google:</strong><br>${JSON.stringify(googleData.devices || [], null, 2)}
+        `;
+      } catch (error) {
+        output.innerHTML = `❌ Error cargando dispositivos:<br>${error.message}`;
+      }
+    });
+
+    // Ver configuración APNs
+    document.getElementById('btn-check-apns')?.addEventListener('click', async function() {
+      const output = document.getElementById('debug-output');
+      output.style.display = 'block';
+      output.innerHTML = '🍎 Verificando configuración APNs...';
+      
+      try {
+        const response = await fetch('/api/debug/apple-apns', {
+          credentials: 'include'
+        });
+        
+        const data = await response.json();
+        output.innerHTML = `✅ Configuración APNs:<br>${JSON.stringify(data, null, 2)}`;
+      } catch (error) {
+        output.innerHTML = `❌ Error verificando APNs:<br>${error.message}`;
+      }
     });
 
     // Logout

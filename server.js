@@ -1,4 +1,4 @@
-// server.js - COMPLETO CON APPLE WALLET APNs - MIGRADO A FIRESTORE - CORREGIDO
+// server.js - COMPLETO CON TODAS LAS CORRECCIONES APPLICADAS
 import express from "express";
 import cors from "cors";
 import "dotenv/config";
@@ -62,6 +62,9 @@ const COL_ADMINS   = "admins";
 const COL_RESETS   = "admin_resets";
 const COL_DEVICES  = "apple_devices";
 const COL_UPDATES  = "apple_updates";
+
+// ⭐ NUEVO: Constante para dispositivos Google
+const COL_GOOGLE_DEVICES = "google_devices";
 
 // ---------- HELPERS ADMIN ----------
 
@@ -296,6 +299,41 @@ async function fsMetrics() {
     stampsToday: counts.STAMP,
     redeemsToday: counts.REDEEM,
   };
+}
+
+// ⭐ NUEVO: Funciones para dispositivos Google
+async function fsRegisterGoogleDevice(cardId, deviceId) {
+  try {
+    const deviceKey = `google_${cardId}_${deviceId}`;
+    await firestore.collection(COL_GOOGLE_DEVICES).doc(deviceKey).set({
+      card_id: cardId,
+      device_id: deviceId,
+      platform: 'android',
+      registered_at: new Date().toISOString(),
+      last_active: new Date().toISOString()
+    });
+    console.log(`[GOOGLE DEVICE] ✅ Dispositivo registrado: ${deviceId}`);
+  } catch (error) {
+    console.error('[GOOGLE DEVICE] Error registrando:', error);
+    throw error;
+  }
+}
+
+async function fsGetGoogleDevicesByCard(cardId) {
+  try {
+    const snap = await firestore
+      .collection(COL_GOOGLE_DEVICES)
+      .where('card_id', '==', cardId)
+      .get();
+    
+    return snap.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+  } catch (error) {
+    console.error('[GOOGLE DEVICE] Error obteniendo dispositivos:', error);
+    return [];
+  }
 }
 
 /* =========================================================
@@ -552,7 +590,7 @@ app.get('/api/debug/apple-routes-test', async (req, res) => {
 
   res.json({ testResults });
 });
-// En server.js - agregar después de los otros endpoints
+
 app.get('/api/debug/apple-auth-config', (req, res) => {
   const authToken = process.env.APPLE_AUTH_TOKEN;
   
@@ -568,6 +606,7 @@ app.get('/api/debug/apple-auth-config', (req, res) => {
       '❌ APPLE_AUTH_TOKEN no está configurado en las variables de entorno'
   });
 });
+
 /* =========================================================
    EMISIÓN DE TARJETA
    ========================================================= */
@@ -758,7 +797,7 @@ app.get("/api/apple/test-pass", async (_req, res) => {
       name: "Cliente Test",
       stamps: 2,
       max: 8,
-      latestMessage: "¡Este es un mensaje de prueba para las notificaciones!" // ⭐ AGREGAR ESTA LÍNEA
+      latestMessage: "¡Este es un mensaje de prueba para las notificaciones!"
     };
 
     console.log("[APPLE TEST] 🔨 Generando pase de prueba con payload:", testPayload);
@@ -794,14 +833,14 @@ app.get("/api/apple/pass", async (req, res) => {
           name: existing.name,
           stamps: existing.stamps,
           max: existing.max,
-          latestMessage: existing.latestMessage || null // ⭐ AGREGAR ESTO
+          latestMessage: existing.latestMessage || null
         }
       : {
           cardId: String(cardId),
           name: "Cliente",
           stamps: 0,
           max: 8,
-          latestMessage: null // ⭐ AGREGAR ESTO
+          latestMessage: null
         };
 
     console.log("[APPLE PASS] 📥 Generando pase con datos:", payload);
@@ -840,6 +879,7 @@ app.get("/api/admin/metrics-firebase", adminAuth, async (_req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
+
 // Top clientes (después de /api/admin/metrics-firebase)
 app.get("/api/admin/top-clients", adminAuth, async (req, res) => {
   try {
@@ -897,17 +937,20 @@ app.get("/api/admin/wallet-stats", adminAuth, async (req, res) => {
     const devicesSnap = await firestore.collection(COL_DEVICES).get();
     const appleDevices = devicesSnap.size;
     
+    // ⭐ NUEVO: Contar dispositivos Google registrados
+    const googleDevicesSnap = await firestore.collection(COL_GOOGLE_DEVICES).get();
+    const googleDevices = googleDevicesSnap.size;
+    
     res.json({
       appleDevices,
-      appleWallets: appleDevices, // Cada dispositivo = 1 wallet instalado
-      googleWallets: 0 // Por ahora en 0, puedes implementar si guardas esa info
+      appleWallets: appleDevices,
+      googleWallets: googleDevices // ⭐ NUEVO: Ahora incluye dispositivos Google
     });
   } catch (e) {
     console.error("[WALLET STATS]", e);
     res.status(500).json({ error: e.message });
   }
 });
-
 
 app.get("/api/admin/cards-firebase", adminAuth, async (req, res) => {
   try {
@@ -934,7 +977,7 @@ app.get("/api/admin/events-firebase", adminAuth, async (req, res) => {
 });
 
 /* =========================================================
-   SUMAR SELLO (staff) - CON NOTIFICACIÓN APPLE
+   SUMAR SELLO (staff) - CON NOTIFICACIÓN APPLE - ⭐ CORREGIDO
    ========================================================= */
 app.post("/api/stamp/:cardId", basicAuth, async (req, res) => {
   try {
@@ -950,16 +993,17 @@ app.post("/api/stamp/:cardId", basicAuth, async (req, res) => {
     const updated = await fsUpdateCardStamps(cardId, newStamps);
     await fsAddEvent(cardId, "STAMP", { by: "reception" });
 
-    // ✅ AGREGAR: Actualizar Google Wallet
+    // ⭐ CORRECCIÓN: Google Wallet con 4 parámetros
     try {
       const { updateLoyaltyObject } = await import("./lib/google.js");
-      await updateLoyaltyObject(cardId, newStamps);
-      console.log(`[GOOGLE WALLET] ✅ Stamp actualizado para: ${cardId}`);
+      // ✅ CORRECTO: 4 parámetros en lugar de 2
+      await updateLoyaltyObject(cardId, updated.name, newStamps, updated.max);
+      console.log(`[GOOGLE WALLET] ✅ Stamp actualizado para: ${cardId} (${newStamps}/${updated.max})`);
     } catch (googleError) {
       console.error(`[GOOGLE WALLET] ❌ Error actualizando stamp:`, googleError.message);
     }
 
-    // ... resto del código igual para Apple
+    // Notificar Apple
     try {
        await appleWebService.notifyCardUpdate(cardId);
     } catch (err) {
@@ -1001,6 +1045,15 @@ app.post("/api/redeem/:cardId", basicAuth, async (req, res) => {
     const updated = await fsUpdateCardStamps(cardId, 0);
     await fsAddEvent(cardId, "REDEEM", { by: "reception" });
 
+    // ⭐ CORRECCIÓN: Google Wallet con 4 parámetros
+    try {
+      const { updateLoyaltyObject } = await import("./lib/google.js");
+      await updateLoyaltyObject(cardId, updated.name, 0, updated.max);
+      console.log(`[GOOGLE WALLET] ✅ Redeem actualizado para: ${cardId} (0/${updated.max})`);
+    } catch (googleError) {
+      console.error(`[GOOGLE WALLET] ❌ Error actualizando redeem:`, googleError.message);
+    }
+
     try {
       await appleWebService.notifyCardUpdate(cardId);
     } catch (err) {
@@ -1021,77 +1074,35 @@ app.post("/api/redeem/:cardId", basicAuth, async (req, res) => {
 });
 
 /* =========================================================
-   HELPERS GOOGLE DEVICES (similar a Apple)
-   ========================================================= */
-
-const COL_GOOGLE_DEVICES = "google_devices";
-
-async function fsRegisterGoogleDevice(cardId, pushToken, deviceId = null) {
-  try {
-    const deviceKey = deviceId || `google_${cardId}_${Date.now()}`;
-    await firestore.collection(COL_GOOGLE_DEVICES).doc(deviceKey).set({
-      card_id: cardId,
-      push_token: pushToken,
-      device_id: deviceId,
-      registered_at: new Date().toISOString(),
-      last_updated: new Date().toISOString()
-    });
-    console.log(`[GOOGLE DEVICE] ✅ Dispositivo registrado para: ${cardId}`);
-  } catch (error) {
-    console.error('[GOOGLE DEVICE] Error registrando dispositivo:', error);
-    throw error;
-  }
-}
-
-async function fsGetGoogleDevicesByCard(cardId) {
-  try {
-    const snap = await firestore
-      .collection(COL_GOOGLE_DEVICES)
-      .where('card_id', '==', cardId)
-      .get();
-    
-    return snap.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-  } catch (error) {
-    console.error('[GOOGLE DEVICE] Error obteniendo dispositivos:', error);
-    return [];
-  }
-}
-
-async function fsUnregisterGoogleDevice(deviceId) {
-  try {
-    await firestore.collection(COL_GOOGLE_DEVICES).doc(deviceId).delete();
-  } catch (error) {
-    console.error('[GOOGLE DEVICE] Error desregistrando:', error);
-  }
-}
-
-/* =========================================================
-   REGISTRAR DISPOSITIVO GOOGLE
+   REGISTRAR DISPOSITIVO GOOGLE - ⭐ NUEVO ENDPOINT MEJORADO
    ========================================================= */
 app.post('/api/google/register-device', async (req, res) => {
   try {
-    const { cardId, pushToken, deviceId } = req.body;
+    const { cardId, deviceId } = req.body;
     
-    if (!cardId || !pushToken) {
-      return res.status(400).json({ error: "Faltan cardId o pushToken" });
+    if (!cardId || !deviceId) {
+      return res.status(400).json({ 
+        error: "Faltan cardId o deviceId" 
+      });
     }
 
-    console.log(`[GOOGLE] 📱 Registrando dispositivo para: ${cardId}`);
+    console.log(`[GOOGLE] 📱 Registrando dispositivo: ${deviceId} para tarjeta: ${cardId}`);
 
     // Verificar que la tarjeta existe
     const card = await fsGetCard(cardId);
     if (!card) {
-      return res.status(404).json({ error: "Tarjeta no encontrada" });
+      return res.status(404).json({ 
+        error: "Tarjeta no encontrada" 
+      });
     }
 
-    await fsRegisterGoogleDevice(cardId, pushToken, deviceId);
+    await fsRegisterGoogleDevice(cardId, deviceId);
 
     res.json({ 
       success: true, 
-      message: "Dispositivo Google registrado exitosamente" 
+      message: "Dispositivo Google registrado exitosamente",
+      cardId,
+      deviceId
     });
     
   } catch (error) {
@@ -1100,6 +1111,74 @@ app.post('/api/google/register-device', async (req, res) => {
   }
 });
 
+/* =========================================================
+   OBTENER DISPOSITIVOS GOOGLE DE UNA TARJETA - ⭐ NUEVO ENDPOINT
+   ========================================================= */
+app.get('/api/debug/google-devices/:cardId', adminAuth, async (req, res) => {
+  try {
+    const { cardId } = req.params;
+    const devices = await fsGetGoogleDevicesByCard(cardId);
+    
+    res.json({
+      cardId,
+      deviceCount: devices.length,
+      devices: devices.map(d => ({
+        deviceId: d.device_id,
+        registeredAt: d.registered_at,
+        lastActive: d.last_active
+      }))
+    });
+  } catch (error) {
+    console.error('[GOOGLE DEVICES] Error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/* =========================================================
+   ESTADÍSTICAS DE DISPOSITIVOS - ⭐ NUEVO ENDPOINT
+   ========================================================= */
+app.get('/api/admin/device-stats', adminAuth, async (req, res) => {
+  try {
+    const appleSnap = await firestore.collection(COL_DEVICES).get();
+    const googleSnap = await firestore.collection(COL_GOOGLE_DEVICES).get();
+    
+    // Contar dispositivos únicos por tarjeta
+    const appleByCard = {};
+    appleSnap.forEach(doc => {
+      const serial = doc.data().serial_number;
+      appleByCard[serial] = (appleByCard[serial] || 0) + 1;
+    });
+    
+    const googleByCard = {};
+    googleSnap.forEach(doc => {
+      const cardId = doc.data().card_id;
+      googleByCard[cardId] = (googleByCard[cardId] || 0) + 1;
+    });
+    
+    res.json({
+      apple: {
+        totalDevices: appleSnap.size,
+        cardsWithDevices: Object.keys(appleByCard).length,
+        avgDevicesPerCard: appleSnap.size / Math.max(1, Object.keys(appleByCard).length)
+      },
+      google: {
+        totalDevices: googleSnap.size,
+        cardsWithDevices: Object.keys(googleByCard).length,
+        avgDevicesPerCard: googleSnap.size / Math.max(1, Object.keys(googleByCard).length)
+      },
+      total: {
+        devices: appleSnap.size + googleSnap.size,
+        cardsWithAnyDevice: new Set([
+          ...Object.keys(appleByCard),
+          ...Object.keys(googleByCard)
+        ]).size
+      }
+    });
+  } catch (error) {
+    console.error('[DEVICE STATS] Error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
 
 /* =========================================================
    HELPER: CREAR/ACTUALIZAR OBJETO GOOGLE WALLET
@@ -1134,7 +1213,7 @@ async function ensureGoogleWalletObject(cardId, cardData) {
     } else if (checkResp.ok) {
       // Actualizar objeto existente
       console.log(`[GOOGLE WALLET] 🔄 Actualizando objeto existente para: ${cardId}`);
-      await updateLoyaltyObject(cardId, cardData.stamps);
+      await updateLoyaltyObject(cardId, cardData.name, cardData.stamps, cardData.max);
     }
 
     return true;
@@ -1143,6 +1222,7 @@ async function ensureGoogleWalletObject(cardId, cardData) {
     return false;
   }
 }
+
 /* =========================================================
    NOTIFICAR A UNA SOLA TARJETA (Google + Apple) - MEJORADO CON DEBUG
    ========================================================= */
@@ -1154,13 +1234,6 @@ app.post("/api/admin/push-one", adminAuth, async (req, res) => {
     }
 
     console.log(`[PUSH ONE] 🎯 Iniciando notificación para tarjeta: ${cardId}`);
-
-    // ⭐ DEBUG: Verificar configuración Firestore
-    console.log(`[PUSH ONE] 🔍 Configuración Firestore:`, {
-      COL_CARDS,
-      cardId,
-      fullPath: `cards/${cardId}`
-    });
 
     const card = await fsGetCard(cardId);
     if (!card) {
@@ -1181,77 +1254,73 @@ app.post("/api/admin/push-one", adminAuth, async (req, res) => {
       google: { sent: false, error: null },
       apple: { sent: 0, error: null }
     };
-// 1. Google Wallet (MODIFICADO)
-try {
-  // ✅ PRIMERO asegurar que el objeto existe
-  const googleReady = await ensureGoogleWalletObject(cardId, card);
-  
-  if (googleReady) {
-    const { getWalletAccessToken } = await import("./lib/google.js");
-    const token = await getWalletAccessToken();
-    const issuerId = process.env.GOOGLE_ISSUER_ID;
-    const objectId = `${issuerId}.${cardId}`;
 
-    const resp = await fetch(
-      `https://walletobjects.googleapis.com/walletobjects/v1/loyaltyObject/${encodeURIComponent(objectId)}/addMessage`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          message: {
-            header: title,
-            body: message,
-            kind: "walletobjects#message",
-          },
-        }),
+    // 1. Google Wallet (MODIFICADO)
+    try {
+      // ✅ PRIMERO asegurar que el objeto existe
+      const googleReady = await ensureGoogleWalletObject(cardId, card);
+      
+      if (googleReady) {
+        const { getWalletAccessToken } = await import("./lib/google.js");
+        const token = await getWalletAccessToken();
+        const issuerId = process.env.GOOGLE_ISSUER_ID;
+        const objectId = `${issuerId}.${cardId}`;
+
+        const resp = await fetch(
+          `https://walletobjects.googleapis.com/walletobjects/v1/loyaltyObject/${encodeURIComponent(objectId)}/addMessage`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              message: {
+                header: title,
+                body: message,
+                kind: "walletobjects#message",
+              },
+            }),
+          }
+        );
+
+        const data = await resp.json().catch(() => ({}));
+        
+        if (resp.ok) {
+          results.google.sent = true;
+          console.log(`[PUSH ONE] ✅ Google Wallet notificado`);
+        } else {
+          results.google.error = `Google API ${resp.status}: ${data.error?.message || 'error'}`;
+          console.log(`[PUSH ONE] ⚠️ Google: ${results.google.error}`);
+        }
+      } else {
+        results.google.error = "No se pudo crear/actualizar objeto Google Wallet";
       }
-    );
-
-    const data = await resp.json().catch(() => ({}));
-    
-    if (resp.ok) {
-      results.google.sent = true;
-      console.log(`[PUSH ONE] ✅ Google Wallet notificado`);
-    } else {
-      results.google.error = `Google API ${resp.status}: ${data.error?.message || 'error'}`;
-      console.log(`[PUSH ONE] ⚠️ Google: ${results.google.error}`);
+    } catch (googleError) {
+      console.error(`[PUSH ONE] ❌ Google Wallet:`, googleError.message);
+      results.google.error = googleError.message;
     }
-  } else {
-    results.google.error = "No se pudo crear/actualizar objeto Google Wallet";
-  }
-} catch (googleError) {
-  console.error(`[PUSH ONE] ❌ Google Wallet:`, googleError.message);
-  results.google.error = googleError.message;
-}
 
     // 2. Apple Wallet (alerta visible) - ✅ MEJORADO CON DEBUG COMPLETO
     try {
-      // ⭐ DEBUG: Estado ANTES de guardar
       console.log(`[PUSH ONE] 🔍 Estado ANTES de guardar mensaje:`, {
         cardId,
         currentMessage: card.latestMessage || 'NULL',
         messageToSave: message
       });
 
-      // 1. PRIMERO: Guardamos el mensaje en Firestore con más campos de debug
+      // 1. PRIMERO: Guardamos el mensaje en Firestore
       const updateData = {
-         _last_push_title: title,     // Solo para debug, no se muestra en pase
-         _last_push_body: message  ,   // Solo para debug, no se muestra en pase
-    
+        latestMessage: message,
         messageUpdatedAt: new Date().toISOString(),
-        // ⭐ Agregar campo de debug para verificar la escritura
         _debug_push_sent: new Date().toISOString()
       };
 
       console.log(`[PUSH ONE] 💾 Intentando guardar en Firestore:`, updateData);
 
-      const writeResult = await firestore.collection(COL_CARDS).doc(cardId).set(updateData, { merge: true });
+      await firestore.collection(COL_CARDS).doc(cardId).set(updateData, { merge: true });
       
       console.log(`[PUSH ONE] ✅ Mensaje guardado en Firestore: "${message}"`);
-      console.log(`[PUSH ONE] 📝 Write result:`, writeResult);
 
       // ⭐ DEBUG: Verificar inmediatamente después de guardar
       await new Promise(resolve => setTimeout(resolve, 500)); // Pequeña pausa
@@ -1364,6 +1433,7 @@ try {
     res.status(500).json({ error: e.message });
   }
 });
+
 /* =========================================================
    DEBUG: ESTADO DE TARJETA
    ========================================================= */
@@ -1372,7 +1442,6 @@ app.get('/api/debug/card-state/:cardId', async (req, res) => {
     const cardId = req.params.cardId;
     
     console.log(`[DEBUG CARD] 🔍 Solicitando estado de: ${cardId}`);
-    console.log(`[DEBUG CARD] 📁 Colección: ${COL_CARDS}`);
     
     const card = await fsGetCard(cardId);
     
@@ -1386,21 +1455,25 @@ app.get('/api/debug/card-state/:cardId', async (req, res) => {
     }
     
     // Verificar dispositivos Apple registrados
-    const devicesSnap = await firestore
+    const appleDevicesSnap = await firestore
       .collection(COL_DEVICES)
       .where("serial_number", "==", cardId)
       .get();
     
-    const devices = devicesSnap.docs.map(doc => ({
+    const appleDevices = appleDevicesSnap.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
     }));
+
+    // ⭐ NUEVO: Verificar dispositivos Google registrados
+    const googleDevices = await fsGetGoogleDevicesByCard(cardId);
     
     console.log(`[DEBUG CARD] ✅ Tarjeta encontrada:`, {
       id: card.id,
       name: card.name,
       hasMessage: !!card.latestMessage,
-      deviceCount: devices.length
+      appleDeviceCount: appleDevices.length,
+      googleDeviceCount: googleDevices.length
     });
     
     res.json({
@@ -1417,11 +1490,19 @@ app.get('/api/debug/card-state/:cardId', async (req, res) => {
         _debug_push_sent: card._debug_push_sent || 'NO REGISTRADO'
       },
       appleDevices: {
-        count: devices.length,
-        devices: devices.map(d => ({
+        count: appleDevices.length,
+        devices: appleDevices.map(d => ({
           deviceId: d.device_id,
           hasToken: !!d.push_token,
           registeredAt: d.registered_at
+        }))
+      },
+      googleDevices: {
+        count: googleDevices.length,
+        devices: googleDevices.map(d => ({
+          deviceId: d.device_id,
+          registeredAt: d.registered_at,
+          lastActive: d.last_active
         }))
       }
     });
@@ -1430,6 +1511,7 @@ app.get('/api/debug/card-state/:cardId', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
 /* =========================================================
    EXPORT CSV
    ========================================================= */
@@ -1600,6 +1682,15 @@ app.post("/api/admin/stamp", adminAuth, async (req, res) => {
     await fsUpdateCardStamps(cardId, newStamps);
     await fsAddEvent(cardId, "STAMP", { by: "admin" });
 
+    // ⭐ CORRECCIÓN: Agregar actualización de Google Wallet
+    try {
+      const { updateLoyaltyObject } = await import("./lib/google.js");
+      await updateLoyaltyObject(cardId, card.name, newStamps, card.max);
+      console.log(`[GOOGLE WALLET] ✅ Stamp admin actualizado para: ${cardId}`);
+    } catch (googleError) {
+      console.error(`[GOOGLE WALLET] ❌ Error actualizando stamp admin:`, googleError.message);
+    }
+
     try {
       await appleWebService.updatePassAndNotify(cardId, card.stamps, newStamps);
     } catch (err) {
@@ -1626,9 +1717,17 @@ app.post("/api/admin/redeem", adminAuth, async (req, res) => {
     await fsUpdateCardStamps(cardId, 0);
     await fsAddEvent(cardId, "REDEEM", { by: "admin" });
 
+    // ⭐ CORRECCIÓN: Agregar actualización de Google Wallet
+    try {
+      const { updateLoyaltyObject } = await import("./lib/google.js");
+      await updateLoyaltyObject(cardId, card.name, 0, card.max);
+      console.log(`[GOOGLE WALLET] ✅ Redeem admin actualizado para: ${cardId}`);
+    } catch (googleError) {
+      console.error(`[GOOGLE WALLET] ❌ Error actualizando redeem admin:`, googleError.message);
+    }
+
     try {
       await appleWebService.notifyCardUpdate(cardId);
-
     } catch (err) {
       console.error("[APPLE] Error notificando:", err);
     }
@@ -1648,6 +1747,7 @@ app.get("/api/admin/metrics", adminAuth, async (_req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
+
 /* =========================================================
    PRUEBA DIRECTA: NOTIFICACIÓN APPLE
    ========================================================= */
@@ -1738,6 +1838,7 @@ app.post('/api/debug/test-google-push', adminAuth, async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
 /* =========================================================
    RECUPERACIÓN DE CONTRASEÑA
    ========================================================= */
@@ -1812,6 +1913,7 @@ app.post("/api/admin/reset", async (req, res) => {
     res.status(500).json({ error: "reset_error" });
   }
 });
+
 /* =========================================================
    DEBUG: ESTADO GOOGLE WALLET
    ========================================================= */
@@ -1875,8 +1977,8 @@ app.get('/api/debug/google-wallet-state/:cardId', async (req, res) => {
         count: googleDevices.length,
         devices: googleDevices.map(d => ({
           deviceId: d.device_id,
-          hasToken: !!d.push_token,
-          registeredAt: d.registered_at
+          registeredAt: d.registered_at,
+          lastActive: d.last_active
         }))
       }
     });
@@ -1905,7 +2007,7 @@ app.post('/api/debug/fix-google-wallet/:cardId', async (req, res) => {
     
     // Intentar actualizar primero (si existe)
     try {
-      await updateLoyaltyObject(cardId, card.stamps);
+      await updateLoyaltyObject(cardId, card.name, card.stamps, card.max);
       console.log(`[DEBUG GOOGLE] ✅ Objeto actualizado: ${cardId}`);
       return res.json({ success: true, action: "updated", stamps: card.stamps });
     } catch (updateError) {
@@ -1929,13 +2031,14 @@ app.post('/api/debug/fix-google-wallet/:cardId', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
 /* =========================================================
    ENDPOINT PARA OBTENER TOKEN DE ADMIN (para pruebas)
    ========================================================= */
 app.get('/api/debug/admin-token', adminAuth, (req, res) => {
   // Este endpoint solo funciona si ya estás autenticado como admin
   res.json({
-    token: req.admin.token, // Si tu middleware guarda el token decodificado
+    token: req.admin.token,
     admin: {
       uid: req.admin.uid,
       email: req.admin.email
@@ -1943,6 +2046,7 @@ app.get('/api/debug/admin-token', adminAuth, (req, res) => {
     instructions: "Usa este token en el header Authorization: Bearer <token>"
   });
 });
+
 /* =========================================================
    DEBUG
    ========================================================= */
@@ -1950,6 +2054,7 @@ app.get("/api/debug/database-status", adminAuth, async (req, res) => {
   try {
     let firestoreCards = 0;
     let firestoreAdmins = 0;
+    let firestoreGoogleDevices = 0;
 
     const cardsSnap = await firestore.collection(COL_CARDS).get();
     firestoreCards = cardsSnap.size;
@@ -1957,10 +2062,15 @@ app.get("/api/debug/database-status", adminAuth, async (req, res) => {
     const adminsSnap = await firestore.collection(COL_ADMINS).get();
     firestoreAdmins = adminsSnap.size;
 
+    // ⭐ NUEVO: Contar dispositivos Google
+    const googleDevicesSnap = await firestore.collection(COL_GOOGLE_DEVICES).get();
+    firestoreGoogleDevices = googleDevicesSnap.size;
+
     res.json({
       firestore: {
         cards: firestoreCards,
         admins: firestoreAdmins,
+        googleDevices: firestoreGoogleDevices // ⭐ NUEVO
       },
     });
   } catch (e) {
@@ -1980,17 +2090,20 @@ app.listen(PORT, () => {
   console.log(`   • Apple APNs Status: http://localhost:${PORT}/api/debug/apple-apns`);
   console.log(`   • DB Status (Firestore): http://localhost:${PORT}/api/debug/database-status`);
   console.log(`   • Apple Routes Test: http://localhost:${PORT}/api/debug/apple-routes-test`);
+  console.log(`   • Google Devices: http://localhost:${PORT}/api/debug/google-devices/CARD_ID`);
+  console.log(`   • Device Stats: http://localhost:${PORT}/api/admin/device-stats`);
 
   (async () => {
     try {
       const cardsSnap = await firestore.collection(COL_CARDS).get();
       const adminsSnap = await firestore.collection(COL_ADMINS).get();
+      const googleDevicesSnap = await firestore.collection(COL_GOOGLE_DEVICES).get();
       console.log(`\n📊 Estado actual Firestore:`);
       console.log(`   • Tarjetas: ${cardsSnap.size}`);
       console.log(`   • Admins: ${adminsSnap.size}`);
+      console.log(`   • Dispositivos Google: ${googleDevicesSnap.size}`); // ⭐ NUEVO
     } catch (e) {
       console.error("Error leyendo estado inicial Firestore:", e);
-
     }
   })();
 });
