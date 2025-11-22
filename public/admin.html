@@ -2523,33 +2523,38 @@
       }
     });
     /* =========================================================
-       LÓGICA DEL BOTÓN "ENVIAR A TODOS"
+       LÓGICA BLINDADA DEL BOTÓN "ENVIAR A TODOS"
        ========================================================= */
-    const btnMass = document.getElementById('btn-mass-push');
+    const setupMassPush = () => {
+        const btnMass = document.getElementById('btn-mass-push');
+        if (!btnMass) return console.warn("Botón mass-push no encontrado");
 
-    if (btnMass) {
-        btnMass.onclick = async () => {
-            // 1. Obtener lo que escribiste
-            const title = document.getElementById('global-push-title').value.trim();
-            const message = document.getElementById('global-push-message').value.trim();
+        // Limpiamos eventos previos para evitar doble clic
+        const newBtn = btnMass.cloneNode(true);
+        btnMass.parentNode.replaceChild(newBtn, btnMass);
 
-            // 2. Validar que no esté vacío
-            if (!title || !message) {
-                return alert('⚠️ Por favor escribe un título y un mensaje.');
-            }
+        newBtn.addEventListener('click', async () => {
+            // 1. Obtener inputs (Soporta ambos nombres de ID por si acaso)
+            const titleInput = document.getElementById('global-push-title') || document.getElementById('push-title');
+            const msgInput = document.getElementById('global-push-message') || document.getElementById('push-message');
 
-            // 3. Confirmación de seguridad
-            if (!confirm(`🚨 ¿ESTÁS SEGURO?\n\nSe enviará a TODOS los clientes:\n"${title}"`)) {
-                return;
-            }
+            if (!titleInput || !msgInput) return alert("Error HTML: No encuentro los campos de texto.");
 
-            // 4. Bloquear botón para que no le den doble clic
-            const originalText = btnMass.textContent;
-            btnMass.textContent = "🚀 Enviando... (Espera)";
-            btnMass.disabled = true;
+            const title = titleInput.value.trim();
+            const message = msgInput.value.trim();
+
+            // 2. Validar
+            if (!title || !message) return alert('⚠️ Por favor escribe título y mensaje.');
+            
+            if (!confirm(`🚨 ¿CONFIRMAR ENVÍO MASIVO?\n\n"${title}"\n\nSe enviará a TODOS los clientes.`)) return;
+
+            // 3. UI Loading
+            const originalText = newBtn.textContent;
+            newBtn.textContent = "🚀 Enviando... (Espera)";
+            newBtn.disabled = true;
 
             try {
-                // 5. Llamar al servidor
+                // 4. Fetch al servidor
                 const r = await fetch('/api/admin/push-all', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -2558,29 +2563,27 @@
 
                 const data = await r.json();
 
-                // 6. Mostrar resultado
                 if (data.success) {
                     const apple = data.results?.apple || 0;
                     const google = data.results?.google || 0;
-                    alert(`✅ ¡ENVIADO CON ÉXITO!\n\n📱 Apple: ${apple}\n🤖 Google: ${google}`);
-                    
-                    // Limpiar los campos
-                    document.getElementById('global-push-title').value = "";
-                    document.getElementById('global-push-message').value = "";
+                    alert(`✅ ¡ENVIADO!\n\n📱 Apple: ${apple}\n🤖 Google: ${google}`);
+                    titleInput.value = "";
+                    msgInput.value = "";
                 } else {
-                    alert('⚠️ El servidor reportó un error: ' + (data.error || "Desconocido"));
+                    alert('⚠️ Error del servidor: ' + (data.error || "Desconocido"));
                 }
-
-            } catch (error) {
-                console.error(error);
-                alert('❌ Error de conexión. Revisa si el servidor está corriendo.');
+            } catch (e) {
+                console.error(e);
+                alert('❌ Error de conexión. Verifica tu servidor.');
             } finally {
-                // 7. Restaurar el botón pase lo que pase
-                btnMass.textContent = originalText;
-                btnMass.disabled = false;
+                newBtn.textContent = originalText;
+                newBtn.disabled = false;
             }
-        };
-    }
+        });
+    };
+
+    // Ejecutamos la configuración del botón
+    setupMassPush();
 
     // Inicializar la página
     document.addEventListener('DOMContentLoaded', function() {
