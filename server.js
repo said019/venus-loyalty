@@ -66,6 +66,9 @@ const COL_UPDATES  = "apple_updates";
 // ⭐ NUEVO: Constante para dispositivos Google
 const COL_GOOGLE_DEVICES = "google_devices";
 
+// ⭐ NUEVO: Constante para gift cards
+const COL_GIFT_HISTORY = "gift_card_redeems";
+
 // ---------- HELPERS ADMIN ----------
 
 async function fsCountAdmins() {
@@ -655,7 +658,7 @@ app.get('/api/debug/apple-auth-config', (req, res) => {
    ========================================================= */
 app.post("/api/issue", async (req, res) => {
   try {
-    let { name = "Cliente", max = 8, phone = "" } = req.body;
+    let { name = "Cliente", max = 8, phone = "", birthdate = null } = req.body;
     max = parseInt(max, 10);
     if (!Number.isInteger(max) || max <= 0) {
       return res.status(400).json({ error: "max debe ser entero > 0" });
@@ -912,6 +915,76 @@ app.get("/api/apple/pass", async (req, res) => {
     console.error("[APPLE PASS ERROR]", e);
     res.status(500).send(e.message || "pkpass_error");
   }
+});
+
+/* =========================================================
+   NUEVAS RUTAS: CUMPLEAÑOS Y GIFT CARDS
+   ========================================================= */
+
+// A. Obtener Cumpleaños (±15 días)
+app.get('/api/admin/birthdays', adminAuth, async (req, res) => {
+  try {
+    const snapshot = await firestore.collection(COL_CARDS).where('status', '==', 'active').get();
+    // Filtramos en memoria los que tienen fecha
+    const cards = snapshot.docs.map(d => ({id:d.id, ...d.data()})).filter(c => c.birthdate);
+    
+    const today = new Date(); today.setHours(0,0,0,0);
+    const past = [], upcoming = [];
+
+    cards.forEach(c => {
+      try {
+        const [y, m, d] = c.birthdate.split('-');
+        // Cumpleaños este año
+        const bday = new Date(today.getFullYear(), parseInt(m)-1, parseInt(d));
+        
+        // Calcular diferencia en días
+        const diffTime = bday - today;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        // Lógica ±15 días
+        if (diffDays >= -15 && diffDays < 0) {
+          past.push({ ...c, daysAgo: Math.abs(diffDays) });
+        } else if (diffDays >= 0 && diffDays <= 15) {
+          upcoming.push({ ...c, daysLeft: diffDays });
+        }
+      } catch(e){}
+    });
+
+    res.json({ success: true, past, upcoming });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// B. Historial de Gift Cards
+app.get('/api/admin/gift-history', adminAuth, async (req, res) => {
+  try {
+    const snap = await firestore.collection(COL_GIFT_HISTORY).orderBy('redeemed_at', 'desc').limit(20).get();
+    const history = snap.docs.map(d => d.data());
+    res.json({ success: true, history });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// C. Canjear Gift Card
+app.post('/api/admin/redeem-gift', adminAuth, async (req, res) => {
+  try {
+    const { code, service, clientName, expiryDate } = req.body;
+    
+    // Verificar duplicado
+    const exist = await firestore.collection(COL_GIFT_HISTORY).where('code', '==', code).get();
+    if (!exist.empty) return res.status(400).json({ error: "Esta Gift Card ya fue canjeada anteriormente." });
+
+    // Verificar expiración (si viene fecha)
+    if (expiryDate && new Date(expiryDate) < new Date()) {
+        return res.status(400).json({ error: "Gift Card expirada." });
+    }
+
+    const redeemData = {
+      code, service, client_name: clientName, expiry_date: expiryDate,
+      redeemed_at: new Date().toISOString()
+    };
+
+    await firestore.collection(COL_GIFT_HISTORY).add(redeemData);
+    res.json({ success: true, data: redeemData });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 /* =========================================================
@@ -2286,16 +2359,20 @@ app.listen(PORT, () => {
   console.log(`   • Apple Routes Test: http://localhost:${PORT}/api/debug/apple-routes-test`);
   console.log(`   • Google Devices: http://localhost:${PORT}/api/debug/google-devices/CARD_ID`);
   console.log(`   • Device Stats: http://localhost:${PORT}/api/admin/device-stats`);
+  console.log(`   • Cumpleaños: http://localhost:${PORT}/api/admin/birthdays`);
+  console.log(`   • Gift Cards: http://localhost:${PORT}/api/admin/gift-history`);
 
   (async () => {
     try {
       const cardsSnap = await firestore.collection(COL_CARDS).get();
       const adminsSnap = await firestore.collection(COL_ADMINS).get();
       const googleDevicesSnap = await firestore.collection(COL_GOOGLE_DEVICES).get();
+      const giftHistorySnap = await firestore.collection(COL_GIFT_HISTORY).get();
       console.log(`\n📊 Estado actual Firestore:`);
       console.log(`   • Tarjetas: ${cardsSnap.size}`);
       console.log(`   • Admins: ${adminsSnap.size}`);
-      console.log(`   • Dispositivos Google: ${googleDevicesSnap.size}`); // ⭐ NUEVO
+      console.log(`   • Dispositivos Google: ${googleDevicesSnap.size}`);
+      console.log(`   • Gift Cards Canjeadas: ${giftHistorySnap.size}`);
     } catch (e) {
       console.error("Error leyendo estado inicial Firestore:", e);
     }
