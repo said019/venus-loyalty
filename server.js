@@ -1399,32 +1399,24 @@ app.post("/api/admin/push-one", adminAuth, async (req, res) => {
     res.json({ success: true, results });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
-
-/* =========================================================
-   ENDPOINT: NOTIFICACIÓN MASIVA (VERSIÓN SEGURA Y LENTA)
-   ========================================================= */
+// 2. PUSH MASIVO (Versión Ultra-Segura: Pausa de 3s + Logs Claros)
 app.post("/api/admin/push-all", adminAuth, async (req, res) => {
   try {
     const { title, message } = req.body;
     if (!title || !message) return res.status(400).json({ error: "Faltan datos" });
 
-    console.log(`[PUSH ALL] 🚀 Iniciando envío masivo: "${message}"`);
+    console.log(`[PUSH ALL] 🚀 Masivo iniciado: "${message}"`);
 
-    // 1. OBTENER TODAS LAS TARJETAS
+    // 1. OBTENER TARJETAS
     const cardsSnap = await firestore.collection(COL_CARDS).get();
-    
-    if (cardsSnap.empty) {
-      return res.json({ success: true, msg: "No hay tarjetas." });
-    }
+    if (cardsSnap.empty) return res.json({ success: true, msg: "Sin tarjetas." });
 
-    console.log(`[PUSH ALL] 📦 Actualizando ${cardsSnap.size} tarjetas...`);
-
-    // 2. ACTUALIZACIÓN MASIVA (Set Merge es más seguro que Update)
+    // 2. ACTUALIZAR BASE DE DATOS (Vital)
     const batch = firestore.batch();
     let count = 0;
     
     cardsSnap.docs.forEach((doc) => {
-      // Usamos set con merge:true para asegurar que se escriba incluso si faltan campos
+      // Usamos set con merge para asegurar escritura
       batch.set(doc.ref, { 
         latestMessage: message, 
         updatedAt: new Date().toISOString() 
@@ -1434,41 +1426,41 @@ app.post("/api/admin/push-all", adminAuth, async (req, res) => {
     
     if (count > 0) await batch.commit();
     
-    console.log(`[PUSH ALL] ✅ DB Actualizada. ESPERANDO 3 SEGUNDOS...`);
+    console.log(`[PUSH ALL] ✅ DB Actualizada (${count} docs). ESPERANDO 3s...`);
     
     // ⭐ PAUSA LARGA DE SEGURIDAD (3 SEGUNDOS)
-    // Esto es crucial para tu problema de sincronización
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    // Esto es lo que te faltaba para que el masivo sea tan confiable como el individual
+    await new Promise(r => setTimeout(r, 3000));
 
     const results = { apple: 0, google: 0 };
 
-    // 3. NOTIFICAR APPLE (Secuencial)
+    // 3. APPLE (Envío Secuencial)
     const appleDevs = await firestore.collection(COL_DEVICES).get();
+    // Convertimos a array simple para iterar
+    const devices = appleDevs.docs.map(d => d.data());
     
-    if (!appleDevs.empty) {
-        console.log(`[PUSH ALL] 🍏 Notificando a ${appleDevs.size} iPhones...`);
-        const devices = appleDevs.docs.map(d => d.data());
-        
+    if (devices.length > 0) {
+        console.log(`[PUSH ALL] 🍏 Enviando a ${devices.length} iPhones...`);
         for (const d of devices) {
             if (d.push_token && d.serial_number) {
                 try {
-                    // Enviamos alerta visible
                     await appleWebService.sendAPNsAlertNotification(d.push_token, title, message);
                     results.apple++;
-                    console.log(`[PUSH ALL] 📤 Enviado a ${d.serial_number}`);
+                    // Log de éxito reducido
+                    // console.log(`[PUSH ALL] -> Enviado a ${d.serial_number}`);
                 } catch (e) {
-                    console.error(`[PUSH ALL] Error Apple ${d.serial_number}: ${e.message}`);
+                    console.error(`[PUSH ALL] X Error ${d.serial_number}: ${e.message}`);
                 }
-                // Pausa entre envíos
-                await new Promise(r => setTimeout(r, 200));
+                // Pausa de 100ms entre mensajes para no saturar Apple
+                await new Promise(r => setTimeout(r, 100));
             }
         }
     }
 
-    // 4. NOTIFICAR GOOGLE
+    // 4. GOOGLE
     const googleDevs = await firestore.collection(COL_GOOGLE_DEVICES).get();
     if (!googleDevs.empty) {
-        const googlePromises = googleDevs.docs.map(async (doc) => {
+        const promisesG = googleDevs.docs.map(async (doc) => {
             const d = doc.data();
             if (d.card_id) {
                 try {
@@ -1477,14 +1469,14 @@ app.post("/api/admin/push-all", adminAuth, async (req, res) => {
                 } catch(e) {}
             }
         });
-        await Promise.all(googlePromises);
+        await Promise.all(promisesG);
     }
 
-    console.log(`[PUSH ALL] 🏁 Finalizado.`);
+    console.log(`[PUSH ALL] 🏁 Fin. Enviados: Apple ${results.apple}, Google ${results.google}`);
     res.json({ success: true, results });
 
   } catch (e) {
-    console.error("[PUSH ALL] ❌ Error Fatal:", e);
+    console.error("[PUSH ALL] Error Fatal:", e);
     res.status(500).json({ error: e.message });
   }
 });
