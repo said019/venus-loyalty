@@ -1399,68 +1399,74 @@ app.post("/api/admin/push-one", adminAuth, async (req, res) => {
     res.json({ success: true, results });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
-// 2. PUSH MASIVO (Versión Ultra-Segura: Pausa de 3s + Logs Claros)
+/* =========================================================
+   ENDPOINT: NOTIFICACIÓN MASIVA (MODO SEGURO SECUENCIAL)
+   ========================================================= */
 app.post("/api/admin/push-all", adminAuth, async (req, res) => {
   try {
     const { title, message } = req.body;
     if (!title || !message) return res.status(400).json({ error: "Faltan datos" });
 
-    console.log(`[PUSH ALL] 🚀 Masivo iniciado: "${message}"`);
+    console.log(`[PUSH ALL] 🚀 Iniciando masivo modo seguro: "${message}"`);
 
     // 1. OBTENER TARJETAS
     const cardsSnap = await firestore.collection(COL_CARDS).get();
     if (cardsSnap.empty) return res.json({ success: true, msg: "Sin tarjetas." });
 
-    // 2. ACTUALIZAR BASE DE DATOS (Vital)
-    const batch = firestore.batch();
-    let count = 0;
+    // 2. ACTUALIZAR DB (UNO POR UNO - MÁS SEGURO QUE BATCH)
+    // Esto garantiza que cuando pasemos a la siguiente línea, la DB YA se escribió.
+    console.log(`[PUSH ALL] 📝 Escribiendo mensajes en ${cardsSnap.size} tarjetas...`);
     
-    cardsSnap.docs.forEach((doc) => {
-      // Usamos set con merge para asegurar escritura
-      batch.set(doc.ref, { 
+    const updatePromises = cardsSnap.docs.map(doc => {
+      return doc.ref.set({ 
         latestMessage: message, 
-        updatedAt: new Date().toISOString() 
+        updatedAt: new Date().toISOString(),
+        _debug_push_ts: Date.now()
       }, { merge: true });
-      count++;
     });
     
-    if (count > 0) await batch.commit();
+    // Esperamos a que TODAS las escrituras terminen
+    await Promise.all(updatePromises);
     
-    console.log(`[PUSH ALL] ✅ DB Actualizada (${count} docs). ESPERANDO 3s...`);
-    
-    // ⭐ PAUSA LARGA DE SEGURIDAD (3 SEGUNDOS)
-    // Esto es lo que te faltaba para que el masivo sea tan confiable como el individual
-    await new Promise(r => setTimeout(r, 3000));
+    console.log(`[PUSH ALL] ✅ DB Actualizada. Verificando...`);
+
+    // VERIFICACIÓN DE SEGURIDAD: Leemos una tarjeta al azar para ver si se guardó
+    const checkDoc = await cardsSnap.docs[0].ref.get();
+    console.log(`[PUSH ALL] 🔍 Verificación: ${checkDoc.id} tiene mensaje: "${checkDoc.data().latestMessage}"`);
+
+    // Pausa extra para que Google replique los datos (Vital)
+    await new Promise(r => setTimeout(r, 2000));
 
     const results = { apple: 0, google: 0 };
 
-    // 3. APPLE (Envío Secuencial)
+    // 3. NOTIFICAR APPLE (Secuencial)
     const appleDevs = await firestore.collection(COL_DEVICES).get();
-    // Convertimos a array simple para iterar
-    const devices = appleDevs.docs.map(d => d.data());
     
-    if (devices.length > 0) {
-        console.log(`[PUSH ALL] 🍏 Enviando a ${devices.length} iPhones...`);
+    if (!appleDevs.empty) {
+        console.log(`[PUSH ALL] 🍏 Notificando a ${appleDevs.size} dispositivos Apple...`);
+        const devices = appleDevs.docs.map(d => d.data());
+        
         for (const d of devices) {
             if (d.push_token && d.serial_number) {
                 try {
+                    // Enviamos alerta visible con el payload correcto
                     await appleWebService.sendAPNsAlertNotification(d.push_token, title, message);
                     results.apple++;
-                    // Log de éxito reducido
-                    // console.log(`[PUSH ALL] -> Enviado a ${d.serial_number}`);
+                    process.stdout.write("."); // Feedback visual
                 } catch (e) {
-                    console.error(`[PUSH ALL] X Error ${d.serial_number}: ${e.message}`);
+                    console.error(`\n[PUSH ALL] X Error Apple: ${e.message}`);
                 }
-                // Pausa de 100ms entre mensajes para no saturar Apple
+                // Pequeña pausa para no saturar
                 await new Promise(r => setTimeout(r, 100));
             }
         }
+        console.log(""); // Salto de línea
     }
 
-    // 4. GOOGLE
+    // 4. NOTIFICAR GOOGLE
     const googleDevs = await firestore.collection(COL_GOOGLE_DEVICES).get();
     if (!googleDevs.empty) {
-        const promisesG = googleDevs.docs.map(async (doc) => {
+        const googlePromises = googleDevs.docs.map(async (doc) => {
             const d = doc.data();
             if (d.card_id) {
                 try {
@@ -1469,10 +1475,10 @@ app.post("/api/admin/push-all", adminAuth, async (req, res) => {
                 } catch(e) {}
             }
         });
-        await Promise.all(promisesG);
+        await Promise.all(googlePromises);
     }
 
-    console.log(`[PUSH ALL] 🏁 Fin. Enviados: Apple ${results.apple}, Google ${results.google}`);
+    console.log(`[PUSH ALL] 🏁 Finalizado. Apple: ${results.apple}, Google: ${results.google}`);
     res.json({ success: true, results });
 
   } catch (e) {
