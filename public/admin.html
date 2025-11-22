@@ -962,7 +962,7 @@
           </div>
           
           <div class="row" style="margin-top:14px;gap:10px;">
-            <button type="submit" class="btn primary">Enviar a todos</button>
+            <button type="button" id="btn-mass-push" class="btn primary">Enviar a todos</button>
             <button type="button" id="test-push" class="btn ghost">Enviar prueba</button>
           </div>
         </form>
@@ -2522,6 +2522,65 @@
         window.location.href = '/admin-login.html';
       }
     });
+    /* =========================================================
+       LÓGICA DEL BOTÓN "ENVIAR A TODOS"
+       ========================================================= */
+    const btnMass = document.getElementById('btn-mass-push');
+
+    if (btnMass) {
+        btnMass.onclick = async () => {
+            // 1. Obtener lo que escribiste
+            const title = document.getElementById('global-push-title').value.trim();
+            const message = document.getElementById('global-push-message').value.trim();
+
+            // 2. Validar que no esté vacío
+            if (!title || !message) {
+                return alert('⚠️ Por favor escribe un título y un mensaje.');
+            }
+
+            // 3. Confirmación de seguridad
+            if (!confirm(`🚨 ¿ESTÁS SEGURO?\n\nSe enviará a TODOS los clientes:\n"${title}"`)) {
+                return;
+            }
+
+            // 4. Bloquear botón para que no le den doble clic
+            const originalText = btnMass.textContent;
+            btnMass.textContent = "🚀 Enviando... (Espera)";
+            btnMass.disabled = true;
+
+            try {
+                // 5. Llamar al servidor
+                const r = await fetch('/api/admin/push-all', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title, message })
+                });
+
+                const data = await r.json();
+
+                // 6. Mostrar resultado
+                if (data.success) {
+                    const apple = data.results?.apple || 0;
+                    const google = data.results?.google || 0;
+                    alert(`✅ ¡ENVIADO CON ÉXITO!\n\n📱 Apple: ${apple}\n🤖 Google: ${google}`);
+                    
+                    // Limpiar los campos
+                    document.getElementById('global-push-title').value = "";
+                    document.getElementById('global-push-message').value = "";
+                } else {
+                    alert('⚠️ El servidor reportó un error: ' + (data.error || "Desconocido"));
+                }
+
+            } catch (error) {
+                console.error(error);
+                alert('❌ Error de conexión. Revisa si el servidor está corriendo.');
+            } finally {
+                // 7. Restaurar el botón pase lo que pase
+                btnMass.textContent = originalText;
+                btnMass.disabled = false;
+            }
+        };
+    }
 
     // Inicializar la página
     document.addEventListener('DOMContentLoaded', function() {
