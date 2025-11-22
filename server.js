@@ -1352,344 +1352,112 @@ async function ensureGoogleWalletObject(cardId, cardData) {
   }
 }
 
+
+
+
+
 /* =========================================================
-   NOTIFICAR A UNA SOLA TARJETA (Google + Apple) - MEJORADO CON DEBUG
+   RUTAS DE NOTIFICACIONES PUSH (TU VERSIÓN CORREGIDA)
    ========================================================= */
+
+// 1. PUSH INDIVIDUAL (Con Pausa de Seguridad de 1.5s)
 app.post("/api/admin/push-one", adminAuth, async (req, res) => {
   try {
-    const { cardId, title, message, type } = req.body || {};
-    if (!cardId || !title || !message) {
-      return res.status(400).json({ error: "missing_fields" });
+    const { cardId, title, message } = req.body;
+    if (!cardId || !message) return res.status(400).json({ error: "Faltan datos" });
+
+    console.log(`[PUSH ONE] 🎯 Enviando a ${cardId}`);
+
+    // Guardar en DB
+    await firestore.collection(COL_CARDS).doc(cardId).set({
+      latestMessage: message,
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
+    
+    console.log(`[PUSH ONE] 💾 Guardado. Esperando propagación...`);
+
+    // ⭐ PAUSA CRÍTICA para que Firestore replique antes de que el iPhone lea
+    await new Promise(resolve => setTimeout(resolve, 1500));
+
+    const results = { google: 0, apple: 0 };
+
+    // Apple
+    const appleDevs = await firestore.collection(COL_DEVICES).where("serial_number", "==", cardId).get();
+    for (const doc of appleDevs.docs) {
+      try {
+        await appleWebService.sendAPNsAlertNotification(doc.data().push_token, title, message);
+        results.apple++;
+      } catch (e) { console.error("Error Apple One:", e.message); }
     }
 
-    console.log(`[PUSH ONE] 🎯 Iniciando notificación para tarjeta: ${cardId}`);
-
-    const card = await fsGetCard(cardId);
-    if (!card) {
-      console.log(`[PUSH ONE] ❌ Tarjeta no encontrada: ${cardId}`);
-      return res.status(404).json({ error: "card not found" });
-    }
-
-    console.log(`[PUSH ONE] ✅ Tarjeta encontrada:`, {
-      name: card.name,
-      stamps: card.stamps,
-      max: card.max,
-      currentMessage: card.latestMessage || 'NO HAY MENSAJE PREVIO'
-    });
-
-    const results = {
-      cardId,
-      cardName: card.name,
-      google: { sent: false, error: null },
-      apple: { sent: 0, error: null }
-    };
-
-       // 1. Google Wallet (CON MÁS DEBUG)
-   try {
-     console.log(`[PUSH ONE] 🔧 Intentando asegurar objeto Google Wallet para ${cardId}...`);
-     
-     const googleReady = await ensureGoogleWalletObject(cardId, card);
-     console.log(`[PUSH ONE] 🔍 ensureGoogleWalletObject resultado: ${googleReady}`);
-     
-     if (googleReady) {
-       console.log(`[PUSH ONE] ✅ Objeto Google Wallet listo. Obteniendo token...`);
-       
-       const { getWalletAccessToken } = await import("./lib/google.js");
-       const token = await getWalletAccessToken();
-       console.log(`[PUSH ONE] 🔑 Token obtenido (preview): ${token ? token.substring(0, 20) + '...' : 'NULL'}`);
-       
-       const issuerId = process.env.GOOGLE_ISSUER_ID;
-       const objectId = `${issuerId}.${cardId}`;
-       console.log(`[PUSH ONE] 🆔 objectId construido: ${objectId}`);
-       
-       const requestBody = {
-         message: {
-           header: title,
-           body: message,
-           kind: "walletobjects#message",
-         },
-       };
-       console.log(`[PUSH ONE] 📨 Body del request:`, JSON.stringify(requestBody, null, 2));
-       
-       const resp = await fetch(
-         `https://walletobjects.googleapis.com/walletobjects/v1/loyaltyObject/${encodeURIComponent(objectId)}/addMessage`,
-         {
-           method: "POST",
-           headers: {
-             Authorization: `Bearer ${token}`,
-             "Content-Type": "application/json",
-           },
-           body: JSON.stringify(requestBody),
-         }
-       );
-       
-       console.log(`[PUSH ONE] 🌐 Respuesta de Google API: Status ${resp.status}`);
-       const data = await resp.json().catch(() => ({}));
-       console.log(`[PUSH ONE] 📄 Datos de respuesta:`, data);
-       
-       if (resp.ok) {
-         results.google.sent = true;
-         console.log(`[PUSH ONE] ✅ Google Wallet notificado`);
-       } else {
-         results.google.error = `Google API ${resp.status}: ${data.error?.message || 'error desconocido'}`;
-         console.log(`[PUSH ONE] ❌ Google: ${results.google.error}`);
-       }
-     } else {
-       results.google.error = "No se pudo crear/actualizar objeto Google Wallet";
-       console.log(`[PUSH ONE] ❌ ensureGoogleWalletObject falló`);
-     }
-   } catch (googleError) {
-     console.error(`[PUSH ONE] ❌ Error en Google Wallet:`, googleError.message);
-     console.error(`[PUSH ONE] ❌ Stack trace:`, googleError.stack);
-     results.google.error = googleError.message;
-   }
-   
-
-    // 2. Apple Wallet (alerta visible) - ✅ MEJORADO CON DEBUG COMPLETO
+    // Google
     try {
-      console.log(`[PUSH ONE] 🔍 Estado ANTES de guardar mensaje:`, {
-        cardId,
-        currentMessage: card.latestMessage || 'NULL',
-        messageToSave: message
-      });
+      await sendGoogleMessage(cardId, title, message);
+      results.google++;
+    } catch (e) { console.error("Error Google One:", e.message); }
 
-      // 1. PRIMERO: Guardamos el mensaje en Firestore
-      const updateData = {
-        latestMessage: message,
-        messageUpdatedAt: new Date().toISOString(),
-        _debug_push_sent: new Date().toISOString()
-      };
-
-      console.log(`[PUSH ONE] 💾 Intentando guardar en Firestore:`, updateData);
-
-      await firestore.collection(COL_CARDS).doc(cardId).set(updateData, { merge: true });
-      
-      console.log(`[PUSH ONE] ✅ Mensaje guardado en Firestore: "${message}"`);
-
-      // ⭐ DEBUG: Verificar inmediatamente después de guardar
-      await new Promise(resolve => setTimeout(resolve, 500)); // Pequeña pausa
-      
-      const cardAfterSave = await fsGetCard(cardId);
-      console.log(`[PUSH ONE] 🔍 Estado DESPUÉS de guardar:`, {
-        exists: !!cardAfterSave,
-        recoveredMessage: cardAfterSave?.latestMessage || 'NO SE RECUPERÓ',
-        hasAllFields: !!(cardAfterSave?.latestMessage && cardAfterSave?.messageUpdatedAt)
-      });
-
-      // 2. Buscar dispositivos Apple registrados
-      const appleDevicesSnap = await firestore
-        .collection(COL_DEVICES)
-        .where("serial_number", "==", cardId)
-        .get();
-
-      console.log(`[PUSH ONE] 🔍 Búsqueda de dispositivos:`, {
-        collection: COL_DEVICES,
-        query: `serial_number == ${cardId}`,
-        found: appleDevicesSnap.size
-      });
-
-      if (appleDevicesSnap.empty) {
-        console.log(`[PUSH ONE] 📱 No hay dispositivos Apple registrados para ${cardId}`);
-        results.apple.error = "Sin dispositivos Apple registrados";
-      } else {
-        console.log(`[PUSH ONE] 🍏 Enviando alertas visibles a ${appleDevicesSnap.size} dispositivo(s) Apple`);
-        
-        let sentCount = 0;
-        let errorCount = 0;
-
-        // 3. Enviar ALERTA VISIBLE (notificación inmediata como WhatsApp)
-        for (const doc of appleDevicesSnap.docs) {
-          const deviceData = doc.data();
-          const pushToken = deviceData.push_token;
-
-          console.log(`[PUSH ONE] 🔍 Procesando dispositivo:`, {
-            deviceId: deviceData.device_id,
-            hasToken: !!pushToken,
-            tokenPreview: pushToken ? pushToken.substring(0, 20) + '...' : 'NO TOKEN'
-          });
-
-          if (pushToken) {
-            try {
-              // ✅ USAR sendAlertToCardDevices para notificaciones visibles inmediatas
-              console.log(`[PUSH ONE] 📤 Enviando alerta a APNs...`);
-              await appleWebService.sendAlertToCardDevices(cardId, title, message);
-              sentCount++;
-              console.log(`[PUSH ONE] ✅ Alerta visible enviada a dispositivo ${deviceData.device_id.substring(0, 10)}...`);
-            } catch (apnsError) {
-              errorCount++;
-              console.error(`[PUSH ONE] ❌ Error enviando a ${deviceData.device_id}:`, apnsError.message);
-              
-              // Eliminar token inválido
-              if (apnsError.message.includes('BadDeviceToken') || apnsError.message.includes('Unregistered')) {
-                console.log(`[PUSH ONE] 🗑️ Eliminando token inválido: ${deviceData.device_id}`);
-                await doc.ref.delete();
-              }
-            }
-            
-            // Pequeña pausa entre notificaciones
-            await new Promise(resolve => setTimeout(resolve, 100));
-          } else {
-            console.log(`[PUSH ONE] ⚠️ Dispositivo sin token: ${deviceData.device_id}`);
-          }
-        }
-
-        results.apple.sent = sentCount;
-        results.apple.errors = errorCount;
-        results.apple.total = appleDevicesSnap.size;
-        
-        console.log(`[PUSH ONE] 📊 Resultado Apple: ${sentCount} enviadas, ${errorCount} errores de ${appleDevicesSnap.size} dispositivos`);
-      }
-    } catch (appleError) {
-      console.error(`[PUSH ONE] ❌ Error en lógica Apple:`, appleError.message);
-      console.error(`[PUSH ONE] ❌ Stack trace:`, appleError.stack);
-      results.apple.error = appleError.message;
-    }
-
-    const success = results.google.sent || results.apple.sent > 0;
-
-    // ⭐ DEBUG FINAL: Verificar estado final de la tarjeta
-    const finalCardState = await fsGetCard(cardId);
-    console.log(`[PUSH ONE] 🔍 Estado FINAL de la tarjeta:`, {
-      latestMessage: finalCardState?.latestMessage || 'NO HAY MENSAJE',
-      messageUpdatedAt: finalCardState?.messageUpdatedAt || 'NO ACTUALIZADO'
-    });
-
-    res.json({
-      success,
-      cardId,
-      cardName: card.name,
-      results,
-      debug: {
-        finalMessage: finalCardState?.latestMessage || 'NO RECUPERADO',
-        messageUpdatedAt: finalCardState?.messageUpdatedAt || 'NO REGISTRADO'
-      },
-      message: success 
-        ? "Notificación enviada exitosamente" 
-        : "No se pudo enviar a ninguna plataforma",
-      note: !results.apple.sent && results.apple.total === 0 
-        ? "El usuario debe agregar la tarjeta a Apple Wallet primero" 
-        : undefined
-    });
-
-  } catch (e) {
-    console.error("[PUSH ONE] ❌ Error General:", e);
-    console.error("[PUSH ONE] ❌ Stack trace:", e.stack);
-    res.status(500).json({ error: e.message });
-  }
+    res.json({ success: true, results });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
-/* =========================================================
-   ENDPOINT: NOTIFICACIÓN MASIVA (LÓGICA EXACTA DE PUSH ONE)
-   ========================================================= */
+
+// 2. PUSH MASIVO (Secuencial y Robusto)
 app.post("/api/admin/push-all", adminAuth, async (req, res) => {
   try {
-    const { title, message } = req.body || {};
-
+    const { title, message } = req.body;
     if (!title || !message) return res.status(400).json({ error: "Faltan datos" });
 
-    console.log(`[PUSH ALL] 🚀 Iniciando masivo...`);
+    console.log(`[PUSH ALL] 🚀 Iniciando masivo: "${message}"`);
 
-    // PASO 1: ACTUALIZAR BASE DE DATOS (Igual que Push One, pero para todos)
-    // Esto es indispensable para que el iPhone vea el texto nuevo
+    // Actualizar DB en lotes
     const cardsSnap = await firestore.collection(COL_CARDS).get();
-    
-    if (cardsSnap.empty) return res.json({ success: true, msg: "Sin tarjetas" });
-
-    // Usamos batch para escribir rápido en todas las tarjetas
-    // (Es como hacer el "Update" de Push One 500 veces en un segundo)
     const batch = firestore.batch();
-    cardsSnap.docs.forEach(doc => {
-      batch.update(doc.ref, { 
-        latestMessage: message, 
-        updatedAt: new Date() 
-      });
-    });
-    await batch.commit(); 
+    let count = 0;
     
-    console.log(`[PUSH ALL] ✅ DB actualizada con mensaje: "${message}"`);
-
-    // Pequeña pausa para asegurar que Firestore guardó los datos
-    await new Promise(r => setTimeout(r, 1000));
+    cardsSnap.docs.forEach(doc => {
+      batch.update(doc.ref, { latestMessage: message, updatedAt: new Date() });
+      count++;
+    });
+    
+    if (count > 0) await batch.commit();
+    
+    console.log(`[PUSH ALL] ✅ DB Actualizada (${count} docs). Esperando...`);
+    
+    // Pausa de seguridad
+    await new Promise(r => setTimeout(r, 2000));
 
     const results = { apple: 0, google: 0 };
 
-    // PASO 2: ENVIAR ALERTAS (Igual que Push One)
-
-// --- A) APPLE --- (MODIFICADO PARA SER MÁS ROBUSTO COMO PUSH-ONE)
-const appleDevicesSnap = await firestore.collection(COL_DEVICES).get();
-
-if (!appleDevicesSnap.empty) {
-    console.log(`[PUSH ALL] 🍏 Enviando alertas visibles a ${appleDevicesSnap.size} dispositivo(s) Apple`);
+    // Apple Masivo (Secuencial para no saturar)
+    const appleDevs = await firestore.collection(COL_DEVICES).get();
+    const devices = appleDevs.docs.map(d => d.data());
     
-    let sentCount = 0;
-    let errorCount = 0;
-
-    // ⭐ CAMBIO: Enviar SECUENCIALMENTE (como push-one) para evitar rate limiting
-    for (const doc of appleDevicesSnap.docs) {
-        const d = doc.data();
-        
-        console.log(`[PUSH ALL] 🔍 Procesando dispositivo:`, {
-            deviceId: d.device_id,
-            hasToken: !!d.push_token,
-            serialNumber: d.serial_number
-        });
-
+    for (const d of devices) {
         if (d.push_token && d.serial_number) {
             try {
-                // ⭐ AQUÍ ESTÁ LA CLAVE: Usamos la misma función que Push One
-                console.log(`[PUSH ALL] 📤 Enviando alerta a APNs para ${d.serial_number}...`);
-                await appleWebService.sendAlertToCardDevices(d.serial_number, title, message);
-                sentCount++;
-                console.log(`[PUSH ALL] ✅ Alerta visible enviada a dispositivo ${d.device_id.substring(0, 10)}...`);
-            } catch (apnsError) {
-                errorCount++;
-                console.error(`[PUSH ALL] ❌ Error enviando a ${d.device_id}:`, apnsError.message);
-                
-                // Eliminar token inválido (como en push-one)
-                if (apnsError.message.includes('BadDeviceToken') || apnsError.message.includes('Unregistered')) {
-                    console.log(`[PUSH ALL] 🗑️ Eliminando token inválido: ${d.device_id}`);
-                    await doc.ref.delete();
-                }
-            }
-        } else {
-            console.log(`[PUSH ALL] ⚠️ Dispositivo sin token o serial_number: ${d.device_id}`);
+                await appleWebService.sendAPNsAlertNotification(d.push_token, title, message);
+                results.apple++;
+            } catch (e) {}
+            // Pequeña pausa entre envíos
+            await new Promise(r => setTimeout(r, 100));
         }
-        
-        // ⭐ CAMBIO: Pausa entre notificaciones (como push-one, para evitar rate limits)
-        await new Promise(resolve => setTimeout(resolve, 200)); // 200ms pausa (ajusta si es necesario)
     }
 
-    results.apple = sentCount; // Actualizar contador
-    console.log(`[PUSH ALL] 📊 Resultado Apple: ${sentCount} enviadas, ${errorCount} errores de ${appleDevicesSnap.size} dispositivos`);
-} else {
-    console.log(`[PUSH ALL] 📱 No hay dispositivos Apple registrados`);
-}
-
-    // --- B) GOOGLE ---
-    const googleDevicesSnap = await firestore.collection(COL_GOOGLE_DEVICES).get();
-    if (!googleDevicesSnap.empty) {
-        const promisesG = googleDevicesSnap.docs.map(async (doc) => {
-            const d = doc.data();
-            if (d.card_id) {
-                try {
-                    await sendGoogleMessage(d.card_id, title, message);
-                    results.google++;
-                } catch(e) {}
-            }
-        });
-        await Promise.all(promisesG);
-    }
-
-    console.log(`[PUSH ALL] 🏁 Terminado: ${results.apple} iOS / ${results.google} Android`);
-    
-    res.json({ 
-      success: true, 
-      message: `Enviado a ${results.apple} iPhones y ${results.google} Androids.` 
+    // Google Masivo
+    const googleDevs = await firestore.collection(COL_GOOGLE_DEVICES).get();
+    const googlePromises = googleDevs.docs.map(async (doc) => {
+      if (doc.data().card_id) {
+        try {
+          await sendGoogleMessage(doc.data().card_id, title, message);
+          results.google++;
+        } catch (e) {}
+      }
     });
+    await Promise.all(googlePromises);
 
-  } catch (e) {
-    console.error("[PUSH ALL] Error:", e);
-    res.status(500).json({ error: e.message });
-  }
+    console.log(`[PUSH ALL] Terminado. Apple: ${results.apple}, Google: ${results.google}`);
+    res.json({ success: true, results });
+
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 /* =========================================================
    DEBUG: ESTADO DE TARJETA
