@@ -1400,64 +1400,93 @@ app.post("/api/admin/push-one", adminAuth, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// 2. PUSH MASIVO (Secuencial y Robusto)
+/* =========================================================
+   ENDPOINT: NOTIFICACIÓN MASIVA (VERSIÓN SEGURA Y LENTA)
+   ========================================================= */
 app.post("/api/admin/push-all", adminAuth, async (req, res) => {
   try {
     const { title, message } = req.body;
     if (!title || !message) return res.status(400).json({ error: "Faltan datos" });
 
-    console.log(`[PUSH ALL] 🚀 Iniciando masivo: "${message}"`);
+    console.log(`[PUSH ALL] 🚀 Iniciando envío masivo: "${message}"`);
 
-    // Actualizar DB en lotes
+    // 1. OBTENER TODAS LAS TARJETAS
     const cardsSnap = await firestore.collection(COL_CARDS).get();
+    
+    if (cardsSnap.empty) {
+      return res.json({ success: true, msg: "No hay tarjetas." });
+    }
+
+    console.log(`[PUSH ALL] 📦 Actualizando ${cardsSnap.size} tarjetas...`);
+
+    // 2. ACTUALIZACIÓN MASIVA (Set Merge es más seguro que Update)
     const batch = firestore.batch();
     let count = 0;
     
-    cardsSnap.docs.forEach(doc => {
-      batch.update(doc.ref, { latestMessage: message, updatedAt: new Date() });
+    cardsSnap.docs.forEach((doc) => {
+      // Usamos set con merge:true para asegurar que se escriba incluso si faltan campos
+      batch.set(doc.ref, { 
+        latestMessage: message, 
+        updatedAt: new Date().toISOString() 
+      }, { merge: true });
       count++;
     });
     
     if (count > 0) await batch.commit();
     
-    console.log(`[PUSH ALL] ✅ DB Actualizada (${count} docs). Esperando...`);
+    console.log(`[PUSH ALL] ✅ DB Actualizada. ESPERANDO 3 SEGUNDOS...`);
     
-    // Pausa de seguridad
-    await new Promise(r => setTimeout(r, 2000));
+    // ⭐ PAUSA LARGA DE SEGURIDAD (3 SEGUNDOS)
+    // Esto es crucial para tu problema de sincronización
+    await new Promise(resolve => setTimeout(resolve, 3000));
 
     const results = { apple: 0, google: 0 };
 
-    // Apple Masivo (Secuencial para no saturar)
+    // 3. NOTIFICAR APPLE (Secuencial)
     const appleDevs = await firestore.collection(COL_DEVICES).get();
-    const devices = appleDevs.docs.map(d => d.data());
     
-    for (const d of devices) {
-        if (d.push_token && d.serial_number) {
-            try {
-                await appleWebService.sendAPNsAlertNotification(d.push_token, title, message);
-                results.apple++;
-            } catch (e) {}
-            // Pequeña pausa entre envíos
-            await new Promise(r => setTimeout(r, 100));
+    if (!appleDevs.empty) {
+        console.log(`[PUSH ALL] 🍏 Notificando a ${appleDevs.size} iPhones...`);
+        const devices = appleDevs.docs.map(d => d.data());
+        
+        for (const d of devices) {
+            if (d.push_token && d.serial_number) {
+                try {
+                    // Enviamos alerta visible
+                    await appleWebService.sendAPNsAlertNotification(d.push_token, title, message);
+                    results.apple++;
+                    console.log(`[PUSH ALL] 📤 Enviado a ${d.serial_number}`);
+                } catch (e) {
+                    console.error(`[PUSH ALL] Error Apple ${d.serial_number}: ${e.message}`);
+                }
+                // Pausa entre envíos
+                await new Promise(r => setTimeout(r, 200));
+            }
         }
     }
 
-    // Google Masivo
+    // 4. NOTIFICAR GOOGLE
     const googleDevs = await firestore.collection(COL_GOOGLE_DEVICES).get();
-    const googlePromises = googleDevs.docs.map(async (doc) => {
-      if (doc.data().card_id) {
-        try {
-          await sendGoogleMessage(doc.data().card_id, title, message);
-          results.google++;
-        } catch (e) {}
-      }
-    });
-    await Promise.all(googlePromises);
+    if (!googleDevs.empty) {
+        const googlePromises = googleDevs.docs.map(async (doc) => {
+            const d = doc.data();
+            if (d.card_id) {
+                try {
+                    await sendGoogleMessage(d.card_id, title, message);
+                    results.google++;
+                } catch(e) {}
+            }
+        });
+        await Promise.all(googlePromises);
+    }
 
-    console.log(`[PUSH ALL] Terminado. Apple: ${results.apple}, Google: ${results.google}`);
+    console.log(`[PUSH ALL] 🏁 Finalizado.`);
     res.json({ success: true, results });
 
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    console.error("[PUSH ALL] ❌ Error Fatal:", e);
+    res.status(500).json({ error: e.message });
+  }
 });
 /* =========================================================
    DEBUG: ESTADO DE TARJETA
