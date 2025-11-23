@@ -1,223 +1,149 @@
 <!doctype html>
-<html lang="es" data-theme="venus">
+<html lang="es">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Venus Lealtad</title>
   <link rel="icon" href="/assets/logo.png">
 
-  <!-- TAILWIND + DAISYUI -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.js"></script>
-
-  <script>
-    tailwind.config = {
-      plugins: [daisyui],
-      daisyui: {
-        themes: [
-          {
-            venus: {
-              "primary": "#8c9668",
-              "secondary": "#3f4037",
-              "accent": "#ffffff",
-              "neutral": "#3f4037",
-              "base-100": "#3f4037",
-            },
-          },
-        ],
-      },
-    };
-  </script>
+  <!-- Bootstrap -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
 
   <style>
     body {
-      margin: 0;
-      font-family: 'Poppins', sans-serif;
       background-color: #3f4037;
+      font-family: 'Poppins', sans-serif;
     }
 
-    .container {
-      max-width: 480px;
-      margin: 2rem auto;
-      padding: 1rem;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .card {
+    .venus-card {
       background-color: #8c9668;
       border-radius: 20px;
-      color: #fff;
       padding: 2rem;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
-      width: 100%;
+      color: white;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
       position: relative;
       overflow: hidden;
-      text-align: center;
-      box-sizing: border-box;
     }
 
-    .card::before {
+    .venus-card::before {
       content: "";
       position: absolute;
       inset: 0;
-      background: radial-gradient(circle at 20% 30%, rgba(255,255,255,0.05), transparent 70%),
-                  radial-gradient(circle at 80% 60%, rgba(255,255,255,0.04), transparent 60%);
+      background: radial-gradient(circle at 20% 30%, rgba(255,255,255,0.07), transparent 70%),
+                  radial-gradient(circle at 80% 60%, rgba(255,255,255,0.05), transparent 70%);
       opacity: 0.7;
-      z-index: 0;
     }
 
-    .card > * {
-      position: relative;
-      z-index: 1;
-    }
+    .venus-card * { position: relative; z-index: 2; }
 
     .brand__logo {
-      width: 70px;
-      height: 70px;
+      width: 75px;
+      height: 75px;
       border-radius: 50%;
-      margin-bottom: 0.5rem;
-      background-color: #fff;
-      box-shadow: 0 0 10px rgba(255,255,255,0.3);
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(8, 1fr);
-      gap: 8px;
-      justify-items: center;
-      margin-top: 1rem;
-      width: 100%;
-      padding: 0 10px;
-      box-sizing: border-box;
+      background: white;
+      object-fit: cover;
+      box-shadow: 0 0 10px rgba(255,255,255,0.4);
     }
 
     .grid div {
-      width: 28px;
-      height: 28px;
+      width: 32px;
+      height: 32px;
       border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
       font-weight: 600;
-      font-size: 0.9rem;
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
 
-    .error {
-      color: #ff6b6b;
-      background: rgba(255,255,255,0.1);
-      padding: 10px;
-      border-radius: 8px;
-      margin-top: 10px;
-      display: none;
-    }
-
-    .hidden { display: none; }
+    .hidden { display: none !important; }
   </style>
 </head>
 
-<body>
-  <main class="container">
-    <!-- ==================== VISTA CREAR ==================== -->
-    <section id="view-create" class="card shadow-xl">
+<body class="py-4">
 
-      <img src="/assets/logo.png" alt="Venus" class="brand__logo" />
+  <main class="container d-flex flex-column align-items-center">
 
-      <h1 class="text-2xl font-semibold">Venus Lealtad</h1>
-      <p class="subtitle">Gana sellos y canjea tu facial 🌿</p>
+    <!-- =================== VISTA CREAR =================== -->
+    <section id="view-create" class="venus-card w-100" style="max-width:480px;">
+      
+      <div class="text-center">
+        <img src="/assets/logo.png" class="brand__logo mb-2" />
+        <h1 class="fw-bold mt-2">Venus Lealtad</h1>
+        <p class="opacity-75">Gana sellos y canjea tu facial 🌿</p>
 
-      <h2 class="text-xl font-semibold mt-3">Crea tu tarjeta</h2>
-      <p class="desc">Ingresa tus datos para generar tu tarjeta digital.</p>
+        <h2 class="fw-semibold mt-3">Crea tu tarjeta</h2>
+        <p class="opacity-75 mb-4">Ingresa tus datos para generar tu tarjeta digital.</p>
+      </div>
 
-      <form id="create-form" class="w-full">
+      <form id="create-form">
+        
+        <label class="fw-semibold">Nombre</label>
+        <input id="name" class="form-control mb-3" placeholder="Tu nombre" required />
 
-        <label class="form-control w-full text-left">
-          <span class="label-text font-semibold text-white">Nombre</span>
-          <input id="name" name="name"
-            class="input input-bordered w-full bg-white text-neutral-900"
-            placeholder="Tu nombre" required>
-        </label>
+        <label class="fw-semibold">Teléfono</label>
+        <input id="phone" class="form-control mb-3" placeholder="10 dígitos" pattern="[0-9]{10}" required />
 
-        <label class="form-control w-full mt-2 text-left">
-          <span class="label-text font-semibold text-white">Teléfono</span>
-          <input id="phone" name="phone" type="tel"
-            class="input input-bordered w-full bg-white text-neutral-900"
-            placeholder="10 dígitos" pattern="[0-9]{10}" required>
-        </label>
+        <label class="fw-semibold">Fecha de nacimiento</label>
+        <input id="birthdate" type="date" class="form-control mb-3" required />
 
-        <label class="form-control w-full mt-2 text-left">
-          <span class="label-text font-semibold text-white">Fecha de nacimiento</span>
-          <input id="birthdate" name="birthdate" type="date"
-            class="input input-bordered w-full bg-white text-neutral-900"
-            required>
-        </label>
+        <input type="hidden" id="max" value="8" />
 
-        <input id="max" name="max" type="hidden" value="8">
+        <div id="error-message" class="alert alert-danger py-2 px-3 d-none"></div>
 
-        <div id="error-message" class="error mt-2 text-sm"></div>
-
-        <button
-          class="btn btn-accent text-neutral-900 w-full font-semibold mt-4 shadow-md"
-          type="submit"
-          id="submit-btn">
+        <button id="submit-btn" class="btn btn-light w-100 fw-semibold shadow-sm">
           Crear tarjeta
         </button>
-
       </form>
     </section>
 
-    <!-- ==================== VISTA TARJETA ==================== -->
-    <section id="view-card" class="card hidden shadow-xl">
+    <!-- =================== VISTA TARJETA =================== -->
+    <section id="view-card" class="venus-card w-100 hidden mt-4" style="max-width:480px;">
+      
+      <h2 id="c_name" class="text-center fw-semibold">Cliente</h2>
+      <p id="c_info" class="text-center">Progreso: 0/8</p>
 
-      <h2 id="c_name" class="text-xl font-semibold">Cliente</h2>
-      <p id="c_info" class="mt-1">Progreso: 0/8</p>
+      <div id="grid" class="grid container text-center mt-3"
+           style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;"></div>
 
-      <div id="grid" class="grid mt-4"></div>
-
-      <a id="gwallet"
-        class="btn bg-white text-neutral-900 w-full mt-4 font-semibold shadow-md">
+      <button id="gwallet" class="btn btn-light w-100 mt-4 fw-semibold">
         Guardar en Google Wallet
-      </a>
+      </button>
 
-      <a id="applewallet"
-        class="btn bg-black text-white w-full mt-2 font-semibold shadow-md flex gap-2 justify-center">
-        <span class="text-lg"></span>
+      <button id="applewallet" class="btn btn-dark w-100 mt-2 fw-semibold d-flex justify-content-center gap-2">
+        <span class="fs-4"></span>
         Agregar a Apple Wallet
-      </a>
+      </button>
 
-      <button id="share"
-        class="btn bg-white/90 text-neutral-900 w-full mt-2 shadow-md">
+      <button id="share" class="btn btn-light w-100 mt-2 fw-semibold">
         Compartir
       </button>
 
-      <details class="collapse collapse-arrow mt-4 bg-black/20 rounded-lg p-2">
-        <summary class="collapse-title font-semibold">Mostrar QR</summary>
-        <div class="collapse-content flex flex-col items-center">
+      <details class="mt-4 bg-dark bg-opacity-25 p-3 rounded">
+        <summary class="fw-semibold">Mostrar QR</summary>
 
-          <img id="qr" class="w-36 h-36 rounded-lg bg-white p-1" />
-          <p class="text-sm mt-1">Este QR contiene tu cardId.</p>
+        <div class="text-center mt-3">
+          <img id="qr" class="bg-white p-1 rounded" width="150" />
+          <p class="small opacity-75 mt-2">Este QR contiene tu cardId.</p>
 
-          <code id="cid"
-            class="px-2 py-1 rounded bg-black/40 text-xs mt-2"></code>
+          <div class="d-flex justify-content-center align-items-center gap-2">
+            <code id="cid" class="px-2 py-1 bg-dark bg-opacity-50 rounded text-white small"></code>
 
-          <button id="copy"
-            class="btn btn-accent btn-sm text-neutral-900 mt-2">
-            Copiar
-          </button>
-
+            <button id="copy" class="btn btn-light btn-sm fw-semibold">
+              Copiar
+            </button>
+          </div>
         </div>
       </details>
 
     </section>
 
-    <footer class="text-white/80 text-sm mt-2 text-center">
+    <footer class="text-white opacity-75 text-center mt-3 small">
       © Venus Cosmetología — Programa de Lealtad
     </footer>
   </main>
 
-  <!-- ===================== JAVASCRIPT ORIGINAL ===================== -->
+  
+  <!-- =================== JAVASCRIPT ORIGINAL =================== -->
   <script>
     const createView = document.getElementById("view-create");
     const cardView = document.getElementById("view-card");
@@ -229,20 +155,18 @@
 
     function showError(message) {
       errorMessage.textContent = message;
-      errorMessage.style.display = "block";
+      errorMessage.classList.remove("d-none");
     }
 
     function hideError() {
-      errorMessage.style.display = "none";
+      errorMessage.classList.add("d-none");
     }
 
     function setLoading(loading) {
       if (loading) {
-        submitBtn.classList.add("loading");
         submitBtn.textContent = "Creando...";
         submitBtn.disabled = true;
       } else {
-        submitBtn.classList.remove("loading");
         submitBtn.textContent = "Crear tarjeta";
         submitBtn.disabled = false;
       }
@@ -255,110 +179,80 @@
       const cardId = data.cardId || data.id;
       const max = data.max || 8;
       const stamps = data.stamps || 0;
-      const name = data.name || "Cliente";
 
-      document.getElementById("c_name").textContent = name;
+      document.getElementById("c_name").textContent = data.name;
       document.getElementById("c_info").textContent = `Progreso: ${stamps}/${max}`;
-
+      
       grid.innerHTML = "";
       for (let i = 1; i <= max; i++) {
         const div = document.createElement("div");
         div.textContent = i;
-        const active = i <= stamps;
+        div.classList.add("shadow-sm");
 
-        div.className = "flex items-center justify-center rounded-full font-semibold";
-
-        if (active) {
-          div.classList.add("bg-white", "text-neutral-900", "shadow");
-        } else {
-          div.classList.add("bg-white/30", "text-white");
-        }
-
-        div.style.width = "32px";
-        div.style.height = "32px";
+        div.style.background = i <= stamps ? "white" : "rgba(255,255,255,0.3)";
+        div.style.color = i <= stamps ? "#333" : "white";
 
         grid.appendChild(div);
       }
 
-      if (!cardId) return;
-
-      const qr = document.getElementById("qr");
-      qr.src =
+      document.getElementById("qr").src =
         "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=" +
         encodeURIComponent(cardId);
 
       document.getElementById("cid").textContent = cardId;
 
-      document.getElementById("gwallet").onclick = async (e) => {
-        e.preventDefault();
+      document.getElementById("gwallet").onclick = async () => {
         let saveUrl = data.gwallet;
 
         if (!saveUrl) {
-          const resp = await fetch(
-            `/api/save-card?cardId=${cardId}&name=${name}&stamps=${stamps}&max=${max}`
-          );
+          const resp = await fetch(`/api/save-card?cardId=${cardId}&name=${data.name}&stamps=${stamps}&max=${max}`);
           const j = await resp.json();
           saveUrl = j.saveUrl || j.addToGoogleUrl;
         }
-
         window.location.href = saveUrl;
       };
 
-      document.getElementById("applewallet").onclick = (e) => {
-        e.preventDefault();
-        const url =
-          data.applewallet ||
-          `/api/apple/pass?cardId=${encodeURIComponent(cardId)}`;
-
+      document.getElementById("applewallet").onclick = () => {
+        const passUrl = data.applewallet || `/api/apple/pass?cardId=${cardId}`;
         const a = document.createElement("a");
-        a.href = url;
+        a.href = passUrl;
         a.download = `venus-${cardId}.pkpass`;
         a.click();
       };
 
       document.getElementById("share").onclick = () => {
-        const shareUrl = `${window.location.origin}?cardId=${cardId}`;
-        if (navigator.share) {
-          navigator.share({
-            title: "Mi tarjeta Venus",
-            url: shareUrl,
-          });
-        } else {
-          navigator.clipclip.writeText(shareUrl);
-          alert("Enlace copiado.");
-        }
+        const url = `${location.origin}?cardId=${cardId}`;
+        navigator.clipboard.writeText(url);
+        alert("Enlace copiado.");
       };
 
       document.getElementById("copy").onclick = () => {
         navigator.clipboard.writeText(cardId);
-        alert("ID copiado");
+        alert("ID copiado.");
       };
     }
 
     if (urlCardId) {
       fetch(`/api/card/${urlCardId}`)
-        .then((r) => r.json())
+        .then(r => r.json())
         .then(showCardView)
         .catch(() => showError("No se pudo cargar la tarjeta."));
     }
 
-    document.getElementById("create-form").addEventListener("submit", async (e) => {
+    document.getElementById("create-form").addEventListener("submit", async e => {
       e.preventDefault();
       hideError();
       setLoading(true);
 
-      const name = nameInput.value.trim();
-      const phone = phoneInput.value.trim();
-      const birthdate = birthdateInput.value;
+      const name = document.getElementById("name").value.trim();
+      const phone = document.getElementById("phone").value.trim();
+      const birthdate = document.getElementById("birthdate").value;
 
       try {
-        const res = await fetch(
-          `/api/create-card?name=${name}&phone=${phone}&birthdate=${birthdate}&max=8`
-        );
+        const res = await fetch(`/api/create-card?name=${encodeURIComponent(name)}&phone=${phone}&birthdate=${birthdate}&max=8`);
         const data = await res.json();
-
         if (!res.ok) throw new Error(data.error);
-        data.url ? (window.location.href = data.url) : showCardView(data);
+        data.url ? (location.href = data.url) : showCardView(data);
 
       } catch (err) {
         showError(err.message);
