@@ -5,17 +5,21 @@
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Panel Admin — Venus Lealtad</title>
   <link rel="icon" href="/assets/logo.png">
-  <style>
-    /* [TODOS LOS ESTILOS EXISTENTES SE MANTIENEN IGUAL] */
-    body.checking-auth {
-      opacity: 0;
-      pointer-events: none;
-    }
 
-    body.auth-verified {
-      opacity: 1;
-      transition: opacity 0.3s ease;
-    }
+  <!-- BOOTSTRAP 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- ICONOS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+
+  <!-- LIBRERÍAS QUE YA USES -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+  <!-- TEMA VENUS -->
+  <style>
     :root{
       --venus:#8c9668;
       --venus-soft:#dfe6c1;
@@ -23,1995 +27,1035 @@
       --ink:#f9fafb;
       --muted:#e5e7eb;
       --line:rgba(255,255,255,0.25);
+      --success:#10b981;
+      --danger:#ef4444;
       --radius:18px;
-      --success: #10b981;
-      --danger: #ef4444;
     }
-    *{box-sizing:border-box;}
-    html,body{
-      margin:0;
-      padding:0;
+
+    body{
       background:var(--bg);
       color:var(--ink);
       font-family:system-ui,-apple-system,Segoe UI,Inter,Roboto,Arial,sans-serif;
-    }
-    body{
-      min-height:100vh;
-      display:flex;
-      flex-direction:column;
-    }
-    .wrap{
-      max-width:1100px;
-      margin:16px auto;
-      padding:0 12px 32px;
-      width:100%;
-    }
-
-    .topbar{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      gap:12px;
-      margin-bottom:10px;
-      flex-wrap:wrap;
-    }
-    .brand{
-      display:flex;
-      align-items:center;
-      gap:10px;
-    }
-    .brand img{
-      width:40px;
-      height:40px;
-      border-radius:12px;
-      box-shadow:0 0 0 2px rgba(255,255,255,.1);
-    }
-    h1{
-      font-size:22px;
       margin:0;
-      color:var(--ink);
-    }
-    .muted{color:var(--muted);font-size:13px;}
-    .actions{
-      display:flex;
-      gap:8px;
-      flex-wrap:wrap;
+      padding:0;
+      min-height:100vh;
     }
 
-    .btn{
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      gap:6px;
-      border-radius:999px;
-      border:1px solid var(--line);
-      background:rgba(255,255,255,.1);
-      padding:7px 13px;
-      font-size:13px;
-      cursor:pointer;
-      text-decoration:none;
-      color:var(--ink);
-      white-space:nowrap;
-      backdrop-filter:blur(3px);
-      transition:all 0.2s ease;
+    body.checking-auth {
+      opacity: 0;
+      pointer-events: none;
     }
-    .btn:hover{
-      transform:translateY(-1px);
-      box-shadow:0 4px 12px rgba(0,0,0,0.2);
-    }
-    .btn.primary{
-      background:var(--venus);
-      border-color:var(--venus);
-      color:#fff;
-    }
-    .btn.ghost{
-      background:transparent;
-      border-color:var(--line);
-    }
-    .btn.small{
-      padding:5px 10px;
-      font-size:12px;
-    }
-    .btn[disabled] { opacity: 0.6; cursor: not-allowed; }
-
-    .nav{
-      display:flex;
-      gap:6px;
-      flex-wrap:wrap;
-      margin:8px 0 14px;
-    }
-    .nav a{
-      padding:7px 12px;
-      border-radius:999px;
-      border:1px solid transparent;
-      text-decoration:none;
-      font-size:13px;
-      color:var(--muted);
-      background:transparent;
-      transition:all 0.2s ease;
-      cursor:pointer;
-    }
-    .nav a.is-active{
-      background:rgba(255,255,255,.15);
-      border-color:var(--venus);
-      color:var(--venus-soft);
-      box-shadow:0 4px 14px rgba(0,0,0,.1);
+    body.auth-verified {
+      opacity: 1;
+      transition: opacity 0.3s ease;
     }
 
-    .card{
+    /* Tarjetas y contenedores */
+    .card-venus{
       background:rgba(255,255,255,.08);
       border-radius:var(--radius);
       border:1px solid var(--line);
-      padding:16px 16px 14px;
-      box-shadow:0 10px 28px rgba(0,0,0,.2);
-      margin-bottom:14px;
-      backdrop-filter:blur(3px);
+      padding:20px;
+      box-shadow:0 10px 28px rgba(0,0,0,0.25);
+      backdrop-filter:blur(4px);
       position:relative;
       overflow:hidden;
     }
-    .card::before{
+    .card-venus::before{
       content:"";
       position:absolute;
       inset:0;
       background:
         radial-gradient(circle at 20% 20%,rgba(255,255,255,0.05),transparent 60%),
         radial-gradient(circle at 80% 70%,rgba(255,255,255,0.03),transparent 60%);
-      opacity:.9;
-      pointer-events:none;
+      opacity:.8;
     }
-    .card > *{
+    .card-venus > *{
       position:relative;
-      z-index:1;
+      z-index:2;
     }
-    .card h2{
-      margin:0 0 6px;
-      font-size:18px;
+
+    /* Navbar */
+    .nav-link{
+      color:var(--muted) !important;
+      border-radius:30px;
+      padding:6px 12px !important;
+      transition:.2s;
+    }
+    .nav-link.active{
+      background:rgba(255,255,255,.12);
+      color:var(--venus-soft) !important;
+      border:1px solid var(--venus);
+      box-shadow:0 4px 12px rgba(0,0,0,0.25);
+    }
+
+    /* Botones */
+    .btn-venus{
+      background:var(--venus);
+      border-color:var(--venus);
+      color:#fff;
+      border-radius:30px;
+      padding:8px 16px;
+      font-weight:500;
+    }
+    .btn-venus:hover{
+      opacity:0.85;
+    }
+
+    .btn-ghost{
+      background:transparent;
+      border:1px solid var(--line);
+      border-radius:30px;
       color:var(--ink);
     }
-    .card h3{
-      margin:0 0 6px;
-      font-size:15px;
+    .btn-ghost:hover{
+      background:rgba(255,255,255,.08);
+    }
+
+    /* Inputs */
+    .form-control,
+    .form-select,
+    textarea{
+      background:rgba(255,255,255,.08) !important;
+      border:1px solid var(--line) !important;
+      color:var(--ink) !important;
+      border-radius:12px !important;
+    }
+    .form-control::placeholder{
+      color:var(--muted) !important;
+    }
+
+    /* Tablas */
+    table{
+      font-size:13px;
       color:var(--ink);
     }
-
-    .header-actions {
-      display:flex;
-      gap:10px;
-      align-items:center;
-      flex-wrap: wrap;
+    th{
+      background:rgba(255,255,255,.08);
+      border-bottom:1px solid var(--line);
+      padding:6px;
     }
-    select.filter-select {
-      background: rgba(0,0,0,0.3);
-      color: #fff;
-      border: 1px solid var(--line);
-      padding: 6px 12px;
-      border-radius: 8px;
-      font-size: 13px;
-      outline: none;
-      cursor: pointer;
+    td{
+      border-bottom:1px solid rgba(255,255,255,.1);
+      padding:6px;
     }
 
-    .grid-3-kpi{
-      display:grid;
-      grid-template-columns:repeat(3,minmax(0,1fr));
-      gap:10px;
-      margin-top:10px;
-    }
-    @media (max-width:700px){
-      .grid-3-kpi{grid-template-columns:repeat(2,minmax(0,1fr));}
-    }
-    @media (max-width:480px){
-      .grid-3-kpi{grid-template-columns:1fr;}
-    }
-
+    /* KPI */
     .kpi{
-      padding:10px 12px;
       border-radius:12px;
       background:rgba(255,255,255,.1);
+      padding:14px;
       border:1px solid rgba(255,255,255,.15);
-      display:flex;
-      flex-direction:column;
-      gap:4px;
-      font-size:13px;
-      backdrop-filter:blur(3px);
     }
-    .kpi span.value{
-      font-size:20px;
+    .kpi .value{
+      font-size:22px;
       font-weight:600;
       color:var(--ink);
     }
-    .kpi span{
-      color:var(--muted);
-    }
 
-    .row{
-      display:flex;
-      align-items:center;
-      gap:8px;
-      flex-wrap:wrap;
-    }
-
-    label{
-      display:block;
-      margin:8px 0 4px;
-      font-size:13px;
-      font-weight:500;
+    /* QR modal */
+    .modal-content{
+      background:#111827 !important;
+      border-radius:20px !important;
       color:var(--ink);
-    }
-    input,select,textarea{
-      width:100%;
-      padding:9px 10px;
-      border-radius:10px;
-      border:1px solid var(--line);
-      background:rgba(255,255,255,.1);
-      font-size:13px;
-      color:var(--ink);
-      backdrop-filter:blur(3px);
-    }
-    input::placeholder{
-      color:var(--muted);
-    }
-    textarea{resize:vertical;min-height:70px;}
-
-    .hidden{display:none!important;}
-
-    .table-wrap{
-      width:100%;
-      overflow-x:auto;
-      -webkit-overflow-scrolling:touch;
-    }
-    table{
-      border-collapse:collapse;
-      width:100%;
-      font-size:13px;
-    }
-    thead{
-      background:rgba(255,255,255,.1);
-    }
-    th,td{
-      padding:6px 8px;
-      border-bottom:1px solid rgba(255,255,255,.1);
-      text-align:left;
-      white-space:nowrap;
-      color:var(--ink);
-    }
-    tr:last-child td{border-bottom:none;}
-    code{
-      font-size:12px;
-      background:rgba(255,255,255,.15);
-      padding:2px 4px;
-      border-radius:4px;
-      color:var(--ink);
-    }
-    .tag{
-      display:inline-flex;
-      align-items:center;
-      padding:2px 6px;
-      border-radius:999px;
-      background:#bbf7d0;
-      color:#166534;
-      font-size:11px;
-    }
-    /* Estilos adaptados de index.html para la Gift Card */
-.gift-card-visual {
-  background-color: #8c9668; /* Tu color original */
-  border-radius: 20px;
-  color: #fff;
-  padding: 2rem;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
-  width: 100%;
-  max-width: 320px; /* Tamaño proporcional para compartir */
-  position: relative;
-  overflow: hidden;
-  text-align: center;
-  margin: 0 auto; /* Centrado */
-  font-family: 'Poppins', sans-serif;
-}
-
-.gift-card-visual::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle at 20% 30%, rgba(255,255,255,0.05), transparent 70%),
-              radial-gradient(circle at 80% 60%, rgba(255,255,255,0.04), transparent 60%);
-  opacity: 0.7;
-  z-index: 0;
-}
-
-.gift-card-content {
-  position: relative;
-  z-index: 2;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.gift-brand-logo {
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  background-color: #fff;
-  margin-bottom: 10px;
-  box-shadow: 0 0 10px rgba(255,255,255,0.3);
-  object-fit: contain;
-  padding: 2px;
-}
-
-.gift-title {
-  font-size: 1.4rem;
-  font-weight: 700;
-  margin: 5px 0;
-}
-
-.gift-service {
-  font-size: 1.2rem;
-  font-weight: 600;
-  margin: 10px 0 5px;
-  color: #dfe6c1; /* Venus soft color */
-}
-
-.gift-meta {
-  font-size: 0.9rem;
-  opacity: 0.9;
-  margin-bottom: 15px;
-}
-
-.gift-qr-container {
-  background: #fff;
-  padding: 10px;
-  border-radius: 12px;
-  margin-top: 10px;
-  display: inline-block;
-}
-
-    
-    .gift-qr{
-      width:120px;
-      height:120px;
-      border-radius:12px;
-      background:#fff;
-      padding:8px;
-      margin-bottom:8px;
-    }
-    .chip{
-      display:inline-flex;
-      align-items:center;
-      padding:4px 10px;
-      border-radius:999px;
-      background:rgba(0,0,0,.18);
-      font-size:11px;
-      margin-top:6px;
-    }
-    
-    .gift-actions{
-      display:flex;
-      gap:8px;
-      margin-top:12px;
-      flex-wrap:wrap;
-    }
-    
-    .footer{
-      margin-top:auto;
-      text-align:center;
-      padding:8px 0 14px;
-      font-size:12px;
-      color:var(--muted);
-    }
-    
-    .success-message{
-      background:rgba(187, 247, 208, 0.1);
-      border:1px solid rgba(34, 197, 94, 0.3);
-      border-radius:10px;
-      padding:10px 12px;
-      margin-top:10px;
-      font-size:13px;
-      color:#bbf7d0;
-    }
-
-    dialog{
-      border-radius:16px;
-      border:1px solid var(--line);
-      background:#111827;
-      color:var(--ink);
-      padding:16px 18px 14px;
-      max-width:420px;
-      width:90%;
-    }
-    dialog::backdrop{
-      background:rgba(0,0,0,.6);
-    }
-
-    .modal-backdrop{
-      position:fixed;
-      inset:0;
-      background:rgba(0,0,0,.55);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      z-index:50;
-    }
-    .modal-backdrop.hidden{
-      display:none!important;
-    }
-    .modal-card{
-      background:#111827;
-      border-radius:24px;
-      border:1px solid rgba(255,255,255,.15);
-      padding:18px 20px 16px;
-      max-width:420px;
-      width:90%;
-      max-height:90vh;
-      overflow-y:auto;
-      box-shadow:0 20px 60px rgba(0,0,0,.6);
-      color:#f9fafb;
     }
     .modal-header{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      margin-bottom:10px;
-    }
-    .modal-header h3{
-      margin:0;
-      font-size:18px;
-    }
-    .modal-body p{
-      margin:4px 0;
-      font-size:14px;
-    }
-    .modal-body strong{
-      font-weight:600;
-    }
-    .modal-footer{
-      margin-top:14px;
-      display:flex;
-      flex-wrap:wrap;
-      gap:8px;
-    }
-    .qr-box{
-      margin-top:10px;
-      display:flex;
-      justify-content:center;
-      align-items:center;
-      min-height:180px;
-      background:rgba(255,255,255,0.05);
-      border-radius:12px;
-      padding:10px;
-    }
-    .qr-box canvas{
-      background:#fff;
-      border-radius:8px;
-      padding:8px;
-      max-width:100%;
-      height:auto;
+      border-bottom:1px solid rgba(255,255,255,.1) !important;
     }
 
-    /* Estilos para debugging */
-    .debug-section {
-      margin-top:20px;
-      padding-top:16px;
-      border-top:1px solid var(--line);
-    }
-    
-    .debug-output {
-      background:rgba(0,0,0,0.3);
-      border-radius:8px;
-      padding:10px;
-      font-size:12px;
-      font-family:monospace;
-      max-height:200px;
-      overflow-y:auto;
-      white-space:pre-wrap;
-      margin-top:10px;
-    }
-
-    .sortable-header {
-  cursor: pointer;
-  user-select: none;
-  position: relative;
-  padding-right: 20px !important;
-}
-
-.sortable-header:hover {
-  background-color: #f8f9fa;
-}
-
-.sortable-header::after {
-  content: '↕';
-  position: absolute;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 12px;
-  opacity: 0.5;
-}
-
-.sortable-header.asc::after {
-  content: '↑';
-  opacity: 1;
-}
-
-.sortable-header.desc::after {
-  content: '↓';
-  opacity: 1;
-}
-
-    /* ===== NUEVOS ESTILOS AGREGADOS ===== */
-    
-    /* Grid Cumpleaños */
-    .grid-birthdays {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 15px;
-      margin-top: 20px;
-    }
-
-    .birthday-list {
-      background: rgba(0,0,0,0.2);
-      border-radius: 12px;
-      padding: 15px;
-      border: 1px solid var(--line);
-    }
-
-    .birthday-list h4 {
-      margin: 0 0 10px;
-      font-size: 14px;
-      opacity: 0.8;
-      border-bottom: 1px solid var(--line);
-      padding-bottom: 5px;
-    }
-
-    .b-item {
-      display: flex;
-      justify-content: space-between;
-      font-size: 13px;
-      padding: 6px 0;
-      border-bottom: 1px solid rgba(255,255,255,0.05);
-    }
-
-    .tag-days {
-      font-size: 11px;
-      padding: 2px 6px;
-      border-radius: 4px;
-      background: rgba(255,255,255,0.1);
-    }
-
-    /* Gift Cards - Nuevo diseño */
-    .gift-redeem-box {
-      background: var(--bg);
-      border: 1px solid var(--venus);
-      padding: 20px;
-      border-radius: 16px;
-      text-align: center;
-      margin-bottom: 20px;
-    }
-
-    .history-table {
-      font-size: 12px;
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 10px;
-    }
-
-    .history-table th {
-      text-align: left;
-      color: var(--venus-soft);
-      padding: 5px;
-    }
-
-    .history-table td {
-      border-top: 1px solid var(--line);
-      padding: 8px 5px;
-    }
-
-    /* Modal moderno */
-    #card-modal .modal-header-bg {
-      background: linear-gradient(135deg, var(--venus), #555);
-      padding: 20px;
-      text-align: center;
-      position: relative;
-    }
-
-    #card-modal .modal-body {
-      padding: 20px;
-      overflow-y: auto;
-      max-height: 70vh;
-    }
-    
-    .stamps-indicator {
-      background: rgba(255,255,255,.05);
-      padding: 15px;
-      border-radius: 12px;
-      margin-bottom: 15px;
-    }
-
-    .stamps-progress {
-      height: 10px;
-      background: rgba(0,0,0,.3);
-      border-radius: 5px;
-      overflow: hidden;
-      margin-top: 8px;
-    }
-
-    .stamps-bar {
-      height: 100%;
-      background: var(--venus-soft);
-      width: 0%;
-      transition: width 0.3s;
-    }
-    
-    .actions-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-
-    .action-card {
-      background: rgba(255,255,255,.05);
-      padding: 15px;
-      border-radius: 12px;
-      text-align: center;
-      cursor: pointer;
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-    }
-
-    .action-card:hover {
-      border-color: var(--venus);
-      background: rgba(255,255,255,.1);
-    }
-    
-    .notify-section {
-      background: rgba(16,185,129,.1);
-      border: 1px solid #10b981;
-      padding: 10px;
-      border-radius: 10px;
-      margin-top: 15px;
-    }
+    .hidden{ display:none!important; }
   </style>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 </head>
+
 <body class="checking-auth">
 
-  <main class="wrap">
-    <header class="topbar">
-      <div class="brand">
-        <img src="/assets/logo.png" alt="Venus">
-        <div>
-          <h1>Admin — Venus Lealtad</h1>
-          <div class="muted" id="me-line">Sesión iniciada</div>
-        </div>
-      </div>
-      <div class="actions">
-        <a class="btn" href="/" target="_blank" rel="noopener">Página clientes</a>
-        <button id="logout" class="btn">Cerrar sesión</button>
-      </div>
-    </header>
+  <nav class="navbar navbar-dark px-3" style="background:rgba(0,0,0,0.25); backdrop-filter:blur(6px);">
+    <a class="navbar-brand d-flex align-items-center gap-2" href="#">
+      <img src="/assets/logo.png" width="40" height="40" class="rounded" />
+      <span class="fw-semibold">Admin — Venus Lealtad</span>
+    </a>
 
-    <nav class="nav">
-      <a href="#overview" data-tab="overview" class="is-active">Resumen</a>
-      <a href="#cards" data-tab="cards">Tarjetas</a>
-      <a href="#events" data-tab="events">Gift Cards</a>
-      <a href="#settings" data-tab="settings">Configuración</a>
-    </nav>
+    <div class="d-flex gap-2">
+      <a href="/" class="btn btn-ghost btn-sm" target="_blank">Página clientes</a>
+      <button id="logout" class="btn btn-ghost btn-sm">Cerrar sesión</button>
+    </div>
+  </nav>
 
-    <!-- TAB: Overview - MODIFICADO CON FILTROS, REPORTES Y CUMPLEAÑOS -->
-    <section id="tab-overview" class="card">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap:wrap; gap:10px;">
+  <div class="container py-4">
+
+    <!-- NAV DE TABS -->
+    <ul class="nav nav-pills mb-3 gap-2" id="admin-tabs">
+      <li class="nav-item">
+        <a class="nav-link active" data-tab="overview" href="#">Resumen</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" data-tab="cards" href="#">Tarjetas</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" data-tab="events" href="#">Gift Cards</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" data-tab="settings" href="#">Configuración</a>
+      </li>
+    </ul>
+
+    <!-- ================= TAB: OVERVIEW ================= -->
+    <div id="tab-overview" class="card-venus">
+
+      <div class="d-flex justify-content-between flex-wrap">
         <div>
-          <h2 style="margin:0;">Resumen</h2>
-          <p class="muted" style="margin:4px 0 0;">Indicadores rápidos de tu programa de lealtad</p>
+          <h3 class="mb-1">Resumen general</h3>
+          <small class="text-light opacity-75">Indicadores rápidos del sistema</small>
         </div>
-        <div class="header-actions">
-          <select id="stats-filter" class="filter-select">
+
+        <div class="d-flex gap-2 align-items-center mt-2">
+          <select id="stats-filter" class="form-select form-select-sm" style="max-width:150px;">
             <option value="day">Hoy</option>
-            <option value="week" selected>Esta Semana</option>
-            <option value="month">Este Mes</option>
+            <option value="week" selected>Semana</option>
+            <option value="month">Mes</option>
           </select>
-          <button id="btn-download-report" class="btn small primary">
-            ⬇ Descargar Reporte
+
+          <button id="btn-download-report" class="btn btn-venus btn-sm">
+            Descargar Reporte
           </button>
         </div>
       </div>
-      
-      <!-- KPIs principales (fila 1) -->
-      <div class="grid-3-kpi">
-        <div class="kpi">
-          <span>Tarjetas totales</span>
-          <span class="value" id="kpi-total">—</span>
-        </div>
-        <div class="kpi">
-          <span>Tarjetas completas</span>
-          <span class="value" id="kpi-full">—</span>
-        </div>
-        <div class="kpi">
-          <span id="stamps-period-label">Sellos hoy</span>
-          <span class="value" id="kpi-stamps">—</span>
-        </div>
-      </div>
 
-      <!-- KPIs adicionales (fila 2) -->
-      <div class="grid-3-kpi" style="margin-top:14px;">
-        <div class="kpi">
-          <span id="redeems-period-label">Canjes hoy</span>
-          <span class="value" id="kpi-redeems">—</span>
-        </div>
-        <div class="kpi">
-          <span>Promedio sellos</span>
-          <span class="value" id="kpi-avg">—</span>
-        </div>
-        <div class="kpi">
-          <span>Tasa completitud</span>
-          <span class="value" id="kpi-rate">—</span>
-        </div>
-      </div>
-
-      <!-- SECCIÓN DE CUMPLEAÑOS AGREGADA -->
-      <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line);">
-        <h3 style="margin:0 0 12px;font-size:15px;color:var(--ink);">🎂 Cumpleaños</h3>
-        <div class="grid-birthdays">
-          <div class="birthday-list">
-            <h4 style="color:#f87171">🎂 Pasaron (15 días)</h4>
-            <div id="list-past-bd" style="font-size:12px; opacity:0.8;">Cargando...</div>
+      <!-- KPIs -->
+      <div class="row mt-3 g-2">
+        <div class="col-md-4">
+          <div class="kpi">
+            <div>Tarjetas totales</div>
+            <div class="value" id="kpi-total">—</div>
           </div>
-          <div class="birthday-list">
-            <h4 style="color:#4ade80">🎉 Próximos (15 días)</h4>
-            <div id="list-next-bd" style="font-size:12px; opacity:0.8;">Cargando...</div>
+        </div>
+        <div class="col-md-4">
+          <div class="kpi">
+            <div>Tarjetas completas</div>
+            <div class="value" id="kpi-full">—</div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="kpi">
+            <div id="stamps-period-label">Sellos hoy</div>
+            <div class="value" id="kpi-stamps">—</div>
           </div>
         </div>
       </div>
 
-      <!-- Actividad reciente -->
-      <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line);">
-        <h3 style="margin:0 0 12px;font-size:15px;color:var(--ink);" id="activity-title">📈 Actividad reciente (7 días)</h3>
-        <div style="background:rgba(255,255,255,0.05);border-radius:12px;padding:12px;">
-          <canvas id="activity-chart" style="max-height:200px;"></canvas>
+      <!-- Segunda fila KPI -->
+      <div class="row mt-2 g-2">
+        <div class="col-md-4">
+          <div class="kpi">
+            <div id="redeems-period-label">Canjes hoy</div>
+            <div class="value" id="kpi-redeems">—</div>
+          </div>
         </div>
+        <div class="col-md-4">
+          <div class="kpi">
+            <div>Promedio sellos</div>
+            <div class="value" id="kpi-avg">—</div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="kpi">
+            <div>Tasa completitud</div>
+            <div class="value" id="kpi-rate">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cumpleaños -->
+      <hr class="my-4" style="border-color:var(--line);">
+      <h5>🎂 Cumpleaños</h5>
+
+      <div class="row g-3 mt-1">
+        <div class="col-md-6">
+          <div class="p-3 rounded" style="background:rgba(0,0,0,0.2); border:1px solid var(--line);">
+            <h6 class="text-danger">Pasaron (15 días)</h6>
+            <div id="list-past-bd" class="small opacity-75">Cargando...</div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="p-3 rounded" style="background:rgba(0,0,0,0.2); border:1px solid var(--line);">
+            <h6 class="text-success">Próximos (15 días)</h6>
+            <div id="list-next-bd" class="small opacity-75">Cargando...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actividad gráfica -->
+      <hr class="my-4" style="border-color:var(--line);">
+      <h5 id="activity-title">📈 Actividad (7 días)</h5>
+      <div class="p-3" style="background:rgba(255,255,255,0.05); border-radius:12px;">
+        <canvas id="activity-chart" style="height:200px;"></canvas>
       </div>
 
       <!-- Top clientes -->
-      <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line);">
-        <h3 style="margin:0 0 12px;font-size:15px;color:var(--ink);">⭐ Top Clientes</h3>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Cliente</th>
-                <th>Sellos</th>
-                <th>Estado</th>
-              </tr>
-            </thead>
-            <tbody id="top-clients">
-              <tr>
-                <td colspan="3" style="text-align:center;padding:12px;" class="muted">Cargando...</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Estado de Wallets -->
-      <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line);">
-        <h3 style="margin:0 0 12px;font-size:15px;color:var(--ink);">📱 Estado de Wallets</h3>
-        <div class="grid-3-kpi">
-          <div class="kpi">
-            <span>🟢 Google Wallet</span>
-            <span class="value" id="kpi-google">—</span>
-          </div>
-          <div class="kpi">
-            <span>🍎 Apple Wallet</span>
-            <span class="value" id="kpi-apple">—</span>
-          </div>
-          <div class="kpi">
-            <span>📲 Dispositivos totales</span>
-            <span class="value" id="kpi-devices">—</span>
-          </div>
-        </div>
-        <div style="margin-top:10px; text-align:center;">
-          <button id="btn-refresh-wallet-stats" class="btn small ghost">🔄 Actualizar estadísticas</button>
-        </div>
-      </div>
-    </section>
-
-    <!-- TAB: Cards -->
-    <section id="tab-cards" class="card hidden">
-      <h2>Tarjetas de lealtad</h2>
-      <p class="muted">Gestiona todas las tarjetas de tus clientes.</p>
-      
-      <div class="row" style="margin-top:12px;">
-        <input id="search-cards" placeholder="Buscar por ID o nombre..." style="flex:1;min-width:200px;">
-        <button id="btn-search-cards" class="btn primary">🔍 Buscar</button>
-        <button id="btn-reload-cards" class="btn">🔄 Recargar</button>
-        <button id="btn-scan-card" class="btn ghost">📷 Escanear QR</button>
-      </div>
-
-      <div class="table-wrap" style="margin-top:12px;">
-        <table>
-       <thead>
-  <tr>
-    <th class="sortable-header" data-sort="id">ID</th>
-    <th class="sortable-header" data-sort="name">Cliente</th>
-    <th class="sortable-header" data-sort="phone">Teléfono</th>
-    <th class="sortable-header" data-sort="birthdate">F. Nacimiento</th>
-    <th class="sortable-header" data-sort="stamps">Sellos</th>
-    <th class="sortable-header" data-sort="max">Max</th>
-    <th class="sortable-header" data-sort="createdAt">Creada</th>
-    <th>Acciones</th>
-  </tr>
-</thead>
-         <tbody id="cards-tbody">
-             <tr>
-                 <td colspan="8" style="text-align:center;padding:12px;" class="muted">Cargando tarjetas...</td>
-             </tr>
-        </tbody>
+      <hr class="my-4" style="border-color:var(--line);">
+      <h5>⭐ Top clientes</h5>
+      <div class="table-responsive">
+        <table class="table table-dark table-sm align-middle">
+          <thead><tr><th>Cliente</th><th>Sellos</th><th>Estado</th></tr></thead>
+          <tbody id="top-clients">
+            <tr><td colspan="3" class="text-center opacity-75">Cargando...</td></tr>
+          </tbody>
         </table>
       </div>
 
-      <div class="row" style="justify-content:space-between;margin-top:12px;">
-        <button id="btn-prev-page" class="btn small ghost">← Anterior</button>
-        <span id="page-info" class="muted">Página 1</span>
-        <button id="btn-next-page" class="btn small ghost">Siguiente →</button>
-      </div>
-    </section>
+      <!-- Wallet Stats -->
+      <hr class="my-4" style="border-color:var(--line);">
+      <h5>📱 Estado de Wallets</h5>
 
-    <!-- TAB: Gift Cards - ACTUALIZADO CON NUEVO DISEÑO -->
-    <section id="tab-events" class="card hidden">
-      <div class="gift-redeem-box">
-        <h3 style="margin-top:0; color:var(--venus-soft)">🎫 Canjear Gift Card</h3>
-        <div style="display:flex; gap:10px; justify-content:center; margin-top:10px;">
-          <input id="redeem-code" placeholder="Código o escanear..." style="max-width:250px; margin:0;">
-          <button id="btn-redeem-gift" class="btn primary small">Canjear</button>
+      <div class="row g-2">
+        <div class="col-md-4">
+          <div class="kpi">
+            <div>Google Wallet</div>
+            <div class="value" id="kpi-google">—</div>
+          </div>
         </div>
-        <button onclick="startGiftScan()" class="btn small ghost" style="margin-top:10px;">📷 Usar Cámara</button>
+        <div class="col-md-4">
+          <div class="kpi">
+            <div>Apple Wallet</div>
+            <div class="value" id="kpi-apple">—</div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="kpi">
+            <div>Dispositivos</div>
+            <div class="value" id="kpi-devices">—</div>
+          </div>
+        </div>
       </div>
 
-      <div style="margin-bottom:30px;">
-        <h3 style="font-size:14px; opacity:0.7;">📜 Historial Reciente</h3>
-        <table class="history-table">
+      <div class="text-center mt-3">
+        <button id="btn-refresh-wallet-stats" class="btn btn-ghost btn-sm">Actualizar</button>
+      </div>
+    </div>
+
+    <!-- ================= TAB: CARDS ================= -->
+    <div id="tab-cards" class="card-venus mt-3 d-none">
+
+      <h3>Tarjetas</h3>
+      <p class="opacity-75 small">Gestiona todas las tarjetas del programa</p>
+
+      <!-- Buscador -->
+      <div class="row g-2 mt-2">
+        <div class="col-md-4">
+          <input id="search-cards" class="form-control" placeholder="Buscar por ID o nombre...">
+        </div>
+        <div class="col-auto">
+          <button id="btn-search-cards" class="btn btn-venus btn-sm">Buscar</button>
+        </div>
+        <div class="col-auto">
+          <button id="btn-reload-cards" class="btn btn-ghost btn-sm">Recargar</button>
+        </div>
+        <div class="col-auto">
+          <button id="btn-scan-card" class="btn btn-ghost btn-sm">📷 Escanear QR</button>
+        </div>
+      </div>
+
+      <!-- Tabla -->
+      <div class="table-responsive mt-3">
+        <table class="table table-dark table-sm align-middle">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Cliente</th>
+              <th>Teléfono</th>
+              <th>Nacimiento</th>
+              <th>Sellos</th>
+              <th>Max</th>
+              <th>Creada</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="cards-tbody">
+            <tr><td colspan="8" class="text-center opacity-75">Cargando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="d-flex justify-content-between align-items-center mt-2">
+        <button id="btn-prev-page" class="btn btn-ghost btn-sm">Anterior</button>
+        <span id="page-info" class="small opacity-75">Página 1</span>
+        <button id="btn-next-page" class="btn btn-ghost btn-sm">Siguiente</button>
+      </div>
+
+    </div>
+
+    <!-- ================= TAB: GIFT CARDS ================= -->
+    <div id="tab-events" class="card-venus mt-3 d-none">
+
+      <h3>Gift Cards</h3>
+      <p class="opacity-75 small">Crear, visualizar y canjear gifts</p>
+
+      <div class="p-3 rounded" style="background:rgba(255,255,255,0.05);">
+        <h5 class="mb-2 text-center">🎫 Canjear Gift Card</h5>
+        <div class="d-flex justify-content-center gap-2">
+          <input id="redeem-code" class="form-control w-auto" style="max-width:200px;" placeholder="Código">
+          <button id="btn-redeem-gift" class="btn btn-venus btn-sm">Canjear</button>
+        </div>
+
+        <div class="text-center mt-2">
+          <button onclick="startGiftScan()" class="btn btn-ghost btn-sm">📷 Usar cámara</button>
+        </div>
+      </div>
+
+      <hr class="my-4" style="border-color:var(--line)">
+
+      <h5>📜 Historial reciente</h5>
+      <div class="table-responsive mt-2">
+        <table class="table table-dark table-sm">
           <thead><tr><th>Código</th><th>Servicio</th><th>Cliente</th><th>Fecha</th></tr></thead>
-          <tbody id="gift-history-body"><tr><td colspan="4">Cargando...</td></tr></tbody>
+          <tbody id="gift-history-body">
+            <tr><td colspan="4">Cargando...</td></tr>
+          </tbody>
         </table>
       </div>
-      
-      <hr style="border:0; border-top:1px solid var(--line); margin:20px 0;">
-      
-      <h2>Crear Gift Card</h2>
-      <p class="muted">Genera una tarjeta de regalo digital con vigencia de 30 días. Podrás compartir el QR por WhatsApp o imprimirla.</p>
-      
-      <form id="gift-form" style="max-width:500px;">
-        <label>Nombre del cliente (opcional)</label>
-        <input id="gift-name" placeholder="Ej. Ana López">
-        
-        <label>Servicio a regalar</label>
-        <input id="gift-service" required placeholder="Ej. Facial hidratante, Masaje relajante…">
-        
-        <button type="submit" class="btn primary" style="margin-top:10px;">Generar Gift Card</button>
+
+      <hr class="my-4" style="border-color:var(--line)">
+
+      <!-- Crear Gift -->
+      <h4>Crear Gift Card</h4>
+
+      <form id="gift-form" class="mt-3" style="max-width:450px;">
+        <label class="form-label">Nombre del cliente (opcional)</label>
+        <input id="gift-name" class="form-control" placeholder="Ej. Ana López">
+
+        <label class="form-label mt-2">Servicio</label>
+        <input id="gift-service" class="form-control" required placeholder="Ej. Facial hidratante">
+
+        <button class="btn btn-venus mt-3">Generar Gift Card</button>
       </form>
 
-      <div id="gift-preview-container" class="hidden" style="margin-top: 20px;">
-        <div id="gift-card-visual" class="gift-card-visual">
-          <div class="gift-card-content">
-            <img src="/assets/logo.png" alt="Venus" class="gift-brand-logo">
-            
-            <div class="gift-title">Venus Lealtad</div>
-            <div style="font-size: 0.9rem; opacity: 0.9;">¡Tienes un regalo! 🎁</div>
-            
-            <hr style="width: 50%; border: 0; border-top: 1px solid rgba(255,255,255,0.3); margin: 15px 0;">
+      <!-- Preview Gift -->
+      <div id="gift-preview-container" class="mt-4 d-none">
+        <div id="gift-card-visual" class="p-4 text-center rounded" style="background:#8c9668; max-width:320px; margin:auto;">
+          <img src="/assets/logo.png" width="70" class="rounded-circle mb-2" />
+          <h4 class="fw-bold">Venus Cosmetología</h4>
+          <div>🎁 ¡Tienes un regalo!</div>
+          <hr>
 
-            <div id="gift-visual-service" class="gift-service">Servicio</div>
-            <div id="gift-visual-client" class="gift-meta">Para: Cliente</div>
-            <div id="gift-visual-date" class="gift-meta" style="font-size: 0.8rem; margin-top:0;">Vence: --/--/--</div>
+          <div id="gift-visual-service" class="h5 fw-bold">Servicio</div>
+          <div id="gift-visual-client" class="small opacity-75">Cliente</div>
+          <div id="gift-visual-date" class="small opacity-75">Vence: --/--/--</div>
 
-            <div class="gift-qr-container">
-              <canvas id="gift-qr"></canvas>
-            </div>
-            <div style="font-size: 10px; color: #333; margin-top: 4px; color: #fff; opacity: 0.8;">Muestra este código</div>
+          <div class="bg-white p-2 rounded mt-2">
+            <canvas id="gift-qr"></canvas>
           </div>
         </div>
-      </div>
 
-      <div id="gift-actions" class="gift-actions hidden">
-        <button type="button" id="gift-copy" class="btn small">Copiar texto</button>
-        <button type="button" id="gift-whatsapp" class="btn small primary">Enviar por WhatsApp</button>
-        <button type="button" id="gift-whatsapp-image" class="btn small primary">📷 WhatsApp con imagen</button>
-      </div>
-      
-      <div id="gift-success" class="success-message hidden">
-        ✅ Gift Card generada exitosamente. Puedes enviarla por WhatsApp o compartir el texto.
-      </div>
-    </section>
+        <div class="d-flex justify-content-center gap-2 mt-3">
+          <button id="gift-copy" class="btn btn-ghost btn-sm">Copiar texto</button>
+          <button id="gift-whatsapp" class="btn btn-venus btn-sm">WhatsApp texto</button>
+          <button id="gift-whatsapp-image" class="btn btn-venus btn-sm">WhatsApp imagen</button>
+        </div>
 
-    <!-- TAB: Settings -->
-    <section id="tab-settings" class="card hidden">
-      <h2>Configuración</h2>
-      <p class="muted">Envía notificaciones push a todos los pases en Google Wallet.</p>
-      
-      <div style="background:rgba(140,150,104,0.1);border:1px solid rgba(140,150,104,0.3);border-radius:12px;padding:14px;margin:12px 0;">
-        <h3 style="margin:0 0 8px;">📲 Notificaciones Push</h3>
-        
-        <form id="push-notification-form">
-          <label>Título de la notificación</label>
-          <input id="push-title" placeholder="Ej. ¡Nueva promoción!" required maxlength="50">
-          <small class="muted">Máximo 50 caracteres</small>
-          
-          <label style="margin-top:10px;">Mensaje</label>
-          <textarea id="push-message" placeholder="Ej. Hoy tenemos 20% de descuento..." required maxlength="200" rows="3"></textarea>
-          <small class="muted">Máximo 200 caracteres</small>
-          
-          <label style="margin-top:10px;">Tipo</label>
-          <select id="push-type">
-            <option value="promo">🎁 Promoción</option>
-            <option value="reminder">⏰ Recordatorio</option>
-            <option value="update">ℹ️ Actualización</option>
-            <option value="alert">⚠️ Alerta</option>
+        <div id="gift-success" class="alert alert-success mt-3 d-none">
+          Gift Card generada correctamente
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= TAB: SETTINGS ================= -->
+    <div id="tab-settings" class="card-venus mt-3 d-none">
+
+      <h3>Configuración</h3>
+
+      <div class="mt-3 p-3 rounded" style="background:rgba(255,255,255,0.05);">
+        <h5>Notificaciones Push</h5>
+
+        <form id="push-notification-form" class="mt-3">
+
+          <label class="form-label">Título</label>
+          <input id="push-title" class="form-control" maxLength="50" required>
+
+          <label class="form-label mt-2">Mensaje</label>
+          <textarea id="push-message" class="form-control" rows="3" maxLength="200" required></textarea>
+
+          <label class="form-label mt-2">Tipo</label>
+          <select id="push-type" class="form-select">
+            <option value="promo">Promoción</option>
+            <option value="reminder">Recordatorio</option>
+            <option value="update">Actualización</option>
+            <option value="alert">Alerta</option>
           </select>
-          
-          <div style="margin-top:12px;padding:10px;background:rgba(255,255,255,0.05);border-radius:8px;">
-            <div class="row" style="justify-content:space-between;margin-bottom:8px;">
-              <span class="muted" style="font-size:12px;">Vista previa:</span>
-              <span id="preview-type" style="font-size:12px;">🎁 Promoción</span>
-            </div>
-            <div style="background:rgba(255,255,255,0.1);border-radius:8px;padding:10px;">
-              <div id="preview-title" style="font-weight:600;margin-bottom:4px;">¡Nueva promoción!</div>
-              <div id="preview-message" class="muted" style="font-size:12px;">Tu mensaje aparecerá aquí...</div>
-            </div>
+
+          <div class="mt-3 p-3 rounded" style="background:rgba(255,255,255,0.05);">
+            <small class="opacity-75">Vista previa:</small>
+            <div class="fw-bold" id="preview-title">Título aquí</div>
+            <div class="small opacity-75" id="preview-message">Mensaje aquí</div>
           </div>
-          
-          <div class="row" style="margin-top:14px;gap:10px;">
-            <button type="button" id="btn-mass-push" class="btn primary">Enviar a todos</button>
-            <button type="button" id="test-push" class="btn ghost">Enviar prueba</button>
+
+          <div class="d-flex gap-2 mt-3">
+            <button type="button" id="btn-mass-push" class="btn btn-venus">Enviar a todos</button>
+            <button type="button" id="test-push" class="btn btn-ghost">Probar</button>
+          </div>
+
+          <div id="push-success" class="alert alert-success mt-3 d-none">
+            Notificación enviada a <span id="push-count">0</span> pases
+          </div>
+          <div id="push-error" class="alert alert-danger mt-3 d-none">
+            Error enviando notificación
           </div>
         </form>
-        
-        <div id="push-success" class="success-message hidden" style="margin-top:12px;">
-          ✅ Notificación enviada a <span id="push-count">0</span> pases
-        </div>
-        
-        <div id="push-error" class="hidden" style="background:rgba(254,202,202,0.1);border:1px solid rgba(153,27,27,0.3);border-radius:10px;padding:10px 12px;margin-top:12px;font-size:13px;color:#fecaca;">
-          ❌ Error al enviar notificación
-        </div>
-      </div>
-
-      <div style="margin-top:16px;">
-        <div class="row" style="justify-content:space-between;margin-bottom:8px;">
-          <h3 style="margin:0;">📋 Historial</h3>
-          <button id="refresh-history" class="btn small ghost">🔄</button>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Fecha</th>
-                <th>Título</th>
-                <th>Tipo</th>
-                <th>Enviadas</th>
-                <th>Errores</th>
-              </tr>
-            </thead>
-            <tbody id="notifications-history">
-              <tr>
-                <td colspan="5" style="text-align:center;padding:12px;" class="muted">Cargando...</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- NUEVA SECCIÓN: DEBUGGING AVANZADO -->
-      <div class="debug-section">
-        <h3 style="margin:0 0 12px;font-size:15px;color:var(--ink);">🐛 Debugging Avanzado</h3>
-        
-        <div class="row" style="gap:8px;flex-wrap:wrap;margin-bottom:12px;">
-          <button id="btn-test-apple-push" class="btn small">🧪 Test Apple Push</button>
-          <button id="btn-test-google-push" class="btn small">🧪 Test Google Push</button>
-          <button id="btn-fix-google-wallet" class="btn small">🔧 Reparar Google Wallet</button>
-          <button id="btn-check-devices" class="btn small">📱 Ver Dispositivos</button>
-          <button id="btn-check-apns" class="btn small">🍎 Ver Config APNs</button>
-        </div>
-        
-        <div id="debug-output" class="debug-output hidden">
-          <!-- Aquí se mostrarán los resultados del debugging -->
-        </div>
-      </div>
-    </section>
-    
-    <!-- DIALOG: Escáner QR -->
-    <dialog id="scanDialog">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-        <h3 style="margin:0;font-size:16px;">Escanear tarjeta</h3>
-        <button type="button" id="scan-close" class="btn small ghost">Cerrar</button>
-      </div>
-      <div id="qr-reader" style="width:100%;"></div>
-      <div class="muted" id="scan-status" style="margin-top:8px;font-size:12px;">Iniciando cámara…</div>
-    </dialog>
-
-    <!-- NUEVO MODAL MODERNO PARA TARJETAS -->
-    <div id="card-modal" class="modal-backdrop hidden">
-      <div class="modal-card">
-        <div class="modal-header-bg">
-          <button onclick="$('#card-modal').classList.add('hidden')" style="position:absolute;right:15px;top:15px;background:rgba(0,0,0,0.2);border:0;color:#fff;border-radius:50%;width:30px;height:30px;cursor:pointer;">✕</button>
-          <div style="font-size:24px; font-weight:bold; background:#fff; color:#333; width:70px; height:70px; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 10px;" id="modal-avatar">A</div>
-          <h3 style="margin:0" id="cm-name">Nombre</h3>
-        </div>
-        <div class="modal-body">
-          <div class="stamps-indicator">
-            <div style="display:flex;justify-content:space-between">
-              <span>Progreso</span>
-              <span style="font-weight:bold;color:var(--venus-soft)"><span id="cm-stamps">0</span>/<span id="cm-max">8</span></span>
-            </div>
-            <div class="stamps-progress"><div id="bar-progress" class="stamps-bar"></div></div>
-            <div id="cm-status-text" style="text-align:center; margin-top:5px; font-size:12px; color:var(--success)">En curso</div>
-          </div>
-          
-          <div class="actions-grid">
-            <div class="action-card" id="btn-add-stamp">
-               <div style="font-size:22px">⭐</div>
-               <div style="font-size:12px">+1 Sello</div>
-            </div>
-            <div class="action-card" id="btn-redeem">
-               <div style="font-size:22px">🎁</div>
-               <div style="font-size:12px">Canjear</div>
-            </div>
-            <div class="action-card" onclick="$('#notify-form-container').classList.toggle('hidden')">
-               <div style="font-size:22px">🔔</div>
-               <div style="font-size:12px">Notificar</div>
-            </div>
-            <div class="action-card" onclick="downloadQR()">
-               <div style="font-size:22px">💾</div>
-               <div style="font-size:12px">QR</div>
-            </div>
-          </div>
-
-          <div id="notify-form-container" class="notify-section hidden">
-            <div style="font-size:12px; font-weight:bold; margin-bottom:5px;">Push Individual</div>
-            <input id="notify-title" placeholder="Título" style="background:rgba(0,0,0,0.2)">
-            <textarea id="notify-message" rows="2" placeholder="Mensaje..." style="background:rgba(0,0,0,0.2)"></textarea>
-            <button id="btn-send-notify" class="btn small primary" style="width:100%">Enviar Push</button>
-          </div>
-
-          <div style="text-align:center; margin-top:15px">
-            <div style="background:#fff; padding:5px; display:inline-block; border-radius:8px">
-              <canvas id="card-qr-modal" style="width:100px;height:100px"></canvas>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
 
-    <!-- Modal Tarjeta existente (se mantiene para compatibilidad) -->
-    <div id="card-modal-backdrop" class="modal-backdrop hidden">
-      <div class="modal-card">
+  </div> <!-- END container -->
+
+  <footer class="text-center py-3 small opacity-75">
+    © Venus Cosmetología — Admin Panel
+  </footer>
+
+
+  <!-- ============== MODAL TARJETA ============== -->
+  <div class="modal fade" id="cardModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content p-3">
         <div class="modal-header">
-          <h3>Tarjeta</h3>
-          <button id="cm-close" class="btn small ghost">Cerrar</button>
+          <h5 class="modal-title">Tarjeta</h5>
+          <button class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
-          <p><strong>ID:</strong> <code id="cm-id"></code></p>
-          <p><strong>Cliente:</strong> <span id="cm-name-old"></span></p>
-          <p><strong>Teléfono:</strong> <span id="cm-phone"></span></p>
-          <p><strong>Sellos:</strong> <span id="cm-stamps-old"></span></p>
-          <p><strong>Estado:</strong> <span id="cm-status"></span></p>
-          <div class="qr-box">
-            <canvas id="card-qr"></canvas>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button id="cm-stamp" class="btn small primary">+1 sello</button>
-          <button id="cm-redeem" class="btn small">Canjear</button>
-          <button id="cm-copy" class="btn small">Copiar ID</button>
-          <button id="cm-open" class="btn small ghost">Abrir cliente</button>
-          <button id="cm-notify" class="btn small">Notificar solo esta tarjeta</button>
-          <button id="cm-register-google" class="btn small">📱 Reg. Dispositivo Google</button>
+          <div id="card-modal-content">Cargando...</div>
         </div>
       </div>
     </div>
-    
-    <footer class="footer">© Venus Cosmetología</footer>
-  </main>
+  </div>
 
+  <!-- ============== MODAL SCAN QR ============== -->
+  <div class="modal fade" id="scanModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content p-3">
+        <div class="modal-header">
+          <h5 class="modal-title">Escanear QR</h5>
+          <button class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div id="qr-reader" style="width:100%"></div>
+          <div class="small opacity-75 text-center mt-2" id="scan-status">Iniciando cámara...</div>
+        </div>
+      </div>
+    </div>
+  </div>
   <script>
-    const $ = s => document.querySelector(s);
-    let currentCard = null;
-    let html5QrCode = null;
+/* -----------------------------------------------------------------------
+      UTILIDADES
+------------------------------------------------------------------------*/
+const $ = (sel) => document.querySelector(sel);
+const $$ = (sel) => document.querySelectorAll(sel);
 
-    /* ===== SESIÓN Y PROTECCIÓN ===== */
-    async function loadMe(){
-      try{
-        const r = await fetch("/api/admin/me",{credentials:"include"});
-        
-        if(!r.ok) {
-          console.log("Sin sesión válida, redirigiendo a login...");
-          window.location.href = "/admin-login.html";
-          return;
+let html5QrCode = null;
+let activityChart = null;
+
+function showSection(tab) {
+  $$('#admin-tabs .nav-link').forEach(a => a.classList.remove('active'));
+  $(`[data-tab="${tab}"]`).classList.add('active');
+
+  $$('#tab-overview, #tab-cards, #tab-events, #tab-settings').forEach(s => s.classList.add('d-none'));
+  $(`#tab-${tab}`).classList.remove('d-none');
+}
+
+/* -----------------------------------------------------------------------
+      AUTENTICACIÓN
+------------------------------------------------------------------------*/
+async function verifySession() {
+  try {
+    const r = await fetch("/api/admin/me", { credentials: "include" });
+    if (!r.ok) return location.href = "/admin-login.html";
+
+    const j = await r.json();
+    document.body.classList.remove("checking-auth");
+    document.body.classList.add("auth-verified");
+
+    $("#me-line") && ($("#me-line").textContent = "Sesión: " + (j.email || j.uid));
+
+    loadMetrics("week");
+  } catch (e) {
+    location.href = "/admin-login.html";
+  }
+}
+verifySession();
+
+/* -----------------------------------------------------------------------
+      EVENTOS DE TABS
+------------------------------------------------------------------------*/
+$$('[data-tab]').forEach(a => {
+  a.addEventListener("click", (e) => {
+    e.preventDefault();
+    const tab = a.dataset.tab;
+    showSection(tab);
+
+    if (tab === "overview") loadMetrics($("#stats-filter").value);
+    if (tab === "cards") loadCards(1);
+    if (tab === "events") loadGiftHistory();
+  });
+});
+
+/* -----------------------------------------------------------------------
+      RESUMEN / MÉTRICAS
+------------------------------------------------------------------------*/
+let globalStatsData = {};
+
+async function loadMetrics(range = "week") {
+  try {
+    const r = await fetch(`/api/admin/metrics-firebase?range=${range}`, { credentials: "include" });
+    const d = await r.json();
+
+    $("#kpi-total").textContent = d.total || 0;
+    $("#kpi-full").textContent = d.full || 0;
+
+    const stamps = range === "day" ? d.stampsToday : (range === "week" ? d.stampsWeek : d.stampsMonth);
+    const redeems = range === "day" ? d.redeemsToday : (range === "week" ? d.redeemsWeek : d.redeemsMonth);
+
+    $("#kpi-stamps").textContent = stamps || 0;
+    $("#kpi-redeems").textContent = redeems || 0;
+
+    $("#kpi-avg").textContent = d.total > 0 ? ((d.totalStamps || 0) / d.total).toFixed(1) : "0.0";
+    $("#kpi-rate").textContent = d.total > 0 ? ((d.full / d.total) * 100).toFixed(0) + "%" : "0%";
+
+    updatePeriodText(range);
+    await loadActivityChart(range);
+    await loadTopClients();
+    await loadWalletStats();
+    await loadBirthdays();
+
+    globalStatsData = d;
+  } catch (err) {
+    console.error("Metrics error", err);
+  }
+}
+
+function updatePeriodText(range) {
+  $("#stamps-period-label").textContent = range === "day" ? "Sellos hoy" :
+                                          range === "week" ? "Sellos esta semana" :
+                                          "Sellos este mes";
+
+  $("#redeems-period-label").textContent = range === "day" ? "Canjes hoy" :
+                                           range === "week" ? "Canjes esta semana" :
+                                           "Canjes este mes";
+
+  $("#activity-title").textContent =
+      range === "day" ? "📈 Actividad del día" :
+      range === "week" ? "📈 Actividad (7 días)" :
+      "📈 Actividad del mes";
+}
+
+// Filtro
+$("#stats-filter").addEventListener("change", (e) => loadMetrics(e.target.value));
+
+/* -----------------------------------------------------------------------
+      GRÁFICA
+------------------------------------------------------------------------*/
+async function loadActivityChart(range = "week") {
+  try {
+    const r = await fetch(`/api/admin/activity-${range}`, { credentials: "include" });
+    if (!r.ok) throw new Error("API error");
+
+    const d = await r.json();
+
+    const ctx = $("#activity-chart");
+
+    if (activityChart) activityChart.destroy();
+
+    activityChart = new Chart(ctx, {
+      type: "line",
+      data: {
+        labels: d.labels || [],
+        datasets: [{
+          label: "Sellos",
+          data: d.stamps || [],
+          borderColor: "#8c9668",
+          backgroundColor: "rgba(140, 150, 104, 0.15)",
+          tension: 0.4,
+          fill: true
+        }]
+      },
+      options: {
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero: true, ticks: { color: "#fff" } },
+          x: { ticks: { color: "#ccc" } }
         }
-        
-        const j = await r.json();
-        $("#me-line").textContent = "Sesión: " + (j.email || j.uid || "admin");
-        
-        document.body.classList.remove('checking-auth');
-        document.body.classList.add('auth-verified');
-        
-        loadMetrics('week');
-      }catch(e){
-        console.error("Error verificando sesión:", e);
-        window.location.href = "/admin-login.html";
       }
-    }
+    });
+  } catch (e) {
+    console.error("Chart error:", e);
+  }
+}
 
-    loadMe();
+/* -----------------------------------------------------------------------
+      TOP CLIENTES
+------------------------------------------------------------------------*/
+async function loadTopClients() {
+  try {
+    const r = await fetch(`/api/admin/top-clients`, { credentials: "include" });
+    const d = await r.json();
 
-    /* ===== TABS ===== */
-    document.querySelectorAll('[data-tab]').forEach(tab => {
-      tab.addEventListener('click', function(e) {
-        e.preventDefault();
-        
-        document.querySelectorAll('.nav a').forEach(a => a.classList.remove('is-active'));
-        this.classList.add('is-active');
-        
-        document.querySelectorAll('[id^="tab-"]').forEach(s => s.classList.add('hidden'));
-        
-        const targetId = 'tab-' + this.getAttribute('data-tab');
-        const targetSection = document.getElementById(targetId);
-        if (targetSection) {
-          targetSection.classList.remove('hidden');
+    const tbody = $("#top-clients");
+    tbody.innerHTML = d.clients.slice(0, 5).map(c => `
+      <tr>
+        <td>${c.name}</td>
+        <td>${c.stamps}/${c.max}</td>
+        <td>${c.stamps >= c.max ? "🎁 Completa" : (c.max - c.stamps) + " restantes"}</td>
+      </tr>
+    `).join("");
+  } catch (e) {
+    console.error("Top clients error:", e);
+  }
+}
+
+/* -----------------------------------------------------------------------
+      CUMPLEAÑOS
+------------------------------------------------------------------------*/
+async function loadBirthdays() {
+  try {
+    const r = await fetch(`/api/admin/birthdays`);
+    const d = await r.json();
+
+    $("#list-past-bd").innerHTML =
+      d.past.map(x => `<div class="d-flex justify-content-between"><span>${x.name}</span><span>${x.daysAgo} días</span></div>`).join("");
+
+    $("#list-next-bd").innerHTML =
+      d.upcoming.map(x => `<div class="d-flex justify-content-between"><span>${x.name}</span><span>En ${x.daysLeft} días</span></div>`).join("");
+  } catch (e) {
+    console.error("Birthday error", e);
+  }
+}
+
+/* -----------------------------------------------------------------------
+      WALLET STATS
+------------------------------------------------------------------------*/
+async function loadWalletStats() {
+  try {
+    const r = await fetch(`/api/admin/device-stats`, { credentials: "include" });
+    if (!r.ok) return;
+
+    const d = await r.json();
+    $("#kpi-google").textContent = d.google?.totalDevices || 0;
+    $("#kpi-apple").textContent = d.apple?.totalDevices || 0;
+    $("#kpi-devices").textContent = d.total?.devices || 0;
+  } catch (e) {
+    console.error("Wallet stats error", e);
+  }
+}
+$("#btn-refresh-wallet-stats").addEventListener("click", loadWalletStats);
+
+/* -----------------------------------------------------------------------
+      TARJETAS
+------------------------------------------------------------------------*/
+let currentPage = 1;
+
+async function loadCards(page = 1) {
+  try {
+    const q = $("#search-cards").value;
+    const url = `/api/admin/cards-firebase?page=${page}${q ? "&q="+q : ""}`;
+
+    const r = await fetch(url, { credentials: "include" });
+    const d = await r.json();
+
+    const tbody = $("#cards-tbody");
+    tbody.innerHTML = d.items.map(c => `
+      <tr>
+        <td><code>${c.id}</code></td>
+        <td>${c.name || "—"}</td>
+        <td>${c.phone || "—"}</td>
+        <td>${c.birthdate || "—"}</td>
+        <td>${c.stamps}</td>
+        <td>${c.max}</td>
+        <td>${new Date(c.createdAt).toLocaleDateString("es-MX")}</td>
+        <td>
+          <div class="d-flex flex-wrap gap-1">
+            <button class="btn btn-ghost btn-sm" onclick='openCard("${c.id}")'>Ver</button>
+            <button class="btn btn-ghost btn-sm" onclick='copyId("${c.id}")'>Copiar</button>
+            <button class="btn btn-ghost btn-sm" onclick='addStamp("${c.id}")'>+1</button>
+            <button class="btn btn-ghost btn-sm" onclick='redeem("${c.id}")'>Canjear</button>
+          </div>
+        </td>
+      </tr>
+    `).join("");
+
+    $("#page-info").textContent = `Página ${d.page} / ${d.totalPages}`;
+
+    currentPage = page;
+
+    $("#btn-prev-page").disabled = d.page === 1;
+    $("#btn-next-page").disabled = d.page === d.totalPages;
+
+  } catch (e) {
+    console.error("Cards error:", e);
+  }
+}
+
+$("#btn-search-cards").addEventListener("click", () => loadCards(1));
+$("#btn-reload-cards").addEventListener("click", () => loadCards(currentPage));
+$("#btn-prev-page").addEventListener("click", () => loadCards(currentPage - 1));
+$("#btn-next-page").addEventListener("click", () => loadCards(currentPage + 1));
+
+/* -----------------------------------------------------------------------
+      VER TARJETA (MODAL)
+------------------------------------------------------------------------*/
+async function openCard(id) {
+  $("#card-modal-content").innerHTML = "Cargando...";
+
+  const r = await fetch(`/api/card/${id}`);
+  const d = await r.json();
+
+  $("#card-modal-content").innerHTML = `
+    <h4>${d.name}</h4>
+    <p><strong>ID:</strong> ${d.id}</p>
+    <p><strong>Sellos:</strong> ${d.stamps}/${d.max}</p>
+    <div class="text-center">
+      <canvas id="modal-qr"></canvas>
+    </div>
+  `;
+
+  QRCode.toCanvas($("#modal-qr"), d.id);
+
+  new bootstrap.Modal($("#cardModal")).show();
+}
+
+/* -----------------------------------------------------------------------
+      ACCIONES TARJETA
+------------------------------------------------------------------------*/
+async function copyId(id) {
+  await navigator.clipboard.writeText(id);
+  alert("ID copiado");
+}
+
+async function addStamp(id) {
+  const r = await fetch(`/api/card/${id}/stamp`, { method: "POST" });
+  if (r.ok) { alert("+1 sello agregado"); loadCards(currentPage); }
+}
+
+async function redeem(id) {
+  const r = await fetch(`/api/card/${id}/redeem`, { method: "POST" });
+  if (r.ok) { alert("Tarjeta canjeada"); loadCards(currentPage); }
+}
+
+/* -----------------------------------------------------------------------
+      SCAN QR TARJETA
+------------------------------------------------------------------------*/
+$("#btn-scan-card").addEventListener("click", () => {
+  const modal = new bootstrap.Modal($("#scanModal"));
+  modal.show();
+  startScan();
+});
+
+async function startScan() {
+  try {
+    html5QrCode = new Html5Qrcode("qr-reader");
+
+    await html5QrCode.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: 250 },
+      (decodedText) => {
+        const cardId = extractCardId(decodedText);
+        if (cardId) {
+          html5QrCode.stop();
+          bootstrap.Modal.getInstance($("#scanModal")).hide();
+          openCard(cardId);
         }
-        
-        const tabName = this.getAttribute('data-tab');
-        if (tabName === 'overview') {
-          loadMetrics(document.getElementById('stats-filter').value);
-        } else if (tabName === 'cards') {
-          loadCards(1);
-        } else if (tabName === 'events') {
-          loadGiftHistory();
-        } else if (tabName === 'settings') {
-          loadNotificationsHistory();
-        }
+      }
+    );
+  } catch (e) {
+    console.error("Scan error:", e);
+  }
+}
+
+function extractCardId(text) {
+  try {
+    const u = new URL(text);
+    return u.searchParams.get("cardId");
+  } catch {}
+  return text.startsWith("card_") ? text : null;
+}
+
+/* -----------------------------------------------------------------------
+      GIFT CARDS
+------------------------------------------------------------------------*/
+async function loadGiftHistory() {
+  try {
+    const r = await fetch(`/api/admin/gift-history`);
+    const d = await r.json();
+
+    $("#gift-history-body").innerHTML = d.history.map(h => `
+      <tr>
+        <td>${h.code}</td>
+        <td>${h.service}</td>
+        <td>${h.client}</td>
+        <td>${new Date(h.date).toLocaleString()}</td>
+      </tr>
+    `).join("");
+  } catch (e) {
+    console.error("Gift history error:", e);
+  }
+}
+
+/* Crear gift */
+$("#gift-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  const name = $("#gift-name").value.trim() || "Cliente";
+  const service = $("#gift-service").value.trim();
+
+  const id = "gift_" + Date.now();
+  const expires = new Date();
+  expires.setDate(expires.getDate() + 30);
+
+  $("#gift-visual-service").textContent = service;
+  $("#gift-visual-client").textContent = name;
+  $("#gift-visual-date").textContent = "Vence: " + expires.toLocaleDateString("es-MX");
+
+  QRCode.toCanvas($("#gift-qr"), `GIFT|${id}|${service}|${name}`);
+
+  $("#gift-preview-container").classList.remove("d-none");
+  $("#gift-success").classList.remove("d-none");
+});
+
+/* WhatsApp texto */
+$("#gift-whatsapp").addEventListener("click", () => {
+  const service = $("#gift-visual-service").textContent;
+  const client = $("#gift-visual-client").textContent.replace("Para:", "");
+  const expires = $("#gift-visual-date").textContent;
+
+  const msg =
+    `🎁 Gift de Venus\n\n`+
+    `✨ Servicio: ${service}\n`+
+    `👩 Para: ${client}\n`+
+    `📅 ${expires}\n`;
+
+  window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
+});
+
+/* WhatsApp imagen */
+$("#gift-whatsapp-image").addEventListener("click", async () => {
+  const card = $("#gift-card-visual");
+
+  const canvas = await html2canvas(card, { scale: 2 });
+  canvas.toBlob((blob) => {
+    const file = new File([blob], "gift.png", { type: "image/png" });
+
+    if (navigator.share) {
+      navigator.share({
+        files: [file],
+        title: "Gift Venus",
+        text: "Tu tarjeta de regalo"
       });
-    });
-
-    /* ===== FILTRADO Y REPORTES ===== */
-    let globalStatsData = {};
-
-    document.getElementById('stats-filter').addEventListener('change', (e) => {
-        loadMetrics(e.target.value);
-    });
-
-    document.getElementById('btn-download-report').addEventListener('click', downloadCSV);
-
-    function downloadCSV() {
-        if(!globalStatsData.clients) return alert("No hay datos para descargar");
-
-        let csvContent = "data:text/csv;charset=utf-8,";
-        
-        csvContent += `REPORTE DE LEALTAD VENUS\r\n`;
-        csvContent += `Periodo: ${document.querySelector("#stats-filter option:checked").text}\r\n`;
-        csvContent += `Generado: ${new Date().toLocaleDateString()}\r\n\r\n`;
-        
-        csvContent += `METRICAS GENERALES\r\n`;
-        csvContent += `Total Tarjetas Activas,${globalStatsData.total || 0}\r\n`;
-        csvContent += `Tarjetas Completadas,${globalStatsData.full || 0}\r\n`;
-        csvContent += `Sellos en este periodo,${globalStatsData.stampsPeriod || 0}\r\n`;
-        csvContent += `Canjes en este periodo,${globalStatsData.redeemsPeriod || 0}\r\n`;
-        csvContent += `Promedio de sellos,${globalStatsData.avg || 0}\r\n`;
-        csvContent += `Tasa de completitud,${globalStatsData.rate || 0}%\r\n\r\n`;
-
-        csvContent += `TOP CLIENTES\r\n`;
-        csvContent += `Nombre,Sellos Actuales,Meta,Estado\r\n`;
-        
-        globalStatsData.clients.forEach(c => {
-            const estado = c.stamps >= c.max ? "Completada" : "En curso";
-            csvContent += `${c.name},${c.stamps},${c.max},${estado}\r\n`;
-        });
-
-        const encodedUri = encodeURI(csvContent);
-        const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `Reporte_Venus_${new Date().getTime()}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+    } else {
+      const a = document.createElement("a");
+      a.href = canvas.toDataURL();
+      a.download = "gift.png";
+      a.click();
     }
+  });
+});
 
-    /* ===== METRICS (Firestore) - MEJORADO CON FILTROS ===== */
-    let activityChart = null;
+/* -----------------------------------------------------------------------
+      NOTIFICACIONES
+------------------------------------------------------------------------*/
+$("#push-type").addEventListener("change", updatePreview);
+$("#push-title").addEventListener("input", updatePreview);
+$("#push-message").addEventListener("input", updatePreview);
 
-    async function loadMetrics(range = 'week') {
-      try {
-        updatePeriodLabels(range);
-        
-        const response = await fetch(`/api/admin/metrics-firebase?range=${range}`, {
-          credentials: 'include'
-        });
-        const data = await response.json();
-        
-        document.getElementById('kpi-total').textContent = data.total || 0;
-        document.getElementById('kpi-full').textContent = data.full || 0;
-        
-        if (range === 'day') {
-          document.getElementById('kpi-stamps').textContent = data.stampsToday || 0;
-          document.getElementById('kpi-redeems').textContent = data.redeemsToday || 0;
-        } else if (range === 'week') {
-          document.getElementById('kpi-stamps').textContent = data.stampsWeek || 0;
-          document.getElementById('kpi-redeems').textContent = data.redeemsWeek || 0;
-        } else if (range === 'month') {
-          document.getElementById('kpi-stamps').textContent = data.stampsMonth || 0;
-          document.getElementById('kpi-redeems').textContent = data.redeemsMonth || 0;
-        }
-        
-        const avg = data.total > 0 ? (((data.totalStamps || 0) / data.total)).toFixed(1) : '0.0';
-        document.getElementById('kpi-avg').textContent = avg;
-        
-        const rate = data.total > 0 ? ((data.full / data.total) * 100).toFixed(0) : '0';
-        document.getElementById('kpi-rate').textContent = rate + '%';
-        
-        await loadTopClients();
-        await loadActivityChart(range);
-        await loadWalletStats();
-        await loadBirthdays();
-        
-        globalStatsData = {
-          total: data.total || 0,
-          full: data.full || 0,
-          stampsPeriod: range === 'day' ? data.stampsToday : (range === 'week' ? data.stampsWeek : data.stampsMonth),
-          redeemsPeriod: range === 'day' ? data.redeemsToday : (range === 'week' ? data.redeemsWeek : data.redeemsMonth),
-          avg: avg,
-          rate: rate,
-          range: range
-        };
-        
-      } catch (error) {
-        console.error('Error:', error);
-        loadSampleData(range);
-      }
-    }
+function updatePreview() {
+  $("#preview-title").textContent = $("#push-title").value;
+  $("#preview-message").textContent = $("#push-message").value;
+}
 
-    function updatePeriodLabels(range) {
-      const stampsLabel = document.getElementById('stamps-period-label');
-      const redeemsLabel = document.getElementById('redeems-period-label');
-      const activityTitle = document.getElementById('activity-title');
-      
-      if (range === 'day') {
-        stampsLabel.textContent = 'Sellos hoy';
-        redeemsLabel.textContent = 'Canjes hoy';
-        activityTitle.textContent = '📈 Actividad hoy';
-      } else if (range === 'week') {
-        stampsLabel.textContent = 'Sellos esta semana';
-        redeemsLabel.textContent = 'Canjes esta semana';
-        activityTitle.textContent = '📈 Actividad reciente (7 días)';
-      } else if (range === 'month') {
-        stampsLabel.textContent = 'Sellos este mes';
-        redeemsLabel.textContent = 'Canjes este mes';
-        activityTitle.textContent = '📈 Actividad mensual';
-      }
-    }
+$("#btn-mass-push").addEventListener("click", async () => {
+  const body = {
+    title: $("#push-title").value,
+    message: $("#push-message").value,
+    type: $("#push-type").value
+  };
 
-    function loadSampleData(range) {
-      let labels, dataStamps, kpiStamps, kpiRedeems;
-      
-      if(range === 'day') {
-        labels = ['10:00', '12:00', '14:00', '16:00', '18:00', '20:00'];
-        dataStamps = [2, 5, 1, 8, 4, 6];
-        kpiStamps = 26;
-        kpiRedeems = 3;
-      } else if(range === 'week') {
-        labels = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
-        dataStamps = [12, 19, 3, 5, 22, 30, 15];
-        kpiStamps = 106;
-        kpiRedeems = 8;
-      } else {
-        labels = ['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4'];
-        dataStamps = [80, 120, 95, 110];
-        kpiStamps = 405;
-        kpiRedeems = 25;
-      }
+  const r = await fetch("/api/admin/push-all", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify(body)
+  });
 
-      document.getElementById('kpi-total').textContent = "142";
-      document.getElementById('kpi-full').textContent = "18";
-      document.getElementById('kpi-stamps').textContent = kpiStamps;
-      document.getElementById('kpi-redeems').textContent = kpiRedeems;
-      document.getElementById('kpi-avg').textContent = "5.2";
-      document.getElementById('kpi-rate').textContent = "13%";
+  if (r.ok) {
+    $("#push-success").classList.remove("d-none");
+    $("#push-error").classList.add("d-none");
+  } else {
+    $("#push-success").classList.add("d-none");
+    $("#push-error").classList.remove("d-none");
+  }
+});
 
-      renderChart(labels, dataStamps);
-      renderSampleTopClients();
-      
-      globalStatsData = {
-        total: 142,
-        full: 18,
-        stampsPeriod: kpiStamps,
-        redeemsPeriod: kpiRedeems,
-        avg: "5.2",
-        rate: "13",
-        range: range
-      };
-    }
+/* -----------------------------------------------------------------------
+      LOGOUT
+------------------------------------------------------------------------*/
+$("#logout").addEventListener("click", async () => {
+  await fetch("/api/admin/logout", { method: "POST" });
+  location.href = "/admin-login.html";
+});
+</script> 
+<!-- BOOTSTRAP JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
-    function renderChart(labels, data) {
-      const ctx = document.getElementById('activity-chart');
-      
-      if (activityChart) {
-        activityChart.destroy();
-      }
-      
-      activityChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: labels,
-          datasets: [{
-            label: 'Sellos',
-            data: data,
-            borderColor: '#8c9668',
-            backgroundColor: 'rgba(140, 150, 104, 0.15)',
-            tension: 0.4,
-            fill: true,
-            pointBackgroundColor: '#8c9668',
-            pointBorderColor: '#fff',
-            pointBorderWidth: 2,
-            pointRadius: 4,
-            pointHoverRadius: 6
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              backgroundColor: 'rgba(0, 0, 0, 0.8)',
-              padding: 10,
-              titleColor: '#fff',
-              bodyColor: '#fff',
-              borderColor: '#8c9668',
-              borderWidth: 1
-            }
-          },
-          scales: {
-            y: { 
-              beginAtZero: true,
-              ticks: { 
-                color: '#e5e7eb',
-                font: { size: 11 }
-              },
-              grid: {
-                color: 'rgba(255, 255, 255, 0.1)'
-              }
-            },
-            x: { 
-              ticks: { 
-                color: '#e5e7eb',
-                font: { size: 11 }
-              },
-              grid: {
-                display: false
-              }
-            }
-          }
-        }
-      });
-    }
+<script>
+/* -----------------------------------------------------------------------
+      FIXES FINALES Y OPTIMIZACIONES
+------------------------------------------------------------------------*/
 
-    function renderSampleTopClients() {
-      const clients = [
-        {name: 'Ana López', stamps: 7, max: 8},
-        {name: 'Carlos Ruiz', stamps: 8, max: 8},
-        {name: 'Sofía Mendoza', stamps: 4, max: 8},
-        {name: 'Roberto García', stamps: 6, max: 8},
-        {name: 'Laura Torres', stamps: 8, max: 8}
-      ];
-      
-      const tbody = document.getElementById('top-clients');
-      tbody.innerHTML = clients.map(c => `
-        <tr>
-          <td>${c.name}</td>
-          <td>${c.stamps}/${c.max}</td>
-          <td>
-            ${c.stamps >= c.max 
-              ? '<span class="tag">🎁 Completa</span>' 
-              : `<span class="muted">${c.max - c.stamps} más</span>`
-            }
-          </td>
-        </tr>
-      `).join('');
-      
-      globalStatsData.clients = clients;
-    }
+/* Cerrar modal al hacer ESC sin romper cámara */
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && html5QrCode) {
+    try { html5QrCode.stop(); } catch {}
+  }
+});
 
-    async function loadTopClients() {
-      try {
-        const response = await fetch('/api/admin/top-clients', {
-          credentials: 'include'
-        });
-        const data = await response.json();
-        
-        const tbody = document.getElementById('top-clients');
-        if (!data.clients || data.clients.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="3" style="text-align:center;padding:12px;" class="muted">No hay datos</td></tr>`;
-          return;
-        }
-        
-        tbody.innerHTML = data.clients.slice(0, 5).map(c => `
-          <tr>
-            <td>${c.name || 'Sin nombre'}</td>
-            <td>${c.stamps}/${c.max}</td>
-            <td>
-              ${c.stamps >= c.max 
-                ? '<span class="tag">🎁 Completa</span>' 
-                : `<span class="muted">${c.max - c.stamps} más</span>`
-              }
-            </td>
-          </tr>
-        `).join('');
-        
-        globalStatsData.clients = data.clients.slice(0, 5);
-      } catch (error) {
-        console.error('Error cargando top clients:', error);
-        renderSampleTopClients();
-      }
-    }
+/* Evitar scroll al abrir modales */
+const modals = document.querySelectorAll(".modal");
+modals.forEach(m => {
+  m.addEventListener("shown.bs.modal", () => document.body.classList.add("modal-open-fixed"));
+  m.addEventListener("hidden.bs.modal", () => document.body.classList.remove("modal-open-fixed"));
+});
 
-    async function loadActivityChart(range = 'week') {
-      try {
-        const response = await fetch(`/api/admin/activity-${range}`, {
-          credentials: 'include'
-        });
-        
-        if (!response.ok) {
-          throw new Error('API no disponible');
-        }
-        
-        const data = await response.json();
-        const ctx = document.getElementById('activity-chart');
-        
-        if (activityChart) {
-          activityChart.destroy();
-        }
-        
-        activityChart = new Chart(ctx, {
-          type: 'line',
-          data: {
-            labels: data.labels || ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
-            datasets: [{
-              label: 'Sellos',
-              data: data.stamps || [0, 0, 0, 0, 0, 0, 0],
-              borderColor: '#8c9668',
-              backgroundColor: 'rgba(140, 150, 104, 0.15)',
-              tension: 0.4,
-              fill: true,
-              pointBackgroundColor: '#8c9668',
-              pointBorderColor: '#fff',
-              pointBorderWidth: 2,
-              pointRadius: 4,
-              pointHoverRadius: 6
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: { display: false },
-              tooltip: {
-                backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                padding: 10,
-                titleColor: '#fff',
-                bodyColor: '#fff',
-                borderColor: '#8c9668',
-                borderWidth: 1
-              }
-            },
-            scales: {
-              y: { 
-                beginAtZero: true,
-                ticks: { 
-                  color: '#e5e7eb',
-                  font: { size: 11 }
-                },
-                grid: {
-                  color: 'rgba(255, 255, 255, 0.1)'
-                }
-              },
-              x: { 
-                ticks: { 
-                  color: '#e5e7eb',
-                  font: { size: 11 }
-                },
-                grid: {
-                  display: false
-                }
-              }
-            }
-          }
-        });
-      } catch (error) {
-        console.error('Error cargando gráfica:', error);
-      }
-    }
+/* Solución cámara Safari/iOS */
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden && html5QrCode) {
+    try { html5QrCode.stop(); } catch {}
+  }
+});
 
-    /* ===== WALLET STATS MEJORADO ===== */
-    async function loadWalletStats() {
-      try {
-        try {
-          const deviceStatsResponse = await fetch('/api/admin/device-stats', {
-            credentials: 'include'
-          });
-          
-          if (deviceStatsResponse.ok) {
-            const deviceStats = await deviceStatsResponse.json();
-            
-            document.getElementById('kpi-google').textContent = deviceStats.google?.totalDevices || '0';
-            document.getElementById('kpi-apple').textContent = deviceStats.apple?.totalDevices || '0';
-            document.getElementById('kpi-devices').textContent = deviceStats.total?.devices || '0';
-            return;
-          }
-        } catch (e) {
-          console.log('Nuevo endpoint device-stats no disponible, usando endpoint legacy');
-        }
-        
-        const response = await fetch('/api/admin/wallet-stats', {
-          credentials: 'include'
-        });
-        const data = await response.json();
-        
-        document.getElementById('kpi-google').textContent = data.googleWallets || 0;
-        document.getElementById('kpi-apple').textContent = data.appleWallets || 0;
-        document.getElementById('kpi-devices').textContent = data.appleDevices || 0;
-      } catch (error) {
-        console.error('Error cargando wallet stats:', error);
-        document.getElementById('kpi-google').textContent = '—';
-        document.getElementById('kpi-apple').textContent = '—';
-        document.getElementById('kpi-devices').textContent = '—';
-      }
-    }
+/* Mantener tu color Venus en selección de texto */
+const style = document.createElement("style");
+style.innerHTML = `
+  ::selection {
+    background: var(--venus);
+    color: #fff;
+  }
+`;
+document.head.appendChild(style);
 
-    document.getElementById('btn-refresh-wallet-stats')?.addEventListener('click', loadWalletStats);
+/* Ajuste responsivo del dashboard */
+function adjustDashboard() {
+  const w = window.innerWidth;
+  if (w < 480) {
+    document.body.classList.add("mobile-ui");
+  } else {
+    document.body.classList.remove("mobile-ui");
+  }
+}
+adjustDashboard();
+window.addEventListener("resize", adjustDashboard);
 
-    /* ===== CARDS (Firestore + menú de acciones) ===== */
-    let currentPage = 1;
-    let cardsCache = {};
-    let currentCardId = null;
-    let currentSort = 'createdAt';
-    let currentOrder = 'desc';
+/* Crash-safe para evitar errores al iniciar */
+console.log("%cVenus Admin cargado ✔", "color:#8c9668;font-size:14px;");
 
-    async function loadCards(page = 1, sortBy = currentSort, sortOrder = currentOrder) {
-      try {
-        const searchQuery = document.getElementById('search-cards').value;
-        const params = new URLSearchParams({
-          page: page.toString(),
-          ...(searchQuery && { q: searchQuery }),
-          sortBy: sortBy,
-          sortOrder: sortOrder
-        });
-        
-        const url = `/api/admin/cards-firebase?${params}`;
-        
-        const response = await fetch(url, {
-          credentials: 'include'
-        });
+/* Fallback para charts */
+window.addEventListener("error", (e) => {
+  if (String(e.message).includes("Chart")) {
+    console.warn("Chart.js warning:", e.message);
+  }
+});
+</script>
 
-        if (!response.ok) throw new Error('Error ' + response.status);
-
-        const data = await response.json();
-        const tbody = document.getElementById('cards-tbody');
-
-        if (!data.items || data.items.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:12px;" class="muted">No hay tarjetas</td></tr>`;
-          return;
-        }
-
-        cardsCache = {};
-        data.items.forEach(c => { cardsCache[c.id] = c; });
-
-        tbody.innerHTML = data.items.map(card => `
-          <tr data-card-id="${card.id}">
-            <td><code>${card.id}</code></td>
-            <td>${card.name || '—'}</td>
-            <td>${card.phone || '—'}</td>
-            <td>${card.birthdate || '—'}</td>
-            <td>${card.stamps}</td>
-            <td>${card.max}</td>
-            <td>${card.createdAt ? new Date(card.createdAt).toLocaleDateString('es-ES') : '—'}</td>
-            <td>
-              <div class="row" style="gap:4px;flex-wrap:wrap;">
-                <button class="btn small" data-action="view">Ver</button>
-                <button class="btn small" data-action="copy">Copiar ID</button>
-                <button class="btn small" data-action="open">Abrir cliente</button>
-                <button class="btn small" data-action="stamp">+1 sello</button>
-                <button class="btn small" data-action="redeem">Canjear</button>
-                <button class="btn small ghost" data-action="delete">Eliminar</button>
-              </div>
-            </td>
-          </tr>
-        `).join('');
-
-        document.getElementById('page-info').textContent =
-          `Página ${data.page} de ${data.totalPages} (${data.total} total)`;
-        document.getElementById('btn-prev-page').disabled = data.page === 1;
-        document.getElementById('btn-next-page').disabled = data.page === data.totalPages;
-        
-        currentPage = data.page;
-        currentSort = sortBy;
-        currentOrder = sortOrder;
-        
-        updateSortableHeaders();
-        
-      } catch (error) {
-        console.error('Error:', error);
-        document.getElementById('cards-tbody').innerHTML =
-          `<tr><td colspan="8" style="text-align:center;padding:12px;color:#fecaca;">Error: ${error.message}</td></tr>`;
-      }
-    }
-   
-    function setupSortableHeaders() {
-      document.addEventListener('click', (e) => {
-        if (e.target.classList.contains('sortable-header')) {
-          const sortBy = e.target.dataset.sort;
-          
-          if (currentSort === sortBy) {
-            currentOrder = currentOrder === 'asc' ? 'desc' : 'asc';
-          } else {
-            currentSort = sortBy;
-            currentOrder = 'asc';
-          }
-          
-          loadCards(1, currentSort, currentOrder);
-        }
-      });
-    }
-
-    function updateSortableHeaders() {
-      document.querySelectorAll('.sortable-header').forEach(header => {
-        header.classList.remove('asc', 'desc');
-      });
-      
-      const currentHeader = document.querySelector(`.sortable-header[data-sort="${currentSort}"]`);
-      if (currentHeader) {
-        currentHeader.classList.add(currentOrder);
-      }
-    }
-
-    document.getElementById('btn-prev-page').addEventListener('click', () => {
-      if (currentPage > 1) loadCards(currentPage - 1, currentSort, currentOrder);
-    });
-
-    document.getElementById('btn-next-page').addEventListener('click', () => {
-      loadCards(currentPage + 1, currentSort, currentOrder);
-    });
-
-    document.getElementById('btn-search-cards').addEventListener('click', () => loadCards(1, currentSort, currentOrder));
-    document.getElementById('btn-reload-cards').addEventListener('click', () => loadCards(currentPage, currentSort, currentOrder));
-    document.getElementById('search-cards').addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        loadCards(1, currentSort, currentOrder);
-      }
-    });
-
-    document.getElementById('cards-tbody').addEventListener('click', async (e) => {
-      const btn = e.target.closest('button[data-action]');
-      if (!btn) return;
-
-      const tr = btn.closest('tr[data-card-id]');
-      if (!tr) return;
-
-      const cardId = tr.dataset.cardId;
-      const card = cardsCache[cardId] || { id: cardId };
-      const action = btn.dataset.action;
-
-      switch (action) {
-        case 'view':
-          openCardModal(card);
-          break;
-        case 'copy':
-          await copyCardId(cardId);
-          break;
-        case 'open':
-          openClientPage(cardId);
-          break;
-        case 'stamp':
-          await stampCard(cardId);
-          break;
-        case 'redeem':
-          await redeemCard(cardId);
-          break;
-        case 'delete':
-          await deleteCard(cardId);
-          break;
-      }
-    });
-
-    /* ===== ESCÁNER QR (html5-qrcode) ===== */
-    const scanDialog = $("#scanDialog");
-    const scanStatus = $("#scan-status");
-
-    $("#btn-scan-card").addEventListener("click", async () => {
-      scanDialog.showModal();
-      await startScan();
-    });
-
-    $("#scan-close").addEventListener("click", () => {
-      stopScan();
-      scanDialog.close();
-    });
-
-    async function startScan() {
-      try {
-        scanStatus.textContent = "Iniciando cámara...";
-        
-        html5QrCode = new Html5Qrcode("qr-reader");
-        
-        await html5QrCode.start(
-          { facingMode: "environment" },
-          {
-            fps: 10,
-            qrbox: { width: 250, height: 250 }
-          },
-          async (decodedText, decodedResult) => {
-            console.log("QR detectado:", decodedText);
-            scanStatus.textContent = "✅ QR detectado";
-            
-            await stopScan();
-            await handleScan(decodedText);
-            scanDialog.close();
-          },
-          (errorMessage) => {
-          }
-        );
-        
-        scanStatus.textContent = "📷 Apunta al QR de la tarjeta...";
-        
-      } catch (err) {
-        console.error("Error iniciando cámara:", err);
-        scanStatus.textContent = "❌ No se pudo acceder a la cámara";
-        
-        if (err.name === 'NotAllowedError') {
-          scanStatus.textContent = "⚠️ Por favor permite el acceso a la cámara";
-        }
-      }
-    }
-
-    async function stopScan() {
-      if (html5QrCode && html5QrCode.isScanning) {
-        try {
-          await html5QrCode.stop();
-          console.log("Escáner detenido");
-        } catch (err) {
-          console.error("Error deteniendo escáner:", err);
-        }
-      }
-      html5QrCode = null;
-    }
-
-    function extractCardId(text){
-      try{
-        const u = new URL(text);
-        let c = u.searchParams.get("cardId");
-        if (c) return c;
-        c = u.searchParams.get("card");
-        if (c) return c;
-      }catch{}
-      if(/^card_\d+/.test(text)) return text;
-      return null;
-    }
-
-    async function handleScan(raw){
-      // Si es un código de gift card
-      if (raw.startsWith("GIFT|")) {
-        stopScan();
-        scanDialog.close();
-
-        document.getElementById('redeem-code').value = raw;
-        document.getElementById('btn-redeem-gift').click();
-        return;
-      }
-
-      const cid = extractCardId(raw);
-      if (!cid) {
-        scanStatus.textContent = "QR inválido.";
-        return;
-      }
-
-      stopScan();
-      scanDialog.close();
-
-      let card = cardsCache[cid];
-
-      if (!card) {
-        try {
-          const r = await fetch('/api/card/' + encodeURIComponent(cid), {
-            credentials: 'include'
-          });
-          if (r.ok) {
-            card = await r.json();
-          }
-        } catch (e) {
-          console.error('Error buscando tarjeta por ID', e);
-        }
-      }
-
-      if (!card) {
-        alert('Tarjeta no encontrada');
-        return;
-      }
-
-      openCardModal(card);
-    }
-
-    /* ===== GIFT CARDS MEJORADO ===== */
-    window.currentGiftCard = null;
-
-    document.getElementById('gift-form').addEventListener('submit', async function(e) {
-      e.preventDefault();
-      
-      const clientName = (document.getElementById('gift-name').value || '').trim() || 'Cliente';
-      const service = (document.getElementById('gift-service').value || '').trim();
-      
-      if (!service) { alert('Ingresa un servicio'); return; }
-
-      const giftId = 'gift_' + Date.now();
-      const expirationDate = new Date();
-      expirationDate.setDate(expirationDate.getDate() + 30);
-      const formattedDate = expirationDate.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
-
-      document.getElementById('gift-visual-service').textContent = service;
-      document.getElementById('gift-visual-client').textContent = `Para: ${clientName}`;
-      document.getElementById('gift-visual-date').textContent = `Válida hasta: ${formattedDate}`;
-
-      const payloadText = `GIFT|codigo=${giftId}|servicio=${service}|cliente=${clientName}|vence=${expirationDate.toISOString().slice(0,10)}`;
-      const giftCanvas = document.getElementById('gift-qr');
-
-      try {
-        const ctx = giftCanvas.getContext('2d');
-        ctx.clearRect(0, 0, giftCanvas.width, giftCanvas.height);
-
-        await QRCode.toCanvas(giftCanvas, payloadText, { 
-          width: 150, 
-          margin: 0,
-          color: { dark: '#000000', light: '#ffffff' }
-        });
-        
-      } catch (err) {
-        console.error(err);
-        alert('Error generando QR. Verifica que la librería qrcode.min.js esté en el <head>');
-        return;
-      }
-
-      document.getElementById('gift-preview-container').classList.remove('hidden');
-      document.getElementById('gift-actions').classList.remove('hidden');
-      document.getElementById('gift-success').classList.remove('hidden');
-      
-      window.currentGiftCard = { id: giftId, client: clientName, service, expires: formattedDate };
-    });
-
-    document.getElementById('gift-whatsapp-image').addEventListener('click', async function() {
-        if (!window.currentGiftCard) return;
-        
-        const btn = this;
-        const originalText = btn.textContent;
-        btn.textContent = 'Generando imagen...';
-        
-        try {
-            const elementToCapture = document.getElementById('gift-card-visual');
-            
-            const canvasFull = await html2canvas(elementToCapture, {
-                scale: 2,
-                backgroundColor: null
-            });
-
-            const imageDataURL = canvasFull.toDataURL('image/png');
-            const gift = window.currentGiftCard;
-            
-            const message = `🎁 ¡Hola ${gift.client}!\n\n` +
-                            `Te envío una Gift Card de Venus Cosmetología para:\n` +
-                            `✨ *${gift.service}*\n\n` +
-                            `Presenta la imagen adjunta en tu próxima visita. 🌿`;
-
-            if (navigator.share && navigator.canShare) {
-                const blob = await (await fetch(imageDataURL)).blob();
-                const file = new File([blob], 'gift-card-venus.png', { type: 'image/png' });
-                try {
-                    await navigator.share({
-                        title: 'Gift Card Venus',
-                        text: message,
-                        files: [file]
-                    });
-                } catch (err) {
-                    if (err.name !== 'AbortError') fallbackWhatsAppShare(message, imageDataURL);
-                }
-            } else {
-                fallbackWhatsAppShare(message, imageDataURL);
-            }
-        } catch (e) {
-            console.error(e);
-            alert('Error al generar la imagen');
-        } finally {
-            btn.textContent = originalText;
-        }
-    });
-
-    function fallbackWhatsAppShare(message, imageDataURL) {
-        const link = document.createElement('a');
-        link.download = 'gift-card-venus.png';
-        link.href = imageDataURL;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
-        setTimeout(() => {
-            const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message + '\n\n(Adjunta la imagen descargada)')}`;
-            window.open(whatsappUrl, '_blank');
-        }, 1000);
-    }
-
-    document.getElementById('gift-copy').addEventListener('click', function() {
-      if (!window.currentGiftCard) return;
-      const gift = window.currentGiftCard;
-      const text =
-        `🎁 Gift Card Venus Cosmetología\n\n` +
-        `✨ Servicio: ${gift.service}\n` +
-        `👤 A nombre de: ${gift.client}\n` +
-        `📅 Vigente hasta: ${gift.expires}\n` +
-        `🔑 Código: ${gift.id}\n\n` +
-        `Presenta este mensaje en tu visita 💚`;
-      
-      navigator.clipboard.writeText(text).then(() => {
-        const originalText = this.textContent;
-        this.textContent = '✅ Copiado';
-        setTimeout(() => {
-          this.textContent = originalText;
-        }, 2000);
-      }).catch(() => {
-        alert('No se pudo copiar el texto');
-      });
-    });
-
-    document.getElementById('gift-whatsapp').addEventListener('click', function() {
-      if (!window.currentGiftCard) return;
-      
-      const gift = window.currentGiftCard;
-      const message =
-        `🎁 ¡Hola ${gift.client}!\n\n` +
-        `Tienes una Gift Card de Venus Cosmetología:\n\n` +
-        `✨ Servicio: ${gift.service}\n` +
-        `📅 Válida hasta: ${gift.expires}\n` +
-        `🔑 Código: ${gift.id}\n\n` +
-        `Presenta este código en tu cita 💚`;
-      
-      const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
-      window.open(whatsappUrl, '_blank');
-    });
-
-    /* ===== NUEVAS FUNCIONALIDADES AGREGADAS ===== */
-
-    /* === CUMPLEAÑOS === */
-    async function loadBirthdays() {
-      try {
-        const r = await fetch('/api/admin/birthdays');
-        const d = await r.json();
-        
-        const render = (list, isPast) => {
-          if(!list.length) return '<div style="padding:5px;opacity:0.5">Ninguno</div>';
-          return list.map(c => `
-            <div class="b-item">
-              <span><strong>${c.name}</strong></span>
-              <span class="tag-days">${isPast ? 'Hace '+c.daysAgo+'d' : 'En '+c.daysLeft+'d'}</span>
-            </div>
-          `).join('');
-        };
-        $("#list-past-bd").innerHTML = render(d.past, true);
-        $("#list-next-bd").innerHTML = render(d.upcoming, false);
-      } catch(e){
-        console.error('Error cargando cumpleaños:', e);
-      }
-    }
-
-    /* === GIFT CARDS - CANJE E HISTORIAL === */
-    async function loadGiftHistory() {
-      try {
-        const r = await fetch('/api/admin/gift-history');
-        const d = await r.json();
-        $("#gift-history-body").innerHTML = d.history.map(h => `
-          <tr>
-            <td style="
+</body>
+</html>
