@@ -2,16 +2,20 @@
 <html lang="es">
 <head>
   <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Panel Admin — Venus Lealtad</title>
   <link rel="icon" href="/assets/logo.png">
-  
-  <!-- Bootstrap CSS -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-  
-  <!-- Estilos personalizados -->
   <style>
+    /* [TODOS LOS ESTILOS EXISTENTES SE MANTIENEN IGUAL] */
+    body.checking-auth {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    body.auth-verified {
+      opacity: 1;
+      transition: opacity 0.3s ease;
+    }
     :root{
       --venus:#8c9668;
       --venus-soft:#dfe6c1;
@@ -23,315 +27,540 @@
       --success: #10b981;
       --danger: #ef4444;
     }
-    
-    body {
-      background-color: var(--bg);
-      color: var(--ink);
-      font-family: system-ui, -apple-system, Segoe UI, Inter, Roboto, Arial, sans-serif;
-      min-height: 100vh;
+    *{box-sizing:border-box;}
+    html,body{
+      margin:0;
+      padding:0;
+      background:var(--bg);
+      color:var(--ink);
+      font-family:system-ui,-apple-system,Segoe UI,Inter,Roboto,Arial,sans-serif;
     }
-    
-    body.checking-auth {
-      opacity: 0;
-      pointer-events: none;
+    body{
+      min-height:100vh;
+      display:flex;
+      flex-direction:column;
+    }
+    .wrap{
+      max-width:1100px;
+      margin:16px auto;
+      padding:0 12px 32px;
+      width:100%;
     }
 
-    body.auth-verified {
-      opacity: 1;
-      transition: opacity 0.3s ease;
+    .topbar{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      margin-bottom:10px;
+      flex-wrap:wrap;
     }
-    
-    .navbar-custom {
-      background-color: rgba(0, 0, 0, 0.2);
-      backdrop-filter: blur(10px);
-      border-bottom: 1px solid var(--line);
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:10px;
     }
-    
-    .card-custom {
-      background: rgba(255,255,255,.08);
-      border-radius: var(--radius);
-      border: 1px solid var(--line);
-      box-shadow: 0 10px 28px rgba(0,0,0,.2);
-      backdrop-filter: blur(3px);
-      position: relative;
-      overflow: hidden;
+    .brand img{
+      width:40px;
+      height:40px;
+      border-radius:12px;
+      box-shadow:0 0 0 2px rgba(255,255,255,.1);
     }
-    
-    .card-custom::before {
-      content: "";
-      position: absolute;
-      inset: 0;
+    h1{
+      font-size:22px;
+      margin:0;
+      color:var(--ink);
+    }
+    .muted{color:var(--muted);font-size:13px;}
+    .actions{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+
+    .btn{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:6px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.1);
+      padding:7px 13px;
+      font-size:13px;
+      cursor:pointer;
+      text-decoration:none;
+      color:var(--ink);
+      white-space:nowrap;
+      backdrop-filter:blur(3px);
+      transition:all 0.2s ease;
+    }
+    .btn:hover{
+      transform:translateY(-1px);
+      box-shadow:0 4px 12px rgba(0,0,0,0.2);
+    }
+    .btn.primary{
+      background:var(--venus);
+      border-color:var(--venus);
+      color:#fff;
+    }
+    .btn.ghost{
+      background:transparent;
+      border-color:var(--line);
+    }
+    .btn.small{
+      padding:5px 10px;
+      font-size:12px;
+    }
+    .btn[disabled] { opacity: 0.6; cursor: not-allowed; }
+
+    .nav{
+      display:flex;
+      gap:6px;
+      flex-wrap:wrap;
+      margin:8px 0 14px;
+    }
+    .nav a{
+      padding:7px 12px;
+      border-radius:999px;
+      border:1px solid transparent;
+      text-decoration:none;
+      font-size:13px;
+      color:var(--muted);
+      background:transparent;
+      transition:all 0.2s ease;
+      cursor:pointer;
+    }
+    .nav a.is-active{
+      background:rgba(255,255,255,.15);
+      border-color:var(--venus);
+      color:var(--venus-soft);
+      box-shadow:0 4px 14px rgba(0,0,0,.1);
+    }
+
+    .card{
+      background:rgba(255,255,255,.08);
+      border-radius:var(--radius);
+      border:1px solid var(--line);
+      padding:16px 16px 14px;
+      box-shadow:0 10px 28px rgba(0,0,0,.2);
+      margin-bottom:14px;
+      backdrop-filter:blur(3px);
+      position:relative;
+      overflow:hidden;
+    }
+    .card::before{
+      content:"";
+      position:absolute;
+      inset:0;
       background:
-        radial-gradient(circle at 20% 20%, rgba(255,255,255,0.05), transparent 60%),
-        radial-gradient(circle at 80% 70%, rgba(255,255,255,0.03), transparent 60%);
-      opacity: .9;
-      pointer-events: none;
+        radial-gradient(circle at 20% 20%,rgba(255,255,255,0.05),transparent 60%),
+        radial-gradient(circle at 80% 70%,rgba(255,255,255,0.03),transparent 60%);
+      opacity:.9;
+      pointer-events:none;
     }
-    
-    .card-custom > * {
-      position: relative;
-      z-index: 1;
+    .card > *{
+      position:relative;
+      z-index:1;
     }
-    
-    .btn-venus {
-      background-color: var(--venus);
-      border-color: var(--venus);
-      color: white;
+    .card h2{
+      margin:0 0 6px;
+      font-size:18px;
+      color:var(--ink);
     }
-    
-    .btn-venus:hover {
-      background-color: #7a855d;
-      border-color: #7a855d;
-      color: white;
+    .card h3{
+      margin:0 0 6px;
+      font-size:15px;
+      color:var(--ink);
     }
-    
-    .btn-outline-venus {
-      color: var(--venus);
-      border-color: var(--venus);
+
+    .header-actions {
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap: wrap;
     }
-    
-    .btn-outline-venus:hover {
-      background-color: var(--venus);
-      color: white;
-    }
-    
-    .kpi-card {
-      background: rgba(255,255,255,.1);
-      border: 1px solid rgba(255,255,255,.15);
-      border-radius: 12px;
-      padding: 1rem;
-      backdrop-filter: blur(3px);
-    }
-    
-    .kpi-value {
-      font-size: 1.5rem;
-      font-weight: 600;
-      color: var(--ink);
-    }
-    
-    .kpi-label {
-      color: var(--muted);
-      font-size: 0.875rem;
-    }
-    
-    .nav-pills-custom .nav-link {
-      color: var(--muted);
-      border-radius: 50px;
-      padding: 0.5rem 1rem;
-      margin-right: 0.5rem;
-      margin-bottom: 0.5rem;
-    }
-    
-    .nav-pills-custom .nav-link.active {
-      background-color: rgba(255,255,255,.15);
-      border-color: var(--venus);
-      color: var(--venus-soft);
-      box-shadow: 0 4px 14px rgba(0,0,0,.1);
-    }
-    
-    .table-custom {
-      color: var(--ink);
-      --bs-table-bg: transparent;
-      --bs-table-border-color: rgba(255,255,255,.1);
-    }
-    
-    .table-custom thead th {
-      background-color: rgba(255,255,255,.1);
-      border-bottom: 1px solid rgba(255,255,255,.1);
-    }
-    
-    .table-custom tbody tr {
-      border-bottom: 1px solid rgba(255,255,255,.05);
-    }
-    
-    .form-control-custom, .form-select-custom {
-      background-color: rgba(255,255,255,.1);
-      border: 1px solid var(--line);
-      color: var(--ink);
-    }
-    
-    .form-control-custom:focus, .form-select-custom:focus {
-      background-color: rgba(255,255,255,.15);
-      border-color: var(--venus);
-      color: var(--ink);
-      box-shadow: 0 0 0 0.25rem rgba(140, 150, 104, 0.25);
-    }
-    
-    .modal-custom .modal-content {
-      background-color: #111827;
-      color: var(--ink);
-      border: 1px solid var(--line);
-      border-radius: 24px;
-    }
-    
-    .modal-custom .modal-header {
-      border-bottom: 1px solid var(--line);
-    }
-    
-    .modal-custom .modal-footer {
-      border-top: 1px solid var(--line);
-    }
-    
-    .gift-card-visual {
-      background-color: #8c9668;
-      border-radius: 20px;
+    select.filter-select {
+      background: rgba(0,0,0,0.3);
       color: #fff;
-      padding: 2rem;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
-      width: 100%;
-      max-width: 320px;
-      position: relative;
-      overflow: hidden;
-      text-align: center;
-      margin: 0 auto;
-      font-family: 'Poppins', sans-serif;
+      border: 1px solid var(--line);
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      outline: none;
+      cursor: pointer;
     }
 
-    .gift-card-visual::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background: radial-gradient(circle at 20% 30%, rgba(255,255,255,0.05), transparent 70%),
-                  radial-gradient(circle at 80% 60%, rgba(255,255,255,0.04), transparent 60%);
-      opacity: 0.7;
-      z-index: 0;
+    .grid-3-kpi{
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:10px;
+      margin-top:10px;
+    }
+    @media (max-width:700px){
+      .grid-3-kpi{grid-template-columns:repeat(2,minmax(0,1fr));}
+    }
+    @media (max-width:480px){
+      .grid-3-kpi{grid-template-columns:1fr;}
     }
 
-    .gift-card-content {
-      position: relative;
-      z-index: 2;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+    .kpi{
+      padding:10px 12px;
+      border-radius:12px;
+      background:rgba(255,255,255,.1);
+      border:1px solid rgba(255,255,255,.15);
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+      font-size:13px;
+      backdrop-filter:blur(3px);
+    }
+    .kpi span.value{
+      font-size:20px;
+      font-weight:600;
+      color:var(--ink);
+    }
+    .kpi span{
+      color:var(--muted);
     }
 
-    .gift-brand-logo {
-      width: 60px;
-      height: 60px;
-      border-radius: 50%;
-      background-color: #fff;
-      margin-bottom: 10px;
-      box-shadow: 0 0 10px rgba(255,255,255,0.3);
-      object-fit: contain;
-      padding: 2px;
+    .row{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex-wrap:wrap;
     }
 
-    .gift-title {
-      font-size: 1.4rem;
-      font-weight: 700;
-      margin: 5px 0;
+    label{
+      display:block;
+      margin:8px 0 4px;
+      font-size:13px;
+      font-weight:500;
+      color:var(--ink);
     }
-
-    .gift-service {
-      font-size: 1.2rem;
-      font-weight: 600;
-      margin: 10px 0 5px;
-      color: #dfe6c1;
+    input,select,textarea{
+      width:100%;
+      padding:9px 10px;
+      border-radius:10px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.1);
+      font-size:13px;
+      color:var(--ink);
+      backdrop-filter:blur(3px);
     }
-
-    .gift-meta {
-      font-size: 0.9rem;
-      opacity: 0.9;
-      margin-bottom: 15px;
+    input::placeholder{
+      color:var(--muted);
     }
+    textarea{resize:vertical;min-height:70px;}
 
-    .gift-qr-container {
-      background: #fff;
-      padding: 10px;
-      border-radius: 12px;
-      margin-top: 10px;
-      display: inline-block;
+    .hidden{display:none!important;}
+
+    .table-wrap{
+      width:100%;
+      overflow-x:auto;
+      -webkit-overflow-scrolling:touch;
+    }
+    table{
+      border-collapse:collapse;
+      width:100%;
+      font-size:13px;
+    }
+    thead{
+      background:rgba(255,255,255,.1);
+    }
+    th,td{
+      padding:6px 8px;
+      border-bottom:1px solid rgba(255,255,255,.1);
+      text-align:left;
+      white-space:nowrap;
+      color:var(--ink);
+    }
+    tr:last-child td{border-bottom:none;}
+    code{
+      font-size:12px;
+      background:rgba(255,255,255,.15);
+      padding:2px 4px;
+      border-radius:4px;
+      color:var(--ink);
+    }
+    .tag{
+      display:inline-flex;
+      align-items:center;
+      padding:2px 6px;
+      border-radius:999px;
+      background:#bbf7d0;
+      color:#166534;
+      font-size:11px;
+    }
+    /* Estilos adaptados de index.html para la Gift Card */
+.gift-card-visual {
+  background-color: #8c9668; /* Tu color original */
+  border-radius: 20px;
+  color: #fff;
+  padding: 2rem;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+  width: 100%;
+  max-width: 320px; /* Tamaño proporcional para compartir */
+  position: relative;
+  overflow: hidden;
+  text-align: center;
+  margin: 0 auto; /* Centrado */
+  font-family: 'Poppins', sans-serif;
+}
+
+.gift-card-visual::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 20% 30%, rgba(255,255,255,0.05), transparent 70%),
+              radial-gradient(circle at 80% 60%, rgba(255,255,255,0.04), transparent 60%);
+  opacity: 0.7;
+  z-index: 0;
+}
+
+.gift-card-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.gift-brand-logo {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background-color: #fff;
+  margin-bottom: 10px;
+  box-shadow: 0 0 10px rgba(255,255,255,0.3);
+  object-fit: contain;
+  padding: 2px;
+}
+
+.gift-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin: 5px 0;
+}
+
+.gift-service {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin: 10px 0 5px;
+  color: #dfe6c1; /* Venus soft color */
+}
+
+.gift-meta {
+  font-size: 0.9rem;
+  opacity: 0.9;
+  margin-bottom: 15px;
+}
+
+.gift-qr-container {
+  background: #fff;
+  padding: 10px;
+  border-radius: 12px;
+  margin-top: 10px;
+  display: inline-block;
+}
+
+    
+    .gift-qr{
+      width:120px;
+      height:120px;
+      border-radius:12px;
+      background:#fff;
+      padding:8px;
+      margin-bottom:8px;
+    }
+    .chip{
+      display:inline-flex;
+      align-items:center;
+      padding:4px 10px;
+      border-radius:999px;
+      background:rgba(0,0,0,.18);
+      font-size:11px;
+      margin-top:6px;
     }
     
-    .gift-qr {
-      width: 120px;
-      height: 120px;
-      border-radius: 12px;
-      background: #fff;
-      padding: 8px;
-      margin-bottom: 8px;
+    .gift-actions{
+      display:flex;
+      gap:8px;
+      margin-top:12px;
+      flex-wrap:wrap;
     }
     
-    .tag {
-      display: inline-flex;
-      align-items: center;
-      padding: 2px 6px;
-      border-radius: 999px;
-      background: #bbf7d0;
-      color: #166534;
-      font-size: 11px;
+    .footer{
+      margin-top:auto;
+      text-align:center;
+      padding:8px 0 14px;
+      font-size:12px;
+      color:var(--muted);
     }
     
+    .success-message{
+      background:rgba(187, 247, 208, 0.1);
+      border:1px solid rgba(34, 197, 94, 0.3);
+      border-radius:10px;
+      padding:10px 12px;
+      margin-top:10px;
+      font-size:13px;
+      color:#bbf7d0;
+    }
+
+    dialog{
+      border-radius:16px;
+      border:1px solid var(--line);
+      background:#111827;
+      color:var(--ink);
+      padding:16px 18px 14px;
+      max-width:420px;
+      width:90%;
+    }
+    dialog::backdrop{
+      background:rgba(0,0,0,.6);
+    }
+
+    .modal-backdrop{
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,.55);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      z-index:50;
+    }
+    .modal-backdrop.hidden{
+      display:none!important;
+    }
+    .modal-card{
+      background:#111827;
+      border-radius:24px;
+      border:1px solid rgba(255,255,255,.15);
+      padding:18px 20px 16px;
+      max-width:420px;
+      width:90%;
+      max-height:90vh;
+      overflow-y:auto;
+      box-shadow:0 20px 60px rgba(0,0,0,.6);
+      color:#f9fafb;
+    }
+    .modal-header{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-bottom:10px;
+    }
+    .modal-header h3{
+      margin:0;
+      font-size:18px;
+    }
+    .modal-body p{
+      margin:4px 0;
+      font-size:14px;
+    }
+    .modal-body strong{
+      font-weight:600;
+    }
+    .modal-footer{
+      margin-top:14px;
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+    }
+    .qr-box{
+      margin-top:10px;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      min-height:180px;
+      background:rgba(255,255,255,0.05);
+      border-radius:12px;
+      padding:10px;
+    }
+    .qr-box canvas{
+      background:#fff;
+      border-radius:8px;
+      padding:8px;
+      max-width:100%;
+      height:auto;
+    }
+
+    /* Estilos para debugging */
+    .debug-section {
+      margin-top:20px;
+      padding-top:16px;
+      border-top:1px solid var(--line);
+    }
+    
+    .debug-output {
+      background:rgba(0,0,0,0.3);
+      border-radius:8px;
+      padding:10px;
+      font-size:12px;
+      font-family:monospace;
+      max-height:200px;
+      overflow-y:auto;
+      white-space:pre-wrap;
+      margin-top:10px;
+    }
+
     .sortable-header {
-      cursor: pointer;
-      user-select: none;
-      position: relative;
-      padding-right: 20px !important;
-    }
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+  padding-right: 20px !important;
+}
 
-    .sortable-header:hover {
-      background-color: rgba(255,255,255,0.05);
-    }
+.sortable-header:hover {
+  background-color: #f8f9fa;
+}
 
-    .sortable-header::after {
-      content: '↕';
-      position: absolute;
-      right: 8px;
-      top: 50%;
-      transform: translateY(-50%);
-      font-size: 12px;
-      opacity: 0.5;
-    }
+.sortable-header::after {
+  content: '↕';
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 12px;
+  opacity: 0.5;
+}
 
-    .sortable-header.asc::after {
-      content: '↑';
-      opacity: 1;
-    }
+.sortable-header.asc::after {
+  content: '↑';
+  opacity: 1;
+}
 
-    .sortable-header.desc::after {
-      content: '↓';
-      opacity: 1;
-    }
+.sortable-header.desc::after {
+  content: '↓';
+  opacity: 1;
+}
+
+    /* ===== NUEVOS ESTILOS AGREGADOS ===== */
     
-    .stamps-progress {
-      height: 10px;
-      background: rgba(0,0,0,.3);
-      border-radius: 5px;
-      overflow: hidden;
-      margin-top: 8px;
+    /* Grid Cumpleaños */
+    .grid-birthdays {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 15px;
+      margin-top: 20px;
     }
 
-    .stamps-bar {
-      height: 100%;
-      background: var(--venus-soft);
-      width: 0%;
-      transition: width 0.3s;
-    }
-    
-    .action-card {
-      background: rgba(255,255,255,.05);
-      padding: 15px;
-      border-radius: 12px;
-      text-align: center;
-      cursor: pointer;
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-      transition: all 0.2s ease;
-    }
-
-    .action-card:hover {
-      border-color: var(--venus);
-      background: rgba(255,255,255,.1);
-    }
-    
     .birthday-list {
       background: rgba(0,0,0,0.2);
       border-radius: 12px;
       padding: 15px;
       border: 1px solid var(--line);
     }
-    
+
+    .birthday-list h4 {
+      margin: 0 0 10px;
+      font-size: 14px;
+      opacity: 0.8;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 5px;
+    }
+
     .b-item {
       display: flex;
       justify-content: space-between;
@@ -339,14 +568,15 @@
       padding: 6px 0;
       border-bottom: 1px solid rgba(255,255,255,0.05);
     }
-    
+
     .tag-days {
       font-size: 11px;
       padding: 2px 6px;
       border-radius: 4px;
       background: rgba(255,255,255,0.1);
     }
-    
+
+    /* Gift Cards - Nuevo diseño */
     .gift-redeem-box {
       background: var(--bg);
       border: 1px solid var(--venus);
@@ -355,7 +585,7 @@
       text-align: center;
       margin-bottom: 20px;
     }
-    
+
     .history-table {
       font-size: 12px;
       width: 100%;
@@ -373,34 +603,73 @@
       border-top: 1px solid var(--line);
       padding: 8px 5px;
     }
-    
-    .debug-output {
-      background: rgba(0,0,0,0.3);
-      border-radius: 8px;
-      padding: 10px;
-      font-size: 12px;
-      font-family: monospace;
-      max-height: 200px;
+
+    /* Modal moderno */
+    #card-modal .modal-header-bg {
+      background: linear-gradient(135deg, var(--venus), #555);
+      padding: 20px;
+      text-align: center;
+      position: relative;
+    }
+
+    #card-modal .modal-body {
+      padding: 20px;
       overflow-y: auto;
-      white-space: pre-wrap;
-      margin-top: 10px;
+      max-height: 70vh;
     }
     
-    .text-venus-soft {
-      color: var(--venus-soft);
+    .stamps-indicator {
+      background: rgba(255,255,255,.05);
+      padding: 15px;
+      border-radius: 12px;
+      margin-bottom: 15px;
+    }
+
+    .stamps-progress {
+      height: 10px;
+      background: rgba(0,0,0,.3);
+      border-radius: 5px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+
+    .stamps-bar {
+      height: 100%;
+      background: var(--venus-soft);
+      width: 0%;
+      transition: width 0.3s;
     }
     
-    .bg-venus {
-      background-color: var(--venus);
+    .actions-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
     }
-    
-    .border-venus {
+
+    .action-card {
+      background: rgba(255,255,255,.05);
+      padding: 15px;
+      border-radius: 12px;
+      text-align: center;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .action-card:hover {
       border-color: var(--venus);
+      background: rgba(255,255,255,.1);
+    }
+    
+    .notify-section {
+      background: rgba(16,185,129,.1);
+      border: 1px solid #10b981;
+      padding: 10px;
+      border-radius: 10px;
+      margin-top: 15px;
     }
   </style>
-  
-  <!-- Scripts necesarios -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -408,424 +677,1341 @@
 </head>
 <body class="checking-auth">
 
-  <!-- Navbar Bootstrap -->
-  <nav class="navbar navbar-expand-lg navbar-custom">
-    <div class="container-fluid">
-      <div class="d-flex align-items-center">
-        <img src="/assets/logo.png" alt="Venus" class="rounded me-2" width="40" height="40">
+  <main class="wrap">
+    <header class="topbar">
+      <div class="brand">
+        <img src="/assets/logo.png" alt="Venus">
         <div>
-          <h1 class="h5 mb-0">Admin — Venus Lealtad</h1>
-          <div class="text-muted small" id="me-line">Sesión iniciada</div>
+          <h1>Admin — Venus Lealtad</h1>
+          <div class="muted" id="me-line">Sesión iniciada</div>
+        </div>
+      </div>
+      <div class="actions">
+        <a class="btn" href="/" target="_blank" rel="noopener">Página clientes</a>
+        <button id="logout" class="btn">Cerrar sesión</button>
+      </div>
+    </header>
+
+    <nav class="nav">
+      <a href="#overview" data-tab="overview" class="is-active">Resumen</a>
+      <a href="#cards" data-tab="cards">Tarjetas</a>
+      <a href="#events" data-tab="events">Gift Cards</a>
+      <a href="#settings" data-tab="settings">Configuración</a>
+    </nav>
+
+    <!-- TAB: Overview - MODIFICADO CON FILTROS, REPORTES Y CUMPLEAÑOS -->
+    <section id="tab-overview" class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap:wrap; gap:10px;">
+        <div>
+          <h2 style="margin:0;">Resumen</h2>
+          <p class="muted" style="margin:4px 0 0;">Indicadores rápidos de tu programa de lealtad</p>
+        </div>
+        <div class="header-actions">
+          <select id="stats-filter" class="filter-select">
+            <option value="day">Hoy</option>
+            <option value="week" selected>Esta Semana</option>
+            <option value="month">Este Mes</option>
+          </select>
+          <button id="btn-download-report" class="btn small primary">
+            ⬇ Descargar Reporte
+          </button>
         </div>
       </div>
       
-      <div class="d-flex align-items-center">
-        <a class="btn btn-sm btn-outline-light me-2" href="/" target="_blank" rel="noopener">
-          <i class="bi bi-box-arrow-up-right me-1"></i>Página clientes
-        </a>
-        <button id="logout" class="btn btn-sm btn-outline-light">
-          <i class="bi bi-box-arrow-right me-1"></i>Cerrar sesión
-        </button>
+      <!-- KPIs principales (fila 1) -->
+      <div class="grid-3-kpi">
+        <div class="kpi">
+          <span>Tarjetas totales</span>
+          <span class="value" id="kpi-total">—</span>
+        </div>
+        <div class="kpi">
+          <span>Tarjetas completas</span>
+          <span class="value" id="kpi-full">—</span>
+        </div>
+        <div class="kpi">
+          <span id="stamps-period-label">Sellos hoy</span>
+          <span class="value" id="kpi-stamps">—</span>
+        </div>
+      </div>
+
+      <!-- KPIs adicionales (fila 2) -->
+      <div class="grid-3-kpi" style="margin-top:14px;">
+        <div class="kpi">
+          <span id="redeems-period-label">Canjes hoy</span>
+          <span class="value" id="kpi-redeems">—</span>
+        </div>
+        <div class="kpi">
+          <span>Promedio sellos</span>
+          <span class="value" id="kpi-avg">—</span>
+        </div>
+        <div class="kpi">
+          <span>Tasa completitud</span>
+          <span class="value" id="kpi-rate">—</span>
+        </div>
+      </div>
+
+      <!-- SECCIÓN DE CUMPLEAÑOS AGREGADA -->
+      <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line);">
+        <h3 style="margin:0 0 12px;font-size:15px;color:var(--ink);">🎂 Cumpleaños</h3>
+        <div class="grid-birthdays">
+          <div class="birthday-list">
+            <h4 style="color:#f87171">🎂 Pasaron (15 días)</h4>
+            <div id="list-past-bd" style="font-size:12px; opacity:0.8;">Cargando...</div>
+          </div>
+          <div class="birthday-list">
+            <h4 style="color:#4ade80">🎉 Próximos (15 días)</h4>
+            <div id="list-next-bd" style="font-size:12px; opacity:0.8;">Cargando...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actividad reciente -->
+      <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line);">
+        <h3 style="margin:0 0 12px;font-size:15px;color:var(--ink);" id="activity-title">📈 Actividad reciente (7 días)</h3>
+        <div style="background:rgba(255,255,255,0.05);border-radius:12px;padding:12px;">
+          <canvas id="activity-chart" style="max-height:200px;"></canvas>
+        </div>
+      </div>
+
+      <!-- Top clientes -->
+      <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line);">
+        <h3 style="margin:0 0 12px;font-size:15px;color:var(--ink);">⭐ Top Clientes</h3>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Cliente</th>
+                <th>Sellos</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody id="top-clients">
+              <tr>
+                <td colspan="3" style="text-align:center;padding:12px;" class="muted">Cargando...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Estado de Wallets -->
+      <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line);">
+        <h3 style="margin:0 0 12px;font-size:15px;color:var(--ink);">📱 Estado de Wallets</h3>
+        <div class="grid-3-kpi">
+          <div class="kpi">
+            <span>🟢 Google Wallet</span>
+            <span class="value" id="kpi-google">—</span>
+          </div>
+          <div class="kpi">
+            <span>🍎 Apple Wallet</span>
+            <span class="value" id="kpi-apple">—</span>
+          </div>
+          <div class="kpi">
+            <span>📲 Dispositivos totales</span>
+            <span class="value" id="kpi-devices">—</span>
+          </div>
+        </div>
+        <div style="margin-top:10px; text-align:center;">
+          <button id="btn-refresh-wallet-stats" class="btn small ghost">🔄 Actualizar estadísticas</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB: Cards -->
+    <section id="tab-cards" class="card hidden">
+      <h2>Tarjetas de lealtad</h2>
+      <p class="muted">Gestiona todas las tarjetas de tus clientes.</p>
+      
+      <div class="row" style="margin-top:12px;">
+        <input id="search-cards" placeholder="Buscar por ID o nombre..." style="flex:1;min-width:200px;">
+        <button id="btn-search-cards" class="btn primary">🔍 Buscar</button>
+        <button id="btn-reload-cards" class="btn">🔄 Recargar</button>
+        <button id="btn-scan-card" class="btn ghost">📷 Escanear QR</button>
+      </div>
+
+      <div class="table-wrap" style="margin-top:12px;">
+        <table>
+       <thead>
+  <tr>
+    <th class="sortable-header" data-sort="id">ID</th>
+    <th class="sortable-header" data-sort="name">Cliente</th>
+    <th class="sortable-header" data-sort="phone">Teléfono</th>
+    <th class="sortable-header" data-sort="birthdate">F. Nacimiento</th>
+    <th class="sortable-header" data-sort="stamps">Sellos</th>
+    <th class="sortable-header" data-sort="max">Max</th>
+    <th class="sortable-header" data-sort="createdAt">Creada</th>
+    <th>Acciones</th>
+  </tr>
+</thead>
+         <tbody id="cards-tbody">
+             <tr>
+                 <td colspan="8" style="text-align:center;padding:12px;" class="muted">Cargando tarjetas...</td>
+             </tr>
+        </tbody>
+        </table>
+      </div>
+
+      <div class="row" style="justify-content:space-between;margin-top:12px;">
+        <button id="btn-prev-page" class="btn small ghost">← Anterior</button>
+        <span id="page-info" class="muted">Página 1</span>
+        <button id="btn-next-page" class="btn small ghost">Siguiente →</button>
+      </div>
+    </section>
+
+    <!-- TAB: Gift Cards - ACTUALIZADO CON NUEVO DISEÑO -->
+    <section id="tab-events" class="card hidden">
+      <div class="gift-redeem-box">
+        <h3 style="margin-top:0; color:var(--venus-soft)">🎫 Canjear Gift Card</h3>
+        <div style="display:flex; gap:10px; justify-content:center; margin-top:10px;">
+          <input id="redeem-code" placeholder="Código o escanear..." style="max-width:250px; margin:0;">
+          <button id="btn-redeem-gift" class="btn primary small">Canjear</button>
+        </div>
+        <button onclick="startGiftScan()" class="btn small ghost" style="margin-top:10px;">📷 Usar Cámara</button>
+      </div>
+
+      <div style="margin-bottom:30px;">
+        <h3 style="font-size:14px; opacity:0.7;">📜 Historial Reciente</h3>
+        <table class="history-table">
+          <thead><tr><th>Código</th><th>Servicio</th><th>Cliente</th><th>Fecha</th></tr></thead>
+          <tbody id="gift-history-body"><tr><td colspan="4">Cargando...</td></tr></tbody>
+        </table>
+      </div>
+      
+      <hr style="border:0; border-top:1px solid var(--line); margin:20px 0;">
+      
+      <h2>Crear Gift Card</h2>
+      <p class="muted">Genera una tarjeta de regalo digital con vigencia de 30 días. Podrás compartir el QR por WhatsApp o imprimirla.</p>
+      
+      <form id="gift-form" style="max-width:500px;">
+        <label>Nombre del cliente (opcional)</label>
+        <input id="gift-name" placeholder="Ej. Ana López">
+        
+        <label>Servicio a regalar</label>
+        <input id="gift-service" required placeholder="Ej. Facial hidratante, Masaje relajante…">
+        
+        <button type="submit" class="btn primary" style="margin-top:10px;">Generar Gift Card</button>
+      </form>
+
+      <div id="gift-preview-container" class="hidden" style="margin-top: 20px;">
+        <div id="gift-card-visual" class="gift-card-visual">
+          <div class="gift-card-content">
+            <img src="/assets/logo.png" alt="Venus" class="gift-brand-logo">
+            
+            <div class="gift-title">Venus Lealtad</div>
+            <div style="font-size: 0.9rem; opacity: 0.9;">¡Tienes un regalo! 🎁</div>
+            
+            <hr style="width: 50%; border: 0; border-top: 1px solid rgba(255,255,255,0.3); margin: 15px 0;">
+
+            <div id="gift-visual-service" class="gift-service">Servicio</div>
+            <div id="gift-visual-client" class="gift-meta">Para: Cliente</div>
+            <div id="gift-visual-date" class="gift-meta" style="font-size: 0.8rem; margin-top:0;">Vence: --/--/--</div>
+
+            <div class="gift-qr-container">
+              <canvas id="gift-qr"></canvas>
+            </div>
+            <div style="font-size: 10px; color: #333; margin-top: 4px; color: #fff; opacity: 0.8;">Muestra este código</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="gift-actions" class="gift-actions hidden">
+        <button type="button" id="gift-copy" class="btn small">Copiar texto</button>
+        <button type="button" id="gift-whatsapp" class="btn small primary">Enviar por WhatsApp</button>
+        <button type="button" id="gift-whatsapp-image" class="btn small primary">📷 WhatsApp con imagen</button>
+      </div>
+      
+      <div id="gift-success" class="success-message hidden">
+        ✅ Gift Card generada exitosamente. Puedes enviarla por WhatsApp o compartir el texto.
+      </div>
+    </section>
+
+    <!-- TAB: Settings -->
+    <section id="tab-settings" class="card hidden">
+      <h2>Configuración</h2>
+      <p class="muted">Envía notificaciones push a todos los pases en Google Wallet.</p>
+      
+      <div style="background:rgba(140,150,104,0.1);border:1px solid rgba(140,150,104,0.3);border-radius:12px;padding:14px;margin:12px 0;">
+        <h3 style="margin:0 0 8px;">📲 Notificaciones Push</h3>
+        
+        <form id="push-notification-form">
+          <label>Título de la notificación</label>
+          <input id="push-title" placeholder="Ej. ¡Nueva promoción!" required maxlength="50">
+          <small class="muted">Máximo 50 caracteres</small>
+          
+          <label style="margin-top:10px;">Mensaje</label>
+          <textarea id="push-message" placeholder="Ej. Hoy tenemos 20% de descuento..." required maxlength="200" rows="3"></textarea>
+          <small class="muted">Máximo 200 caracteres</small>
+          
+          <label style="margin-top:10px;">Tipo</label>
+          <select id="push-type">
+            <option value="promo">🎁 Promoción</option>
+            <option value="reminder">⏰ Recordatorio</option>
+            <option value="update">ℹ️ Actualización</option>
+            <option value="alert">⚠️ Alerta</option>
+          </select>
+          
+          <div style="margin-top:12px;padding:10px;background:rgba(255,255,255,0.05);border-radius:8px;">
+            <div class="row" style="justify-content:space-between;margin-bottom:8px;">
+              <span class="muted" style="font-size:12px;">Vista previa:</span>
+              <span id="preview-type" style="font-size:12px;">🎁 Promoción</span>
+            </div>
+            <div style="background:rgba(255,255,255,0.1);border-radius:8px;padding:10px;">
+              <div id="preview-title" style="font-weight:600;margin-bottom:4px;">¡Nueva promoción!</div>
+              <div id="preview-message" class="muted" style="font-size:12px;">Tu mensaje aparecerá aquí...</div>
+            </div>
+          </div>
+          
+          <div class="row" style="margin-top:14px;gap:10px;">
+            <button type="button" id="btn-mass-push" class="btn primary">Enviar a todos</button>
+            <button type="button" id="test-push" class="btn ghost">Enviar prueba</button>
+          </div>
+        </form>
+        
+        <div id="push-success" class="success-message hidden" style="margin-top:12px;">
+          ✅ Notificación enviada a <span id="push-count">0</span> pases
+        </div>
+        
+        <div id="push-error" class="hidden" style="background:rgba(254,202,202,0.1);border:1px solid rgba(153,27,27,0.3);border-radius:10px;padding:10px 12px;margin-top:12px;font-size:13px;color:#fecaca;">
+          ❌ Error al enviar notificación
+        </div>
+      </div>
+
+      <div style="margin-top:16px;">
+        <div class="row" style="justify-content:space-between;margin-bottom:8px;">
+          <h3 style="margin:0;">📋 Historial</h3>
+          <button id="refresh-history" class="btn small ghost">🔄</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Título</th>
+                <th>Tipo</th>
+                <th>Enviadas</th>
+                <th>Errores</th>
+              </tr>
+            </thead>
+            <tbody id="notifications-history">
+              <tr>
+                <td colspan="5" style="text-align:center;padding:12px;" class="muted">Cargando...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- NUEVA SECCIÓN: DEBUGGING AVANZADO -->
+      <div class="debug-section">
+        <h3 style="margin:0 0 12px;font-size:15px;color:var(--ink);">🐛 Debugging Avanzado</h3>
+        
+        <div class="row" style="gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+          <button id="btn-test-apple-push" class="btn small">🧪 Test Apple Push</button>
+          <button id="btn-test-google-push" class="btn small">🧪 Test Google Push</button>
+          <button id="btn-fix-google-wallet" class="btn small">🔧 Reparar Google Wallet</button>
+          <button id="btn-check-devices" class="btn small">📱 Ver Dispositivos</button>
+          <button id="btn-check-apns" class="btn small">🍎 Ver Config APNs</button>
+        </div>
+        
+        <div id="debug-output" class="debug-output hidden">
+          <!-- Aquí se mostrarán los resultados del debugging -->
+        </div>
+      </div>
+    </section>
+    
+    <!-- DIALOG: Escáner QR -->
+    <dialog id="scanDialog">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <h3 style="margin:0;font-size:16px;">Escanear tarjeta</h3>
+        <button type="button" id="scan-close" class="btn small ghost">Cerrar</button>
+      </div>
+      <div id="qr-reader" style="width:100%;"></div>
+      <div class="muted" id="scan-status" style="margin-top:8px;font-size:12px;">Iniciando cámara…</div>
+    </dialog>
+
+    <!-- NUEVO MODAL MODERNO PARA TARJETAS -->
+    <div id="card-modal" class="modal-backdrop hidden">
+      <div class="modal-card">
+        <div class="modal-header-bg">
+          <button onclick="$('#card-modal').classList.add('hidden')" style="position:absolute;right:15px;top:15px;background:rgba(0,0,0,0.2);border:0;color:#fff;border-radius:50%;width:30px;height:30px;cursor:pointer;">✕</button>
+          <div style="font-size:24px; font-weight:bold; background:#fff; color:#333; width:70px; height:70px; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 10px;" id="modal-avatar">A</div>
+          <h3 style="margin:0" id="cm-name">Nombre</h3>
+        </div>
+        <div class="modal-body">
+          <div class="stamps-indicator">
+            <div style="display:flex;justify-content:space-between">
+              <span>Progreso</span>
+              <span style="font-weight:bold;color:var(--venus-soft)"><span id="cm-stamps">0</span>/<span id="cm-max">8</span></span>
+            </div>
+            <div class="stamps-progress"><div id="bar-progress" class="stamps-bar"></div></div>
+            <div id="cm-status-text" style="text-align:center; margin-top:5px; font-size:12px; color:var(--success)">En curso</div>
+          </div>
+          
+          <div class="actions-grid">
+            <div class="action-card" id="btn-add-stamp">
+               <div style="font-size:22px">⭐</div>
+               <div style="font-size:12px">+1 Sello</div>
+            </div>
+            <div class="action-card" id="btn-redeem">
+               <div style="font-size:22px">🎁</div>
+               <div style="font-size:12px">Canjear</div>
+            </div>
+            <div class="action-card" onclick="$('#notify-form-container').classList.toggle('hidden')">
+               <div style="font-size:22px">🔔</div>
+               <div style="font-size:12px">Notificar</div>
+            </div>
+            <div class="action-card" onclick="downloadQR()">
+               <div style="font-size:22px">💾</div>
+               <div style="font-size:12px">QR</div>
+            </div>
+          </div>
+
+          <div id="notify-form-container" class="notify-section hidden">
+            <div style="font-size:12px; font-weight:bold; margin-bottom:5px;">Push Individual</div>
+            <input id="notify-title" placeholder="Título" style="background:rgba(0,0,0,0.2)">
+            <textarea id="notify-message" rows="2" placeholder="Mensaje..." style="background:rgba(0,0,0,0.2)"></textarea>
+            <button id="btn-send-notify" class="btn small primary" style="width:100%">Enviar Push</button>
+          </div>
+
+          <div style="text-align:center; margin-top:15px">
+            <div style="background:#fff; padding:5px; display:inline-block; border-radius:8px">
+              <canvas id="card-qr-modal" style="width:100px;height:100px"></canvas>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
-  </nav>
 
-  <main class="container-fluid py-3">
-    <!-- Navegación por pestañas -->
-    <ul class="nav nav-pills nav-pills-custom mb-4" id="adminTabs" role="tablist">
-      <li class="nav-item" role="presentation">
-        <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button" role="tab">
-          <i class="bi bi-speedometer2 me-1"></i>Resumen
-        </button>
-      </li>
-      <li class="nav-item" role="presentation">
-        <button class="nav-link" id="cards-tab" data-bs-toggle="tab" data-bs-target="#cards" type="button" role="tab">
-          <i class="bi bi-credit-card me-1"></i>Tarjetas
-        </button>
-      </li>
-      <li class="nav-item" role="presentation">
-        <button class="nav-link" id="events-tab" data-bs-toggle="tab" data-bs-target="#events" type="button" role="tab">
-          <i class="bi bi-gift me-1"></i>Gift Cards
-        </button>
-      </li>
-      <li class="nav-item" role="presentation">
-        <button class="nav-link" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settings" type="button" role="tab">
-          <i class="bi bi-gear me-1"></i>Configuración
-        </button>
-      </li>
-    </ul>
-
-    <!-- Contenido de las pestañas -->
-    <div class="tab-content" id="adminTabsContent">
-      
-      <!-- Pestaña: Resumen -->
-      <div class="tab-pane fade show active" id="overview" role="tabpanel">
-        <div class="card card-custom mb-4">
-          <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center flex-wrap mb-3">
-              <div>
-                <h2 class="h4 mb-1">Resumen</h2>
-                <p class="text-muted mb-0">Indicadores rápidos de tu programa de lealtad</p>
-              </div>
-              <div class="d-flex align-items-center gap-2 mt-2 mt-md-0">
-                <select id="stats-filter" class="form-select form-select-sm form-select-custom" style="width: auto;">
-                  <option value="day">Hoy</option>
-                  <option value="week" selected>Esta Semana</option>
-                  <option value="month">Este Mes</option>
-                </select>
-                <button id="btn-download-report" class="btn btn-sm btn-venus">
-                  <i class="bi bi-download me-1"></i>Descargar Reporte
-                </button>
-              </div>
-            </div>
-            
-            <!-- KPIs principales -->
-            <div class="row g-3 mb-4">
-              <div class="col-md-4">
-                <div class="kpi-card">
-                  <div class="kpi-label">Tarjetas totales</div>
-                  <div class="kpi-value" id="kpi-total">—</div>
-                </div>
-              </div>
-              <div class="col-md-4">
-                <div class="kpi-card">
-                  <div class="kpi-label">Tarjetas completas</div>
-                  <div class="kpi-value" id="kpi-full">—</div>
-                </div>
-              </div>
-              <div class="col-md-4">
-                <div class="kpi-card">
-                  <div class="kpi-label" id="stamps-period-label">Sellos hoy</div>
-                  <div class="kpi-value" id="kpi-stamps">—</div>
-                </div>
-              </div>
-            </div>
-            
-            <!-- KPIs adicionales -->
-            <div class="row g-3 mb-4">
-              <div class="col-md-4">
-                <div class="kpi-card">
-                  <div class="kpi-label" id="redeems-period-label">Canjes hoy</div>
-                  <div class="kpi-value" id="kpi-redeems">—</div>
-                </div>
-              </div>
-              <div class="col-md-4">
-                <div class="kpi-card">
-                  <div class="kpi-label">Promedio sellos</div>
-                  <div class="kpi-value" id="kpi-avg">—</div>
-                </div>
-              </div>
-              <div class="col-md-4">
-                <div class="kpi-card">
-                  <div class="kpi-label">Tasa completitud</div>
-                  <div class="kpi-value" id="kpi-rate">—</div>
-                </div>
-              </div>
-            </div>
-            
-            <!-- Cumpleaños -->
-            <div class="border-top border-secondary pt-4 mb-4">
-              <h3 class="h5 mb-3"><i class="bi bi-balloon me-1"></i>Cumpleaños</h3>
-              <div class="row g-3">
-                <div class="col-md-6">
-                  <div class="birthday-list">
-                    <h4 class="h6 text-danger mb-3"><i class="bi bi-balloon me-1"></i>Pasaron (15 días)</h4>
-                    <div id="list-past-bd" class="small text-muted">Cargando...</div>
-                  </div>
-                </div>
-                <div class="col-md-6">
-                  <div class="birthday-list">
-                    <h4 class="h6 text-success mb-3"><i class="bi bi-balloon-fill me-1"></i>Próximos (15 días)</h4>
-                    <div id="list-next-bd" class="small text-muted">Cargando...</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <!-- Actividad reciente -->
-            <div class="border-top border-secondary pt-4 mb-4">
-              <h3 class="h5 mb-3" id="activity-title"><i class="bi bi-graph-up me-1"></i>Actividad reciente (7 días)</h3>
-              <div class="bg-dark bg-opacity-25 rounded-3 p-3">
-                <canvas id="activity-chart" style="max-height: 200px;"></canvas>
-              </div>
-            </div>
-            
-            <!-- Top clientes -->
-            <div class="border-top border-secondary pt-4 mb-4">
-              <h3 class="h5 mb-3"><i class="bi bi-star me-1"></i>Top Clientes</h3>
-              <div class="table-responsive">
-                <table class="table table-custom table-hover">
-                  <thead>
-                    <tr>
-                      <th>Cliente</th>
-                      <th>Sellos</th>
-                      <th>Estado</th>
-                    </tr>
-                  </thead>
-                  <tbody id="top-clients">
-                    <tr>
-                      <td colspan="3" class="text-center py-3 text-muted">Cargando...</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-            
-            <!-- Estado de Wallets -->
-            <div class="border-top border-secondary pt-4">
-              <h3 class="h5 mb-3"><i class="bi bi-phone me-1"></i>Estado de Wallets</h3>
-              <div class="row g-3 mb-3">
-                <div class="col-md-4">
-                  <div class="kpi-card">
-                    <div class="kpi-label"><i class="bi bi-google me-1"></i>Google Wallet</div>
-                    <div class="kpi-value" id="kpi-google">—</div>
-                  </div>
-                </div>
-                <div class="col-md-4">
-                  <div class="kpi-card">
-                    <div class="kpi-label"><i class="bi bi-apple me-1"></i>Apple Wallet</div>
-                    <div class="kpi-value" id="kpi-apple">—</div>
-                  </div>
-                </div>
-                <div class="col-md-4">
-                  <div class="kpi-card">
-                    <div class="kpi-label"><i class="bi bi-phone me-1"></i>Dispositivos totales</div>
-                    <div class="kpi-value" id="kpi-devices">—</div>
-                  </div>
-                </div>
-              </div>
-              <div class="text-center">
-                <button id="btn-refresh-wallet-stats" class="btn btn-sm btn-outline-venus">
-                  <i class="bi bi-arrow-clockwise me-1"></i>Actualizar estadísticas
-                </button>
-              </div>
-            </div>
+    <!-- Modal Tarjeta existente (se mantiene para compatibilidad) -->
+    <div id="card-modal-backdrop" class="modal-backdrop hidden">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3>Tarjeta</h3>
+          <button id="cm-close" class="btn small ghost">Cerrar</button>
+        </div>
+        <div class="modal-body">
+          <p><strong>ID:</strong> <code id="cm-id"></code></p>
+          <p><strong>Cliente:</strong> <span id="cm-name-old"></span></p>
+          <p><strong>Teléfono:</strong> <span id="cm-phone"></span></p>
+          <p><strong>Sellos:</strong> <span id="cm-stamps-old"></span></p>
+          <p><strong>Estado:</strong> <span id="cm-status"></span></p>
+          <div class="qr-box">
+            <canvas id="card-qr"></canvas>
           </div>
         </div>
-      </div>
-      
-      <!-- Pestaña: Tarjetas -->
-      <div class="tab-pane fade" id="cards" role="tabpanel">
-        <div class="card card-custom">
-          <div class="card-body">
-            <h2 class="h4 mb-2">Tarjetas de lealtad</h2>
-            <p class="text-muted mb-4">Gestiona todas las tarjetas de tus clientes.</p>
-            
-            <div class="d-flex flex-wrap gap-2 mb-3">
-              <input id="search-cards" class="form-control form-control-custom" placeholder="Buscar por ID o nombre..." style="max-width: 300px;">
-              <button id="btn-search-cards" class="btn btn-venus">
-                <i class="bi bi-search me-1"></i>Buscar
-              </button>
-              <button id="btn-reload-cards" class="btn btn-outline-venus">
-                <i class="bi bi-arrow-clockwise me-1"></i>Recargar
-              </button>
-              <button id="btn-scan-card" class="btn btn-outline-venus">
-                <i class="bi bi-camera me-1"></i>Escanear QR
-              </button>
-            </div>
-            
-            <div class="table-responsive">
-              <table class="table table-custom table-hover">
-                <thead>
-                  <tr>
-                    <th class="sortable-header" data-sort="id">ID</th>
-                    <th class="sortable-header" data-sort="name">Cliente</th>
-                    <th class="sortable-header" data-sort="phone">Teléfono</th>
-                    <th class="sortable-header" data-sort="birthdate">F. Nacimiento</th>
-                    <th class="sortable-header" data-sort="stamps">Sellos</th>
-                    <th class="sortable-header" data-sort="max">Max</th>
-                    <th class="sortable-header" data-sort="createdAt">Creada</th>
-                    <th>Acciones</th>
-                  </tr>
-                </thead>
-                <tbody id="cards-tbody">
-                  <tr>
-                    <td colspan="8" class="text-center py-3 text-muted">Cargando tarjetas...</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-            
-            <div class="d-flex justify-content-between align-items-center mt-3">
-              <button id="btn-prev-page" class="btn btn-sm btn-outline-venus">
-                <i class="bi bi-chevron-left me-1"></i>Anterior
-              </button>
-              <span id="page-info" class="text-muted">Página 1</span>
-              <button id="btn-next-page" class="btn btn-sm btn-outline-venus">
-                Siguiente<i class="bi bi-chevron-right ms-1"></i>
-              </button>
-            </div>
-          </div>
+        <div class="modal-footer">
+          <button id="cm-stamp" class="btn small primary">+1 sello</button>
+          <button id="cm-redeem" class="btn small">Canjear</button>
+          <button id="cm-copy" class="btn small">Copiar ID</button>
+          <button id="cm-open" class="btn small ghost">Abrir cliente</button>
+          <button id="cm-notify" class="btn small">Notificar solo esta tarjeta</button>
+          <button id="cm-register-google" class="btn small">📱 Reg. Dispositivo Google</button>
         </div>
       </div>
+    </div>
+    
+    <footer class="footer">© Venus Cosmetología</footer>
+  </main>
+
+  <script>
+    const $ = s => document.querySelector(s);
+    let currentCard = null;
+    let html5QrCode = null;
+
+    /* ===== SESIÓN Y PROTECCIÓN ===== */
+    async function loadMe(){
+      try{
+        const r = await fetch("/api/admin/me",{credentials:"include"});
+        
+        if(!r.ok) {
+          console.log("Sin sesión válida, redirigiendo a login...");
+          window.location.href = "/admin-login.html";
+          return;
+        }
+        
+        const j = await r.json();
+        $("#me-line").textContent = "Sesión: " + (j.email || j.uid || "admin");
+        
+        document.body.classList.remove('checking-auth');
+        document.body.classList.add('auth-verified');
+        
+        loadMetrics('week');
+      }catch(e){
+        console.error("Error verificando sesión:", e);
+        window.location.href = "/admin-login.html";
+      }
+    }
+
+    loadMe();
+
+    /* ===== TABS ===== */
+    document.querySelectorAll('[data-tab]').forEach(tab => {
+      tab.addEventListener('click', function(e) {
+        e.preventDefault();
+        
+        document.querySelectorAll('.nav a').forEach(a => a.classList.remove('is-active'));
+        this.classList.add('is-active');
+        
+        document.querySelectorAll('[id^="tab-"]').forEach(s => s.classList.add('hidden'));
+        
+        const targetId = 'tab-' + this.getAttribute('data-tab');
+        const targetSection = document.getElementById(targetId);
+        if (targetSection) {
+          targetSection.classList.remove('hidden');
+        }
+        
+        const tabName = this.getAttribute('data-tab');
+        if (tabName === 'overview') {
+          loadMetrics(document.getElementById('stats-filter').value);
+        } else if (tabName === 'cards') {
+          loadCards(1);
+        } else if (tabName === 'events') {
+          loadGiftHistory();
+        } else if (tabName === 'settings') {
+          loadNotificationsHistory();
+        }
+      });
+    });
+
+    /* ===== FILTRADO Y REPORTES ===== */
+    let globalStatsData = {};
+
+    document.getElementById('stats-filter').addEventListener('change', (e) => {
+        loadMetrics(e.target.value);
+    });
+
+    document.getElementById('btn-download-report').addEventListener('click', downloadCSV);
+
+    function downloadCSV() {
+        if(!globalStatsData.clients) return alert("No hay datos para descargar");
+
+        let csvContent = "data:text/csv;charset=utf-8,";
+        
+        csvContent += `REPORTE DE LEALTAD VENUS\r\n`;
+        csvContent += `Periodo: ${document.querySelector("#stats-filter option:checked").text}\r\n`;
+        csvContent += `Generado: ${new Date().toLocaleDateString()}\r\n\r\n`;
+        
+        csvContent += `METRICAS GENERALES\r\n`;
+        csvContent += `Total Tarjetas Activas,${globalStatsData.total || 0}\r\n`;
+        csvContent += `Tarjetas Completadas,${globalStatsData.full || 0}\r\n`;
+        csvContent += `Sellos en este periodo,${globalStatsData.stampsPeriod || 0}\r\n`;
+        csvContent += `Canjes en este periodo,${globalStatsData.redeemsPeriod || 0}\r\n`;
+        csvContent += `Promedio de sellos,${globalStatsData.avg || 0}\r\n`;
+        csvContent += `Tasa de completitud,${globalStatsData.rate || 0}%\r\n\r\n`;
+
+        csvContent += `TOP CLIENTES\r\n`;
+        csvContent += `Nombre,Sellos Actuales,Meta,Estado\r\n`;
+        
+        globalStatsData.clients.forEach(c => {
+            const estado = c.stamps >= c.max ? "Completada" : "En curso";
+            csvContent += `${c.name},${c.stamps},${c.max},${estado}\r\n`;
+        });
+
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `Reporte_Venus_${new Date().getTime()}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    /* ===== METRICS (Firestore) - MEJORADO CON FILTROS ===== */
+    let activityChart = null;
+
+    async function loadMetrics(range = 'week') {
+      try {
+        updatePeriodLabels(range);
+        
+        const response = await fetch(`/api/admin/metrics-firebase?range=${range}`, {
+          credentials: 'include'
+        });
+        const data = await response.json();
+        
+        document.getElementById('kpi-total').textContent = data.total || 0;
+        document.getElementById('kpi-full').textContent = data.full || 0;
+        
+        if (range === 'day') {
+          document.getElementById('kpi-stamps').textContent = data.stampsToday || 0;
+          document.getElementById('kpi-redeems').textContent = data.redeemsToday || 0;
+        } else if (range === 'week') {
+          document.getElementById('kpi-stamps').textContent = data.stampsWeek || 0;
+          document.getElementById('kpi-redeems').textContent = data.redeemsWeek || 0;
+        } else if (range === 'month') {
+          document.getElementById('kpi-stamps').textContent = data.stampsMonth || 0;
+          document.getElementById('kpi-redeems').textContent = data.redeemsMonth || 0;
+        }
+        
+        const avg = data.total > 0 ? (((data.totalStamps || 0) / data.total)).toFixed(1) : '0.0';
+        document.getElementById('kpi-avg').textContent = avg;
+        
+        const rate = data.total > 0 ? ((data.full / data.total) * 100).toFixed(0) : '0';
+        document.getElementById('kpi-rate').textContent = rate + '%';
+        
+        await loadTopClients();
+        await loadActivityChart(range);
+        await loadWalletStats();
+        await loadBirthdays();
+        
+        globalStatsData = {
+          total: data.total || 0,
+          full: data.full || 0,
+          stampsPeriod: range === 'day' ? data.stampsToday : (range === 'week' ? data.stampsWeek : data.stampsMonth),
+          redeemsPeriod: range === 'day' ? data.redeemsToday : (range === 'week' ? data.redeemsWeek : data.redeemsMonth),
+          avg: avg,
+          rate: rate,
+          range: range
+        };
+        
+      } catch (error) {
+        console.error('Error:', error);
+        loadSampleData(range);
+      }
+    }
+
+    function updatePeriodLabels(range) {
+      const stampsLabel = document.getElementById('stamps-period-label');
+      const redeemsLabel = document.getElementById('redeems-period-label');
+      const activityTitle = document.getElementById('activity-title');
       
-      <!-- Pestaña: Gift Cards -->
-      <div class="tab-pane fade" id="events" role="tabpanel">
-        <div class="card card-custom">
-          <div class="card-body">
-            <div class="gift-redeem-box mb-4">
-              <h3 class="h5 mb-3 text-venus-soft"><i class="bi bi-gift me-1"></i>Canjear Gift Card</h3>
-              <div class="d-flex flex-column flex-md-row justify-content-center align-items-center gap-2 mb-2">
-                <input id="redeem-code" class="form-control form-control-custom" placeholder="Código o escanear..." style="max-width: 250px;">
-                <button id="btn-redeem-gift" class="btn btn-venus btn-sm">
-                  Canjear
-                </button>
-              </div>
-              <button onclick="startGiftScan()" class="btn btn-sm btn-outline-venus">
-                <i class="bi bi-camera me-1"></i>Usar Cámara
-              </button>
-            </div>
+      if (range === 'day') {
+        stampsLabel.textContent = 'Sellos hoy';
+        redeemsLabel.textContent = 'Canjes hoy';
+        activityTitle.textContent = '📈 Actividad hoy';
+      } else if (range === 'week') {
+        stampsLabel.textContent = 'Sellos esta semana';
+        redeemsLabel.textContent = 'Canjes esta semana';
+        activityTitle.textContent = '📈 Actividad reciente (7 días)';
+      } else if (range === 'month') {
+        stampsLabel.textContent = 'Sellos este mes';
+        redeemsLabel.textContent = 'Canjes este mes';
+        activityTitle.textContent = '📈 Actividad mensual';
+      }
+    }
 
-            <div class="mb-4">
-              <h3 class="h6 text-muted mb-3"><i class="bi bi-clock-history me-1"></i>Historial Reciente</h3>
-              <div class="table-responsive">
-                <table class="table history-table">
-                  <thead>
-                    <tr>
-                      <th>Código</th>
-                      <th>Servicio</th>
-                      <th>Cliente</th>
-                      <th>Fecha</th>
-                    </tr>
-                  </thead>
-                  <tbody id="gift-history-body">
-                    <tr>
-                      <td colspan="4" class="text-center py-2 text-muted">Cargando...</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-            
-            <hr class="my-4">
-            
-            <h2 class="h4 mb-2">Crear Gift Card</h2>
-            <p class="text-muted mb-4">Genera una tarjeta de regalo digital con vigencia de 30 días. Podrás compartir el QR por WhatsApp o imprimirla.</p>
-            
-            <form id="gift-form" class="mb-4" style="max-width: 500px;">
-              <div class="mb-3">
-                <label for="gift-name" class="form-label">Nombre del cliente (opcional)</label>
-                <input id="gift-name" class="form-control form-control-custom" placeholder="Ej. Ana López">
-              </div>
-              <div class="mb-3">
-                <label for="gift-service" class="form-label">Servicio a regalar</label>
-                <input id="gift-service" class="form-control form-control-custom" required placeholder="Ej. Facial hidratante, Masaje relajante…">
-              </div>
-              <button type="submit" class="btn btn-venus">Generar Gift Card</button>
-            </form>
-
-            <div id="gift-preview-container" class="d-none">
-              <div id="gift-card-visual" class="gift-card-visual">
-                <div class="gift-card-content">
-                  <img src="/assets/logo.png" alt="Venus" class="gift-brand-logo">
-                  
-                  <div class="gift-title">Venus Lealtad</div>
-                  <div style="font-size: 0.9rem; opacity: 0.9;">¡Tienes un regalo! 🎁</div>
-                  
-                  <hr style="width: 50%; border: 0; border-top: 1px solid rgba(255,255,255,0.3); margin: 15px 0;">
-
-                  <div id="gift-visual-service" class="gift-service">Servicio</div>
-                  <div id="gift-visual-client" class="gift-meta">Para: Cliente</div>
-                  <div id="gift-visual-date" class="gift-meta" style="font-size: 0.8rem; margin-top:0;">Vence: --/--/--</div>
-
-                  <div class="gift-qr-container">
-                    <canvas id="gift-qr"></canvas>
-                  </div>
-                  <div style="font-size: 10px; color: #333; margin-top: 4px; color: #fff; opacity: 0.8;">Muestra este código</div>
-                </div>
-              </div>
-            </div>
-
-            <div id="gift-actions" class="d-flex flex-wrap gap-2 mt-3 d-none">
-              <button type="button" id="gift-copy" class="btn btn-sm btn-outline-venus">Copiar texto</button>
-              <button type="button" id="gift-whatsapp" class="btn btn-sm btn-venus">Enviar por WhatsApp</button>
-              <button type="button" id="gift-whatsapp-image" class="btn btn-sm btn-venus">
-                <i class="bi bi-camera me-1"></i>WhatsApp con imagen
-              </button>
-            </div>
-            
-            <div id="gift-success" class="alert alert-success mt-3 d-none">
-              <i class="bi bi-check-circle me-1"></i>Gift Card generada exitosamente. Puedes enviarla por WhatsApp o compartir el texto.
-            </div>
-          </div>
-        </div>
-      </div>
+    function loadSampleData(range) {
+      let labels, dataStamps, kpiStamps, kpiRedeems;
       
-      <!-- Pestaña: Configuración -->
-      <div class="tab-pane fade" id="settings" role="tabpanel">
-        <div class="card card-custom">
-          <div class="card-body">
-            <h2 class="h4 mb-2">Configuración</h2>
-            <p class="text-muted mb-4">Envía notificaciones push a todos los pases en Google Wallet.</p>
-            
-            <div class="bg-venus bg-opacity-10 border border-venus border-opacity-30 rounded-3 p-3 mb-4">
-              <h3 class="h5 mb-3"><i class="bi bi-bell me-1"></i>Notificaciones Push</h3>
-              
-              <form id="push-notification-form">
-                <div class="mb-3">
-                  <label for="push-title" class="form-label">Título de la notificación</label>
-                  <input id="push-title" class="form-control form-control-custom" placeholder="Ej. ¡Nueva promoción!" required maxlength="50">
-                  <div class="form-text text-muted">Máximo 50 caracteres</div>
-                </div>
-                
-                <div class="mb-3">
-                  <label for="push-message" class="form-label">Mensaje</label>
-                  <textarea id="push-message" class="form-control form-control-custom" placeholder="Ej. Hoy tenemos 20% de descuento..." required maxlength="200" rows="3"></textarea>
-                  <div class="form-text text-muted">Máximo 200 caracteres</div>
-                </div>
-                
-                <div class="mb-3">
-                  <label for="push-type" class="form-label">Tipo</label>
-                  <select id="push-type" class="form-select form-select-custom">
-                    <option value="promo">🎁 Promoción</option>
-                    <option value="reminder">⏰ Recordatorio</option>
-                    <option value="update">ℹ️ Actualización</option>
-                    <option value="alert">⚠️ Alerta</option>
-                  </select>
-                </div>
-                
-                <div class="mb-3 p-3 bg-dark bg-opacity-10 rounded-3">
-                  <div class="d-flex justify-content-between align-items-center mb-2">
-                    <span class="text-muted small">Vista previa:</span>
-                    <span id="preview-type" class="small">🎁 Promoción</span>
-                  </div>
-                  <div class="bg-dark bg-opacity-10 rounded-2 p-2">
-                    <div id="preview-title" class="fw-semibold mb-1">¡Nueva promoción!</div>
-                    <div id="preview-message" class="text-muted small">Tu mensaje aparecerá aquí...</div>
-                  </div>
-                </div>
-                
-                <div class="d-flex flex-wrap gap-2">
-                  <button type="button" id="btn-mass-push" class="btn btn-venus">Enviar a todos</button>
-                  <button type="button" id="test-push" class="btn btn-outline-venus">Enviar prueba</button>
-                </div>
-              </form>
-              
-              <div id="push-success" class="alert alert-success mt-3 d-none">
-                <i class="bi bi-check-circle me-1"></i>Notificación enviada a <span id="push-count">0</span> pases
-              </div>
-              
-              <div id="push-error" class="alert alert-danger mt-3 d-none">
-                <i class="bi bi-exclamation-triangle me-1"></i>Error al enviar notificación
-              </div>
-            </div>
+      if(range === 'day') {
+        labels = ['10:00', '12:00', '14:00', '16:00', '18:00', '20:00'];
+        dataStamps = [2, 5, 1, 8, 4, 6];
+        kpiStamps = 26;
+        kpiRedeems = 3;
+      } else if(range === 'week') {
+        labels = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+        dataStamps = [12, 19, 3, 5, 22, 30, 15];
+        kpiStamps = 106;
+        kpiRedeems = 8;
+      } else {
+        labels = ['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4'];
+        dataStamps = [80, 120, 95, 110];
+        kpiStamps = 405;
+        kpiRedeems = 25;
+      }
 
-            <div class="mb-4">
-              <div class="d-flex justify-content-between align-items-center mb-3">
-                <h3 class="h5 mb-0"><i class="bi bi-clock-history me-1"></i>Historial</h3>
-                <button id="refresh-history" class="btn btn-sm btn-outline-venus">
-                  <i class="bi bi-arrow-clockwise me-1"></i>
-                </button>
+      document.getElementById('kpi-total').textContent = "142";
+      document.getElementById('kpi-full').textContent = "18";
+      document.getElementById('kpi-stamps').textContent = kpiStamps;
+      document.getElementById('kpi-redeems').textContent = kpiRedeems;
+      document.getElementById('kpi-avg').textContent = "5.2";
+      document.getElementById('kpi-rate').textContent = "13%";
+
+      renderChart(labels, dataStamps);
+      renderSampleTopClients();
+      
+      globalStatsData = {
+        total: 142,
+        full: 18,
+        stampsPeriod: kpiStamps,
+        redeemsPeriod: kpiRedeems,
+        avg: "5.2",
+        rate: "13",
+        range: range
+      };
+    }
+
+    function renderChart(labels, data) {
+      const ctx = document.getElementById('activity-chart');
+      
+      if (activityChart) {
+        activityChart.destroy();
+      }
+      
+      activityChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Sellos',
+            data: data,
+            borderColor: '#8c9668',
+            backgroundColor: 'rgba(140, 150, 104, 0.15)',
+            tension: 0.4,
+            fill: true,
+            pointBackgroundColor: '#8c9668',
+            pointBorderColor: '#fff',
+            pointBorderWidth: 2,
+            pointRadius: 4,
+            pointHoverRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: 'rgba(0, 0, 0, 0.8)',
+              padding: 10,
+              titleColor: '#fff',
+              bodyColor: '#fff',
+              borderColor: '#8c9668',
+              borderWidth: 1
+            }
+          },
+          scales: {
+            y: { 
+              beginAtZero: true,
+              ticks: { 
+                color: '#e5e7eb',
+                font: { size: 11 }
+              },
+              grid: {
+                color: 'rgba(255, 255, 255, 0.1)'
+              }
+            },
+            x: { 
+              ticks: { 
+                color: '#e5e7eb',
+                font: { size: 11 }
+              },
+              grid: {
+                display: false
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function renderSampleTopClients() {
+      const clients = [
+        {name: 'Ana López', stamps: 7, max: 8},
+        {name: 'Carlos Ruiz', stamps: 8, max: 8},
+        {name: 'Sofía Mendoza', stamps: 4, max: 8},
+        {name: 'Roberto García', stamps: 6, max: 8},
+        {name: 'Laura Torres', stamps: 8, max: 8}
+      ];
+      
+      const tbody = document.getElementById('top-clients');
+      tbody.innerHTML = clients.map(c => `
+        <tr>
+          <td>${c.name}</td>
+          <td>${c.stamps}/${c.max}</td>
+          <td>
+            ${c.stamps >= c.max 
+              ? '<span class="tag">🎁 Completa</span>' 
+              : `<span class="muted">${c.max - c.stamps} más</span>`
+            }
+          </td>
+        </tr>
+      `).join('');
+      
+      globalStatsData.clients = clients;
+    }
+
+    async function loadTopClients() {
+      try {
+        const response = await fetch('/api/admin/top-clients', {
+          credentials: 'include'
+        });
+        const data = await response.json();
+        
+        const tbody = document.getElementById('top-clients');
+        if (!data.clients || data.clients.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="3" style="text-align:center;padding:12px;" class="muted">No hay datos</td></tr>`;
+          return;
+        }
+        
+        tbody.innerHTML = data.clients.slice(0, 5).map(c => `
+          <tr>
+            <td>${c.name || 'Sin nombre'}</td>
+            <td>${c.stamps}/${c.max}</td>
+            <td>
+              ${c.stamps >= c.max 
+                ? '<span class="tag">🎁 Completa</span>' 
+                : `<span class="muted">${c.max - c.stamps} más</span>`
+              }
+            </td>
+          </tr>
+        `).join('');
+        
+        globalStatsData.clients = data.clients.slice(0, 5);
+      } catch (error) {
+        console.error('Error cargando top clients:', error);
+        renderSampleTopClients();
+      }
+    }
+
+    async function loadActivityChart(range = 'week') {
+      try {
+        const response = await fetch(`/api/admin/activity-${range}`, {
+          credentials: 'include'
+        });
+        
+        if (!response.ok) {
+          throw new Error('API no disponible');
+        }
+        
+        const data = await response.json();
+        const ctx = document.getElementById('activity-chart');
+        
+        if (activityChart) {
+          activityChart.destroy();
+        }
+        
+        activityChart = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: data.labels || ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
+            datasets: [{
+              label: 'Sellos',
+              data: data.stamps || [0, 0, 0, 0, 0, 0, 0],
+              borderColor: '#8c9668',
+              backgroundColor: 'rgba(140, 150, 104, 0.15)',
+              tension: 0.4,
+              fill: true,
+              pointBackgroundColor: '#8c9668',
+              pointBorderColor: '#fff',
+              pointBorderWidth: 2,
+              pointRadius: 4,
+              pointHoverRadius: 6
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                padding: 10,
+                titleColor: '#fff',
+                bodyColor: '#fff',
+                borderColor: '#8c9668',
+                borderWidth: 1
+              }
+            },
+            scales: {
+              y: { 
+                beginAtZero: true,
+                ticks: { 
+                  color: '#e5e7eb',
+                  font: { size: 11 }
+                },
+                grid: {
+                  color: 'rgba(255, 255, 255, 0.1)'
+                }
+              },
+              x: { 
+                ticks: { 
+                  color: '#e5e7eb',
+                  font: { size: 11 }
+                },
+                grid: {
+                  display: false
+                }
+              }
+            }
+          }
+        });
+      } catch (error) {
+        console.error('Error cargando gráfica:', error);
+      }
+    }
+
+    /* ===== WALLET STATS MEJORADO ===== */
+    async function loadWalletStats() {
+      try {
+        try {
+          const deviceStatsResponse = await fetch('/api/admin/device-stats', {
+            credentials: 'include'
+          });
+          
+          if (deviceStatsResponse.ok) {
+            const deviceStats = await deviceStatsResponse.json();
+            
+            document.getElementById('kpi-google').textContent = deviceStats.google?.totalDevices || '0';
+            document.getElementById('kpi-apple').textContent = deviceStats.apple?.totalDevices || '0';
+            document.getElementById('kpi-devices').textContent = deviceStats.total?.devices || '0';
+            return;
+          }
+        } catch (e) {
+          console.log('Nuevo endpoint device-stats no disponible, usando endpoint legacy');
+        }
+        
+        const response = await fetch('/api/admin/wallet-stats', {
+          credentials: 'include'
+        });
+        const data = await response.json();
+        
+        document.getElementById('kpi-google').textContent = data.googleWallets || 0;
+        document.getElementById('kpi-apple').textContent = data.appleWallets || 0;
+        document.getElementById('kpi-devices').textContent = data.appleDevices || 0;
+      } catch (error) {
+        console.error('Error cargando wallet stats:', error);
+        document.getElementById('kpi-google').textContent = '—';
+        document.getElementById('kpi-apple').textContent = '—';
+        document.getElementById('kpi-devices').textContent = '—';
+      }
+    }
+
+    document.getElementById('btn-refresh-wallet-stats')?.addEventListener('click', loadWalletStats);
+
+    /* ===== CARDS (Firestore + menú de acciones) ===== */
+    let currentPage = 1;
+    let cardsCache = {};
+    let currentCardId = null;
+    let currentSort = 'createdAt';
+    let currentOrder = 'desc';
+
+    async function loadCards(page = 1, sortBy = currentSort, sortOrder = currentOrder) {
+      try {
+        const searchQuery = document.getElementById('search-cards').value;
+        const params = new URLSearchParams({
+          page: page.toString(),
+          ...(searchQuery && { q: searchQuery }),
+          sortBy: sortBy,
+          sortOrder: sortOrder
+        });
+        
+        const url = `/api/admin/cards-firebase?${params}`;
+        
+        const response = await fetch(url, {
+          credentials: 'include'
+        });
+
+        if (!response.ok) throw new Error('Error ' + response.status);
+
+        const data = await response.json();
+        const tbody = document.getElementById('cards-tbody');
+
+        if (!data.items || data.items.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:12px;" class="muted">No hay tarjetas</td></tr>`;
+          return;
+        }
+
+        cardsCache = {};
+        data.items.forEach(c => { cardsCache[c.id] = c; });
+
+        tbody.innerHTML = data.items.map(card => `
+          <tr data-card-id="${card.id}">
+            <td><code>${card.id}</code></td>
+            <td>${card.name || '—'}</td>
+            <td>${card.phone || '—'}</td>
+            <td>${card.birthdate || '—'}</td>
+            <td>${card.stamps}</td>
+            <td>${card.max}</td>
+            <td>${card.createdAt ? new Date(card.createdAt).toLocaleDateString('es-ES') : '—'}</td>
+            <td>
+              <div class="row" style="gap:4px;flex-wrap:wrap;">
+                <button class="btn small" data-action="view">Ver</button>
+                <button class="btn small" data-action="copy">Copiar ID</button>
+                <button class="btn small" data-action="open">Abrir cliente</button>
+                <button class="btn small" data-action="stamp">+1 sello</button>
+                <button class="btn small" data-action="redeem">Canjear</button>
+                <button class="btn small ghost" data-action="delete">Eliminar</button>
               </div>
-              <div class="table-responsive">
-                <table class="table table-custom table-hover">
-                  <thead>
-                    <tr>
-                      <th>Fecha</th>
-                      <th>Título</th>
-                      <th>Tipo</th>
-                      <th>Enviadas</th>
-                      <th>Errores</th>
-                    </tr>
-                  </thead>
-                  <tbody id="not
+            </td>
+          </tr>
+        `).join('');
+
+        document.getElementById('page-info').textContent =
+          `Página ${data.page} de ${data.totalPages} (${data.total} total)`;
+        document.getElementById('btn-prev-page').disabled = data.page === 1;
+        document.getElementById('btn-next-page').disabled = data.page === data.totalPages;
+        
+        currentPage = data.page;
+        currentSort = sortBy;
+        currentOrder = sortOrder;
+        
+        updateSortableHeaders();
+        
+      } catch (error) {
+        console.error('Error:', error);
+        document.getElementById('cards-tbody').innerHTML =
+          `<tr><td colspan="8" style="text-align:center;padding:12px;color:#fecaca;">Error: ${error.message}</td></tr>`;
+      }
+    }
+   
+    function setupSortableHeaders() {
+      document.addEventListener('click', (e) => {
+        if (e.target.classList.contains('sortable-header')) {
+          const sortBy = e.target.dataset.sort;
+          
+          if (currentSort === sortBy) {
+            currentOrder = currentOrder === 'asc' ? 'desc' : 'asc';
+          } else {
+            currentSort = sortBy;
+            currentOrder = 'asc';
+          }
+          
+          loadCards(1, currentSort, currentOrder);
+        }
+      });
+    }
+
+    function updateSortableHeaders() {
+      document.querySelectorAll('.sortable-header').forEach(header => {
+        header.classList.remove('asc', 'desc');
+      });
+      
+      const currentHeader = document.querySelector(`.sortable-header[data-sort="${currentSort}"]`);
+      if (currentHeader) {
+        currentHeader.classList.add(currentOrder);
+      }
+    }
+
+    document.getElementById('btn-prev-page').addEventListener('click', () => {
+      if (currentPage > 1) loadCards(currentPage - 1, currentSort, currentOrder);
+    });
+
+    document.getElementById('btn-next-page').addEventListener('click', () => {
+      loadCards(currentPage + 1, currentSort, currentOrder);
+    });
+
+    document.getElementById('btn-search-cards').addEventListener('click', () => loadCards(1, currentSort, currentOrder));
+    document.getElementById('btn-reload-cards').addEventListener('click', () => loadCards(currentPage, currentSort, currentOrder));
+    document.getElementById('search-cards').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        loadCards(1, currentSort, currentOrder);
+      }
+    });
+
+    document.getElementById('cards-tbody').addEventListener('click', async (e) => {
+      const btn = e.target.closest('button[data-action]');
+      if (!btn) return;
+
+      const tr = btn.closest('tr[data-card-id]');
+      if (!tr) return;
+
+      const cardId = tr.dataset.cardId;
+      const card = cardsCache[cardId] || { id: cardId };
+      const action = btn.dataset.action;
+
+      switch (action) {
+        case 'view':
+          openCardModal(card);
+          break;
+        case 'copy':
+          await copyCardId(cardId);
+          break;
+        case 'open':
+          openClientPage(cardId);
+          break;
+        case 'stamp':
+          await stampCard(cardId);
+          break;
+        case 'redeem':
+          await redeemCard(cardId);
+          break;
+        case 'delete':
+          await deleteCard(cardId);
+          break;
+      }
+    });
+
+    /* ===== ESCÁNER QR (html5-qrcode) ===== */
+    const scanDialog = $("#scanDialog");
+    const scanStatus = $("#scan-status");
+
+    $("#btn-scan-card").addEventListener("click", async () => {
+      scanDialog.showModal();
+      await startScan();
+    });
+
+    $("#scan-close").addEventListener("click", () => {
+      stopScan();
+      scanDialog.close();
+    });
+
+    async function startScan() {
+      try {
+        scanStatus.textContent = "Iniciando cámara...";
+        
+        html5QrCode = new Html5Qrcode("qr-reader");
+        
+        await html5QrCode.start(
+          { facingMode: "environment" },
+          {
+            fps: 10,
+            qrbox: { width: 250, height: 250 }
+          },
+          async (decodedText, decodedResult) => {
+            console.log("QR detectado:", decodedText);
+            scanStatus.textContent = "✅ QR detectado";
+            
+            await stopScan();
+            await handleScan(decodedText);
+            scanDialog.close();
+          },
+          (errorMessage) => {
+          }
+        );
+        
+        scanStatus.textContent = "📷 Apunta al QR de la tarjeta...";
+        
+      } catch (err) {
+        console.error("Error iniciando cámara:", err);
+        scanStatus.textContent = "❌ No se pudo acceder a la cámara";
+        
+        if (err.name === 'NotAllowedError') {
+          scanStatus.textContent = "⚠️ Por favor permite el acceso a la cámara";
+        }
+      }
+    }
+
+    async function stopScan() {
+      if (html5QrCode && html5QrCode.isScanning) {
+        try {
+          await html5QrCode.stop();
+          console.log("Escáner detenido");
+        } catch (err) {
+          console.error("Error deteniendo escáner:", err);
+        }
+      }
+      html5QrCode = null;
+    }
+
+    function extractCardId(text){
+      try{
+        const u = new URL(text);
+        let c = u.searchParams.get("cardId");
+        if (c) return c;
+        c = u.searchParams.get("card");
+        if (c) return c;
+      }catch{}
+      if(/^card_\d+/.test(text)) return text;
+      return null;
+    }
+
+    async function handleScan(raw){
+      // Si es un código de gift card
+      if (raw.startsWith("GIFT|")) {
+        stopScan();
+        scanDialog.close();
+
+        document.getElementById('redeem-code').value = raw;
+        document.getElementById('btn-redeem-gift').click();
+        return;
+      }
+
+      const cid = extractCardId(raw);
+      if (!cid) {
+        scanStatus.textContent = "QR inválido.";
+        return;
+      }
+
+      stopScan();
+      scanDialog.close();
+
+      let card = cardsCache[cid];
+
+      if (!card) {
+        try {
+          const r = await fetch('/api/card/' + encodeURIComponent(cid), {
+            credentials: 'include'
+          });
+          if (r.ok) {
+            card = await r.json();
+          }
+        } catch (e) {
+          console.error('Error buscando tarjeta por ID', e);
+        }
+      }
+
+      if (!card) {
+        alert('Tarjeta no encontrada');
+        return;
+      }
+
+      openCardModal(card);
+    }
+
+    /* ===== GIFT CARDS MEJORADO ===== */
+    window.currentGiftCard = null;
+
+    document.getElementById('gift-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const clientName = (document.getElementById('gift-name').value || '').trim() || 'Cliente';
+      const service = (document.getElementById('gift-service').value || '').trim();
+      
+      if (!service) { alert('Ingresa un servicio'); return; }
+
+      const giftId = 'gift_' + Date.now();
+      const expirationDate = new Date();
+      expirationDate.setDate(expirationDate.getDate() + 30);
+      const formattedDate = expirationDate.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
+
+      document.getElementById('gift-visual-service').textContent = service;
+      document.getElementById('gift-visual-client').textContent = `Para: ${clientName}`;
+      document.getElementById('gift-visual-date').textContent = `Válida hasta: ${formattedDate}`;
+
+      const payloadText = `GIFT|codigo=${giftId}|servicio=${service}|cliente=${clientName}|vence=${expirationDate.toISOString().slice(0,10)}`;
+      const giftCanvas = document.getElementById('gift-qr');
+
+      try {
+        const ctx = giftCanvas.getContext('2d');
+        ctx.clearRect(0, 0, giftCanvas.width, giftCanvas.height);
+
+        await QRCode.toCanvas(giftCanvas, payloadText, { 
+          width: 150, 
+          margin: 0,
+          color: { dark: '#000000', light: '#ffffff' }
+        });
+        
+      } catch (err) {
+        console.error(err);
+        alert('Error generando QR. Verifica que la librería qrcode.min.js esté en el <head>');
+        return;
+      }
+
+      document.getElementById('gift-preview-container').classList.remove('hidden');
+      document.getElementById('gift-actions').classList.remove('hidden');
+      document.getElementById('gift-success').classList.remove('hidden');
+      
+      window.currentGiftCard = { id: giftId, client: clientName, service, expires: formattedDate };
+    });
+
+    document.getElementById('gift-whatsapp-image').addEventListener('click', async function() {
+        if (!window.currentGiftCard) return;
+        
+        const btn = this;
+        const originalText = btn.textContent;
+        btn.textContent = 'Generando imagen...';
+        
+        try {
+            const elementToCapture = document.getElementById('gift-card-visual');
+            
+            const canvasFull = await html2canvas(elementToCapture, {
+                scale: 2,
+                backgroundColor: null
+            });
+
+            const imageDataURL = canvasFull.toDataURL('image/png');
+            const gift = window.currentGiftCard;
+            
+            const message = `🎁 ¡Hola ${gift.client}!\n\n` +
+                            `Te envío una Gift Card de Venus Cosmetología para:\n` +
+                            `✨ *${gift.service}*\n\n` +
+                            `Presenta la imagen adjunta en tu próxima visita. 🌿`;
+
+            if (navigator.share && navigator.canShare) {
+                const blob = await (await fetch(imageDataURL)).blob();
+                const file = new File([blob], 'gift-card-venus.png', { type: 'image/png' });
+                try {
+                    await navigator.share({
+                        title: 'Gift Card Venus',
+                        text: message,
+                        files: [file]
+                    });
+                } catch (err) {
+                    if (err.name !== 'AbortError') fallbackWhatsAppShare(message, imageDataURL);
+                }
+            } else {
+                fallbackWhatsAppShare(message, imageDataURL);
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Error al generar la imagen');
+        } finally {
+            btn.textContent = originalText;
+        }
+    });
+
+    function fallbackWhatsAppShare(message, imageDataURL) {
+        const link = document.createElement('a');
+        link.download = 'gift-card-venus.png';
+        link.href = imageDataURL;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        setTimeout(() => {
+            const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message + '\n\n(Adjunta la imagen descargada)')}`;
+            window.open(whatsappUrl, '_blank');
+        }, 1000);
+    }
+
+    document.getElementById('gift-copy').addEventListener('click', function() {
+      if (!window.currentGiftCard) return;
+      const gift = window.currentGiftCard;
+      const text =
+        `🎁 Gift Card Venus Cosmetología\n\n` +
+        `✨ Servicio: ${gift.service}\n` +
+        `👤 A nombre de: ${gift.client}\n` +
+        `📅 Vigente hasta: ${gift.expires}\n` +
+        `🔑 Código: ${gift.id}\n\n` +
+        `Presenta este mensaje en tu visita 💚`;
+      
+      navigator.clipboard.writeText(text).then(() => {
+        const originalText = this.textContent;
+        this.textContent = '✅ Copiado';
+        setTimeout(() => {
+          this.textContent = originalText;
+        }, 2000);
+      }).catch(() => {
+        alert('No se pudo copiar el texto');
+      });
+    });
+
+    document.getElementById('gift-whatsapp').addEventListener('click', function() {
+      if (!window.currentGiftCard) return;
+      
+      const gift = window.currentGiftCard;
+      const message =
+        `🎁 ¡Hola ${gift.client}!\n\n` +
+        `Tienes una Gift Card de Venus Cosmetología:\n\n` +
+        `✨ Servicio: ${gift.service}\n` +
+        `📅 Válida hasta: ${gift.expires}\n` +
+        `🔑 Código: ${gift.id}\n\n` +
+        `Presenta este código en tu cita 💚`;
+      
+      const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+      window.open(whatsappUrl, '_blank');
+    });
+
+    /* ===== NUEVAS FUNCIONALIDADES AGREGADAS ===== */
+
+    /* === CUMPLEAÑOS === */
+    async function loadBirthdays() {
+      try {
+        const r = await fetch('/api/admin/birthdays');
+        const d = await r.json();
+        
+        const render = (list, isPast) => {
+          if(!list.length) return '<div style="padding:5px;opacity:0.5">Ninguno</div>';
+          return list.map(c => `
+            <div class="b-item">
+              <span><strong>${c.name}</strong></span>
+              <span class="tag-days">${isPast ? 'Hace '+c.daysAgo+'d' : 'En '+c.daysLeft+'d'}</span>
+            </div>
+          `).join('');
+        };
+        $("#list-past-bd").innerHTML = render(d.past, true);
+        $("#list-next-bd").innerHTML = render(d.upcoming, false);
+      } catch(e){
+        console.error('Error cargando cumpleaños:', e);
+      }
+    }
+
+    /* === GIFT CARDS - CANJE E HISTORIAL === */
+    async function loadGiftHistory() {
+      try {
+        const r = await fetch('/api/admin/gift-history');
+        const d = await r.json();
+        $("#gift-history-body").innerHTML = d.history.map(h => `
+          <tr>
+            <td style="
