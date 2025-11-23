@@ -1,120 +1,491 @@
 <!doctype html>
-<html lang="es">
+<html lang="es" class="h-full">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Staff — Venus Lealtad</title>
-  <link rel="stylesheet" href="/styles.css">
-  <style>
-    .staff-wrap{max-width:1050px;margin:24px auto;padding:16px}
-    .staff-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:18px}
-    .panel{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px}
-    .panel h2{margin-top:0}
-    video{width:100%;border-radius:10px;background:#000;aspect-ratio:16/9;object-fit:cover}
-    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-    .muted{color:#6b7280}
-    .ok{color:#15803d}.err{color:#b91c1c}
-    .stamp-preview{display:grid;grid-template-columns:repeat(auto-fill,minmax(28px,1fr));gap:8px;margin-top:10px}
-    .stamp-pip{position:relative;width:28px;height:28px;border-radius:50%;background:#eef2f7;border:1px solid #e5e7eb;overflow:hidden}
-    .stamp-pip.full{background-image:url('/assets/stamp.png');background-size:cover;background-position:center;background-color:transparent;border:none}
-    .idline{display:flex;gap:8px;align-items:center;margin-top:6px}
-    .btn{display:inline-flex;align-items:center;gap:8px;background:#8c9668;border:none;color:#fff;padding:10px 14px;border-radius:10px;cursor:pointer}
-    .btn[disabled]{opacity:.6;cursor:not-allowed}
-    .btn-ghost{background:transparent;border:1px solid #d1d5db;color:#111}
-    .hidden { display: none !important; }
+  <title>Venus Lealtad</title>
+  <link rel="icon" href="/assets/logo.png">
 
-    /* === Animación de "pulso" para el sello recién agregado === */
-    @keyframes stampPulse {
-      0%   { transform: scale(0.6); box-shadow: 0 0 0 0 rgba(140,150,104,0.00); opacity: 0.2; }
-      40%  { transform: scale(1.08); box-shadow: 0 0 0 6px rgba(140,150,104,0.15); opacity: 1; }
-      100% { transform: scale(1.00); box-shadow: 0 0 0 0 rgba(140,150,104,0.00); opacity: 1; }
-    }
-    .stamp-pip.full.pulse {
-      animation: stampPulse 600ms ease-out;
-      will-change: transform, box-shadow, opacity;
-    }
-  </style>
-</head>
-<body>
-  <main class="staff-wrap">
-    <header class="row" style="justify-content:space-between">
-      <div class="row">
-        <img src="/assets/logo.png" alt="Venus" style="width:40px;height:40px;border-radius:10px">
-        <div>
-          <h1 style="margin:0">Venus Lealtad — Staff</h1>
-          <div class="muted" style="margin-top:2px">Escanea QR del cliente para sumar sello</div>
-        </div>
-      </div>
-      <a class="btn btn-ghost" href="/" target="_blank" rel="noopener">Ver página de clientes</a>
-    </header>
+  <!-- Fuente Poppins -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-    <section class="staff-grid">
-      <!-- Cámara / Escáner -->
-      <div class="panel">
-        <h2>Escáner</h2>
-        <div class="row">
-          <select id="camera"></select>
-          <button id="start" class="btn">Iniciar cámara</button>
-          <button id="stop" class="btn btn-ghost" disabled>Detener</button>
-          <button id="switch" class="btn btn-ghost" disabled>Cambiar cámara</button>
-        </div>
-        <div style="margin-top:10px">
-          <video id="video" playsinline muted></video>
-        </div>
-
-        <details style="margin-top:12px">
-          <summary>Ingresar cardId manualmente</summary>
-          <div class="row" style="margin-top:8px">
-            <input id="manual" placeholder="card_..." style="flex:1;padding:10px;border:1px solid #e5e7eb;border-radius:10px">
-            <button id="load" class="btn">Cargar</button>
-          </div>
-        </details>
-
-        <div id="scan-out" class="muted" style="margin-top:10px"></div>
-      </div>
-
-      <!-- Detalles de la tarjeta -->
-      <div class="panel">
-        <h2>Tarjeta</h2>
-        <div id="card-empty" class="muted">Aún no hay tarjeta cargada.</div>
-
-        <div id="card-box" class="hidden">
-          <div class="row" style="justify-content:space-between">
-            <div>
-              <div class="muted small">Cliente</div>
-              <h3 id="c_name" style="margin:.2rem 0 0"></h3>
-              <div class="muted"><span id="c_count"></span></div>
-            </div>
-            <img src="/assets/hero.png" alt="Hero" style="width:84px;border-radius:10px">
-          </div>
-
-          <div class="stamp-preview" id="c_grid"></div>
-
-          <div class="idline">
-            <code id="c_id"></code>
-            <button id="copy" class="btn btn-ghost">Copiar ID</button>
-          </div>
-
-          <div class="row" style="margin-top:12px">
-            <button id="stamp" class="btn">Sumar sello (+1)</button>
-            <button id="redeem" class="btn btn-ghost">Canjear premio</button>
-          </div>
-
-          <div id="card-out" class="muted" style="margin-top:8px"></div>
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <!-- Fallback para lectura QR si no hay BarcodeDetector -->
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
   <script>
-    window.__NEED_JSQR__ = !('BarcodeDetector' in window);
-    if(window.__NEED_JSQR__){
-      const s=document.createElement('script');
-      s.src='https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js';
-      document.head.appendChild(s);
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'venus-bg': '#3f4037',
+            'venus-card': '#8c9668',
+          },
+          boxShadow: {
+            'venus': '0 18px 45px rgba(0,0,0,0.45)',
+          },
+          borderRadius: {
+            '3xl': '1.75rem',
+          }
+        }
+      }
     }
   </script>
-  <script src="/staff.js"></script>
+</head>
+<body class="min-h-screen bg-venus-bg text-white flex items-center justify-center px-4 py-6 font-[Poppins,sans-serif]">
+
+  <main class="w-full max-w-md mx-auto space-y-4">
+    <!-- VIEW: CREAR TARJETA -->
+    <section
+      id="view-create"
+      class="relative w-full rounded-3xl bg-venus-card shadow-venus px-6 py-7 sm:px-8 sm:py-8 overflow-hidden"
+    >
+      <!-- Luces decorativas -->
+      <div class="pointer-events-none absolute inset-0 opacity-80">
+        <div class="absolute -top-10 -left-16 w-44 h-44 bg-white/15 rounded-full blur-3xl"></div>
+        <div class="absolute bottom-[-3rem] right-[-3rem] w-52 h-52 bg-black/15 rounded-full blur-3xl"></div>
+      </div>
+
+      <div class="relative z-10 flex flex-col items-center text-center">
+        <img
+          src="/assets/logo.png"
+          alt="Venus"
+          class="w-20 h-20 rounded-full bg-white shadow-xl shadow-black/40 mb-3 object-cover"
+        />
+
+        <h1 class="text-2xl font-semibold tracking-wide">
+          Venus Lealtad
+        </h1>
+        <p class="text-sm sm:text-base text-white/90 mt-1 mb-4">
+          Gana sellos y canjea tu facial 🌿
+        </p>
+
+        <h2 class="text-lg sm:text-xl font-semibold mt-1">
+          Crea tu tarjeta
+        </h2>
+        <p class="text-sm sm:text-[0.95rem] text-white/90 mb-4">
+          Ingresa tus datos para generar tu tarjeta digital.
+        </p>
+
+        <form id="create-form" class="w-full space-y-3 text-left mt-2">
+          <div>
+            <label for="name" class="block text-sm font-semibold mb-1">
+              Nombre
+            </label>
+            <input
+              id="name"
+              name="name"
+              placeholder="Tu nombre"
+              required
+              class="w-full rounded-xl border border-white/30 bg-white/95 text-neutral-900 text-sm sm:text-base px-3.5 py-3 outline-none focus:ring-2 focus:ring-white/70 focus:border-transparent placeholder:text-neutral-500"
+            />
+          </div>
+
+          <div>
+            <label for="phone" class="block text-sm font-semibold mb-1">
+              Teléfono
+            </label>
+            <input
+              id="phone"
+              name="phone"
+              type="tel"
+              placeholder="10 dígitos"
+              pattern="[0-9]{10}"
+              required
+              class="w-full rounded-xl border border-white/30 bg-white/95 text-neutral-900 text-sm sm:text-base px-3.5 py-3 outline-none focus:ring-2 focus:ring-white/70 focus:border-transparent placeholder:text-neutral-500"
+            />
+          </div>
+
+          <div>
+            <label for="birthdate" class="block text-sm font-semibold mb-1">
+              Fecha de nacimiento
+            </label>
+            <input
+              id="birthdate"
+              name="birthdate"
+              type="date"
+              required
+              class="w-full min-h-[44px] rounded-xl border border-white/30 bg-white/95 text-neutral-900 text-sm sm:text-base px-3.5 py-2.5 outline-none focus:ring-2 focus:ring-white/70 focus:border-transparent [color-scheme:light]"
+            />
+          </div>
+
+          <input id="max" name="max" type="hidden" value="8" />
+
+          <!-- Error -->
+          <div
+            id="error-message"
+            class="hidden mt-2 text-xs sm:text-sm text-red-100 bg-black/20 border border-red-400/60 rounded-lg px-3 py-2"
+          ></div>
+
+          <!-- Botón crear -->
+          <button
+            class="mt-3 w-full sm:w-72 mx-auto flex justify-center items-center rounded-xl bg-white text-neutral-900 font-semibold text-sm sm:text-base px-4 py-3 shadow-md shadow-black/30 hover:scale-[1.02] hover:shadow-lg hover:shadow-black/40 transition-transform duration-150"
+            type="submit"
+            id="submit-btn"
+          >
+            Crear tarjeta
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <!-- VIEW: TARJETA GENERADA -->
+    <section
+      id="view-card"
+      class="hidden relative w-full rounded-3xl bg-venus-card shadow-venus px-6 py-7 sm:px-8 sm:py-8 overflow-hidden"
+    >
+      <!-- Luces decorativas -->
+      <div class="pointer-events-none absolute inset-0 opacity-80">
+        <div class="absolute -top-10 left-[-3rem] w-40 h-40 bg-white/15 rounded-full blur-3xl"></div>
+        <div class="absolute bottom-[-3rem] right-[-3rem] w-52 h-52 bg-black/15 rounded-full blur-3xl"></div>
+      </div>
+
+      <div class="relative z-10">
+        <header class="flex flex-col items-center text-center mb-4">
+          <h2
+            id="c_name"
+            class="text-xl sm:text-2xl font-semibold tracking-wide"
+          >
+            Cliente
+          </h2>
+          <p
+            id="c_info"
+            class="text-sm sm:text-[0.95rem] text-white/90 mt-1"
+          >
+            Progreso: 0/8
+          </p>
+        </header>
+
+        <!-- GRID DE SELLOS -->
+        <div
+          id="grid"
+          class="grid grid-cols-4 sm:grid-cols-8 gap-2 sm:gap-2.5 justify-items-center mt-3 w-full"
+        ></div>
+
+        <!-- BOTONES WALLET & COMPARTIR -->
+        <div
+          class="cta-row mt-6 flex flex-col items-center justify-center gap-2.5 w-full"
+        >
+          <a
+            id="gwallet"
+            class="btn btn--google w-full rounded-xl bg-white text-neutral-900 font-semibold text-sm sm:text-base px-4 py-3 shadow-md shadow-black/30 hover:scale-[1.02] hover:shadow-lg hover:shadow-black/40 text-center transition-transform duration-150 cursor-pointer"
+            target="_blank"
+            rel="noopener"
+          >
+            Guardar en Google Wallet
+          </a>
+
+          <a
+            id="applewallet"
+            class="btn btn--apple w-full rounded-xl bg-black text-white font-semibold text-sm sm:text-base px-4 py-3 flex items-center justify-center gap-2 shadow-md shadow-black/40 hover:scale-[1.02] hover:shadow-lg hover:shadow-black/50 transition-transform duration-150 cursor-pointer"
+            target="_blank"
+            rel="noopener"
+          >
+            <span class="text-lg"></span>
+            <span>Agregar a Apple Wallet</span>
+          </a>
+
+          <a
+            id="share"
+            class="btn btn--google w-full rounded-xl bg-white/95 text-neutral-900 font-semibold text-sm sm:text-base px-4 py-3 shadow-md shadow-black/30 hover:scale-[1.02] hover:shadow-lg hover:shadow-black/40 text-center transition-transform duration-150 cursor-pointer"
+          >
+            Compartir
+          </a>
+        </div>
+
+        <!-- QR -->
+        <details
+          class="qr mt-5 bg-black/20 rounded-xl px-4 py-3 text-sm sm:text-[0.95rem]"
+        >
+          <summary class="cursor-pointer font-semibold">
+            Mostrar QR de mi tarjeta
+          </summary>
+
+          <div class="mt-3 flex flex-col items-center gap-2">
+            <img
+              id="qr"
+              alt="QR"
+              class="w-36 h-36 rounded-lg bg-white/80 p-1"
+            />
+            <p class="text-xs text-white/80 text-center">
+              Este QR contiene tu <code>cardId</code>. Úsalo en recepción para
+              sumar sellos.
+            </p>
+            <div class="flex items-center gap-2 flex-wrap justify-center">
+              <code
+                id="cid"
+                class="text-xs bg-black/30 px-2 py-1 rounded-md break-all"
+              ></code>
+              <button
+                id="copy"
+                class="text-xs sm:text-sm rounded-lg bg-white text-neutral-900 font-semibold px-3 py-1.5 shadow-md shadow-black/30 hover:scale-[1.02] transition-transform duration-150"
+              >
+                Copiar
+              </button>
+            </div>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <footer class="text-center text-[0.75rem] sm:text-xs text-white/70 mt-1">
+      © Venus Cosmetología — Programa de Lealtad
+    </footer>
+  </main>
+
+  <script>
+    const createView = document.getElementById("view-create");
+    const cardView = document.getElementById("view-card");
+    const grid = document.getElementById("grid");
+    const errorMessage = document.getElementById("error-message");
+    const submitBtn = document.getElementById("submit-btn");
+    const params = new URLSearchParams(window.location.search);
+    const urlCardId = params.get("cardId");
+
+    function showError(message) {
+      errorMessage.textContent = message;
+      errorMessage.classList.remove("hidden");
+    }
+
+    function hideError() {
+      errorMessage.classList.add("hidden");
+    }
+
+    function setLoading(loading) {
+      if (loading) {
+        submitBtn.classList.add("opacity-70", "cursor-not-allowed");
+        submitBtn.textContent = "Creando...";
+        submitBtn.disabled = true;
+      } else {
+        submitBtn.classList.remove("opacity-70", "cursor-not-allowed");
+        submitBtn.textContent = "Crear tarjeta";
+        submitBtn.disabled = false;
+      }
+    }
+
+    function showCardView(data) {
+      createView.classList.add("hidden");
+      cardView.classList.remove("hidden");
+
+      const cardId = data.cardId || data.id;
+      const max = data.max || 8;
+      const stamps = data.stamps || 0;
+      const name = data.name || "Cliente";
+
+      document.getElementById("c_name").textContent = name;
+      document.getElementById("c_info").textContent = `Progreso: ${stamps}/${max}`;
+
+      // Sellos
+      grid.innerHTML = "";
+      for (let i = 1; i <= max; i++) {
+        const div = document.createElement("div");
+        div.textContent = i;
+        const activo = i <= stamps;
+        div.className =
+          "w-9 h-9 sm:w-8 sm:h-8 flex items-center justify-center rounded-full text-[0.8rem] font-semibold transition-transform duration-150";
+        if (activo) {
+          div.classList.add("bg-white", "text-neutral-900", "shadow", "shadow-black/40", "scale-[1.02]");
+        } else {
+          div.classList.add("bg-white/30", "text-white");
+        }
+        grid.appendChild(div);
+      }
+
+      if (!cardId) return;
+
+      // QR
+      const qr = document.getElementById("qr");
+      qr.src =
+        "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=" +
+        encodeURIComponent(cardId);
+      document.getElementById("cid").textContent = cardId;
+
+      // GOOGLE WALLET
+      const gwallet = document.getElementById("gwallet");
+      gwallet.href = "#";
+
+      gwallet.onclick = async (ev) => {
+        ev.preventDefault();
+        try {
+          let saveUrl = data.gwallet;
+
+          if (!saveUrl) {
+            const resp = await fetch(
+              `/api/save-card?cardId=${encodeURIComponent(
+                cardId
+              )}&name=${encodeURIComponent(name)}&stamps=${stamps}&max=${max}`
+            );
+            const j = await resp.json();
+            if (!resp.ok) {
+              throw new Error(j.error || "Error al generar pase");
+            }
+            saveUrl = j.saveUrl || j.addToGoogleUrl;
+          }
+
+          if (saveUrl) {
+            window.location.href = saveUrl;
+          } else {
+            alert("No se pudo obtener la URL de Google Wallet.");
+          }
+        } catch (err) {
+          console.error(err);
+          alert("No se pudo generar el pase de Google Wallet.");
+        }
+      };
+
+      // APPLE WALLET
+      const applewallet = document.getElementById("applewallet");
+      applewallet.href = "#";
+
+      applewallet.onclick = async (ev) => {
+        ev.preventDefault();
+
+        const passUrl =
+          data.applewallet ||
+          `/api/apple/pass?cardId=${encodeURIComponent(cardId)}`;
+
+        const tempLink = document.createElement("a");
+        tempLink.href = passUrl;
+        tempLink.download = `venus-loyalty-${cardId}.pkpass`;
+        document.body.appendChild(tempLink);
+        tempLink.click();
+        document.body.removeChild(tempLink);
+
+        setTimeout(() => {
+          if (
+            confirm(
+              "El pase se ha descargado. ¿Necesitas ayuda para instalarlo?"
+            )
+          ) {
+            alert(
+              "Pasos para instalar:\n\n1. Abre la app \"Archivos\" en tu iPhone\n2. Ve a \"Descargas\"\n3. Toca el archivo .pkpass\n4. Toca \"Agregar\" en la esquina superior\n5. ¡Listo! Tu pase estará en Wallet"
+            );
+          }
+        }, 1500);
+      };
+
+      // COMPARTIR
+      const shareBtn = document.getElementById("share");
+      shareBtn.onclick = () => {
+        const shareUrl = `${window.location.origin}?cardId=${cardId}`;
+        if (navigator.share) {
+          navigator.share({
+            title: "Mi tarjeta de lealtad Venus",
+            text: "Únete a mi programa de lealtad",
+            url: shareUrl,
+          });
+        } else {
+          navigator.clipboard.writeText(shareUrl);
+          alert("Enlace copiado al portapapeles");
+        }
+      };
+
+      // COPIAR ID
+      const copyBtn = document.getElementById("copy");
+      copyBtn.onclick = () => {
+        navigator.clipboard.writeText(cardId);
+        alert("ID copiado al portapapeles");
+      };
+    }
+
+    // Si hay cardId en la URL, cargar la tarjeta
+    if (urlCardId) {
+      fetch(`/api/card/${encodeURIComponent(urlCardId)}`)
+        .then((res) => {
+          if (!res.ok) throw new Error("Tarjeta no encontrada");
+          return res.json();
+        })
+        .then(showCardView)
+        .catch(() => {
+          showError(
+            "No se pudo cargar la tarjeta. Verifica el enlace o crea una nueva."
+          );
+        });
+    }
+
+    // Manejo de creación de tarjeta
+    document
+      .getElementById("create-form")
+      .addEventListener("submit", async (e) => {
+        e.preventDefault();
+        hideError();
+        setLoading(true);
+
+        const name = document.getElementById("name").value.trim();
+        const phone = document.getElementById("phone").value.trim();
+        const birthdate = document.getElementById("birthdate").value;
+
+        if (!name) {
+          showError("Por favor ingresa tu nombre");
+          setLoading(false);
+          return;
+        }
+
+        if (!phone.match(/^[0-9]{10}$/)) {
+          showError("Por favor ingresa un teléfono válido de 10 dígitos");
+          setLoading(false);
+          return;
+        }
+
+        if (!birthdate) {
+          showError("Por favor ingresa tu fecha de nacimiento");
+          setLoading(false);
+          return;
+        }
+
+        try {
+          const res = await fetch(
+            `/api/create-card?name=${encodeURIComponent(
+              name
+            )}&phone=${encodeURIComponent(
+              phone
+            )}&birthdate=${encodeURIComponent(birthdate)}&max=8`
+          );
+
+          const contentType = res.headers.get("content-type");
+          if (!contentType || !contentType.includes("application/json")) {
+            throw new Error(
+              "El servidor no respondió con JSON. Verifica la ruta del API."
+            );
+          }
+
+          const data = await res.json();
+
+          if (!res.ok) {
+            throw new Error(data.error || "Error al crear la tarjeta");
+          }
+
+          if (data.url) {
+            window.location.href = data.url;
+          } else {
+            showCardView(data);
+          }
+        } catch (error) {
+          console.error("Error:", error);
+          showError(
+            error.message ||
+              "Ocurrió un error al crear la tarjeta. Verifica que el servidor esté funcionando."
+          );
+        } finally {
+          setLoading(false);
+        }
+      });
+
+    // Endpoint alternativo (por si luego quieres usarlo)
+    async function tryAlternativeEndpoint(name, phone, birthdate) {
+      try {
+        const res = await fetch("/api/cards", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ name, phone, birthdate, max: 8 }),
+        });
+        return await res.json();
+      } catch (error) {
+        throw new Error("Endpoint alternativo también falló");
+      }
+    }
+  </script>
 </body>
 </html>
