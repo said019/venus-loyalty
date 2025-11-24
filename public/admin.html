@@ -1332,51 +1332,7 @@
         activityTitle.textContent = '📈 Actividad mensual';
       }
     }
-    /* =========================================================
-       LÓGICA DEL BOTÓN "ENVIAR A TODOS"
-       ========================================================= */
-    const btnGlobal = document.getElementById('btn-mass-push');
 
-    if (btnGlobal) {
-      btnGlobal.addEventListener('click', async () => {
-        const title = document.getElementById('global-push-title').value.trim();
-        const message = document.getElementById('global-push-message').value.trim();
-
-        if (!title || !message) return alert("⚠️ Faltan datos: Escribe título y mensaje.");
-
-        if (!confirm(`🚨 ¿ENVIAR A TODOS?\n\n"${title}"`)) return;
-
-        const originalText = btnGlobal.textContent;
-        btnGlobal.textContent = "🚀 Enviando...";
-        btnGlobal.disabled = true;
-
-        try {
-          const r = await fetch('/api/admin/push-all', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ title, message })
-          });
-          const data = await r.json();
-
-          if (data.success) {
-            const apple = data.results?.apple || 0;
-            const google = data.results?.google || 0;
-            alert(`✅ ¡ENVIADO!\n\n🍏 Apple: ${apple}\n🤖 Google: ${google}`);
-            // Limpiar campos
-            document.getElementById('global-push-title').value = "";
-            document.getElementById('global-push-message').value = "";
-          } else {
-            alert('⚠️ Error: ' + (data.error || "Desconocido"));
-          }
-        } catch (e) {
-          console.error(e);
-          alert('❌ Error de conexión');
-        } finally {
-          btnGlobal.textContent = originalText;
-          btnGlobal.disabled = false;
-        }
-      });
-    }
 
     function loadSampleData(range) {
       // Datos de ejemplo para cuando la API falle
@@ -2876,6 +2832,52 @@
         window.location.href = '/admin-login.html';
       }
     });
+
+    /* =========================================================
+       LÓGICA DEL BOTÓN "ENVIAR A TODOS"
+       ========================================================= */
+    const btnGlobal = document.getElementById('btn-mass-push');
+
+    if (btnGlobal) {
+      btnGlobal.addEventListener('click', async () => {
+        const title = document.getElementById('global-push-title').value.trim();
+        const message = document.getElementById('global-push-message').value.trim();
+
+        if (!title || !message) return alert("⚠️ Faltan datos: Escribe título y mensaje.");
+
+        if (!confirm(`🚨 ¿ENVIAR A TODOS?\n\n"${title}"`)) return;
+
+        const originalText = btnGlobal.textContent;
+        btnGlobal.textContent = "🚀 Enviando...";
+        btnGlobal.disabled = true;
+
+        try {
+          const r = await fetch('/api/admin/push-all', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title, message })
+          });
+          const data = await r.json();
+
+          if (data.success) {
+            const apple = data.results?.apple || 0;
+            const google = data.results?.google || 0;
+            alert(`✅ ¡ENVIADO!\n\n🍏 Apple: ${apple}\n🤖 Google: ${google}`);
+            // Limpiar campos
+            document.getElementById('global-push-title').value = "";
+            document.getElementById('global-push-message').value = "";
+          } else {
+            alert('⚠️ Error: ' + (data.error || "Desconocido"));
+          }
+        } catch (e) {
+          console.error(e);
+          alert('❌ Error de conexión');
+        } finally {
+          btnGlobal.textContent = originalText;
+          btnGlobal.disabled = false;
+        }
+      });
+    }
   </script>
 </body>
 
