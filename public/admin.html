@@ -593,6 +593,23 @@
       }
     }
 
+    /* Spinner animation for loading states */
+    .spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
     .notify-form-header {
       font-size: 14px;
       font-weight: 600;
@@ -2687,56 +2704,74 @@
     /* ===== BIRTHDAY LOGIC (Overview Tab) ===== */
     function checkOverviewBirthdays(cards) {
       const today = new Date();
-      const currentMonth = today.getMonth(); // 0-11
+      today.setHours(0, 0, 0, 0);
 
-      // Filter for birthdays in the CURRENT MONTH
-      const monthBirthdays = cards.filter(card => {
+      // Calculate 30 days ago
+      const thirtyDaysAgo = new Date(today);
+      thirtyDaysAgo.setDate(today.getDate() - 30);
+
+      // Filter for birthdays in the LAST 30 DAYS (up to today)
+      const recentBirthdays = cards.filter(card => {
         if (!card.birthdate) return false;
         const [y, m, d] = card.birthdate.split('-').map(Number);
-        return (m - 1) === currentMonth;
+
+        // Create birthday date for this year
+        const birthdayThisYear = new Date(today.getFullYear(), m - 1, d);
+
+        // Check if birthday (this year) is between 30 days ago and today
+        return birthdayThisYear >= thirtyDaysAgo && birthdayThisYear <= today;
       });
 
       const section = document.getElementById('overview-birthday-section');
       const list = document.getElementById('overview-birthday-list');
       const title = document.getElementById('overview-birthday-title');
 
-      if (monthBirthdays.length === 0) {
+      if (recentBirthdays.length === 0) {
         section.classList.add('hidden');
         return;
       }
 
-      // Update title with current month name
-      const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
-      title.textContent = `Cumpleaños de ${monthNames[currentMonth]}`;
+      // Update title to reflect last 30 days
+      title.textContent = `Cumpleaños de los últimos 30 días`;
 
       section.classList.remove('hidden');
 
-      // Sort by day of month
-      monthBirthdays.sort((a, b) => {
-        const [, ma, da] = a.birthdate.split('-').map(Number);
-        const [, mb, db] = b.birthdate.split('-').map(Number);
-        return da - db;
+      // Sort by most recent first
+      recentBirthdays.sort((a, b) => {
+        const [ya, ma, da] = a.birthdate.split('-').map(Number);
+        const [yb, mb, db] = b.birthdate.split('-').map(Number);
+        const dateA = new Date(today.getFullYear(), ma - 1, da);
+        const dateB = new Date(today.getFullYear(), mb - 1, db);
+        return dateB - dateA; // Most recent first
       });
 
-      list.innerHTML = monthBirthdays.map(c => {
-        const [y, m, d] = c.birthdate.split('-').map(Number);
-        const currentDay = today.getDate();
+      const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
-        // Calculate days until birthday (ignoring year)
-        let daysUntil = d - currentDay;
+      list.innerHTML = recentBirthdays.map(c => {
+        const [y, m, d] = c.birthdate.split('-').map(Number);
+        const birthdayThisYear = new Date(today.getFullYear(), m - 1, d);
+
+        // Calculate days ago (negative = past, 0 = today, positive = future)
+        const diffTime = birthdayThisYear - today;
+        const daysAgo = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
         let actionBtn = '';
-        // Show button if birthday is today, tomorrow, or was yesterday
-        if (daysUntil >= -1 && daysUntil <= 2) {
+        let dateLabel = '';
+
+        if (daysAgo === 0) {
+          dateLabel = '🎉 Hoy';
           actionBtn = `<button onclick="sendBirthdayPush('${c.id}', '${c.name}')" class="btn small primary" style="font-size:10px; padding: 2px 6px;">🎁 Felicitar</button>`;
+        } else if (daysAgo < 0) {
+          const absDays = Math.abs(daysAgo);
+          dateLabel = `Hace ${absDays} día${absDays > 1 ? 's' : ''}`;
         }
 
         return `
           <div style="background: rgba(0,0,0,0.2); padding: 8px 12px; border-radius: 8px; display: flex; align-items: center; gap: 8px;">
             <span style="font-size: 16px;">🎂</span>
-            <div>
+            <div style="flex: 1;">
               <div style="font-weight: 600; font-size: 13px;">${c.name || 'Cliente'}</div>
-              <div class="muted" style="font-size: 11px;">${d} de ${monthNames[m - 1]}</div>
+              <div class="muted" style="font-size: 11px;">${d} de ${monthNames[m - 1].toLowerCase()} • ${dateLabel}</div>
             </div>
             ${actionBtn}
           </div>
@@ -2840,21 +2875,22 @@
 
     if (btnGlobal) {
       btnGlobal.addEventListener('click', async () => {
-        const title = document.getElementById('global-push-title').value.trim();
-        const message = document.getElementById('global-push-message').value.trim();
+        const title = document.getElementById('push-title').value.trim();
+        const message = document.getElementById('push-message').value.trim();
 
         if (!title || !message) return alert("⚠️ Faltan datos: Escribe título y mensaje.");
 
         if (!confirm(`🚨 ¿ENVIAR A TODOS?\n\n"${title}"`)) return;
 
         const originalText = btnGlobal.textContent;
-        btnGlobal.textContent = "🚀 Enviando...";
+        btnGlobal.innerHTML = `<span style="display: inline-flex; align-items: center; gap: 6px;"><span class="spinner"></span> Enviando...</span>`;
         btnGlobal.disabled = true;
 
         try {
           const r = await fetch('/api/admin/push-all', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include', // ⭐ CRITICAL: Needed for admin auth
             body: JSON.stringify({ title, message })
           });
           const data = await r.json();
@@ -2864,19 +2900,21 @@
             const google = data.results?.google || 0;
             alert(`✅ ¡ENVIADO!\n\n🍏 Apple: ${apple}\n🤖 Google: ${google}`);
             // Limpiar campos
-            document.getElementById('global-push-title').value = "";
-            document.getElementById('global-push-message').value = "";
+            document.getElementById('push-title').value = "";
+            document.getElementById('push-message').value = "";
           } else {
             alert('⚠️ Error: ' + (data.error || "Desconocido"));
           }
         } catch (e) {
           console.error(e);
-          alert('❌ Error de conexión');
+          alert('❌ Error de conexión: ' + e.message);
         } finally {
           btnGlobal.textContent = originalText;
           btnGlobal.disabled = false;
         }
       });
+    } else {
+      console.warn('⚠️ Botón btn-mass-push no encontrado en el DOM');
     }
   </script>
 </body>
