@@ -875,6 +875,7 @@
               <th>Teléfono</th>
               <th>Cumpleaños</th>
               <th>Última Visita</th>
+              <th>Creada</th>
               <th>Sellos</th>
               <th>Estado</th>
               <th>Acciones</th>
@@ -984,7 +985,7 @@
           </div>
 
           <div class="row" style="margin-top:14px;gap:10px;">
-            <button type="submit" class="btn primary">Enviar a todos</button>
+            <button type="button" id="btn-mass-push" class="btn primary">Enviar a todos</button>
             <button type="button" id="test-push" class="btn ghost">Enviar prueba</button>
           </div>
         </form>
@@ -1207,11 +1208,19 @@
 
       // Sección Tabla Clientes
       csvContent += `TOP CLIENTES\r\n`;
-      csvContent += `Nombre,Sellos Actuales,Meta,Estado\r\n`;
+      csvContent += `Nombre,Teléfono,Sellos Actuales,Meta,Estado,Fecha Nacimiento,Última Visita\r\n`;
 
-      globalStatsData.clients.forEach(c => {
+      globalStatsData.clientsToExport.forEach(c => {
         const estado = c.stamps >= c.max ? "Completada" : "En curso";
-        csvContent += `${c.name},${c.stamps},${c.max},${estado}\r\n`;
+        // Handle potential missing fields
+        const phone = c.phone || "";
+        const bday = c.birthdate || ""; // Use birthdate directly (YYYY-MM-DD)
+        const last = c.last_visit ? new Date(c.last_visit).toLocaleDateString() : (c.updated_at ? new Date(c.updated_at).toLocaleDateString() : "");
+
+        // Escape commas in name
+        const name = (c.name || "Sin nombre").replace(/,/g, "");
+
+        csvContent += `${name},${phone},${c.stamps},${c.max},${estado},${bday},${last}\r\n`;
       });
 
       // Crear link de descarga
@@ -1322,6 +1331,51 @@
         redeemsLabel.textContent = 'Canjes este mes';
         activityTitle.textContent = '📈 Actividad mensual';
       }
+    }
+    /* =========================================================
+       LÓGICA DEL BOTÓN "ENVIAR A TODOS"
+       ========================================================= */
+    const btnGlobal = document.getElementById('btn-mass-push');
+
+    if (btnGlobal) {
+      btnGlobal.addEventListener('click', async () => {
+        const title = document.getElementById('global-push-title').value.trim();
+        const message = document.getElementById('global-push-message').value.trim();
+
+        if (!title || !message) return alert("⚠️ Faltan datos: Escribe título y mensaje.");
+
+        if (!confirm(`🚨 ¿ENVIAR A TODOS?\n\n"${title}"`)) return;
+
+        const originalText = btnGlobal.textContent;
+        btnGlobal.textContent = "🚀 Enviando...";
+        btnGlobal.disabled = true;
+
+        try {
+          const r = await fetch('/api/admin/push-all', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title, message })
+          });
+          const data = await r.json();
+
+          if (data.success) {
+            const apple = data.results?.apple || 0;
+            const google = data.results?.google || 0;
+            alert(`✅ ¡ENVIADO!\n\n🍏 Apple: ${apple}\n🤖 Google: ${google}`);
+            // Limpiar campos
+            document.getElementById('global-push-title').value = "";
+            document.getElementById('global-push-message').value = "";
+          } else {
+            alert('⚠️ Error: ' + (data.error || "Desconocido"));
+          }
+        } catch (e) {
+          console.error(e);
+          alert('❌ Error de conexión');
+        } finally {
+          btnGlobal.textContent = originalText;
+          btnGlobal.disabled = false;
+        }
+      });
     }
 
     function loadSampleData(range) {
@@ -1654,9 +1708,10 @@
         tbody.innerHTML = data.items.map(card => {
           // Formatear cumpleaños
           let birthdayStr = '—';
-          if (card.birthday) {
-            const bDate = new Date(card.birthday);
-            birthdayStr = bDate.toLocaleDateString('es-MX', { day: 'numeric', month: 'long' });
+          if (card.birthdate) {
+            const [y, m, d] = card.birthdate.split('-').map(Number);
+            const monthNames = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+            birthdayStr = `${d} ${monthNames[m - 1]}`;
           }
 
           // Formatear última visita
@@ -1665,6 +1720,12 @@
             lastVisitStr = new Date(card.last_visit).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' });
           } else if (card.updated_at) {
             lastVisitStr = new Date(card.updated_at).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' });
+          }
+
+          // Formatear fecha creación
+          let createdStr = '—';
+          if (card.createdAt) {
+            createdStr = new Date(card.createdAt).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' });
           }
 
           return `
@@ -1677,6 +1738,7 @@
             <td>${card.phone || '—'}</td>
             <td>${birthdayStr}</td>
             <td>${lastVisitStr}</td>
+            <td>${createdStr}</td>
             <td>
               <div style="display:flex;align-items:center;gap:6px;">
                 <span style="font-weight:600;">${card.stamps}</span>
@@ -1705,7 +1767,7 @@
       } catch (error) {
         console.error('Error:', error);
         document.getElementById('cards-tbody').innerHTML =
-          `<tr><td colspan="7" style="text-align:center;padding:12px;color:#fecaca;">Error: ${error.message}</td></tr>`;
+          `<tr><td colspan="8" style="text-align:center;padding:12px;color:#fecaca;">Error: ${error.message}</td></tr>`;
       }
     }
 
@@ -2596,17 +2658,19 @@
         output.innerHTML = `❌ Error reparando Google Wallet:<br>${error.message}`;
       }
     });
+
     /* ===== BIRTHDAY LOGIC (Cards Tab) ===== */
     function checkBirthdays(cards) {
       const today = new Date();
-      const currentMonth = today.getMonth();
+      const currentMonth = today.getMonth(); // 0-11
       const currentDay = today.getDate();
 
       const upcomingBirthdays = cards.filter(card => {
-        if (!card.birthday) return false;
-        const bDate = new Date(card.birthday);
-        const bMonth = bDate.getMonth();
-        const bDay = bDate.getDate();
+        if (!card.birthdate) return false;
+        // Parse YYYY-MM-DD manually to avoid timezone issues
+        const [y, m, d] = card.birthdate.split('-').map(Number);
+        const bMonth = m - 1; // 0-11
+        const bDay = d;
 
         // Check if birthday is in the next 7 days
         if (bMonth === currentMonth) {
@@ -2632,20 +2696,29 @@
 
       section.classList.remove('hidden');
       list.innerHTML = upcomingBirthdays.map(c => {
-        const bDate = new Date(c.birthday);
-        const daysUntil = Math.ceil((new Date(today.getFullYear(), bDate.getMonth(), bDate.getDate()) - today) / (1000 * 60 * 60 * 24));
+        const [y, m, d] = c.birthdate.split('-').map(Number);
+
+        // Calculate days until (handling year wrap if needed, though simpler here)
+        const now = new Date(); now.setHours(0, 0, 0, 0);
+        const nextBday = new Date(today.getFullYear(), m - 1, d);
+        if (nextBday < now) nextBday.setFullYear(now.getFullYear() + 1);
+
+        const diffTime = nextBday - now;
+        const daysUntil = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
         let actionBtn = '';
         if (daysUntil <= 2 && daysUntil >= 0) {
           actionBtn = `<button onclick="sendBirthdayPush('${c.id}', '${c.name}')" class="btn small primary" style="font-size:10px; padding: 2px 6px;">🎁 Felicitar</button>`;
         }
 
+        const monthNames = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+
         return `
           <div style="background: rgba(0,0,0,0.2); padding: 8px 12px; border-radius: 8px; display: flex; align-items: center; gap: 8px;">
             <span style="font-size: 16px;">🎉</span>
             <div>
               <div style="font-weight: 600; font-size: 13px;">${c.name || 'Cliente'}</div>
-              <div class="muted" style="font-size: 11px;">${bDate.getDate()} de ${bDate.toLocaleString('es-MX', { month: 'long' })}</div>
+              <div class="muted" style="font-size: 11px;">${d} de ${monthNames[m - 1]}</div>
             </div>
             ${actionBtn}
           </div>
@@ -2658,13 +2731,13 @@
     /* ===== BIRTHDAY LOGIC (Overview Tab) ===== */
     function checkOverviewBirthdays(cards) {
       const today = new Date();
-      const currentMonth = today.getMonth();
+      const currentMonth = today.getMonth(); // 0-11
 
       // Filter for birthdays in the CURRENT MONTH
       const monthBirthdays = cards.filter(card => {
-        if (!card.birthday) return false;
-        const bDate = new Date(card.birthday);
-        return bDate.getMonth() === currentMonth;
+        if (!card.birthdate) return false;
+        const [y, m, d] = card.birthdate.split('-').map(Number);
+        return (m - 1) === currentMonth;
       });
 
       const section = document.getElementById('overview-birthday-section');
@@ -2677,27 +2750,27 @@
       }
 
       // Update title with current month name
-      const monthName = today.toLocaleString('es-MX', { month: 'long' });
-      title.textContent = `Cumpleaños de ${monthName.charAt(0).toUpperCase() + monthName.slice(1)}`;
+      const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+      title.textContent = `Cumpleaños de ${monthNames[currentMonth]}`;
 
       section.classList.remove('hidden');
 
       // Sort by day of month
       monthBirthdays.sort((a, b) => {
-        const da = new Date(a.birthday).getDate();
-        const db = new Date(b.birthday).getDate();
+        const [, ma, da] = a.birthdate.split('-').map(Number);
+        const [, mb, db] = b.birthdate.split('-').map(Number);
         return da - db;
       });
 
       list.innerHTML = monthBirthdays.map(c => {
-        const bDate = new Date(c.birthday);
-        const bDay = bDate.getDate();
+        const [y, m, d] = c.birthdate.split('-').map(Number);
         const currentDay = today.getDate();
 
         // Calculate days until birthday (ignoring year)
-        let daysUntil = bDay - currentDay;
+        let daysUntil = d - currentDay;
 
-        // Show button if birthday is today, tomorrow, or was yesterday (in case they missed it)
+        let actionBtn = '';
+        // Show button if birthday is today, tomorrow, or was yesterday
         if (daysUntil >= -1 && daysUntil <= 2) {
           actionBtn = `<button onclick="sendBirthdayPush('${c.id}', '${c.name}')" class="btn small primary" style="font-size:10px; padding: 2px 6px;">🎁 Felicitar</button>`;
         }
@@ -2707,7 +2780,7 @@
             <span style="font-size: 16px;">🎂</span>
             <div>
               <div style="font-weight: 600; font-size: 13px;">${c.name || 'Cliente'}</div>
-              <div class="muted" style="font-size: 11px;">${bDay} de ${monthName}</div>
+              <div class="muted" style="font-size: 11px;">${d} de ${monthNames[m - 1]}</div>
             </div>
             ${actionBtn}
           </div>
