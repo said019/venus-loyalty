@@ -983,8 +983,73 @@ app.post('/api/admin/redeem-gift', adminAuth, async (req, res) => {
     };
 
     await firestore.collection(COL_GIFT_HISTORY).add(redeemData);
-    res.json({ success: true, data: redeemData });
+    res.json({ success: true, message: "Gift Card canjeada correctamente." });
   } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// D. Obtener gift card por ID (para QR scanner)
+app.get('/api/admin/gift-card/:id', adminAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const doc = await firestore.collection(COL_EVENTS).doc(id).get();
+
+    if (!doc.exists) {
+      return res.status(404).json({ error: 'Gift card no encontrada' });
+    }
+
+    const data = doc.data();
+
+    // Verificar que sea una gift card
+    if (data.type !== 'GIFT') {
+      return res.status(400).json({ error: 'Este QR no es una gift card' });
+    }
+
+    res.json({ id: doc.id, ...data });
+  } catch (e) {
+    console.error('[GET GIFT CARD]', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// E. Redimir gift card por QR scanner
+app.post('/api/admin/gift-card/:id/redeem', adminAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const docRef = firestore.collection(COL_EVENTS).doc(id);
+    const doc = await docRef.get();
+
+    if (!doc.exists) {
+      return res.status(404).json({ error: 'Gift card no encontrada' });
+    }
+
+    const data = doc.data();
+
+    // Verificar que sea una gift card
+    if (data.type !== 'GIFT') {
+      return res.status(400).json({ error: 'Este QR no es una gift card' });
+    }
+
+    // Verificar si ya fue canjeada
+    if (data.redeemed) {
+      return res.status(400).json({
+        error: 'Gift card ya canjeada',
+        redeemedAt: data.redeemedAt,
+        redeemedBy: data.redeemedBy
+      });
+    }
+
+    // Marcar como canjeada
+    await docRef.update({
+      redeemed: true,
+      redeemedAt: new Date().toISOString(),
+      redeemedBy: req.user?.email || 'admin'
+    });
+
+    res.json({ success: true, message: 'Gift card canjeada correctamente' });
+  } catch (e) {
+    console.error('[REDEEM GIFT CARD]', e);
+    res.status(500).json({ error: e.message });
+  }
 });
 
 /* =========================================================

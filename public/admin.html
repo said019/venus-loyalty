@@ -117,9 +117,17 @@
     }
 
     .btn.primary {
-      background: var(--venus);
-      border-color: var(--venus);
+      background: linear-gradient(135deg, var(--venus-green) 0%, #9aa066 100%);
       color: #fff;
+      font-weight: 600;
+      box-shadow: 0 4px 12px rgba(140, 150, 104, 0.3);
+      transition: all 0.2s ease;
+    }
+
+    .btn.primary:hover {
+      background: linear-gradient(135deg, #9aa066 0%, var(--venus-green) 100%);
+      box-shadow: 0 6px 16px rgba(140, 150, 104, 0.4);
+      transform: translateY(-1px);
     }
 
     .btn.ghost {
@@ -590,24 +598,25 @@
       right: 0;
       bottom: 0;
       background-color: rgba(255, 255, 255, 0.2);
-      transition: 0.3s;
-      border-radius: 26px;
+      transition: .3s;
+      border-radius: 34px;
     }
 
     .toggle-slider:before {
       position: absolute;
       content: "";
-      height: 20px;
-      width: 20px;
+      height: 18px;
+      width: 18px;
       left: 3px;
       bottom: 3px;
       background-color: white;
-      transition: 0.3s;
+      transition: .3s;
       border-radius: 50%;
     }
 
     .toggle-switch input:checked+.toggle-slider {
       background-color: var(--venus-green);
+      box-shadow: 0 0 8px rgba(140, 150, 104, 0.5);
     }
 
     .toggle-switch input:checked+.toggle-slider:before {
@@ -910,6 +919,7 @@
   </style>
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 </head>
 
 <body class="checking-auth">
@@ -933,6 +943,7 @@
       <a href="#overview" data-tab="overview" class="is-active">Resumen</a>
       <a href="#cards" data-tab="cards">Tarjetas</a>
       <a href="#events" data-tab="events">Gift Cards</a>
+      <a href="#notifications" data-tab="notifications">Notificaciones</a>
       <a href="#settings" data-tab="settings">Configuración</a>
     </nav>
 
@@ -1198,52 +1209,62 @@
 
     <!-- TAB: Gift Cards -->
     <section id="tab-events" class="card hidden">
-      <h2>Crear Gift Card</h2>
-      <p class="muted">Genera una tarjeta de regalo digital con vigencia de 30 días. Podrás compartir el QR por WhatsApp
-        o imprimirla.</p>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <h2 style="margin:0;">Gift Cards</h2>
+        <button id="btn-scan-gift-card" class="btn primary">
+          📷 Escanear QR
+        </button>
+      </div>
 
-      <form id="gift-form" style="max-width:500px;">
-        <label>Nombre del cliente (opcional)</label>
-        <input id="gift-name" placeholder="Ej. Ana López">
+      <!-- Formulario Crear Gift Card -->
+      <div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:16px;margin-bottom:20px;">
+        <h3 style="margin:0 0 8px;font-size:16px;">Crear Gift Card</h3>
+        <p class="muted" style="margin:0 0 16px;font-size:13px;">Genera una tarjeta de regalo digital con vigencia de 30
+          días.</p>
 
-        <label>Servicio a regalar</label>
-        <input id="gift-service" required placeholder="Ej. Facial hidratante, Masaje relajante…">
+        <form id="gift-form" style="max-width:500px;">
+          <label>Nombre del cliente (opcional)</label>
+          <input id="gift-name" placeholder="Ej. Ana López">
 
-        <button type="submit" class="btn primary" style="margin-top:10px;">Generar Gift Card</button>
-      </form>
+          <label>Servicio a regalar</label>
+          <input id="gift-service" required placeholder="Ej. Facial hidratante, Masaje relajante…">
 
-      <div id="gift-preview-container" class="hidden" style="margin-top: 20px;">
-        <div id="gift-card-visual" class="gift-card-visual">
-          <div class="gift-card-content">
-            <img src="/assets/logo.png" alt="Venus" class="gift-brand-logo">
+          <button type="submit" class="btn primary" style="margin-top:10px;">Generar Gift Card</button>
+        </form>
 
-            <div class="gift-title">Venus Lealtad</div>
-            <div style="font-size: 0.9rem; opacity: 0.9;">¡Tienes un regalo! 🎁</div>
+        <div id="gift-preview-container" class="hidden" style="margin-top: 20px;">
+          <div id="gift-card-visual" class="gift-card-visual">
+            <div class="gift-card-content">
+              <img src="/assets/logo.png" alt="Venus" class="gift-brand-logo">
 
-            <hr style="width: 50%; border: 0; border-top: 1px solid rgba(255,255,255,0.3); margin: 15px 0;">
+              <div class="gift-title">Venus Lealtad</div>
+              <div style="font-size: 0.9rem; opacity: 0.9;">¡Tienes un regalo! 🎁</div>
 
-            <div id="gift-visual-service" class="gift-service">Servicio</div>
-            <div id="gift-visual-client" class="gift-meta">Para: Cliente</div>
-            <div id="gift-visual-date" class="gift-meta" style="font-size: 0.8rem; margin-top:0;">Vence: --/--/--</div>
+              <hr style="width: 50%; border: 0; border-top: 1px solid rgba(255,255,255,0.3); margin: 15px 0;">
 
-            <div class="gift-qr-container">
-              <canvas id="gift-qr"></canvas>
-            </div>
-            <div style="font-size: 10px; color: #333; margin-top: 4px; color: #fff; opacity: 0.8;">Muestra este código
+              <div id="gift-visual-service" class="gift-service">Servicio</div>
+              <div id="gift-visual-client" class="gift-meta">Para: Cliente</div>
+              <div id="gift-visual-date" class="gift-meta" style="font-size: 0.8rem; margin-top:0;">Vence: --/--/--
+              </div>
+
+              <div class="gift-qr-container">
+                <canvas id="gift-qr"></canvas>
+              </div>
+              <div style="font-size: 10px; color: #333; margin-top: 4px; color: #fff; opacity: 0.8;">Muestra este código
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <div id="gift-actions" class="gift-actions hidden">
-        <button type="button" id="gift-copy" class="btn small">Copiar texto</button>
-        <button type="button" id="gift-whatsapp" class="btn small primary">Enviar por WhatsApp</button>
-        <button type="button" id="gift-whatsapp-image" class="btn small primary">📷 WhatsApp con imagen</button>
-      </div>
+        <div id="gift-actions" class="gift-actions hidden">
+          <button type="button" id="gift-copy" class="btn small">Copiar texto</button>
+          <button type="button" id="gift-whatsapp" class="btn small primary">Enviar por WhatsApp</button>
+          <button type="button" id="gift-whatsapp-image" class="btn small primary">📷 WhatsApp con imagen</button>
+        </div>
 
-      <div id="gift-success" class="success-message hidden">
-        ✅ Gift Card generada exitosamente. Puedes enviarla por WhatsApp o compartir el texto.
-      </div>
+        <div id="gift-success" class="success-message hidden">
+          ✅ Gift Card generada exitosamente. Puedes enviarla por WhatsApp o compartir el texto.
+        </div>
     </section>
 
     <!-- TAB: Settings - MEJORADO CON DEBUGGING -->
@@ -1336,129 +1357,128 @@
           <button id="btn-check-devices" class="btn small">📱 Ver Dispositivos</button>
           <button id="btn-check-apns" class="btn small">🍎 Ver Config APNs</button>
         </div>
-
         <div id="debug-output" class="debug-output hidden">
           <!-- Aquí se mostrarán los resultados del debugging -->
         </div>
       </div>
+    </section>
 
-      <!-- NUEVA SECCIÓN: AUTOMATIZACIONES -->
-      <div style="margin-top:24px;padding-top:20px;border-top:2px solid var(--line);">
-        <h3 style="margin:0 0 8px;font-size:18px;color:var(--ink);">🤖 Automatizaciones</h3>
-        <p class="muted" style="margin:0 0 16px;font-size:13px;">
-          Configura notificaciones automáticas para diferentes eventos del programa de lealtad.
-        </p>
+    <!-- TAB: Notificaciones -->
+    <section id="tab-notifications" class="card hidden">
+      <h2>🔔 Notificaciones</h2>
+      <p class="muted" style="margin:0 0 20px;font-size:13px;">
+        Configura notificaciones automáticas para diferentes eventos del programa de lealtad.
+      </p>
 
-        <!-- Botón ejecutar todas -->
-        <div style="margin-bottom:20px;">
-          <button id="btn-run-all-automations" class="btn primary">
-            ▶️ Ejecutar Automatizaciones Activas
-          </button>
-          <span class="muted" style="font-size:12px;margin-left:10px;">Procesa todas las reglas activas ahora</span>
+      <!-- Botón ejecutar todas -->
+      <div style="margin-bottom:24px;">
+        <button id="btn-run-all-automations" class="btn primary">
+          ▶️ Ejecutar Automatizaciones Activas
+        </button>
+        <span class="muted" style="font-size:12px;margin-left:10px;">Procesa todas las reglas activas ahora</span>
+      </div>
+
+      <!-- Regla 1: Cumpleaños -->
+      <div class="automation-card">
+        <div class="automation-header">
+          <div>
+            <span class="automation-icon">🎂</span>
+            <span class="automation-title">Recordatorio de Cumpleaños</span>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="auto-birthday-enabled" checked>
+            <span class="toggle-slider"></span>
+          </label>
         </div>
+        <div class="automation-body">
+          <label class="automation-label">Días de anticipación:</label>
+          <input type="number" id="auto-birthday-days" class="automation-input" value="3" min="0" max="30">
 
-        <!-- Regla 1: Cumpleaños -->
-        <div class="automation-card">
-          <div class="automation-header">
-            <div>
-              <span class="automation-icon">🎂</span>
-              <span class="automation-title">Recordatorio de Cumpleaños</span>
-            </div>
-            <label class="toggle-switch">
-              <input type="checkbox" id="auto-birthday-enabled" checked>
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
-          <div class="automation-body">
-            <label class="automation-label">Días de anticipación:</label>
-            <input type="number" id="auto-birthday-days" class="automation-input" value="3" min="0" max="30">
+          <label class="automation-label" style="margin-top:10px;">Mensaje:</label>
+          <textarea id="auto-birthday-message" class="automation-textarea"
+            rows="2">¡Feliz cumpleaños! 🎉 Te esperamos con un regalo especial en Venus.</textarea>
 
-            <label class="automation-label" style="margin-top:10px;">Mensaje:</label>
-            <textarea id="auto-birthday-message" class="automation-textarea"
-              rows="2">¡Feliz cumpleaños! 🎉 Te esperamos con un regalo especial en Venus.</textarea>
-
-            <button class="btn small ghost automation-test-btn" data-type="birthday">🧪 Probar</button>
-          </div>
+          <button class="btn small ghost automation-test-btn" data-type="birthday">🧪 Probar</button>
         </div>
+      </div>
 
-        <!-- Regla 2: Inactividad -->
-        <div class="automation-card">
-          <div class="automation-header">
-            <div>
-              <span class="automation-icon">😴</span>
-              <span class="automation-title">Alerta de Inactividad</span>
-            </div>
-            <label class="toggle-switch">
-              <input type="checkbox" id="auto-inactivity-enabled" checked>
-              <span class="toggle-slider"></span>
-            </label>
+      <!-- Regla 2: Inactividad -->
+      <div class="automation-card">
+        <div class="automation-header">
+          <div>
+            <span class="automation-icon">😴</span>
+            <span class="automation-title">Alerta de Inactividad</span>
           </div>
-          <div class="automation-body">
-            <label class="automation-label">Días sin visita:</label>
-            <input type="number" id="auto-inactivity-days" class="automation-input" value="30" min="7" max="180">
-
-            <label class="automation-label" style="margin-top:10px;">Mensaje:</label>
-            <textarea id="auto-inactivity-message" class="automation-textarea"
-              rows="2">¡Te extrañamos! 😊 Hace tiempo que no te vemos. Ven y disfruta nuestros servicios.</textarea>
-
-            <button class="btn small ghost automation-test-btn" data-type="inactivity">🧪 Probar</button>
-          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="auto-inactivity-enabled" checked>
+            <span class="toggle-slider"></span>
+          </label>
         </div>
+        <div class="automation-body">
+          <label class="automation-label">Días sin visita:</label>
+          <input type="number" id="auto-inactivity-days" class="automation-input" value="30" min="7" max="180">
 
-        <!-- Regla 3: Tarjeta Completada -->
-        <div class="automation-card">
-          <div class="automation-header">
-            <div>
-              <span class="automation-icon">🎁</span>
-              <span class="automation-title">Tarjeta Completada</span>
-            </div>
-            <label class="toggle-switch">
-              <input type="checkbox" id="auto-completed-enabled" checked>
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
-          <div class="automation-body">
-            <p class="muted" style="font-size:12px;margin:0 0 10px;">Notificación cuando el cliente complete su tarjeta.
-            </p>
+          <label class="automation-label" style="margin-top:10px;">Mensaje:</label>
+          <textarea id="auto-inactivity-message" class="automation-textarea"
+            rows="2">¡Te extrañamos! 😊 Hace tiempo que no te vemos. Ven y disfruta nuestros servicios.</textarea>
 
-            <label class="automation-label">Mensaje:</label>
-            <textarea id="auto-completed-message" class="automation-textarea"
-              rows="2">¡Felicidades! 🎁 Has completado tu tarjeta. Ven a canjear tu premio.</textarea>
-
-            <button class="btn small ghost automation-test-btn" data-type="completed">🧪 Probar</button>
-          </div>
+          <button class="btn small ghost automation-test-btn" data-type="inactivity">🧪 Probar</button>
         </div>
+      </div>
 
-        <!-- Regla 4: Casi Completa -->
-        <div class="automation-card">
-          <div class="automation-header">
-            <div>
-              <span class="automation-icon">⚡</span>
-              <span class="automation-title">Casi Completa (Motivacional)</span>
-            </div>
-            <label class="toggle-switch">
-              <input type="checkbox" id="auto-almost-enabled" checked>
-              <span class="toggle-slider"></span>
-            </label>
+      <!-- Regla 3: Tarjeta Completada -->
+      <div class="automation-card">
+        <div class="automation-header">
+          <div>
+            <span class="automation-icon">🎁</span>
+            <span class="automation-title">Tarjeta Completada</span>
           </div>
-          <div class="automation-body">
-            <label class="automation-label">Faltan X sellos:</label>
-            <input type="number" id="auto-almost-stamps" class="automation-input" value="2" min="1" max="5">
-
-            <label class="automation-label" style="margin-top:10px;">Mensaje:</label>
-            <textarea id="auto-almost-message" class="automation-textarea"
-              rows="2">¡Ya casi! ⚡ Solo te faltan [X] sellos para tu premio. ¡No esperes más!</textarea>
-
-            <button class="btn small ghost automation-test-btn" data-type="almost">🧪 Probar</button>
-          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="auto-completed-enabled" checked>
+            <span class="toggle-slider"></span>
+          </label>
         </div>
+        <div class="automation-body">
+          <p class="muted" style="font-size:12px;margin:0 0 10px;">Notificación cuando el cliente complete su tarjeta.
+          </p>
 
-        <!-- Historial de automatizaciones -->
-        <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line);">
-          <h4 style="margin:0 0 10px;font-size:14px;color:var(--venus-soft);">📋 Historial Reciente</h4>
-          <div id="automation-history" class="automation-history">
-            <p class="muted" style="font-size:12px;">No hay envíos recientes</p>
+          <label class="automation-label">Mensaje:</label>
+          <textarea id="auto-completed-message" class="automation-textarea"
+            rows="2">¡Felicidades! 🎁 Has completado tu tarjeta. Ven a canjear tu premio.</textarea>
+
+          <button class="btn small ghost automation-test-btn" data-type="completed">🧪 Probar</button>
+        </div>
+      </div>
+
+      <!-- Regla 4: Casi Completa -->
+      <div class="automation-card">
+        <div class="automation-header">
+          <div>
+            <span class="automation-icon">⚡</span>
+            <span class="automation-title">Casi Completa (Motivacional)</span>
           </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="auto-almost-enabled" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div class="automation-body">
+          <label class="automation-label">Faltan X sellos:</label>
+          <input type="number" id="auto-almost-stamps" class="automation-input" value="2" min="1" max="5">
+
+          <label class="automation-label" style="margin-top:10px;">Mensaje:</label>
+          <textarea id="auto-almost-message" class="automation-textarea"
+            rows="2">¡Ya casi! ⚡ Solo te faltan [X] sellos para tu premio. ¡No esperes más!</textarea>
+
+          <button class="btn small ghost automation-test-btn" data-type="almost">🧪 Probar</button>
+        </div>
+      </div>
+
+      <!-- Historial de automatizaciones -->
+      <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line);">
+        <h4 style="margin:0 0 10px;font-size:14px;color:var(--venus-soft);">📋 Historial Reciente</h4>
+        <div id="automation-history" class="automation-history">
+          <p class="muted" style="font-size:12px;">No hay envíos recientes</p>
         </div>
       </div>
     </section>
@@ -1471,6 +1491,18 @@
       </div>
       <div id="qr-reader" style="width:100%;"></div>
       <div class="muted" id="scan-status" style="margin-top:8px;font-size:12px;">Iniciando cámara…</div>
+    </dialog>
+
+    <!-- DIALOG: Escáner Gift Card -->
+    <dialog id="giftScanDialog"
+      style="background:rgba(27,28,26,0.95);border:1px solid rgba(255,255,255,0.15);border-radius:16px;padding:20px;max-width:500px;width:90%;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <h3 style="margin:0;font-size:16px;color:#f9fafb;">📷 Escan gift card</h3>
+        <button type="button" id="gift-scan-close" class="btn small ghost">Cerrar</button>
+      </div>
+      <div id="gift-qr-reader" style="width:100%;"></div>
+      <div class="muted" id="gift-scan-status" style="margin-top:12px;font-size:13px;text-align:center;">Esperando
+        escaneo...</div>
     </dialog>
 
 
@@ -1779,6 +1811,147 @@
     document.getElementById('btn-run-all-automations')?.addEventListener('click', () => {
       alert('▶️ Ejecución de automatizaciones será implementada próximamente.\n\nEsto procesará todas las reglas activas y enviará notificaciones a los clientes que cumplan las condiciones.');
     });
+
+    /* ===== GIFT CARD QR SCANNER ===== */
+    let giftHtml5QrcodeScanner = null;
+    const giftScanDialog = document.getElementById('giftScanDialog');
+    const giftScanStatus = document.getElementById('gift-scan-status');
+
+    // Botón para abrir scanner
+    document.getElementById('btn-scan-gift-card')?.addEventListener('click', () => {
+      openGiftScanner();
+    });
+
+    // Botón para cerrar scanner
+    document.getElementById('gift-scan-close')?.addEventListener('click', () => {
+      closeGiftScanner();
+    });
+
+    function openGiftScanner() {
+      if (typeof Html5Qrcode === 'undefined') {
+        alert('❌ Librería de scanner no disponible');
+        return;
+      }
+
+      giftScanDialog.showModal();
+      giftScanStatus.textContent = 'Iniciando cámara...';
+
+      // Inicializar scanner
+      giftHtml5QrcodeScanner = new Html5Qrcode('gift-qr-reader');
+
+      const config = {
+        fps: 10,
+        qrbox: { width: 250, height: 250 }
+      };
+
+      giftHtml5QrcodeScanner.start(
+        { facingMode: 'environment' }, // Cámara trasera
+        config,
+        onGiftScanSuccess,
+        onGiftScanError
+      ).then(() => {
+        giftScanStatus.textContent = '📷 Escanea el QR de la gift card';
+      }).catch(err => {
+        console.error('Error iniciando cámara:', err);
+        giftScanStatus.textContent = '❌ Error al iniciar cámara';
+      });
+    }
+
+    function closeGiftScanner() {
+      if (giftHtml5QrcodeScanner) {
+        giftHtml5QrcodeScanner.stop().then(() => {
+          giftHtml5QrcodeScanner.clear();
+          giftHtml5QrcodeScanner = null;
+        }).catch(err => {
+          console.error('Error cerrando scanner:', err);
+        });
+      }
+      giftScanDialog.close();
+    }
+
+    async function onGiftScanSuccess(decodedText) {
+      console.log('✅ QR escaneado:', decodedText);
+      giftScanStatus.textContent = '✅ QR detectado, procesando...';
+
+      // Detener scanner
+      if (giftHtml5QrcodeScanner) {
+        await giftHtml5QrcodeScanner.stop();
+      }
+
+      // Procesar gift card
+      await processGiftCardScan(decodedText);
+    }
+
+    function onGiftScanError(error) {
+      // Silenciar errores de escaneo continuo
+    }
+
+    async function processGiftCardScan(giftId) {
+      try {
+        // Buscar gift card
+        const response = await fetch(`/api/admin/gift-card/${giftId}`, {
+          credentials: 'include'
+        });
+
+        if (!response.ok) {
+          throw new Error('Gift card no encontrada');
+        }
+
+        const giftCard = await response.json();
+
+        // Verificar si ya fue canjeada
+        if (giftCard.redeemed) {
+          giftScanStatus.textContent = '⚠️ Esta gift card ya fue canjeada';
+          alert(`⚠️ Gift card ya canjeada\n\nCanjeada por: ${giftCard.redeemedBy || 'No disponible'}\nFecha: ${new Date(giftCard.redeemedAt).toLocaleString('es-MX')}`);
+          setTimeout(() => {
+            closeGiftScanner();
+          }, 2000);
+          return;
+        }
+
+        // Confirmar canje
+        const confirmed = confirm(`¿Canjear gift card?\n\nServicio: ${giftCard.service}\nCliente: ${giftCard.clientName || 'Anónimo'}\n\n¿Marcar como canjeada?`);
+
+        if (!confirmed) {
+          giftScanStatus.textContent = 'Canje cancelado';
+          setTimeout(() => {
+            closeGiftScanner();
+          }, 1500);
+          return;
+        }
+
+        // Marcar como canjeada
+        const redeemResponse = await fetch(`/api/admin/gift-card/${giftId}/redeem`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include'
+        });
+
+        if (!redeemResponse.ok) {
+          throw new Error('Error al canjear');
+        }
+
+        giftScanStatus.textContent = '✅ Gift card canjeada correctamente';
+        alert('✅ Gift card canjeada exitosamente');
+
+        // Recargar lista de gift cards si estamos en ese tab
+        if (!document.getElementById('tab-events').classList.contains('hidden')) {
+          loadGiftHistory();
+        }
+
+        setTimeout(() => {
+          closeGiftScanner();
+        }, 1500);
+
+      } catch (error) {
+        console.error('Error procesando gift card:', error);
+        giftScanStatus.textContent = `❌ ${error.message}`;
+        alert(`❌ Error: ${error.message}`);
+        setTimeout(() => {
+          closeGiftScanner();
+        }, 2000);
+      }
+    }
 
     /* ===== SESIÓN Y PROTECCIÓN ===== */
     async function loadMe() {
