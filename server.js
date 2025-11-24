@@ -2138,6 +2138,51 @@ app.get("/api/debug/database-status", adminAuth, async (req, res) => {
   }
 });
 
+// === HEALTH CHECK
+app.get("/health", (req, res) => res.json({ ok: true }));
+
+/* =========================================================
+   ADMIN: ACTUALIZAR INFORMACIÓN DE CLIENTE (FASE 5)
+   ========================================================= */
+app.post("/api/admin/update-client-info", adminAuth, async (req, res) => {
+  try {
+    const { cardId, notes, favoriteServices } = req.body;
+
+    if (!cardId) {
+      return res.status(400).json({ error: "cardId es requerido" });
+    }
+
+    const cardRef = firestore.collection("cards").doc(cardId);
+    const cardSnap = await cardRef.get();
+
+    if (!cardSnap.exists) {
+      return res.status(404).json({ error: "Tarjeta no encontrada" });
+    }
+
+    // Actualizar solo los campos proporcionados
+    const updateData = {
+      updated_at: new Date().toISOString()
+    };
+
+    if (notes !== undefined) {
+      updateData.notes = notes;
+    }
+
+    if (favoriteServices !== undefined) {
+      updateData.favoriteServices = favoriteServices;
+    }
+
+    await cardRef.update(updateData);
+
+    console.log(`✅ Información actualizada para tarjeta: ${cardId}`);
+    res.json({ ok: true, message: "Información actualizada correctamente" });
+
+  } catch (error) {
+    console.error("[UPDATE CLIENT INFO] Error:", error);
+    res.status(500).json({ error: "Error al actualizar información" });
+  }
+});
+
 /* =========================================================
    SERVER
    ========================================================= */
