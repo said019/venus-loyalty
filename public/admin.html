@@ -751,6 +751,23 @@
         </div>
       </div>
 
+      <!-- CUMPLEAÑOS DEL MES (Overview) -->
+      <div id="overview-birthday-section" class="hidden"
+        style="margin-top: 20px; padding: 15px; background: rgba(255, 209, 102, 0.1); border: 1px solid rgba(255, 209, 102, 0.3); border-radius: 12px;">
+        <div class="row" style="justify-content: space-between; align-items: center;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 24px;">🎂</span>
+            <div>
+              <h3 style="margin: 0; color: #ffd166;" id="overview-birthday-title">Cumpleaños del Mes</h3>
+              <p class="muted" style="margin: 2px 0 0; font-size: 13px;">Clientes que cumplen años este mes.</p>
+            </div>
+          </div>
+        </div>
+        <div id="overview-birthday-list" style="margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap;">
+          <!-- Lista de cumpleañeros -->
+        </div>
+      </div>
+
       <!-- Actividad reciente -->
       <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line);">
         <h3 style="margin:0 0 12px;font-size:15px;color:var(--ink);" id="activity-title">📈 Actividad reciente (7 días)
@@ -1250,8 +1267,27 @@
         await loadActivityChart(range);
         await loadWalletStats();
 
+        // Fetch ALL cards for Birthdays & Report
+        // Note: For large datasets, this should be paginated or a separate endpoint
+        try {
+          const cardsResp = await fetch('/api/admin/cards-firebase?limit=1000', { credentials: 'include' });
+          if (cardsResp.ok) {
+            const cardsData = await cardsResp.json();
+            checkOverviewBirthdays(cardsData.items || []);
+
+            // Populate globalStatsData.clients with ALL clients for the report
+            // (loadTopClients only gets top 5)
+            if (cardsData.items) {
+              globalStatsData.allClients = cardsData.items;
+            }
+          }
+        } catch (e) {
+          console.error("Error fetching cards for overview:", e);
+        }
+
         // Guardar datos para reporte
         globalStatsData = {
+          ...globalStatsData, // Keep allClients if set
           total: data.total || 0,
           full: data.full || 0,
           stampsPeriod: range === 'day' ? data.stampsToday : (range === 'week' ? data.stampsWeek : data.stampsMonth),
@@ -2560,7 +2596,7 @@
         output.innerHTML = `❌ Error reparando Google Wallet:<br>${error.message}`;
       }
     });
-    /* ===== BIRTHDAY LOGIC ===== */
+    /* ===== BIRTHDAY LOGIC (Cards Tab) ===== */
     function checkBirthdays(cards) {
       const today = new Date();
       const currentMonth = today.getMonth();
@@ -2573,12 +2609,10 @@
         const bDay = bDate.getDate();
 
         // Check if birthday is in the next 7 days
-        // Simple logic: same month, day is between today and today+7
-        // (This simplifies year wrapping for now, can be improved)
         if (bMonth === currentMonth) {
           return bDay >= currentDay && bDay <= currentDay + 7;
         }
-        // Handle month wrapping (e.g. end of month)
+        // Handle month wrapping
         const nextMonthDate = new Date(today);
         nextMonthDate.setDate(today.getDate() + 7);
         if (nextMonthDate.getMonth() !== currentMonth && bMonth === nextMonthDate.getMonth()) {
@@ -2619,6 +2653,66 @@
       }).join('');
 
       actions.innerHTML = `<span class="tag" style="background:#ffd166; color:#000;">${upcomingBirthdays.length} pendientes</span>`;
+    }
+
+    /* ===== BIRTHDAY LOGIC (Overview Tab) ===== */
+    function checkOverviewBirthdays(cards) {
+      const today = new Date();
+      const currentMonth = today.getMonth();
+
+      // Filter for birthdays in the CURRENT MONTH
+      const monthBirthdays = cards.filter(card => {
+        if (!card.birthday) return false;
+        const bDate = new Date(card.birthday);
+        return bDate.getMonth() === currentMonth;
+      });
+
+      const section = document.getElementById('overview-birthday-section');
+      const list = document.getElementById('overview-birthday-list');
+      const title = document.getElementById('overview-birthday-title');
+
+      if (monthBirthdays.length === 0) {
+        section.classList.add('hidden');
+        return;
+      }
+
+      // Update title with current month name
+      const monthName = today.toLocaleString('es-MX', { month: 'long' });
+      title.textContent = `Cumpleaños de ${monthName.charAt(0).toUpperCase() + monthName.slice(1)}`;
+
+      section.classList.remove('hidden');
+
+      // Sort by day of month
+      monthBirthdays.sort((a, b) => {
+        const da = new Date(a.birthday).getDate();
+        const db = new Date(b.birthday).getDate();
+        return da - db;
+      });
+
+      list.innerHTML = monthBirthdays.map(c => {
+        const bDate = new Date(c.birthday);
+        const bDay = bDate.getDate();
+        const currentDay = today.getDate();
+
+        // Calculate days until birthday (ignoring year)
+        let daysUntil = bDay - currentDay;
+
+        // Show button if birthday is today, tomorrow, or was yesterday (in case they missed it)
+        if (daysUntil >= -1 && daysUntil <= 2) {
+          actionBtn = `<button onclick="sendBirthdayPush('${c.id}', '${c.name}')" class="btn small primary" style="font-size:10px; padding: 2px 6px;">🎁 Felicitar</button>`;
+        }
+
+        return `
+          <div style="background: rgba(0,0,0,0.2); padding: 8px 12px; border-radius: 8px; display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 16px;">🎂</span>
+            <div>
+              <div style="font-weight: 600; font-size: 13px;">${c.name || 'Cliente'}</div>
+              <div class="muted" style="font-size: 11px;">${bDay} de ${monthName}</div>
+            </div>
+            ${actionBtn}
+          </div>
+        `;
+      }).join('');
     }
 
     window.sendBirthdayPush = async function (cardId, name) {
