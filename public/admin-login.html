@@ -1,277 +1,435 @@
 <!doctype html>
 <html lang="es">
+
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Admin — Venus Lealtad</title>
   <link rel="icon" href="/assets/logo.png">
   <style>
-    :root{
-      --venus:#8c9668;
-      --venus-soft:#dfe6c1;
-      --bg:#3f4037;
-      --ink:#1b1b1b;
-      --muted:#e5e7eb;
-      --line:rgba(255,255,255,0.25);
-      --err:#fecaca;
-      --err-text:#991b1b;
-      --ok:#bbf7d0;
-      --ok-text:#166534;
-      --radius:18px;
+    :root {
+      --venus: #8c9668;
+      --venus-green: #8c9668;
+      --venus-soft: #dfe6c1;
+      --bg: #3f4037;
+      --ink: #1b1b1b;
+      --muted: #e5e7eb;
+      --line: rgba(255, 255, 255, 0.25);
+      --err: #fecaca;
+      --err-text: #991b1b;
+      --ok: #bbf7d0;
+      --ok-text: #166534;
+      --radius: 18px;
     }
 
-    *{box-sizing:border-box;margin:0;padding:0}
-
-    html,body{
-      height:100%;
-      font-family:system-ui,-apple-system,Segoe UI,Inter,Roboto,Arial,sans-serif;
-      background:var(--bg);
-      color:#fff;
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0
     }
 
-    /* Contenedor principal: centra pero permite scroll en pantallas bajas */
-    .page{
-      min-height:100vh;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      padding:16px;
+    html,
+    body {
+      height: 100%;
+      font-family: system-ui, -apple-system, Segoe UI, Inter, Roboto, Arial, sans-serif;
+      background: #2d2f28;
+      color: #fff;
+      overflow-x: hidden;
     }
 
-    .container{
-      width:100%;
-      max-width:460px;
-    }
-
-    .card{
-      position:relative;
-      background:var(--venus);
-      border-radius:var(--radius);
-      padding:22px 18px 18px;
-      box-shadow:0 16px 40px rgba(0,0,0,.35);
-      overflow:hidden;
-    }
-    .card::before{
-      content:"";
-      position:absolute;
-      inset:0;
+    /* Animated gradient background */
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
       background:
-        radial-gradient(circle at 20% 20%,rgba(255,255,255,0.12),transparent 60%),
-        radial-gradient(circle at 80% 70%,rgba(255,255,255,0.08),transparent 60%);
-      opacity:.9;
-      pointer-events:none;
-    }
-    .card > *{
-      position:relative;
-      z-index:1;
+        radial-gradient(circle at 20% 30%, rgba(140, 150, 104, 0.15), transparent 50%),
+        radial-gradient(circle at 80% 70%, rgba(140, 150, 104, 0.12), transparent 50%),
+        linear-gradient(135deg, #2d2f28 0%, #3a3d33 100%);
+      animation: bgShift 20s ease-in-out infinite;
+      z-index: 0;
     }
 
-    .logo{
-      width:64px;
-      height:64px;
-      border-radius:50%;
-      background:#fff;
-      margin:0 auto 6px;
-      display:block;
-      box-shadow:0 0 12px rgba(255,255,255,.4);
-    }
-    .title{
-      text-align:center;
-      font-size:1.4rem;
-      font-weight:700;
-    }
-    .subtitle{
-      text-align:center;
-      font-size:.9rem;
-      margin-top:3px;
-      color:var(--muted);
-    }
+    @keyframes bgShift {
 
-    .top-actions{
-      display:flex;
-      justify-content:flex-end;
-      margin-top:6px;
-    }
-
-    .tabs{
-      display:flex;
-      gap:6px;
-      margin:16px 0 12px;
-      justify-content:center;
-      flex-wrap:wrap;
-    }
-    .tabs button{
-      border-radius:999px;
-      border:1px solid rgba(255,255,255,.35);
-      background:rgba(0,0,0,.08);
-      color:#f9fafb;
-      padding:5px 10px;
-      font-size:.8rem;
-      cursor:pointer;
-      backdrop-filter:blur(3px);
-      min-width:0;
-    }
-    .tabs button.active{
-      background:#f5f5f5;
-      color:#374151;
-      border-color:#f5f5f5;
-    }
-
-    .section-title{
-      font-size:1.02rem;
-      font-weight:600;
-      margin-bottom:4px;
-    }
-    .muted{
-      font-size:.85rem;
-      color:var(--muted);
-      margin-bottom:10px;
-    }
-
-    label{
-      display:block;
-      font-size:.8rem;
-      font-weight:600;
-      margin:8px 0 3px;
-    }
-    input{
-      width:100%;
-      padding:9px 11px;
-      border-radius:12px;
-      border:1px solid rgba(0,0,0,.12);
-      background:#f9fafb;
-      font-size:.9rem;
-      outline:none;
-    }
-    input:focus{
-      border-color:#4b5563;
-      box-shadow:0 0 0 1px rgba(0,0,0,.2);
-    }
-
-    .row{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:8px;
-      margin-top:10px;
-      flex-wrap:wrap;
-    }
-
-    .btn{
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      gap:6px;
-      border-radius:999px;
-      border:none;
-      padding:8px 14px;
-      font-size:.85rem;
-      font-weight:600;
-      cursor:pointer;
-      text-decoration:none;
-      font-family:inherit;
-      white-space:nowrap;
-    }
-    .btn-primary{
-      background:#111827;
-      color:#f9fafb;
-    }
-    .btn-ghost{
-      background:transparent;
-      border:1px solid rgba(255,255,255,.4);
-      color:#f9fafb;
-    }
-    .btn-primary:hover,
-    .btn-ghost:hover{
-      opacity:.92;
-      transform:translateY(-1px);
-    }
-
-    .alert{
-      border-radius:12px;
-      padding:8px 10px;
-      font-size:.8rem;
-      margin-top:6px;
-    }
-    .alert.ok{
-      background:var(--ok);
-      color:var(--ok-text);
-      border:1px solid #4ade80;
-    }
-    .alert.err{
-      background:var(--err);
-      color:var(--err-text);
-      border:1px solid #fca5a5;
-    }
-
-    .link{
-      color:#f9fafb;
-      text-decoration:underline;
-      text-underline-offset:2px;
-      font-size:.8rem;
-      cursor:pointer;
-    }
-
-    .footer{
-      margin-top:10px;
-      text-align:center;
-      color:#9ca3af;
-      font-size:.75rem;
-    }
-
-    .hidden{display:none}
-
-    /* Celulares muy pequeños (ancho <= 360) */
-    @media (max-width:360px){
-      .card{
-        padding:18px 14px 14px;
+      0%,
+      100% {
+        opacity: 1;
       }
-      .logo{
-        width:56px;
-        height:56px;
-      }
-      .title{
-        font-size:1.25rem;
-      }
-      .tabs button{
-        font-size:.75rem;
-        padding:4px 8px;
-      }
-      input{
-        font-size:.85rem;
+
+      50% {
+        opacity: 0.85;
       }
     }
 
-    /* Tablets y pantallas grandes */
-    @media (min-width:768px){
-      .container{
-        max-width:520px;
+    /* Contenedor principal */
+    .page {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 480px;
+    }
+
+    /* Glassmorphism card */
+    .card {
+      position: relative;
+      background: linear-gradient(135deg, rgba(27, 28, 26, 0.8), rgba(140, 150, 104, 0.1));
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border-radius: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 28px 24px 24px;
+      box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.4),
+        0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+      overflow: hidden;
+      animation: cardSlideIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes cardSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.95);
       }
-      .card{
-        padding:26px 26px 22px;
+
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
       }
-      .logo{
-        width:78px;
-        height:78px;
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.08), transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(140, 150, 104, 0.1), transparent 50%);
+      opacity: 0.6;
+      pointer-events: none;
+    }
+
+    .card>* {
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Logo with glow */
+    .logo {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: #fff;
+      margin: 0 auto 10px;
+      display: block;
+      box-shadow:
+        0 0 20px rgba(140, 150, 104, 0.4),
+        0 4px 12px rgba(0, 0, 0, 0.2);
+      animation: logoGlow 3s ease-in-out infinite;
+    }
+
+    @keyframes logoGlow {
+
+      0%,
+      100% {
+        box-shadow: 0 0 20px rgba(140, 150, 104, 0.4), 0 4px 12px rgba(0, 0, 0, 0.2);
       }
-      .title{
-        font-size:1.6rem;
+
+      50% {
+        box-shadow: 0 0 30px rgba(140, 150, 104, 0.6), 0 4px 12px rgba(0, 0, 0, 0.2);
       }
-      .subtitle{
-        font-size:1rem;
+    }
+
+    .title {
+      text-align: center;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #f9fafb;
+      letter-spacing: -0.02em;
+    }
+
+    .subtitle {
+      text-align: center;
+      font-size: 0.9rem;
+      margin-top: 4px;
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .top-actions {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 8px;
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin: 20px 0 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .tabs button {
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: rgba(0, 0, 0, 0.2);
+      color: rgba(255, 255, 255, 0.8);
+      padding: 6px 14px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      backdrop-filter: blur(5px);
+      transition: all 0.2s ease;
+      font-weight: 500;
+    }
+
+    .tabs button:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    .tabs button.active {
+      background: rgba(140, 150, 104, 0.9);
+      color: #f9fafb;
+      border-color: rgba(140, 150, 104, 1);
+      box-shadow: 0 2px 8px rgba(140, 150, 104, 0.3);
+      font-weight: 600;
+    }
+
+    .section-title {
+      font-size: 1.05rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: #f9fafb;
+    }
+
+    .muted {
+      font-size: 0.85rem;
+      color: rgba(255, 255, 255, 0.65);
+      margin-bottom: 12px;
+    }
+
+    /* Premium inputs */
+    label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin: 10px 0 5px;
+      color: rgba(255, 255, 255, 0.9);
+      letter-spacing: 0.01em;
+    }
+
+    input {
+      width: 100%;
+      padding: 11px 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: rgba(255, 255, 255, 0.95);
+      font-size: 0.9rem;
+      outline: none;
+      transition: all 0.2s ease;
+      color: #1f2937;
+    }
+
+    input::placeholder {
+      color: #9ca3af;
+    }
+
+    input:focus {
+      border-color: var(--venus-green);
+      box-shadow:
+        0 0 0 3px rgba(140, 150, 104, 0.15),
+        0 2px 8px rgba(140, 150, 104, 0.1);
+      background: #fff;
+      transform: translateY(-1px);
+    }
+
+    .row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+
+    /* Premium buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      border-radius: 999px;
+      border: none;
+      padding: 10px 18px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      font-family: inherit;
+      white-space: nowrap;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--venus-green) 0%, #9aa066 100%);
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(140, 150, 104, 0.3);
+    }
+
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #9aa066 0%, var(--venus-green) 100%);
+      box-shadow: 0 6px 16px rgba(140, 150, 104, 0.4);
+      transform: translateY(-2px);
+    }
+
+    .btn-primary:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 8px rgba(140, 150, 104, 0.3);
+    }
+
+    .btn-ghost {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      color: #f9fafb;
+      backdrop-filter: blur(5px);
+    }
+
+    .btn-ghost:hover {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: rgba(255, 255, 255, 0.35);
+      transform: translateY(-1px);
+    }
+
+    /* Alerts */
+    .alert {
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-size: 0.8rem;
+      margin-top: 8px;
+      animation: alertSlideIn 0.3s ease;
+    }
+
+    @keyframes alertSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-5px);
       }
-      .section-title{
-        font-size:1.1rem;
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
       }
-      input{
-        font-size:.95rem;
+    }
+
+    .alert.ok {
+      background: rgba(187, 247, 208, 0.95);
+      color: var(--ok-text);
+      border: 1px solid #4ade80;
+    }
+
+    .alert.err {
+      background: rgba(254, 202, 202, 0.95);
+      color: var(--err-text);
+      border: 1px solid #fca5a5;
+    }
+
+    .link {
+      color: rgba(255, 255, 255, 0.85);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: color 0.2s ease;
+    }
+
+    .link:hover {
+      color: #fff;
+    }
+
+    .footer {
+      margin-top: 14px;
+      text-align: center;
+      color: rgba(255, 255, 255, 0.5);
+      font-size: 0.75rem;
+    }
+
+    .hidden {
+      display: none
+    }
+
+    /* Responsive */
+    @media (max-width:360px) {
+      .card {
+        padding: 20px 16px 16px;
       }
-      .btn{
-        font-size:.9rem;
+
+      .logo {
+        width: 60px;
+        height: 60px;
+      }
+
+      .title {
+        font-size: 1.3rem;
+      }
+
+      .tabs button {
+        font-size: 0.75rem;
+        padding: 5px 10px;
+      }
+
+      input {
+        font-size: 0.85rem;
+      }
+    }
+
+    @media (min-width:768px) {
+      .container {
+        max-width: 520px;
+      }
+
+      .card {
+        padding: 32px 32px 28px;
+      }
+
+      .logo {
+        width: 84px;
+        height: 84px;
+      }
+
+      .title {
+        font-size: 1.7rem;
+      }
+
+      .subtitle {
+        font-size: 1rem;
+      }
+
+      .section-title {
+        font-size: 1.15rem;
+      }
+
+      input {
+        font-size: 0.95rem;
+        padding: 12px 16px;
+      }
+
+      .btn {
+        font-size: 0.9rem;
+        padding: 11px 20px;
       }
     }
   </style>
 </head>
+
 <body>
   <div class="page">
     <main class="container">
@@ -352,29 +510,29 @@
     // Tabs
     const tabs = document.querySelectorAll('[data-tab]');
     const sections = {
-      login:  document.getElementById('tab-login'),
+      login: document.getElementById('tab-login'),
       register: document.getElementById('tab-register'),
       forgot: document.getElementById('tab-forgot')
     };
 
-    function activate(tab){
-      tabs.forEach(b=>{
-        const active = b.dataset.tab===tab;
+    function activate(tab) {
+      tabs.forEach(b => {
+        const active = b.dataset.tab === tab;
         b.classList.toggle('active', active);
         b.setAttribute('aria-selected', active);
       });
-      Object.entries(sections).forEach(([k,el])=>{
-        if(k===tab){ el.classList.remove('hidden'); }
-        else{ el.classList.add('hidden'); }
+      Object.entries(sections).forEach(([k, el]) => {
+        if (k === tab) { el.classList.remove('hidden'); }
+        else { el.classList.add('hidden'); }
       });
       const params = new URLSearchParams(location.search);
       params.set('view', tab);
-      history.replaceState(null,'','?'+params.toString());
+      history.replaceState(null, '', '?' + params.toString());
     }
 
-    tabs.forEach(b=> b.addEventListener('click', ()=>activate(b.dataset.tab)));
-    document.querySelectorAll('[data-goto]').forEach(a=>
-      a.addEventListener('click', e=>{
+    tabs.forEach(b => b.addEventListener('click', () => activate(b.dataset.tab)));
+    document.querySelectorAll('[data-goto]').forEach(a =>
+      a.addEventListener('click', e => {
         e.preventDefault();
         activate(a.dataset.goto);
       })
@@ -383,35 +541,35 @@
     if (urlView && sections[urlView]) activate(urlView);
 
     // helpers alerts
-    function showAlert(id, type, msg){
+    function showAlert(id, type, msg) {
       const el = document.getElementById(id);
-      el.className = 'alert '+type;
+      el.className = 'alert ' + type;
       el.textContent = msg;
       el.classList.remove('hidden');
     }
-    function clearAlert(id){
+    function clearAlert(id) {
       const el = document.getElementById(id);
       el.className = 'alert hidden';
       el.textContent = '';
     }
 
     // Submit: login
-    document.getElementById('form-login').addEventListener('submit', async (e)=>{
+    document.getElementById('form-login').addEventListener('submit', async (e) => {
       e.preventDefault();
       clearAlert('login-alert');
       const email = document.getElementById('login-email').value.trim();
       const password = document.getElementById('login-pass').value;
       const r = await fetch('/api/admin/login', {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({email,password})
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
       });
-      const j = await r.json().catch(()=>({}));
-      if(!r.ok){
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) {
         showAlert(
           'login-alert',
           'err',
-          j.error==='invalid_credentials'
+          j.error === 'invalid_credentials'
             ? 'Credenciales inválidas'
             : 'Error de inicio de sesión'
         );
@@ -421,43 +579,43 @@
     });
 
     // Submit: register
-    document.getElementById('form-register').addEventListener('submit', async (e)=>{
+    document.getElementById('form-register').addEventListener('submit', async (e) => {
       e.preventDefault();
       clearAlert('reg-alert');
       const email = document.getElementById('reg-email').value.trim();
       const password = document.getElementById('reg-pass').value;
       const r = await fetch('/api/admin/register', {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({email,password})
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
       });
-      const j = await r.json().catch(()=>({}));
-      if(!r.ok){
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) {
         const map = {
-          signup_disabled:'Registro deshabilitado',
-          email_in_use:'Este correo ya está registrado',
-          missing_fields:'Faltan datos'
+          signup_disabled: 'Registro deshabilitado',
+          email_in_use: 'Este correo ya está registrado',
+          missing_fields: 'Faltan datos'
         };
-        showAlert('reg-alert','err', map[j.error] || 'No se pudo crear la cuenta');
+        showAlert('reg-alert', 'err', map[j.error] || 'No se pudo crear la cuenta');
         return;
       }
-      showAlert('reg-alert','ok','Cuenta creada. Ya puedes iniciar sesión.');
-      setTimeout(()=> activate('login'), 1200);
+      showAlert('reg-alert', 'ok', 'Cuenta creada. Ya puedes iniciar sesión.');
+      setTimeout(() => activate('login'), 1200);
     });
 
     // Submit: forgot
-    document.getElementById('form-forgot').addEventListener('submit', async (e)=>{
+    document.getElementById('form-forgot').addEventListener('submit', async (e) => {
       e.preventDefault();
       clearAlert('forgot-alert');
       const email = document.getElementById('forgot-email').value.trim();
       const r = await fetch('/api/admin/forgot', {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({email})
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
       });
-      await r.json().catch(()=>({}));
-      if(!r.ok){
-        showAlert('forgot-alert','err','No se pudo enviar el correo');
+      await r.json().catch(() => ({}));
+      if (!r.ok) {
+        showAlert('forgot-alert', 'err', 'No se pudo enviar el correo');
         return;
       }
       showAlert(
@@ -468,4 +626,5 @@
     });
   </script>
 </body>
+
 </html>
