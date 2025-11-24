@@ -572,6 +572,78 @@
       white-space: pre-wrap;
       margin-top: 10px;
     }
+
+    /* Estilos para el formulario de notificación individual */
+    .notify-form-container {
+      margin-top: 15px;
+      padding-top: 15px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      animation: slideDown 0.3s ease-out;
+    }
+
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .notify-form-header {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--venus-soft);
+      margin-bottom: 10px;
+      display: block;
+    }
+
+    .notify-input {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 8px 12px;
+      color: #fff;
+      font-size: 13px;
+      margin-bottom: 8px;
+      transition: all 0.2s;
+    }
+
+    .notify-input:focus {
+      border-color: var(--venus);
+      outline: none;
+      background: rgba(0, 0, 0, 0.3);
+    }
+
+    .notify-textarea {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 8px 12px;
+      color: #fff;
+      font-size: 13px;
+      min-height: 80px;
+      resize: vertical;
+      margin-bottom: 10px;
+      font-family: inherit;
+    }
+
+    .notify-textarea:focus {
+      border-color: var(--venus);
+      outline: none;
+      background: rgba(0, 0, 0, 0.3);
+    }
+
+    .notify-btn-group {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -922,6 +994,17 @@
           <p><strong>Estado:</strong> <span id="cm-status"></span></p>
           <div class="qr-box">
             <canvas id="card-qr"></canvas>
+          </div>
+
+          <!-- Formulario de Notificación Individual (Oculto por defecto) -->
+          <div id="notify-form-container" class="notify-form-container hidden">
+            <span class="notify-form-header">Push Individual</span>
+            <input id="notify-title" class="notify-input" placeholder="Título" value="Recordatorio Venus">
+            <textarea id="notify-message" class="notify-textarea" placeholder="Mensaje..."></textarea>
+            <div class="notify-btn-group">
+              <button id="btn-cancel-notify" class="btn small ghost">Cancelar</button>
+              <button id="btn-send-notify" class="btn small primary">Enviar Push</button>
+            </div>
           </div>
         </div>
         <div class="modal-footer">
@@ -2000,6 +2083,11 @@
 
       modalBackdrop.classList.remove('hidden');
 
+      // Resetear formulario de notificación
+      document.getElementById('notify-form-container').classList.add('hidden');
+      document.getElementById('notify-title').value = 'Recordatorio Venus';
+      document.getElementById('notify-message').value = '';
+
       const url = `${window.location.origin}/?cardId=${encodeURIComponent(card.id)}`;
 
       // CORRECCIÓN CRÍTICA: Generar QR correctamente esperando a que esté lista la librería
@@ -2199,12 +2287,36 @@
       }
     }
 
-    document.getElementById('cm-notify').addEventListener('click', async () => {
+    // Toggle del formulario de notificación
+    document.getElementById('cm-notify').addEventListener('click', () => {
+      const form = document.getElementById('notify-form-container');
+      form.classList.toggle('hidden');
+      if (!form.classList.contains('hidden')) {
+        document.getElementById('notify-message').focus();
+      }
+    });
+
+    // Cancelar notificación
+    document.getElementById('btn-cancel-notify').addEventListener('click', () => {
+      document.getElementById('notify-form-container').classList.add('hidden');
+    });
+
+    // Enviar notificación individual
+    document.getElementById('btn-send-notify').addEventListener('click', async function () {
       if (!currentCardId) return;
-      const title = prompt('Título de la notificación', 'Recordatorio Venus');
-      if (!title) return;
-      const message = prompt('Mensaje', 'Te recordamos que tienes sellos acumulados en tu tarjeta.');
-      if (!message) return;
+
+      const title = document.getElementById('notify-title').value;
+      const message = document.getElementById('notify-message').value;
+
+      if (!title || !message) {
+        alert('Por favor completa el título y el mensaje');
+        return;
+      }
+
+      const btn = this;
+      const originalText = btn.textContent;
+      btn.textContent = 'Enviando...';
+      btn.disabled = true;
 
       try {
         const r = await fetch('/api/admin/push-one', {
@@ -2216,17 +2328,24 @@
             title,
             message,
             type: 'personal',
-            // ✅ CORREGIDO: Especificar que es alerta visible
             alertType: 'visible'
           })
         });
         const data = await r.json();
+
         if (!r.ok || !data.success) {
           throw new Error(data.error || 'No se pudo enviar la notificación');
         }
-        alert('✅ Notificación enviada');
+
+        alert('✅ Notificación enviada exitosamente');
+        document.getElementById('notify-form-container').classList.add('hidden');
+        document.getElementById('notify-message').value = ''; // Limpiar mensaje
+
       } catch (e) {
         alert('❌ Error: ' + e.message);
+      } finally {
+        btn.textContent = originalText;
+        btn.disabled = false;
       }
     });
 
