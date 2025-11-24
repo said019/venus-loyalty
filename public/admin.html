@@ -2871,50 +2871,85 @@
     /* =========================================================
        LÓGICA DEL BOTÓN "ENVIAR A TODOS"
        ========================================================= */
+
+    // Prevent form submission from interfering with buttons
+    const pushForm = document.getElementById('push-notification-form');
+    if (pushForm) {
+      pushForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        console.log('Form submission prevented');
+      });
+    }
+
     const btnGlobal = document.getElementById('btn-mass-push');
+    console.log('🔍 Buscando botón btn-mass-push:', btnGlobal);
 
     if (btnGlobal) {
-      btnGlobal.addEventListener('click', async () => {
+      console.log('✅ Botón encontrado, agregando event listener');
+
+      btnGlobal.addEventListener('click', async (e) => {
+        e.preventDefault(); // Prevent any form submission
+        e.stopPropagation(); // Stop event bubbling
+
+        console.log('🚀 Botón "Enviar a todos" clickeado');
+
         const title = document.getElementById('push-title').value.trim();
         const message = document.getElementById('push-message').value.trim();
 
-        if (!title || !message) return alert("⚠️ Faltan datos: Escribe título y mensaje.");
+        console.log('📝 Título:', title);
+        console.log('📝 Mensaje:', message);
 
-        if (!confirm(`🚨 ¿ENVIAR A TODOS?\n\n"${title}"`)) return;
+        if (!title || !message) {
+          console.warn('⚠️ Faltan datos');
+          return alert("⚠️ Faltan datos: Escribe título y mensaje.");
+        }
+
+        if (!confirm(`🚨 ¿ENVIAR A TODOS?\n\n"${title}"`)) {
+          console.log('❌ Usuario canceló');
+          return;
+        }
 
         const originalText = btnGlobal.textContent;
         btnGlobal.innerHTML = `<span style="display: inline-flex; align-items: center; gap: 6px;"><span class="spinner"></span> Enviando...</span>`;
         btnGlobal.disabled = true;
 
+        console.log('📡 Enviando petición a /api/admin/push-all...');
+
         try {
           const r = await fetch('/api/admin/push-all', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            credentials: 'include', // ⭐ CRITICAL: Needed for admin auth
+            credentials: 'include',
             body: JSON.stringify({ title, message })
           });
+
+          console.log('📥 Respuesta recibida:', r.status);
           const data = await r.json();
+          console.log('📦 Data:', data);
 
           if (data.success) {
             const apple = data.results?.apple || 0;
             const google = data.results?.google || 0;
+            console.log('✅ Éxito! Apple:', apple, 'Google:', google);
             alert(`✅ ¡ENVIADO!\n\n🍏 Apple: ${apple}\n🤖 Google: ${google}`);
             // Limpiar campos
             document.getElementById('push-title').value = "";
             document.getElementById('push-message').value = "";
           } else {
+            console.error('❌ Error en respuesta:', data.error);
             alert('⚠️ Error: ' + (data.error || "Desconocido"));
           }
         } catch (e) {
-          console.error(e);
+          console.error('💥 Error de conexión:', e);
           alert('❌ Error de conexión: ' + e.message);
         } finally {
           btnGlobal.textContent = originalText;
           btnGlobal.disabled = false;
+          console.log('🏁 Proceso terminado');
         }
       });
     } else {
-      console.warn('⚠️ Botón btn-mass-push no encontrado en el DOM');
+      console.error('❌ Botón btn-mass-push NO encontrado en el DOM');
     }
   </script>
 </body>
