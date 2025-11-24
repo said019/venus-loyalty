@@ -597,19 +597,41 @@
       font-size: 14px;
       font-weight: 600;
       color: var(--venus-soft);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .input-group {
+      position: relative;
       margin-bottom: 10px;
-      display: block;
+    }
+
+    .input-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 16px;
+      pointer-events: none;
+      color: var(--muted);
+    }
+
+    .input-group textarea+.input-icon {
+      top: 12px;
+      transform: none;
     }
 
     .notify-input {
       width: 100%;
       background: rgba(0, 0, 0, 0.2);
       border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 8px;
-      padding: 8px 12px;
+      border-radius: 12px;
+      padding: 10px 12px 10px 38px;
+      /* Padding left for icon */
       color: #fff;
       font-size: 13px;
-      margin-bottom: 8px;
       transition: all 0.2s;
     }
 
@@ -617,32 +639,36 @@
       border-color: var(--venus);
       outline: none;
       background: rgba(0, 0, 0, 0.3);
+      box-shadow: 0 0 0 3px rgba(140, 150, 104, 0.1);
     }
 
     .notify-textarea {
       width: 100%;
       background: rgba(0, 0, 0, 0.2);
       border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 8px;
-      padding: 8px 12px;
+      border-radius: 12px;
+      padding: 10px 12px 10px 38px;
+      /* Padding left for icon */
       color: #fff;
       font-size: 13px;
       min-height: 80px;
       resize: vertical;
-      margin-bottom: 10px;
       font-family: inherit;
+      transition: all 0.2s;
     }
 
     .notify-textarea:focus {
       border-color: var(--venus);
       outline: none;
       background: rgba(0, 0, 0, 0.3);
+      box-shadow: 0 0 0 3px rgba(140, 150, 104, 0.1);
     }
 
     .notify-btn-group {
       display: flex;
       gap: 8px;
       justify-content: flex-end;
+      margin-top: 12px;
     }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
@@ -998,12 +1024,23 @@
 
           <!-- Formulario de Notificación Individual (Oculto por defecto) -->
           <div id="notify-form-container" class="notify-form-container hidden">
-            <span class="notify-form-header">Push Individual</span>
-            <input id="notify-title" class="notify-input" placeholder="Título" value="Recordatorio Venus">
-            <textarea id="notify-message" class="notify-textarea" placeholder="Mensaje..."></textarea>
+            <span class="notify-form-header">
+              🔔 Push Individual
+            </span>
+
+            <div class="input-group">
+              <input id="notify-title" class="notify-input" placeholder="Título" value="Recordatorio Venus">
+              <span class="input-icon">📌</span>
+            </div>
+
+            <div class="input-group">
+              <textarea id="notify-message" class="notify-textarea" placeholder="Escribe tu mensaje aquí..."></textarea>
+              <span class="input-icon">💬</span>
+            </div>
+
             <div class="notify-btn-group">
               <button id="btn-cancel-notify" class="btn small ghost">Cancelar</button>
-              <button id="btn-send-notify" class="btn small primary">Enviar Push</button>
+              <button id="btn-send-notify" class="btn small primary">🚀 Enviar Push</button>
             </div>
           </div>
         </div>
