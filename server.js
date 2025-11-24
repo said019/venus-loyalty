@@ -44,6 +44,10 @@ import {
 // 🍎 Apple Wallet Web Service
 import appleWebService from './lib/apple-webservice.js';
 
+// 📅 Appointments Module
+import appointmentsRouter from './src/routes/api.js';
+import { startScheduler } from './src/scheduler/cron.js';
+
 // __dirname para ESModules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -395,6 +399,12 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(express.static("public"));
+
+// ✅ Appointments API
+app.use('/api', appointmentsRouter);
+
+// ✅ Start Scheduler
+startScheduler();
 
 /* =========================================================
    🍎 DECODIFICAR APNs KEY DE BASE64 (para Render)

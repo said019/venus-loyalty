@@ -944,6 +944,7 @@
       <a href="#cards" data-tab="cards">Tarjetas</a>
       <a href="#events" data-tab="events">Gift Cards</a>
       <a href="#notifications" data-tab="notifications">Notificaciones</a>
+      <a href="#appointments" data-tab="appointments">Citas</a>
       <a href="#settings" data-tab="settings">Configuración</a>
     </nav>
 
@@ -1482,6 +1483,101 @@
         </div>
       </div>
     </section>
+
+    <!-- TAB: Citas -->
+    <section id="appointments" class="tab-content hidden">
+      <div class="header-actions">
+        <h2>📅 Agenda de Citas</h2>
+        <button class="btn primary" id="btn-new-appointment">➕ Nueva Cita</button>
+      </div>
+
+      <div class="card">
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:16px;">
+          <label>Fecha:</label>
+          <input type="date" id="appt-filter-date"
+            style="background:#2d2f28;border:1px solid var(--line);color:#fff;padding:6px 10px;border-radius:8px;">
+          <button class="btn small" id="btn-refresh-appts">🔄 Actualizar</button>
+        </div>
+
+        <div class="table-container">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Hora</th>
+                <th>Cliente</th>
+                <th>Servicio</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="appts-tbody">
+              <tr>
+                <td colspan="5" class="muted" style="text-align:center;">Cargando citas...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- DIALOG: Nueva Cita -->
+    <dialog id="newApptDialog"
+      style="background:var(--bg-card);border:1px solid var(--line);border-radius:16px;padding:24px;max-width:500px;width:90%;color:#fff;">
+      <h3 style="margin-top:0;margin-bottom:16px;">📅 Agendar Cita</h3>
+      <form id="form-new-appt">
+        <div style="display:grid;gap:12px;">
+          <div>
+            <label style="display:block;font-size:12px;margin-bottom:4px;">Cliente</label>
+            <input type="text" id="new-appt-client" placeholder="Nombre completo" required
+              style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--line);background:rgba(0,0,0,0.2);color:#fff;">
+          </div>
+          <div>
+            <label style="display:block;font-size:12px;margin-bottom:4px;">Teléfono</label>
+            <input type="tel" id="new-appt-phone" placeholder="52..." required
+              style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--line);background:rgba(0,0,0,0.2);color:#fff;">
+          </div>
+          <div>
+            <label style="display:block;font-size:12px;margin-bottom:4px;">Servicio</label>
+            <select id="new-appt-service" required
+              style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--line);background:rgba(0,0,0,0.2);color:#fff;">
+              <option value="">Cargando servicios...</option>
+            </select>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div>
+              <label style="display:block;font-size:12px;margin-bottom:4px;">Fecha</label>
+              <input type="date" id="new-appt-date" required
+                style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--line);background:rgba(0,0,0,0.2);color:#fff;">
+            </div>
+            <div>
+              <label style="display:block;font-size:12px;margin-bottom:4px;">Hora</label>
+              <input type="time" id="new-appt-time" required
+                style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--line);background:rgba(0,0,0,0.2);color:#fff;">
+            </div>
+          </div>
+
+          <div style="margin-top:8px;padding:10px;background:rgba(255,255,255,0.05);border-radius:8px;">
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
+              <input type="checkbox" id="check-whatsapp-confirm" checked>
+              Enviar confirmación por WhatsApp
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;margin-top:6px;">
+              <input type="checkbox" id="check-whatsapp-24h" checked>
+              Recordatorio 24h antes
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;margin-top:6px;">
+              <input type="checkbox" id="check-whatsapp-2h" checked>
+              Recordatorio 2h antes
+            </label>
+          </div>
+
+          <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px;">
+            <button type="button" class="btn ghost" id="btn-cancel-appt">Cancelar</button>
+            <button type="submit" class="btn primary">Agendar</button>
+          </div>
+        </div>
+      </form>
+    </dialog>
 
     <!-- DIALOG: Escáner QR -->
     <dialog id="scanDialog">
@@ -2775,6 +2871,7 @@
                 <button class="btn small" data-action="copy">Copiar ID</button>
                 <button class="btn small" data-action="open">Abrir cliente</button>
                 <button class="btn small" data-action="stamp">+1 sello</button>
+
                 <button class="btn small" data-action="redeem">Canjear</button>
                 <button class="btn small ghost" data-action="delete">Eliminar</button>
               </div>
@@ -4153,6 +4250,177 @@
     } else {
       console.error('❌ Botón btn-mass-push NO encontrado en el DOM');
     }
+    /* =========================================================
+       LÓGICA DE CITAS
+       ========================================================= */
+
+    // Elementos
+    const apptDateInput = document.getElementById('appt-filter-date');
+    const btnRefreshAppts = document.getElementById('btn-refresh-appts');
+    const btnNewAppt = document.getElementById('btn-new-appointment');
+    const newApptDialog = document.getElementById('newApptDialog');
+    const formNewAppt = document.getElementById('form-new-appt');
+    const btnCancelAppt = document.getElementById('btn-cancel-appt');
+    const apptsTbody = document.getElementById('appts-tbody');
+    const serviceSelect = document.getElementById('new-appt-service');
+
+    // Inicializar fecha hoy
+    if (apptDateInput) {
+      apptDateInput.valueAsDate = new Date();
+    }
+
+    // Cargar Servicios
+    async function loadServices() {
+      try {
+        const res = await fetch('/api/services');
+        const json = await res.json();
+        if (json.success && serviceSelect) {
+          serviceSelect.innerHTML = '<option value="">Selecciona un servicio...</option>';
+          json.data.forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s.id;
+            opt.textContent = `${s.name} (${s.durationMinutes} min) - $${s.price}`;
+            opt.dataset.name = s.name;
+            opt.dataset.duration = s.durationMinutes;
+            serviceSelect.appendChild(opt);
+          });
+        }
+      } catch (e) { console.error('Error loading services', e); }
+    }
+
+    // Cargar Citas
+    async function loadAppointments() {
+      if (!apptsTbody) return;
+      apptsTbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;">Cargando...</td></tr>';
+
+      const date = apptDateInput.value;
+      try {
+        const res = await fetch(`/api/appointments?date=${date}`);
+        const json = await res.json();
+
+        if (json.success) {
+          if (json.data.length === 0) {
+            apptsTbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;" class="muted">No hay citas para este día</td></tr>';
+            return;
+          }
+
+          apptsTbody.innerHTML = json.data.map(appt => {
+            const time = new Date(appt.startDateTime).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false });
+            const statusColors = {
+              'scheduled': 'var(--venus-green)',
+              'cancelled': 'var(--err-text)',
+              'completed': 'var(--ok-text)'
+            };
+            const statusLabels = {
+              'scheduled': 'Agendada',
+              'cancelled': 'Cancelada',
+              'completed': 'Completada'
+            };
+
+            return `
+              <tr>
+                <td style="font-weight:bold;color:#fff;">${time}</td>
+                <td>
+                  <div>${appt.clientName}</div>
+                  <div class="muted" style="font-size:11px;">${appt.clientPhone}</div>
+                </td>
+                <td>${appt.serviceName}</td>
+                <td><span class="tag" style="background:rgba(255,255,255,0.1);color:${statusColors[appt.status] || '#fff'}">${statusLabels[appt.status] || appt.status}</span></td>
+                <td>
+                  ${appt.status === 'scheduled' ? `<button class="btn small ghost" onclick="cancelAppointment('${appt.id}')">Cancelar</button>` : ''}
+                </td>
+              </tr>
+            `;
+          }).join('');
+        }
+      } catch (e) {
+        console.error(e);
+        apptsTbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--err-text);">Error cargando citas</td></tr>';
+      }
+    }
+
+    // Cancelar Cita
+    window.cancelAppointment = async (id) => {
+      if (!confirm('¿Cancelar esta cita?')) return;
+      try {
+        await fetch(`/api/appointments/${id}/cancel`, { method: 'PATCH' });
+        loadAppointments();
+      } catch (e) { alert('Error: ' + e.message); }
+    };
+
+    // Event Listeners
+    if (btnRefreshAppts) btnRefreshAppts.addEventListener('click', loadAppointments);
+    if (apptDateInput) apptDateInput.addEventListener('change', loadAppointments);
+
+    if (btnNewAppt) {
+      btnNewAppt.addEventListener('click', () => {
+        loadServices();
+        newApptDialog.showModal();
+        // Set default date/time
+        if (apptDateInput.value) document.getElementById('new-appt-date').value = apptDateInput.value;
+      });
+    }
+
+    if (btnCancelAppt) {
+      btnCancelAppt.addEventListener('click', () => newApptDialog.close());
+    }
+
+    if (formNewAppt) {
+      formNewAppt.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = formNewAppt.querySelector('button[type="submit"]');
+        const originalText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = 'Agendando...';
+
+        try {
+          const serviceOpt = serviceSelect.options[serviceSelect.selectedIndex];
+
+          const body = {
+            name: document.getElementById('new-appt-client').value,
+            phone: document.getElementById('new-appt-phone').value,
+            serviceId: serviceSelect.value,
+            serviceName: serviceOpt.dataset.name,
+            date: document.getElementById('new-appt-date').value,
+            time: document.getElementById('new-appt-time').value,
+            durationMinutes: parseInt(serviceOpt.dataset.duration),
+            sendWhatsAppConfirmation: document.getElementById('check-whatsapp-confirm').checked,
+            sendWhatsApp24h: document.getElementById('check-whatsapp-24h').checked,
+            sendWhatsApp2h: document.getElementById('check-whatsapp-2h').checked
+          };
+
+          const res = await fetch('/api/appointments', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+          });
+
+          const json = await res.json();
+          if (json.success) {
+            alert('✅ Cita agendada');
+            newApptDialog.close();
+            formNewAppt.reset();
+            loadAppointments();
+          } else {
+            alert('❌ Error: ' + json.error);
+          }
+        } catch (e) {
+          alert('Error de conexión');
+        } finally {
+          btn.disabled = false;
+          btn.textContent = originalText;
+        }
+      });
+    }
+
+    // Auto-load when tab is shown
+    // Detect hash change or click
+    window.addEventListener('hashchange', () => {
+      if (location.hash === '#appointments') loadAppointments();
+    });
+    // Initial load if hash is present
+    if (location.hash === '#appointments') loadAppointments();
+
   </script>
 </body>
 
