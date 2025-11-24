@@ -809,8 +809,41 @@
       <h2>Tarjetas de lealtad</h2>
       <p class="muted">Gestiona todas las tarjetas de tus clientes.</p>
 
-      <div class="row" style="margin-top:12px;">
-        <input id="search-cards" placeholder="Buscar por ID o nombre..." style="flex:1;min-width:200px;">
+      <!-- KPI CUMPLEAÑOS -->
+      <div id="birthday-section" class="hidden"
+        style="margin: 15px 0; padding: 15px; background: rgba(255, 209, 102, 0.1); border: 1px solid rgba(255, 209, 102, 0.3); border-radius: 12px;">
+        <div class="row" style="justify-content: space-between; align-items: center;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 24px;">🎂</span>
+            <div>
+              <h3 style="margin: 0; color: #ffd166;">Cumpleaños Cercanos</h3>
+              <p class="muted" style="margin: 2px 0 0; font-size: 13px;">Clientes que cumplen años en los próximos 7
+                días.</p>
+            </div>
+          </div>
+          <div id="birthday-actions">
+            <!-- Se llenará dinámicamente -->
+          </div>
+        </div>
+        <div id="birthday-list" style="margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap;">
+          <!-- Lista de cumpleañeros -->
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:12px; align-items: center;">
+        <input id="search-cards" placeholder="Buscar por nombre o teléfono..." style="flex:1;min-width:200px;">
+
+        <!-- SORTING CONTROLS -->
+        <select id="sort-cards" class="filter-select">
+          <option value="created_at:desc">📅 Recientes</option>
+          <option value="created_at:asc">📅 Antiguos</option>
+          <option value="name:asc">abc Nombre (A-Z)</option>
+          <option value="name:desc">zyx Nombre (Z-A)</option>
+          <option value="stamps:desc">⭐ Más sellos</option>
+          <option value="stamps:asc">⭐ Menos sellos</option>
+          <option value="last_visit:desc">🕒 Última visita</option>
+        </select>
+
         <button id="btn-search-cards" class="btn primary">🔍 Buscar</button>
         <button id="btn-reload-cards" class="btn">🔄 Recargar</button>
         <button id="btn-scan-card" class="btn ghost">📷 Escanear QR</button>
@@ -820,19 +853,19 @@
         <table>
           <thead>
             <tr>
-              <th>ID</th>
+              <!-- ID REMOVED -->
               <th>Cliente</th>
               <th>Teléfono</th>
+              <th>Cumpleaños</th>
+              <th>Última Visita</th>
               <th>Sellos</th>
-              <th>Max</th>
               <th>Estado</th>
-              <th>Creada</th>
               <th>Acciones</th>
             </tr>
           </thead>
           <tbody id="cards-tbody">
             <tr>
-              <td colspan="8" style="text-align:center;padding:12px;" class="muted">Cargando tarjetas...</td>
+              <td colspan="7" style="text-align:center;padding:12px;" class="muted">Cargando tarjetas...</td>
             </tr>
           </tbody>
         </table>
@@ -1557,7 +1590,10 @@
     async function loadCards(page = 1) {
       try {
         const searchQuery = document.getElementById('search-cards').value;
-        const url = `/api/admin/cards-firebase?page=${page}&q=${encodeURIComponent(searchQuery)}`;
+        const sortValue = document.getElementById('sort-cards').value;
+        const [sortField, sortOrder] = sortValue.split(':');
+
+        const url = `/api/admin/cards-firebase?page=${page}&q=${encodeURIComponent(searchQuery)}&sort=${sortField}&order=${sortOrder}`;
 
         const response = await fetch(url, {
           credentials: 'include'
@@ -1569,22 +1605,49 @@
         const tbody = document.getElementById('cards-tbody');
 
         if (!data.items || data.items.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:12px;" class="muted">No hay tarjetas</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:12px;" class="muted">No hay tarjetas</td></tr>`;
           return;
         }
 
         cardsCache = {};
         data.items.forEach(c => { cardsCache[c.id] = c; });
 
-        tbody.innerHTML = data.items.map(card => `
+        // Check birthdays
+        checkBirthdays(data.items);
+
+        tbody.innerHTML = data.items.map(card => {
+          // Formatear cumpleaños
+          let birthdayStr = '—';
+          if (card.birthday) {
+            const bDate = new Date(card.birthday);
+            birthdayStr = bDate.toLocaleDateString('es-MX', { day: 'numeric', month: 'long' });
+          }
+
+          // Formatear última visita
+          let lastVisitStr = '—';
+          if (card.last_visit) {
+            lastVisitStr = new Date(card.last_visit).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' });
+          } else if (card.updated_at) {
+            lastVisitStr = new Date(card.updated_at).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' });
+          }
+
+          return `
           <tr data-card-id="${card.id}">
-            <td><code>${card.id}</code></td>
-            <td>${card.name || '—'}</td>
+            <!-- ID REMOVED from view -->
+            <td>
+              <div style="font-weight:500;">${card.name || '—'}</div>
+              <div class="muted" style="font-size:11px;">ID: ${card.id.substring(0, 8)}...</div>
+            </td>
             <td>${card.phone || '—'}</td>
-            <td>${card.stamps}</td>
-            <td>${card.max}</td>
+            <td>${birthdayStr}</td>
+            <td>${lastVisitStr}</td>
+            <td>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <span style="font-weight:600;">${card.stamps}</span>
+                <span class="muted">/ ${card.max}</span>
+              </div>
+            </td>
             <td><span class="tag">${card.status || 'active'}</span></td>
-            <td>${card.created_at ? new Date(card.created_at).toLocaleDateString('es-ES') : '—'}</td>
             <td>
               <div class="row" style="gap:4px;flex-wrap:wrap;">
                 <button class="btn small" data-action="view">Ver</button>
@@ -1596,7 +1659,7 @@
               </div>
             </td>
           </tr>
-        `).join('');
+        `}).join('');
 
         document.getElementById('page-info').textContent =
           `Página ${data.page} de ${data.totalPages} (${data.total} total)`;
@@ -1606,9 +1669,12 @@
       } catch (error) {
         console.error('Error:', error);
         document.getElementById('cards-tbody').innerHTML =
-          `<tr><td colspan="8" style="text-align:center;padding:12px;color:#fecaca;">Error: ${error.message}</td></tr>`;
+          `<tr><td colspan="7" style="text-align:center;padding:12px;color:#fecaca;">Error: ${error.message}</td></tr>`;
       }
     }
+
+    // Event listener for sorting
+    document.getElementById('sort-cards').addEventListener('change', () => loadCards(1));
 
     document.getElementById('btn-prev-page').addEventListener('click', () => {
       if (currentPage > 1) loadCards(currentPage - 1);
@@ -2494,6 +2560,92 @@
         output.innerHTML = `❌ Error reparando Google Wallet:<br>${error.message}`;
       }
     });
+    /* ===== BIRTHDAY LOGIC ===== */
+    function checkBirthdays(cards) {
+      const today = new Date();
+      const currentMonth = today.getMonth();
+      const currentDay = today.getDate();
+
+      const upcomingBirthdays = cards.filter(card => {
+        if (!card.birthday) return false;
+        const bDate = new Date(card.birthday);
+        const bMonth = bDate.getMonth();
+        const bDay = bDate.getDate();
+
+        // Check if birthday is in the next 7 days
+        // Simple logic: same month, day is between today and today+7
+        // (This simplifies year wrapping for now, can be improved)
+        if (bMonth === currentMonth) {
+          return bDay >= currentDay && bDay <= currentDay + 7;
+        }
+        // Handle month wrapping (e.g. end of month)
+        const nextMonthDate = new Date(today);
+        nextMonthDate.setDate(today.getDate() + 7);
+        if (nextMonthDate.getMonth() !== currentMonth && bMonth === nextMonthDate.getMonth()) {
+          return bDay <= nextMonthDate.getDate();
+        }
+        return false;
+      });
+
+      const section = document.getElementById('birthday-section');
+      const list = document.getElementById('birthday-list');
+      const actions = document.getElementById('birthday-actions');
+
+      if (upcomingBirthdays.length === 0) {
+        section.classList.add('hidden');
+        return;
+      }
+
+      section.classList.remove('hidden');
+      list.innerHTML = upcomingBirthdays.map(c => {
+        const bDate = new Date(c.birthday);
+        const daysUntil = Math.ceil((new Date(today.getFullYear(), bDate.getMonth(), bDate.getDate()) - today) / (1000 * 60 * 60 * 24));
+
+        let actionBtn = '';
+        if (daysUntil <= 2 && daysUntil >= 0) {
+          actionBtn = `<button onclick="sendBirthdayPush('${c.id}', '${c.name}')" class="btn small primary" style="font-size:10px; padding: 2px 6px;">🎁 Felicitar</button>`;
+        }
+
+        return `
+          <div style="background: rgba(0,0,0,0.2); padding: 8px 12px; border-radius: 8px; display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 16px;">🎉</span>
+            <div>
+              <div style="font-weight: 600; font-size: 13px;">${c.name || 'Cliente'}</div>
+              <div class="muted" style="font-size: 11px;">${bDate.getDate()} de ${bDate.toLocaleString('es-MX', { month: 'long' })}</div>
+            </div>
+            ${actionBtn}
+          </div>
+        `;
+      }).join('');
+
+      actions.innerHTML = `<span class="tag" style="background:#ffd166; color:#000;">${upcomingBirthdays.length} pendientes</span>`;
+    }
+
+    window.sendBirthdayPush = async function (cardId, name) {
+      if (!confirm(`¿Enviar felicitación de cumpleaños a ${name}?`)) return;
+
+      try {
+        const r = await fetch('/api/admin/push-one', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            cardId: cardId,
+            title: "🎂 ¡Feliz Cumpleaños!",
+            message: `¡Hola ${name}! En Venus queremos celebrarte. Ven por un regalo especial en tu próxima visita. 🎉`,
+            type: 'promo',
+            alertType: 'visible'
+          })
+        });
+        const data = await r.json();
+        if (!r.ok || !data.success) {
+          throw new Error(data.error || 'No se pudo enviar');
+        }
+        alert('✅ Felicitación enviada exitosamente');
+      } catch (e) {
+        alert('❌ Error: ' + e.message);
+      }
+    };
 
     // Ver dispositivos
     document.getElementById('btn-check-devices')?.addEventListener('click', async function () {
