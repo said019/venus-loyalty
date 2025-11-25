@@ -1488,147 +1488,255 @@
     <section id="tab-appointments" class="tab-content hidden">
       <div class="header-actions">
         <h2>📅 Agenda de Citas</h2>
-        <button class="btn primary" id="btn-new-appointment">➕ Nueva Cita</button>
+        <button class="btn primary" id="btn-new-appointment">Nueva Cita</button>
       </div>
 
+      <!-- Calendario Semanal -->
+      <div class="card" style="margin-bottom:20px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <h3 style="margin:0;">Semana Actual</h3>
+          <div style="display:flex;gap:8px;">
+            <button class="btn small ghost" id="btn-prev-week">← Anterior</button>
+            <button class="btn small ghost" id="btn-today">Hoy</button>
+            <button class="btn small ghost" id="btn-next-week">Siguiente →</button>
+          </div>
+        </div>
+        <div id="weekly-calendar" style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;"></div>
+      </div>
+
+      <!-- Citas del Día Seleccionado -->
       <div class="card">
-        <div style="display:flex;gap:10px;align-items:center;margin-bottom:16px;">
-          <label>Fecha:</label>
-          <input type="date" id="appt-filter-date"
-            style="background:#2d2f28;border:1px solid var(--line);color:#fff;padding:6px 10px;border-radius:8px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <h3 style="margin:0;">Citas del <span id="selected-date-label">Hoy</span></h3>
           <button class="btn small" id="btn-refresh-appts">🔄 Actualizar</button>
         </div>
 
-        <div class="table-container">
-          <table class="table">
-            <thead>
-              <tr>
-                <th>Hora</th>
-                <th>Cliente</th>
-                <th>Servicio</th>
-                <th>Estado</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody id="appts-tbody">
-              <tr>
-                <td colspan="5" class="muted" style="text-align:center;">Cargando citas...</td>
-              </tr>
-            </tbody>
-          </table>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Hora</th>
+              <th>Cliente</th>
+              <th>Servicio</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="appts-tbody">
+            <tr>
+              <td colspan="5" style="text-align:center;padding:20px;">Cargando...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Historial del Mes -->
+      <div class="card" style="margin-top:20px;">
+        <h3 style="margin-top:0;">Historial del Mes</h3>
+        <div id="month-stats"
+          style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px;">
+          <div class="stat-card">
+            <div class="stat-label">Total Citas</div>
+            <div class="stat-value" id="stat-total">-</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Completadas</div>
+            <div class="stat-value" id="stat-completed">-</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Canceladas</div>
+            <div class="stat-value" id="stat-cancelled">-</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Pendientes</div>
+            <div class="stat-value" id="stat-pending">-</div>
+          </div>
         </div>
       </div>
     </section>
 
     <!-- DIALOG: Nueva Cita -->
-    <dialog id="newApptDialog"
-      style="background:var(--bg-card);border:1px solid var(--line);border-radius:16px;padding:24px;max-width:600px;width:90%;color:#fff;">
-      <h3 style="margin-top:0;margin-bottom:20px;display:flex;align-items:center;gap:8px;">
-        📅 Agendar Cita
-      </h3>
-      <form id="form-new-appt">
-        <div style="display:grid;gap:16px;">
-          <!-- Cliente con autocomplete -->
-          <div style="position:relative;">
-            <label style="display:block;font-size:12px;margin-bottom:4px;color:var(--venus-soft);">Cliente</label>
-            <input type="text" id="new-appt-client" placeholder="Buscar cliente o escribir nombre nuevo" required
-              autocomplete="off"
-              style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--line);background:rgba(0,0,0,0.2);color:#fff;">
-            <div id="client-suggestions"
-              style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg-card);border:1px solid var(--line);border-radius:8px;margin-top:4px;max-height:200px;overflow-y:auto;z-index:1000;">
-            </div>
-            <button type="button" id="btn-new-client" class="btn small ghost" style="margin-top:6px;">+ Nuevo
-              cliente</button>
-          </div>
-
-          <!-- Teléfono -->
-          <div>
-            <label style="display:block;font-size:12px;margin-bottom:4px;color:var(--venus-soft);">Teléfono</label>
-            <input type="tel" id="new-appt-phone" placeholder="52..." required
-              style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--line);background:rgba(0,0,0,0.2);color:#fff;">
-          </div>
-
-          <!-- Servicio y Precio -->
-          <div style="display:grid;grid-template-columns:2fr 1fr;gap:10px;">
+    <dialog id="newApptDialog">
+      <div class="dialog-content">
+        <h3 style="margin-top:0;margin-bottom:20px;">📅 Agendar Cita</h3>
+        <form id="form-new-appt">
+          <div style="display:grid;gap:16px;">
+            <!-- Cliente Dropdown -->
             <div>
-              <label style="display:block;font-size:12px;margin-bottom:4px;color:var(--venus-soft);">Servicio</label>
-              <select id="new-appt-service" required
-                style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--line);background:rgba(0,0,0,0.2);color:#fff;">
-                <option value="">Selecciona un servicio...</option>
+              <label class="form-label">Cliente</label>
+              <select id="new-appt-client-select" class="form-input">
+                <option value="">Selecciona un cliente...</option>
               </select>
+              <button type="button" id="btn-toggle-new-client" class="btn small ghost" style="margin-top:8px;">
+                + Registrar nuevo cliente
+              </button>
             </div>
-            <div>
-              <label style="display:block;font-size:12px;margin-bottom:4px;color:var(--venus-soft);">Precio</label>
-              <input type="number" id="new-appt-price" placeholder="0" min="0" step="10"
-                style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--line);background:rgba(0,0,0,0.2);color:#fff;">
-            </div>
-          </div>
 
-          <!-- Fecha, Hora Inicio, Hora Fin -->
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
-            <div>
-              <label style="display:block;font-size:12px;margin-bottom:4px;color:var(--venus-soft);">Fecha</label>
-              <input type="date" id="new-appt-date" required
-                style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--line);background:rgba(0,0,0,0.2);color:#fff;">
+            <!-- Formulario Nuevo Cliente (oculto por defecto) -->
+            <div id="new-client-form"
+              style="display:none;background:rgba(140,150,104,0.1);border:1px solid rgba(140,150,104,0.3);border-radius:12px;padding:16px;">
+              <h4 style="margin:0 0 12px 0;color:var(--venus-soft);">Nuevo Cliente</h4>
+              <div style="display:grid;gap:12px;">
+                <div>
+                  <label class="form-label">Nombre completo</label>
+                  <input type="text" id="new-client-name" class="form-input" placeholder="Ej: María González">
+                </div>
+                <div>
+                  <label class="form-label">Teléfono</label>
+                  <input type="tel" id="new-client-phone" class="form-input" placeholder="52...">
+                </div>
+                <button type="button" id="btn-save-new-client" class="btn small primary">Guardar Cliente</button>
+              </div>
             </div>
-            <div>
-              <label style="display:block;font-size:12px;margin-bottom:4px;color:var(--venus-soft);">Hora inicio</label>
-              <input type="time" id="new-appt-time" required
-                style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--line);background:rgba(0,0,0,0.2);color:#fff;">
-            </div>
-            <div>
-              <label style="display:block;font-size:12px;margin-bottom:4px;color:var(--venus-soft);">Hora fin</label>
-              <input type="time" id="new-appt-end-time" readonly
-                style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--line);background:rgba(0,0,0,0.15);color:var(--muted);">
-            </div>
-          </div>
 
-          <!-- Recordatorios mejorados -->
-          <div
-            style="background:rgba(140,150,104,0.1);border:1px solid rgba(140,150,104,0.3);border-radius:12px;padding:16px;">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
-              <svg width="18" height="18" fill="none" stroke="var(--venus-soft)" stroke-width="2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round"
-                  d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9">
-                </path>
-              </svg>
-              <span style="font-size:13px;font-weight:600;color:var(--venus-soft);">Recordatorios por WhatsApp</span>
+            <!-- Teléfono (solo lectura cuando se selecciona cliente) -->
+            <div>
+              <label class="form-label">Teléfono</label>
+              <input type="tel" id="new-appt-phone" class="form-input" placeholder="52..." required readonly>
             </div>
-            <div style="display:grid;gap:10px;">
-              <label class="reminder-option">
-                <input type="checkbox" id="check-whatsapp-confirm" checked>
-                <span class="reminder-text">
-                  <strong>Confirmación inmediata</strong>
-                  <small>Se envía al crear la cita</small>
-                </span>
-              </label>
-              <label class="reminder-option">
-                <input type="checkbox" id="check-whatsapp-24h" checked>
-                <span class="reminder-text">
-                  <strong>24 horas antes</strong>
-                  <small>Recordatorio automático</small>
-                </span>
-              </label>
-              <label class="reminder-option">
-                <input type="checkbox" id="check-whatsapp-2h" checked>
-                <span class="reminder-text">
-                  <strong>2 horas antes</strong>
-                  <small>Recordatorio final</small>
-                </span>
-              </label>
-            </div>
-          </div>
 
-          <!-- Botones -->
-          <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:8px;">
-            <button type="button" class="btn ghost" id="btn-cancel-appt">Cancelar</button>
-            <button type="submit" class="btn primary">Agendar</button>
+            <!-- Servicio y Precio -->
+            <div style="display:grid;grid-template-columns:2fr 1fr;gap:10px;">
+              <div>
+                <label class="form-label">Servicio</label>
+                <select id="new-appt-service" class="form-input" required>
+                  <option value="">Selecciona un servicio...</option>
+                </select>
+              </div>
+              <div>
+                <label class="form-label">Precio</label>
+                <input type="number" id="new-appt-price" class="form-input" placeholder="0" min="0" step="10">
+              </div>
+            </div>
+
+            <!-- Fecha y Hora -->
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+              <div>
+                <label class="form-label">Fecha</label>
+                <input type="date" id="new-appt-date" class="form-input" required>
+              </div>
+              <div>
+                <label class="form-label">Hora inicio</label>
+                <select id="new-appt-time" class="form-input" required>
+                  <option value="">Selecciona...</option>
+                </select>
+              </div>
+              <div>
+                <label class="form-label">Hora fin</label>
+                <input type="text" id="new-appt-end-time" class="form-input" readonly
+                  style="background:rgba(0,0,0,0.15);color:var(--muted);">
+              </div>
+            </div>
+
+            <!-- Recordatorios -->
+            <div class="reminders-section">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+                <svg width="18" height="18" fill="none" stroke="var(--venus-soft)" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9">
+                  </path>
+                </svg>
+                <span style="font-size:13px;font-weight:600;color:var(--venus-soft);">Recordatorios por WhatsApp</span>
+              </div>
+              <div style="display:grid;gap:10px;">
+                <label class="reminder-option">
+                  <input type="checkbox" id="check-whatsapp-confirm" checked>
+                  <span class="reminder-text">
+                    <strong>Confirmación inmediata</strong>
+                    <small>Se envía al crear la cita</small>
+                  </span>
+                </label>
+                <label class="reminder-option">
+                  <input type="checkbox" id="check-whatsapp-24h" checked>
+                  <span class="reminder-text">
+                    <strong>24 horas antes</strong>
+                    <small>Recordatorio automático</small>
+                  </span>
+                </label>
+                <label class="reminder-option">
+                  <input type="checkbox" id="check-whatsapp-2h" checked>
+                  <span class="reminder-text">
+                    <strong>2 horas antes</strong>
+                    <small>Recordatorio final</small>
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Botones -->
+            <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:8px;">
+              <button type="button" class="btn ghost" id="btn-cancel-appt">Cancelar</button>
+              <button type="submit" class="btn primary">Agendar</button>
+            </div>
           </div>
-        </div>
-      </form>
+        </form>
+      </div>
     </dialog>
 
     <style>
+      /* Dialog Styles - Backdrop Opaco */
+      #newApptDialog::backdrop {
+        background: rgba(0, 0, 0, 0.85);
+        backdrop-filter: blur(8px);
+      }
+
+      #newApptDialog {
+        border: none;
+        border-radius: 16px;
+        padding: 0;
+        max-width: 650px;
+        width: 90%;
+        background: transparent;
+      }
+
+      .dialog-content {
+        background: var(--bg-card);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 24px;
+        color: #fff;
+      }
+
+      /* Form Elements */
+      .form-label {
+        display: block;
+        font-size: 12px;
+        margin-bottom: 6px;
+        color: var(--venus-soft);
+        font-weight: 500;
+      }
+
+      .form-input {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 8px;
+        border: 1px solid var(--line);
+        background: rgba(0, 0, 0, 0.3);
+        color: #fff;
+        font-size: 14px;
+        transition: all 0.2s;
+      }
+
+      .form-input:focus {
+        outline: none;
+        border-color: var(--venus-green);
+        background: rgba(0, 0, 0, 0.4);
+      }
+
+      .form-input:disabled,
+      .form-input:read-only {
+        background: rgba(0, 0, 0, 0.15);
+        color: var(--muted);
+        cursor: not-allowed;
+      }
+
+      /* Reminders Section */
+      .reminders-section {
+        background: rgba(140, 150, 104, 0.1);
+        border: 1px solid rgba(140, 150, 104, 0.3);
+        border-radius: 12px;
+        padding: 16px;
+      }
+
       .reminder-option {
         display: flex;
         align-items: flex-start;
@@ -1667,33 +1775,69 @@
         color: var(--muted);
       }
 
-      #client-suggestions {
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-      }
-
-      .client-suggestion-item {
-        padding: 10px 12px;
+      /* Weekly Calendar */
+      .day-card {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 12px;
+        text-align: center;
         cursor: pointer;
-        border-bottom: 1px solid var(--line);
-        transition: background 0.2s;
+        transition: all 0.2s;
       }
 
-      .client-suggestion-item:hover {
+      .day-card:hover {
         background: rgba(140, 150, 104, 0.1);
+        border-color: var(--venus-green);
       }
 
-      .client-suggestion-item:last-child {
-        border-bottom: none;
+      .day-card.selected {
+        background: rgba(140, 150, 104, 0.2);
+        border-color: var(--venus-green);
       }
 
-      .client-name {
-        font-weight: 600;
-        color: #fff;
+      .day-card.today {
+        border: 2px solid var(--venus-green);
       }
 
-      .client-phone {
+      .day-name {
         font-size: 11px;
         color: var(--muted);
+        text-transform: uppercase;
+        margin-bottom: 4px;
+      }
+
+      .day-number {
+        font-size: 20px;
+        font-weight: 700;
+        color: #fff;
+        margin-bottom: 4px;
+      }
+
+      .day-count {
+        font-size: 11px;
+        color: var(--venus-soft);
+      }
+
+      /* Stats Cards */
+      .stat-card {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 16px;
+        text-align: center;
+      }
+
+      .stat-label {
+        font-size: 12px;
+        color: var(--muted);
+        margin-bottom: 8px;
+      }
+
+      .stat-value {
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--venus-soft);
       }
     </style>
 
@@ -4368,245 +4512,432 @@
     } else {
       console.error('❌ Botón btn-mass-push NO encontrado en el DOM');
     }
-    /* =========================================================
-       LÓGICA DE CITAS
-       ========================================================= */
+    // Este archivo contiene el JavaScript completo para el módulo de citas
+// Se insertará en admin.html reemplazando la sección actual
 
-    // Elementos
-    const apptDateInput = document.getElementById('appt-filter-date');
-    const btnRefreshAppts = document.getElementById('btn-refresh-appts');
-    const btnNewAppt = document.getElementById('btn-new-appointment');
-    const newApptDialog = document.getElementById('newApptDialog');
-    const formNewAppt = document.getElementById('form-new-appt');
-    const btnCancelAppt = document.getElementById('btn-cancel-appt');
-    const apptsTbody = document.getElementById('appts-tbody');
-    const serviceSelect = document.getElementById('new-appt-service');
+/* =========================================================
+   LÓGICA DE CITAS - VERSIÓN COMPLETA
+   ========================================================= */
 
-    // Inicializar fecha hoy
-    if (apptDateInput) {
-      apptDateInput.valueAsDate = new Date();
+// Variables globales
+let allServices = [];
+let allClients = [];
+let currentWeekStart = new Date();
+let selectedDate = new Date();
+
+// Elementos del DOM
+const btnNewAppt = document.getElementById('btn-new-appointment');
+const newApptDialog = document.getElementById('newApptDialog');
+const formNewAppt = document.getElementById('form-new-appt');
+const btnCancelAppt = document.getElementById('btn-cancel-appt');
+const apptsTbody = document.getElementById('appts-tbody');
+const serviceSelect = document.getElementById('new-appt-service');
+const clientSelect = document.getElementById('new-appt-client-select');
+const phoneInput = document.getElementById('new-appt-phone');
+const timeSelect = document.getElementById('new-appt-time');
+const priceInput = document.getElementById('new-appt-price');
+const endTimeInput = document.getElementById('new-appt-end-time');
+const btnRefreshAppts = document.getElementById('btn-refresh-appts');
+
+// Navegación semanal
+const btnPrevWeek = document.getElementById('btn-prev-week');
+const btnNextWeek = document.getElementById('btn-next-week');
+const btnToday = document.getElementById('btn-today');
+const weeklyCalendar = document.getElementById('weekly-calendar');
+const selectedDateLabel = document.getElementById('selected-date-label');
+
+// Nuevo cliente
+const btnToggleNewClient = document.getElementById('btn-toggle-new-client');
+const newClientForm = document.getElementById('new-client-form');
+const btnSaveNewClient = document.getElementById('btn-save-new-client');
+
+// ========== GENERAR OPCIONES DE HORA ==========
+function generateTimeOptions() {
+    if (!timeSelect) return;
+
+    timeSelect.innerHTML = '<option value="">Selecciona...</option>';
+
+    // Generar desde 8:00 AM hasta 8:00 PM cada 30 minutos
+    for (let hour = 8; hour <= 20; hour++) {
+        for (let min = 0; min < 60; min += 30) {
+            if (hour === 20 && min > 0) break; // Terminar en 8:00 PM
+
+            const timeValue = `${String(hour).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+            const displayHour = hour > 12 ? hour - 12 : hour;
+            const period = hour >= 12 ? 'PM' : 'AM';
+            const displayTime = `${displayHour}:${String(min).padStart(2, '0')} ${period}`;
+
+            const option = document.createElement('option');
+            option.value = timeValue;
+            option.textContent = displayTime;
+            timeSelect.appendChild(option);
+        }
     }
+}
 
-    // Cargar Servicios
-    let allServices = [];
-    async function loadServices() {
-      try {
+// ========== CARGAR SERVICIOS ==========
+async function loadServices() {
+    try {
         const res = await fetch('/api/services');
         const json = await res.json();
         if (json.success && serviceSelect) {
-          allServices = json.data;
-          serviceSelect.innerHTML = '<option value="">Selecciona un servicio...</option>';
-          json.data.forEach(s => {
-            const opt = document.createElement('option');
-            opt.value = s.id;
-            opt.textContent = `${s.name} (${s.durationMinutes} min)`;
-            opt.dataset.name = s.name;
-            opt.dataset.duration = s.durationMinutes;
-            opt.dataset.price = s.price;
-            serviceSelect.appendChild(opt);
-          });
+            allServices = json.data;
+            serviceSelect.innerHTML = '<option value="">Selecciona un servicio...</option>';
+            json.data.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s.id;
+                opt.textContent = `${s.name} (${s.durationMinutes} min)`;
+                opt.dataset.name = s.name;
+                opt.dataset.duration = s.durationMinutes;
+                opt.dataset.price = s.price;
+                serviceSelect.appendChild(opt);
+            });
         }
-      } catch (e) { console.error('Error loading services', e); }
-    }
+    } catch (e) { console.error('Error loading services', e); }
+}
 
-    // Autocomplete de clientes
-    let allClients = [];
-    const clientInput = document.getElementById('new-appt-client');
-    const clientSuggestions = document.getElementById('client-suggestions');
-    const phoneInput = document.getElementById('new-appt-phone');
-
-    async function loadClients() {
-      try {
+// ========== CARGAR CLIENTES ==========
+async function loadClients() {
+    try {
         const res = await fetch('/api/admin/cards?limit=1000');
         const json = await res.json();
-        if (json.items) {
-          allClients = json.items;
-        }
-      } catch (e) { console.error('Error loading clients', e); }
-    }
-
-    if (clientInput) {
-      clientInput.addEventListener('input', function () {
-        const query = this.value.toLowerCase().trim();
-        if (query.length < 2) {
-          clientSuggestions.style.display = 'none';
-          return;
-        }
-
-        const matches = allClients.filter(c =>
-          c.name.toLowerCase().includes(query) ||
-          (c.phone && c.phone.includes(query))
-        ).slice(0, 5);
-
-        if (matches.length > 0) {
-          clientSuggestions.innerHTML = matches.map(c => `
-            <div class="client-suggestion-item" data-id="${c.id}" data-name="${c.name}" data-phone="${c.phone || ''}">
-              <div class="client-name">${c.name}</div>
-              <div class="client-phone">${c.phone || 'Sin teléfono'}</div>
-            </div>
-          `).join('');
-          clientSuggestions.style.display = 'block';
-
-          // Event listeners para las sugerencias
-          clientSuggestions.querySelectorAll('.client-suggestion-item').forEach(item => {
-            item.addEventListener('click', function () {
-              clientInput.value = this.dataset.name;
-              phoneInput.value = this.dataset.phone || '';
-              clientSuggestions.style.display = 'none';
+        if (json.items && clientSelect) {
+            allClients = json.items;
+            clientSelect.innerHTML = '<option value="">Selecciona un cliente...</option>';
+            json.items.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.id;
+                opt.textContent = `${c.name}${c.phone ? ' - ' + c.phone : ''}`;
+                opt.dataset.name = c.name;
+                opt.dataset.phone = c.phone || '';
+                clientSelect.appendChild(opt);
             });
-          });
-        } else {
-          clientSuggestions.style.display = 'none';
         }
-      });
+    } catch (e) { console.error('Error loading clients', e); }
+}
 
-      // Cerrar sugerencias al hacer clic fuera
-      document.addEventListener('click', function (e) {
-        if (!clientInput.contains(e.target) && !clientSuggestions.contains(e.target)) {
-          clientSuggestions.style.display = 'none';
+// ========== CALENDARIO SEMANAL ==========
+function renderWeeklyCalendar() {
+    if (!weeklyCalendar) return;
+
+    weeklyCalendar.innerHTML = '';
+    const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Ajustar al inicio de la semana (domingo)
+    const weekStart = new Date(currentWeekStart);
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+
+    for (let i = 0; i < 7; i++) {
+        const day = new Date(weekStart);
+        day.setDate(day.getDate() + i);
+
+        const isToday = day.getTime() === today.getTime();
+        const isSelected = day.getTime() === selectedDate.getTime();
+
+        const dayCard = document.createElement('div');
+        dayCard.className = 'day-card';
+        if (isToday) dayCard.classList.add('today');
+        if (isSelected) dayCard.classList.add('selected');
+
+        dayCard.innerHTML = `
+      <div class="day-name">${days[i]}</div>
+      <div class="day-number">${day.getDate()}</div>
+      <div class="day-count" id="day-count-${day.toISOString().split('T')[0]}">-</div>
+    `;
+
+        dayCard.addEventListener('click', () => {
+            selectedDate = new Date(day);
+            renderWeeklyCalendar();
+            loadAppointments();
+            updateSelectedDateLabel();
+        });
+
+        weeklyCalendar.appendChild(dayCard);
+    }
+
+    // Cargar conteo de citas para cada día
+    loadWeekAppointmentCounts(weekStart);
+}
+
+async function loadWeekAppointmentCounts(weekStart) {
+    for (let i = 0; i < 7; i++) {
+        const day = new Date(weekStart);
+        day.setDate(day.getDate() + i);
+        const dateStr = day.toISOString().split('T')[0];
+
+        try {
+            const res = await fetch(`/api/appointments?date=${dateStr}`);
+            const json = await res.json();
+            const countEl = document.getElementById(`day-count-${dateStr}`);
+            if (countEl && json.success) {
+                const count = json.data.length;
+                countEl.textContent = count > 0 ? `${count} cita${count > 1 ? 's' : ''}` : 'Sin citas';
+            }
+        } catch (e) {
+            console.error('Error loading day count', e);
         }
-      });
     }
+}
 
-    // Botón "Nuevo cliente"
-    const btnNewClient = document.getElementById('btn-new-client');
-    if (btnNewClient) {
-      btnNewClient.addEventListener('click', () => {
-        clientInput.value = '';
-        phoneInput.value = '';
-        clientInput.focus();
-      });
+function updateSelectedDateLabel() {
+    if (!selectedDateLabel) return;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selected = new Date(selectedDate);
+    selected.setHours(0, 0, 0, 0);
+
+    if (selected.getTime() === today.getTime()) {
+        selectedDateLabel.textContent = 'Hoy';
+    } else {
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        selectedDateLabel.textContent = selected.toLocaleDateString('es-MX', options);
     }
+}
 
-    // Auto-llenar precio y calcular hora fin cuando se selecciona servicio
-    const priceInput = document.getElementById('new-appt-price');
-    const timeInput = document.getElementById('new-appt-time');
-    const endTimeInput = document.getElementById('new-appt-end-time');
+// ========== CARGAR CITAS ==========
+async function loadAppointments() {
+    if (!apptsTbody) return;
+    apptsTbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;">Cargando...</td></tr>';
 
-    if (serviceSelect) {
-      serviceSelect.addEventListener('change', function () {
-        const selectedOption = this.options[this.selectedIndex];
-        if (selectedOption.value) {
-          // Llenar precio
-          const price = selectedOption.dataset.price;
-          if (price && priceInput) {
-            priceInput.value = price;
-          }
-          // Calcular hora fin
-          calculateEndTime();
-        }
-      });
-    }
-
-    // Calcular hora fin cuando cambia la hora de inicio
-    if (timeInput) {
-      timeInput.addEventListener('change', calculateEndTime);
-    }
-
-    function calculateEndTime() {
-      if (!timeInput || !endTimeInput || !serviceSelect) return;
-
-      const startTime = timeInput.value;
-      const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
-
-      if (!startTime || !selectedOption.value) return;
-
-      const duration = parseInt(selectedOption.dataset.duration) || 60;
-
-      // Parsear hora de inicio
-      const [hours, minutes] = startTime.split(':').map(Number);
-      const startDate = new Date();
-      startDate.setHours(hours, minutes, 0);
-
-      // Agregar duración
-      const endDate = new Date(startDate.getTime() + duration * 60000);
-
-      // Formatear hora fin
-      const endHours = String(endDate.getHours()).padStart(2, '0');
-      const endMinutes = String(endDate.getMinutes()).padStart(2, '0');
-      endTimeInput.value = `${endHours}:${endMinutes}`;
-    }
-
-    // Cargar Citas
-    async function loadAppointments() {
-      if (!apptsTbody) return;
-      apptsTbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;">Cargando...</td></tr>';
-
-      const date = apptDateInput.value;
-      try {
-        const res = await fetch(`/api/appointments?date=${date}`);
+    const dateStr = selectedDate.toISOString().split('T')[0];
+    try {
+        const res = await fetch(`/api/appointments?date=${dateStr}`);
         const json = await res.json();
 
         if (json.success) {
-          if (json.data.length === 0) {
-            apptsTbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;" class="muted">No hay citas para este día</td></tr>';
-            return;
-          }
+            if (json.data.length === 0) {
+                apptsTbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;" class="muted">No hay citas para este día</td></tr>';
+                return;
+            }
 
-          apptsTbody.innerHTML = json.data.map(appt => {
-            const time = new Date(appt.startDateTime).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false });
-            const statusColors = {
-              'scheduled': 'var(--venus-green)',
-              'cancelled': 'var(--err-text)',
-              'completed': 'var(--ok-text)'
-            };
-            const statusLabels = {
-              'scheduled': 'Agendada',
-              'cancelled': 'Cancelada',
-              'completed': 'Completada'
-            };
+            apptsTbody.innerHTML = json.data.map(appt => {
+                const time = new Date(appt.startDateTime).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false });
+                const statusColors = {
+                    'scheduled': 'var(--venus-green)',
+                    'cancelled': 'var(--err-text)',
+                    'completed': 'var(--ok-text)'
+                };
+                const statusLabels = {
+                    'scheduled': 'Agendada',
+                    'cancelled': 'Cancelada',
+                    'completed': 'Completada'
+                };
 
-            return `
-              <tr>
-                <td style="font-weight:bold;color:#fff;">${time}</td>
-                <td>
-                  <div>${appt.clientName}</div>
-                  <div class="muted" style="font-size:11px;">${appt.clientPhone}</div>
-                </td>
-                <td>${appt.serviceName}</td>
-                <td><span class="tag" style="background:rgba(255,255,255,0.1);color:${statusColors[appt.status] || '#fff'}">${statusLabels[appt.status] || appt.status}</span></td>
-                <td>
-                  ${appt.status === 'scheduled' ? `<button class="btn small ghost" onclick="cancelAppointment('${appt.id}')">Cancelar</button>` : ''}
-                </td>
-              </tr>
-            `;
-          }).join('');
+                return `
+          <tr>
+            <td style="font-weight:bold;color:#fff;">${time}</td>
+            <td>
+              <div>${appt.clientName}</div>
+              <div class="muted" style="font-size:11px;">${appt.clientPhone}</div>
+            </td>
+            <td>${appt.serviceName}</td>
+            <td><span class="tag" style="background:rgba(255,255,255,0.1);color:${statusColors[appt.status] || '#fff'}">${statusLabels[appt.status] || appt.status}</span></td>
+            <td>
+              ${appt.status === 'scheduled' ? `<button class="btn small ghost" onclick="cancelAppointment('${appt.id}')">Cancelar</button>` : ''}
+            </td>
+          </tr>
+        `;
+            }).join('');
         }
-      } catch (e) {
+    } catch (e) {
         console.error(e);
         apptsTbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--err-text);">Error cargando citas</td></tr>';
-      }
     }
+}
 
-    // Cancelar Cita
-    window.cancelAppointment = async (id) => {
-      if (!confirm('¿Cancelar esta cita?')) return;
-      try {
+// ========== ESTADÍSTICAS DEL MES ==========
+async function loadMonthStats() {
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+    try {
+        // Aquí deberías tener un endpoint que devuelva stats del mes
+        // Por ahora, simularemos con datos de ejemplo
+        document.getElementById('stat-total').textContent = '-';
+        document.getElementById('stat-completed').textContent = '-';
+        document.getElementById('stat-cancelled').textContent = '-';
+        document.getElementById('stat-pending').textContent = '-';
+    } catch (e) {
+        console.error('Error loading month stats', e);
+    }
+}
+
+// ========== CANCELAR CITA ==========
+window.cancelAppointment = async (id) => {
+    if (!confirm('¿Cancelar esta cita?')) return;
+    try {
         await fetch(`/api/appointments/${id}/cancel`, { method: 'PATCH' });
         loadAppointments();
-      } catch (e) { alert('Error: ' + e.message); }
-    };
+        renderWeeklyCalendar();
+    } catch (e) { alert('Error: ' + e.message); }
+};
 
-    // Event Listeners
-    if (btnRefreshAppts) btnRefreshAppts.addEventListener('click', loadAppointments);
-    if (apptDateInput) apptDateInput.addEventListener('change', loadAppointments);
+// ========== EVENT LISTENERS ==========
 
-    if (btnNewAppt) {
-      btnNewAppt.addEventListener('click', () => {
+// Navegación semanal
+if (btnPrevWeek) {
+    btnPrevWeek.addEventListener('click', () => {
+        currentWeekStart.setDate(currentWeekStart.getDate() - 7);
+        renderWeeklyCalendar();
+    });
+}
+
+if (btnNextWeek) {
+    btnNextWeek.addEventListener('click', () => {
+        currentWeekStart.setDate(currentWeekStart.getDate() + 7);
+        renderWeeklyCalendar();
+    });
+}
+
+if (btnToday) {
+    btnToday.addEventListener('click', () => {
+        currentWeekStart = new Date();
+        selectedDate = new Date();
+        renderWeeklyCalendar();
+        loadAppointments();
+        updateSelectedDateLabel();
+    });
+}
+
+if (btnRefreshAppts) {
+    btnRefreshAppts.addEventListener('click', () => {
+        loadAppointments();
+        renderWeeklyCalendar();
+    });
+}
+
+// Modal
+if (btnNewAppt) {
+    btnNewAppt.addEventListener('click', () => {
         loadServices();
         loadClients();
+        generateTimeOptions();
         newApptDialog.showModal();
-        // Set default date/time
-        if (apptDateInput.value) document.getElementById('new-appt-date').value = apptDateInput.value;
-      });
-    }
+        document.getElementById('new-appt-date').value = selectedDate.toISOString().split('T')[0];
+    });
+}
 
-    if (btnCancelAppt) {
-      btnCancelAppt.addEventListener('click', () => newApptDialog.close());
-    }
+if (btnCancelAppt) {
+    btnCancelAppt.addEventListener('click', () => newApptDialog.close());
+}
 
-    if (formNewAppt) {
-      formNewAppt.addEventListener('submit', async (e) => {
+// Cliente select
+if (clientSelect) {
+    clientSelect.addEventListener('change', function () {
+        const selectedOption = this.options[this.selectedIndex];
+        if (selectedOption.value) {
+            phoneInput.value = selectedOption.dataset.phone || '';
+            phoneInput.readOnly = true;
+        } else {
+            phoneInput.value = '';
+            phoneInput.readOnly = false;
+        }
+    });
+}
+
+// Servicio select - auto-llenar precio y calcular hora fin
+if (serviceSelect) {
+    serviceSelect.addEventListener('change', function () {
+        const selectedOption = this.options[this.selectedIndex];
+        if (selectedOption.value) {
+            const price = selectedOption.dataset.price;
+            if (price && priceInput) {
+                priceInput.value = price;
+            }
+            calculateEndTime();
+        }
+    });
+}
+
+// Hora select - calcular hora fin
+if (timeSelect) {
+    timeSelect.addEventListener('change', calculateEndTime);
+}
+
+function calculateEndTime() {
+    if (!timeSelect || !endTimeInput || !serviceSelect) return;
+
+    const startTime = timeSelect.value;
+    const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+
+    if (!startTime || !selectedOption.value) return;
+
+    const duration = parseInt(selectedOption.dataset.duration) || 60;
+
+    const [hours, minutes] = startTime.split(':').map(Number);
+    const startDate = new Date();
+    startDate.setHours(hours, minutes, 0);
+
+    const endDate = new Date(startDate.getTime() + duration * 60000);
+
+    const endHours = endDate.getHours();
+    const endMinutes = endDate.getMinutes();
+    const displayHour = endHours > 12 ? endHours - 12 : endHours;
+    const period = endHours >= 12 ? 'PM' : 'AM';
+
+    endTimeInput.value = `${displayHour}:${String(endMinutes).padStart(2, '0')} ${period}`;
+}
+
+// Toggle nuevo cliente form
+if (btnToggleNewClient) {
+    btnToggleNewClient.addEventListener('click', () => {
+        const isHidden = newClientForm.style.display === 'none';
+        newClientForm.style.display = isHidden ? 'block' : 'none';
+        btnToggleNewClient.textContent = isHidden ? '- Cancelar' : '+ Registrar nuevo cliente';
+    });
+}
+
+// Guardar nuevo cliente
+if (btnSaveNewClient) {
+    btnSaveNewClient.addEventListener('click', async () => {
+        const name = document.getElementById('new-client-name').value.trim();
+        const phone = document.getElementById('new-client-phone').value.trim();
+
+        if (!name || !phone) {
+            alert('Por favor completa nombre y teléfono');
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/clients', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, phone })
+            });
+
+            const json = await res.json();
+            if (json.success) {
+                alert('✅ Cliente guardado');
+                await loadClients();
+
+                // Seleccionar el nuevo cliente
+                const newClientId = json.client.id;
+                clientSelect.value = newClientId;
+                phoneInput.value = phone;
+                phoneInput.readOnly = true;
+
+                // Ocultar form
+                newClientForm.style.display = 'none';
+                btnToggleNewClient.textContent = '+ Registrar nuevo cliente';
+
+                // Limpiar campos
+                document.getElementById('new-client-name').value = '';
+                document.getElementById('new-client-phone').value = '';
+            } else {
+                alert('❌ Error: ' + json.error);
+            }
+        } catch (e) {
+            alert('Error de conexión');
+        }
+    });
+}
+
+// Submit form
+if (formNewAppt) {
+    formNewAppt.addEventListener('submit', async (e) => {
         e.preventDefault();
         const btn = formNewAppt.querySelector('button[type="submit"]');
         const originalText = btn.textContent;
@@ -4614,49 +4945,69 @@
         btn.textContent = 'Agendando...';
 
         try {
-          const serviceOpt = serviceSelect.options[serviceSelect.selectedIndex];
+            const clientOption = clientSelect.options[clientSelect.selectedIndex];
+            const serviceOpt = serviceSelect.options[serviceSelect.selectedIndex];
 
-          const body = {
-            name: document.getElementById('new-appt-client').value,
-            phone: document.getElementById('new-appt-phone').value,
-            serviceId: serviceSelect.value,
-            serviceName: serviceOpt.dataset.name,
-            date: document.getElementById('new-appt-date').value,
-            time: document.getElementById('new-appt-time').value,
-            durationMinutes: parseInt(serviceOpt.dataset.duration),
-            sendWhatsAppConfirmation: document.getElementById('check-whatsapp-confirm').checked,
-            sendWhatsApp24h: document.getElementById('check-whatsapp-24h').checked,
-            sendWhatsApp2h: document.getElementById('check-whatsapp-2h').checked
-          };
+            const body = {
+                name: clientOption.dataset.name || clientOption.textContent,
+                phone: phoneInput.value,
+                serviceId: serviceSelect.value,
+                serviceName: serviceOpt.dataset.name,
+                date: document.getElementById('new-appt-date').value,
+                time: timeSelect.value,
+                durationMinutes: parseInt(serviceOpt.dataset.duration),
+                sendWhatsAppConfirmation: document.getElementById('check-whatsapp-confirm').checked,
+                sendWhatsApp24h: document.getElementById('check-whatsapp-24h').checked,
+                sendWhatsApp2h: document.getElementById('check-whatsapp-2h').checked
+            };
 
-          const res = await fetch('/api/appointments', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body)
-          });
+            const res = await fetch('/api/appointments', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
 
-          const json = await res.json();
-          if (json.success) {
-            alert('✅ Cita agendada');
-            newApptDialog.close();
-            formNewAppt.reset();
-            loadAppointments();
-          } else {
-            alert('❌ Error: ' + json.error);
-          }
+            const json = await res.json();
+            if (json.success) {
+                alert('✅ Cita agendada');
+                newApptDialog.close();
+                formNewAppt.reset();
+                loadAppointments();
+                renderWeeklyCalendar();
+            } else {
+                alert('❌ Error: ' + json.error);
+            }
         } catch (e) {
-          alert('Error de conexión');
+            alert('Error de conexión');
         } finally {
-          btn.disabled = false;
-          btn.textContent = originalText;
+            btn.disabled = false;
+            btn.textContent = originalText;
         }
-      });
-    }
+    });
+}
 
-    // Auto-load when tab is shown
-    // Detect hash change or click
-    window.addEventListener('hashchange', () => {
-      if (location.hash === '#appointments') loadAppointments();
+// Inicializar
+renderWeeklyCalendar();
+updateSelectedDateLabel();
+loadMonthStats();
+
+// Auto-load when tab is shown
+window.addEventListener('hashchange', () => {
+    if (location.hash === '#appointments') {
+        renderWeeklyCalendar();
+        loadAppointments();
+        updateSelectedDateLabel();
+        loadMonthStats();
+    }
+});
+
+if (location.hash === '#appointments') {
+    renderWeeklyCalendar();
+    loadAppointments();
+    updateSelectedDateLabel();
+    loadMonthStats();
+}
+
     });
     // Initial load if hash is present
     if (location.hash === '#appointments') loadAppointments();
