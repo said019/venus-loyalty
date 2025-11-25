@@ -1681,6 +1681,73 @@
       </div>
     </dialog>
 
+    <!-- Modal: Modificar Cita -->
+    <dialog id="editApptDialog">
+      <div class="dialog-content">
+        <h2>✏️ Modificar Cita</h2>
+        <form id="form-edit-appt">
+          <input type="hidden" id="edit-appt-id">
+
+          <div class="form-grid">
+            <!-- Cliente (congelado) -->
+            <div style="grid-column: 1/3;">
+              <label class="form-label">Cliente (no editable)</label>
+              <input type="text" id="edit-appt-client-name" class="form-input" readonly
+                style="background:rgba(255,255,255,0.05);cursor:not-allowed;">
+            </div>
+
+            <!-- Servicio -->
+            <div style="grid-column: 1/3;">
+              <label class="form-label">Servicio</label>
+              <input type="text" id="edit-appt-service" list="edit-service-list" class="form-input" required>
+              <datalist id="edit-service-list"></datalist>
+            </div>
+
+            <div>
+              <label class="form-label">Precio</label>
+              <input type="number" id="edit-appt-price" class="form-input" readonly>
+            </div>
+
+            <div>
+              <label class="form-label">Duración (min)</label>
+              <input type="number" id="edit-appt-duration" class="form-input" readonly>
+            </div>
+
+            <!-- Fecha y Hora -->
+            <div style="display:grid;grid-template-columns:1fr 100px 90px 1fr;gap:10px;grid-column:1/3;">
+              <div style="position:relative;">
+                <label class="form-label">📅 Fecha</label>
+                <input type="date" id="edit-appt-date" class="form-input" required
+                  style="cursor:pointer;padding-right:10px;">
+              </div>
+              <div>
+                <label class="form-label">Hora</label>
+                <select id="edit-appt-hour" class="form-input" required style="width:100px;">
+                  <option value="">--</option>
+                </select>
+              </div>
+              <div>
+                <label class="form-label">Min</label>
+                <select id="edit-appt-minute" class="form-input" required style="width:90px;">
+                  <option value="">--</option>
+                </select>
+              </div>
+              <div>
+                <label class="form-label">Termina</label>
+                <input type="text" id="edit-appt-end-time" class="form-input" readonly>
+              </div>
+            </div>
+
+            <!-- Botones -->
+            <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:8px;grid-column:1/3;">
+              <button type="button" class="btn ghost" id="btn-cancel-edit-appt">Cancelar</button>
+              <button type="submit" class="btn primary">Guardar Cambios</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </dialog>
+
     <style>
       /* Dialog Styles - Backdrop Opaco */
       #newApptDialog::backdrop {
@@ -4595,19 +4662,22 @@
       try {
         const res = await fetch('/api/services');
         const json = await res.json();
-        const datalist = document.getElementById('services-datalist');
-        if (json.success && datalist) {
+        if (json.success) {
           allServices = json.data;
-          datalist.innerHTML = '';
-          json.data.forEach(s => {
-            const opt = document.createElement('option');
-            opt.value = `${s.name}`;
-            opt.label = `${s.name} (${s.durationMinutes} min)`;
-            opt.dataset.id = s.id;
-            opt.dataset.duration = s.durationMinutes;
-            opt.dataset.price = s.price;
-            datalist.appendChild(opt);
-          });
+          const serviceList = document.getElementById('service-list');
+          const editServiceList = document.getElementById('edit-service-list');
+
+          if (serviceList) {
+            serviceList.innerHTML = allServices.map(s =>
+              `<option value="${s.name}" label="${s.name} (${s.durationMinutes} min)" data-id="${s.id}" data-price="${s.price}" data-duration="${s.durationMinutes}"></option>`
+            ).join('');
+          }
+
+          if (editServiceList) {
+            editServiceList.innerHTML = allServices.map(s =>
+              `<option value="${s.name}" label="${s.name} (${s.durationMinutes} min)" data-id="${s.id}" data-price="${s.price}" data-duration="${s.durationMinutes}"></option>`
+            ).join('');
+          }
         }
       } catch (e) { console.error('Error loading services', e); }
     }
@@ -4751,7 +4821,10 @@
             <td>${appt.serviceName}</td>
             <td><span class="tag" style="background:rgba(255,255,255,0.1);color:${statusColors[appt.status] || '#fff'}">${statusLabels[appt.status] || appt.status}</span></td>
             <td>
-              ${appt.status === 'scheduled' ? `<button class="btn small ghost" onclick="cancelAppointment('${appt.id}')">Cancelar</button>` : ''}
+              ${appt.status === 'scheduled' ? `
+                <button class="btn small" onclick="editAppointment('${appt.id}')" style="margin-right:5px;">Modificar</button>
+                <button class="btn small ghost" onclick="cancelAppointment('${appt.id}')">Cancelar</button>
+              ` : ''}
             </td>
           </tr>
         `;
@@ -4790,6 +4863,192 @@
         renderWeeklyCalendar();
       } catch (e) { alert('Error: ' + e.message); }
     };
+
+    // ========== MODIFICAR CITA ==========
+    const editApptDialog = document.getElementById('editApptDialog');
+    const formEditAppt = document.getElementById('form-edit-appt');
+    const btnCancelEditAppt = document.getElementById('btn-cancel-edit-appt');
+    const editApptId = document.getElementById('edit-appt-id');
+    const editClientName = document.getElementById('edit-appt-client-name');
+    const editServiceInput = document.getElementById('edit-appt-service');
+    const editPriceInput = document.getElementById('edit-appt-price');
+    const editDurationInput = document.getElementById('edit-appt-duration');
+    const editDateInput = document.getElementById('edit-appt-date');
+    const editHourSelect = document.getElementById('edit-appt-hour');
+    const editMinuteSelect = document.getElementById('edit-appt-minute');
+    const editEndTimeInput = document.getElementById('edit-appt-end-time');
+
+    window.editAppointment = async (id) => {
+      try {
+        // Fetch appointment data
+        const res = await fetch(`/api/appointments/${id}`);
+        const json = await res.json();
+
+        if (!json.success) {
+          alert('Error cargando cita');
+          return;
+        }
+
+        const appt = json.data;
+
+        // Load services and generate hour/minute options
+        await loadServices();
+        generateHourMinuteOptionsForEdit();
+
+        // Populate edit form with frozen client name
+        editApptId.value = id;
+        editClientName.value = appt.clientName;
+        editServiceInput.value = appt.serviceName;
+
+        // Find service to get price and duration
+        const service = allServices.find(s => s.name === appt.serviceName);
+        if (service) {
+          editPriceInput.value = service.price;
+          editDurationInput.value = service.durationMinutes;
+        }
+
+        // Extract date and time from startDateTime
+        const startDate = new Date(appt.startDateTime);
+        editDateInput.value = appt.startDateTime.split('T')[0];
+        editHourSelect.value = String(startDate.getHours()).padStart(2, '0');
+        editMinuteSelect.value = String(startDate.getMinutes()).padStart(2, '0');
+
+        // Calculate end time
+        calculateEditEndTime();
+
+        // Show modal
+        editApptDialog.showModal();
+      } catch (e) {
+        alert('Error: ' + e.message);
+      }
+    };
+
+    function generateHourMinuteOptionsForEdit() {
+      // Hours
+      editHourSelect.innerHTML = '<option value="">--</option>';
+      for (let h = 8; h <= 20; h++) {
+        const val = String(h).padStart(2, '0');
+        editHourSelect.innerHTML += `<option value="${val}">${h}:00</option>`;
+      }
+
+      // Minutes
+      editMinuteSelect.innerHTML = '<option value="">--</option>';
+      ['00', '15', '30', '45'].forEach(m => {
+        editMinuteSelect.innerHTML += `<option value="${m}">${m}</option>`;
+      });
+    }
+
+    function calculateEditEndTime() {
+      if (!editHourSelect || !editMinuteSelect || !editEndTimeInput) return;
+
+      const hour = editHourSelect.value;
+      const minute = editMinuteSelect.value;
+      const serviceName = editServiceInput.value.trim();
+      const service = allServices.find(s => s.name === serviceName);
+
+      if (!hour || !minute || !service) return;
+
+      const duration = parseInt(service.durationMinutes) || 60;
+      const startDate = new Date();
+      startDate.setHours(parseInt(hour), parseInt(minute), 0);
+      const endDate = new Date(startDate.getTime() + duration * 60000);
+
+      const endHours = endDate.getHours();
+      const endMinutes = endDate.getMinutes();
+      const displayHour = endHours > 12 ? endHours - 12 : (endHours === 0 ? 12 : endHours);
+      const period = endHours >= 12 ? 'PM' : 'AM';
+
+      editEndTimeInput.value = `${displayHour}:${String(endMinutes).padStart(2, '0')} ${period}`;
+    }
+
+    // Event listeners for edit modal
+    if (btnCancelEditAppt) {
+      btnCancelEditAppt.addEventListener('click', () => editApptDialog.close());
+    }
+
+    if (editServiceInput) {
+      editServiceInput.addEventListener('input', function () {
+        const serviceName = this.value.trim();
+        const service = allServices.find(s => s.name === serviceName);
+        if (service) {
+          editPriceInput.value = service.price;
+          editDurationInput.value = service.durationMinutes;
+          calculateEditEndTime();
+        }
+      });
+    }
+
+    if (editHourSelect) {
+      editHourSelect.addEventListener('change', calculateEditEndTime);
+    }
+
+    if (editMinuteSelect) {
+      editMinuteSelect.addEventListener('change', calculateEditEndTime);
+    }
+
+    if (formEditAppt) {
+      formEditAppt.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = formEditAppt.querySelector('button[type="submit"]');
+        const originalText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = 'Guardando...';
+
+        try {
+          const hour = editHourSelect.value;
+          const minute = editMinuteSelect.value;
+
+          if (!hour || !minute) {
+            alert('Por favor selecciona hora y minutos');
+            btn.disabled = false;
+            btn.textContent = originalText;
+            return;
+          }
+
+          const time = `${hour}:${minute}`;
+          const serviceName = editServiceInput.value.trim();
+          const service = allServices.find(s => s.name === serviceName);
+
+          if (!service) {
+            alert('Por favor selecciona un servicio válido');
+            btn.disabled = false;
+            btn.textContent = originalText;
+            return;
+          }
+
+          const body = {
+            serviceId: service.id,
+            serviceName: service.name,
+            date: editDateInput.value,
+            time: time,
+            durationMinutes: parseInt(service.durationMinutes)
+          };
+
+          const res = await fetch(`/api/appointments/${editApptId.value}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+          });
+
+          const json = await res.json();
+          if (json.success) {
+            alert('✅ Cita actualizada');
+            editApptDialog.close();
+            formEditAppt.reset();
+            loadAppointments();
+            renderWeeklyCalendar();
+          } else {
+            alert('❌ Error: ' + json.error);
+          }
+        } catch (e) {
+          alert('Error de conexión');
+        } finally {
+          btn.disabled = false;
+          btn.textContent = originalText;
+        }
+      });
+    }
+
 
     // ========== EVENT LISTENERS ==========
 

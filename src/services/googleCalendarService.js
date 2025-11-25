@@ -74,7 +74,7 @@ export async function createEvent(data) {
  */
 export async function updateEvent(eventId, data) {
     const authClient = await getAuthClient();
-    const calendarId = GOOGLE_CALENDAR_ID || "primary";
+    const calendarId = data.calendarId || GOOGLE_CALENDAR_ID || "primary";
 
     const {
         title,

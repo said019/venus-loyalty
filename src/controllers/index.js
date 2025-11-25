@@ -193,5 +193,98 @@ export const AppointmentsController = {
         } catch (error) {
             res.status(500).json({ success: false, error: error.message });
         }
+    },
+
+    async getById(req, res) {
+        try {
+            const { id } = req.params;
+            const apptDoc = await firestore.collection('appointments').doc(id).get();
+
+            if (!apptDoc.exists) {
+                return res.status(404).json({ success: false, error: 'Appointment not found' });
+            }
+
+            res.json({ success: true, data: { id: apptDoc.id, ...apptDoc.data() } });
+        } catch (error) {
+            res.status(500).json({ success: false, error: error.message });
+        }
+    },
+
+    async update(req, res) {
+        try {
+            const { id } = req.params;
+            const { serviceId, serviceName, date, time, durationMinutes } = req.body;
+
+            // Obtener la cita actual para tener los calendar event IDs
+            const apptDoc = await firestore.collection('appointments').doc(id).get();
+            if (!apptDoc.exists) {
+                return res.status(404).json({ success: false, error: 'Appointment not found' });
+            }
+
+            const currentAppt = apptDoc.data();
+
+            // Calcular nuevas fechas ISO
+            const startDateTime = `${date}T${time}:00-06:00`;
+            const start = new Date(startDateTime);
+            const end = new Date(start.getTime() + (durationMinutes || 60) * 60000);
+            const endDateTime = end.toISOString();
+
+            const updateData = {
+                serviceId,
+                serviceName,
+                startDateTime,
+                endDateTime,
+                updatedAt: new Date().toISOString()
+            };
+
+            // Actualizar en Firestore
+            await firestore.collection('appointments').doc(id).update(updateData);
+
+            // Actualizar eventos de Google Calendar si existen
+            try {
+                const { updateEvent } = await import('../services/googleCalendarService.js');
+
+                const eventData = {
+                    title: `${serviceName} - ${currentAppt.clientName}`,
+                    description: `Cliente: ${currentAppt.clientName}\nTel: ${currentAppt.clientPhone}\nServicio: ${serviceName}`,
+                    location: 'Cactus 50, San Juan del Río',
+                    startISO: startDateTime,
+                    endISO: endDateTime
+                };
+
+                // Actualizar evento 1
+                if (currentAppt.googleCalendarEventId) {
+                    try {
+                        await updateEvent(currentAppt.googleCalendarEventId, {
+                            ...eventData,
+                            calendarId: config.google.calendarOwner1
+                        });
+                        console.log(`✅ Evento actualizado en calendar 1`);
+                    } catch (err) {
+                        console.error(`❌ Error actualizando calendar 1:`, err.message);
+                    }
+                }
+
+                // Actualizar evento 2
+                if (currentAppt.googleCalendarEventId2) {
+                    try {
+                        await updateEvent(currentAppt.googleCalendarEventId2, {
+                            ...eventData,
+                            calendarId: config.google.calendarOwner2
+                        });
+                        console.log(`✅ Evento actualizado en calendar 2`);
+                    } catch (err) {
+                        console.error(`❌ Error actualizando calendar 2:`, err.message);
+                    }
+                }
+            } catch (calErr) {
+                console.error('⚠️ Error updating calendar events:', calErr.message);
+                // Continue anyway - appointment is already updated in Firestore
+            }
+
+            res.json({ success: true });
+        } catch (error) {
+            res.status(500).json({ success: false, error: error.message });
+        }
     }
 };
