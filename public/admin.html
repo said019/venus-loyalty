@@ -1890,16 +1890,16 @@
         border-color: var(--venus-green);
       }
 
-      /* Checkmark dibujado con CSS */
+      /* Checkmark dibujado con CSS - MÁS VISIBLE */
       .reminder-option input[type="checkbox"]:checked::after {
         content: "";
         position: absolute;
-        left: 6px;
-        top: 2px;
-        width: 4px;
-        height: 9px;
+        left: 5px;
+        top: 1px;
+        width: 5px;
+        height: 10px;
         border: solid #000;
-        border-width: 0 2px 2px 0;
+        border-width: 0 3px 3px 0;
         transform: rotate(45deg);
       }
 
@@ -5037,7 +5037,7 @@
 
         if (data.success) {
           // Map clients to dropdown options format
-          const options = data.cards.map(c => ({
+          const options = data.items.map(c => ({
             value: c.clientName,
             label: c.clientName,
             meta: c.phone || 'Sin teléfono',
