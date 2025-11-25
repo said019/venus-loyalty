@@ -1522,62 +1522,180 @@
 
     <!-- DIALOG: Nueva Cita -->
     <dialog id="newApptDialog"
-      style="background:var(--bg-card);border:1px solid var(--line);border-radius:16px;padding:24px;max-width:500px;width:90%;color:#fff;">
-      <h3 style="margin-top:0;margin-bottom:16px;">📅 Agendar Cita</h3>
+      style="background:var(--bg-card);border:1px solid var(--line);border-radius:16px;padding:24px;max-width:600px;width:90%;color:#fff;">
+      <h3 style="margin-top:0;margin-bottom:20px;display:flex;align-items:center;gap:8px;">
+        📅 Agendar Cita
+      </h3>
       <form id="form-new-appt">
-        <div style="display:grid;gap:12px;">
-          <div>
-            <label style="display:block;font-size:12px;margin-bottom:4px;">Cliente</label>
-            <input type="text" id="new-appt-client" placeholder="Nombre completo" required
-              style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--line);background:rgba(0,0,0,0.2);color:#fff;">
+        <div style="display:grid;gap:16px;">
+          <!-- Cliente con autocomplete -->
+          <div style="position:relative;">
+            <label style="display:block;font-size:12px;margin-bottom:4px;color:var(--venus-soft);">Cliente</label>
+            <input type="text" id="new-appt-client" placeholder="Buscar cliente o escribir nombre nuevo" required
+              autocomplete="off"
+              style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--line);background:rgba(0,0,0,0.2);color:#fff;">
+            <div id="client-suggestions"
+              style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg-card);border:1px solid var(--line);border-radius:8px;margin-top:4px;max-height:200px;overflow-y:auto;z-index:1000;">
+            </div>
+            <button type="button" id="btn-new-client" class="btn small ghost" style="margin-top:6px;">+ Nuevo
+              cliente</button>
           </div>
+
+          <!-- Teléfono -->
           <div>
-            <label style="display:block;font-size:12px;margin-bottom:4px;">Teléfono</label>
+            <label style="display:block;font-size:12px;margin-bottom:4px;color:var(--venus-soft);">Teléfono</label>
             <input type="tel" id="new-appt-phone" placeholder="52..." required
-              style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--line);background:rgba(0,0,0,0.2);color:#fff;">
+              style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--line);background:rgba(0,0,0,0.2);color:#fff;">
           </div>
-          <div>
-            <label style="display:block;font-size:12px;margin-bottom:4px;">Servicio</label>
-            <select id="new-appt-service" required
-              style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--line);background:rgba(0,0,0,0.2);color:#fff;">
-              <option value="">Cargando servicios...</option>
-            </select>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+
+          <!-- Servicio y Precio -->
+          <div style="display:grid;grid-template-columns:2fr 1fr;gap:10px;">
             <div>
-              <label style="display:block;font-size:12px;margin-bottom:4px;">Fecha</label>
+              <label style="display:block;font-size:12px;margin-bottom:4px;color:var(--venus-soft);">Servicio</label>
+              <select id="new-appt-service" required
+                style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--line);background:rgba(0,0,0,0.2);color:#fff;">
+                <option value="">Selecciona un servicio...</option>
+              </select>
+            </div>
+            <div>
+              <label style="display:block;font-size:12px;margin-bottom:4px;color:var(--venus-soft);">Precio</label>
+              <input type="number" id="new-appt-price" placeholder="0" min="0" step="10"
+                style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--line);background:rgba(0,0,0,0.2);color:#fff;">
+            </div>
+          </div>
+
+          <!-- Fecha, Hora Inicio, Hora Fin -->
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+            <div>
+              <label style="display:block;font-size:12px;margin-bottom:4px;color:var(--venus-soft);">Fecha</label>
               <input type="date" id="new-appt-date" required
-                style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--line);background:rgba(0,0,0,0.2);color:#fff;">
+                style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--line);background:rgba(0,0,0,0.2);color:#fff;">
             </div>
             <div>
-              <label style="display:block;font-size:12px;margin-bottom:4px;">Hora</label>
+              <label style="display:block;font-size:12px;margin-bottom:4px;color:var(--venus-soft);">Hora inicio</label>
               <input type="time" id="new-appt-time" required
-                style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--line);background:rgba(0,0,0,0.2);color:#fff;">
+                style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--line);background:rgba(0,0,0,0.2);color:#fff;">
+            </div>
+            <div>
+              <label style="display:block;font-size:12px;margin-bottom:4px;color:var(--venus-soft);">Hora fin</label>
+              <input type="time" id="new-appt-end-time" readonly
+                style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--line);background:rgba(0,0,0,0.15);color:var(--muted);">
             </div>
           </div>
 
-          <div style="margin-top:8px;padding:10px;background:rgba(255,255,255,0.05);border-radius:8px;">
-            <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
-              <input type="checkbox" id="check-whatsapp-confirm" checked>
-              Enviar confirmación por WhatsApp
-            </label>
-            <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;margin-top:6px;">
-              <input type="checkbox" id="check-whatsapp-24h" checked>
-              Recordatorio 24h antes
-            </label>
-            <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;margin-top:6px;">
-              <input type="checkbox" id="check-whatsapp-2h" checked>
-              Recordatorio 2h antes
-            </label>
+          <!-- Recordatorios mejorados -->
+          <div
+            style="background:rgba(140,150,104,0.1);border:1px solid rgba(140,150,104,0.3);border-radius:12px;padding:16px;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+              <svg width="18" height="18" fill="none" stroke="var(--venus-soft)" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9">
+                </path>
+              </svg>
+              <span style="font-size:13px;font-weight:600;color:var(--venus-soft);">Recordatorios por WhatsApp</span>
+            </div>
+            <div style="display:grid;gap:10px;">
+              <label class="reminder-option">
+                <input type="checkbox" id="check-whatsapp-confirm" checked>
+                <span class="reminder-text">
+                  <strong>Confirmación inmediata</strong>
+                  <small>Se envía al crear la cita</small>
+                </span>
+              </label>
+              <label class="reminder-option">
+                <input type="checkbox" id="check-whatsapp-24h" checked>
+                <span class="reminder-text">
+                  <strong>24 horas antes</strong>
+                  <small>Recordatorio automático</small>
+                </span>
+              </label>
+              <label class="reminder-option">
+                <input type="checkbox" id="check-whatsapp-2h" checked>
+                <span class="reminder-text">
+                  <strong>2 horas antes</strong>
+                  <small>Recordatorio final</small>
+                </span>
+              </label>
+            </div>
           </div>
 
-          <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px;">
+          <!-- Botones -->
+          <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:8px;">
             <button type="button" class="btn ghost" id="btn-cancel-appt">Cancelar</button>
             <button type="submit" class="btn primary">Agendar</button>
           </div>
         </div>
       </form>
     </dialog>
+
+    <style>
+      .reminder-option {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 10px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+
+      .reminder-option:hover {
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      .reminder-option input[type="checkbox"] {
+        margin-top: 2px;
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+        accent-color: var(--venus-green);
+      }
+
+      .reminder-text {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .reminder-text strong {
+        font-size: 13px;
+        color: #fff;
+      }
+
+      .reminder-text small {
+        font-size: 11px;
+        color: var(--muted);
+      }
+
+      #client-suggestions {
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      }
+
+      .client-suggestion-item {
+        padding: 10px 12px;
+        cursor: pointer;
+        border-bottom: 1px solid var(--line);
+        transition: background 0.2s;
+      }
+
+      .client-suggestion-item:hover {
+        background: rgba(140, 150, 104, 0.1);
+      }
+
+      .client-suggestion-item:last-child {
+        border-bottom: none;
+      }
+
+      .client-name {
+        font-weight: 600;
+        color: #fff;
+      }
+
+      .client-phone {
+        font-size: 11px;
+        color: var(--muted);
+      }
+    </style>
 
     <!-- DIALOG: Escáner QR -->
     <dialog id="scanDialog">
@@ -4270,22 +4388,143 @@
     }
 
     // Cargar Servicios
+    let allServices = [];
     async function loadServices() {
       try {
         const res = await fetch('/api/services');
         const json = await res.json();
         if (json.success && serviceSelect) {
+          allServices = json.data;
           serviceSelect.innerHTML = '<option value="">Selecciona un servicio...</option>';
           json.data.forEach(s => {
             const opt = document.createElement('option');
             opt.value = s.id;
-            opt.textContent = `${s.name} (${s.durationMinutes} min) - $${s.price}`;
+            opt.textContent = `${s.name} (${s.durationMinutes} min)`;
             opt.dataset.name = s.name;
             opt.dataset.duration = s.durationMinutes;
+            opt.dataset.price = s.price;
             serviceSelect.appendChild(opt);
           });
         }
       } catch (e) { console.error('Error loading services', e); }
+    }
+
+    // Autocomplete de clientes
+    let allClients = [];
+    const clientInput = document.getElementById('new-appt-client');
+    const clientSuggestions = document.getElementById('client-suggestions');
+    const phoneInput = document.getElementById('new-appt-phone');
+
+    async function loadClients() {
+      try {
+        const res = await fetch('/api/admin/cards?limit=1000');
+        const json = await res.json();
+        if (json.items) {
+          allClients = json.items;
+        }
+      } catch (e) { console.error('Error loading clients', e); }
+    }
+
+    if (clientInput) {
+      clientInput.addEventListener('input', function () {
+        const query = this.value.toLowerCase().trim();
+        if (query.length < 2) {
+          clientSuggestions.style.display = 'none';
+          return;
+        }
+
+        const matches = allClients.filter(c =>
+          c.name.toLowerCase().includes(query) ||
+          (c.phone && c.phone.includes(query))
+        ).slice(0, 5);
+
+        if (matches.length > 0) {
+          clientSuggestions.innerHTML = matches.map(c => `
+            <div class="client-suggestion-item" data-id="${c.id}" data-name="${c.name}" data-phone="${c.phone || ''}">
+              <div class="client-name">${c.name}</div>
+              <div class="client-phone">${c.phone || 'Sin teléfono'}</div>
+            </div>
+          `).join('');
+          clientSuggestions.style.display = 'block';
+
+          // Event listeners para las sugerencias
+          clientSuggestions.querySelectorAll('.client-suggestion-item').forEach(item => {
+            item.addEventListener('click', function () {
+              clientInput.value = this.dataset.name;
+              phoneInput.value = this.dataset.phone || '';
+              clientSuggestions.style.display = 'none';
+            });
+          });
+        } else {
+          clientSuggestions.style.display = 'none';
+        }
+      });
+
+      // Cerrar sugerencias al hacer clic fuera
+      document.addEventListener('click', function (e) {
+        if (!clientInput.contains(e.target) && !clientSuggestions.contains(e.target)) {
+          clientSuggestions.style.display = 'none';
+        }
+      });
+    }
+
+    // Botón "Nuevo cliente"
+    const btnNewClient = document.getElementById('btn-new-client');
+    if (btnNewClient) {
+      btnNewClient.addEventListener('click', () => {
+        clientInput.value = '';
+        phoneInput.value = '';
+        clientInput.focus();
+      });
+    }
+
+    // Auto-llenar precio y calcular hora fin cuando se selecciona servicio
+    const priceInput = document.getElementById('new-appt-price');
+    const timeInput = document.getElementById('new-appt-time');
+    const endTimeInput = document.getElementById('new-appt-end-time');
+
+    if (serviceSelect) {
+      serviceSelect.addEventListener('change', function () {
+        const selectedOption = this.options[this.selectedIndex];
+        if (selectedOption.value) {
+          // Llenar precio
+          const price = selectedOption.dataset.price;
+          if (price && priceInput) {
+            priceInput.value = price;
+          }
+          // Calcular hora fin
+          calculateEndTime();
+        }
+      });
+    }
+
+    // Calcular hora fin cuando cambia la hora de inicio
+    if (timeInput) {
+      timeInput.addEventListener('change', calculateEndTime);
+    }
+
+    function calculateEndTime() {
+      if (!timeInput || !endTimeInput || !serviceSelect) return;
+
+      const startTime = timeInput.value;
+      const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+
+      if (!startTime || !selectedOption.value) return;
+
+      const duration = parseInt(selectedOption.dataset.duration) || 60;
+
+      // Parsear hora de inicio
+      const [hours, minutes] = startTime.split(':').map(Number);
+      const startDate = new Date();
+      startDate.setHours(hours, minutes, 0);
+
+      // Agregar duración
+      const endDate = new Date(startDate.getTime() + duration * 60000);
+
+      // Formatear hora fin
+      const endHours = String(endDate.getHours()).padStart(2, '0');
+      const endMinutes = String(endDate.getMinutes()).padStart(2, '0');
+      endTimeInput.value = `${endHours}:${endMinutes}`;
     }
 
     // Cargar Citas
@@ -4355,6 +4594,7 @@
     if (btnNewAppt) {
       btnNewAppt.addEventListener('click', () => {
         loadServices();
+        loadClients();
         newApptDialog.showModal();
         // Set default date/time
         if (apptDateInput.value) document.getElementById('new-appt-date').value = apptDateInput.value;
