@@ -55,18 +55,14 @@ export async function createEvent(data) {
             dateTime: endISO,
             timeZone: TIMEZONE || "America/Mexico_City",
         },
-        attendees: [
-            GOOGLE_ATTENDEE_1 ? { email: GOOGLE_ATTENDEE_1 } : null,
-            GOOGLE_ATTENDEE_2 ? { email: GOOGLE_ATTENDEE_2 } : null,
-            ...attendees,
-        ].filter(Boolean),
+        // Removed attendees - Service Account requires Domain-Wide Delegation to invite
     };
 
     const res = await calendar.events.insert({
         auth: authClient,
         calendarId,
         requestBody: event,
-        sendUpdates: "all",
+        sendUpdates: "none", // Changed from "all" to "none" since we can't send to attendees
     });
 
     return res.data.id;
@@ -100,11 +96,6 @@ export async function updateEvent(eventId, data) {
             dateTime: endISO,
             timeZone: TIMEZONE || "America/Mexico_City",
         },
-        attendees: [
-            GOOGLE_ATTENDEE_1 ? { email: GOOGLE_ATTENDEE_1 } : null,
-            GOOGLE_ATTENDEE_2 ? { email: GOOGLE_ATTENDEE_2 } : null,
-            ...attendees,
-        ].filter(Boolean),
     };
 
     await calendar.events.patch({
@@ -112,7 +103,7 @@ export async function updateEvent(eventId, data) {
         calendarId,
         eventId,
         requestBody: event,
-        sendUpdates: "all",
+        sendUpdates: "none",
     });
 }
 
@@ -127,6 +118,6 @@ export async function deleteEvent(eventId) {
         auth: authClient,
         calendarId,
         eventId,
-        sendUpdates: "all",
+        sendUpdates: "none",
     });
 }
