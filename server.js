@@ -214,10 +214,16 @@ async function fsGetLastStampDate(cardId) {
 async function canStamp(cardId) {
   const last = await fsGetLastStampDate(cardId);
   if (!last) return true;
+
   const lastDate = new Date(last);
   const now = new Date();
-  const diffMs = now - lastDate;
-  return diffMs >= 23 * 60 * 60 * 1000; // ~23h
+
+  // Comparar solo el día calendario (ignorar hora)
+  const lastDay = lastDate.toDateString(); // "Mon Nov 25 2024"
+  const today = now.toDateString();
+
+  // Permitir sello si es un día diferente
+  return lastDay !== today;
 }
 
 async function fsDeleteCard(cardId) {
