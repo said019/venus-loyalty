@@ -1890,15 +1890,17 @@
         border-color: var(--venus-green);
       }
 
+      /* Checkmark dibujado con CSS */
       .reminder-option input[type="checkbox"]:checked::after {
-        content: "✓";
+        content: "";
         position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        color: #000;
-        font-size: 14px;
-        font-weight: bold;
+        left: 6px;
+        top: 2px;
+        width: 4px;
+        height: 9px;
+        border: solid #000;
+        border-width: 0 2px 2px 0;
+        transform: rotate(45deg);
       }
 
       .reminder-text {
@@ -5509,14 +5511,21 @@
         // Open on input click
         this.input.addEventListener('click', (e) => {
           e.stopPropagation();
+          console.log('[DROPDOWN] Input clicked, showing dropdown');
           this.show();
         });
 
         // Filter on input type
         this.input.addEventListener('input', () => {
           const query = this.input.value;
-          this.filter(query);
-          if (query.length > 0) {
+          console.log('[DROPDOWN] Input changed:', query);
+          if (query.length === 0) {
+            // Si está vacío, mostrar todas las opciones
+            this.render(this.options);
+            this.show();
+          } else {
+            // Si hay texto, filtrar
+            this.filter(query);
             this.show();
           }
         });
@@ -5535,6 +5544,7 @@
       }
 
       render(items) {
+        console.log('[DROPDOWN] Renderizando', items.length, 'items');
         this.dropdown.innerHTML = '';
         if (items.length === 0) {
           this.dropdown.innerHTML = '<div class="dropdown-item" style="cursor:default;color:var(--muted);">No hay resultados</div>';
@@ -5573,6 +5583,7 @@
       }
 
       show() {
+        console.log('[DROPDOWN] Mostrando dropdown con', this.options.length, 'opciones');
         // If empty input, show all
         if (!this.input.value) {
           this.render(this.options);
