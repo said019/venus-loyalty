@@ -44,8 +44,10 @@ export const AppointmentsController = {
             let cleanPhone = phone.replace(/\D/g, '');
             if (cleanPhone.length === 10) cleanPhone = '52' + cleanPhone;
 
-            // 2. Buscar o crear cliente
-            let clientData = { name, phone: cleanPhone, email, notes };
+            // 2. Buscar o crear cliente (filtrar undefined)
+            let clientData = { name, phone: cleanPhone };
+            if (email) clientData.email = email;
+            if (notes) clientData.notes = notes;
             if (clientId) clientData.id = clientId;
             const client = await ClientModel.createOrUpdate(clientData);
 
