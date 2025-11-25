@@ -86,22 +86,34 @@ export const AppointmentsController = {
             try {
                 const { createEvent } = await import('../services/googleCalendarService.js');
 
+                console.log('📅 Intentando crear eventos en calendarios...');
+                console.log('   Calendar 1:', config.google.calendarOwner1);
+                console.log('   Calendar 2:', config.google.calendarOwner2);
+
                 // Crear en calendario 1 (Said)
-                const eventId1 = await createEvent({
-                    ...eventData,
-                    calendarId: config.google.calendarOwner1 // saidromero19@gmail.com
-                });
+                try {
+                    const eventId1 = await createEvent({
+                        ...eventData,
+                        calendarId: config.google.calendarOwner1 // saidromero19@gmail.com
+                    });
+                    appointmentData.googleCalendarEventId = eventId1;
+                    console.log(`✅ Evento creado en calendar 1: ${eventId1}`);
+                } catch (err1) {
+                    console.error(`❌ Error en calendar 1 (${config.google.calendarOwner1}):`, err1.message);
+                }
 
                 // Crear en calendario 2 (Alondra)
-                const eventId2 = await createEvent({
-                    ...eventData,
-                    calendarId: config.google.calendarOwner2 // alondraosornom@gmail.com
-                });
+                try {
+                    const eventId2 = await createEvent({
+                        ...eventData,
+                        calendarId: config.google.calendarOwner2 // alondraosornom@gmail.com
+                    });
+                    appointmentData.googleCalendarEventId2 = eventId2;
+                    console.log(`✅ Evento creado en calendar 2: ${eventId2}`);
+                } catch (err2) {
+                    console.error(`❌ Error en calendar 2 (${config.google.calendarOwner2}):`, err2.message);
+                }
 
-                appointmentData.googleCalendarEventId = eventId1;
-                appointmentData.googleCalendarEventId2 = eventId2;
-
-                console.log(`✅ Eventos creados: ${eventId1} y ${eventId2}`);
             } catch (calErr) {
                 console.error('⚠️ Error creating calendar event:', calErr.message);
                 // Continue anyway - don't block appointment creation
