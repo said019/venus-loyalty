@@ -4601,6 +4601,7 @@
           json.data.forEach(s => {
             const opt = document.createElement('option');
             opt.value = `${s.name}`;
+            opt.label = `${s.name} (${s.durationMinutes} min)`;
             opt.dataset.id = s.id;
             opt.dataset.duration = s.durationMinutes;
             opt.dataset.price = s.price;
@@ -4878,15 +4879,16 @@
     }
 
     function calculateEndTime() {
-      if (!hourSelect || !minuteSelect || !endTimeInput || !serviceSelect) return;
+      if (!hourSelect || !minuteSelect || !endTimeInput) return;
 
       const hour = hourSelect.value;
       const minute = minuteSelect.value;
-      const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+      const serviceName = serviceSelect ? serviceSelect.value.trim() : '';
+      const service = allServices.find(s => s.name === serviceName);
 
-      if (!hour || !minute || !selectedOption.value) return;
+      if (!hour || !minute || !service) return;
 
-      const duration = parseInt(selectedOption.dataset.duration) || 60;
+      const duration = parseInt(service.durationMinutes) || 60;
 
       const startDate = new Date();
       startDate.setHours(parseInt(hour), parseInt(minute), 0);
@@ -4898,8 +4900,9 @@
       const displayHour = endHours > 12 ? endHours - 12 : (endHours === 0 ? 12 : endHours);
       const period = endHours >= 12 ? 'PM' : 'AM';
 
-      endTimeInput.value = `${displayHour}:${String(endMinutes).padStart(2, '0')} ${period}`;
+      endTimeInput.value = \`\${displayHour}:\${String(endMinutes).padStart(2, '0')} \${period}\`;
     }
+
 
     // Toggle nuevo cliente form
     if (btnToggleNewClient) {
