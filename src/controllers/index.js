@@ -2,6 +2,7 @@ import { AppointmentModel, ClientModel, ServiceModel } from '../models/index.js'
 import { CalendarService } from '../services/calendar.js';
 import { WhatsAppService } from '../services/whatsapp.js';
 import { config } from '../config/config.js';
+import axios from 'axios';
 
 export const ClientsController = {
     async createOrUpdate(req, res) {
@@ -65,15 +66,18 @@ export const AppointmentsController = {
                 serviceName,
                 startDateTime,
                 endDateTime,
-                cosmetologistEmail: cosmetologistEmail || config.google.calendarOwner1,
                 location: 'Venus Cosmetología',
                 sendWhatsApp24h: !!sendWhatsApp24h,
                 sendWhatsApp2h: !!sendWhatsApp2h
             };
 
+            // Agregar cosmetologistEmail solo si está definido
+            if (cosmetologistEmail) {
+                appointmentData.cosmetologistEmail = cosmetologistEmail;
+            }
+
             // 4. Crear evento en Google Calendar usando la nueva API
             try {
-                const axios = require('axios');
                 const calendarRes = await axios.post('http://localhost:3000/api/calendar', {
                     title: `${serviceName} - ${client.name}`,
                     description: `Cliente: ${client.name}\nTel: ${client.phone}\nServicio: ${serviceName}`,
