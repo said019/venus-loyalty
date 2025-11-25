@@ -108,10 +108,12 @@ export const AppointmentModel = {
         const snap = await firestore.collection(COL_APPOINTMENTS)
             .where('startDateTime', '>=', start)
             .where('startDateTime', '<=', end)
-            .where('status', '!=', 'cancelled') // Firestore requiere índice compuesto para esto, si falla quitar status
             .get();
 
-        return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        // Filtrar cancelled en código para evitar índice compuesto
+        return snap.docs
+            .map(d => ({ id: d.id, ...d.data() }))
+            .filter(appt => appt.status !== 'cancelled');
     },
 
     async cancel(id) {
