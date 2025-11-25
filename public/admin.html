@@ -950,23 +950,22 @@
 
     <!-- TAB: Overview - MODIFICADO CON FILTROS Y REPORTES -->
     <section id="tab-overview" class="card">
-      <div
-        style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap:wrap; gap:10px;">
-        <div class="row" style="gap:8px;margin-bottom:14px;justify-content:space-between;">
-          <h2 style="font-size:20px;font-weight:700;color:var(--ink);margin:0;">Resumen</h2>
-          <div class="row" style="gap:8px;">
-            <button id="btn-personalize-dashboard" class="btn small ghost">
-              ⚙️ Personalizar
-            </button>
-            <select id="stats-filter" class="btn small">
+      <div class="section-header">
+        <h2>Resumen</h2>
+        <div class="header-actions">
+          <button id="btn-personalize-dashboard" class="btn small ghost">
+            ⚙️ Personalizar
+          </button>
+          <div class="select-wrapper">
+            <select id="stats-filter" class="filter-select">
               <option value="day">Hoy</option>
               <option value="week" selected>Esta semana</option>
               <option value="month">Este mes</option>
             </select>
-            <button id="btn-download-report" class="btn small primary">
-              ⬇ Descargar Reporte
-            </button>
           </div>
+          <button id="btn-download-report" class="btn small primary">
+            ⬇ Reporte
+          </button>
         </div>
       </div>
 
@@ -1916,6 +1915,30 @@
         font-size: 28px;
         font-weight: 700;
         color: var(--venus-soft);
+      }
+
+      /* Section Headers */
+      .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+
+      .section-header h2 {
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--ink);
+        margin: 0;
+      }
+
+      .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
       }
 
       /* Responsive Grids */
