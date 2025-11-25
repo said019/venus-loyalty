@@ -777,9 +777,12 @@
     /* Estilos para el formulario de notificación individual */
     .notify-form-container {
       margin-top: 15px;
-      padding-top: 15px;
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 20px;
+      background: linear-gradient(135deg, rgba(140, 150, 104, 0.08) 0%, rgba(140, 150, 104, 0.03) 100%);
+      border: 1px solid rgba(140, 150, 104, 0.2);
+      border-radius: 16px;
       animation: slideDown 0.3s ease-out;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     }
 
     @keyframes slideDown {
@@ -812,74 +815,75 @@
     }
 
     .notify-form-header {
-      font-size: 14px;
+      font-size: 15px;
       font-weight: 600;
       color: var(--venus-soft);
-      margin-bottom: 12px;
+      margin-bottom: 16px;
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(140, 150, 104, 0.15);
     }
 
     .input-group {
       position: relative;
-      margin-bottom: 10px;
+      margin-bottom: 12px;
     }
 
     .input-icon {
       position: absolute;
-      left: 12px;
+      left: 14px;
       top: 50%;
       transform: translateY(-50%);
       font-size: 16px;
       pointer-events: none;
-      color: var(--muted);
+      color: var(--venus-soft);
+      opacity: 0.7;
     }
 
     .input-group textarea+.input-icon {
-      top: 12px;
+      top: 14px;
       transform: none;
     }
 
     .notify-input {
       width: 100%;
-      background: rgba(0, 0, 0, 0.2);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(140, 150, 104, 0.2);
       border-radius: 12px;
-      padding: 10px 12px 10px 38px;
-      /* Padding left for icon */
+      padding: 12px 14px 12px 42px;
       color: #fff;
-      font-size: 13px;
+      font-size: 14px;
       transition: all 0.2s;
     }
 
     .notify-input:focus {
-      border-color: var(--venus);
+      border-color: var(--venus-soft);
       outline: none;
-      background: rgba(0, 0, 0, 0.3);
-      box-shadow: 0 0 0 3px rgba(140, 150, 104, 0.1);
+      background: rgba(0, 0, 0, 0.4);
+      box-shadow: 0 0 0 3px rgba(140, 150, 104, 0.15);
     }
 
     .notify-textarea {
       width: 100%;
-      background: rgba(0, 0, 0, 0.2);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(140, 150, 104, 0.2);
       border-radius: 12px;
-      padding: 10px 12px 10px 38px;
-      /* Padding left for icon */
+      padding: 12px 14px 12px 42px;
       color: #fff;
-      font-size: 13px;
-      min-height: 80px;
+      font-size: 14px;
+      min-height: 90px;
       resize: vertical;
       font-family: inherit;
       transition: all 0.2s;
     }
 
     .notify-textarea:focus {
-      border-color: var(--venus);
+      border-color: var(--venus-soft);
       outline: none;
-      background: rgba(0, 0, 0, 0.3);
-      box-shadow: 0 0 0 3px rgba(140, 150, 104, 0.1);
+      background: rgba(0, 0, 0, 0.4);
+      box-shadow: 0 0 0 3px rgba(140, 150, 104, 0.15);
     }
 
     .notify-btn-group {}
@@ -5409,8 +5413,20 @@
       constructor(inputId, dropdownId, onSelectCallback) {
         this.input = document.getElementById(inputId);
         this.dropdown = document.getElementById(dropdownId);
+
+        if (!this.input || !this.dropdown) {
+          console.error(`CustomSearchableDropdown: Elements not found - input: ${inputId}, dropdown: ${dropdownId}`);
+          return;
+        }
+
         this.wrapper = this.input.closest('.custom-select-wrapper');
-        this.icon = this.wrapper.querySelector('.dropdown-toggle-icon');
+        this.icon = this.wrapper ? this.wrapper.querySelector('.dropdown-toggle-icon') : null;
+
+        if (!this.icon) {
+          console.error(`CustomSearchableDropdown: Icon not found for ${inputId}`);
+          return;
+        }
+
         this.options = [];
         this.onSelectCallback = onSelectCallback;
 
