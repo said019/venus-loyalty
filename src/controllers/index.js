@@ -149,9 +149,47 @@ export const AppointmentsController = {
     async cancel(req, res) {
         try {
             const { id } = req.params;
+
+            // Obtener la cita antes de cancelarla para tener los eventIds
+            const apptDoc = await firestore.collection('appointments').doc(id).get();
+            if (!apptDoc.exists) {
+                return res.status(404).json({ success: false, error: 'Appointment not found' });
+            }
+
+            const apptData = apptDoc.data();
+
+            // Cancelar en Firestore
             await AppointmentModel.cancel(id);
-            // Opcional: Cancelar en Calendar también si guardamos el ID
-            res.json({ success: true, message: 'Cita cancelada' });
+
+            // Eliminar de Google Calendar si hay eventIds
+            try {
+                const { deleteEvent } = await import('../services/googleCalendarService.js');
+
+                // Eliminar evento 1 si existe
+                if (apptData.googleCalendarEventId) {
+                    try {
+                        await deleteEvent(apptData.googleCalendarEventId, config.google.calendarOwner1);
+                        console.log(`✅ Evento eliminado del calendar 1: ${apptData.googleCalendarEventId}`);
+                    } catch (err) {
+                        console.error(`❌ Error eliminando evento del calendar 1:`, err.message);
+                    }
+                }
+
+                // Eliminar evento 2 si existe
+                if (apptData.googleCalendarEventId2) {
+                    try {
+                        await deleteEvent(apptData.googleCalendarEventId2, config.google.calendarOwner2);
+                        console.log(`✅ Evento eliminado del calendar 2: ${apptData.googleCalendarEventId2}`);
+                    } catch (err) {
+                        console.error(`❌ Error eliminando evento del calendar 2:`, err.message);
+                    }
+                }
+            } catch (calErr) {
+                console.error('⚠️ Error deleting calendar events:', calErr.message);
+                // Continue anyway - appointment is already cancelled in Firestore
+            }
+
+            res.json({ success: true });
         } catch (error) {
             res.status(500).json({ success: false, error: error.message });
         }

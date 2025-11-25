@@ -111,13 +111,13 @@ export async function updateEvent(eventId, data) {
 /**
  * Borra un evento del calendario
  */
-export async function deleteEvent(eventId) {
+export async function deleteEvent(eventId, calendarId = null) {
     const authClient = await getAuthClient();
-    const calendarId = GOOGLE_CALENDAR_ID || "primary";
+    const calId = calendarId || GOOGLE_CALENDAR_ID || "primary";
 
     await calendar.events.delete({
         auth: authClient,
-        calendarId,
+        calendarId: calId,
         eventId,
         sendUpdates: "none",
     });
