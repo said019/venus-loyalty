@@ -32,7 +32,8 @@ async function getAuthClient() {
  */
 export async function createEvent(data) {
     const authClient = await getAuthClient();
-    const calendarId = GOOGLE_CALENDAR_ID || "primary";
+    // Usar calendarId del parámetro, o GOOGLE_CALENDAR_ID, o "primary"
+    const calendarId = data.calendarId || GOOGLE_CALENDAR_ID || "primary";
 
     const {
         title,

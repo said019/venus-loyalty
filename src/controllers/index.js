@@ -74,18 +74,34 @@ export const AppointmentsController = {
             // Siempre agregar cosmetologistEmail (usar default si no viene del frontend)
             appointmentData.cosmetologistEmail = cosmetologistEmail || config.google.calendarOwner1;
 
-            // 4. Crear evento en Google Calendar
+            // 4. Crear evento en AMBOS calendarios de Google (Said y Alondra)
+            const eventData = {
+                title: `${serviceName} - ${client.name}`,
+                description: `Cliente: ${client.name}\nTel: ${client.phone}\nServicio: ${serviceName}`,
+                location: 'Cactus 50, San Juan del Río',
+                startISO: startDateTime,
+                endISO: endDateTime
+            };
+
             try {
                 const { createEvent } = await import('../services/googleCalendarService.js');
-                const eventId = await createEvent({
-                    title: `${serviceName} - ${client.name}`,
-                    description: `Cliente: ${client.name}\nTel: ${client.phone}\nServicio: ${serviceName}`,
-                    location: 'Cactus 50, San Juan del Río',
-                    startISO: startDateTime,
-                    endISO: endDateTime
+
+                // Crear en calendario 1 (Said)
+                const eventId1 = await createEvent({
+                    ...eventData,
+                    calendarId: config.google.calendarOwner1 // saidromero19@gmail.com
                 });
 
-                appointmentData.googleCalendarEventId = eventId;
+                // Crear en calendario 2 (Alondra)
+                const eventId2 = await createEvent({
+                    ...eventData,
+                    calendarId: config.google.calendarOwner2 // alondraosornom@gmail.com
+                });
+
+                appointmentData.googleCalendarEventId = eventId1;
+                appointmentData.googleCalendarEventId2 = eventId2;
+
+                console.log(`✅ Eventos creados: ${eventId1} y ${eventId2}`);
             } catch (calErr) {
                 console.error('⚠️ Error creating calendar event:', calErr.message);
                 // Continue anyway - don't block appointment creation
