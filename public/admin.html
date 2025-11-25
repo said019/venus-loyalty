@@ -4837,15 +4837,18 @@
       btnCancelAppt.addEventListener('click', () => newApptDialog.close());
     }
 
-    // Cliente select
+    // Cliente input - auto-llenar teléfono cuando se selecciona
     if (clientSelect) {
-      clientSelect.addEventListener('change', function () {
-        const selectedOption = this.options[this.selectedIndex];
-        if (selectedOption.value) {
-          phoneInput.value = selectedOption.dataset.phone || '';
+      clientSelect.addEventListener('input', function () {
+        const clientName = this.value.trim();
+        const client = allClients.find(c => c.name === clientName);
+        if (client && phoneInput) {
+          phoneInput.value = client.phone || '';
           phoneInput.readOnly = true;
         } else {
-          phoneInput.value = '';
+          if (!phoneInput.value || phoneInput.readOnly) {
+            phoneInput.value = '';
+          }
           phoneInput.readOnly = false;
         }
       });
@@ -4963,16 +4966,28 @@
         btn.textContent = 'Agendando...';
 
         try {
-          const clientOption = clientSelect.options[clientSelect.selectedIndex];
           const serviceOpt = serviceSelect.options[serviceSelect.selectedIndex];
 
+          // Construir hora desde los selectores separados
+          const hour = hourSelect.value;
+          const minute = minuteSelect.value;
+
+          if (!hour || !minute) {
+            alert('Por favor selecciona hora y minutos');
+            btn.disabled = false;
+            btn.textContent = originalText;
+            return;
+          }
+
+          const time = `${hour}:${minute}`;
+
           const body = {
-            name: clientOption.dataset.name || clientOption.textContent,
+            name: clientSelect.value.trim(),
             phone: phoneInput.value,
             serviceId: serviceSelect.value,
             serviceName: serviceOpt.dataset.name,
             date: document.getElementById('new-appt-date').value,
-            time: timeSelect.value,
+            time: time,
             durationMinutes: parseInt(serviceOpt.dataset.duration),
             sendWhatsAppConfirmation: document.getElementById('check-whatsapp-confirm').checked,
             sendWhatsApp24h: document.getElementById('check-whatsapp-24h').checked,
