@@ -5027,8 +5027,12 @@
     // ========== CARGAR CLIENTES ==========
     async function loadClients() {
       try {
+        console.log('[CLIENTS] 🔍 Cargando clientes...');
         const res = await fetch('/api/admin/cards?limit=1000');
         const data = await res.json();
+
+        console.log('[CLIENTS] 📦 Respuesta:', data);
+
         if (data.success) {
           // Map clients to dropdown options format
           const options = data.cards.map(c => ({
@@ -5038,19 +5042,43 @@
             data: { id: c.id, phone: c.phone }
           }));
 
+          console.log('[CLIENTS] 📋 Opciones mapeadas:', options.length);
+
+          // Verificar que los elementos existen
+          const inputEl = document.getElementById('new-appt-client-select');
+          const dropdownEl = document.getElementById('clients-dropdown-list');
+
+          console.log('[CLIENTS] 🔍 Input existe:', !!inputEl);
+          console.log('[CLIENTS] 🔍 Dropdown existe:', !!dropdownEl);
+
+          if (!inputEl || !dropdownEl) {
+            console.error('[CLIENTS] ❌ Elementos no encontrados en el DOM');
+            return;
+          }
+
           if (!newApptClientDropdown) {
+            console.log('[CLIENTS] 🆕 Creando nuevo dropdown...');
             newApptClientDropdown = new CustomSearchableDropdown(
               'new-appt-client-select',
               'clients-dropdown-list',
               (item) => {
+                console.log('[CLIENTS] ✅ Cliente seleccionado:', item);
                 // Auto-fill phone when client selected
                 document.getElementById('new-appt-phone').value = item.data.phone || '';
               }
             );
           }
-          newApptClientDropdown.setOptions(options);
+
+          if (newApptClientDropdown) {
+            newApptClientDropdown.setOptions(options);
+            console.log('[CLIENTS] ✅ Opciones configuradas');
+          } else {
+            console.error('[CLIENTS] ❌ Dropdown no se pudo crear');
+          }
         }
-      } catch (e) { console.error('Error loading clients', e); }
+      } catch (e) {
+        console.error('[CLIENTS] ❌ Error loading clients:', e);
+      }
     }
 
     // ========== CALENDARIO SEMANAL ==========
