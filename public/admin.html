@@ -1560,12 +1560,13 @@
         <h3 style="margin-top:0;margin-bottom:20px;">📅 Agendar Cita</h3>
         <form id="form-new-appt">
           <div style="display:grid;gap:16px;">
-            <!-- Cliente Dropdown -->
+            <!-- Cliente con búsqueda editable -->
             <div>
               <label class="form-label">Cliente</label>
-              <select id="new-appt-client-select" class="form-input">
-                <option value="">Selecciona un cliente...</option>
-              </select>
+              <input type="text" id="new-appt-client-select" class="form-input" list="clients-datalist"
+                placeholder="Buscar o escribir nombre..." autocomplete="off">
+              <datalist id="clients-datalist">
+              </datalist>
               <button type="button" id="btn-toggle-new-client" class="btn small ghost" style="margin-top:8px;">
                 + Registrar nuevo cliente
               </button>
@@ -1608,16 +1609,22 @@
               </div>
             </div>
 
-            <!-- Fecha y Hora -->
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+            <!-- Fecha y Hora --\>
+            <div style="display:grid;grid-template-columns:1fr 80px 80px 1fr;gap:10px;">
               <div>
                 <label class="form-label">Fecha</label>
                 <input type="date" id="new-appt-date" class="form-input" required>
               </div>
               <div>
-                <label class="form-label">Hora inicio</label>
-                <select id="new-appt-time" class="form-input" required>
-                  <option value="">Selecciona...</option>
+                <label class="form-label">Hora</label>
+                <select id="new-appt-hour" class="form-input" required>
+                  <option value="">--</option>
+                </select>
+              </div>
+              <div>
+                <label class="form-label">Min</label>
+                <select id="new-appt-minute" class="form-input" required>
+                  <option value="">--</option>
                 </select>
               </div>
               <div>
@@ -4534,7 +4541,8 @@
     const serviceSelect = document.getElementById('new-appt-service');
     const clientSelect = document.getElementById('new-appt-client-select');
     const phoneInput = document.getElementById('new-appt-phone');
-    const timeSelect = document.getElementById('new-appt-time');
+    const hourSelect = document.getElementById('new-appt-hour');
+    const minuteSelect = document.getElementById('new-appt-minute');
     const priceInput = document.getElementById('new-appt-price');
     const endTimeInput = document.getElementById('new-appt-end-time');
     const btnRefreshAppts = document.getElementById('btn-refresh-appts');
@@ -4551,28 +4559,33 @@
     const newClientForm = document.getElementById('new-client-form');
     const btnSaveNewClient = document.getElementById('btn-save-new-client');
 
-    // ========== GENERAR OPCIONES DE HORA ==========
-    function generateTimeOptions() {
-      if (!timeSelect) return;
 
-      timeSelect.innerHTML = '<option value="">Selecciona...</option>';
+    // ========== GENERAR OPCIONES DE HORA Y MINUTOS ==========
+    function generateHourMinuteOptions() {
+      const hourSelect = document.getElementById('new-appt-hour');
+      const minuteSelect = document.getElementById('new-appt-minute');
 
-      // Generar desde 8:00 AM hasta 8:00 PM cada 30 minutos
+      if (!hourSelect || !minuteSelect) return;
+
+      // Generar horas (8 AM - 8 PM)
+      hourSelect.innerHTML = '<option value="">--</option>';
       for (let hour = 8; hour <= 20; hour++) {
-        for (let min = 0; min < 60; min += 30) {
-          if (hour === 20 && min > 0) break; // Terminar en 8:00 PM
-
-          const timeValue = `${String(hour).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
-          const displayHour = hour > 12 ? hour - 12 : hour;
-          const period = hour >= 12 ? 'PM' : 'AM';
-          const displayTime = `${displayHour}:${String(min).padStart(2, '0')} ${period}`;
-
-          const option = document.createElement('option');
-          option.value = timeValue;
-          option.textContent = displayTime;
-          timeSelect.appendChild(option);
-        }
+        const option = document.createElement('option');
+        option.value = String(hour).padStart(2, '0');
+        const displayHour = hour > 12 ? hour - 12 : hour;
+        const period = hour >= 12 ? 'PM' : 'AM';
+        option.textContent = `${displayHour} ${period}`;
+        hourSelect.appendChild(option);
       }
+
+      // Generar minutos (00, 15, 30, 45)
+      minuteSelect.innerHTML = '<option value="">--</option>';
+      [0, 15, 30, 45].forEach(min => {
+        const option = document.createElement('option');
+        option.value = String(min).padStart(2, '0');
+        option.textContent = String(min).padStart(2, '0');
+        minuteSelect.appendChild(option);
+      });
     }
 
     // ========== CARGAR SERVICIOS ==========
@@ -4814,7 +4827,7 @@
       btnNewAppt.addEventListener('click', () => {
         loadServices();
         loadClients();
-        generateTimeOptions();
+        generateHourMinuteOptions();
         newApptDialog.showModal();
         document.getElementById('new-appt-date').value = selectedDate.toISOString().split('T')[0];
       });
@@ -4853,29 +4866,34 @@
     }
 
     // Hora select - calcular hora fin
-    if (timeSelect) {
-      timeSelect.addEventListener('change', calculateEndTime);
+    if (hourSelect) {
+      hourSelect.addEventListener('change', calculateEndTime);
+    }
+
+    // Minuto select - calcular hora fin
+    if (minuteSelect) {
+      minuteSelect.addEventListener('change', calculateEndTime);
     }
 
     function calculateEndTime() {
-      if (!timeSelect || !endTimeInput || !serviceSelect) return;
+      if (!hourSelect || !minuteSelect || !endTimeInput || !serviceSelect) return;
 
-      const startTime = timeSelect.value;
+      const hour = hourSelect.value;
+      const minute = minuteSelect.value;
       const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
 
-      if (!startTime || !selectedOption.value) return;
+      if (!hour || !minute || !selectedOption.value) return;
 
       const duration = parseInt(selectedOption.dataset.duration) || 60;
 
-      const [hours, minutes] = startTime.split(':').map(Number);
       const startDate = new Date();
-      startDate.setHours(hours, minutes, 0);
+      startDate.setHours(parseInt(hour), parseInt(minute), 0);
 
       const endDate = new Date(startDate.getTime() + duration * 60000);
 
       const endHours = endDate.getHours();
       const endMinutes = endDate.getMinutes();
-      const displayHour = endHours > 12 ? endHours - 12 : endHours;
+      const displayHour = endHours > 12 ? endHours - 12 : (endHours === 0 ? 12 : endHours);
       const period = endHours >= 12 ? 'PM' : 'AM';
 
       endTimeInput.value = `${displayHour}:${String(endMinutes).padStart(2, '0')} ${period}`;
