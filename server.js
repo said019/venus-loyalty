@@ -47,6 +47,8 @@ import appleWebService from './lib/apple-webservice.js';
 // 📅 Appointments Module
 import appointmentsRouter from './src/routes/api.js';
 import { startScheduler } from './src/scheduler/cron.js';
+import calendarRoutes from './src/routes/calendarRoutes.js';
+
 
 // __dirname para ESModules
 const __filename = fileURLToPath(import.meta.url);
@@ -404,7 +406,6 @@ app.use(express.static("public"));
 app.use('/api', appointmentsRouter);
 
 // ✅ Calendar API
-const calendarRoutes = require('./src/routes/calendarRoutes');
 app.use('/api/calendar', calendarRoutes);
 
 // ✅ Start Scheduler

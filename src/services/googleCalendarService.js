@@ -1,6 +1,10 @@
 // src/services/googleCalendarService.js
-const { google } = require("googleapis");
-const path = require("path");
+import { google } from 'googleapis';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const {
     GOOGLE_APPLICATION_CREDENTIALS,
@@ -26,7 +30,7 @@ async function getAuthClient() {
 /**
  * Crea un evento en Google Calendar
  */
-async function createEvent(data) {
+export async function createEvent(data) {
     const authClient = await getAuthClient();
     const calendarId = GOOGLE_CALENDAR_ID || "primary";
 
@@ -71,7 +75,7 @@ async function createEvent(data) {
 /**
  * Actualiza un evento existente
  */
-async function updateEvent(eventId, data) {
+export async function updateEvent(eventId, data) {
     const authClient = await getAuthClient();
     const calendarId = GOOGLE_CALENDAR_ID || "primary";
 
@@ -115,7 +119,7 @@ async function updateEvent(eventId, data) {
 /**
  * Borra un evento del calendario
  */
-async function deleteEvent(eventId) {
+export async function deleteEvent(eventId) {
     const authClient = await getAuthClient();
     const calendarId = GOOGLE_CALENDAR_ID || "primary";
 
@@ -126,9 +130,3 @@ async function deleteEvent(eventId) {
         sendUpdates: "all",
     });
 }
-
-module.exports = {
-    createEvent,
-    updateEvent,
-    deleteEvent,
-};
