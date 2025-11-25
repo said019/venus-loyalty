@@ -1596,7 +1596,7 @@
             </div>
 
             <!-- Servicio y Precio -->
-            <div style="display:grid;grid-template-columns:1fr 120px;gap:10px;">
+            <div class="grid-service-price">
               <div>
                 <label class="form-label">Servicio</label>
                 <input type="text" id="new-appt-service" class="form-input" list="services-datalist"
@@ -1611,7 +1611,7 @@
             </div>
 
             <!-- Fecha y Hora -->
-            <div style="display:grid;grid-template-columns:1fr 100px 90px 1fr;gap:10px;">
+            <div class="grid-date-time">
               <div style="position:relative;">
                 <label class="form-label">📅 Fecha</label>
                 <input type="text" id="new-appt-date" class="form-input date-picker-input" readonly required
@@ -1715,7 +1715,7 @@
             </div>
 
             <!-- Fecha y Hora -->
-            <div style="display:grid;grid-template-columns:1fr 100px 90px 1fr;gap:10px;grid-column:1/3;">
+            <div class="grid-date-time full-width">
               <div style="position:relative;">
                 <label class="form-label">📅 Fecha</label>
                 <input type="text" id="edit-appt-date" class="form-input date-picker-input" readonly required
@@ -1916,6 +1916,68 @@
         font-size: 28px;
         font-weight: 700;
         color: var(--venus-soft);
+      }
+
+      /* Responsive Grids */
+      .grid-service-price {
+        display: grid;
+        grid-template-columns: 1fr 120px;
+        gap: 10px;
+      }
+
+      .grid-date-time {
+        display: grid;
+        grid-template-columns: 1fr 100px 90px 1fr;
+        gap: 10px;
+      }
+
+      .full-width {
+        grid-column: 1 / -1;
+      }
+
+      /* Mobile Responsiveness */
+      @media (max-width: 480px) {
+        .grid-service-price {
+          grid-template-columns: 1fr;
+        }
+
+        .grid-date-time {
+          grid-template-columns: 1fr 1fr;
+        }
+
+        #newApptDialog,
+        #editApptDialog {
+          width: 95%;
+          max-height: 95vh;
+          margin: 10px auto;
+        }
+
+        .dialog-content {
+          padding: 16px;
+          max-height: 85vh;
+          overflow-y: auto;
+        }
+
+        .form-label {
+          font-size: 13px;
+        }
+
+        .form-input {
+          font-size: 16px;
+          /* Prevent zoom on iOS */
+        }
+
+        /* Adjust calendar dropdown for mobile to be centered */
+        .calendar-dropdown {
+          position: fixed;
+          top: 50% !important;
+          left: 50% !important;
+          transform: translate(-50%, -50%);
+          width: 90%;
+          max-width: 320px;
+          margin-top: 0;
+          z-index: 2000;
+        }
       }
 
       /* Custom Calendar Dropdown */
