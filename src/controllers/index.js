@@ -71,10 +71,8 @@ export const AppointmentsController = {
                 sendWhatsApp2h: !!sendWhatsApp2h
             };
 
-            // Agregar cosmetologistEmail solo si está definido
-            if (cosmetologistEmail) {
-                appointmentData.cosmetologistEmail = cosmetologistEmail;
-            }
+            // Siempre agregar cosmetologistEmail (usar default si no viene del frontend)
+            appointmentData.cosmetologistEmail = cosmetologistEmail || config.google.calendarOwner1;
 
             // 4. Crear evento en Google Calendar usando la nueva API
             try {

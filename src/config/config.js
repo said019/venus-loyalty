@@ -12,8 +12,8 @@ export const config = {
         clientSecret: process.env.GOOGLE_CLIENT_SECRET,
         redirectUri: process.env.GOOGLE_REDIRECT_URI,
         refreshToken: process.env.GOOGLE_REFRESH_TOKEN,
-        calendarOwner1: process.env.CALENDAR_OWNER_EMAIL_1,
-        calendarOwner2: process.env.CALENDAR_OWNER_EMAIL_2
+        calendarOwner1: process.env.GOOGLE_ATTENDEE_1 || 'saidromero19@gmail.com',
+        calendarOwner2: process.env.GOOGLE_ATTENDEE_2 || 'alondraosornom@gmail.com'
     },
     timezone: process.env.DEFAULT_TIMEZONE || 'America/Mexico_City'
 };
