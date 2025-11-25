@@ -4614,16 +4614,16 @@
       try {
         const res = await fetch('/api/admin/cards?limit=1000');
         const json = await res.json();
-        if (json.items && clientSelect) {
+        const datalist = document.getElementById('clients-datalist');
+        if (json.items && datalist) {
           allClients = json.items;
-          clientSelect.innerHTML = '<option value="">Selecciona un cliente...</option>';
+          datalist.innerHTML = '';
           json.items.forEach(c => {
             const opt = document.createElement('option');
-            opt.value = c.id;
-            opt.textContent = `${c.name}${c.phone ? ' - ' + c.phone : ''}`;
-            opt.dataset.name = c.name;
+            opt.value = `${c.name}`;
             opt.dataset.phone = c.phone || '';
-            clientSelect.appendChild(opt);
+            opt.dataset.id = c.id;
+            datalist.appendChild(opt);
           });
         }
       } catch (e) { console.error('Error loading clients', e); }
