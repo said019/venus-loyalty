@@ -74,9 +74,10 @@ export const AppointmentsController = {
             // Siempre agregar cosmetologistEmail (usar default si no viene del frontend)
             appointmentData.cosmetologistEmail = cosmetologistEmail || config.google.calendarOwner1;
 
-            // 4. Crear evento en Google Calendar usando la nueva API
+            // 4. Crear evento en Google Calendar
             try {
-                const calendarRes = await axios.post('http://localhost:3000/api/calendar', {
+                const { createEvent } = await import('../services/googleCalendarService.js');
+                const eventId = await createEvent({
                     title: `${serviceName} - ${client.name}`,
                     description: `Cliente: ${client.name}\nTel: ${client.phone}\nServicio: ${serviceName}`,
                     location: 'Cactus 50, San Juan del Río',
@@ -84,9 +85,7 @@ export const AppointmentsController = {
                     endISO: endDateTime
                 });
 
-                if (calendarRes.data.success) {
-                    appointmentData.googleCalendarEventId = calendarRes.data.eventId;
-                }
+                appointmentData.googleCalendarEventId = eventId;
             } catch (calErr) {
                 console.error('⚠️ Error creating calendar event:', calErr.message);
                 // Continue anyway - don't block appointment creation
