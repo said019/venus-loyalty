@@ -49,20 +49,11 @@ export const AppointmentsController = {
             if (clientId) clientData.id = clientId;
             const client = await ClientModel.createOrUpdate(clientData);
 
-            // 3. Calcular fechas
-            // date: YYYY-MM-DD, time: HH:mm
-            const startDateTime = new Date(`${date}T${time}:00`).toISOString(); // Assumes local time input, but ISO conversion might be tricky without timezone lib. 
-            // Better approach: Construct date object with timezone offset or use library like luxon/moment.
-            // For simplicity, assuming input is local and we store as ISO. 
-            // Ideally, frontend sends ISO or we handle timezone explicitly.
-            // Let's assume input is "2025-11-22" and "13:00" in DEFAULT_TIMEZONE.
-            // We'll create a Date object and adjust.
-
-            const start = new Date(`${date}T${time}:00`); // Local server time? No, we need specific timezone.
-            // Simple hack for now: treat as UTC or rely on server timezone. 
-            // Correct way: use config.timezone.
-
+            // 3. Calcular fechas ISO
+            const startDateTime = `${date}T${time}:00-06:00`; // Mexico City timezone
+            const start = new Date(startDateTime);
             const end = new Date(start.getTime() + (durationMinutes || 60) * 60000);
+            const endDateTime = end.toISOString();
 
             const appointmentData = {
                 clientId: client.id,
@@ -70,17 +61,32 @@ export const AppointmentsController = {
                 clientPhone: client.phone,
                 serviceId,
                 serviceName,
-                startDateTime: start.toISOString(),
-                endDateTime: end.toISOString(),
+                startDateTime,
+                endDateTime,
                 cosmetologistEmail: cosmetologistEmail || config.google.calendarOwner1,
                 location: 'Venus Cosmetología',
                 sendWhatsApp24h: !!sendWhatsApp24h,
                 sendWhatsApp2h: !!sendWhatsApp2h
             };
 
-            // 4. Crear evento en Calendar
-            const eventId = await CalendarService.createEvent(appointmentData);
-            if (eventId) appointmentData.googleCalendarEventId = eventId;
+            // 4. Crear evento en Google Calendar usando la nueva API
+            try {
+                const axios = require('axios');
+                const calendarRes = await axios.post('http://localhost:3000/api/calendar', {
+                    title: `${serviceName} - ${client.name}`,
+                    description: `Cliente: ${client.name}\nTel: ${client.phone}\nServicio: ${serviceName}`,
+                    location: 'Cactus 50, San Juan del Río',
+                    startISO: startDateTime,
+                    endISO: endDateTime
+                });
+
+                if (calendarRes.data.success) {
+                    appointmentData.googleCalendarEventId = calendarRes.data.eventId;
+                }
+            } catch (calErr) {
+                console.error('⚠️ Error creating calendar event:', calErr.message);
+                // Continue anyway - don't block appointment creation
+            }
 
             // 5. Guardar en BD
             const appointment = await AppointmentModel.create(appointmentData);

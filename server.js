@@ -403,6 +403,10 @@ app.use(express.static("public"));
 // ✅ Appointments API
 app.use('/api', appointmentsRouter);
 
+// ✅ Calendar API
+const calendarRoutes = require('./src/routes/calendarRoutes');
+app.use('/api/calendar', calendarRoutes);
+
 // ✅ Start Scheduler
 startScheduler();
 
