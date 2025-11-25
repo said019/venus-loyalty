@@ -12,8 +12,8 @@ router.get('/services', ServicesController.getAll);
 // Appointments
 router.post('/appointments', AppointmentsController.create);
 router.get('/appointments', AppointmentsController.getByDate);
+router.patch('/appointments/:id/cancel', AppointmentsController.cancel);
 router.get('/appointments/:id', AppointmentsController.getById);
 router.patch('/appointments/:id', AppointmentsController.update);
-router.patch('/appointments/:id/cancel', AppointmentsController.cancel);
 
 export default router;
