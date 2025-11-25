@@ -4778,31 +4778,15 @@
         window.location.href = '/admin-login.html';
       } catch (error) {
         console.error('Error al cerrar sesión:', error);
-        this.show();
+        window.location.href = '/admin-login.html';
       }
-    }
-
-      select(item) {
-      this.input.value = item.value; // Use value for input
-      this.hide();
-
-      // Trigger callback if provided
-      if(this.onSelectCallback) {
-      this.onSelectCallback(item);
-    }
-
-    // Trigger native change event for other listeners
-    this.input.dispatchEvent(new Event('change', { bubbles: true }));
-    this.input.dispatchEvent(new Event('input', { bubbles: true }));
-      }
-    }
-
-    // Global instances
-    let newApptClientDropdown, newApptServiceDropdown, editApptServiceDropdown;
+    });
 
     /* =========================================================
-       CUSTOM CALENDAR CLASS
+       LÓGICA DEL BOTÓN "ENVIAR A TODOS"
        ========================================================= */
+
+
 
     // Prevent form submission from interfering with buttons
     const pushForm = document.getElementById('push-notification-form');
@@ -5418,6 +5402,134 @@
 
 
     // ========== CUSTOM CALENDAR PICKER ==========
+    /* =========================================================
+       CUSTOM SEARCHABLE DROPDOWN CLASS
+       ========================================================= */
+    class CustomSearchableDropdown {
+      constructor(inputId, dropdownId, onSelectCallback) {
+        this.input = document.getElementById(inputId);
+        this.dropdown = document.getElementById(dropdownId);
+        this.wrapper = this.input.closest('.custom-select-wrapper');
+        this.icon = this.wrapper.querySelector('.dropdown-toggle-icon');
+        this.options = [];
+        this.onSelectCallback = onSelectCallback;
+
+        this.init();
+      }
+
+      init() {
+        // Toggle on icon click
+        this.icon.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.toggle();
+        });
+
+        // Open on input click
+        this.input.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.show();
+        });
+
+        // Filter on input type
+        this.input.addEventListener('input', () => {
+          this.filter(this.input.value);
+          this.show();
+        });
+
+        // Close on outside click
+        document.addEventListener('click', (e) => {
+          if (!this.wrapper.contains(e.target)) {
+            this.hide();
+          }
+        });
+      }
+
+      setOptions(options) {
+        this.options = options;
+        this.render(options);
+      }
+
+      render(items) {
+        this.dropdown.innerHTML = '';
+        if (items.length === 0) {
+          this.dropdown.innerHTML = '<div class="dropdown-item" style="cursor:default;color:var(--muted);">No hay resultados</div>';
+          return;
+        }
+
+        items.forEach(item => {
+          const div = document.createElement('div');
+          div.className = 'dropdown-item';
+          div.innerHTML = `
+            <div>${item.label}</div>
+            ${item.meta ? `<span class="item-meta">${item.meta}</span>` : ''}
+          `;
+
+          // Store data attributes
+          Object.keys(item.data || {}).forEach(key => {
+            div.dataset[key] = item.data[key];
+          });
+
+          div.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.select(item);
+          });
+
+          this.dropdown.appendChild(div);
+        });
+      }
+
+      filter(query) {
+        const lowerQuery = query.toLowerCase();
+        const filtered = this.options.filter(item =>
+          item.label.toLowerCase().includes(lowerQuery) ||
+          (item.meta && item.meta.toLowerCase().includes(lowerQuery))
+        );
+        this.render(filtered);
+      }
+
+      show() {
+        // If empty input, show all
+        if (!this.input.value) {
+          this.render(this.options);
+        }
+        this.dropdown.style.display = 'block';
+        this.icon.textContent = '▲';
+      }
+
+      hide() {
+        this.dropdown.style.display = 'none';
+        this.icon.textContent = '▼';
+      }
+
+      toggle() {
+        if (this.dropdown.style.display === 'block') {
+          this.hide();
+        } else {
+          this.show();
+        }
+      }
+
+      select(item) {
+        this.input.value = item.value; // Use value for input
+        this.hide();
+
+        // Trigger callback if provided
+        if (this.onSelectCallback) {
+          this.onSelectCallback(item);
+        }
+
+        // Trigger native change event for other listeners
+        this.input.dispatchEvent(new Event('change', { bubbles: true }));
+        this.input.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    }
+
+    // Global instances
+    let newApptClientDropdown, newApptServiceDropdown, editApptServiceDropdown;
+
+    /* =========================================================
+       CUSTOM CALENDAR CLASS
+       ========================================================= */
     class CustomCalendar {
       constructor(inputId, calendarId) {
         this.input = document.getElementById(inputId);
