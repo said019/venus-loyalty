@@ -1614,8 +1614,9 @@
             <div style="display:grid;grid-template-columns:1fr 100px 90px 1fr;gap:10px;">
               <div style="position:relative;">
                 <label class="form-label">📅 Fecha</label>
-                <input type="date" id="new-appt-date" class="form-input" required
-                  style="cursor:pointer;padding-right:10px;">
+                <input type="text" id="new-appt-date" class="form-input date-picker-input" readonly required
+                  placeholder="Seleccionar fecha" style="cursor:pointer;">
+                <div id="new-appt-calendar" class="calendar-dropdown" style="display:none;"></div>
               </div>
               <div>
                 <label class="form-label">Hora</label>
@@ -1715,9 +1716,11 @@
 
             <!-- Fecha y Hora -->
             <div style="display:grid;grid-template-columns:1fr 100px 90px 1fr;gap:10px;grid-column:1/3;">
-              <div>
+              <div style="position:relative;">
                 <label class="form-label">📅 Fecha</label>
-                <input type="date" id="edit-appt-date" class="form-input" required>
+                <input type="text" id="edit-appt-date" class="form-input date-picker-input" readonly required
+                  placeholder="Seleccionar fecha" style="cursor:pointer;">
+                <div id="edit-appt-calendar" class="calendar-dropdown" style="display:none;"></div>
               </div>
               <div>
                 <label class="form-label">Hora</label>
@@ -1913,6 +1916,106 @@
         font-size: 28px;
         font-weight: 700;
         color: var(--venus-soft);
+      }
+
+      /* Custom Calendar Dropdown */
+      .calendar-dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        z-index: 1000;
+        margin-top: 8px;
+        background: var(--bg-card);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 16px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+        min-width: 280px;
+      }
+
+      .calendar-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+        gap: 8px;
+      }
+
+      .calendar-nav-btn {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid var(--line);
+        color: #fff;
+        padding: 6px 10px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 14px;
+      }
+
+      .calendar-nav-btn:hover {
+        background: var(--venus-green);
+        border-color: var(--venus-green);
+      }
+
+      .calendar-month-year {
+        font-weight: 600;
+        color: #fff;
+        font-size: 14px;
+      }
+
+      .calendar-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 4px;
+      }
+
+      .calendar-day-header {
+        text-align: center;
+        font-size: 11px;
+        color: var(--venus-soft);
+        padding: 8px 0;
+        font-weight: 600;
+      }
+
+      .calendar-day {
+        aspect-ratio: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 13px;
+        color: #fff;
+        transition: all 0.15s;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid transparent;
+      }
+
+      .calendar-day:hover:not(.empty):not(.selected) {
+        background: rgba(140, 150, 104, 0.2);
+        border-color: var(--venus-green);
+      }
+
+      .calendar-day.empty {
+        cursor: default;
+        background: transparent;
+        opacity: 0.3;
+      }
+
+      .calendar-day.today {
+        border-color: var(--venus-green);
+        background: rgba(140, 150, 104, 0.15);
+        font-weight: 600;
+      }
+
+      .calendar-day.selected {
+        background: var(--venus-green);
+        color: #000;
+        font-weight: 600;
+      }
+
+      .calendar-day.other-month {
+        color: rgba(255, 255, 255, 0.3);
       }
     </style>
 
