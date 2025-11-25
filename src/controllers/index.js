@@ -2,6 +2,7 @@ import { AppointmentModel, ClientModel, ServiceModel } from '../models/index.js'
 import { CalendarService } from '../services/calendar.js';
 import { WhatsAppService } from '../services/whatsapp.js';
 import { config } from '../config/config.js';
+import { firestore } from '../../lib/firebase.js';
 import axios from 'axios';
 
 export const ClientsController = {
