@@ -4513,123 +4513,123 @@
       console.error('❌ Botón btn-mass-push NO encontrado en el DOM');
     }
     // Este archivo contiene el JavaScript completo para el módulo de citas
-// Se insertará en admin.html reemplazando la sección actual
+    // Se insertará en admin.html reemplazando la sección actual
 
-/* =========================================================
-   LÓGICA DE CITAS - VERSIÓN COMPLETA
-   ========================================================= */
+    /* =========================================================
+       LÓGICA DE CITAS - VERSIÓN COMPLETA
+       ========================================================= */
 
-// Variables globales
-let allServices = [];
-let allClients = [];
-let currentWeekStart = new Date();
-let selectedDate = new Date();
+    // Variables globales
+    let allServices = [];
+    let allClients = [];
+    let currentWeekStart = new Date();
+    let selectedDate = new Date();
 
-// Elementos del DOM
-const btnNewAppt = document.getElementById('btn-new-appointment');
-const newApptDialog = document.getElementById('newApptDialog');
-const formNewAppt = document.getElementById('form-new-appt');
-const btnCancelAppt = document.getElementById('btn-cancel-appt');
-const apptsTbody = document.getElementById('appts-tbody');
-const serviceSelect = document.getElementById('new-appt-service');
-const clientSelect = document.getElementById('new-appt-client-select');
-const phoneInput = document.getElementById('new-appt-phone');
-const timeSelect = document.getElementById('new-appt-time');
-const priceInput = document.getElementById('new-appt-price');
-const endTimeInput = document.getElementById('new-appt-end-time');
-const btnRefreshAppts = document.getElementById('btn-refresh-appts');
+    // Elementos del DOM
+    const btnNewAppt = document.getElementById('btn-new-appointment');
+    const newApptDialog = document.getElementById('newApptDialog');
+    const formNewAppt = document.getElementById('form-new-appt');
+    const btnCancelAppt = document.getElementById('btn-cancel-appt');
+    const apptsTbody = document.getElementById('appts-tbody');
+    const serviceSelect = document.getElementById('new-appt-service');
+    const clientSelect = document.getElementById('new-appt-client-select');
+    const phoneInput = document.getElementById('new-appt-phone');
+    const timeSelect = document.getElementById('new-appt-time');
+    const priceInput = document.getElementById('new-appt-price');
+    const endTimeInput = document.getElementById('new-appt-end-time');
+    const btnRefreshAppts = document.getElementById('btn-refresh-appts');
 
-// Navegación semanal
-const btnPrevWeek = document.getElementById('btn-prev-week');
-const btnNextWeek = document.getElementById('btn-next-week');
-const btnToday = document.getElementById('btn-today');
-const weeklyCalendar = document.getElementById('weekly-calendar');
-const selectedDateLabel = document.getElementById('selected-date-label');
+    // Navegación semanal
+    const btnPrevWeek = document.getElementById('btn-prev-week');
+    const btnNextWeek = document.getElementById('btn-next-week');
+    const btnToday = document.getElementById('btn-today');
+    const weeklyCalendar = document.getElementById('weekly-calendar');
+    const selectedDateLabel = document.getElementById('selected-date-label');
 
-// Nuevo cliente
-const btnToggleNewClient = document.getElementById('btn-toggle-new-client');
-const newClientForm = document.getElementById('new-client-form');
-const btnSaveNewClient = document.getElementById('btn-save-new-client');
+    // Nuevo cliente
+    const btnToggleNewClient = document.getElementById('btn-toggle-new-client');
+    const newClientForm = document.getElementById('new-client-form');
+    const btnSaveNewClient = document.getElementById('btn-save-new-client');
 
-// ========== GENERAR OPCIONES DE HORA ==========
-function generateTimeOptions() {
-    if (!timeSelect) return;
+    // ========== GENERAR OPCIONES DE HORA ==========
+    function generateTimeOptions() {
+      if (!timeSelect) return;
 
-    timeSelect.innerHTML = '<option value="">Selecciona...</option>';
+      timeSelect.innerHTML = '<option value="">Selecciona...</option>';
 
-    // Generar desde 8:00 AM hasta 8:00 PM cada 30 minutos
-    for (let hour = 8; hour <= 20; hour++) {
+      // Generar desde 8:00 AM hasta 8:00 PM cada 30 minutos
+      for (let hour = 8; hour <= 20; hour++) {
         for (let min = 0; min < 60; min += 30) {
-            if (hour === 20 && min > 0) break; // Terminar en 8:00 PM
+          if (hour === 20 && min > 0) break; // Terminar en 8:00 PM
 
-            const timeValue = `${String(hour).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
-            const displayHour = hour > 12 ? hour - 12 : hour;
-            const period = hour >= 12 ? 'PM' : 'AM';
-            const displayTime = `${displayHour}:${String(min).padStart(2, '0')} ${period}`;
+          const timeValue = `${String(hour).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+          const displayHour = hour > 12 ? hour - 12 : hour;
+          const period = hour >= 12 ? 'PM' : 'AM';
+          const displayTime = `${displayHour}:${String(min).padStart(2, '0')} ${period}`;
 
-            const option = document.createElement('option');
-            option.value = timeValue;
-            option.textContent = displayTime;
-            timeSelect.appendChild(option);
+          const option = document.createElement('option');
+          option.value = timeValue;
+          option.textContent = displayTime;
+          timeSelect.appendChild(option);
         }
+      }
     }
-}
 
-// ========== CARGAR SERVICIOS ==========
-async function loadServices() {
-    try {
+    // ========== CARGAR SERVICIOS ==========
+    async function loadServices() {
+      try {
         const res = await fetch('/api/services');
         const json = await res.json();
         if (json.success && serviceSelect) {
-            allServices = json.data;
-            serviceSelect.innerHTML = '<option value="">Selecciona un servicio...</option>';
-            json.data.forEach(s => {
-                const opt = document.createElement('option');
-                opt.value = s.id;
-                opt.textContent = `${s.name} (${s.durationMinutes} min)`;
-                opt.dataset.name = s.name;
-                opt.dataset.duration = s.durationMinutes;
-                opt.dataset.price = s.price;
-                serviceSelect.appendChild(opt);
-            });
+          allServices = json.data;
+          serviceSelect.innerHTML = '<option value="">Selecciona un servicio...</option>';
+          json.data.forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s.id;
+            opt.textContent = `${s.name} (${s.durationMinutes} min)`;
+            opt.dataset.name = s.name;
+            opt.dataset.duration = s.durationMinutes;
+            opt.dataset.price = s.price;
+            serviceSelect.appendChild(opt);
+          });
         }
-    } catch (e) { console.error('Error loading services', e); }
-}
+      } catch (e) { console.error('Error loading services', e); }
+    }
 
-// ========== CARGAR CLIENTES ==========
-async function loadClients() {
-    try {
+    // ========== CARGAR CLIENTES ==========
+    async function loadClients() {
+      try {
         const res = await fetch('/api/admin/cards?limit=1000');
         const json = await res.json();
         if (json.items && clientSelect) {
-            allClients = json.items;
-            clientSelect.innerHTML = '<option value="">Selecciona un cliente...</option>';
-            json.items.forEach(c => {
-                const opt = document.createElement('option');
-                opt.value = c.id;
-                opt.textContent = `${c.name}${c.phone ? ' - ' + c.phone : ''}`;
-                opt.dataset.name = c.name;
-                opt.dataset.phone = c.phone || '';
-                clientSelect.appendChild(opt);
-            });
+          allClients = json.items;
+          clientSelect.innerHTML = '<option value="">Selecciona un cliente...</option>';
+          json.items.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.id;
+            opt.textContent = `${c.name}${c.phone ? ' - ' + c.phone : ''}`;
+            opt.dataset.name = c.name;
+            opt.dataset.phone = c.phone || '';
+            clientSelect.appendChild(opt);
+          });
         }
-    } catch (e) { console.error('Error loading clients', e); }
-}
+      } catch (e) { console.error('Error loading clients', e); }
+    }
 
-// ========== CALENDARIO SEMANAL ==========
-function renderWeeklyCalendar() {
-    if (!weeklyCalendar) return;
+    // ========== CALENDARIO SEMANAL ==========
+    function renderWeeklyCalendar() {
+      if (!weeklyCalendar) return;
 
-    weeklyCalendar.innerHTML = '';
-    const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+      weeklyCalendar.innerHTML = '';
+      const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
 
-    // Ajustar al inicio de la semana (domingo)
-    const weekStart = new Date(currentWeekStart);
-    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+      // Ajustar al inicio de la semana (domingo)
+      const weekStart = new Date(currentWeekStart);
+      weekStart.setDate(weekStart.getDate() - weekStart.getDay());
 
-    for (let i = 0; i < 7; i++) {
+      for (let i = 0; i < 7; i++) {
         const day = new Date(weekStart);
         day.setDate(day.getDate() + i);
 
@@ -4648,84 +4648,84 @@ function renderWeeklyCalendar() {
     `;
 
         dayCard.addEventListener('click', () => {
-            selectedDate = new Date(day);
-            renderWeeklyCalendar();
-            loadAppointments();
-            updateSelectedDateLabel();
+          selectedDate = new Date(day);
+          renderWeeklyCalendar();
+          loadAppointments();
+          updateSelectedDateLabel();
         });
 
         weeklyCalendar.appendChild(dayCard);
+      }
+
+      // Cargar conteo de citas para cada día
+      loadWeekAppointmentCounts(weekStart);
     }
 
-    // Cargar conteo de citas para cada día
-    loadWeekAppointmentCounts(weekStart);
-}
-
-async function loadWeekAppointmentCounts(weekStart) {
-    for (let i = 0; i < 7; i++) {
+    async function loadWeekAppointmentCounts(weekStart) {
+      for (let i = 0; i < 7; i++) {
         const day = new Date(weekStart);
         day.setDate(day.getDate() + i);
         const dateStr = day.toISOString().split('T')[0];
 
         try {
-            const res = await fetch(`/api/appointments?date=${dateStr}`);
-            const json = await res.json();
-            const countEl = document.getElementById(`day-count-${dateStr}`);
-            if (countEl && json.success) {
-                const count = json.data.length;
-                countEl.textContent = count > 0 ? `${count} cita${count > 1 ? 's' : ''}` : 'Sin citas';
-            }
+          const res = await fetch(`/api/appointments?date=${dateStr}`);
+          const json = await res.json();
+          const countEl = document.getElementById(`day-count-${dateStr}`);
+          if (countEl && json.success) {
+            const count = json.data.length;
+            countEl.textContent = count > 0 ? `${count} cita${count > 1 ? 's' : ''}` : 'Sin citas';
+          }
         } catch (e) {
-            console.error('Error loading day count', e);
+          console.error('Error loading day count', e);
         }
+      }
     }
-}
 
-function updateSelectedDateLabel() {
-    if (!selectedDateLabel) return;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const selected = new Date(selectedDate);
-    selected.setHours(0, 0, 0, 0);
+    function updateSelectedDateLabel() {
+      if (!selectedDateLabel) return;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const selected = new Date(selectedDate);
+      selected.setHours(0, 0, 0, 0);
 
-    if (selected.getTime() === today.getTime()) {
+      if (selected.getTime() === today.getTime()) {
         selectedDateLabel.textContent = 'Hoy';
-    } else {
+      } else {
         const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
         selectedDateLabel.textContent = selected.toLocaleDateString('es-MX', options);
+      }
     }
-}
 
-// ========== CARGAR CITAS ==========
-async function loadAppointments() {
-    if (!apptsTbody) return;
-    apptsTbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;">Cargando...</td></tr>';
+    // ========== CARGAR CITAS ==========
+    async function loadAppointments() {
+      if (!apptsTbody) return;
+      apptsTbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;">Cargando...</td></tr>';
 
-    const dateStr = selectedDate.toISOString().split('T')[0];
-    try {
+      const dateStr = selectedDate.toISOString().split('T')[0];
+      try {
         const res = await fetch(`/api/appointments?date=${dateStr}`);
         const json = await res.json();
 
         if (json.success) {
-            if (json.data.length === 0) {
-                apptsTbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;" class="muted">No hay citas para este día</td></tr>';
-                return;
-            }
+          if (json.data.length === 0) {
+            apptsTbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;" class="muted">No hay citas para este día</td></tr>';
+            return;
+          }
 
-            apptsTbody.innerHTML = json.data.map(appt => {
-                const time = new Date(appt.startDateTime).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false });
-                const statusColors = {
-                    'scheduled': 'var(--venus-green)',
-                    'cancelled': 'var(--err-text)',
-                    'completed': 'var(--ok-text)'
-                };
-                const statusLabels = {
-                    'scheduled': 'Agendada',
-                    'cancelled': 'Cancelada',
-                    'completed': 'Completada'
-                };
+          apptsTbody.innerHTML = json.data.map(appt => {
+            const time = new Date(appt.startDateTime).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false });
+            const statusColors = {
+              'scheduled': 'var(--venus-green)',
+              'cancelled': 'var(--err-text)',
+              'completed': 'var(--ok-text)'
+            };
+            const statusLabels = {
+              'scheduled': 'Agendada',
+              'cancelled': 'Cancelada',
+              'completed': 'Completada'
+            };
 
-                return `
+            return `
           <tr>
             <td style="font-weight:bold;color:#fff;">${time}</td>
             <td>
@@ -4739,205 +4739,205 @@ async function loadAppointments() {
             </td>
           </tr>
         `;
-            }).join('');
+          }).join('');
         }
-    } catch (e) {
+      } catch (e) {
         console.error(e);
         apptsTbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--err-text);">Error cargando citas</td></tr>';
+      }
     }
-}
 
-// ========== ESTADÍSTICAS DEL MES ==========
-async function loadMonthStats() {
-    const now = new Date();
-    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    // ========== ESTADÍSTICAS DEL MES ==========
+    async function loadMonthStats() {
+      const now = new Date();
+      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-    try {
+      try {
         // Aquí deberías tener un endpoint que devuelva stats del mes
         // Por ahora, simularemos con datos de ejemplo
         document.getElementById('stat-total').textContent = '-';
         document.getElementById('stat-completed').textContent = '-';
         document.getElementById('stat-cancelled').textContent = '-';
         document.getElementById('stat-pending').textContent = '-';
-    } catch (e) {
+      } catch (e) {
         console.error('Error loading month stats', e);
+      }
     }
-}
 
-// ========== CANCELAR CITA ==========
-window.cancelAppointment = async (id) => {
-    if (!confirm('¿Cancelar esta cita?')) return;
-    try {
+    // ========== CANCELAR CITA ==========
+    window.cancelAppointment = async (id) => {
+      if (!confirm('¿Cancelar esta cita?')) return;
+      try {
         await fetch(`/api/appointments/${id}/cancel`, { method: 'PATCH' });
         loadAppointments();
         renderWeeklyCalendar();
-    } catch (e) { alert('Error: ' + e.message); }
-};
+      } catch (e) { alert('Error: ' + e.message); }
+    };
 
-// ========== EVENT LISTENERS ==========
+    // ========== EVENT LISTENERS ==========
 
-// Navegación semanal
-if (btnPrevWeek) {
-    btnPrevWeek.addEventListener('click', () => {
+    // Navegación semanal
+    if (btnPrevWeek) {
+      btnPrevWeek.addEventListener('click', () => {
         currentWeekStart.setDate(currentWeekStart.getDate() - 7);
         renderWeeklyCalendar();
-    });
-}
+      });
+    }
 
-if (btnNextWeek) {
-    btnNextWeek.addEventListener('click', () => {
+    if (btnNextWeek) {
+      btnNextWeek.addEventListener('click', () => {
         currentWeekStart.setDate(currentWeekStart.getDate() + 7);
         renderWeeklyCalendar();
-    });
-}
+      });
+    }
 
-if (btnToday) {
-    btnToday.addEventListener('click', () => {
+    if (btnToday) {
+      btnToday.addEventListener('click', () => {
         currentWeekStart = new Date();
         selectedDate = new Date();
         renderWeeklyCalendar();
         loadAppointments();
         updateSelectedDateLabel();
-    });
-}
+      });
+    }
 
-if (btnRefreshAppts) {
-    btnRefreshAppts.addEventListener('click', () => {
+    if (btnRefreshAppts) {
+      btnRefreshAppts.addEventListener('click', () => {
         loadAppointments();
         renderWeeklyCalendar();
-    });
-}
+      });
+    }
 
-// Modal
-if (btnNewAppt) {
-    btnNewAppt.addEventListener('click', () => {
+    // Modal
+    if (btnNewAppt) {
+      btnNewAppt.addEventListener('click', () => {
         loadServices();
         loadClients();
         generateTimeOptions();
         newApptDialog.showModal();
         document.getElementById('new-appt-date').value = selectedDate.toISOString().split('T')[0];
-    });
-}
+      });
+    }
 
-if (btnCancelAppt) {
-    btnCancelAppt.addEventListener('click', () => newApptDialog.close());
-}
+    if (btnCancelAppt) {
+      btnCancelAppt.addEventListener('click', () => newApptDialog.close());
+    }
 
-// Cliente select
-if (clientSelect) {
-    clientSelect.addEventListener('change', function () {
+    // Cliente select
+    if (clientSelect) {
+      clientSelect.addEventListener('change', function () {
         const selectedOption = this.options[this.selectedIndex];
         if (selectedOption.value) {
-            phoneInput.value = selectedOption.dataset.phone || '';
-            phoneInput.readOnly = true;
+          phoneInput.value = selectedOption.dataset.phone || '';
+          phoneInput.readOnly = true;
         } else {
-            phoneInput.value = '';
-            phoneInput.readOnly = false;
+          phoneInput.value = '';
+          phoneInput.readOnly = false;
         }
-    });
-}
+      });
+    }
 
-// Servicio select - auto-llenar precio y calcular hora fin
-if (serviceSelect) {
-    serviceSelect.addEventListener('change', function () {
+    // Servicio select - auto-llenar precio y calcular hora fin
+    if (serviceSelect) {
+      serviceSelect.addEventListener('change', function () {
         const selectedOption = this.options[this.selectedIndex];
         if (selectedOption.value) {
-            const price = selectedOption.dataset.price;
-            if (price && priceInput) {
-                priceInput.value = price;
-            }
-            calculateEndTime();
+          const price = selectedOption.dataset.price;
+          if (price && priceInput) {
+            priceInput.value = price;
+          }
+          calculateEndTime();
         }
-    });
-}
+      });
+    }
 
-// Hora select - calcular hora fin
-if (timeSelect) {
-    timeSelect.addEventListener('change', calculateEndTime);
-}
+    // Hora select - calcular hora fin
+    if (timeSelect) {
+      timeSelect.addEventListener('change', calculateEndTime);
+    }
 
-function calculateEndTime() {
-    if (!timeSelect || !endTimeInput || !serviceSelect) return;
+    function calculateEndTime() {
+      if (!timeSelect || !endTimeInput || !serviceSelect) return;
 
-    const startTime = timeSelect.value;
-    const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+      const startTime = timeSelect.value;
+      const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
 
-    if (!startTime || !selectedOption.value) return;
+      if (!startTime || !selectedOption.value) return;
 
-    const duration = parseInt(selectedOption.dataset.duration) || 60;
+      const duration = parseInt(selectedOption.dataset.duration) || 60;
 
-    const [hours, minutes] = startTime.split(':').map(Number);
-    const startDate = new Date();
-    startDate.setHours(hours, minutes, 0);
+      const [hours, minutes] = startTime.split(':').map(Number);
+      const startDate = new Date();
+      startDate.setHours(hours, minutes, 0);
 
-    const endDate = new Date(startDate.getTime() + duration * 60000);
+      const endDate = new Date(startDate.getTime() + duration * 60000);
 
-    const endHours = endDate.getHours();
-    const endMinutes = endDate.getMinutes();
-    const displayHour = endHours > 12 ? endHours - 12 : endHours;
-    const period = endHours >= 12 ? 'PM' : 'AM';
+      const endHours = endDate.getHours();
+      const endMinutes = endDate.getMinutes();
+      const displayHour = endHours > 12 ? endHours - 12 : endHours;
+      const period = endHours >= 12 ? 'PM' : 'AM';
 
-    endTimeInput.value = `${displayHour}:${String(endMinutes).padStart(2, '0')} ${period}`;
-}
+      endTimeInput.value = `${displayHour}:${String(endMinutes).padStart(2, '0')} ${period}`;
+    }
 
-// Toggle nuevo cliente form
-if (btnToggleNewClient) {
-    btnToggleNewClient.addEventListener('click', () => {
+    // Toggle nuevo cliente form
+    if (btnToggleNewClient) {
+      btnToggleNewClient.addEventListener('click', () => {
         const isHidden = newClientForm.style.display === 'none';
         newClientForm.style.display = isHidden ? 'block' : 'none';
         btnToggleNewClient.textContent = isHidden ? '- Cancelar' : '+ Registrar nuevo cliente';
-    });
-}
+      });
+    }
 
-// Guardar nuevo cliente
-if (btnSaveNewClient) {
-    btnSaveNewClient.addEventListener('click', async () => {
+    // Guardar nuevo cliente
+    if (btnSaveNewClient) {
+      btnSaveNewClient.addEventListener('click', async () => {
         const name = document.getElementById('new-client-name').value.trim();
         const phone = document.getElementById('new-client-phone').value.trim();
 
         if (!name || !phone) {
-            alert('Por favor completa nombre y teléfono');
-            return;
+          alert('Por favor completa nombre y teléfono');
+          return;
         }
 
         try {
-            const res = await fetch('/api/clients', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, phone })
-            });
+          const res = await fetch('/api/clients', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, phone })
+          });
 
-            const json = await res.json();
-            if (json.success) {
-                alert('✅ Cliente guardado');
-                await loadClients();
+          const json = await res.json();
+          if (json.success) {
+            alert('✅ Cliente guardado');
+            await loadClients();
 
-                // Seleccionar el nuevo cliente
-                const newClientId = json.client.id;
-                clientSelect.value = newClientId;
-                phoneInput.value = phone;
-                phoneInput.readOnly = true;
+            // Seleccionar el nuevo cliente
+            const newClientId = json.client.id;
+            clientSelect.value = newClientId;
+            phoneInput.value = phone;
+            phoneInput.readOnly = true;
 
-                // Ocultar form
-                newClientForm.style.display = 'none';
-                btnToggleNewClient.textContent = '+ Registrar nuevo cliente';
+            // Ocultar form
+            newClientForm.style.display = 'none';
+            btnToggleNewClient.textContent = '+ Registrar nuevo cliente';
 
-                // Limpiar campos
-                document.getElementById('new-client-name').value = '';
-                document.getElementById('new-client-phone').value = '';
-            } else {
-                alert('❌ Error: ' + json.error);
-            }
+            // Limpiar campos
+            document.getElementById('new-client-name').value = '';
+            document.getElementById('new-client-phone').value = '';
+          } else {
+            alert('❌ Error: ' + json.error);
+          }
         } catch (e) {
-            alert('Error de conexión');
+          alert('Error de conexión');
         }
-    });
-}
+      });
+    }
 
-// Submit form
-if (formNewAppt) {
-    formNewAppt.addEventListener('submit', async (e) => {
+    // Submit form
+    if (formNewAppt) {
+      formNewAppt.addEventListener('submit', async (e) => {
         e.preventDefault();
         const btn = formNewAppt.querySelector('button[type="submit"]');
         const originalText = btn.textContent;
@@ -4945,72 +4945,68 @@ if (formNewAppt) {
         btn.textContent = 'Agendando...';
 
         try {
-            const clientOption = clientSelect.options[clientSelect.selectedIndex];
-            const serviceOpt = serviceSelect.options[serviceSelect.selectedIndex];
+          const clientOption = clientSelect.options[clientSelect.selectedIndex];
+          const serviceOpt = serviceSelect.options[serviceSelect.selectedIndex];
 
-            const body = {
-                name: clientOption.dataset.name || clientOption.textContent,
-                phone: phoneInput.value,
-                serviceId: serviceSelect.value,
-                serviceName: serviceOpt.dataset.name,
-                date: document.getElementById('new-appt-date').value,
-                time: timeSelect.value,
-                durationMinutes: parseInt(serviceOpt.dataset.duration),
-                sendWhatsAppConfirmation: document.getElementById('check-whatsapp-confirm').checked,
-                sendWhatsApp24h: document.getElementById('check-whatsapp-24h').checked,
-                sendWhatsApp2h: document.getElementById('check-whatsapp-2h').checked
-            };
+          const body = {
+            name: clientOption.dataset.name || clientOption.textContent,
+            phone: phoneInput.value,
+            serviceId: serviceSelect.value,
+            serviceName: serviceOpt.dataset.name,
+            date: document.getElementById('new-appt-date').value,
+            time: timeSelect.value,
+            durationMinutes: parseInt(serviceOpt.dataset.duration),
+            sendWhatsAppConfirmation: document.getElementById('check-whatsapp-confirm').checked,
+            sendWhatsApp24h: document.getElementById('check-whatsapp-24h').checked,
+            sendWhatsApp2h: document.getElementById('check-whatsapp-2h').checked
+          };
 
-            const res = await fetch('/api/appointments', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body)
-            });
+          const res = await fetch('/api/appointments', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+          });
 
-            const json = await res.json();
-            if (json.success) {
-                alert('✅ Cita agendada');
-                newApptDialog.close();
-                formNewAppt.reset();
-                loadAppointments();
-                renderWeeklyCalendar();
-            } else {
-                alert('❌ Error: ' + json.error);
-            }
+          const json = await res.json();
+          if (json.success) {
+            alert('✅ Cita agendada');
+            newApptDialog.close();
+            formNewAppt.reset();
+            loadAppointments();
+            renderWeeklyCalendar();
+          } else {
+            alert('❌ Error: ' + json.error);
+          }
         } catch (e) {
-            alert('Error de conexión');
+          alert('Error de conexión');
         } finally {
-            btn.disabled = false;
-            btn.textContent = originalText;
+          btn.disabled = false;
+          btn.textContent = originalText;
         }
-    });
-}
+      });
+    }
 
-// Inicializar
-renderWeeklyCalendar();
-updateSelectedDateLabel();
-loadMonthStats();
+    // Inicializar
+    renderWeeklyCalendar();
+    updateSelectedDateLabel();
+    loadMonthStats();
 
-// Auto-load when tab is shown
-window.addEventListener('hashchange', () => {
-    if (location.hash === '#appointments') {
+    // Auto-load when tab is shown
+    window.addEventListener('hashchange', () => {
+      if (location.hash === '#appointments') {
         renderWeeklyCalendar();
         loadAppointments();
         updateSelectedDateLabel();
         loadMonthStats();
-    }
-});
-
-if (location.hash === '#appointments') {
-    renderWeeklyCalendar();
-    loadAppointments();
-    updateSelectedDateLabel();
-    loadMonthStats();
-}
-
+      }
     });
-    // Initial load if hash is present
-    if (location.hash === '#appointments') loadAppointments();
+
+    if (location.hash === '#appointments') {
+      renderWeeklyCalendar();
+      loadAppointments();
+      updateSelectedDateLabel();
+      loadMonthStats();
+    }
 
   </script>
 </body>
