@@ -1589,19 +1589,20 @@
               </div>
             </div>
 
-            <!-- Teléfono (solo lectura cuando se selecciona cliente) -->
+            <!-- Teléfono -->
             <div>
               <label class="form-label">Teléfono</label>
-              <input type="tel" id="new-appt-phone" class="form-input" placeholder="52..." required readonly>
+              <input type="tel" id="new-appt-phone" class="form-input" placeholder="4421234567" required>
             </div>
 
             <!-- Servicio y Precio -->
-            <div style="display:grid;grid-template-columns:2fr 1fr;gap:10px;">
+            <div style="display:grid;grid-template-columns:1fr 120px;gap:10px;">
               <div>
                 <label class="form-label">Servicio</label>
-                <select id="new-appt-service" class="form-input" required>
-                  <option value="">Selecciona un servicio...</option>
-                </select>
+                <input type="text" id="new-appt-service" class="form-input" list="services-datalist"
+                  placeholder="Buscar o escribir servicio..." autocomplete="off" required>
+                <datalist id="services-datalist">
+                </datalist>
               </div>
               <div>
                 <label class="form-label">Precio</label>
@@ -1609,7 +1610,7 @@
               </div>
             </div>
 
-            <!-- Fecha y Hora --\>
+            <!-- Fecha y Hora -->
             <div style="display:grid;grid-template-columns:1fr 80px 80px 1fr;gap:10px;">
               <div>
                 <label class="form-label">Fecha</label>
@@ -4593,17 +4594,17 @@
       try {
         const res = await fetch('/api/services');
         const json = await res.json();
-        if (json.success && serviceSelect) {
+        const datalist = document.getElementById('services-datalist');
+        if (json.success && datalist) {
           allServices = json.data;
-          serviceSelect.innerHTML = '<option value="">Selecciona un servicio...</option>';
+          datalist.innerHTML = '';
           json.data.forEach(s => {
             const opt = document.createElement('option');
-            opt.value = s.id;
-            opt.textContent = `${s.name} (${s.durationMinutes} min)`;
-            opt.dataset.name = s.name;
+            opt.value = `${s.name}`;
+            opt.dataset.id = s.id;
             opt.dataset.duration = s.durationMinutes;
             opt.dataset.price = s.price;
-            serviceSelect.appendChild(opt);
+            datalist.appendChild(opt);
           });
         }
       } catch (e) { console.error('Error loading services', e); }
@@ -4854,15 +4855,13 @@
       });
     }
 
-    // Servicio select - auto-llenar precio y calcular hora fin
+    // Servicio input - auto-llenar precio y calcular hora fin
     if (serviceSelect) {
-      serviceSelect.addEventListener('change', function () {
-        const selectedOption = this.options[this.selectedIndex];
-        if (selectedOption.value) {
-          const price = selectedOption.dataset.price;
-          if (price && priceInput) {
-            priceInput.value = price;
-          }
+      serviceSelect.addEventListener('input', function () {
+        const serviceName = this.value.trim();
+        const service = allServices.find(s => s.name === serviceName);
+        if (service && priceInput) {
+          priceInput.value = service.price;
           calculateEndTime();
         }
       });
@@ -4966,8 +4965,6 @@
         btn.textContent = 'Agendando...';
 
         try {
-          const serviceOpt = serviceSelect.options[serviceSelect.selectedIndex];
-
           // Construir hora desde los selectores separados
           const hour = hourSelect.value;
           const minute = minuteSelect.value;
@@ -4981,14 +4978,25 @@
 
           const time = `${hour}:${minute}`;
 
+          // Buscar servicio en allServices
+          const serviceName = serviceSelect.value.trim();
+          const service = allServices.find(s => s.name === serviceName);
+
+          if (!service) {
+            alert('Por favor selecciona un servicio válido');
+            btn.disabled = false;
+            btn.textContent = originalText;
+            return;
+          }
+
           const body = {
             name: clientSelect.value.trim(),
             phone: phoneInput.value,
-            serviceId: serviceSelect.value,
-            serviceName: serviceOpt.dataset.name,
+            serviceId: service.id,
+            serviceName: service.name,
             date: document.getElementById('new-appt-date').value,
             time: time,
-            durationMinutes: parseInt(serviceOpt.dataset.duration),
+            durationMinutes: parseInt(service.durationMinutes),
             sendWhatsAppConfirmation: document.getElementById('check-whatsapp-confirm').checked,
             sendWhatsApp24h: document.getElementById('check-whatsapp-24h').checked,
             sendWhatsApp2h: document.getElementById('check-whatsapp-2h').checked
