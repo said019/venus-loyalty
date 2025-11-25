@@ -5041,7 +5041,18 @@
 
         // Extract date and time from startDateTime
         const startDate = new Date(appt.startDateTime);
-        editDateInput.value = appt.startDateTime.split('T')[0];
+        const isoDate = appt.startDateTime.split('T')[0];
+        editDateInput.value = isoDate;
+
+        // Initialize calendar with existing date
+        editApptCalendar.selectedDate = isoDate;
+        const date = new Date(isoDate + 'T12:00:00');
+        const day = date.getDate();
+        const month = date.getMonth() + 1;
+        const year = date.getFullYear();
+        editDateInput.value = `${day}/${month}/${year}`;
+        editDateInput.dataset.isoDate = isoDate;
+
         editHourSelect.value = String(startDate.getHours()).padStart(2, '0');
         editMinuteSelect.value = String(startDate.getMinutes()).padStart(2, '0');
 
@@ -5151,7 +5162,7 @@
           const body = {
             serviceId: service.id,
             serviceName: service.name,
-            date: editDateInput.value,
+            date: editApptCalendar.getISODate() || editDateInput.value,
             time: time,
             durationMinutes: parseInt(service.durationMinutes)
           };
