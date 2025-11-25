@@ -1936,13 +1936,19 @@
       }
 
       /* Mobile Responsiveness */
-      @media (max-width: 480px) {
+      @media (max-width: 768px) {
         .grid-service-price {
           grid-template-columns: 1fr;
         }
 
         .grid-date-time {
           grid-template-columns: 1fr 1fr;
+          gap: 8px;
+        }
+
+        /* Make date span full width on mobile */
+        .grid-date-time>div:first-child {
+          grid-column: 1 / -1;
         }
 
         #newApptDialog,
