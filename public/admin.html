@@ -4838,18 +4838,47 @@
     // ========== ESTADÍSTICAS DEL MES ==========
     async function loadMonthStats() {
       const now = new Date();
-      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      const year = now.getFullYear();
+      const month = now.getMonth();
+      const firstDay = new Date(year, month, 1);
+      const lastDay = new Date(year, month + 1, 0);
 
       try {
-        // Aquí deberías tener un endpoint que devuelva stats del mes
-        // Por ahora, simularemos con datos de ejemplo
+        // Obtener todas las citas del mes
+        const res = await fetch('/api/appointments/month?' + new URLSearchParams({
+          year: year.toString(),
+          month: (month + 1).toString()
+        }));
+
+        if (!res.ok) {
+          throw new Error('Error cargando estadísticas');
+        }
+
+        const json = await res.json();
+
+        if (json.success && json.data) {
+          const appointments = json.data;
+          const total = appointments.length;
+          const completed = appointments.filter(a => a.status === 'completed').length;
+          const cancelled = appointments.filter(a => a.status === 'cancelled').length;
+          const pending = appointments.filter(a => a.status === 'scheduled').length;
+
+          document.getElementById('stat-total').textContent = total;
+          document.getElementById('stat-completed').textContent = completed;
+          document.getElementById('stat-cancelled').textContent = cancelled;
+          document.getElementById('stat-pending').textContent = pending;
+        } else {
+          document.getElementById('stat-total').textContent = '0';
+          document.getElementById('stat-completed').textContent = '0';
+          document.getElementById('stat-cancelled').textContent = '0';
+          document.getElementById('stat-pending').textContent = '0';
+        }
+      } catch (e) {
+        console.error('Error loading month stats', e);
         document.getElementById('stat-total').textContent = '-';
         document.getElementById('stat-completed').textContent = '-';
         document.getElementById('stat-cancelled').textContent = '-';
         document.getElementById('stat-pending').textContent = '-';
-      } catch (e) {
-        console.error('Error loading month stats', e);
       }
     }
 
@@ -4860,6 +4889,7 @@
         await fetch(`/api/appointments/${id}/cancel`, { method: 'PATCH' });
         loadAppointments();
         renderWeeklyCalendar();
+        loadMonthStats();
       } catch (e) { alert('Error: ' + e.message); }
     };
 
@@ -5036,6 +5066,7 @@
             formEditAppt.reset();
             loadAppointments();
             renderWeeklyCalendar();
+            loadMonthStats();
           } else {
             alert('❌ Error: ' + json.error);
           }

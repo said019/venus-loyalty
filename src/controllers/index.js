@@ -147,6 +147,34 @@ export const AppointmentsController = {
         }
     },
 
+    async getByMonth(req, res) {
+        try {
+            const { year, month } = req.query;
+            if (!year || !month) {
+                return res.status(400).json({ success: false, error: 'Missing year or month' });
+            }
+
+            // Calcular primer y último día del mes
+            const firstDay = new Date(parseInt(year), parseInt(month) - 1, 1);
+            const lastDay = new Date(parseInt(year), parseInt(month), 0, 23, 59, 59);
+
+            const startISO = firstDay.toISOString().split('T')[0] + 'T00:00:00';
+            const endISO = lastDay.toISOString().split('T')[0] + 'T23:59:59';
+
+            // Obtener todas las citas del mes (incluyendo cancelled para stats)
+            const snap = await firestore.collection('appointments')
+                .where('startDateTime', '>=', startISO)
+                .where('startDateTime', '<=', endISO)
+                .get();
+
+            const appointments = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+            res.json({ success: true, data: appointments });
+        } catch (error) {
+            res.status(500).json({ success: false, error: error.message });
+        }
+    },
+
     async cancel(req, res) {
         try {
             const { id } = req.params;
