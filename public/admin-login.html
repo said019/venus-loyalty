@@ -447,6 +447,8 @@
           <button class="active" data-tab="login" aria-selected="true">Iniciar sesión</button>
           <button data-tab="register" aria-selected="false">Crear cuenta</button>
           <button data-tab="forgot" aria-selected="false">Olvidé mi contraseña</button>
+          <button data-tab="reset" aria-selected="false" id="tab-reset-btn" class="hidden">Restablecer
+            contraseña</button>
         </nav>
 
         <!-- LOGIN -->
@@ -500,6 +502,23 @@
             </div>
           </form>
         </section>
+
+        <!-- RESET -->
+        <section id="tab-reset" class="hidden">
+          <h2 class="section-title">Nueva contraseña</h2>
+          <p class="muted">Ingresa tu nueva contraseña (debe tener al menos 6 caracteres).</p>
+          <div id="reset-alert" class="alert hidden"></div>
+          <form id="form-reset">
+            <input id="reset-token" type="hidden">
+
+            <label>Nueva contraseña</label>
+            <input id="reset-pass" type="password" minlength="6" required placeholder="Mínimo 6 caracteres">
+
+            <div style="margin-top:12px;text-align:right;">
+              <button class="btn btn-primary" type="submit">Actualizar contraseña</button>
+            </div>
+          </form>
+        </section>
       </section>
 
       <div class="footer">© Venus Cosmetología</div>
@@ -512,7 +531,8 @@
     const sections = {
       login: document.getElementById('tab-login'),
       register: document.getElementById('tab-register'),
-      forgot: document.getElementById('tab-forgot')
+      forgot: document.getElementById('tab-forgot'),
+      reset: document.getElementById('tab-reset')
     };
 
     function activate(tab) {
@@ -525,6 +545,18 @@
         if (k === tab) { el.classList.remove('hidden'); }
         else { el.classList.add('hidden'); }
       });
+
+      // Special handling for reset tab button
+      const resetBtn = document.getElementById('tab-reset-btn');
+      if (tab === 'reset') {
+        resetBtn.classList.remove('hidden');
+      } else {
+        const params = new URLSearchParams(location.search);
+        if (!params.get('token')) {
+          resetBtn.classList.add('hidden');
+        }
+      }
+
       const params = new URLSearchParams(location.search);
       params.set('view', tab);
       history.replaceState(null, '', '?' + params.toString());
@@ -537,8 +569,19 @@
         activate(a.dataset.goto);
       })
     );
-    const urlView = new URLSearchParams(location.search).get('view');
-    if (urlView && sections[urlView]) activate(urlView);
+    // Check for reset token in URL on load
+    const urlParams = new URLSearchParams(location.search);
+    const urlView = urlParams.get('view');
+    const resetToken = urlParams.get('token');
+
+    if (resetToken && urlView === 'reset') {
+      // Show reset tab button and activate reset view
+      document.getElementById('tab-reset-btn').classList.remove('hidden');
+      document.getElementById('reset-token').value = resetToken;
+      activate('reset');
+    } else if (urlView && sections[urlView]) {
+      activate(urlView);
+    }
 
     // helpers alerts
     function showAlert(id, type, msg) {
@@ -623,6 +666,39 @@
         'ok',
         'Te enviamos un enlace de restablecimiento si el correo existe en el sistema.'
       );
+    });
+
+    // Submit: reset
+    document.getElementById('form-reset').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearAlert('reset-alert');
+      const token = document.getElementById('reset-token').value;
+      const password = document.getElementById('reset-pass').value;
+
+      if (!token) {
+        showAlert('reset-alert', 'err', 'Token inválido o ausente');
+        return;
+      }
+
+      const r = await fetch('/api/admin/reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, password })
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        const map = {
+          invalid_token: 'El enlace no es válido',
+          expired: 'El enlace expiró. Solicita uno nuevo.',
+          missing_fields: 'Faltan datos'
+        };
+        showAlert('reset-alert', 'err', map[j.error] || 'No se pudo actualizar la contraseña');
+        return;
+      }
+      showAlert('reset-alert', 'ok', 'Contraseña actualizada. Redirigiendo...');
+      setTimeout(() => {
+        location.href = '/admin-login.html?view=login';
+      }, 1500);
     });
   </script>
 </body>
