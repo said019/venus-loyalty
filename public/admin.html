@@ -2497,7 +2497,7 @@
           <div class="form-group" style="flex:1;">
             <label class="form-label">Precio ($)</label>
             <div style="position:relative;">
-              <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);">$</span>
+              <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--ink);">$</span>
               <input type="number" id="service-price" class="form-input" required min="0" step="50"
                 style="padding-left:25px;">
             </div>
@@ -6044,7 +6044,7 @@
           const res = await fetch('/api/appointments', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body)
+            body: JSON.stringify(payload)
           });
 
           const json = await res.json();
@@ -6116,8 +6116,8 @@
               <td>$${s.price}</td>
               <td>
                 <div class="actions">
-                  <button class="btn small ghost" onclick="editService('${s.id}')">✏️ Editar</button>
-                  <button class="btn small ghost" style="color:#ef4444;border-color:#ef4444;" onclick="deleteService('${s.id}')">🗑️</button>
+                  <button class="btn small ghost" onclick="editService('${s.id}')">Editar</button>
+                  <button class="btn small ghost" style="color:#ef4444;border-color:#ef4444;" onclick="deleteService('${s.id}')">Eliminar</button>
                 </div>
               </td>
             </tr>
@@ -6148,52 +6148,56 @@
       } catch (e) { console.error(e); }
     };
 
-    btnNewService.addEventListener('click', () => {
-      document.getElementById('form-service').reset();
-      document.getElementById('service-id').value = '';
-      document.getElementById('modal-service-title').textContent = 'Nuevo Servicio';
-      modalService.classList.remove('hidden');
-    });
+    if (btnNewService) {
+      btnNewService.addEventListener('click', () => {
+        document.getElementById('form-service').reset();
+        document.getElementById('service-id').value = '';
+        document.getElementById('modal-service-title').textContent = 'Nuevo Servicio';
+        modalService.classList.remove('hidden');
+      });
+    }
 
     // Cerrar modal
     const closeServiceModalFn = () => modalService.classList.add('hidden');
-    closeModalService.addEventListener('click', closeServiceModalFn);
-    btnCancelService.addEventListener('click', closeServiceModalFn);
+    if (closeModalService) closeModalService.addEventListener('click', closeServiceModalFn);
+    if (btnCancelService) btnCancelService.addEventListener('click', closeServiceModalFn);
 
     // Guardar servicio
-    formService.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const id = document.getElementById('service-id').value;
-      const data = {
-        name: document.getElementById('service-name').value,
-        durationMinutes: parseInt(document.getElementById('service-duration').value),
-        price: parseFloat(document.getElementById('service-price').value)
-      };
+    if (formService) {
+      formService.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('service-id').value;
+        const data = {
+          name: document.getElementById('service-name').value,
+          durationMinutes: parseInt(document.getElementById('service-duration').value),
+          price: parseFloat(document.getElementById('service-price').value)
+        };
 
-      try {
-        const url = id ? `/api/services/${id}` : '/api/services';
-        const method = id ? 'PUT' : 'POST';
+        try {
+          const url = id ? `/api/services/${id}` : '/api/services';
+          const method = id ? 'PUT' : 'POST';
 
-        const res = await fetch(url, {
-          method,
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
-        });
+          const res = await fetch(url, {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+          });
 
-        const json = await res.json();
-        if (json.success) {
-          closeServiceModalFn();
-          loadServicesTable();
-          // Recargar dropdowns de citas también
-          loadServices();
-        } else {
-          alert('Error al guardar: ' + json.error);
+          const json = await res.json();
+          if (json.success) {
+            closeServiceModalFn();
+            loadServicesTable();
+            // Recargar dropdowns de citas también
+            loadServices();
+          } else {
+            alert('Error al guardar: ' + json.error);
+          }
+        } catch (error) {
+          console.error(error);
+          alert('Error de conexión');
         }
-      } catch (error) {
-        console.error(error);
-        alert('Error de conexión');
-      }
-    });
+      });
+    }
 
     // Eliminar servicio
     window.deleteService = async (id) => {
