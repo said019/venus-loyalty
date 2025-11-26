@@ -1565,22 +1565,30 @@
         <button class="btn primary" id="btn-new-service">Nuevo Servicio</button>
       </div>
 
+      <!-- Barra de búsqueda -->
+      <div class="card" style="margin-bottom:16px;">
+        <input type="text" id="search-services" class="form-input" placeholder="🔍 Buscar servicio por nombre..."
+          style="width:100%;max-width:400px;">
+      </div>
+
       <div class="card">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Nombre</th>
-              <th>Duración (min)</th>
-              <th>Precio</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody id="services-tbody">
-            <tr>
-              <td colspan="4" class="muted" style="text-align:center;padding:20px;">Cargando servicios...</td>
-            </tr>
-          </tbody>
-        </table>
+        <div class="table-wrap" style="overflow-x:auto;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Duración (min)</th>
+                <th>Precio</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="services-tbody">
+              <tr>
+                <td colspan="4" class="muted" style="text-align:center;padding:20px;">Cargando servicios...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </section>
 
@@ -1979,6 +1987,75 @@
         color: var(--muted);
         text-transform: uppercase;
         margin-bottom: 4px;
+      }
+
+      .data-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+
+      .data-table th,
+      .data-table td {
+        padding: 12px 8px;
+        text-align: left;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .data-table th {
+        font-weight: 600;
+        color: var(--venus-soft);
+        background: rgba(255, 255, 255, .02);
+      }
+
+      .data-table tbody tr:hover {
+        background: rgba(255, 255, 255, .03);
+      }
+
+      /* Responsive table */
+      @media (max-width: 768px) {
+        .data-table thead {
+          display: none;
+        }
+
+        .data-table,
+        .data-table tbody,
+        .data-table tr,
+        .data-table td {
+          display: block;
+          width: 100%;
+        }
+
+        .data-table tr {
+          margin-bottom: 16px;
+          border: 1px solid var(--line);
+          border-radius: 12px;
+          padding: 12px;
+          background: rgba(255, 255, 255, .02);
+        }
+
+        .data-table td {
+          padding: 8px 0;
+          border: none;
+          position: relative;
+          padding-left: 45%;
+          text-align: right;
+        }
+
+        .data-table td::before {
+          content: attr(data-label);
+          position: absolute;
+          left: 0;
+          width: 40%;
+          padding-left: 8px;
+          font-weight: 600;
+          color: var(--venus-soft);
+          text-align: left;
+        }
+
+        .data-table td .actions {
+          justify-content: flex-end;
+        }
       }
 
       .day-number {
@@ -6114,24 +6191,36 @@
             return;
           }
 
-          servicesTbody.innerHTML = services.map(s => `
-            <tr>
-              <td>${s.name}</td>
-              <td>${s.durationMinutes} min</td>
-              <td>$${s.price}</td>
-              <td>
-                <div class="actions">
-                  <button class="btn small ghost" onclick="editService('${s.id}')">Editar</button>
-                  <button class="btn small ghost" style="color:#ef4444;border-color:#ef4444;" onclick="deleteService('${s.id}')">Eliminar</button>
-                </div>
-              </td>
-            </tr>
-          `).join('');
+          // Store services globally for search
+          window.allServicesData = services;
+          renderServicesTable(services);
         }
       } catch (error) {
         console.error('Error loading services:', error);
         servicesTbody.innerHTML = '<tr><td colspan="4" style="color:red;text-align:center;">Error al cargar servicios</td></tr>';
       }
+    }
+
+    // Función para renderizar la tabla de servicios
+    function renderServicesTable(services) {
+      if (services.length === 0) {
+        servicesTbody.innerHTML = '<tr><td colspan="4" class="muted" style="text-align:center;padding:20px;">No se encontraron servicios</td></tr>';
+        return;
+      }
+
+      servicesTbody.innerHTML = services.map(s => `
+        <tr>
+          <td data-label="Nombre">${s.name}</td>
+          <td data-label="Duración">${s.durationMinutes} min</td>
+          <td data-label="Precio">$${s.price}</td>
+          <td data-label="Acciones">
+            <div class="actions">
+              <button class="btn small ghost" onclick="editService('${s.id}')">Editar</button>
+              <button class="btn small ghost" style="color:#ef4444;border-color:#ef4444;" onclick="deleteService('${s.id}')">Eliminar</button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
     }
 
     // Abrir modal (Nuevo o Editar)
@@ -6229,6 +6318,25 @@
         loadServicesTable();
       });
     });
+
+    // Búsqueda de servicios
+    const searchServicesInput = document.getElementById('search-services');
+    if (searchServicesInput) {
+      searchServicesInput.addEventListener('input', (e) => {
+        const searchTerm = e.target.value.toLowerCase().trim();
+
+        if (!window.allServicesData) return;
+
+        if (searchTerm === '') {
+          renderServicesTable(window.allServicesData);
+        } else {
+          const filtered = window.allServicesData.filter(s =>
+            s.name.toLowerCase().includes(searchTerm)
+          );
+          renderServicesTable(filtered);
+        }
+      });
+    }
 
   </script>
 </body>
