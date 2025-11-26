@@ -17,17 +17,26 @@ function toast(el, msg, ok = true) {
 }
 
 // Tabs
-$$("[data-tab]").forEach((a) => {
-  a.addEventListener("click", (e) => {
+// Tabs
+function switchView(viewId) {
+  $$('.nav a').forEach(x => {
+    const href = x.getAttribute('href');
+    x.classList.toggle('is-active', href === '#' + viewId);
+  });
+  ['overview', 'cards', 'events', 'settings'].forEach(t => {
+    $('#tab-' + t).classList.toggle('hidden', t !== viewId);
+  });
+}
+window.switchView = switchView; // Make it globally available
+
+$$('[data-tab]').forEach(a => {
+  a.addEventListener('click', e => {
     e.preventDefault();
-    $$(".nav a").forEach((x) => x.classList.remove("is-active"));
-    a.classList.add("is-active");
-    const id = a.getAttribute("href")?.replace("#", "") || "overview";
-    ["overview", "cards", "events", "settings"].forEach((t) => {
-      $("#tab-" + t).classList.toggle("hidden", t !== id);
-    });
+    const id = a.getAttribute('href')?.replace('#', '') || 'overview';
+    switchView(id);
   });
 });
+
 
 // ====== Sesión (admin) ======
 async function me() {
@@ -103,8 +112,8 @@ async function loadCards() {
   );
   tb.querySelectorAll(".btn-open").forEach(
     (b) =>
-      (b.onclick = () =>
-        window.open(`/?card=${encodeURIComponent(b.dataset.id)}`, "_blank"))
+    (b.onclick = () =>
+      window.open(`/?card=${encodeURIComponent(b.dataset.id)}`, "_blank"))
   );
   tb.querySelectorAll('[data-act="stamp"]').forEach(
     (b) => (b.onclick = () => adminAction("stamp", b.dataset.id))
@@ -219,7 +228,7 @@ async function adminAction(kind, cardId, fromDialog = false) {
           await fetch("/api/card/" + encodeURIComponent(cardId))
         ).json();
         if (c.stamps >= c.max) confettiQuick();
-      } catch {}
+      } catch { }
     }
     if (fromDialog) {
       openCardDialog(cardId);
@@ -324,7 +333,7 @@ async function loopBarcode() {
       handleScan(det[0].rawValue);
       return;
     }
-  } catch {}
+  } catch { }
   raf = requestAnimationFrame(loopBarcode);
 }
 function loopJsQR() {
@@ -349,7 +358,7 @@ function extractCardId(text) {
     const u = new URL(text);
     const c = u.searchParams.get("card");
     if (c) return c;
-  } catch {}
+  } catch { }
   if (/^card_\d+/.test(text)) return text;
   return null;
 }
@@ -430,7 +439,7 @@ if (giftForm) {
 
     // Payload para el QR (se puede usar después en backend)
     const payload =
-      `GIFT|codigo=${code}|servicio=${service}|cliente=${name || "Invitado"}|vence=${expiry.toISOString().slice(0,10)}`;
+      `GIFT|codigo=${code}|servicio=${service}|cliente=${name || "Invitado"}|vence=${expiry.toISOString().slice(0, 10)}`;
 
     const qrUrl =
       "https://chart.googleapis.com/chart?cht=qr&chs=260x260&chld=M|0&chl=" +
