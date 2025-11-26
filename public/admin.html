@@ -2477,10 +2477,14 @@
   </div>
 
   <!-- Modal Nuevo/Editar Servicio -->
-  <div id="modal-service" class="modal hidden">
-    <div class="modal-content">
-      <span class="close-modal" id="close-modal-service">&times;</span>
-      <h2 id="modal-service-title">Nuevo Servicio</h2>
+  <!-- Modal Nuevo/Editar Servicio -->
+  <div id="modal-service" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="modal-service-title">Nuevo Servicio</h3>
+        <span class="close-modal" id="close-modal-service">&times;</span>
+      </div>
+
       <form id="form-service">
         <input type="hidden" id="service-id">
 
@@ -2495,16 +2499,17 @@
             <input type="number" id="service-duration" class="form-input" required min="10" step="5" value="60">
           </div>
           <div class="form-group" style="flex:1;">
-            <label class="form-label">Precio ($)</label>
+            <label class="form-label">Precio</label>
             <div style="position:relative;">
-              <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--ink);">$</span>
+              <span
+                style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px;">$</span>
               <input type="number" id="service-price" class="form-input" required min="0" step="50"
                 style="padding-left:25px;">
             </div>
           </div>
         </div>
 
-        <div class="modal-actions">
+        <div class="modal-footer">
           <button type="button" class="btn ghost" id="cancel-service">Cancelar</button>
           <button type="submit" class="btn primary">Guardar</button>
         </div>
