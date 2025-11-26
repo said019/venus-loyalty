@@ -18,6 +18,7 @@ router.get('/appointments/month', AppointmentsController.getByMonth);
 router.patch('/appointments/:id/cancel', AppointmentsController.cancel);
 router.get('/appointments/:id', AppointmentsController.getById);
 router.patch('/appointments/:id', AppointmentsController.update);
+router.post('/appointments/:id/payment', AppointmentsController.registerPayment);
 router.get('/appointments', AppointmentsController.getByDate);
 
 export default router;

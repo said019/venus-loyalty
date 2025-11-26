@@ -894,8 +894,43 @@
       box-shadow: 0 0 0 3px rgba(140, 150, 104, 0.1);
     }
 
-    .automation-test-btn {
-      margin-top: 12px;
+    .stat-money {
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Payment functionality styles */
+    .payment-indicator {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .payment-efectivo {
+      background: rgba(34, 197, 94, 0.2);
+      color: #22c55e;
+    }
+
+    .payment-tarjeta {
+      background: rgba(59, 130, 246, 0.2);
+      color: #3b82f6;
+    }
+
+    .payment-transferencia {
+      background: rgba(168, 85, 247, 0.2);
+      color: #a855f7;
+    }
+
+    .payment-no_pagado {
+      background: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+    }
+
+    .form-input.readonly {
+      background: rgba(0, 0, 0, 0.2);
+      cursor: not-allowed;
+      opacity: 0.7;
     }
 
     .automation-history {
@@ -1556,6 +1591,29 @@
           </div>
         </div>
       </div>
+
+      <!-- Resumen de Ventas del Mes -->
+      <div class="card" style="margin-top:20px;">
+        <h3 style="margin-top:0;">💰 Ventas del Mes</h3>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;">
+          <div class="stat-card">
+            <div class="stat-label">💵 Efectivo</div>
+            <div class="stat-value stat-money" id="revenue-cash">$0.00</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">💳 Tarjeta</div>
+            <div class="stat-value stat-money" id="revenue-card">$0.00</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">🏦 Transferencia</div>
+            <div class="stat-value stat-money" id="revenue-transfer">$0.00</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">💰 Total</div>
+            <div class="stat-value stat-money" id="revenue-total" style="color:#FFD166;font-weight:700;">$0.00</div>
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- TAB: Servicios -->
@@ -1803,6 +1861,41 @@
           </div>
         </form>
       </div>
+    </dialog>
+
+    <!-- PAYMENT DIALOG -->
+    <dialog id="paymentDialog">
+      <div class="dialog-header">
+        <h3>💵 Registrar Pago</h3>
+        <button type="button" id="btn-close-payment" class="btn-close">✕</button>
+      </div>
+      <form id="form-payment">
+        <div class="form-row">
+          <label>Cliente:</label>
+          <input id="payment-client-name" readonly class="form-input readonly" style="cursor: not-allowed;">
+        </div>
+        <div class="form-row">
+          <label>Servicio:</label>
+          <input id="payment-service-name" readonly class="form-input readonly" style="cursor: not-allowed;">
+        </div>
+        <div class="form-row">
+          <label>Método de Pago <span style="color:#ef4444;">*</span></label>
+          <select id="payment-method" class="form-input" required>
+            <option value="efectivo">💵 Efectivo</option>
+            <option value="tarjeta">💳 Tarjeta</option>
+            <option value="transferencia">🏦 Transferencia</option>
+            <option value="no_pagado">❌ No Pagado</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>Monto <span style="color:#ef4444;">*</span></label>
+          <input id="payment-amount" type="number" step="0.01" min="0" class="form-input" placeholder="0.00" required>
+        </div>
+        <div class="dialog-footer">
+          <button type="submit" class="btn primary">💾 Guardar Pago</button>
+          <button type="button" id="btn-cancel-payment" class="btn ghost">Cancelar</button>
+        </div>
+      </form>
     </dialog>
 
     <style>
@@ -5390,11 +5483,15 @@
             <td>${appt.serviceName}</td>
             <td><span class="tag" style="background:rgba(255,255,255,0.1);color:${statusColors[appt.status] || '#fff'}">${statusLabels[appt.status] || appt.status}</span></td>
             <td>
-              ${appt.status === 'scheduled' ? `
-                <button class="btn small" onclick="editAppointment('${appt.id}')" style="margin-right:5px;">Modificar</button>
-                <button class="btn small ghost" onclick="cancelAppointment('${appt.id}')">Cancelar</button>
-              ` : ''}
-            </td>
+          ${appt.status === 'scheduled' ? `
+            <button class="btn small" onclick="openPaymentDialog('${appt.id}')"
+              style="background:#22c55e;color:white;margin-right:5px;">
+              💵 Pagar
+            </button>
+            <button class="btn small" onclick="editAppointment('${appt.id}')" style="margin-right:5px;">Modificar</button>
+            <button class="btn small ghost" onclick="cancelAppointment('${appt.id}')">Cancelar</button>
+          ` : ''}
+        </td>
           </tr>
         `;
           }).join('');
@@ -5443,6 +5540,38 @@
           document.getElementById('stat-cancelled').textContent = '0';
           document.getElementById('stat-pending').textContent = '0';
         }
+
+        // Calculate revenue by payment method
+        let cashTotal = 0;
+        let cardTotal = 0;
+        let transferTotal = 0;
+
+        if (json.success && json.data) {
+          json.data.forEach(appt => {
+            if (appt.payment && appt.status === 'completed') {
+              const amount = appt.payment.amount || 0;
+              switch (appt.payment.method) {
+                case 'efectivo':
+                  cashTotal += amount;
+                  break;
+                case 'tarjeta':
+                  cardTotal += amount;
+                  break;
+                case 'transferencia':
+                  transferTotal += amount;
+                  break;
+              }
+            }
+          });
+        }
+
+        const total = cashTotal + cardTotal + transferTotal;
+
+        // Update revenue display
+        document.getElementById('revenue-cash').textContent = `$${cashTotal.toFixed(2)}`;
+        document.getElementById('revenue-card').textContent = `$${cardTotal.toFixed(2)}`;
+        document.getElementById('revenue-transfer').textContent = `$${transferTotal.toFixed(2)}`;
+        document.getElementById('revenue-total').textContent = `$${total.toFixed(2)}`;
       } catch (e) {
         console.error('Error loading month stats', e);
         document.getElementById('stat-total').textContent = '-';
@@ -5462,6 +5591,82 @@
         loadMonthStats();
       } catch (e) { alert('Error: ' + e.message); }
     };
+
+    // ========== REGISTRAR PAGO ==========
+    window.openPaymentDialog = async (apptId) => {
+      try {
+        const res = await fetch(`/api/appointments/${apptId}`);
+        const json = await res.json();
+
+        if (!json.success) {
+          alert('Error cargando datos de la cita');
+          return;
+        }
+
+        const appt = json.data;
+        currentPaymentApptId = apptId;
+
+        // Prellenar datos
+        document.getElementById('payment-client-name').value = appt.clientName;
+        document.getElementById('payment-service-name').value = appt.serviceName;
+        document.getElementById('payment-amount').value = appt.price || 0;
+        document.getElementById('payment-method').value = 'efectivo';
+
+        paymentDialog.showModal();
+      } catch (e) {
+        alert('Error: ' + e.message);
+      }
+    };
+
+    // Payment form submission
+    if (formPayment) {
+      formPayment.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const method = document.getElementById('payment-method').value;
+        const amount = parseFloat(document.getElementById('payment-amount').value);
+
+        if (amount <= 0) {
+          alert('El monto debe ser mayor a 0');
+          return;
+        }
+
+        try {
+          const res = await fetch(`/api/appointments/${currentPaymentApptId}/payment`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              method,
+              amount,
+              paidAt: new Date().toISOString()
+            })
+          });
+
+          const json = await res.json();
+
+          if (!json.success) {
+            throw new Error(json.error || 'Error registrando pago');
+          }
+
+          alert('✅ Pago registrado correctamente');
+          paymentDialog.close();
+          loadAppointments();
+          loadMonthStats();
+        } catch (e) {
+          alert('❌ Error: ' + e.message);
+        }
+      });
+
+      // Cancel payment button
+      document.getElementById('btn-cancel-payment')?.addEventListener('click', () => {
+        paymentDialog.close();
+      });
+
+      // Close payment button
+      document.getElementById('btn-close-payment')?.addEventListener('click', () => {
+        paymentDialog.close();
+      });
+    }
 
     // ========== MODIFICAR CITA ==========
     const editApptDialog = document.getElementById('editApptDialog');
@@ -5812,6 +6017,11 @@
 
     // Global instances
     let newApptClientDropdown, newApptServiceDropdown, editApptServiceDropdown;
+
+    // Payment dialog variables
+    let currentPaymentApptId = null;
+    const paymentDialog = document.getElementById('paymentDialog');
+    const formPayment = document.getElementById('form-payment');
 
     /* =========================================================
        CUSTOM CALENDAR CLASS

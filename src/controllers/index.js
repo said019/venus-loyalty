@@ -347,5 +347,39 @@ export const AppointmentsController = {
         } catch (error) {
             res.status(500).json({ success: false, error: error.message });
         }
+    },
+
+    async registerPayment(req, res) {
+        try {
+            const { id } = req.params;
+            const { method, amount, paidAt } = req.body;
+
+            if (!method || !amount) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Faltan campos requeridos (method, amount)'
+                });
+            }
+
+            // Actualizar cita en Firestore
+            await firestore.collection('appointments').doc(id).update({
+                payment: {
+                    method,
+                    amount: parseFloat(amount),
+                    paidAt: paidAt || new Date().toISOString(),
+                    registeredBy: req.user?.email || 'admin'
+                },
+                status: 'completed',
+                updatedAt: new Date().toISOString()
+            });
+
+            res.json({ success: true });
+        } catch (error) {
+            console.error('Error registrando pago:', error);
+            res.status(500).json({
+                success: false,
+                error: error.message
+            });
+        }
     }
 };
