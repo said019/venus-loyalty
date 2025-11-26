@@ -949,6 +949,7 @@
       <a href="#events" data-tab="events">Gift Cards</a>
       <a href="#notifications" data-tab="notifications">Notificaciones</a>
       <a href="#appointments" data-tab="appointments">Citas</a>
+      <a href="#services" data-tab="services">Servicios</a>
       <a href="#settings" data-tab="settings">Configuración</a>
     </nav>
 
@@ -1554,6 +1555,32 @@
             <div class="stat-value" id="stat-pending">-</div>
           </div>
         </div>
+      </div>
+    </section>
+
+    <!-- TAB: Servicios -->
+    <section id="tab-services" class="tab-content hidden">
+      <div class="header-actions">
+        <h2>💆‍♀️ Gestión de Servicios</h2>
+        <button class="btn primary" id="btn-new-service">Nuevo Servicio</button>
+      </div>
+
+      <div class="card">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Duración (min)</th>
+              <th>Precio</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="services-tbody">
+            <tr>
+              <td colspan="4" class="muted" style="text-align:center;padding:20px;">Cargando servicios...</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </section>
 
@@ -2446,6 +2473,42 @@
       <button id="reset-modules" class="btn small ghost" style="width: 100%;">
         🔄 Restaurar por defecto
       </button>
+    </div>
+  </div>
+
+  <!-- Modal Nuevo/Editar Servicio -->
+  <div id="modal-service" class="modal hidden">
+    <div class="modal-content">
+      <span class="close-modal" id="close-modal-service">&times;</span>
+      <h2 id="modal-service-title">Nuevo Servicio</h2>
+      <form id="form-service">
+        <input type="hidden" id="service-id">
+
+        <div class="form-group">
+          <label class="form-label">Nombre del Servicio</label>
+          <input type="text" id="service-name" class="form-input" required placeholder="Ej. Facial Hidratante">
+        </div>
+
+        <div class="row" style="gap:15px;">
+          <div class="form-group" style="flex:1;">
+            <label class="form-label">Duración (min)</label>
+            <input type="number" id="service-duration" class="form-input" required min="10" step="5" value="60">
+          </div>
+          <div class="form-group" style="flex:1;">
+            <label class="form-label">Precio ($)</label>
+            <div style="position:relative;">
+              <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);">$</span>
+              <input type="number" id="service-price" class="form-input" required min="0" step="50"
+                style="padding-left:25px;">
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn ghost" id="cancel-service">Cancelar</button>
+          <button type="submit" class="btn primary">Guardar</button>
+        </div>
+      </form>
     </div>
   </div>
 
@@ -5040,8 +5103,8 @@
         if (data.items && Array.isArray(data.items)) {
           // Map clients to dropdown options format
           const options = data.items.map(c => ({
-            value: c.clientName,
-            label: c.clientName,
+            value: c.name,
+            label: c.name,
             meta: c.phone || 'Sin teléfono',
             data: { id: c.id, phone: c.phone }
           }));
@@ -6024,6 +6087,139 @@
       updateSelectedDateLabel();
       loadMonthStats();
     }
+
+    // ========== GESTIÓN DE SERVICIOS ==========
+    const servicesTbody = document.getElementById('services-tbody');
+    const modalService = document.getElementById('modal-service');
+    const formService = document.getElementById('form-service');
+    const btnNewService = document.getElementById('btn-new-service');
+    const closeModalService = document.getElementById('close-modal-service');
+    const btnCancelService = document.getElementById('cancel-service');
+
+    async function loadServicesTable() {
+      try {
+        servicesTbody.innerHTML = '<tr><td colspan="4" class="muted" style="text-align:center;padding:20px;">Cargando...</td></tr>';
+        const res = await fetch('/api/services');
+        const json = await res.json();
+
+        if (json.success) {
+          const services = json.data;
+          if (services.length === 0) {
+            servicesTbody.innerHTML = '<tr><td colspan="4" class="muted" style="text-align:center;padding:20px;">No hay servicios registrados</td></tr>';
+            return;
+          }
+
+          servicesTbody.innerHTML = services.map(s => `
+            <tr>
+              <td>${s.name}</td>
+              <td>${s.durationMinutes} min</td>
+              <td>$${s.price}</td>
+              <td>
+                <div class="actions">
+                  <button class="btn small ghost" onclick="editService('${s.id}')">✏️ Editar</button>
+                  <button class="btn small ghost" style="color:#ef4444;border-color:#ef4444;" onclick="deleteService('${s.id}')">🗑️</button>
+                </div>
+              </td>
+            </tr>
+          `).join('');
+        }
+      } catch (error) {
+        console.error('Error loading services:', error);
+        servicesTbody.innerHTML = '<tr><td colspan="4" style="color:red;text-align:center;">Error al cargar servicios</td></tr>';
+      }
+    }
+
+    // Abrir modal (Nuevo o Editar)
+    window.editService = async (id) => {
+      try {
+        // Buscar servicio en la lista actual (o hacer fetch)
+        const res = await fetch('/api/services');
+        const json = await res.json();
+        const service = json.data.find(s => s.id === id);
+
+        if (service) {
+          document.getElementById('service-id').value = service.id;
+          document.getElementById('service-name').value = service.name;
+          document.getElementById('service-duration').value = service.durationMinutes;
+          document.getElementById('service-price').value = service.price;
+          document.getElementById('modal-service-title').textContent = 'Editar Servicio';
+          modalService.classList.remove('hidden');
+        }
+      } catch (e) { console.error(e); }
+    };
+
+    btnNewService.addEventListener('click', () => {
+      document.getElementById('form-service').reset();
+      document.getElementById('service-id').value = '';
+      document.getElementById('modal-service-title').textContent = 'Nuevo Servicio';
+      modalService.classList.remove('hidden');
+    });
+
+    // Cerrar modal
+    const closeServiceModalFn = () => modalService.classList.add('hidden');
+    closeModalService.addEventListener('click', closeServiceModalFn);
+    btnCancelService.addEventListener('click', closeServiceModalFn);
+
+    // Guardar servicio
+    formService.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const id = document.getElementById('service-id').value;
+      const data = {
+        name: document.getElementById('service-name').value,
+        durationMinutes: parseInt(document.getElementById('service-duration').value),
+        price: parseFloat(document.getElementById('service-price').value)
+      };
+
+      try {
+        const url = id ? `/api/services/${id}` : '/api/services';
+        const method = id ? 'PUT' : 'POST';
+
+        const res = await fetch(url, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+
+        const json = await res.json();
+        if (json.success) {
+          closeServiceModalFn();
+          loadServicesTable();
+          // Recargar dropdowns de citas también
+          loadServices();
+        } else {
+          alert('Error al guardar: ' + json.error);
+        }
+      } catch (error) {
+        console.error(error);
+        alert('Error de conexión');
+      }
+    });
+
+    // Eliminar servicio
+    window.deleteService = async (id) => {
+      if (!confirm('¿Estás seguro de eliminar este servicio?')) return;
+
+      try {
+        const res = await fetch(`/api/services/${id}`, { method: 'DELETE' });
+        const json = await res.json();
+        if (json.success) {
+          loadServicesTable();
+          loadServices(); // Recargar dropdowns
+        } else {
+          alert('Error al eliminar: ' + json.error);
+        }
+      } catch (error) {
+        console.error(error);
+        alert('Error de conexión');
+      }
+    };
+
+    // Cargar servicios al cambiar a la pestaña
+    document.querySelectorAll('.nav a[data-tab="services"]').forEach(link => {
+      link.addEventListener('click', () => {
+        loadServicesTable();
+      });
+    });
 
   </script>
 </body>

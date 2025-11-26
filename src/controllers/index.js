@@ -26,6 +26,38 @@ export const ServicesController = {
             console.error('Error getting services:', error);
             res.status(500).json({ success: false, error: error.message });
         }
+    },
+
+    async create(req, res) {
+        try {
+            const service = await ServiceModel.create(req.body);
+            res.json({ success: true, data: service });
+        } catch (error) {
+            console.error('Error creating service:', error);
+            res.status(500).json({ success: false, error: error.message });
+        }
+    },
+
+    async update(req, res) {
+        try {
+            const { id } = req.params;
+            const service = await ServiceModel.update(id, req.body);
+            res.json({ success: true, data: service });
+        } catch (error) {
+            console.error('Error updating service:', error);
+            res.status(500).json({ success: false, error: error.message });
+        }
+    },
+
+    async delete(req, res) {
+        try {
+            const { id } = req.params;
+            await ServiceModel.delete(id);
+            res.json({ success: true });
+        } catch (error) {
+            console.error('Error deleting service:', error);
+            res.status(500).json({ success: false, error: error.message });
+        }
     }
 };
 

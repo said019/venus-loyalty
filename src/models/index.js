@@ -61,6 +61,31 @@ export const ServiceModel = {
         return snap.docs.map(d => ({ id: d.id, ...d.data() }));
     },
 
+    async create(data) {
+        const ref = await firestore.collection(COL_SERVICES).add({
+            ...data,
+            active: true,
+            createdAt: new Date().toISOString()
+        });
+        return { id: ref.id, ...data };
+    },
+
+    async update(id, data) {
+        await firestore.collection(COL_SERVICES).doc(id).update({
+            ...data,
+            updatedAt: new Date().toISOString()
+        });
+        return { id, ...data };
+    },
+
+    async delete(id) {
+        // Soft delete
+        await firestore.collection(COL_SERVICES).doc(id).update({
+            active: false,
+            deletedAt: new Date().toISOString()
+        });
+    },
+
     async upsert(data) {
         // Buscar por nombre exacto para evitar duplicados al importar
         const snap = await firestore.collection(COL_SERVICES)

@@ -8,6 +8,9 @@ router.post('/clients', ClientsController.createOrUpdate);
 
 // Services
 router.get('/services', ServicesController.getAll);
+router.post('/services', ServicesController.create);
+router.put('/services/:id', ServicesController.update);
+router.delete('/services/:id', ServicesController.delete);
 
 // Appointments
 router.post('/appointments', AppointmentsController.create);
