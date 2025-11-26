@@ -126,9 +126,9 @@ export const AppointmentModel = {
 
     async getByDate(dateStr) {
         // dateStr YYYY-MM-DD
-        // Buscar rango del día
-        const start = `${dateStr}T00:00:00`;
-        const end = `${dateStr}T23:59:59`;
+        // Buscar rango del día con timezone de México
+        const start = `${dateStr}T00:00:00-06:00`;
+        const end = `${dateStr}T23:59:59-06:00`;
 
         const snap = await firestore.collection(COL_APPOINTMENTS)
             .where('startDateTime', '>=', start)
