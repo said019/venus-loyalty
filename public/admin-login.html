@@ -590,6 +590,50 @@
       el.textContent = msg;
       el.classList.remove('hidden');
     }
+    function openClientPage(cardId) {
+      const url = `${window.location.origin}/?cardId=${encodeURIComponent(cardId)}`;
+      window.open(url, '_blank');
+    }
+
+    // ✅ NUEVO: Abrir dialog de nueva cita con datos del cliente pre-llenados
+    function openScheduleDialogForClient(card) {
+      // 1. Cerrar el modal del cliente
+      closeCardModal();
+
+      // 2. Cambiar a la pestaña de Agenda
+      switchView('agenda');
+
+      // 3. Pre-llenar datos del cliente en el form
+      const clientSelect = document.getElementById('new-appt-client-select');
+      const phoneInput = document.getElementById('new-appt-phone');
+
+      if (clientSelect) {
+        clientSelect.value = card.name || '';
+      }
+
+      if (phoneInput) {
+        phoneInput.value = card.phone || '';
+      }
+
+      // 4. Limpiar otros campos para nueva cita
+      document.getElementById('new-appt-service').value = '';
+      document.getElementById('new-appt-price').value = '';
+      document.getElementById('new-appt-date').value = '';
+      document.getElementById('new-appt-hour').value = '';
+      document.getElementById('new-appt-minute').value = '';
+
+      // 5. Ocultar el formulario de nuevo cliente si está visible
+      const newClientForm = document.getElementById('new-client-form');
+      if (newClientForm) {
+        newClientForm.style.display = 'none';
+      }
+
+      // 6. Abrir el dialog
+      const newApptDialog = document.getElementById('newApptDialog');
+      if (newApptDialog) {
+        newApptDialog.showModal();
+      }
+    }
     function clearAlert(id) {
       const el = document.getElementById(id);
       el.className = 'alert hidden';

@@ -2447,6 +2447,10 @@
         </div>
         <div class="modal-footer">
           <!-- Primary actions -->
+          <button id="cm-schedule" class="btn small primary"
+            style="background: linear-gradient(135deg, #8c9668, #9aa066); box-shadow: 0 4px 12px rgba(140, 150, 104, 0.3);">
+            📅 Agendar
+          </button>
           <button id="cm-stamp" class="btn small primary">+1 sello</button>
           <button id="cm-redeem" class="btn small">Canjear</button>
 
@@ -4300,6 +4304,46 @@
       window.open(url, '_blank');
     }
 
+    // ✅ NUEVO: Abrir dialog de nueva cita con datos del cliente pre-llenados
+    function openScheduleDialogForClient(card) {
+      // 1. Cerrar el modal del cliente
+      closeCardModal();
+
+      // 2. Cambiar a la pestaña de Agenda
+      switchView('agenda');
+
+      // 3. Pre-llenar datos del cliente en el form
+      const clientSelect = document.getElementById('new-appt-client-select');
+      const phoneInput = document.getElementById('new-appt-phone');
+
+      if (clientSelect) {
+        clientSelect.value = card.name || '';
+      }
+
+      if (phoneInput) {
+        phoneInput.value = card.phone || '';
+      }
+
+      // 4. Limpiar otros campos para nueva cita
+      document.getElementById('new-appt-service').value = '';
+      document.getElementById('new-appt-price').value = '';
+      document.getElementById('new-appt-date').value = '';
+      document.getElementById('new-appt-hour').value = '';
+      document.getElementById('new-appt-minute').value = '';
+
+      // 5. Ocultar el formulario de nuevo cliente si está visible
+      const newClientForm = document.getElementById('new-client-form');
+      if (newClientForm) {
+        newClientForm.style.display = 'none';
+      }
+
+      // 6. Abrir el dialog
+      const newApptDialog = document.getElementById('newApptDialog');
+      if (newApptDialog) {
+        newApptDialog.showModal();
+      }
+    }
+
     /* ===== PHASE 5: LOAD & SAVE CLIENT INFO ===== */
     function loadClientInfo(card) {
       // Cargar campos editables
@@ -4561,6 +4605,16 @@
           alert('✅ Dispositivo Google registrado exitosamente');
         } else {
           alert('❌ Error registrando dispositivo Google');
+        }
+      }
+    });
+
+    // ✅ NUEVO: Botón Agendar - Abre el dialog de nueva cita con datos del cliente
+    document.getElementById('cm-schedule')?.addEventListener('click', () => {
+      if (currentCardId) {
+        const card = cardsCache[currentCardId];
+        if (card) {
+          openScheduleDialogForClient(card);
         }
       }
     });
