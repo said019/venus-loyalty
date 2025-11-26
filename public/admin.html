@@ -2447,7 +2447,9 @@
         </div>
         <div class="modal-footer">
           <!-- Primary actions -->
-          <button id="cm-stamp" class="btn small primary">+1 sello</button>
+          <button id="cm-stamp" class="btn small" style="background: #FFD166; color: #1b1b1b; font-weight: 600;">+1
+            sello</button>
+          <button id="cm-schedule" class="btn small" style="background: #8c9668; color: white;">📅 Agendar</button>
           <button id="cm-redeem" class="btn small">Canjear</button>
 
           <!-- WhatsApp button -->
@@ -4582,7 +4584,46 @@
       if (currentCardId) openClientPage(currentCardId);
     });
 
+    // ===== NUEVO: Botón Agendar =====
+    document.getElementById('cm-schedule').addEventListener('click', () => {
+      if (!currentCardId) return;
+
+      const client = cardsCache[currentCardId];
+      if (!client) return;
+
+      // Primero cambiar a la pestaña de Agenda
+      const agendaTab = document.querySelector('[data-tab="agenda"]');
+      if (agendaTab) {
+        agendaTab.click();
+      }
+
+      // Esperar un momento para que la pestaña se active
+      setTimeout(() => {
+        // Abrir el modal de nueva cita
+        const newApptDialog = document.getElementById('newApptDialog');
+        const clientSelectInput = document.getElementById('new-appt-client-select');
+        const phoneInput = document.getElementById('new-appt-phone');
+
+        if (newApptDialog && clientSelectInput && phoneInput) {
+          // Prellenar nombre y teléfono
+          clientSelectInput.value = client.name || '';
+          phoneInput.value = client.phone || '';
+
+          // Deshabilitar campos de nombre y teléfono (están bloqueados)
+          clientSelectInput.disabled = true;
+          phoneInput.disabled = true;
+
+          // Mostrar el modal
+          newApptDialog.showModal();
+
+          // Cerrar el modal del cliente
+          closeCardModal();
+        }
+      }, 100);
+    });
+
     // ===== NUEVO: Botón WhatsApp =====
+
     document.getElementById('cm-whatsapp').addEventListener('click', () => {
       if (!currentCardId) return;
 
