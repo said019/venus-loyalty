@@ -2697,6 +2697,14 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
   <script>
+    // Global instances
+    let newApptClientDropdown, newApptServiceDropdown, editApptServiceDropdown;
+
+    // Payment dialog variables
+    let currentPaymentApptId = null;
+    const paymentDialog = document.getElementById('paymentDialog');
+    const formPayment = document.getElementById('form-payment');
+
     const $ = s => document.querySelector(s);
 
     /* ===== MODULE SELECTION SYSTEM ===== */
@@ -4685,7 +4693,7 @@
       if (!client) return;
 
       // Primero cambiar a la pestaña de Agenda
-      const agendaTab = document.querySelector('[data-tab="agenda"]');
+      const agendaTab = document.querySelector('[data-tab="appointments"]');
       if (agendaTab) {
         agendaTab.click();
       }
@@ -4696,11 +4704,26 @@
         const newApptDialog = document.getElementById('newApptDialog');
         const clientSelectInput = document.getElementById('new-appt-client-select');
         const phoneInput = document.getElementById('new-appt-phone');
+        const dateInput = document.getElementById('new-appt-date');
 
         if (newApptDialog && clientSelectInput && phoneInput) {
+          // Cargar datos necesarios
+          loadServices();
+          loadClients();
+          generateHourMinuteOptions();
+
           // Prellenar nombre y teléfono
           clientSelectInput.value = client.name || '';
           phoneInput.value = client.phone || '';
+
+          // Prellenar fecha con hoy si está vacía
+          if (dateInput && !dateInput.value) {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            dateInput.value = `${year}-${month}-${day}`;
+          }
 
           // Deshabilitar campos de nombre y teléfono (están bloqueados)
           clientSelectInput.disabled = true;
@@ -6015,13 +6038,8 @@
       }
     }
 
-    // Global instances
-    let newApptClientDropdown, newApptServiceDropdown, editApptServiceDropdown;
-
-    // Payment dialog variables
-    let currentPaymentApptId = null;
-    const paymentDialog = document.getElementById('paymentDialog');
-    const formPayment = document.getElementById('form-payment');
+    // Global instances (Moved to top)
+    // Payment dialog variables (Moved to top)
 
     /* =========================================================
        CUSTOM CALENDAR CLASS
