@@ -1,7 +1,6 @@
 <!doctype html>
 <html lang="es">
 
-
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -887,6 +886,8 @@
       box-shadow: 0 0 0 3px rgba(140, 150, 104, 0.15);
     }
 
+    .notify-btn-group {}
+
     .automation-textarea:focus {
       outline: none;
       border-color: var(--venus-green);
@@ -919,196 +920,6 @@
       border-color: var(--venus-green);
       box-shadow: 0 0 0 3px rgba(140, 150, 104, 0.1);
     }
-
-    body {
-      background: var(--bg);
-      color: var(--ink);
-    }
-
-    .wrap {
-      max-width: 1100px;
-      margin: 24px auto;
-      padding: 16px
-    }
-
-    .muted {
-      color: var(--muted)
-    }
-
-    .btn {
-      background: var(--venus);
-      color: #fff;
-      border: none;
-      border-radius: 10px;
-      padding: 10px 14px;
-      cursor: pointer
-    }
-
-    .btn.ghost {
-      background: #fff;
-      color: var(--venus);
-      border: 1px solid var(--venus)
-    }
-
-    .btn.icon {
-      display: inline-flex;
-      gap: 8px;
-      align-items: center
-    }
-
-    .row {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      flex-wrap: wrap
-    }
-
-    .right {
-      display: flex;
-      justify-content: flex-end
-    }
-
-    .panel {
-      background: #fff;
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      padding: 16px;
-      margin: 12px 0
-    }
-
-    .h1 {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      margin: 0 0 8px
-    }
-
-    .nav {
-      display: flex;
-      gap: 8px;
-      margin: 6px 0 12px
-    }
-
-    .nav a {
-      padding: 8px 12px;
-      border-radius: 10px;
-      border: 1px solid var(--line);
-      background: #fff;
-      color: #111;
-      text-decoration: none
-    }
-
-    .nav a.is-active {
-      border-color: var(--venus);
-      color: var(--venus)
-    }
-
-    .grid-kpi {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 12px
-    }
-
-    .kpi {
-      background: #fff;
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      padding: 12px
-    }
-
-    .kpi .big {
-      font-size: 28px;
-      font-weight: 700
-    }
-
-    .hidden {
-      display: none !important
-    }
-
-    input,
-    select {
-      padding: 10px;
-      border: 1px solid var(--line);
-      border-radius: 10px;
-      background: #fafafa
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse
-    }
-
-    th,
-    td {
-      padding: 10px;
-      border-bottom: 1px solid #eee;
-      font-size: 14px;
-      text-align: left;
-      vertical-align: top
-    }
-
-    th {
-      background: #fafafa
-    }
-
-    .tag {
-      display: inline-block;
-      background: #eef2f7;
-      border: 1px solid #e5e7eb;
-      padding: 4px 8px;
-      border-radius: 999px;
-      font-size: 12px
-    }
-
-    .tools {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap
-    }
-
-    .pill {
-      background: #eef2f7;
-      border: 1px solid #e5e7eb;
-      padding: 6px 10px;
-      border-radius: 999px
-    }
-
-    dialog {
-      border: none;
-      border-radius: 12px;
-      max-width: 620px;
-      width: 92%
-    }
-
-    dialog .hd {
-      display: flex;
-      justify-content: space-between;
-      align-items: center
-    }
-
-    .qr-wrap {
-      display: flex;
-      gap: 12px;
-      align-items: center;
-      flex-wrap: wrap
-    }
-
-    .small {
-      font-size: 12px
-    }
-
-    /* Escáner QR */
-    #scanDialog video {
-      width: 100%;
-      border-radius: 12px;
-      background: #000;
-      aspect-ratio: 16/9;
-      object-fit: cover
-    }
-
-    #scanDialog .row {
-      margin-top: 10px;
-    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -1116,6 +927,7 @@
 </head>
 
 <body class="checking-auth">
+
   <main class="wrap">
     <header class="topbar">
       <div class="brand">
@@ -1175,204 +987,154 @@
         <div class="kpi">
           <span id="stamps-period-label">Sellos hoy</span>
           <span class="value" id="kpi-stamps">—</span>
-          <div class="row" style="justify-content:space-between">
-            <h2 style="margin:0">Tarjetas</h2>
-            <div class="tools">
-              <button id="scan" class="btn icon">📷 Escanear QR</button>
-              <button id="reload" class="btn ghost">Recargar</button>
-              <button id="export" class="btn ghost">Exportar CSV</button>
+        </div>
+      </div>
+
+      <!-- KPIs adicionales (fila 2) -->
+      <div class="grid-3-kpi" style="margin-top:14px;" data-module-section="kpis">
+        <div class="kpi">
+          <span id="redeems-period-label">Canjes hoy</span>
+          <span class="value" id="kpi-redeems">—</span>
+        </div>
+        <div class="kpi">
+          <span>Promedio sellos</span>
+          <span class="value" id="kpi-avg">—</span>
+        </div>
+        <div class="kpi">
+          <span>Tasa completitud</span>
+          <span class="value" id="kpi-rate">—</span>
+        </div>
+      </div>
+
+      <!-- CUMPLEAÑOS DEL MES (Overview) -->
+      <div id="overview-birthday-section" class="hidden" data-module-section="birthdays"
+        style="margin-top: 20px; padding: 15px; background: rgba(255, 209, 102, 0.1); border: 1px solid rgba(255, 209, 102, 0.3); border-radius: 12px;">
+        <div class="row" style="justify-content: space-between; align-items: center;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 24px;">🎂</span>
+            <div>
+              <h3 style="margin: 0; color: #ffd166;" id="overview-birthday-title">Cumpleaños (últimos 30 días)</h3>
+              <p class="muted" style="margin: 2px 0 0; font-size: 13px;">Pasados y próximos cumpleaños.</p>
             </div>
           </div>
+        </div>
 
-          <div class="row" style="gap:8px;margin:8px 0">
-            <input id="q" placeholder="Buscar por ID o nombre…" style="min-width:260px">
-            <select id="f_status">
-              <option value="">Estado (todos)</option>
-              <option value="ACTIVE">Activas</option>
-              <option value="BLOCKED">Bloqueadas</option>
-            </select>
-            <select id="f_completed">
-              <option value="">Completas (todas)</option>
-              <option value="yes">Sí</option>
-              <option value="no">No</option>
-            </select>
-            <button id="clearFilters" class="btn ghost">Limpiar filtros</button>
+        <!-- Cumpleaños próximos -->
+        <div id="upcoming-birthdays-container" class="hidden" style="margin-top: 15px;">
+          <h4 style="margin: 0 0 8px; font-size: 13px; color: #a7f3d0; font-weight: 600;">🎉 Próximos Cumpleaños</h4>
+          <div id="upcoming-birthday-list" style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <!-- Lista de cumpleaños próximos -->
           </div>
+        </div>
 
-          <div class="panel" style="margin:10px 0">
-            <table>
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Cliente</th>
-                  <th>Sellos</th>
-                  <th>Max</th>
-                  <th>Estado</th>
-                  <th>Creada</th>
-                  <th>Acciones</th>
-                </tr>
-              </thead>
-              <tbody id="cards-tbody"></tbody>
-            </table>
-            <div class="row" style="justify-content:space-between;margin-top:8px">
-              <button id="prev" class="btn ghost">Anterior</button>
-              <div id="pageinfo" class="muted"></div>
-              <button id="next" class="btn ghost">Siguiente</button>
-            </div>
+        <!-- Cumpleaños pasados -->
+        <div id="past-birthdays-container" class="hidden" style="margin-top: 15px;">
+          <h4 style="margin: 0 0 8px; font-size: 13px; color: #cbd5e1; font-weight: 600;">📅 Cumpleaños Pasados</h4>
+          <div id="past-birthday-list" style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <!-- Lista de cumpleaños pasados -->
           </div>
+        </div>
+      </div>
 
-          <!-- KPIs adicionales (fila 2) -->
-          <div class="grid-3-kpi" style="margin-top:14px;" data-module-section="kpis">
-            <div class="kpi">
-              <span id="redeems-period-label">Canjes hoy</span>
-              <span class="value" id="kpi-redeems">—</span>
-            </div>
-            <div class="kpi">
-              <span>Promedio sellos</span>
-              <span class="value" id="kpi-avg">—</span>
-            </div>
-            <div class="kpi">
-              <span>Tasa completitud</span>
-              <span class="value" id="kpi-rate">—</span>
-            </div>
+      <!-- Gráfica Actividad reciente -->
+      <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line);" data-module-section="activity">
+        <h3 style="margin:0 0 12px;font-size:15px;color:var(--ink);" id="activity-title">📈 Actividad reciente (7 días)
+        </h3>
+        <div style="background:rgba(255,255,255,0.05);border-radius:12px;padding:12px;">
+          <canvas id="activity-chart" style="max-height:200px;"></canvas>
+        </div>
+      </div>
+
+      <!-- Top clientes -->
+      <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line);" data-module-section="topClients">
+        <h3 style="margin:0 0 12px;font-size:15px;color:var(--ink);">⭐ Top Clientes</h3>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Cliente</th>
+                <th>Sellos</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody id="top-clients">
+              <tr>
+                <td colspan="3" style="text-align:center;padding:12px;" class="muted">Cargando...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Estado de Wallets - MEJORADO CON ESTADÍSTICAS REALES -->
+      <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line);" data-module-section="walletStats">
+        <h3 style="margin:0 0 12px;font-size:15px;color:var(--ink);">📱 Estado de Wallets</h3>
+        <div class="grid-3-kpi">
+          <div class="kpi">
+            <span>🟢 Google Wallet</span>
+            <span class="value" id="kpi-google">—</span>
           </div>
-          <!-- CUMPLEAÑOS DEL MES (Overview) -->
-          <div id="overview-birthday-section" class="hidden" data-module-section="birthdays"
-            style="margin-top: 20px; padding: 15px; background: rgba(255, 209, 102, 0.1); border: 1px solid rgba(255, 209, 102, 0.3); border-radius: 12px;">
-            <div class="row" style="justify-content: space-between; align-items: center;">
-              <div style="display: flex; align-items: center; gap: 10px;">
-                <span style="font-size: 24px;">🎂</span>
-                <div>
-                  <h3 style="margin: 0; color: #ffd166;" id="overview-birthday-title">Cumpleaños (últimos 30
-                    días)</h3>
-                  <p class="muted" style="margin: 2px 0 0; font-size: 13px;">Pasados y próximos cumpleaños.</p>
-                </div>
-              </div>
-            </div>
-
-            <!-- Cumpleaños próximos -->
-            <div id="upcoming-birthdays-container" class="hidden" style="margin-top: 15px;">
-              <h4 style="margin: 0 0 8px; font-size: 13px; color: #a7f3d0; font-weight: 600;">🎉 Próximos Cumpleaños
-              </h4>
-              <div id="upcoming-birthday-list" style="display: flex; gap: 8px; flex-wrap: wrap;">
-                <!-- Lista de cumpleaños próximos -->
-              </div>
-            </div>
-
-            <!-- Cumpleaños pasados -->
-            <div id="past-birthdays-container" class="hidden" style="margin-top: 15px;">
-              <h4 style="margin: 0 0 8px; font-size: 13px; color: #cbd5e1; font-weight: 600;">📅 Cumpleaños Pasados
-              </h4>
-              <div id="past-birthday-list" style="display: flex; gap: 8px; flex-wrap: wrap;">
-                <!-- Lista de cumpleaños pasados -->
-              </div>
-            </div>
+          <div class="kpi">
+            <span>🍎 Apple Wallet</span>
+            <span class="value" id="kpi-apple">—</span>
           </div>
-
-          <!-- Gráfica Actividad reciente -->
-          <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line);"
-            data-module-section="activity">
-            <h3 style="margin:0 0 12px;font-size:15px;color:var(--ink);" id="activity-title">📈 Actividad reciente (7
-              días)
-            </h3>
-            <div style="background:rgba(255,255,255,0.05);border-radius:12px;padding:12px;">
-              <canvas id="activity-chart" style="max-height:200px;"></canvas>
-            </div>
+          <div class="kpi">
+            <span>📲 Dispositivos totales</span>
+            <span class="value" id="kpi-devices">—</span>
           </div>
+        </div>
+        <div style="margin-top:10px; text-align:center;">
+          <button id="btn-refresh-wallet-stats" class="btn small ghost">🔄 Actualizar estadísticas</button>
+        </div>
+      </div>
 
-          <!-- Top clientes -->
-          <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line);"
-            data-module-section="topClients">
-            <h3 style="margin:0 0 12px;font-size:15px;color:var(--ink);">⭐ Top Clientes</h3>
-            <div class="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Cliente</th>
-                    <th>Sellos</th>
-                    <th>Estado</th>
-                  </tr>
-                </thead>
-                <tbody id="top-clients">
-                  <tr>
-                    <td colspan="3" style="text-align:center;padding:12px;" class="muted">Cargando...</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+      <!-- KPIs AVANZADOS (NUEVOS) -->
+      <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line);" data-module-section="newKPIs">
+        <h3 style="margin:0 0 12px;font-size:15px;color:var(--ink);">📊 KPIs Avanzados</h3>
+
+        <!-- Primera fila: Clientes -->
+        <div class="grid-3-kpi">
+          <div class="kpi">
+            <span>Clientes nuevos</span>
+            <span class="value" id="kpi-new-clients">—</span>
           </div>
-
-          <!-- Estado de Wallets - MEJORADO CON ESTADÍSTICAS REALES -->
-          <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line);"
-            data-module-section="walletStats">
-            <h3 style="margin:0 0 12px;font-size:15px;color:var(--ink);">📱 Estado de Wallets</h3>
-            <div class="grid-3-kpi">
-              <div class="kpi">
-                <span>🟢 Google Wallet</span>
-                <span class="value" id="kpi-google">—</span>
-              </div>
-              <div class="kpi">
-                <span>🍎 Apple Wallet</span>
-                <span class="value" id="kpi-apple">—</span>
-              </div>
-              <div class="kpi">
-                <span>📲 Dispositivos totales</span>
-                <span class="value" id="kpi-devices">—</span>
-              </div>
-            </div>
-            <div style="margin-top:10px; text-align:center;">
-              <button id="btn-refresh-wallet-stats" class="btn small ghost">🔄 Actualizar estadísticas</button>
-            </div>
+          <div class="kpi">
+            <span>🟢 Activos (30d)</span>
+            <span class="value" id="kpi-active-clients">—</span>
           </div>
-
-          <!-- KPIs AVANZADOS (NUEVOS) -->
-          <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line);" data-module-section="newKPIs">
-            <h3 style="margin:0 0 12px;font-size:15px;color:var(--ink);">📊 KPIs Avanzados</h3>
-
-            <!-- Primera fila: Clientes -->
-            <div class="grid-3-kpi">
-              <div class="kpi">
-                <span>Clientes nuevos</span>
-                <span class="value" id="kpi-new-clients">—</span>
-              </div>
-              <div class="kpi">
-                <span>🟢 Activos (30d)</span>
-                <span class="value" id="kpi-active-clients">—</span>
-              </div>
-              <div class="kpi">
-                <span>🔴 Inactivos (30d)</span>
-                <span class="value" id="kpi-inactive-clients">—</span>
-              </div>
-            </div>
-
-            <!-- Segunda fila: Análisis -->
-            <div class="grid-3-kpi" style="margin-top:14px;">
-              <div class="kpi">
-                <span>Promedio días inactivo</span>
-                <span class="value" id="kpi-avg-last-visit">—</span>
-              </div>
-              <div class="kpi">
-                <span>Ciclos completados</span>
-                <span class="value" id="kpi-cycles-completed">—</span>
-              </div>
-              <div class="kpi">
-                <span>Tasa de retorno</span>
-                <span class="value" id="kpi-return-rate">—</span>
-              </div>
-            </div>
-
-            <!-- Gráficas de distribución -->
-            <div style="margin-top:16px;background:rgba(255,255,255,0.05);border-radius:12px;padding:12px;">
-              <h4 style="margin:0 0 10px;font-size:13px;color:var(--venus-soft);">Distribución por día de la semana
-              </h4>
-              <canvas id="day-distribution-chart"></canvas>
-            </div>
-
-            <div style="margin-top:16px;background:rgba(255,255,255,0.05);border-radius:12px;padding:12px;">
-              <h4 style="margin:0 0 10px;font-size:13px;color:var(--venus-soft);">Distribución por hora del día</h4>
-              <canvas id="hour-distribution-chart"></canvas>
-            </div>
+          <div class="kpi">
+            <span>🔴 Inactivos (30d)</span>
+            <span class="value" id="kpi-inactive-clients">—</span>
           </div>
+        </div>
+
+        <!-- Segunda fila: Análisis -->
+        <div class="grid-3-kpi" style="margin-top:14px;">
+          <div class="kpi">
+            <span>Promedio días inactivo</span>
+            <span class="value" id="kpi-avg-last-visit">—</span>
+          </div>
+          <div class="kpi">
+            <span>Ciclos completados</span>
+            <span class="value" id="kpi-cycles-completed">—</span>
+          </div>
+          <div class="kpi">
+            <span>Tasa de retorno</span>
+            <span class="value" id="kpi-return-rate">—</span>
+          </div>
+        </div>
+
+        <!-- Gráficas de distribución -->
+        <div style="margin-top:16px;background:rgba(255,255,255,0.05);border-radius:12px;padding:12px;">
+          <h4 style="margin:0 0 10px;font-size:13px;color:var(--venus-soft);">Distribución por día de la semana</h4>
+          <canvas id="day-distribution-chart"></canvas>
+        </div>
+
+        <div style="margin-top:16px;background:rgba(255,255,255,0.05);border-radius:12px;padding:12px;">
+          <h4 style="margin:0 0 10px;font-size:13px;color:var(--venus-soft);">Distribución por hora del día</h4>
+          <canvas id="hour-distribution-chart"></canvas>
+        </div>
+      </div>
     </section>
 
     <!-- TAB: Cards -->
@@ -1462,8 +1224,7 @@
       <!-- Formulario Crear Gift Card -->
       <div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:16px;margin-bottom:20px;">
         <h3 style="margin:0 0 8px;font-size:16px;">Crear Gift Card</h3>
-        <p class="muted" style="margin:0 0 16px;font-size:13px;">Genera una tarjeta de regalo digital con vigencia
-          de 30
+        <p class="muted" style="margin:0 0 16px;font-size:13px;">Genera una tarjeta de regalo digital con vigencia de 30
           días.</p>
 
         <form id="gift-form" style="max-width:500px;">
@@ -1494,8 +1255,7 @@
               <div class="gift-qr-container">
                 <canvas id="gift-qr"></canvas>
               </div>
-              <div style="font-size: 10px; color: #333; margin-top: 4px; color: #fff; opacity: 0.8;">Muestra este
-                código
+              <div style="font-size: 10px; color: #333; margin-top: 4px; color: #fff; opacity: 0.8;">Muestra este código
               </div>
             </div>
           </div>
@@ -1684,8 +1444,7 @@
           </label>
         </div>
         <div class="automation-body">
-          <p class="muted" style="font-size:12px;margin:0 0 10px;">Notificación cuando el cliente complete su
-            tarjeta.
+          <p class="muted" style="font-size:12px;margin:0 0 10px;">Notificación cuando el cliente complete su tarjeta.
           </p>
 
           <label class="automation-label">Mensaje:</label>
@@ -2688,10 +2447,6 @@
         </div>
         <div class="modal-footer">
           <!-- Primary actions -->
-          <button id="cm-schedule" class="btn small primary"
-            style="background: linear-gradient(135deg, #8c9668, #9aa066); box-shadow: 0 4px 12px rgba(140, 150, 104, 0.3);">
-            📅 Agendar
-          </button>
           <button id="cm-stamp" class="btn small primary">+1 sello</button>
           <button id="cm-redeem" class="btn small">Canjear</button>
 
@@ -2847,7 +2602,6 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
   <script>
-
     const $ = s => document.querySelector(s);
 
     /* ===== MODULE SELECTION SYSTEM ===== */
@@ -4546,46 +4300,6 @@
       window.open(url, '_blank');
     }
 
-    // ✅ NUEVO: Abrir dialog de nueva cita con datos del cliente pre-llenados
-    function openScheduleDialogForClient(card) {
-      // 1. Cerrar el modal del cliente
-      closeCardModal();
-
-      // 2. Cambiar a la pestaña de Agenda
-      switchView('agenda');
-
-      // 3. Pre-llenar datos del cliente en el form
-      const clientSelect = document.getElementById('new-appt-client-select');
-      const phoneInput = document.getElementById('new-appt-phone');
-
-      if (clientSelect) {
-        clientSelect.value = card.name || '';
-      }
-
-      if (phoneInput) {
-        phoneInput.value = card.phone || '';
-      }
-
-      // 4. Limpiar otros campos para nueva cita
-      document.getElementById('new-appt-service').value = '';
-      document.getElementById('new-appt-price').value = '';
-      document.getElementById('new-appt-date').value = '';
-      document.getElementById('new-appt-hour').value = '';
-      document.getElementById('new-appt-minute').value = '';
-
-      // 5. Ocultar el formulario de nuevo cliente si está visible
-      const newClientForm = document.getElementById('new-client-form');
-      if (newClientForm) {
-        newClientForm.style.display = 'none';
-      }
-
-      // 6. Abrir el dialog
-      const newApptDialog = document.getElementById('newApptDialog');
-      if (newApptDialog) {
-        newApptDialog.showModal();
-      }
-    }
-
     /* ===== PHASE 5: LOAD & SAVE CLIENT INFO ===== */
     function loadClientInfo(card) {
       // Cargar campos editables
@@ -4847,16 +4561,6 @@
           alert('✅ Dispositivo Google registrado exitosamente');
         } else {
           alert('❌ Error registrando dispositivo Google');
-        }
-      }
-    });
-
-    // ✅ NUEVO: Botón Agendar - Abre el dialog de nueva cita con datos del cliente
-    document.getElementById('cm-schedule')?.addEventListener('click', () => {
-      if (currentCardId) {
-        const card = cardsCache[currentCardId];
-        if (card) {
-          openScheduleDialogForClient(card);
         }
       }
     });
@@ -6633,7 +6337,6 @@
         }
       });
     }
-
 
   </script>
 </body>
