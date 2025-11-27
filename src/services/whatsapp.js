@@ -17,7 +17,7 @@ function getTwilioClient() {
  */
 async function sendWhatsAppTemplate(to, templateSid, variables) {
     const twilioClient = getTwilioClient();
-    
+
     if (!twilioClient) {
         console.warn('⚠️ WhatsApp: Twilio no configurado. Saltando envío.');
         return { success: false, error: 'Twilio no configurado' };
@@ -61,8 +61,8 @@ async function sendWhatsAppTemplate(to, templateSid, variables) {
  */
 function formatearFechaLegible(fecha) {
     const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
-                   'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
-    
+        'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+
     let date;
     if (typeof fecha === 'string' && fecha.includes('T')) {
         // Si viene con hora ISO, parsearlo correctamente
@@ -74,7 +74,7 @@ function formatearFechaLegible(fecha) {
     } else {
         date = new Date(fecha);
     }
-    
+
     return `${date.getDate()} de ${meses[date.getMonth()]}`;
 }
 
@@ -84,12 +84,50 @@ function formatearFechaLegible(fecha) {
  */
 function formatearHora(dateTimeStr) {
     const date = new Date(dateTimeStr);
-    return date.toLocaleTimeString('es-MX', { 
-        hour: '2-digit', 
-        minute: '2-digit', 
+    return date.toLocaleTimeString('es-MX', {
+        hour: '2-digit',
+        minute: '2-digit',
         hour12: false,
         timeZone: 'America/Mexico_City'
     });
+}
+
+/**
+ * Envía un mensaje de texto libre (solo funciona si hay sesión activa de 24h)
+ */
+async function sendWhatsAppText(to, body) {
+    const twilioClient = getTwilioClient();
+
+    if (!twilioClient) {
+        console.warn('⚠️ WhatsApp: Twilio no configurado. Saltando envío.');
+        return { success: false, error: 'Twilio no configurado' };
+    }
+
+    try {
+        // Normalizar teléfono
+        let phone = to.replace(/\D/g, '');
+        if (phone.length === 10) phone = '52' + phone;
+        if (!phone.startsWith('52')) phone = '52' + phone;
+
+        const messageParams = {
+            from: config.twilio.whatsappNumber,
+            to: `whatsapp:+${phone}`,
+            body: body
+        };
+
+        console.log('📤 Enviando mensaje de texto WhatsApp:', {
+            to: messageParams.to,
+            body: body
+        });
+
+        const message = await twilioClient.messages.create(messageParams);
+
+        console.log(`✅ WhatsApp texto enviado a +${phone}: ${message.sid}`);
+        return { success: true, messageSid: message.sid };
+    } catch (error) {
+        console.error('❌ Error enviando WhatsApp texto:', error.message);
+        return { success: false, error: error.message };
+    }
 }
 
 export const WhatsAppService = {
@@ -157,52 +195,33 @@ export const WhatsAppService = {
 
     /**
      * Envía confirmación cuando el cliente confirma su cita
-     * Template: confirmacion
-     * Variables: {{1}}=Nombre, {{2}}=Fecha, {{3}}=Hora
+     * USA TEXTO LIBRE (Respuesta a sesión activa)
      */
     async sendConfirmacionRecibida(appt) {
         const fecha = formatearFechaLegible(appt.startDateTime);
         const hora = formatearHora(appt.startDateTime);
 
-        return await sendWhatsAppTemplate(
-            appt.clientPhone,
-            config.templates.CONFIRMACION,
-            {
-                '1': appt.clientName,
-                '2': fecha,
-                '3': hora
-            }
-        );
+        const mensaje = `✅ ¡Gracias ${appt.clientName}! Tu cita ha sido confirmada para el ${fecha} a las ${hora}. Te esperamos en Venus Cosmetología.`;
+
+        return await sendWhatsAppText(appt.clientPhone, mensaje);
     },
 
     /**
      * Envía mensaje de solicitud de reprogramación
-     * Template: reprogramar
-     * Variables: {{1}}=Nombre
+     * USA TEXTO LIBRE (Respuesta a sesión activa)
      */
     async sendSolicitudReprogramacion(appt) {
-        return await sendWhatsAppTemplate(
-            appt.clientPhone,
-            config.templates.REPROGRAMAR,
-            {
-                '1': appt.clientName
-            }
-        );
+        const mensaje = `🔄 Entendido ${appt.clientName}. Nos pondremos en contacto contigo pronto para reprogramar tu cita.`;
+        return await sendWhatsAppText(appt.clientPhone, mensaje);
     },
 
     /**
      * Envía confirmación de cancelación
-     * Template: cancelacion_confirmada
-     * Variables: {{1}}=Nombre
+     * USA TEXTO LIBRE (Respuesta a sesión activa)
      */
     async sendCancelacionConfirmada(appt) {
-        return await sendWhatsAppTemplate(
-            appt.clientPhone,
-            config.templates.CANCELACION_CONFIRMADA,
-            {
-                '1': appt.clientName
-            }
-        );
+        const mensaje = `❌ Tu cita ha sido cancelada exitosamente. Esperamos verte pronto de nuevo.`;
+        return await sendWhatsAppText(appt.clientPhone, mensaje);
     },
 
     // Helpers exportados
