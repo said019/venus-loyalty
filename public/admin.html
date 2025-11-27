@@ -4879,163 +4879,6 @@
       openCardModal(card);
     }
 
-    /* ===== GIFT CARDS MEJORADO ===== */
-    window.currentGiftCard = null;
-
-    document.getElementById('gift-form').addEventListener('submit', async function (e) {
-      e.preventDefault();
-
-      // 1. Obtener datos
-      const clientName = (document.getElementById('gift-name').value || '').trim() || 'Cliente';
-      const service = (document.getElementById('gift-service').value || '').trim();
-
-      if (!service) { alert('Ingresa un servicio'); return; }
-
-      // 2. Calcular fechas e IDs
-      const giftId = 'gift_' + Date.now();
-      const expirationDate = new Date();
-      expirationDate.setDate(expirationDate.getDate() + 30);
-      const formattedDate = expirationDate.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
-
-      // 3. Actualizar la VISTA VISUAL (Nuevo diseño)
-      document.getElementById('gift-visual-service').textContent = service;
-      document.getElementById('gift-visual-client').textContent = `Para: ${clientName}`;
-      document.getElementById('gift-visual-date').textContent = `Válida hasta: ${formattedDate}`;
-
-      // 4. Generar QR
-      const payloadText = `GIFT|codigo=${giftId}|servicio=${service}|cliente=${clientName}|vence=${expirationDate.toISOString().slice(0, 10)}`;
-      const giftCanvas = document.getElementById('gift-qr');
-
-      try {
-        // Aseguramos que el canvas esté limpio
-        const ctx = giftCanvas.getContext('2d');
-        ctx.clearRect(0, 0, giftCanvas.width, giftCanvas.height);
-
-        // Usamos la librería qrcode (asegúrate de haberla importado en el head)
-        await QRCode.toCanvas(giftCanvas, payloadText, {
-          width: 150,
-          margin: 0,
-          color: { dark: '#000000', light: '#ffffff' }
-        });
-
-      } catch (err) {
-        console.error(err);
-        alert('Error generando QR. Verifica que la librería qrcode.min.js esté en el <head>');
-        return;
-      }
-
-      // 5. Mostrar resultados
-      document.getElementById('gift-preview-container').classList.remove('hidden');
-      document.getElementById('gift-actions').classList.remove('hidden');
-      document.getElementById('gift-success').classList.remove('hidden');
-
-      // Guardar referencia global
-      window.currentGiftCard = { id: giftId, client: clientName, service, expires: formattedDate };
-    });
-
-    // --- Lógica para compartir IMAGEN COMPLETA en WhatsApp ---
-    document.getElementById('gift-whatsapp-image').addEventListener('click', async function () {
-      if (!window.currentGiftCard) return;
-
-      const btn = this;
-      const originalText = btn.textContent;
-      btn.textContent = 'Generando imagen...';
-
-      try {
-        // Seleccionamos el div con el diseño completo
-        const elementToCapture = document.getElementById('gift-card-visual');
-
-        // Usamos html2canvas para crear una imagen de todo el div
-        const canvasFull = await html2canvas(elementToCapture, {
-          scale: 2, // Mejor calidad
-          backgroundColor: null // Transparencia si aplica
-        });
-
-        const imageDataURL = canvasFull.toDataURL('image/png');
-        const gift = window.currentGiftCard;
-
-        const message = `🎁 ¡Hola ${gift.client}!\n\n` +
-          `Te envío una Gift Card de Venus Cosmetología para:\n` +
-          `✨ *${gift.service}*\n\n` +
-          `Presenta la imagen adjunta en tu próxima visita. 🌿`;
-
-        // Lógica de envío (Web Share API o Descarga)
-        if (navigator.share && navigator.canShare) {
-          const blob = await (await fetch(imageDataURL)).blob();
-          const file = new File([blob], 'gift-card-venus.png', { type: 'image/png' });
-          try {
-            await navigator.share({
-              title: 'Gift Card Venus',
-              text: message,
-              files: [file]
-            });
-          } catch (err) {
-            if (err.name !== 'AbortError') fallbackWhatsAppShare(message, imageDataURL);
-          }
-        } else {
-          fallbackWhatsAppShare(message, imageDataURL);
-        }
-      } catch (e) {
-        console.error(e);
-        alert('Error al generar la imagen');
-      } finally {
-        btn.textContent = originalText;
-      }
-    });
-
-    function fallbackWhatsAppShare(message, imageDataURL) {
-      // Crea un enlace de descarga automático
-      const link = document.createElement('a');
-      link.download = 'gift-card-venus.png';
-      link.href = imageDataURL;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      setTimeout(() => {
-        const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message + '\n\n(Adjunta la imagen descargada)')}`;
-        window.open(whatsappUrl, '_blank');
-      }, 1000);
-    }
-
-    document.getElementById('gift-copy').addEventListener('click', function () {
-      if (!window.currentGiftCard) return;
-      const gift = window.currentGiftCard;
-      const text =
-        `🎁 Gift Card Venus Cosmetología\n\n` +
-        `✨ Servicio: ${gift.service}\n` +
-        `👤 A nombre de: ${gift.client}\n` +
-        `📅 Vigente hasta: ${gift.expires}\n` +
-        `🔑 Código: ${gift.id}\n\n` +
-        `Presenta este mensaje en tu visita 💚`;
-
-      navigator.clipboard.writeText(text).then(() => {
-        const originalText = this.textContent;
-        this.textContent = '✅ Copiado';
-        setTimeout(() => {
-          this.textContent = originalText;
-        }, 2000);
-      }).catch(() => {
-        alert('No se pudo copiar el texto');
-      });
-    });
-
-    document.getElementById('gift-whatsapp').addEventListener('click', function () {
-      if (!window.currentGiftCard) return;
-
-      const gift = window.currentGiftCard;
-      const message =
-        `🎁 ¡Hola ${gift.client}!\n\n` +
-        `Tienes una Gift Card de Venus Cosmetología:\n\n` +
-        `✨ Servicio: ${gift.service}\n` +
-        `📅 Válida hasta: ${gift.expires}\n` +
-        `🔑 Código: ${gift.id}\n\n` +
-        `Presenta este código en tu cita 💚`;
-
-      const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
-      window.open(whatsappUrl, '_blank');
-    });
-
     /* ===== PUSH NOTIFICATIONS - CORREGIDO ===== */
     const typeEmojis = {
       'promo': '🎁 Promoción',
@@ -8188,8 +8031,11 @@
     }
 
     // Tabs
-    document.querySelectorAll('.gc-tab').forEach(tab => {
+    const gcTabs = document.querySelectorAll('.gc-tab');
+    console.log('[GC] Tabs encontrados:', gcTabs.length);
+    gcTabs.forEach(tab => {
       tab.addEventListener('click', function() {
+        console.log('[GC] Tab clicked:', this.dataset.filter);
         document.querySelectorAll('.gc-tab').forEach(t => t.classList.remove('active'));
         this.classList.add('active');
         currentGiftCardFilter = this.dataset.filter;
@@ -8201,49 +8047,57 @@
     document.getElementById('gc-search')?.addEventListener('input', renderGiftCards);
 
     // Crear gift card
-    document.getElementById('form-giftcard')?.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      
-      const serviceSelect = document.getElementById('gc-service');
-      const serviceOption = serviceSelect.options[serviceSelect.selectedIndex];
-      
-      if (!serviceSelect.value) {
-        alert('Selecciona un servicio');
-        return;
-      }
-      
-      const data = {
-        recipientName: document.getElementById('gc-recipient').value.trim() || null,
-        serviceId: serviceSelect.value,
-        serviceName: serviceOption.dataset.name,
-        servicePrice: parseFloat(serviceOption.dataset.price),
-        message: document.getElementById('gc-message').value.trim() || null,
-        validityDays: parseInt(document.getElementById('gc-validity').value)
-      };
-      
-      try {
-        const res = await fetch('/api/giftcards', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify(data)
-        });
+    const formGiftcard = document.getElementById('form-giftcard');
+    console.log('[GC] Formulario encontrado:', !!formGiftcard);
+    
+    if (formGiftcard) {
+      formGiftcard.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        console.log('[GC] Submit del formulario');
         
-        const json = await res.json();
+        const serviceSelect = document.getElementById('gc-service');
+        const serviceOption = serviceSelect.options[serviceSelect.selectedIndex];
         
-        if (json.success) {
-          document.getElementById('form-giftcard').reset();
-          document.getElementById('gc-preview-service').textContent = 'Selecciona un servicio';
-          document.getElementById('gc-preview-validity').textContent = 'Válida por 30 días';
-          loadGiftCards();
-          viewGiftCard(json.id);
-        } else {
-          alert('Error: ' + json.error);
+        if (!serviceSelect.value) {
+          alert('Selecciona un servicio');
+          return;
         }
-      } catch (error) {
-        alert('Error de conexión');
-      }
-    });
+        
+        const data = {
+          recipientName: document.getElementById('gc-recipient').value.trim() || null,
+          serviceId: serviceSelect.value,
+          serviceName: serviceOption.dataset.name,
+          servicePrice: parseFloat(serviceOption.dataset.price),
+          message: document.getElementById('gc-message').value.trim() || null,
+          validityDays: parseInt(document.getElementById('gc-validity').value)
+        };
+        
+        try {
+          const res = await fetch('/api/giftcards', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify(data)
+          });
+          
+          const json = await res.json();
+          console.log('[GC] Respuesta:', json);
+          
+          if (json.success) {
+            document.getElementById('form-giftcard').reset();
+            document.getElementById('gc-preview-service').textContent = 'Selecciona un servicio';
+            document.getElementById('gc-preview-validity').textContent = 'Válida por 30 días';
+            await loadGiftCards();
+            viewGiftCard(json.id);
+          } else {
+            alert('Error: ' + json.error);
+          }
+        } catch (error) {
+          console.error('[GC] Error:', error);
+          alert('Error de conexión');
+        }
+      });
+    }
 
     // Ver gift card
     async function viewGiftCard(id) {
@@ -8340,6 +8194,10 @@
     window.sendGiftCardWhatsApp = sendGiftCardWhatsApp;
     window.sendGiftCardWhatsAppById = sendGiftCardWhatsAppById;
     window.renewGiftCard = renewGiftCard;
+    window.loadGiftCardServices = loadGiftCardServices;
+    window.loadGiftCards = loadGiftCards;
+
+    console.log('[GC] Gift Cards module loaded');
 
   </script>
 </body>
