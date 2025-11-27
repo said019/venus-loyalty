@@ -152,22 +152,38 @@ export const AppointmentModel = {
     async getPendingReminders(type, rangeStart, rangeEnd) {
         // type: 'send24h' o 'send2h'
         // rangeStart/End: ISO strings
+        
+        console.log(`🔍 Buscando recordatorios ${type} entre ${rangeStart} y ${rangeEnd}`);
 
-        // Nota: Firestore queries complejas pueden requerir índices.
-        // Simplificamos trayendo las 'scheduled' y filtrando en código si es necesario, 
-        // o usamos query exacta si tenemos índices.
-
+        // Simplificado: traer todas las citas scheduled en el rango y filtrar en código
         const snap = await firestore.collection(COL_APPOINTMENTS)
-            .where('status', '==', 'scheduled')
-            .where(`reminders.${type}`, '==', true)
             .where('startDateTime', '>=', rangeStart)
             .where('startDateTime', '<=', rangeEnd)
             .get();
 
-        // Filtrar las que NO tengan sentXAt
-        return snap.docs
+        console.log(`   📦 Encontradas ${snap.size} citas en el rango`);
+
+        // Filtrar en código
+        const reminderField = type === 'send24h' ? 'sent24hAt' : 'sent2hAt';
+        const sendField = type === 'send24h' ? 'sendWhatsApp24h' : 'sendWhatsApp2h';
+        
+        const pending = snap.docs
             .map(d => ({ id: d.id, ...d.data() }))
-            .filter(a => !a.reminders[`sent${type.replace('send', '')}At`]);
+            .filter(a => {
+                // Debe estar scheduled o confirmed
+                if (a.status !== 'scheduled' && a.status !== 'confirmed') return false;
+                
+                // Debe tener el flag de envío activado
+                if (!a[sendField] && !a.reminders?.[type]) return false;
+                
+                // No debe haberse enviado ya
+                if (a.reminders?.[reminderField]) return false;
+                
+                return true;
+            });
+
+        console.log(`   ✅ ${pending.length} citas pendientes de recordatorio`);
+        return pending;
     },
 
     async markReminderSent(id, type) {
