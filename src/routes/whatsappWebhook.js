@@ -12,7 +12,7 @@ const router = express.Router();
 router.post('/webhook', async (req, res) => {
     try {
         console.log('📥 Webhook recibido:', JSON.stringify(req.body, null, 2));
-        
+
         const {
             From,           // whatsapp:+521234567890
             Body,           // Texto del mensaje o respuesta del botón
@@ -63,8 +63,21 @@ router.post('/webhook', async (req, res) => {
 async function buscarCitaActiva(telefono) {
     try {
         // Normalizar teléfono
+        // Twilio a veces manda +521... para celulares de México
+        // Base de datos suele tener 52...
+
         let phone = telefono.replace(/\D/g, '');
-        if (phone.length === 10) phone = '52' + phone;
+
+        // Si tiene 12 dígitos y empieza con 521, quitar el 1 (convertir a 52...)
+        if (phone.length === 13 && phone.startsWith('521')) {
+            phone = '52' + phone.substring(3);
+        }
+        // Si tiene 10 dígitos, agregar 52
+        else if (phone.length === 10) {
+            phone = '52' + phone;
+        }
+
+        console.log(`🔍 Buscando cita para teléfono normalizado: ${phone} (Original: ${telefono})`);
 
         const now = new Date().toISOString();
 
@@ -81,22 +94,27 @@ async function buscarCitaActiva(telefono) {
             return { id: doc.id, ...doc.data() };
         }
 
-        // Búsqueda alternativa por últimos 10 dígitos
+        // Búsqueda alternativa por últimos 10 dígitos (más robusta)
+        const last10 = phone.slice(-10);
+        console.log(`⚠️ No encontrado exacto. Buscando por terminación: ...${last10}`);
+
         const altSnapshot = await firestore.collection('appointments')
             .where('status', 'in', ['scheduled', 'confirmed'])
             .orderBy('startDateTime', 'asc')
-            .limit(50)
+            .limit(50) // Aumentado límite por seguridad
             .get();
 
         for (const doc of altSnapshot.docs) {
             const data = doc.data();
-            const tel = (data.clientPhone || '').replace(/\D/g, '');
-            
-            if (tel.endsWith(phone.slice(-10))) {
+            const dbPhone = (data.clientPhone || '').replace(/\D/g, '');
+
+            if (dbPhone.endsWith(last10)) {
+                console.log(`✅ Encontrado por coincidencia parcial: ${doc.id}`);
                 return { id: doc.id, ...data };
             }
         }
 
+        console.log('❌ No se encontró ninguna cita activa');
         return null;
 
     } catch (error) {
