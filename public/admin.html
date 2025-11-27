@@ -2745,10 +2745,13 @@
     </dialog>
 
     <!-- PAYMENT DIALOG -->
-    <dialog id="paymentDialog" style="max-width:480px;">
+    <dialog id="paymentDialog">
+      <button class="btn-close-payment" onclick="closePaymentModal()" title="Cerrar">
+        <i class="fas fa-times"></i>
+      </button>
+
       <div class="dialog-header">
         <h3><i class="fas fa-receipt"></i> Cobrar Servicio</h3>
-        <button type="button" id="btn-close-payment" class="btn-close"><i class="fas fa-times"></i></button>
       </div>
 
       <div style="padding:0 20px 20px;">
@@ -2761,52 +2764,90 @@
           <div class="payment-info-box">
             <div class="payment-info-label">Servicio</div>
             <div class="payment-info-value" id="payment-service-name">-</div>
+            <div class="payment-price-row">
+              <span class="payment-price-display" id="payment-price-display">$0</span>
+              <input type="number" class="payment-price-input" id="payment-price-input" min="0" step="10">
+              <button class="btn-edit-price" onclick="togglePriceEdit()" title="Editar precio">
+                <i class="fas fa-pencil" style="font-size:12px;"></i>
+              </button>
+            </div>
           </div>
         </div>
 
-        <!-- Productos vendidos -->
-        <div class="payment-products">
-          <div class="payment-products-header">
-            <h4><i class="fas fa-shopping-bag"></i> Agregar productos</h4>
+        <!-- Productos -->
+        <div class="payment-section">
+          <div class="payment-section-header">
+            <span class="payment-section-title">
+              <i class="fas fa-shopping-bag"></i> Productos
+            </span>
           </div>
 
-          <!-- Selector -->
           <div class="product-add-row">
             <select id="payment-product-select">
-              <option value="">Seleccionar producto...</option>
+              <option value="">Agregar producto...</option>
             </select>
             <input type="number" id="payment-product-qty" value="1" min="1" max="99">
             <button type="button" onclick="addProductToPayment()">
-              <i class="fas fa-plus"></i> Agregar
+              <i class="fas fa-plus"></i>
             </button>
           </div>
 
-          <!-- Lista de productos agregados -->
           <div class="payment-product-list" id="payment-products-list">
-            <div class="payment-products-empty">
-              Sin productos adicionales
+            <div class="payment-products-empty">Sin productos adicionales</div>
+          </div>
+        </div>
+
+        <!-- Descuento -->
+        <div class="payment-section">
+          <div class="payment-section-header">
+            <span class="payment-section-title">
+              <i class="fas fa-percent"></i> Descuento
+            </span>
+          </div>
+
+          <div class="discount-row">
+            <div class="discount-toggle">
+              <button class="active" onclick="setDiscountType('percent')" id="btn-discount-percent">%</button>
+              <button onclick="setDiscountType('fixed')" id="btn-discount-fixed">$</button>
             </div>
+            <div class="discount-input-wrap">
+              <input type="number" id="payment-discount-value" placeholder="0" min="0" value="0" oninput="calculateTotals()">
+              <span class="discount-symbol" id="discount-symbol">%</span>
+            </div>
+          </div>
+
+          <div class="discount-applied" id="discount-applied">
+            <i class="fas fa-tag"></i>
+            <span id="discount-applied-text">Descuento aplicado: -$0</span>
           </div>
         </div>
 
         <!-- Totales -->
         <div class="payment-totals">
-          <div class="payment-total-row subtotal">
+          <div class="payment-total-row sub">
             <span>Servicio</span>
-            <span id="payment-service-price">$0</span>
+            <span id="total-service">$0</span>
           </div>
-          <div class="payment-total-row subtotal" id="payment-products-subtotal-row" style="display:none;">
-            <span>Productos (<span id="payment-products-count">0</span> items)</span>
-            <span id="payment-products-subtotal">$0</span>
+          <div class="payment-total-row sub" id="total-products-row" style="display:none;">
+            <span>Productos (<span id="total-products-count">0</span>)</span>
+            <span id="total-products">$0</span>
+          </div>
+          <div class="payment-total-row subtotal-line">
+            <span>Subtotal</span>
+            <span id="total-subtotal">$0</span>
+          </div>
+          <div class="payment-total-row discount" id="total-discount-row">
+            <span id="total-discount-label">Descuento</span>
+            <span id="total-discount">-$0</span>
           </div>
           <div class="payment-total-row grand">
-            <span>Total a cobrar</span>
-            <span id="payment-grand-total">$0</span>
+            <span>Total</span>
+            <span id="total-grand">$0</span>
           </div>
         </div>
 
         <!-- Método de pago -->
-        <div class="form-row" style="margin-bottom:0;">
+        <div class="form-row" style="margin-top:16px;margin-bottom:0;">
           <label>Método de Pago <span style="color:#ef4444;">*</span></label>
           <select id="payment-method" class="form-input">
             <option value="efectivo">Efectivo</option>
@@ -2818,14 +2859,15 @@
 
         <!-- Campos ocultos -->
         <input type="hidden" id="payment-appointment-id">
-        <input type="hidden" id="payment-service-price-value">
+        <input type="hidden" id="payment-original-price">
       </div>
 
       <div class="dialog-footer">
-        <button class="btn primary" onclick="savePayment()" id="btn-save-payment">
-          <i class="fas fa-check-circle"></i> Cobrar <span id="btn-payment-amount">$0</span>
+        <button class="btn primary btn-cobrar" onclick="savePayment()" id="btn-save-payment">
+          <i class="fas fa-check-circle"></i>
+          Cobrar <span id="btn-payment-total">$0</span>
         </button>
-        <button type="button" id="btn-cancel-payment" class="btn ghost">Cancelar</button>
+        <button type="button" onclick="closePaymentModal()" class="btn ghost">Cancelar</button>
       </div>
     </dialog>
 
@@ -3575,6 +3617,217 @@
         border-top: 1px solid var(--line);
         padding-top: 12px;
         margin-top: 8px;
+      }
+
+      /* Estilos adicionales para modal mejorado */
+      #paymentDialog {
+        max-width: 440px !important;
+      }
+
+      .btn-close-payment {
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        background: rgba(255,255,255,0.05);
+        border: 1px solid var(--line);
+        color: var(--muted);
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+        z-index: 10;
+      }
+
+      .btn-close-payment:hover {
+        background: rgba(239, 68, 68, 0.1);
+        border-color: rgba(239, 68, 68, 0.3);
+        color: #ef4444;
+      }
+
+      .payment-price-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 8px;
+      }
+
+      .payment-price-display {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--venus-soft);
+      }
+
+      .payment-price-input {
+        width: 100px;
+        padding: 6px 10px;
+        background: rgba(0,0,0,0.3);
+        border: 1px solid var(--venus);
+        border-radius: 8px;
+        color: var(--ink);
+        font-size: 15px;
+        font-weight: 600;
+        display: none;
+      }
+
+      .payment-price-input.visible {
+        display: block;
+      }
+
+      .payment-price-display.hidden {
+        display: none;
+      }
+
+      .btn-edit-price {
+        background: none;
+        border: none;
+        color: var(--muted);
+        cursor: pointer;
+        padding: 4px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+      }
+
+      .btn-edit-price:hover {
+        color: var(--venus-soft);
+        background: rgba(140,150,104,0.1);
+      }
+
+      .payment-section {
+        background: rgba(0,0,0,0.2);
+        border-radius: 14px;
+        padding: 16px;
+        margin-bottom: 16px;
+        border: 1px solid var(--line);
+      }
+
+      .payment-section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 14px;
+      }
+
+      .payment-section-title {
+        font-size: 13px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--venus-soft);
+      }
+
+      .discount-row {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .discount-toggle {
+        display: flex;
+        background: rgba(0,0,0,0.3);
+        border-radius: 8px;
+        overflow: hidden;
+        border: 1px solid var(--line);
+      }
+
+      .discount-toggle button {
+        padding: 10px 18px;
+        background: transparent;
+        border: none;
+        color: var(--muted);
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .discount-toggle button.active {
+        background: var(--venus);
+        color: white;
+      }
+
+      .discount-toggle button:hover:not(.active) {
+        background: rgba(255,255,255,0.05);
+      }
+
+      .discount-input-wrap {
+        flex: 1;
+        position: relative;
+      }
+
+      .discount-input-wrap input {
+        width: 100%;
+        padding: 10px 14px;
+        padding-right: 36px;
+        background: rgba(0,0,0,0.3);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        color: var(--ink);
+        font-size: 14px;
+      }
+
+      .discount-input-wrap input:focus {
+        outline: none;
+        border-color: var(--venus);
+      }
+
+      .discount-symbol {
+        position: absolute;
+        right: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--muted);
+        font-size: 14px;
+        font-weight: 500;
+      }
+
+      .discount-applied {
+        margin-top: 12px;
+        padding: 10px 14px;
+        background: rgba(34, 197, 94, 0.1);
+        border-radius: 10px;
+        font-size: 13px;
+        color: #22c55e;
+        display: none;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .discount-applied.visible {
+        display: flex;
+      }
+
+      .payment-total-row.sub {
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      .payment-total-row.subtotal-line {
+        font-size: 14px;
+        color: var(--ink);
+      }
+
+      .payment-total-row.discount {
+        font-size: 13px;
+        color: #22c55e;
+        display: none;
+      }
+
+      .payment-total-row.discount.visible {
+        display: flex;
+      }
+
+      .btn-cobrar {
+        flex: 1;
+        padding: 14px 24px;
+        font-size: 15px;
+        font-weight: 600;
+        border-radius: 12px;
       }
     </style>
 
@@ -8513,12 +8766,14 @@
     console.log('[GC] Gift Cards module loaded');
 
     /* =========================================================
-       MODAL DE PAGO CON PRODUCTOS
+       MODAL DE PAGO CON PRODUCTOS Y DESCUENTOS
        ========================================================= */
 
     let paymentProducts = [];
     let paymentServicePrice = 0;
     let allProductsForPayment = [];
+    let discountType = 'percent';
+    let isPriceEditing = false;
 
     async function loadProductsForPayment() {
       try {
@@ -8538,14 +8793,14 @@
       const select = document.getElementById('payment-product-select');
       if (!select) return;
 
-      select.innerHTML = '<option value="">Seleccionar producto...</option>';
+      select.innerHTML = '<option value="">Agregar producto...</option>';
 
       allProductsForPayment.forEach(p => {
         const inCart = paymentProducts.find(pp => pp.id === p.id);
         const availableStock = p.stock - (inCart ? inCart.qty : 0);
 
         if (availableStock > 0) {
-          const stockLabel = availableStock <= 5 ? ` (${availableStock} disp.)` : '';
+          const stockLabel = availableStock <= 5 ? ` (${availableStock})` : '';
           select.innerHTML += `<option value="${p.id}" data-price="${p.price}" data-name="${p.name}" data-stock="${availableStock}" data-category="${p.category}">${p.name} - $${p.price}${stockLabel}</option>`;
         }
       });
@@ -8554,16 +8809,28 @@
     function openPaymentModal(appointmentId, clientName, serviceName, servicePrice) {
       paymentProducts = [];
       paymentServicePrice = parseFloat(servicePrice) || 0;
+      discountType = 'percent';
+      isPriceEditing = false;
 
       document.getElementById('payment-appointment-id').value = appointmentId;
       document.getElementById('payment-client-name').textContent = clientName || '-';
       document.getElementById('payment-service-name').textContent = serviceName || '-';
-      document.getElementById('payment-service-price-value').value = paymentServicePrice;
+      document.getElementById('payment-original-price').value = paymentServicePrice;
+
+      document.getElementById('payment-price-display').textContent = '$' + paymentServicePrice.toLocaleString();
+      document.getElementById('payment-price-display').classList.remove('hidden');
+      document.getElementById('payment-price-input').value = paymentServicePrice;
+      document.getElementById('payment-price-input').classList.remove('visible');
+
+      document.getElementById('payment-discount-value').value = 0;
+      document.getElementById('btn-discount-percent').classList.add('active');
+      document.getElementById('btn-discount-fixed').classList.remove('active');
+      document.getElementById('discount-symbol').textContent = '%';
       document.getElementById('payment-product-qty').value = 1;
 
       loadProductsForPayment();
       renderPaymentProducts();
-      updatePaymentTotals();
+      calculateTotals();
 
       document.getElementById('paymentDialog').showModal();
     }
@@ -8573,12 +8840,40 @@
       paymentProducts = [];
     }
 
+    function togglePriceEdit() {
+      const display = document.getElementById('payment-price-display');
+      const input = document.getElementById('payment-price-input');
+
+      if (isPriceEditing) {
+        paymentServicePrice = parseFloat(input.value) || 0;
+        display.textContent = '$' + paymentServicePrice.toLocaleString();
+        display.classList.remove('hidden');
+        input.classList.remove('visible');
+        isPriceEditing = false;
+      } else {
+        input.value = paymentServicePrice;
+        display.classList.add('hidden');
+        input.classList.add('visible');
+        input.focus();
+        input.select();
+        isPriceEditing = true;
+      }
+      calculateTotals();
+    }
+
+    function setDiscountType(type) {
+      discountType = type;
+      document.getElementById('btn-discount-percent').classList.toggle('active', type === 'percent');
+      document.getElementById('btn-discount-fixed').classList.toggle('active', type === 'fixed');
+      document.getElementById('discount-symbol').textContent = type === 'percent' ? '%' : '$';
+      calculateTotals();
+    }
+
     function addProductToPayment() {
       const select = document.getElementById('payment-product-select');
       const qtyInput = document.getElementById('payment-product-qty');
 
-      const productId = select.value;
-      if (!productId) {
+      if (!select.value) {
         alert('Selecciona un producto');
         return;
       }
@@ -8587,19 +8882,18 @@
       const qty = parseInt(qtyInput.value) || 1;
       const stock = parseInt(option.dataset.stock) || 0;
 
-      const existing = paymentProducts.find(p => p.id === productId);
-      const currentQty = existing ? existing.qty : 0;
-
-      if (qty + currentQty > stock + currentQty) {
+      if (qty > stock) {
         alert(`Solo hay ${stock} unidades disponibles`);
         return;
       }
+
+      const existing = paymentProducts.find(p => p.id === select.value);
 
       if (existing) {
         existing.qty += qty;
       } else {
         paymentProducts.push({
-          id: productId,
+          id: select.value,
           name: option.dataset.name,
           price: parseFloat(option.dataset.price),
           qty: qty,
@@ -8613,14 +8907,14 @@
 
       updatePaymentProductSelect();
       renderPaymentProducts();
-      updatePaymentTotals();
+      calculateTotals();
     }
 
     function removeProductFromPayment(productId) {
       paymentProducts = paymentProducts.filter(p => p.id !== productId);
       updatePaymentProductSelect();
       renderPaymentProducts();
-      updatePaymentTotals();
+      calculateTotals();
     }
 
     function renderPaymentProducts() {
@@ -8631,18 +8925,11 @@
         return;
       }
 
-      const categoryIcons = {
-        'skincare': '🧴',
-        'maquillaje': '💄',
-        'corporal': '✨',
-        'cabello': '💇',
-        'otro': '📦'
-      };
+      const icons = { 'skincare': '🧴', 'maquillaje': '💄', 'corporal': '✨', 'cabello': '💇', 'otro': '📦' };
 
       list.innerHTML = paymentProducts.map(p => {
-        const icon = categoryIcons[p.category] || '📦';
+        const icon = icons[p.category] || '📦';
         const subtotal = p.price * p.qty;
-        const stockWarn = p.qty >= p.maxStock ? `<div class="stock-warn"><i class="fas fa-exclamation-triangle"></i> Último(s) en stock</div>` : '';
 
         return `
           <div class="payment-product-item">
@@ -8650,7 +8937,6 @@
             <div class="payment-product-info">
               <div class="payment-product-name">${p.name}</div>
               <div class="payment-product-meta">$${p.price} × ${p.qty}</div>
-              ${stockWarn}
             </div>
             <div class="payment-product-price">$${subtotal.toLocaleString()}</div>
             <button class="payment-product-remove" onclick="removeProductFromPayment('${p.id}')">
@@ -8661,28 +8947,65 @@
       }).join('');
     }
 
-    function updatePaymentTotals() {
+    function calculateTotals() {
       const servicePrice = paymentServicePrice;
       const productsTotal = paymentProducts.reduce((sum, p) => sum + (p.price * p.qty), 0);
-      const grandTotal = servicePrice + productsTotal;
       const productsCount = paymentProducts.reduce((sum, p) => sum + p.qty, 0);
+      const subtotal = servicePrice + productsTotal;
 
-      document.getElementById('payment-service-price').textContent = '$' + servicePrice.toLocaleString();
-      document.getElementById('payment-products-subtotal').textContent = '$' + productsTotal.toLocaleString();
-      document.getElementById('payment-products-count').textContent = productsCount;
-      document.getElementById('payment-grand-total').textContent = '$' + grandTotal.toLocaleString();
-      document.getElementById('btn-payment-amount').textContent = '$' + grandTotal.toLocaleString();
+      const discountValue = parseFloat(document.getElementById('payment-discount-value').value) || 0;
+      let discountAmount = 0;
 
-      const productsRow = document.getElementById('payment-products-subtotal-row');
-      productsRow.style.display = productsCount > 0 ? 'flex' : 'none';
+      if (discountType === 'percent') {
+        discountAmount = Math.round(subtotal * (discountValue / 100));
+      } else {
+        discountAmount = Math.min(discountValue, subtotal);
+      }
+
+      const grandTotal = Math.max(0, subtotal - discountAmount);
+
+      document.getElementById('total-service').textContent = '$' + servicePrice.toLocaleString();
+      document.getElementById('total-products').textContent = '$' + productsTotal.toLocaleString();
+      document.getElementById('total-products-count').textContent = productsCount;
+      document.getElementById('total-subtotal').textContent = '$' + subtotal.toLocaleString();
+      document.getElementById('total-discount').textContent = '-$' + discountAmount.toLocaleString();
+      document.getElementById('total-grand').textContent = '$' + grandTotal.toLocaleString();
+      document.getElementById('btn-payment-total').textContent = '$' + grandTotal.toLocaleString();
+
+      document.getElementById('total-products-row').style.display = productsCount > 0 ? 'flex' : 'none';
+
+      const discountRow = document.getElementById('total-discount-row');
+      const discountApplied = document.getElementById('discount-applied');
+
+      if (discountAmount > 0) {
+        discountRow.classList.add('visible');
+        discountApplied.classList.add('visible');
+        const label = discountType === 'percent' ? `Descuento (${discountValue}%)` : 'Descuento';
+        document.getElementById('total-discount-label').textContent = label;
+        document.getElementById('discount-applied-text').textContent = `Descuento aplicado: -$${discountAmount.toLocaleString()}`;
+      } else {
+        discountRow.classList.remove('visible');
+        discountApplied.classList.remove('visible');
+      }
     }
 
     async function savePayment() {
       const appointmentId = document.getElementById('payment-appointment-id').value;
       const paymentMethod = document.getElementById('payment-method').value;
+
       const servicePrice = paymentServicePrice;
       const productsTotal = paymentProducts.reduce((sum, p) => sum + (p.price * p.qty), 0);
-      const grandTotal = servicePrice + productsTotal;
+      const subtotal = servicePrice + productsTotal;
+
+      const discountValue = parseFloat(document.getElementById('payment-discount-value').value) || 0;
+      let discountAmount = 0;
+      if (discountType === 'percent') {
+        discountAmount = Math.round(subtotal * (discountValue / 100));
+      } else {
+        discountAmount = Math.min(discountValue, subtotal);
+      }
+
+      const grandTotal = Math.max(0, subtotal - discountAmount);
 
       if (!appointmentId) {
         alert('Error: No se encontró la cita');
@@ -8710,6 +9033,10 @@
             paymentMethod,
             serviceAmount: servicePrice,
             productsAmount: productsTotal,
+            subtotal,
+            discountType: discountAmount > 0 ? discountType : null,
+            discountValue: discountAmount > 0 ? discountValue : 0,
+            discountAmount,
             totalAmount: grandTotal,
             productsSold
           })
@@ -8721,7 +9048,7 @@
           closePaymentModal();
           if (typeof loadAppointments === 'function') loadAppointments();
           if (typeof loadTodayAppointments === 'function') loadTodayAppointments();
-          alert(`✓ Pago registrado: $${grandTotal.toLocaleString()}`);
+          alert('✓ Pago registrado: $' + grandTotal.toLocaleString());
         } else {
           alert('Error: ' + json.error);
         }
@@ -8730,18 +9057,18 @@
         alert('Error de conexión');
       } finally {
         btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-check-circle"></i> Cobrar <span id="btn-payment-amount">$' + grandTotal.toLocaleString() + '</span>';
+        btn.innerHTML = '<i class="fas fa-check-circle"></i> Cobrar <span id="btn-payment-total">$' + grandTotal.toLocaleString() + '</span>';
       }
     }
 
     window.openPaymentModal = openPaymentModal;
     window.closePaymentModal = closePaymentModal;
+    window.togglePriceEdit = togglePriceEdit;
+    window.setDiscountType = setDiscountType;
     window.addProductToPayment = addProductToPayment;
     window.removeProductFromPayment = removeProductFromPayment;
+    window.calculateTotals = calculateTotals;
     window.savePayment = savePayment;
-
-    document.getElementById('btn-close-payment')?.addEventListener('click', closePaymentModal);
-    document.getElementById('btn-cancel-payment')?.addEventListener('click', closePaymentModal);
 
     // --- SIMULATE WEBHOOK ---
     async function simulateWebhook(action) {

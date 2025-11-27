@@ -579,11 +579,21 @@ app.patch('/api/products/:id/stock', adminAuth, async (req, res) => {
 
 /* ========== APPOINTMENTS - PAYMENT ========== */
 
-// POST /api/appointments/:id/payment - Registrar pago con productos
+// POST /api/appointments/:id/payment - Registrar pago con productos y descuento
 app.post('/api/appointments/:id/payment', adminAuth, async (req, res) => {
   try {
     const { id } = req.params;
-    const { paymentMethod, serviceAmount, productsAmount, totalAmount, productsSold } = req.body;
+    const {
+      paymentMethod,
+      serviceAmount,
+      productsAmount,
+      subtotal,
+      discountType,
+      discountValue,
+      discountAmount,
+      totalAmount,
+      productsSold
+    } = req.body;
 
     const appointmentRef = firestore.collection('appointments').doc(id);
     const appointmentDoc = await appointmentRef.get();
@@ -592,12 +602,16 @@ app.post('/api/appointments/:id/payment', adminAuth, async (req, res) => {
       return res.json({ success: false, error: 'Cita no encontrada' });
     }
 
-    // Registrar el pago en la cita
+    // Actualizar cita con datos de pago
     await appointmentRef.update({
       status: 'completed',
       paymentMethod,
       serviceAmount: parseFloat(serviceAmount) || 0,
       productsAmount: parseFloat(productsAmount) || 0,
+      subtotal: parseFloat(subtotal) || 0,
+      discountType: discountType || null,
+      discountValue: discountValue || 0,
+      discountAmount: parseFloat(discountAmount) || 0,
       totalPaid: parseFloat(totalAmount) || 0,
       productsSold: productsSold || [],
       paidAt: new Date().toISOString()
@@ -614,7 +628,6 @@ app.post('/api/appointments/:id/payment', adminAuth, async (req, res) => {
         if (productDoc.exists) {
           const currentStock = productDoc.data().stock || 0;
           const newStock = Math.max(0, currentStock - product.qty);
-
           batch.update(productRef, {
             stock: newStock,
             updatedAt: new Date().toISOString()
@@ -625,13 +638,17 @@ app.post('/api/appointments/:id/payment', adminAuth, async (req, res) => {
       await batch.commit();
     }
 
-    // Opcional: Registrar en colección de ventas para reportes
+    // Registrar en colección de ventas (para reportes)
     await firestore.collection('sales').add({
       appointmentId: id,
       clientName: appointmentDoc.data().clientName,
       serviceName: appointmentDoc.data().serviceName,
       serviceAmount: parseFloat(serviceAmount) || 0,
       productsAmount: parseFloat(productsAmount) || 0,
+      subtotal: parseFloat(subtotal) || 0,
+      discountType,
+      discountValue,
+      discountAmount: parseFloat(discountAmount) || 0,
       totalAmount: parseFloat(totalAmount) || 0,
       productsSold: productsSold || [],
       paymentMethod,
