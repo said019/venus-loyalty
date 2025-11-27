@@ -9,7 +9,7 @@ export const config = {
     },
     // Template SIDs de Twilio (ya aprobados)
     templates: {
-        CONFIRMACION_CITA: 'HX0d7b477afe0355eed28c16b3b40938a8f',
+        CONFIRMACION_CITA: 'HX1fcf97722319524060c53c9555d272dd', // Template de confirmación
         RECORDATORIO_24H: 'HX7df380cf1918f41f494099a41dc39315',
         RECORDATORIO_2H: 'HX93138eb3f7705c8e5601b139358f1528',
         CONFIRMACION: 'HX1fcf9772319524060c53c9555d272dd',

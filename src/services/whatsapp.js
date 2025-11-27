@@ -29,17 +29,28 @@ async function sendWhatsAppTemplate(to, templateSid, variables) {
         if (phone.length === 10) phone = '52' + phone;
         if (!phone.startsWith('52')) phone = '52' + phone;
 
-        const message = await twilioClient.messages.create({
+        const messageParams = {
             from: config.twilio.whatsappNumber,
             to: `whatsapp:+${phone}`,
             contentSid: templateSid,
             contentVariables: JSON.stringify(variables)
+        };
+
+        console.log('📤 Enviando WhatsApp con parámetros:', {
+            from: messageParams.from,
+            to: messageParams.to,
+            contentSid: messageParams.contentSid,
+            variables: variables
         });
+
+        const message = await twilioClient.messages.create(messageParams);
 
         console.log(`✅ WhatsApp enviado a +${phone}: ${message.sid}`);
         return { success: true, messageSid: message.sid };
     } catch (error) {
         console.error('❌ Error enviando WhatsApp:', error.message);
+        if (error.code) console.error('   Código de error:', error.code);
+        if (error.moreInfo) console.error('   Más info:', error.moreInfo);
         return { success: false, error: error.message };
     }
 }
@@ -85,7 +96,7 @@ export const WhatsAppService = {
     /**
      * Envía confirmación de cita al momento de crearla
      * Template: confirmacion_cita
-     * Variables: {{1}}=Nombre, {{2}}=Servicio, {{3}}=Fecha, {{4}}=Hora, {{5}}=Lugar
+     * Variables: {{1}}=Nombre, {{2}}=Fecha, {{3}}=Hora
      */
     async sendConfirmation(appt) {
         const fecha = formatearFechaLegible(appt.startDateTime);
@@ -96,10 +107,8 @@ export const WhatsAppService = {
             config.templates.CONFIRMACION_CITA,
             {
                 '1': appt.clientName,
-                '2': appt.serviceName,
-                '3': fecha,
-                '4': hora,
-                '5': config.venus.location
+                '2': fecha,
+                '3': hora
             }
         );
     },
