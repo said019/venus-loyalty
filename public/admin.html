@@ -4951,102 +4951,123 @@
       }
     });
 
-    // Acciones desde el modal
-    document.getElementById('cm-stamp').addEventListener('click', async () => {
-      if (currentCardId) await stampCard(currentCardId);
-    });
+    // Acciones desde el modal - con verificación de existencia
+    const btnStamp = document.getElementById('cm-stamp');
+    const btnRedeem = document.getElementById('cm-redeem');
+    const btnCopy = document.getElementById('cm-copy');
+    const btnOpenUrl = document.getElementById('cm-open-url');
+    const btnDelete = document.getElementById('cm-delete');
+    const btnWhatsApp = document.getElementById('cm-whatsapp');
+    const btnSchedule = document.getElementById('cm-schedule');
 
-    document.getElementById('cm-redeem').addEventListener('click', async () => {
-      if (currentCardId) await redeemCard(currentCardId);
-    });
+    if (btnStamp) {
+      btnStamp.addEventListener('click', async () => {
+        if (currentCardId) await stampCard(currentCardId);
+      });
+    }
 
-    document.getElementById('cm-copy').addEventListener('click', async () => {
-      if (currentCardId) await copyCardId(currentCardId);
-    });
+    if (btnRedeem) {
+      btnRedeem.addEventListener('click', async () => {
+        if (currentCardId) await redeemCard(currentCardId);
+      });
+    }
 
-    document.getElementById('cm-open-url').addEventListener('click', () => {
-      if (currentCardId) openClientPage(currentCardId);
-    });
+    if (btnCopy) {
+      btnCopy.addEventListener('click', async () => {
+        if (currentCardId) await copyCardId(currentCardId);
+      });
+    }
 
-    document.getElementById('cm-delete').addEventListener('click', async () => {
-      if (currentCardId) await deleteCard(currentCardId);
-    });
+    if (btnOpenUrl) {
+      btnOpenUrl.addEventListener('click', () => {
+        if (currentCardId) openClientPage(currentCardId);
+      });
+    }
 
-    // ===== NUEVO: Botón Agendar =====
-    document.getElementById('cm-schedule').addEventListener('click', () => {
-      if (!currentCardId) return;
+    if (btnDelete) {
+      btnDelete.addEventListener('click', async () => {
+        if (currentCardId) await deleteCard(currentCardId);
+      });
+    }
 
-      const client = cardsCache[currentCardId];
-      if (!client) return;
+    // ===== Botón Agendar =====
+    if (btnSchedule) {
+      btnSchedule.addEventListener('click', () => {
+        if (!currentCardId) return;
 
-      // Primero cambiar a la pestaña de Agenda
-      const agendaTab = document.querySelector('[data-tab="appointments"]');
-      if (agendaTab) {
-        agendaTab.click();
-      }
+        const client = cardsCache[currentCardId];
+        if (!client) return;
 
-      // Esperar un momento para que la pestaña se active
-      setTimeout(() => {
-        // Abrir el modal de nueva cita
-        const newApptDialog = document.getElementById('newApptDialog');
-        const clientSelectInput = document.getElementById('new-appt-client-select');
-        const phoneInput = document.getElementById('new-appt-phone');
-        const dateInput = document.getElementById('new-appt-date');
-
-        if (newApptDialog && clientSelectInput && phoneInput) {
-          // Cargar datos necesarios
-          loadServices();
-          loadClients();
-          generateHourMinuteOptions();
-
-          // Prellenar nombre y teléfono
-          clientSelectInput.value = client.name || '';
-          phoneInput.value = client.phone || '';
-
-          // Prellenar fecha con hoy si está vacía
-          if (dateInput && !dateInput.value) {
-            const today = new Date();
-            const year = today.getFullYear();
-            const month = String(today.getMonth() + 1).padStart(2, '0');
-            const day = String(today.getDate()).padStart(2, '0');
-            dateInput.value = `${year}-${month}-${day}`;
-          }
-
-          // Deshabilitar campos de nombre y teléfono (están bloqueados)
-          clientSelectInput.disabled = true;
-          phoneInput.disabled = true;
-
-          // Mostrar el modal
-          newApptDialog.showModal();
-
-          // Cerrar el modal del cliente
-          closeCardModal();
+        // Primero cambiar a la pestaña de Agenda
+        const agendaTab = document.querySelector('[data-tab="appointments"]');
+        if (agendaTab) {
+          agendaTab.click();
         }
-      }, 100);
-    });
 
-    // ===== NUEVO: Botón WhatsApp =====
+        // Esperar un momento para que la pestaña se active
+        setTimeout(() => {
+          // Abrir el modal de nueva cita
+          const newApptDialog = document.getElementById('newApptDialog');
+          const clientSelectInput = document.getElementById('new-appt-client-select');
+          const phoneInput = document.getElementById('new-appt-phone');
+          const dateInput = document.getElementById('new-appt-date');
 
-    document.getElementById('cm-whatsapp').addEventListener('click', () => {
-      if (!currentCardId) return;
+          if (newApptDialog && clientSelectInput && phoneInput) {
+            // Cargar datos necesarios
+            loadServices();
+            loadClients();
+            generateHourMinuteOptions();
 
-      const phone = cardsCache[currentCardId]?.phone;
-      const name = cardsCache[currentCardId]?.name || 'Cliente';
+            // Prellenar nombre y teléfono
+            clientSelectInput.value = client.name || '';
+            phoneInput.value = client.phone || '';
 
-      if (!phone) {
-        alert('⚠️ Este cliente no tiene teléfono registrado');
-        return;
-      }
+            // Prellenar fecha con hoy si está vacía
+            if (dateInput && !dateInput.value) {
+              const today = new Date();
+              const year = today.getFullYear();
+              const month = String(today.getMonth() + 1).padStart(2, '0');
+              const day = String(today.getDate()).padStart(2, '0');
+              dateInput.value = `${year}-${month}-${day}`;
+            }
 
-      // Limpiar el número (remover espacios, guiones, etc.)
-      const cleanPhone = phone.replace(/\D/g, '');
+            // Deshabilitar campos de nombre y teléfono (están bloqueados)
+            clientSelectInput.disabled = true;
+            phoneInput.disabled = true;
 
-      // Mensaje predeterminado
-      const message = encodeURIComponent(`Hola ${name}, te contacto de Venus Cosmetología`);
+            // Mostrar el modal
+            newApptDialog.showModal();
 
-      // Abrir WhatsApp
-      window.open(`https://wa.me/${cleanPhone}?text=${message}`, '_blank');
-    });
+            // Cerrar el modal del cliente
+            closeCardModal();
+          }
+        }, 100);
+      });
+    }
+
+    // ===== Botón WhatsApp =====
+    if (btnWhatsApp) {
+      btnWhatsApp.addEventListener('click', () => {
+        if (!currentCardId) return;
+
+        const phone = cardsCache[currentCardId]?.phone;
+        const name = cardsCache[currentCardId]?.name || 'Cliente';
+
+        if (!phone) {
+          alert('⚠️ Este cliente no tiene teléfono registrado');
+          return;
+        }
+
+        // Limpiar el número (remover espacios, guiones, etc.)
+        const cleanPhone = phone.replace(/\D/g, '');
+
+        // Mensaje predeterminado
+        const message = encodeURIComponent(`Hola ${name}, te contacto de Venus Cosmetología`);
+
+        // Abrir WhatsApp
+        window.open(`https://wa.me/${cleanPhone}?text=${message}`, '_blank');
+      });
+    }
 
     /* ===== DEBUGGING AVANZADO (NUEVO) ===== */
 
