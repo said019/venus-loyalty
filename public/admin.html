@@ -2607,19 +2607,20 @@
     <!-- Modal Tarjeta - SIMPLIFICADO -->
     <div id="card-modal-backdrop" class="modal-backdrop hidden">
       <div class="modal-card" style="max-width:420px;">
-        
+
         <!-- Header con acciones rápidas -->
         <div class="modal-header" style="flex-wrap:wrap;gap:10px;">
           <h3 style="margin:0;flex:1;">👤 Cliente</h3>
           <div style="display:flex;gap:6px;">
-            <button id="cm-stamp" class="btn small" style="background:#FFD166;color:#1b1b1b;font-weight:600;">⭐ +1 sello</button>
+            <button id="cm-stamp" class="btn small" style="background:#FFD166;color:#1b1b1b;font-weight:600;">⭐ +1
+              sello</button>
             <button id="cm-close" class="btn small ghost">✕</button>
           </div>
         </div>
-        
+
         <!-- Info del cliente -->
         <div class="modal-body" style="padding:16px 0;">
-          
+
           <!-- Datos principales -->
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
             <div>
@@ -2631,7 +2632,7 @@
               <div id="cm-phone" style="font-size:15px;">—</div>
             </div>
           </div>
-          
+
           <!-- Sellos con barra de progreso -->
           <div style="background:rgba(255,255,255,0.05);border-radius:12px;padding:14px;margin-bottom:16px;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
@@ -2639,13 +2640,16 @@
               <span id="cm-stamps" style="font-weight:700;font-size:18px;color:var(--venus-soft);">0 / 8</span>
             </div>
             <div style="background:rgba(255,255,255,0.1);border-radius:8px;height:8px;overflow:hidden;">
-              <div id="cm-progress-bar" style="background:linear-gradient(90deg,#FFD166,#8c9668);height:100%;width:0%;transition:width 0.3s;border-radius:8px;"></div>
+              <div id="cm-progress-bar"
+                style="background:linear-gradient(90deg,#FFD166,#8c9668);height:100%;width:0%;transition:width 0.3s;border-radius:8px;">
+              </div>
             </div>
             <div id="cm-status-text" class="muted" style="font-size:11px;margin-top:6px;text-align:center;">—</div>
           </div>
-          
+
           <!-- Próxima cita (si existe) -->
-          <div id="cm-next-appt-section" class="hidden" style="background:rgba(140,150,104,0.15);border:1px solid rgba(140,150,104,0.3);border-radius:12px;padding:12px;margin-bottom:16px;">
+          <div id="cm-next-appt-section" class="hidden"
+            style="background:rgba(140,150,104,0.15);border:1px solid rgba(140,150,104,0.3);border-radius:12px;padding:12px;margin-bottom:16px;">
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
               <span>📅</span>
               <span style="font-size:12px;color:var(--venus-soft);font-weight:600;">Próxima cita</span>
@@ -2653,7 +2657,7 @@
             <div id="cm-next-appt-date" style="font-size:18px;font-weight:700;color:#22c55e;">—</div>
             <div id="cm-next-appt-service" style="font-size:13px;margin-top:2px;">—</div>
           </div>
-          
+
           <!-- Stats rápidos -->
           <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;">
             <div style="text-align:center;padding:10px;background:rgba(255,255,255,0.03);border-radius:8px;">
@@ -2669,27 +2673,33 @@
               <div class="muted" style="font-size:10px;">Última visita</div>
             </div>
           </div>
-          
+
           <!-- Notas (colapsable) -->
           <details style="margin-bottom:16px;">
-            <summary style="cursor:pointer;font-size:13px;color:var(--venus-soft);margin-bottom:8px;">📝 Notas del cliente</summary>
-            <textarea id="cm-notes" class="modal-textarea" rows="2" placeholder="Agregar notas..." style="width:100%;background:rgba(0,0,0,0.2);border:1px solid var(--line);border-radius:8px;padding:10px;color:#fff;font-size:13px;resize:none;"></textarea>
-            <button id="cm-save-notes" class="btn small ghost" style="margin-top:6px;font-size:11px;">💾 Guardar nota</button>
+            <summary style="cursor:pointer;font-size:13px;color:var(--venus-soft);margin-bottom:8px;">📝 Notas del
+              cliente</summary>
+            <textarea id="cm-notes" class="modal-textarea" rows="2" placeholder="Agregar notas..."
+              style="width:100%;background:rgba(0,0,0,0.2);border:1px solid var(--line);border-radius:8px;padding:10px;color:#fff;font-size:13px;resize:none;"></textarea>
+            <button id="cm-save-notes" class="btn small ghost" style="margin-top:6px;font-size:11px;">💾 Guardar
+              nota</button>
           </details>
-          
+
           <!-- QR (colapsable) -->
           <details>
-            <summary style="cursor:pointer;font-size:13px;color:var(--venus-soft);margin-bottom:8px;">🔲 Código QR</summary>
+            <summary style="cursor:pointer;font-size:13px;color:var(--venus-soft);margin-bottom:8px;">🔲 Código QR
+            </summary>
             <div style="background:rgba(255,255,255,0.05);border-radius:12px;padding:12px;text-align:center;">
               <canvas id="card-qr" style="max-width:150px;"></canvas>
-              <div class="muted" style="font-size:10px;margin-top:6px;">ID: <code id="cm-id" style="font-size:10px;">—</code></div>
+              <div class="muted" style="font-size:10px;margin-top:6px;">ID: <code id="cm-id"
+                  style="font-size:10px;">—</code></div>
             </div>
           </details>
-        
+
         </div>
-        
+
         <!-- Footer con acciones -->
-        <div class="modal-footer" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.1);">
+        <div class="modal-footer"
+          style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.1);">
           <button id="cm-whatsapp" class="btn small" style="background:#25D366;color:white;">
             💬 WhatsApp
           </button>
@@ -2700,15 +2710,20 @@
             🎁 Canjear
           </button>
         </div>
-        
+
         <!-- Acciones secundarias -->
-        <div style="display:flex;justify-content:center;gap:12px;margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.05);">
-          <button id="cm-copy" class="btn-link" style="background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;">Copiar ID</button>
-          <button id="cm-open-url" class="btn-link" style="background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;">Abrir página</button>
-          <button id="cm-notify" class="btn-link" style="background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;">Notificar</button>
-          <button id="cm-delete" class="btn-link" style="background:none;border:none;color:#ef4444;font-size:11px;cursor:pointer;">Eliminar</button>
+        <div
+          style="display:flex;justify-content:center;gap:12px;margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.05);">
+          <button id="cm-copy" class="btn-link"
+            style="background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;">Copiar ID</button>
+          <button id="cm-open-url" class="btn-link"
+            style="background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;">Abrir página</button>
+          <button id="cm-notify" class="btn-link"
+            style="background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;">Notificar</button>
+          <button id="cm-delete" class="btn-link"
+            style="background:none;border:none;color:#ef4444;font-size:11px;cursor:pointer;">Eliminar</button>
         </div>
-        
+
         <!-- Formulario de Notificación Individual (Oculto por defecto) -->
         <div id="notify-form-container" class="notify-form-container hidden" style="margin-top:16px;">
           <span class="notify-form-header">🔔 Push Individual</span>
@@ -2725,7 +2740,7 @@
             <button id="btn-send-notify" class="btn small primary">🚀 Enviar</button>
           </div>
         </div>
-      
+
       </div>
     </div>
   </main>
@@ -3879,7 +3894,7 @@
       if (!birthdate) return '';
       const [y, m, d] = birthdate.split('-').map(Number);
       const months = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
-      return `${d} ${months[m-1]}`;
+      return `${d} ${months[m - 1]}`;
     }
 
     async function loadCards(page = 1) {
@@ -3917,7 +3932,7 @@
             const lastDate = new Date(card.last_visit);
             const now = new Date();
             const diffDays = Math.floor((now - lastDate) / (1000 * 60 * 60 * 24));
-            
+
             if (diffDays === 0) lastVisitStr = 'Hoy';
             else if (diffDays === 1) lastVisitStr = 'Ayer';
             else if (diffDays < 7) lastVisitStr = `Hace ${diffDays} días`;
@@ -3927,7 +3942,7 @@
           }
 
           return `
-          <tr data-card-id="${card.id}" style="cursor:pointer;" onclick="if(!event.target.closest('button')) { const c = cardsCache['${card.id}']; if(c) openCardModal(c); }">
+          <tr data-card-id="${card.id}" class="card-row" style="cursor:pointer;">
             <td>
               <div style="font-weight:500;">${card.name || '—'}</div>
               ${card.birthdate ? `<div class="muted" style="font-size:11px;">🎂 ${formatBirthday(card.birthdate)}</div>` : ''}
@@ -3937,7 +3952,7 @@
             <td>
               <div style="display:flex;align-items:center;gap:6px;">
                 <div style="background:rgba(255,255,255,0.1);border-radius:4px;height:6px;width:60px;overflow:hidden;">
-                  <div style="background:linear-gradient(90deg,#FFD166,#8c9668);height:100%;width:${(card.stamps/card.max)*100}%;"></div>
+                  <div style="background:linear-gradient(90deg,#FFD166,#8c9668);height:100%;width:${(card.stamps / card.max) * 100}%;"></div>
                 </div>
                 <span style="font-size:12px;font-weight:500;">${card.stamps}/${card.max}</span>
               </div>
@@ -4030,6 +4045,22 @@
         case 'delete':
           await deleteCard(cardId);
           break;
+      }
+    });
+
+    // Event listener for clicking on card rows (not on buttons)
+    document.getElementById('cards-tbody').addEventListener('click', (e) => {
+      // Si se hizo clic en un botón, ignorar
+      if (e.target.closest('button')) return;
+
+      // Buscar el tr más cercano
+      const tr = e.target.closest('tr.card-row');
+      if (!tr) return;
+
+      const cardId = tr.dataset.cardId;
+      const card = cardsCache[cardId];
+      if (card) {
+        openCardModal(card);
       }
     });
 
@@ -4480,17 +4511,17 @@
 
     async function openCardModal(card) {
       currentCardId = card.id;
-      
+
       // Datos básicos
       document.getElementById('cm-id').textContent = card.id;
       document.getElementById('cm-name').textContent = card.name || '—';
       document.getElementById('cm-phone').textContent = card.phone || '—';
       document.getElementById('cm-stamps').textContent = `${card.stamps} / ${card.max}`;
-      
+
       // Barra de progreso
       const progressPercent = Math.min((card.stamps / card.max) * 100, 100);
       document.getElementById('cm-progress-bar').style.width = `${progressPercent}%`;
-      
+
       // Texto de estado
       const remaining = card.max - card.stamps;
       let statusText = '';
@@ -4504,24 +4535,24 @@
         statusText = `Faltan ${remaining} sellos para completar`;
       }
       document.getElementById('cm-status-text').textContent = statusText;
-      
+
       // Notas
       document.getElementById('cm-notes').value = card.notes || '';
-      
+
       // Cargar información adicional del cliente
       loadClientInfo(card);
-      
+
       // Cargar próxima cita
       loadNextAppointment(card.phone, card.name);
-      
+
       // Mostrar modal
       modalBackdrop.classList.remove('hidden');
-      
+
       // Resetear formulario de notificación
       document.getElementById('notify-form-container').classList.add('hidden');
       document.getElementById('notify-title').value = 'Recordatorio Venus';
       document.getElementById('notify-message').value = '';
-      
+
       // Generar QR
       const url = `${window.location.origin}/?cardId=${encodeURIComponent(card.id)}`;
       if (typeof QRCode !== 'undefined' && modalQrCanvas) {
@@ -4539,39 +4570,39 @@
         }
       }
     }
-    
+
     // Función auxiliar para cargar próxima cita
     async function loadNextAppointment(phone, name) {
       const nextApptSection = document.getElementById('cm-next-appt-section');
-      
+
       try {
         const searchParam = phone || name;
         if (!searchParam) {
           nextApptSection.classList.add('hidden');
           return;
         }
-        
+
         const res = await fetch(`/api/appointments/client?search=${encodeURIComponent(searchParam)}`);
         const json = await res.json();
-        
+
         if (json.success && json.data) {
           // Buscar la próxima cita (status = scheduled y fecha futura)
           const now = new Date();
-          const nextAppt = json.data.find(a => 
+          const nextAppt = json.data.find(a =>
             a.status === 'scheduled' && new Date(a.startDateTime) > now
           );
-          
+
           if (nextAppt) {
             const date = new Date(nextAppt.startDateTime);
-            const dateStr = date.toLocaleDateString('es-MX', { 
-              day: 'numeric', 
+            const dateStr = date.toLocaleDateString('es-MX', {
+              day: 'numeric',
               month: 'short'
             });
-            const timeStr = date.toLocaleTimeString('es-MX', { 
-              hour: '2-digit', 
+            const timeStr = date.toLocaleTimeString('es-MX', {
+              hour: '2-digit',
               minute: '2-digit'
             });
-            
+
             document.getElementById('cm-next-appt-date').textContent = `${dateStr} ${timeStr}`;
             document.getElementById('cm-next-appt-service').textContent = nextAppt.serviceName;
             nextApptSection.classList.remove('hidden');
@@ -4626,7 +4657,6 @@
       document.getElementById('cm-visited-count').textContent = '...';
       document.getElementById('cm-cycles-completed').textContent = '...';
       document.getElementById('cm-last-visit').textContent = '...';
-      document.getElementById('cm-next-appointment').textContent = '...';
 
       try {
         // Cargar eventos de la tarjeta para calcular stats reales
@@ -4637,7 +4667,7 @@
           // Contar stamps (visitas)
           const stamps = events.filter(e => e.type === 'STAMP');
           const redeems = events.filter(e => e.type === 'REDEEM');
-          
+
           document.getElementById('cm-visited-count').textContent = stamps.length;
           document.getElementById('cm-cycles-completed').textContent = redeems.length;
 
@@ -4658,30 +4688,16 @@
         if (phone) {
           const apptRes = await fetch(`/api/appointments/client?search=${encodeURIComponent(phone)}`);
           const apptData = await apptRes.json();
-          
+
           if (apptData.success && apptData.data && apptData.data.length > 0) {
             // Buscar citas futuras (scheduled o confirmed)
             const now = new Date();
             const futureAppts = apptData.data
               .filter(a => (a.status === 'scheduled' || a.status === 'confirmed') && new Date(a.startDateTime) > now)
               .sort((a, b) => new Date(a.startDateTime) - new Date(b.startDateTime));
-            
-            if (futureAppts.length > 0) {
-              const nextAppt = futureAppts[0];
-              const apptDate = new Date(nextAppt.startDateTime);
-              document.getElementById('cm-next-appointment').innerHTML = `
-                <span style="color:#22c55e;">${apptDate.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })} 
-                ${apptDate.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}</span>
-                <br><small style="color:var(--muted);">${nextAppt.serviceName}</small>
-              `;
-            } else {
-              document.getElementById('cm-next-appointment').textContent = 'Sin citas pendientes';
-            }
-          } else {
-            document.getElementById('cm-next-appointment').textContent = 'Sin citas pendientes';
+
+            // Ya se maneja en loadNextAppointment()
           }
-        } else {
-          document.getElementById('cm-next-appointment').textContent = '—';
         }
 
       } catch (error) {
@@ -4689,7 +4705,6 @@
         document.getElementById('cm-visited-count').textContent = '—';
         document.getElementById('cm-cycles-completed').textContent = '—';
         document.getElementById('cm-last-visit').textContent = '—';
-        document.getElementById('cm-next-appointment').textContent = '—';
       }
     }
 
@@ -5639,7 +5654,7 @@
           historyCount.textContent = `(${appointments.length})`;
           historyHint.textContent = 'Clic para repetir servicio';
           renderHistoryList(appointments);
-          
+
           if (appointments.length <= 5) {
             historyContent.style.display = 'block';
             historyHeader.classList.add('expanded');
@@ -5677,8 +5692,8 @@
 
       historyList.innerHTML = recentAppts.map(appt => {
         const date = new Date(appt.startDateTime);
-        const dateStr = date.toLocaleDateString('es-MX', { 
-          day: 'numeric', 
+        const dateStr = date.toLocaleDateString('es-MX', {
+          day: 'numeric',
           month: 'short',
           year: date.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined
         });
@@ -5703,22 +5718,22 @@
       const serviceName = element.dataset.serviceName;
       const serviceId = element.dataset.serviceId;
       const service = allServices.find(s => s.name === serviceName || s.id === serviceId);
-      
+
       const serviceInput = document.getElementById('new-appt-service');
       if (serviceInput) {
         serviceInput.value = serviceName;
         serviceInput.dispatchEvent(new Event('input', { bubbles: true }));
         serviceInput.dispatchEvent(new Event('change', { bubbles: true }));
       }
-      
+
       const priceInput = document.getElementById('new-appt-price');
       if (priceInput && service) {
         priceInput.value = service.price;
       }
-      
+
       document.querySelectorAll('.history-item').forEach(item => item.classList.remove('selected'));
       element.classList.add('selected');
-      
+
       calculateEndTime();
     }
 
@@ -5766,7 +5781,7 @@
                 console.log('[CLIENTS] ✅ Cliente seleccionado:', item);
                 // Auto-fill phone when client selected
                 document.getElementById('new-appt-phone').value = item.data.phone || '';
-                
+
                 // Cargar historial de citas del cliente
                 loadClientHistory(item.data.phone, item.label);
               }
@@ -6613,7 +6628,7 @@
         generateHourMinuteOptions();
         newApptDialog.showModal();
         document.getElementById('new-appt-date').value = selectedDate.toISOString().split('T')[0];
-        
+
         // Limpiar historial
         if (historyPanel) historyPanel.classList.add('hidden');
         if (historyContent) historyContent.style.display = 'none';
