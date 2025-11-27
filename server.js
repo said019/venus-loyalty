@@ -577,7 +577,24 @@ app.patch('/api/products/:id/stock', adminAuth, async (req, res) => {
   }
 });
 
-/* ========== APPOINTMENTS - PAYMENT ========== */
+/* ========== APPOINTMENTS ========== */
+
+// GET /api/appointments/:id - Obtener una cita por ID
+app.get('/api/appointments/:id', adminAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const appointmentDoc = await firestore.collection('appointments').doc(id).get();
+
+    if (!appointmentDoc.exists) {
+      return res.json({ success: false, error: 'Cita no encontrada' });
+    }
+
+    res.json({ success: true, data: { id: appointmentDoc.id, ...appointmentDoc.data() } });
+  } catch (error) {
+    console.error('Error getting appointment:', error);
+    res.json({ success: false, error: error.message });
+  }
+});
 
 // POST /api/appointments/:id/payment - Registrar pago con productos y descuento
 app.post('/api/appointments/:id/payment', adminAuth, async (req, res) => {

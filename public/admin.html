@@ -7041,7 +7041,7 @@
             <td>${appt.serviceName}</td>
             <td><span class="tag" style="background:rgba(255,255,255,0.1);color:${statusColors[appt.status] || '#fff'}">${statusLabels[appt.status] || appt.status}</span></td>
             <td>
-          ${appt.status === 'scheduled' ? `
+          ${appt.status === 'scheduled' || appt.status === 'rescheduling' ? `
             <button class="btn small" onclick="openPaymentDialog('${appt.id}')"
               style="background:#22c55e;color:white;margin-right:5px;">
               💵 Pagar
@@ -7162,7 +7162,9 @@
         }
 
         const appt = json.data;
-        openPaymentModal(apptId, appt.clientName, appt.serviceName, appt.price);
+        console.log('Appointment data:', appt);
+        console.log('Price:', appt.price);
+        openPaymentModal(apptId, appt.clientName, appt.serviceName, appt.price || 0);
       } catch (e) {
         alert('Error: ' + e.message);
       }
