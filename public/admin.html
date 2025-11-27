@@ -4953,6 +4953,10 @@
       if (currentCardId) openClientPage(currentCardId);
     });
 
+    document.getElementById('cm-delete').addEventListener('click', async () => {
+      if (currentCardId) await deleteCard(currentCardId);
+    });
+
     // ===== NUEVO: Botón Agendar =====
     document.getElementById('cm-schedule').addEventListener('click', () => {
       if (!currentCardId) return;
