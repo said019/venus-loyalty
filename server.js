@@ -49,6 +49,9 @@ import appointmentsRouter from './src/routes/api.js';
 import { startScheduler } from './src/scheduler/cron.js';
 import calendarRoutes from './src/routes/calendarRoutes.js';
 
+// 📱 WhatsApp Webhook (Twilio)
+import whatsappWebhook from './src/routes/whatsappWebhook.js';
+
 
 // __dirname para ESModules
 const __filename = fileURLToPath(import.meta.url);
@@ -413,6 +416,9 @@ app.use('/api', appointmentsRouter);
 
 // ✅ Calendar API
 app.use('/api/calendar', calendarRoutes);
+
+// ✅ WhatsApp Webhook (Twilio)
+app.use('/api/whatsapp', whatsappWebhook);
 
 // ✅ Start Scheduler
 startScheduler();

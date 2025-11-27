@@ -1,102 +1,191 @@
-import fetch from 'node-fetch';
+// src/services/whatsapp.js - Sistema de notificaciones WhatsApp con Twilio
+import twilio from 'twilio';
 import { config } from '../config/config.js';
 
-const BASE_URL = `https://graph.facebook.com/${config.whatsapp.apiVersion}/${config.whatsapp.phoneNumberId}/messages`;
+// Cliente de Twilio
+let client = null;
 
-async function sendTemplateMessage({ to, templateName, languageCode = 'es', components }) {
-    if (!config.whatsapp.token || !config.whatsapp.phoneNumberId) {
-        console.warn('⚠️ WhatsApp: Credenciales no configuradas. Saltando envío.');
-        return;
+function getTwilioClient() {
+    if (!client && config.twilio.accountSid && config.twilio.authToken) {
+        client = twilio(config.twilio.accountSid, config.twilio.authToken);
+    }
+    return client;
+}
+
+/**
+ * Envía un mensaje de WhatsApp usando un Content Template de Twilio
+ */
+async function sendWhatsAppTemplate(to, templateSid, variables) {
+    const twilioClient = getTwilioClient();
+    
+    if (!twilioClient) {
+        console.warn('⚠️ WhatsApp: Twilio no configurado. Saltando envío.');
+        return { success: false, error: 'Twilio no configurado' };
     }
 
-    const body = {
-        messaging_product: 'whatsapp',
-        to: to,
-        type: 'template',
-        template: {
-            name: templateName,
-            language: { code: languageCode },
-            components: components
-        }
-    };
-
     try {
-        const response = await fetch(BASE_URL, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${config.whatsapp.token}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(body)
+        // Normalizar teléfono (agregar prefijo si es necesario)
+        let phone = to.replace(/\D/g, '');
+        if (phone.length === 10) phone = '52' + phone;
+        if (!phone.startsWith('52')) phone = '52' + phone;
+
+        const message = await twilioClient.messages.create({
+            from: config.twilio.whatsappNumber,
+            to: `whatsapp:+${phone}`,
+            contentSid: templateSid,
+            contentVariables: JSON.stringify(variables)
         });
 
-        const data = await response.json();
-        if (!response.ok) {
-            console.error('❌ Error WhatsApp API:', JSON.stringify(data, null, 2));
-            throw new Error(data.error?.message || 'Error enviando WhatsApp');
-        }
-        console.log(`✅ WhatsApp enviado a ${to} (Template: ${templateName})`);
-        return data;
+        console.log(`✅ WhatsApp enviado a +${phone}: ${message.sid}`);
+        return { success: true, messageSid: message.sid };
     } catch (error) {
         console.error('❌ Error enviando WhatsApp:', error.message);
+        return { success: false, error: error.message };
     }
 }
 
-export const WhatsAppService = {
-    async sendConfirmation(appt) {
-        // Template: confirmacion_cita_venus
-        // Vars: {{1}}=Nombre, {{2}}=Fecha, {{3}}=Hora, {{4}}=Servicio
-        const date = new Date(appt.startDateTime).toLocaleDateString('es-MX');
-        const time = new Date(appt.startDateTime).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false });
-
-        await sendTemplateMessage({
-            to: appt.clientPhone,
-            templateName: 'confirmacion_cita_venus',
-            components: [{
-                type: 'body',
-                parameters: [
-                    { type: 'text', text: appt.clientName },
-                    { type: 'text', text: date },
-                    { type: 'text', text: time },
-                    { type: 'text', text: appt.serviceName }
-                ]
-            }]
-        });
-    },
-
-    async sendReminder24h(appt) {
-        // Template: recordatorio_24h
-        // Vars: {{1}}=Nombre, {{2}}=Fecha, {{3}}=Hora
-        const date = new Date(appt.startDateTime).toLocaleDateString('es-MX');
-        const time = new Date(appt.startDateTime).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false });
-
-        await sendTemplateMessage({
-            to: appt.clientPhone,
-            templateName: 'recordatorio_24h',
-            components: [{
-                type: 'body',
-                parameters: [
-                    { type: 'text', text: appt.clientName },
-                    { type: 'text', text: date },
-                    { type: 'text', text: time }
-                ]
-            }]
-        });
-    },
-
-    async sendReminder2h(appt) {
-        // Template: 2horas_antes
-        // Vars: {{1}}=Nombre, {{2}}=Servicio
-        await sendTemplateMessage({
-            to: appt.clientPhone,
-            templateName: '2horas_antes',
-            components: [{
-                type: 'body',
-                parameters: [
-                    { type: 'text', text: appt.clientName },
-                    { type: 'text', text: appt.serviceName }
-                ]
-            }]
-        });
+/**
+ * Formatea fecha para mostrar de forma legible
+ */
+function formatearFechaLegible(fecha) {
+    const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+                   'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+    
+    let date;
+    if (typeof fecha === 'string' && fecha.includes('T')) {
+        date = new Date(fecha);
+    } else if (typeof fecha === 'string') {
+        const [year, month, day] = fecha.split('-');
+        date = new Date(year, month - 1, day);
+    } else {
+        date = fecha;
     }
+    
+    return `${date.getDate()} de ${meses[date.getMonth()]}`;
+}
+
+/**
+ * Formatea hora para mostrar
+ */
+function formatearHora(dateTimeStr) {
+    const date = new Date(dateTimeStr);
+    return date.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false });
+}
+
+export const WhatsAppService = {
+    /**
+     * Envía confirmación de cita al momento de crearla
+     * Template: confirmacion_cita
+     * Variables: {{1}}=Nombre, {{2}}=Servicio, {{3}}=Fecha, {{4}}=Hora, {{5}}=Lugar
+     */
+    async sendConfirmation(appt) {
+        const fecha = formatearFechaLegible(appt.startDateTime);
+        const hora = formatearHora(appt.startDateTime);
+
+        return await sendWhatsAppTemplate(
+            appt.clientPhone,
+            config.templates.CONFIRMACION_CITA,
+            {
+                '1': appt.clientName,
+                '2': appt.serviceName,
+                '3': fecha,
+                '4': hora,
+                '5': config.venus.location
+            }
+        );
+    },
+
+    /**
+     * Envía recordatorio 24 horas antes
+     * Template: recordatorio_24h
+     * Variables: {{1}}=Nombre, {{2}}=Servicio, {{3}}=Fecha, {{4}}=Hora
+     */
+    async sendReminder24h(appt) {
+        const fecha = formatearFechaLegible(appt.startDateTime);
+        const hora = formatearHora(appt.startDateTime);
+
+        return await sendWhatsAppTemplate(
+            appt.clientPhone,
+            config.templates.RECORDATORIO_24H,
+            {
+                '1': appt.clientName,
+                '2': appt.serviceName,
+                '3': fecha,
+                '4': hora
+            }
+        );
+    },
+
+    /**
+     * Envía recordatorio 2 horas antes
+     * Template: recordatorio_2h
+     * Variables: {{1}}=Nombre, {{2}}=Servicio, {{3}}=Hora
+     */
+    async sendReminder2h(appt) {
+        const hora = formatearHora(appt.startDateTime);
+
+        return await sendWhatsAppTemplate(
+            appt.clientPhone,
+            config.templates.RECORDATORIO_2H,
+            {
+                '1': appt.clientName,
+                '2': appt.serviceName,
+                '3': hora
+            }
+        );
+    },
+
+    /**
+     * Envía confirmación cuando el cliente confirma su cita
+     * Template: confirmacion
+     * Variables: {{1}}=Nombre, {{2}}=Fecha, {{3}}=Hora
+     */
+    async sendConfirmacionRecibida(appt) {
+        const fecha = formatearFechaLegible(appt.startDateTime);
+        const hora = formatearHora(appt.startDateTime);
+
+        return await sendWhatsAppTemplate(
+            appt.clientPhone,
+            config.templates.CONFIRMACION,
+            {
+                '1': appt.clientName,
+                '2': fecha,
+                '3': hora
+            }
+        );
+    },
+
+    /**
+     * Envía mensaje de solicitud de reprogramación
+     * Template: reprogramar
+     * Variables: {{1}}=Nombre
+     */
+    async sendSolicitudReprogramacion(appt) {
+        return await sendWhatsAppTemplate(
+            appt.clientPhone,
+            config.templates.REPROGRAMAR,
+            {
+                '1': appt.clientName
+            }
+        );
+    },
+
+    /**
+     * Envía confirmación de cancelación
+     * Template: cancelacion_confirmada
+     * Variables: {{1}}=Nombre
+     */
+    async sendCancelacionConfirmada(appt) {
+        return await sendWhatsAppTemplate(
+            appt.clientPhone,
+            config.templates.CANCELACION_CONFIRMADA,
+            {
+                '1': appt.clientName
+            }
+        );
+    },
+
+    // Helpers exportados
+    formatearFechaLegible,
+    formatearHora
 };
