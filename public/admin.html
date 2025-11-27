@@ -2640,12 +2640,10 @@
                 <span class="stat-label">Última visita:</span>
                 <span id="cm-last-visit" class="stat-value">—</span>
               </div>
-            </div>
-
-            <!-- Campos editables -->
-            <div style="margin-top:16px;">
-              <label class="modal-field-label">💇 Servicios favoritos:</label>
-              <input id="cm-favorite-services" class="modal-input" placeholder="Ej: Corte, Tinte, Manicure">
+              <div class="stat-row">
+                <span class="stat-label">📅 Próxima cita:</span>
+                <span id="cm-next-appointment" class="stat-value">—</span>
+              </div>
             </div>
 
             <div style="margin-top:12px;">
@@ -4551,21 +4549,78 @@
     }
 
     /* ===== PHASE 5: LOAD & SAVE CLIENT INFO ===== */
-    function loadClientInfo(card) {
+    async function loadClientInfo(card) {
       // Cargar campos editables
       document.getElementById('cm-notes').value = card.notes || '';
-      document.getElementById('cm-favorite-services').value = card.favoriteServices || '';
 
-      // Cargar stats calculados
-      document.getElementById('cm-visited-count').textContent = card.visitedCount || 0;
-      document.getElementById('cm-cycles-completed').textContent = card.cyclesCompleted || 0;
+      // Resetear valores mientras carga
+      document.getElementById('cm-visited-count').textContent = '...';
+      document.getElementById('cm-cycles-completed').textContent = '...';
+      document.getElementById('cm-last-visit').textContent = '...';
+      document.getElementById('cm-next-appointment').textContent = '...';
 
-      // Formatear y mostrar lastVisit
-      if (card.last_visit || card.updated_at) {
-        const lastVisitDate = new Date(card.last_visit || card.updated_at);
-        document.getElementById('cm-last-visit').textContent = lastVisitDate.toLocaleDateString('es-MX');
-      } else {
+      try {
+        // Cargar eventos de la tarjeta para calcular stats reales
+        const eventsRes = await fetch(`/api/events/${card.id}`);
+        const events = await eventsRes.json();
+
+        if (Array.isArray(events)) {
+          // Contar stamps (visitas)
+          const stamps = events.filter(e => e.type === 'STAMP');
+          const redeems = events.filter(e => e.type === 'REDEEM');
+          
+          document.getElementById('cm-visited-count').textContent = stamps.length;
+          document.getElementById('cm-cycles-completed').textContent = redeems.length;
+
+          // Última visita (último stamp)
+          if (stamps.length > 0) {
+            const lastStamp = stamps.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
+            const lastVisitDate = new Date(lastStamp.createdAt);
+            document.getElementById('cm-last-visit').textContent = lastVisitDate.toLocaleDateString('es-MX', {
+              day: 'numeric', month: 'short', year: 'numeric'
+            });
+          } else {
+            document.getElementById('cm-last-visit').textContent = '—';
+          }
+        }
+
+        // Cargar próxima cita del cliente
+        const phone = card.phone;
+        if (phone) {
+          const apptRes = await fetch(`/api/appointments/client?search=${encodeURIComponent(phone)}`);
+          const apptData = await apptRes.json();
+          
+          if (apptData.success && apptData.data && apptData.data.length > 0) {
+            // Buscar citas futuras (scheduled o confirmed)
+            const now = new Date();
+            const futureAppts = apptData.data
+              .filter(a => (a.status === 'scheduled' || a.status === 'confirmed') && new Date(a.startDateTime) > now)
+              .sort((a, b) => new Date(a.startDateTime) - new Date(b.startDateTime));
+            
+            if (futureAppts.length > 0) {
+              const nextAppt = futureAppts[0];
+              const apptDate = new Date(nextAppt.startDateTime);
+              document.getElementById('cm-next-appointment').innerHTML = `
+                <span style="color:#22c55e;">${apptDate.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })} 
+                ${apptDate.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}</span>
+                <br><small style="color:var(--muted);">${nextAppt.serviceName}</small>
+              `;
+            } else {
+              document.getElementById('cm-next-appointment').textContent = 'Sin citas pendientes';
+            }
+          } else {
+            document.getElementById('cm-next-appointment').textContent = 'Sin citas pendientes';
+          }
+        } else {
+          document.getElementById('cm-next-appointment').textContent = '—';
+        }
+
+      } catch (error) {
+        console.error('Error cargando info del cliente:', error);
+        document.getElementById('cm-visited-count').textContent = '—';
+        document.getElementById('cm-cycles-completed').textContent = '—';
         document.getElementById('cm-last-visit').textContent = '—';
+        document.getElementById('cm-next-appointment').textContent = '—';
       }
     }
 
@@ -4573,7 +4628,6 @@
       if (!currentCardId) return;
 
       const notes = document.getElementById('cm-notes').value;
-      const favoriteServices = document.getElementById('cm-favorite-services').value;
 
       try {
         const response = await fetch('/api/admin/update-client-info', {
@@ -4582,8 +4636,7 @@
           credentials: 'include',
           body: JSON.stringify({
             cardId: currentCardId,
-            notes,
-            favoriteServices
+            notes
           })
         });
 
@@ -4594,7 +4647,6 @@
           // Actualizar cache
           if (cardsCache[currentCardId]) {
             cardsCache[currentCardId].notes = notes;
-            cardsCache[currentCardId].favoriteServices = favoriteServices;
           }
         } else {
           alert(`❌ Error: ${data.error || 'No se pudo guardar'}`);
@@ -6382,7 +6434,11 @@
         // Days of month
         for (let day = 1; day <= daysInMonth; day++) {
           const date = new Date(year, month, day);
-          const dateStr = date.toISOString().split('T')[0];
+          // Usar formato local YYYY-MM-DD para evitar problemas de timezone
+          const y = date.getFullYear();
+          const m = String(date.getMonth() + 1).padStart(2, '0');
+          const d = String(date.getDate()).padStart(2, '0');
+          const dateStr = `${y}-${m}-${d}`;
           const isToday = date.toDateString() === today.toDateString();
           const isSelected = this.selectedDate && dateStr === this.selectedDate;
 
