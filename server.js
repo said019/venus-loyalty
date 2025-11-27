@@ -577,6 +577,74 @@ app.patch('/api/products/:id/stock', adminAuth, async (req, res) => {
   }
 });
 
+/* ========== APPOINTMENTS - PAYMENT ========== */
+
+// POST /api/appointments/:id/payment - Registrar pago con productos
+app.post('/api/appointments/:id/payment', adminAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { paymentMethod, serviceAmount, productsAmount, totalAmount, productsSold } = req.body;
+
+    const appointmentRef = firestore.collection('appointments').doc(id);
+    const appointmentDoc = await appointmentRef.get();
+
+    if (!appointmentDoc.exists) {
+      return res.json({ success: false, error: 'Cita no encontrada' });
+    }
+
+    // Registrar el pago en la cita
+    await appointmentRef.update({
+      status: 'completed',
+      paymentMethod,
+      serviceAmount: parseFloat(serviceAmount) || 0,
+      productsAmount: parseFloat(productsAmount) || 0,
+      totalPaid: parseFloat(totalAmount) || 0,
+      productsSold: productsSold || [],
+      paidAt: new Date().toISOString()
+    });
+
+    // Descontar stock de productos vendidos
+    if (productsSold && productsSold.length > 0) {
+      const batch = firestore.batch();
+
+      for (const product of productsSold) {
+        const productRef = firestore.collection('products').doc(product.productId);
+        const productDoc = await productRef.get();
+
+        if (productDoc.exists) {
+          const currentStock = productDoc.data().stock || 0;
+          const newStock = Math.max(0, currentStock - product.qty);
+
+          batch.update(productRef, {
+            stock: newStock,
+            updatedAt: new Date().toISOString()
+          });
+        }
+      }
+
+      await batch.commit();
+    }
+
+    // Opcional: Registrar en colección de ventas para reportes
+    await firestore.collection('sales').add({
+      appointmentId: id,
+      clientName: appointmentDoc.data().clientName,
+      serviceName: appointmentDoc.data().serviceName,
+      serviceAmount: parseFloat(serviceAmount) || 0,
+      productsAmount: parseFloat(productsAmount) || 0,
+      totalAmount: parseFloat(totalAmount) || 0,
+      productsSold: productsSold || [],
+      paymentMethod,
+      createdAt: new Date().toISOString()
+    });
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error saving payment:', error);
+    res.json({ success: false, error: error.message });
+  }
+});
+
 /* ========== GIFT CARDS ========== */
 
 // Generar código único

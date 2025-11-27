@@ -2704,38 +2704,88 @@
     </dialog>
 
     <!-- PAYMENT DIALOG -->
-    <dialog id="paymentDialog">
+    <dialog id="paymentDialog" style="max-width:480px;">
       <div class="dialog-header">
-        <h3><i class="fas fa-money-bill"></i> Registrar Pago</h3>
+        <h3><i class="fas fa-receipt"></i> Cobrar Servicio</h3>
         <button type="button" id="btn-close-payment" class="btn-close"><i class="fas fa-times"></i></button>
       </div>
-      <form id="form-payment">
-        <div class="form-row">
-          <label>Cliente:</label>
-          <input id="payment-client-name" readonly class="form-input readonly" style="cursor: not-allowed;">
+      
+      <div style="padding:0 20px 20px;">
+        <!-- Info cliente y servicio -->
+        <div class="payment-info-row">
+          <div class="payment-info-box">
+            <div class="payment-info-label">Cliente</div>
+            <div class="payment-info-value" id="payment-client-name">-</div>
+          </div>
+          <div class="payment-info-box">
+            <div class="payment-info-label">Servicio</div>
+            <div class="payment-info-value" id="payment-service-name">-</div>
+          </div>
         </div>
-        <div class="form-row">
-          <label>Servicio:</label>
-          <input id="payment-service-name" readonly class="form-input readonly" style="cursor: not-allowed;">
+
+        <!-- Productos vendidos -->
+        <div class="payment-products">
+          <div class="payment-products-header">
+            <h4><i class="fas fa-shopping-bag"></i> Agregar productos</h4>
+          </div>
+          
+          <!-- Selector -->
+          <div class="product-add-row">
+            <select id="payment-product-select">
+              <option value="">Seleccionar producto...</option>
+            </select>
+            <input type="number" id="payment-product-qty" value="1" min="1" max="99">
+            <button type="button" onclick="addProductToPayment()">
+              <i class="fas fa-plus"></i> Agregar
+            </button>
+          </div>
+
+          <!-- Lista de productos agregados -->
+          <div class="payment-product-list" id="payment-products-list">
+            <div class="payment-products-empty">
+              Sin productos adicionales
+            </div>
+          </div>
         </div>
-        <div class="form-row">
+
+        <!-- Totales -->
+        <div class="payment-totals">
+          <div class="payment-total-row subtotal">
+            <span>Servicio</span>
+            <span id="payment-service-price">$0</span>
+          </div>
+          <div class="payment-total-row subtotal" id="payment-products-subtotal-row" style="display:none;">
+            <span>Productos (<span id="payment-products-count">0</span> items)</span>
+            <span id="payment-products-subtotal">$0</span>
+          </div>
+          <div class="payment-total-row grand">
+            <span>Total a cobrar</span>
+            <span id="payment-grand-total">$0</span>
+          </div>
+        </div>
+
+        <!-- Método de pago -->
+        <div class="form-row" style="margin-bottom:0;">
           <label>Método de Pago <span style="color:#ef4444;">*</span></label>
-          <select id="payment-method" class="form-input" required>
+          <select id="payment-method" class="form-input">
             <option value="efectivo">Efectivo</option>
-            <option value="tarjeta">Tarjeta</option>
+            <option value="tarjeta_credito">Tarjeta de crédito</option>
+            <option value="tarjeta_debito">Tarjeta de débito</option>
             <option value="transferencia">Transferencia</option>
-            <option value="no_pagado">No Pagado</option>
           </select>
         </div>
-        <div class="form-row">
-          <label>Monto <span style="color:#ef4444;">*</span></label>
-          <input id="payment-amount" type="number" step="0.01" min="0" class="form-input" placeholder="0.00" required>
-        </div>
-        <div class="dialog-footer">
-          <button type="submit" class="btn primary"><i class="fas fa-save"></i> Guardar Pago</button>
-          <button type="button" id="btn-cancel-payment" class="btn ghost">Cancelar</button>
-        </div>
-      </form>
+
+        <!-- Campos ocultos -->
+        <input type="hidden" id="payment-appointment-id">
+        <input type="hidden" id="payment-service-price-value">
+      </div>
+
+      <div class="dialog-footer">
+        <button class="btn primary" onclick="savePayment()" id="btn-save-payment">
+          <i class="fas fa-check-circle"></i> Cobrar <span id="btn-payment-amount">$0</span>
+        </button>
+        <button type="button" id="btn-cancel-payment" class="btn ghost">Cancelar</button>
+      </div>
     </dialog>
 
     <style>
@@ -3273,6 +3323,217 @@
 
       .calendar-day.other-month {
         color: rgba(255, 255, 255, 0.3);
+      }
+
+      /* ===== MODAL COBRAR SERVICIO ===== */
+      .payment-info-row {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+
+      .payment-info-box {
+        flex: 1;
+        background: rgba(0,0,0,0.2);
+        border-radius: 10px;
+        padding: 12px;
+        border: 1px solid var(--line);
+      }
+
+      .payment-info-label {
+        font-size: 10px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 4px;
+      }
+
+      .payment-info-value {
+        font-size: 14px;
+        font-weight: 500;
+      }
+
+      .payment-products {
+        background: rgba(0,0,0,0.2);
+        border-radius: 12px;
+        padding: 14px;
+        margin-bottom: 16px;
+        border: 1px solid var(--line);
+      }
+
+      .payment-products-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+
+      .payment-products-header h4 {
+        font-size: 13px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--venus-soft);
+      }
+
+      .product-add-row {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+
+      .product-add-row select {
+        flex: 1;
+        padding: 10px 12px;
+        background: rgba(0,0,0,0.3);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        color: var(--ink);
+        font-size: 13px;
+      }
+
+      .product-add-row input {
+        width: 65px;
+        padding: 10px;
+        background: rgba(0,0,0,0.3);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        color: var(--ink);
+        font-size: 13px;
+        text-align: center;
+      }
+
+      .product-add-row button {
+        padding: 10px 14px;
+        background: var(--venus);
+        border: none;
+        border-radius: 8px;
+        color: white;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 12px;
+      }
+
+      .product-add-row button:hover {
+        background: var(--venus-soft);
+      }
+
+      .payment-product-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        max-height: 180px;
+        overflow-y: auto;
+      }
+
+      .payment-product-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        background: rgba(255,255,255,0.03);
+        border-radius: 8px;
+        border: 1px solid var(--line);
+      }
+
+      .payment-product-icon {
+        width: 32px;
+        height: 32px;
+        background: rgba(140,150,104,0.2);
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--venus-soft);
+        font-size: 14px;
+      }
+
+      .payment-product-info {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .payment-product-name {
+        font-size: 13px;
+        font-weight: 500;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .payment-product-meta {
+        font-size: 11px;
+        color: var(--muted);
+      }
+
+      .payment-product-price {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--venus-soft);
+        white-space: nowrap;
+      }
+
+      .payment-product-remove {
+        background: none;
+        border: none;
+        color: #ef4444;
+        cursor: pointer;
+        padding: 4px;
+        opacity: 0.6;
+        display: flex;
+        align-items: center;
+      }
+
+      .payment-product-remove:hover {
+        opacity: 1;
+      }
+
+      .payment-products-empty {
+        text-align: center;
+        padding: 16px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .stock-warn {
+        font-size: 10px;
+        color: #fbbf24;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        margin-top: 2px;
+      }
+
+      .payment-totals {
+        background: rgba(140,150,104,0.1);
+        border-radius: 12px;
+        padding: 14px;
+        margin-bottom: 16px;
+        border: 1px solid rgba(140,150,104,0.2);
+      }
+
+      .payment-total-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 6px 0;
+      }
+
+      .payment-total-row.subtotal {
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      .payment-total-row.grand {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--venus-soft);
+        border-top: 1px solid var(--line);
+        padding-top: 12px;
+        margin-top: 8px;
       }
     </style>
 
@@ -6606,69 +6867,13 @@
         }
 
         const appt = json.data;
-        currentPaymentApptId = apptId;
-
-        // Prellenar datos
-        document.getElementById('payment-client-name').value = appt.clientName;
-        document.getElementById('payment-service-name').value = appt.serviceName;
-        document.getElementById('payment-amount').value = appt.price || 0;
-        document.getElementById('payment-method').value = 'efectivo';
-
-        paymentDialog.showModal();
+        openPaymentModal(apptId, appt.clientName, appt.serviceName, appt.price);
       } catch (e) {
         alert('Error: ' + e.message);
       }
     };
 
-    // Payment form submission
-    if (formPayment) {
-      formPayment.addEventListener('submit', async (e) => {
-        e.preventDefault();
 
-        const method = document.getElementById('payment-method').value;
-        const amount = parseFloat(document.getElementById('payment-amount').value);
-
-        if (amount <= 0) {
-          alert('El monto debe ser mayor a 0');
-          return;
-        }
-
-        try {
-          const res = await fetch(`/api/appointments/${currentPaymentApptId}/payment`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              method,
-              amount,
-              paidAt: new Date().toISOString()
-            })
-          });
-
-          const json = await res.json();
-
-          if (!json.success) {
-            throw new Error(json.error || 'Error registrando pago');
-          }
-
-          alert('✅ Pago registrado correctamente');
-          paymentDialog.close();
-          loadAppointments();
-          loadMonthStats();
-        } catch (e) {
-          alert('❌ Error: ' + e.message);
-        }
-      });
-
-      // Cancel payment button
-      document.getElementById('btn-cancel-payment')?.addEventListener('click', () => {
-        paymentDialog.close();
-      });
-
-      // Close payment button
-      document.getElementById('btn-close-payment')?.addEventListener('click', () => {
-        paymentDialog.close();
-      });
-    }
 
     // ========== MODIFICAR CITA ==========
     const editApptDialog = document.getElementById('editApptDialog');
@@ -8264,6 +8469,237 @@
     window.loadGiftCards = loadGiftCards;
 
     console.log('[GC] Gift Cards module loaded');
+
+    /* =========================================================
+       MODAL DE PAGO CON PRODUCTOS
+       ========================================================= */
+
+    let paymentProducts = [];
+    let paymentServicePrice = 0;
+    let allProductsForPayment = [];
+
+    async function loadProductsForPayment() {
+      try {
+        const res = await fetch('/api/products', { credentials: 'include' });
+        const json = await res.json();
+        
+        if (json.success) {
+          allProductsForPayment = (json.data || []).filter(p => p.stock > 0);
+          updatePaymentProductSelect();
+        }
+      } catch (error) {
+        console.error('Error loading products for payment:', error);
+      }
+    }
+
+    function updatePaymentProductSelect() {
+      const select = document.getElementById('payment-product-select');
+      if (!select) return;
+      
+      select.innerHTML = '<option value="">Seleccionar producto...</option>';
+      
+      allProductsForPayment.forEach(p => {
+        const inCart = paymentProducts.find(pp => pp.id === p.id);
+        const availableStock = p.stock - (inCart ? inCart.qty : 0);
+        
+        if (availableStock > 0) {
+          const stockLabel = availableStock <= 5 ? ` (${availableStock} disp.)` : '';
+          select.innerHTML += `<option value="${p.id}" data-price="${p.price}" data-name="${p.name}" data-stock="${availableStock}" data-category="${p.category}">${p.name} - $${p.price}${stockLabel}</option>`;
+        }
+      });
+    }
+
+    function openPaymentModal(appointmentId, clientName, serviceName, servicePrice) {
+      paymentProducts = [];
+      paymentServicePrice = parseFloat(servicePrice) || 0;
+      
+      document.getElementById('payment-appointment-id').value = appointmentId;
+      document.getElementById('payment-client-name').textContent = clientName || '-';
+      document.getElementById('payment-service-name').textContent = serviceName || '-';
+      document.getElementById('payment-service-price-value').value = paymentServicePrice;
+      document.getElementById('payment-product-qty').value = 1;
+      
+      loadProductsForPayment();
+      renderPaymentProducts();
+      updatePaymentTotals();
+      
+      document.getElementById('paymentDialog').showModal();
+    }
+
+    function closePaymentModal() {
+      document.getElementById('paymentDialog').close();
+      paymentProducts = [];
+    }
+
+    function addProductToPayment() {
+      const select = document.getElementById('payment-product-select');
+      const qtyInput = document.getElementById('payment-product-qty');
+      
+      const productId = select.value;
+      if (!productId) {
+        alert('Selecciona un producto');
+        return;
+      }
+      
+      const option = select.options[select.selectedIndex];
+      const qty = parseInt(qtyInput.value) || 1;
+      const stock = parseInt(option.dataset.stock) || 0;
+      
+      const existing = paymentProducts.find(p => p.id === productId);
+      const currentQty = existing ? existing.qty : 0;
+      
+      if (qty + currentQty > stock + currentQty) {
+        alert(`Solo hay ${stock} unidades disponibles`);
+        return;
+      }
+      
+      if (existing) {
+        existing.qty += qty;
+      } else {
+        paymentProducts.push({
+          id: productId,
+          name: option.dataset.name,
+          price: parseFloat(option.dataset.price),
+          qty: qty,
+          category: option.dataset.category,
+          maxStock: stock
+        });
+      }
+      
+      select.value = '';
+      qtyInput.value = 1;
+      
+      updatePaymentProductSelect();
+      renderPaymentProducts();
+      updatePaymentTotals();
+    }
+
+    function removeProductFromPayment(productId) {
+      paymentProducts = paymentProducts.filter(p => p.id !== productId);
+      updatePaymentProductSelect();
+      renderPaymentProducts();
+      updatePaymentTotals();
+    }
+
+    function renderPaymentProducts() {
+      const list = document.getElementById('payment-products-list');
+      
+      if (paymentProducts.length === 0) {
+        list.innerHTML = '<div class="payment-products-empty">Sin productos adicionales</div>';
+        return;
+      }
+      
+      const categoryIcons = {
+        'skincare': '🧴',
+        'maquillaje': '💄',
+        'corporal': '✨',
+        'cabello': '💇',
+        'otro': '📦'
+      };
+      
+      list.innerHTML = paymentProducts.map(p => {
+        const icon = categoryIcons[p.category] || '📦';
+        const subtotal = p.price * p.qty;
+        const stockWarn = p.qty >= p.maxStock ? `<div class="stock-warn"><i class="fas fa-exclamation-triangle"></i> Último(s) en stock</div>` : '';
+        
+        return `
+          <div class="payment-product-item">
+            <div class="payment-product-icon">${icon}</div>
+            <div class="payment-product-info">
+              <div class="payment-product-name">${p.name}</div>
+              <div class="payment-product-meta">$${p.price} × ${p.qty}</div>
+              ${stockWarn}
+            </div>
+            <div class="payment-product-price">$${subtotal.toLocaleString()}</div>
+            <button class="payment-product-remove" onclick="removeProductFromPayment('${p.id}')">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function updatePaymentTotals() {
+      const servicePrice = paymentServicePrice;
+      const productsTotal = paymentProducts.reduce((sum, p) => sum + (p.price * p.qty), 0);
+      const grandTotal = servicePrice + productsTotal;
+      const productsCount = paymentProducts.reduce((sum, p) => sum + p.qty, 0);
+      
+      document.getElementById('payment-service-price').textContent = '$' + servicePrice.toLocaleString();
+      document.getElementById('payment-products-subtotal').textContent = '$' + productsTotal.toLocaleString();
+      document.getElementById('payment-products-count').textContent = productsCount;
+      document.getElementById('payment-grand-total').textContent = '$' + grandTotal.toLocaleString();
+      document.getElementById('btn-payment-amount').textContent = '$' + grandTotal.toLocaleString();
+      
+      const productsRow = document.getElementById('payment-products-subtotal-row');
+      productsRow.style.display = productsCount > 0 ? 'flex' : 'none';
+    }
+
+    async function savePayment() {
+      const appointmentId = document.getElementById('payment-appointment-id').value;
+      const paymentMethod = document.getElementById('payment-method').value;
+      const servicePrice = paymentServicePrice;
+      const productsTotal = paymentProducts.reduce((sum, p) => sum + (p.price * p.qty), 0);
+      const grandTotal = servicePrice + productsTotal;
+      
+      if (!appointmentId) {
+        alert('Error: No se encontró la cita');
+        return;
+      }
+      
+      const btn = document.getElementById('btn-save-payment');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+      
+      try {
+        const productsSold = paymentProducts.map(p => ({
+          productId: p.id,
+          name: p.name,
+          price: p.price,
+          qty: p.qty,
+          subtotal: p.price * p.qty
+        }));
+        
+        const res = await fetch(`/api/appointments/${appointmentId}/payment`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            paymentMethod,
+            serviceAmount: servicePrice,
+            productsAmount: productsTotal,
+            totalAmount: grandTotal,
+            productsSold
+          })
+        });
+        
+        const json = await res.json();
+        
+        if (json.success) {
+          closePaymentModal();
+          if (typeof loadAppointments === 'function') loadAppointments();
+          if (typeof loadTodayAppointments === 'function') loadTodayAppointments();
+          alert(`✓ Pago registrado: $${grandTotal.toLocaleString()}`);
+        } else {
+          alert('Error: ' + json.error);
+        }
+      } catch (error) {
+        console.error('Error saving payment:', error);
+        alert('Error de conexión');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-check-circle"></i> Cobrar <span id="btn-payment-amount">$' + grandTotal.toLocaleString() + '</span>';
+      }
+    }
+
+    window.openPaymentModal = openPaymentModal;
+    window.closePaymentModal = closePaymentModal;
+    window.addProductToPayment = addProductToPayment;
+    window.removeProductFromPayment = removeProductFromPayment;
+    window.savePayment = savePayment;
+
+    document.getElementById('btn-close-payment')?.addEventListener('click', closePaymentModal);
+    document.getElementById('btn-cancel-payment')?.addEventListener('click', closePaymentModal);
 
   </script>
 </body>
