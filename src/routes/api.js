@@ -15,6 +15,7 @@ router.delete('/services/:id', ServicesController.delete);
 // Appointments
 router.post('/appointments', AppointmentsController.create);
 router.get('/appointments/month', AppointmentsController.getByMonth);
+router.get('/appointments/client', AppointmentsController.getByClient);
 router.patch('/appointments/:id/cancel', AppointmentsController.cancel);
 router.get('/appointments/:id', AppointmentsController.getById);
 router.patch('/appointments/:id', AppointmentsController.update);

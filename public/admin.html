@@ -955,6 +955,137 @@
       border-color: var(--venus-green);
       box-shadow: 0 0 0 3px rgba(140, 150, 104, 0.1);
     }
+
+    /* ===== HISTORIAL DE CITAS SELECCIONABLE ===== */
+    .client-history-panel {
+      margin-top: 12px;
+      background: rgba(140, 150, 104, 0.08);
+      border: 1px solid rgba(140, 150, 104, 0.25);
+      border-radius: 12px;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .client-history-panel.hidden {
+      display: none;
+    }
+
+    .history-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 14px;
+      cursor: pointer;
+      transition: background 0.2s;
+      user-select: none;
+    }
+
+    .history-header:hover {
+      background: rgba(140, 150, 104, 0.12);
+    }
+
+    .history-toggle-icon {
+      transition: transform 0.3s ease;
+      font-size: 12px;
+      color: var(--venus-soft);
+    }
+
+    .history-header.expanded .history-toggle-icon {
+      transform: rotate(180deg);
+    }
+
+    .history-count {
+      font-size: 12px;
+      color: var(--venus-soft);
+      font-weight: 600;
+    }
+
+    .history-hint {
+      font-size: 11px;
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    .history-content {
+      border-top: 1px solid rgba(140, 150, 104, 0.15);
+      max-height: 180px;
+      overflow-y: auto;
+    }
+
+    .history-list {
+      padding: 8px;
+    }
+
+    .history-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 12px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 8px;
+      margin-bottom: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 1px solid transparent;
+    }
+
+    .history-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .history-item:hover {
+      background: rgba(140, 150, 104, 0.2);
+      border-color: var(--venus-soft);
+    }
+
+    .history-item:active {
+      transform: scale(0.98);
+    }
+
+    .history-item-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .history-item-date {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .history-item-service {
+      font-size: 13px;
+      color: #fff;
+      font-weight: 500;
+    }
+
+    .history-item-select {
+      font-size: 11px;
+      color: var(--venus-soft);
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .history-item:hover .history-item-select {
+      opacity: 1;
+    }
+
+    .history-empty {
+      text-align: center;
+      padding: 16px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .history-item.selected {
+      background: rgba(140, 150, 104, 0.3);
+      border-color: var(--venus-soft);
+    }
+
+    .history-item.selected .history-item-select {
+      opacity: 1;
+      color: #22c55e;
+    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -1668,6 +1799,22 @@
               <button type="button" id="btn-toggle-new-client" class="btn small ghost" style="margin-top:8px;">
                 + Registrar nuevo cliente
               </button>
+
+              <!-- Panel Historial de Citas - Clic para seleccionar servicio -->
+              <div id="client-history-panel" class="client-history-panel hidden">
+                <div class="history-header" id="toggle-history">
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <span class="history-toggle-icon">▼</span>
+                    <span>📅 Citas anteriores</span>
+                    <span class="history-count" id="history-count">(0)</span>
+                  </div>
+                  <span class="history-hint" id="history-hint">Clic para repetir servicio</span>
+                </div>
+                <div class="history-content" id="history-content" style="display:none;">
+                  <div id="history-list" class="history-list">
+                  </div>
+                </div>
+              </div>
             </div>
 
             <!-- Formulario Nuevo Cliente (oculto por defecto) -->
@@ -5329,6 +5476,125 @@
       } catch (e) { console.error('Error loading services', e); }
     }
 
+    /* =========================================================
+       HISTORIAL DE CITAS - SELECCIONAR PARA REPETIR SERVICIO
+       ========================================================= */
+
+    const historyPanel = document.getElementById('client-history-panel');
+    const historyHeader = document.getElementById('toggle-history');
+    const historyContent = document.getElementById('history-content');
+    const historyList = document.getElementById('history-list');
+    const historyCount = document.getElementById('history-count');
+    const historyHint = document.getElementById('history-hint');
+
+    // Toggle expandir/contraer historial
+    if (historyHeader) {
+      historyHeader.addEventListener('click', () => {
+        const isExpanded = historyContent.style.display !== 'none';
+        historyContent.style.display = isExpanded ? 'none' : 'block';
+        historyHeader.classList.toggle('expanded', !isExpanded);
+      });
+    }
+
+    // Cargar historial de citas del cliente
+    async function loadClientHistory(clientPhone, clientName) {
+      if (!clientPhone && !clientName) {
+        historyPanel.classList.add('hidden');
+        return;
+      }
+
+      try {
+        const searchParam = clientPhone || clientName;
+        const res = await fetch(`/api/appointments/client?search=${encodeURIComponent(searchParam)}`);
+        const json = await res.json();
+
+        if (json.success && json.data && json.data.length > 0) {
+          const appointments = json.data;
+          historyPanel.classList.remove('hidden');
+          historyCount.textContent = `(${appointments.length})`;
+          historyHint.textContent = 'Clic para repetir servicio';
+          renderHistoryList(appointments);
+          
+          if (appointments.length <= 5) {
+            historyContent.style.display = 'block';
+            historyHeader.classList.add('expanded');
+          }
+        } else {
+          historyPanel.classList.remove('hidden');
+          historyCount.textContent = '(0)';
+          historyHint.textContent = '¡Primera visita!';
+          historyList.innerHTML = '<div class="history-empty">🎉 Nueva clienta</div>';
+          historyContent.style.display = 'block';
+          historyHeader.classList.add('expanded');
+        }
+      } catch (error) {
+        console.error('Error cargando historial:', error);
+        historyPanel.classList.add('hidden');
+      }
+    }
+
+    function renderHistoryList(appointments) {
+      if (appointments.length === 0) {
+        historyList.innerHTML = '<div class="history-empty">Sin citas previas</div>';
+        return;
+      }
+
+      appointments.sort((a, b) => new Date(b.startDateTime) - new Date(a.startDateTime));
+      const completed = appointments.filter(a => a.status === 'completed').slice(0, 8);
+      
+      if (completed.length === 0) {
+        historyList.innerHTML = '<div class="history-empty">Sin citas completadas</div>';
+        return;
+      }
+
+      historyList.innerHTML = completed.map(appt => {
+        const date = new Date(appt.startDateTime);
+        const dateStr = date.toLocaleDateString('es-MX', { 
+          day: 'numeric', 
+          month: 'short',
+          year: date.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined
+        });
+
+        return `
+          <div class="history-item" 
+               data-service-name="${appt.serviceName}"
+               data-service-id="${appt.serviceId || ''}" 
+               onclick="selectHistoryService(this)">
+            <div class="history-item-info">
+              <span class="history-item-date">${dateStr}</span>
+              <span class="history-item-service">${appt.serviceName}</span>
+            </div>
+            <span class="history-item-select">Seleccionar →</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function selectHistoryService(element) {
+      const serviceName = element.dataset.serviceName;
+      const serviceId = element.dataset.serviceId;
+      const service = allServices.find(s => s.name === serviceName || s.id === serviceId);
+      
+      const serviceInput = document.getElementById('new-appt-service');
+      if (serviceInput) {
+        serviceInput.value = serviceName;
+        serviceInput.dispatchEvent(new Event('input', { bubbles: true }));
+        serviceInput.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      
+      const priceInput = document.getElementById('new-appt-price');
+      if (priceInput && service) {
+        priceInput.value = service.price;
+      }
+      
+      document.querySelectorAll('.history-item').forEach(item => item.classList.remove('selected'));
+      element.classList.add('selected');
+      
+      calculateEndTime();
+    }
+
+    window.selectHistoryService = selectHistoryService;
+
     // ========== CARGAR CLIENTES ==========
     async function loadClients() {
       try {
@@ -5371,6 +5637,9 @@
                 console.log('[CLIENTS] ✅ Cliente seleccionado:', item);
                 // Auto-fill phone when client selected
                 document.getElementById('new-appt-phone').value = item.data.phone || '';
+                
+                // Cargar historial de citas del cliente
+                loadClientHistory(item.data.phone, item.label);
               }
             );
           }
@@ -6211,6 +6480,11 @@
         generateHourMinuteOptions();
         newApptDialog.showModal();
         document.getElementById('new-appt-date').value = selectedDate.toISOString().split('T')[0];
+        
+        // Limpiar historial
+        if (historyPanel) historyPanel.classList.add('hidden');
+        if (historyContent) historyContent.style.display = 'none';
+        if (historyHeader) historyHeader.classList.remove('expanded');
       });
     }
 

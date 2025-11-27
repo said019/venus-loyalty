@@ -381,5 +381,43 @@ export const AppointmentsController = {
                 error: error.message
             });
         }
+    },
+
+    // Buscar citas por teléfono o nombre del cliente
+    async getByClient(req, res) {
+        try {
+            const { search } = req.query;
+            if (!search) {
+                return res.json({ success: true, data: [] });
+            }
+
+            const appointmentsRef = firestore.collection('appointments');
+            
+            // Buscar por teléfono
+            let snapshot = await appointmentsRef
+                .where('clientPhone', '==', search)
+                .orderBy('startDateTime', 'desc')
+                .limit(20)
+                .get();
+            
+            // Si no hay resultados, buscar por nombre
+            if (snapshot.empty) {
+                snapshot = await appointmentsRef
+                    .where('clientName', '==', search)
+                    .orderBy('startDateTime', 'desc')
+                    .limit(20)
+                    .get();
+            }
+
+            const appointments = [];
+            snapshot.forEach(doc => {
+                appointments.push({ id: doc.id, ...doc.data() });
+            });
+
+            res.json({ success: true, data: appointments });
+        } catch (error) {
+            console.error('Error fetching client appointments:', error);
+            res.json({ success: false, error: error.message });
+        }
     }
 };
