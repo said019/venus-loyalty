@@ -46,6 +46,7 @@ async function sendWhatsAppTemplate(to, templateSid, variables) {
 
 /**
  * Formatea fecha para mostrar de forma legible
+ * Usa timezone local para evitar problemas con UTC
  */
 function formatearFechaLegible(fecha) {
     const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
@@ -53,12 +54,14 @@ function formatearFechaLegible(fecha) {
     
     let date;
     if (typeof fecha === 'string' && fecha.includes('T')) {
+        // Si viene con hora ISO, parsearlo correctamente
         date = new Date(fecha);
-    } else if (typeof fecha === 'string') {
-        const [year, month, day] = fecha.split('-');
-        date = new Date(year, month - 1, day);
+    } else if (typeof fecha === 'string' && fecha.includes('-')) {
+        // Si es YYYY-MM-DD, crear fecha en timezone local (no UTC)
+        const [year, month, day] = fecha.split('-').map(Number);
+        date = new Date(year, month - 1, day, 12, 0, 0); // Usar mediodía para evitar problemas de timezone
     } else {
-        date = fecha;
+        date = new Date(fecha);
     }
     
     return `${date.getDate()} de ${meses[date.getMonth()]}`;
@@ -66,10 +69,16 @@ function formatearFechaLegible(fecha) {
 
 /**
  * Formatea hora para mostrar
+ * Usa timezone de México para consistencia
  */
 function formatearHora(dateTimeStr) {
     const date = new Date(dateTimeStr);
-    return date.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false });
+    return date.toLocaleTimeString('es-MX', { 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        hour12: false,
+        timeZone: 'America/Mexico_City'
+    });
 }
 
 export const WhatsAppService = {

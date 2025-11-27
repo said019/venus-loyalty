@@ -1352,20 +1352,16 @@
         <table>
           <thead>
             <tr>
-              <!-- ID REMOVED -->
               <th>Cliente</th>
               <th>Teléfono</th>
-              <th>Cumpleaños</th>
               <th>Última Visita</th>
-              <th>Creada</th>
               <th>Sellos</th>
-              <th>Estado</th>
-              <th>Acciones</th>
+              <th style="width:120px;">Acciones</th>
             </tr>
           </thead>
           <tbody id="cards-tbody">
             <tr>
-              <td colspan="7" style="text-align:center;padding:12px;" class="muted">Cargando tarjetas...</td>
+              <td colspan="5" style="text-align:center;padding:12px;" class="muted">Cargando tarjetas...</td>
             </tr>
           </tbody>
         </table>
@@ -2608,99 +2604,128 @@
 
     <footer class="footer">© Venus Cosmetología</footer>
 
-    <!-- Modal Tarjeta -->
+    <!-- Modal Tarjeta - SIMPLIFICADO -->
     <div id="card-modal-backdrop" class="modal-backdrop hidden">
-      <div class="modal-card">
-        <div class="modal-header">
-          <h3>Tarjeta</h3>
-          <button id="cm-close" class="btn small ghost">Cerrar</button>
-        </div>
-        <div class="modal-body">
-          <p><strong>ID:</strong> <code id="cm-id"></code></p>
-          <p><strong>Cliente:</strong> <span id="cm-name"></span></p>
-          <p><strong>Teléfono:</strong> <span id="cm-phone"></span></p>
-          <p><strong>Sellos:</strong> <span id="cm-stamps"></span></p>
-          <p><strong>Estado:</strong> <span id="cm-status"></span></p>
-
-          <!-- NUEVOS CAMPOS (FASE 5) -->
-          <div style="margin-top:20px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.1);">
-            <h4 style="margin:0 0 12px;font-size:14px;color:var(--venus-soft);">📊 Información Adicional</h4>
-
-            <!-- Stats calculados (solo lectura) -->
-            <div class="client-stats">
-              <div class="stat-row">
-                <span class="stat-label">Visitas totales:</span>
-                <span id="cm-visited-count" class="stat-value">—</span>
-              </div>
-              <div class="stat-row">
-                <span class="stat-label">Ciclos completados:</span>
-                <span id="cm-cycles-completed" class="stat-value">—</span>
-              </div>
-              <div class="stat-row">
-                <span class="stat-label">Última visita:</span>
-                <span id="cm-last-visit" class="stat-value">—</span>
-              </div>
-              <div class="stat-row">
-                <span class="stat-label">📅 Próxima cita:</span>
-                <span id="cm-next-appointment" class="stat-value">—</span>
-              </div>
-            </div>
-
-            <div style="margin-top:12px;">
-              <label class="modal-field-label">📝 Notas del cliente:</label>
-              <textarea id="cm-notes" class="modal-textarea" rows="3"
-                placeholder="Notas administrativas sobre el cliente..."></textarea>
-            </div>
-
-            <button id="cm-save-notes" class="btn small primary" style="margin-top:12px;">
-              💾 Guardar Cambios
-            </button>
-          </div>
-
-          <div class="qr-box">
-            <canvas id="card-qr"></canvas>
-          </div>
-
-          <!-- Formulario de Notificación Individual (Oculto por defecto) -->
-          <div id="notify-form-container" class="notify-form-container hidden">
-            <span class="notify-form-header">
-              🔔 Push Individual
-            </span>
-
-            <div class="input-group">
-              <input id="notify-title" class="notify-input" placeholder="Título" value="Recordatorio Venus">
-              <span class="input-icon">📌</span>
-            </div>
-
-            <div class="input-group">
-              <textarea id="notify-message" class="notify-textarea" placeholder="Escribe tu mensaje aquí..."></textarea>
-              <span class="input-icon">💬</span>
-            </div>
-
-            <div class="notify-btn-group">
-              <button id="btn-cancel-notify" class="btn small ghost">Cancelar</button>
-              <button id="btn-send-notify" class="btn small primary">🚀 Enviar Push</button>
-            </div>
+      <div class="modal-card" style="max-width:420px;">
+        
+        <!-- Header con acciones rápidas -->
+        <div class="modal-header" style="flex-wrap:wrap;gap:10px;">
+          <h3 style="margin:0;flex:1;">👤 Cliente</h3>
+          <div style="display:flex;gap:6px;">
+            <button id="cm-stamp" class="btn small" style="background:#FFD166;color:#1b1b1b;font-weight:600;">⭐ +1 sello</button>
+            <button id="cm-close" class="btn small ghost">✕</button>
           </div>
         </div>
-        <div class="modal-footer">
-          <!-- Primary actions -->
-          <button id="cm-stamp" class="btn small" style="background: #FFD166; color: #1b1b1b; font-weight: 600;">+1
-            sello</button>
-          <button id="cm-schedule" class="btn small" style="background: #8c9668; color: white;">📅 Agendar</button>
-          <button id="cm-redeem" class="btn small">Canjear</button>
-
-          <!-- WhatsApp button -->
-          <button id="cm-whatsapp" class="btn small success" style="background: #25D366; color: white;">
-            📱 WhatsApp
+        
+        <!-- Info del cliente -->
+        <div class="modal-body" style="padding:16px 0;">
+          
+          <!-- Datos principales -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+            <div>
+              <div class="muted" style="font-size:11px;margin-bottom:2px;">Nombre</div>
+              <div id="cm-name" style="font-weight:600;font-size:15px;">—</div>
+            </div>
+            <div>
+              <div class="muted" style="font-size:11px;margin-bottom:2px;">Teléfono</div>
+              <div id="cm-phone" style="font-size:15px;">—</div>
+            </div>
+          </div>
+          
+          <!-- Sellos con barra de progreso -->
+          <div style="background:rgba(255,255,255,0.05);border-radius:12px;padding:14px;margin-bottom:16px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+              <span style="font-size:13px;">Progreso</span>
+              <span id="cm-stamps" style="font-weight:700;font-size:18px;color:var(--venus-soft);">0 / 8</span>
+            </div>
+            <div style="background:rgba(255,255,255,0.1);border-radius:8px;height:8px;overflow:hidden;">
+              <div id="cm-progress-bar" style="background:linear-gradient(90deg,#FFD166,#8c9668);height:100%;width:0%;transition:width 0.3s;border-radius:8px;"></div>
+            </div>
+            <div id="cm-status-text" class="muted" style="font-size:11px;margin-top:6px;text-align:center;">—</div>
+          </div>
+          
+          <!-- Próxima cita (si existe) -->
+          <div id="cm-next-appt-section" class="hidden" style="background:rgba(140,150,104,0.15);border:1px solid rgba(140,150,104,0.3);border-radius:12px;padding:12px;margin-bottom:16px;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+              <span>📅</span>
+              <span style="font-size:12px;color:var(--venus-soft);font-weight:600;">Próxima cita</span>
+            </div>
+            <div id="cm-next-appt-date" style="font-size:18px;font-weight:700;color:#22c55e;">—</div>
+            <div id="cm-next-appt-service" style="font-size:13px;margin-top:2px;">—</div>
+          </div>
+          
+          <!-- Stats rápidos -->
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;">
+            <div style="text-align:center;padding:10px;background:rgba(255,255,255,0.03);border-radius:8px;">
+              <div id="cm-visited-count" style="font-size:18px;font-weight:700;color:var(--venus-soft);">0</div>
+              <div class="muted" style="font-size:10px;">Visitas</div>
+            </div>
+            <div style="text-align:center;padding:10px;background:rgba(255,255,255,0.03);border-radius:8px;">
+              <div id="cm-cycles-completed" style="font-size:18px;font-weight:700;color:var(--venus-soft);">0</div>
+              <div class="muted" style="font-size:10px;">Ciclos</div>
+            </div>
+            <div style="text-align:center;padding:10px;background:rgba(255,255,255,0.03);border-radius:8px;">
+              <div id="cm-last-visit" style="font-size:12px;font-weight:600;color:var(--venus-soft);">—</div>
+              <div class="muted" style="font-size:10px;">Última visita</div>
+            </div>
+          </div>
+          
+          <!-- Notas (colapsable) -->
+          <details style="margin-bottom:16px;">
+            <summary style="cursor:pointer;font-size:13px;color:var(--venus-soft);margin-bottom:8px;">📝 Notas del cliente</summary>
+            <textarea id="cm-notes" class="modal-textarea" rows="2" placeholder="Agregar notas..." style="width:100%;background:rgba(0,0,0,0.2);border:1px solid var(--line);border-radius:8px;padding:10px;color:#fff;font-size:13px;resize:none;"></textarea>
+            <button id="cm-save-notes" class="btn small ghost" style="margin-top:6px;font-size:11px;">💾 Guardar nota</button>
+          </details>
+          
+          <!-- QR (colapsable) -->
+          <details>
+            <summary style="cursor:pointer;font-size:13px;color:var(--venus-soft);margin-bottom:8px;">🔲 Código QR</summary>
+            <div style="background:rgba(255,255,255,0.05);border-radius:12px;padding:12px;text-align:center;">
+              <canvas id="card-qr" style="max-width:150px;"></canvas>
+              <div class="muted" style="font-size:10px;margin-top:6px;">ID: <code id="cm-id" style="font-size:10px;">—</code></div>
+            </div>
+          </details>
+        
+        </div>
+        
+        <!-- Footer con acciones -->
+        <div class="modal-footer" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.1);">
+          <button id="cm-whatsapp" class="btn small" style="background:#25D366;color:white;">
+            💬 WhatsApp
           </button>
-
-          <!-- Secondary actions -->
-          <button id="cm-copy" class="btn small ghost">Copiar ID</button>
-          <button id="cm-open-url" class="btn small ghost">Abrir cliente</button>
-          <button id="cm-notify" class="btn small ghost">🔔 Notificar</button>
-          <button id="cm-delete" class="btn small ghost" style="color:#fecaca;">Eliminar</button>
+          <button id="cm-schedule" class="btn small" style="background:#8c9668;color:white;">
+            📅 Agendar
+          </button>
+          <button id="cm-redeem" class="btn small">
+            🎁 Canjear
+          </button>
         </div>
+        
+        <!-- Acciones secundarias -->
+        <div style="display:flex;justify-content:center;gap:12px;margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.05);">
+          <button id="cm-copy" class="btn-link" style="background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;">Copiar ID</button>
+          <button id="cm-open-url" class="btn-link" style="background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;">Abrir página</button>
+          <button id="cm-notify" class="btn-link" style="background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;">Notificar</button>
+          <button id="cm-delete" class="btn-link" style="background:none;border:none;color:#ef4444;font-size:11px;cursor:pointer;">Eliminar</button>
+        </div>
+        
+        <!-- Formulario de Notificación Individual (Oculto por defecto) -->
+        <div id="notify-form-container" class="notify-form-container hidden" style="margin-top:16px;">
+          <span class="notify-form-header">🔔 Push Individual</span>
+          <div class="input-group">
+            <input id="notify-title" class="notify-input" placeholder="Título" value="Recordatorio Venus">
+            <span class="input-icon">📌</span>
+          </div>
+          <div class="input-group">
+            <textarea id="notify-message" class="notify-textarea" placeholder="Escribe tu mensaje aquí..."></textarea>
+            <span class="input-icon">💬</span>
+          </div>
+          <div class="notify-btn-group" style="display:flex;gap:8px;margin-top:10px;">
+            <button id="btn-cancel-notify" class="btn small ghost">Cancelar</button>
+            <button id="btn-send-notify" class="btn small primary">🚀 Enviar</button>
+          </div>
+        </div>
+      
       </div>
     </div>
   </main>
@@ -3849,6 +3874,14 @@
     let cardsCache = {};
     let currentCardId = null;
 
+    // Helper para formatear cumpleaños
+    function formatBirthday(birthdate) {
+      if (!birthdate) return '';
+      const [y, m, d] = birthdate.split('-').map(Number);
+      const months = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+      return `${d} ${months[m-1]}`;
+    }
+
     async function loadCards(page = 1) {
       try {
         const searchQuery = document.getElementById('search-cards').value;
@@ -3878,55 +3911,41 @@
         checkBirthdays(data.items);
 
         tbody.innerHTML = data.items.map(card => {
-          // Formatear cumpleaños
-          let birthdayStr = '—';
-          if (card.birthdate) {
-            const [y, m, d] = card.birthdate.split('-').map(Number);
-            const monthNames = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
-            birthdayStr = `${d} ${monthNames[m - 1]}`;
-          }
-
           // Formatear última visita
           let lastVisitStr = '—';
           if (card.last_visit) {
-            lastVisitStr = new Date(card.last_visit).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' });
+            const lastDate = new Date(card.last_visit);
+            const now = new Date();
+            const diffDays = Math.floor((now - lastDate) / (1000 * 60 * 60 * 24));
+            
+            if (diffDays === 0) lastVisitStr = 'Hoy';
+            else if (diffDays === 1) lastVisitStr = 'Ayer';
+            else if (diffDays < 7) lastVisitStr = `Hace ${diffDays} días`;
+            else lastVisitStr = lastDate.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' });
           } else if (card.updated_at) {
-            lastVisitStr = new Date(card.updated_at).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' });
-          }
-
-          // Formatear fecha creación
-          let createdStr = '—';
-          if (card.createdAt) {
-            createdStr = new Date(card.createdAt).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' });
+            lastVisitStr = new Date(card.updated_at).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' });
           }
 
           return `
-          <tr data-card-id="${card.id}">
-            <!-- ID REMOVED from view -->
+          <tr data-card-id="${card.id}" style="cursor:pointer;" onclick="if(!event.target.closest('button')) { const c = cardsCache['${card.id}']; if(c) openCardModal(c); }">
             <td>
               <div style="font-weight:500;">${card.name || '—'}</div>
-              <div class="muted" style="font-size:11px;">ID: ${card.id.substring(0, 8)}...</div>
+              ${card.birthdate ? `<div class="muted" style="font-size:11px;">🎂 ${formatBirthday(card.birthdate)}</div>` : ''}
             </td>
-            <td>${card.phone || '—'}</td>
-            <td>${birthdayStr}</td>
-            <td>${lastVisitStr}</td>
-            <td>${createdStr}</td>
+            <td style="font-size:13px;">${card.phone || '—'}</td>
+            <td style="font-size:12px;">${lastVisitStr}</td>
             <td>
               <div style="display:flex;align-items:center;gap:6px;">
-                <span style="font-weight:600;">${card.stamps}</span>
-                <span class="muted">/ ${card.max}</span>
+                <div style="background:rgba(255,255,255,0.1);border-radius:4px;height:6px;width:60px;overflow:hidden;">
+                  <div style="background:linear-gradient(90deg,#FFD166,#8c9668);height:100%;width:${(card.stamps/card.max)*100}%;"></div>
+                </div>
+                <span style="font-size:12px;font-weight:500;">${card.stamps}/${card.max}</span>
               </div>
             </td>
-            <td><span class="tag">${card.status || 'active'}</span></td>
-            <td>
-              <div class="row" style="gap:4px;flex-wrap:wrap;">
-                <button class="btn small" data-action="view">Ver</button>
-                <button class="btn small" data-action="copy">Copiar ID</button>
-                <button class="btn small" data-action="open">Abrir cliente</button>
-                <button class="btn small" data-action="stamp">+1 sello</button>
-
-                <button class="btn small" data-action="redeem">Canjear</button>
-                <button class="btn small ghost" data-action="delete">Eliminar</button>
+            <td onclick="event.stopPropagation();">
+              <div style="display:flex;gap:6px;">
+                <button class="btn small" data-action="stamp" style="background:#FFD166;color:#000;font-weight:600;padding:4px 10px;">⭐+1</button>
+                <button class="btn small ghost" data-action="view" style="padding:4px 10px;">Ver</button>
               </div>
             </td>
           </tr>
@@ -4457,64 +4476,114 @@
     // ===== Modal Tarjeta =====
     const modalBackdrop = document.getElementById('card-modal-backdrop');
     const modalCloseBtn = document.getElementById('cm-close');
-    const modalId = document.getElementById('cm-id');
-    const modalName = document.getElementById('cm-name');
-    const modalPhone = document.getElementById('cm-phone');
-    const modalStamps = document.getElementById('cm-stamps');
-    const modalStatus = document.getElementById('cm-status');
     const modalQrCanvas = document.getElementById('card-qr');
 
     async function openCardModal(card) {
       currentCardId = card.id;
-      modalId.textContent = card.id;
-      modalName.textContent = card.name || '—';
-      modalPhone.textContent = card.phone || '—';
-      modalStamps.textContent = `${card.stamps} / ${card.max}`;
-      modalStatus.textContent = card.status || 'active';
-
-      // ⭐ FASE 5: Cargar información adicional del cliente
+      
+      // Datos básicos
+      document.getElementById('cm-id').textContent = card.id;
+      document.getElementById('cm-name').textContent = card.name || '—';
+      document.getElementById('cm-phone').textContent = card.phone || '—';
+      document.getElementById('cm-stamps').textContent = `${card.stamps} / ${card.max}`;
+      
+      // Barra de progreso
+      const progressPercent = Math.min((card.stamps / card.max) * 100, 100);
+      document.getElementById('cm-progress-bar').style.width = `${progressPercent}%`;
+      
+      // Texto de estado
+      const remaining = card.max - card.stamps;
+      let statusText = '';
+      if (card.stamps >= card.max) {
+        statusText = '🎉 ¡Tarjeta completa! Lista para canjear';
+      } else if (remaining === 1) {
+        statusText = '⚡ ¡Solo falta 1 sello!';
+      } else if (remaining <= 3) {
+        statusText = `🔥 Faltan ${remaining} sellos`;
+      } else {
+        statusText = `Faltan ${remaining} sellos para completar`;
+      }
+      document.getElementById('cm-status-text').textContent = statusText;
+      
+      // Notas
+      document.getElementById('cm-notes').value = card.notes || '';
+      
+      // Cargar información adicional del cliente
       loadClientInfo(card);
-
+      
+      // Cargar próxima cita
+      loadNextAppointment(card.phone, card.name);
+      
+      // Mostrar modal
       modalBackdrop.classList.remove('hidden');
-
+      
       // Resetear formulario de notificación
       document.getElementById('notify-form-container').classList.add('hidden');
       document.getElementById('notify-title').value = 'Recordatorio Venus';
       document.getElementById('notify-message').value = '';
-
+      
+      // Generar QR
       const url = `${window.location.origin}/?cardId=${encodeURIComponent(card.id)}`;
-
-      // CORRECCIÓN CRÍTICA: Generar QR correctamente esperando a que esté lista la librería
       if (typeof QRCode !== 'undefined' && modalQrCanvas) {
         try {
-          // Limpiar canvas anterior
           const ctx = modalQrCanvas.getContext('2d');
           ctx.clearRect(0, 0, modalQrCanvas.width, modalQrCanvas.height);
-
-          // Generar nuevo QR
           await QRCode.toCanvas(modalQrCanvas, url, {
-            width: 170,
-            height: 170,
+            width: 150,
+            height: 150,
             margin: 2,
-            color: {
-              dark: '#000000',
-              light: '#ffffff'
-            }
+            color: { dark: '#000000', light: '#ffffff' }
           });
-          console.log('QR de tarjeta generado exitosamente');
         } catch (err) {
-          console.error('Error generando QR de tarjeta:', err);
-          // Mostrar mensaje de error en el canvas
-          const ctx = modalQrCanvas.getContext('2d');
-          ctx.fillStyle = '#fff';
-          ctx.fillRect(0, 0, 170, 170);
-          ctx.fillStyle = '#000';
-          ctx.font = '12px sans-serif';
-          ctx.textAlign = 'center';
-          ctx.fillText('Error generando QR', 85, 85);
+          console.error('Error generando QR:', err);
         }
-      } else {
-        console.error('QRCode library no disponible');
+      }
+    }
+    
+    // Función auxiliar para cargar próxima cita
+    async function loadNextAppointment(phone, name) {
+      const nextApptSection = document.getElementById('cm-next-appt-section');
+      
+      try {
+        const searchParam = phone || name;
+        if (!searchParam) {
+          nextApptSection.classList.add('hidden');
+          return;
+        }
+        
+        const res = await fetch(`/api/appointments/client?search=${encodeURIComponent(searchParam)}`);
+        const json = await res.json();
+        
+        if (json.success && json.data) {
+          // Buscar la próxima cita (status = scheduled y fecha futura)
+          const now = new Date();
+          const nextAppt = json.data.find(a => 
+            a.status === 'scheduled' && new Date(a.startDateTime) > now
+          );
+          
+          if (nextAppt) {
+            const date = new Date(nextAppt.startDateTime);
+            const dateStr = date.toLocaleDateString('es-MX', { 
+              day: 'numeric', 
+              month: 'short'
+            });
+            const timeStr = date.toLocaleTimeString('es-MX', { 
+              hour: '2-digit', 
+              minute: '2-digit'
+            });
+            
+            document.getElementById('cm-next-appt-date').textContent = `${dateStr} ${timeStr}`;
+            document.getElementById('cm-next-appt-service').textContent = nextAppt.serviceName;
+            nextApptSection.classList.remove('hidden');
+          } else {
+            nextApptSection.classList.add('hidden');
+          }
+        } else {
+          nextApptSection.classList.add('hidden');
+        }
+      } catch (error) {
+        console.error('Error cargando próxima cita:', error);
+        nextApptSection.classList.add('hidden');
       }
     }
 
