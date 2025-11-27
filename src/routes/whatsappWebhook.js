@@ -11,6 +11,8 @@ const router = express.Router();
  */
 router.post('/webhook', async (req, res) => {
     try {
+        console.log('📥 Webhook recibido:', JSON.stringify(req.body, null, 2));
+        
         const {
             From,           // whatsapp:+521234567890
             Body,           // Texto del mensaje o respuesta del botón
