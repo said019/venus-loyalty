@@ -5,6 +5,14 @@ import { WhatsAppService } from '../services/whatsapp.js';
 export function startScheduler() {
     console.log('⏰ Scheduler de recordatorios WhatsApp iniciado (cada 10 min)');
 
+    // Helper para convertir a ISO con offset de México (-06:00)
+    const toMexicoCityISO = (date) => {
+        const ts = date.getTime();
+        const mexicoOffset = 6 * 60 * 60 * 1000;
+        const localDate = new Date(ts - mexicoOffset);
+        return localDate.toISOString().replace('Z', '-06:00');
+    };
+
     // Correr cada 10 minutos
     cron.schedule('*/10 * * * *', async () => {
         console.log('⏰ Ejecutando chequeo de recordatorios...');
@@ -13,8 +21,11 @@ export function startScheduler() {
         try {
             // --- RECORDATORIO 24 HORAS ---
             // Buscamos citas que ocurran entre 23.5h y 24.5h desde ahora
-            const start24h = new Date(now.getTime() + 23.5 * 60 * 60 * 1000).toISOString();
-            const end24h = new Date(now.getTime() + 24.5 * 60 * 60 * 1000).toISOString();
+            const date24hStart = new Date(now.getTime() + 23.5 * 60 * 60 * 1000);
+            const date24hEnd = new Date(now.getTime() + 24.5 * 60 * 60 * 1000);
+
+            const start24h = toMexicoCityISO(date24hStart);
+            const end24h = toMexicoCityISO(date24hEnd);
 
             const pending24h = await AppointmentModel.getPendingReminders('send24h', start24h, end24h);
             console.log(`📅 Encontrados ${pending24h.length} recordatorios 24h pendientes`);
@@ -32,8 +43,11 @@ export function startScheduler() {
 
             // --- RECORDATORIO 2 HORAS ---
             // Buscamos citas que ocurran entre 1.5h y 2.5h desde ahora
-            const start2h = new Date(now.getTime() + 1.5 * 60 * 60 * 1000).toISOString();
-            const end2h = new Date(now.getTime() + 2.5 * 60 * 60 * 1000).toISOString();
+            const date2hStart = new Date(now.getTime() + 1.5 * 60 * 60 * 1000);
+            const date2hEnd = new Date(now.getTime() + 2.5 * 60 * 60 * 1000);
+
+            const start2h = toMexicoCityISO(date2hStart);
+            const end2h = toMexicoCityISO(date2hEnd);
 
             const pending2h = await AppointmentModel.getPendingReminders('send2h', start2h, end2h);
             console.log(`📅 Encontrados ${pending2h.length} recordatorios 2h pendientes`);
