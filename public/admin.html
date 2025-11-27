@@ -145,6 +145,8 @@
       gap: 6px;
       flex-wrap: wrap;
       margin: 8px 0 14px;
+      position: relative;
+      z-index: 100;
     }
 
     .nav a {
@@ -1969,19 +1971,22 @@
 
     <!-- Modal Ver Gift Card -->
     <div id="modal-giftcard-view" class="modal-backdrop hidden">
-      <div class="modal-card" style="max-width:400px;">
+      <div class="modal-card" style="max-width:420px;">
         <div class="modal-header">
           <h3><i class="fas fa-gift"></i> Gift Card</h3>
           <button class="btn small ghost" onclick="closeGiftCardModal()"><i class="fas fa-times"></i></button>
         </div>
-        <div id="modal-giftcard-content" style="text-align:center;padding:20px;">
-          <!-- Contenido dinámico -->
+        <div id="modal-giftcard-content" style="padding:0;">
+          <!-- Contenido dinámico con diseño personalizado -->
         </div>
-        <div class="modal-footer" style="justify-content:center;gap:10px;">
+        <div class="modal-footer" style="justify-content:center;gap:8px;flex-wrap:wrap;">
+          <button class="btn ghost" onclick="downloadGiftCardImage()">
+            <i class="fas fa-download"></i> Descargar
+          </button>
           <button class="btn ghost" onclick="copyGiftCardLink()">
             <i class="fas fa-link"></i> Copiar link
           </button>
-          <button class="btn ghost" onclick="sendGiftCardWhatsApp()">
+          <button class="btn primary" onclick="sendGiftCardWhatsAppImage()">
             <i class="fab fa-whatsapp"></i> WhatsApp
           </button>
         </div>
@@ -8103,7 +8108,6 @@
     async function viewGiftCard(id) {
       selectedGiftCard = allGiftCards.find(gc => gc.id === id);
       if (!selectedGiftCard) {
-        // Recargar y buscar
         await loadGiftCards();
         selectedGiftCard = allGiftCards.find(gc => gc.id === id);
         if (!selectedGiftCard) return;
@@ -8116,17 +8120,21 @@
       const qrUrl = `${window.location.origin}/giftcard/${gc.code}`;
       
       content.innerHTML = `
-        <div style="font-size:40px;margin-bottom:10px;">🎁</div>
-        <h3 style="color:var(--venus-soft);margin-bottom:4px;">Gift Card Venus</h3>
-        <p style="margin-bottom:4px;">${gc.serviceName}</p>
-        <p style="font-size:20px;font-weight:700;color:var(--venus-soft);margin-bottom:16px;">$${gc.servicePrice}</p>
-        ${gc.recipientName ? `<p style="font-size:12px;color:var(--muted);margin-bottom:8px;">Para: ${gc.recipientName}</p>` : ''}
-        ${gc.message ? `<p style="font-size:13px;font-style:italic;margin-bottom:16px;">"${gc.message}"</p>` : ''}
-        <div style="background:white;padding:16px;border-radius:12px;display:inline-block;margin-bottom:12px;">
-          <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(qrUrl)}" alt="QR" style="display:block;">
+        <div id="gift-card-visual" class="gift-card-visual" style="margin:0;border-radius:12px 12px 0 0;">
+          <div class="gift-card-content">
+            <img src="/assets/logo.png" alt="Venus" class="gift-brand-logo" style="width:60px;height:60px;margin-bottom:12px;">
+            <div style="font-size:18px;color:var(--venus-soft);font-weight:600;">Gift Card Venus</div>
+            <div style="font-size:15px;margin:8px 0;">${gc.serviceName}</div>
+            <div style="font-size:24px;font-weight:700;color:var(--venus-soft);margin:10px 0;">$${gc.servicePrice}</div>
+            ${gc.recipientName ? `<div style="font-size:12px;color:var(--muted);margin:8px 0;">Para: ${gc.recipientName}</div>` : ''}
+            ${gc.message ? `<div style="font-size:13px;font-style:italic;margin:10px 0;opacity:0.9;">"${gc.message}"</div>` : ''}
+            <div style="background:white;padding:16px;border-radius:12px;display:inline-block;margin:16px 0;">
+              <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(qrUrl)}" alt="QR" style="display:block;width:150px;height:150px;">
+            </div>
+            <div style="font-size:11px;color:var(--muted);">Código: ${gc.code}</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:4px;">Válida hasta: ${expiresDate}</div>
+          </div>
         </div>
-        <p style="font-size:11px;color:var(--muted);">Código: ${gc.code}</p>
-        <p style="font-size:11px;color:var(--muted);">Válida hasta: ${expiresDate}</p>
       `;
       
       document.getElementById('modal-giftcard-view').classList.remove('hidden');
@@ -8135,6 +8143,59 @@
     function closeGiftCardModal() {
       document.getElementById('modal-giftcard-view').classList.add('hidden');
       selectedGiftCard = null;
+    }
+
+    // Descargar imagen de gift card
+    async function downloadGiftCardImage() {
+      if (!selectedGiftCard) return;
+      const element = document.getElementById('gift-card-visual');
+      if (!element) return;
+      
+      try {
+        const canvas = await html2canvas(element, { scale: 2, backgroundColor: '#3f4037', useCORS: true });
+        const link = document.createElement('a');
+        link.download = `gift-card-venus-${selectedGiftCard.code}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      } catch (error) {
+        console.error('Error generando imagen:', error);
+        alert('Error al generar la imagen');
+      }
+    }
+    
+    // Enviar por WhatsApp con imagen
+    async function sendGiftCardWhatsAppImage() {
+      if (!selectedGiftCard) return;
+      const element = document.getElementById('gift-card-visual');
+      if (!element) { sendGiftCardWhatsApp(); return; }
+      
+      try {
+        const canvas = await html2canvas(element, { scale: 2, backgroundColor: '#3f4037', useCORS: true });
+        const gc = selectedGiftCard;
+        const url = `${window.location.origin}/giftcard/${gc.code}`;
+        const message = `🎁 ¡Te han regalado un servicio en Venus Cosmetología!\n\n✨ ${gc.serviceName} - $${gc.servicePrice}\n${gc.recipientName ? `👤 Para: ${gc.recipientName}\n` : ''}${gc.message ? `💬 "${gc.message}"\n` : ''}\n📱 Canjea tu gift card aquí:\n${url}`;
+        
+        if (navigator.share && navigator.canShare) {
+          const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+          const file = new File([blob], 'gift-card-venus.png', { type: 'image/png' });
+          try {
+            await navigator.share({ title: 'Gift Card Venus', text: message, files: [file] });
+            return;
+          } catch (err) { if (err.name === 'AbortError') return; }
+        }
+        
+        // Fallback: descargar y abrir WhatsApp
+        const link = document.createElement('a');
+        link.download = 'gift-card-venus.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        setTimeout(() => {
+          window.open(`https://wa.me/?text=${encodeURIComponent(message + '\n\n(Adjunta la imagen descargada)')}`, '_blank');
+        }, 1000);
+      } catch (error) {
+        console.error('Error:', error);
+        sendGiftCardWhatsApp();
+      }
     }
 
     function copyGiftCardLink() {
@@ -8193,6 +8254,8 @@
     window.copyGiftCardLinkById = copyGiftCardLinkById;
     window.sendGiftCardWhatsApp = sendGiftCardWhatsApp;
     window.sendGiftCardWhatsAppById = sendGiftCardWhatsAppById;
+    window.downloadGiftCardImage = downloadGiftCardImage;
+    window.sendGiftCardWhatsAppImage = sendGiftCardWhatsAppImage;
     window.renewGiftCard = renewGiftCard;
     window.loadGiftCardServices = loadGiftCardServices;
     window.loadGiftCards = loadGiftCards;
