@@ -392,27 +392,53 @@ export const AppointmentsController = {
             }
 
             const appointmentsRef = firestore.collection('appointments');
+            let appointments = [];
             
-            // Buscar por teléfono
+            // Normalizar teléfono (agregar prefijo 52 si es número de 10 dígitos)
+            let phoneSearch = search.replace(/\D/g, '');
+            if (phoneSearch.length === 10) {
+                phoneSearch = '52' + phoneSearch;
+            }
+            
+            // Buscar por teléfono normalizado
             let snapshot = await appointmentsRef
-                .where('clientPhone', '==', search)
+                .where('clientPhone', '==', phoneSearch)
                 .orderBy('startDateTime', 'desc')
                 .limit(20)
                 .get();
             
-            // Si no hay resultados, buscar por nombre
-            if (snapshot.empty) {
+            snapshot.forEach(doc => {
+                appointments.push({ id: doc.id, ...doc.data() });
+            });
+
+            // Si no hay resultados con teléfono normalizado, buscar con el original
+            if (appointments.length === 0 && phoneSearch !== search) {
+                snapshot = await appointmentsRef
+                    .where('clientPhone', '==', search)
+                    .orderBy('startDateTime', 'desc')
+                    .limit(20)
+                    .get();
+                
+                snapshot.forEach(doc => {
+                    appointments.push({ id: doc.id, ...doc.data() });
+                });
+            }
+            
+            // Si aún no hay resultados, buscar por nombre
+            if (appointments.length === 0) {
                 snapshot = await appointmentsRef
                     .where('clientName', '==', search)
                     .orderBy('startDateTime', 'desc')
                     .limit(20)
                     .get();
+                
+                snapshot.forEach(doc => {
+                    appointments.push({ id: doc.id, ...doc.data() });
+                });
             }
 
-            const appointments = [];
-            snapshot.forEach(doc => {
-                appointments.push({ id: doc.id, ...doc.data() });
-            });
+            // Filtrar citas canceladas
+            appointments = appointments.filter(a => a.status !== 'cancelled');
 
             res.json({ success: true, data: appointments });
         } catch (error) {

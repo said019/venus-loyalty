@@ -5539,21 +5539,25 @@
         return;
       }
 
+      // Ordenar por fecha más reciente y tomar las últimas 8
       appointments.sort((a, b) => new Date(b.startDateTime) - new Date(a.startDateTime));
-      const completed = appointments.filter(a => a.status === 'completed').slice(0, 8);
-      
-      if (completed.length === 0) {
-        historyList.innerHTML = '<div class="history-empty">Sin citas completadas</div>';
-        return;
-      }
+      const recentAppts = appointments.slice(0, 8);
 
-      historyList.innerHTML = completed.map(appt => {
+      const statusLabels = {
+        'completed': '✅',
+        'scheduled': '📅',
+        'confirmed': '✔️',
+        'cancelled': '❌'
+      };
+
+      historyList.innerHTML = recentAppts.map(appt => {
         const date = new Date(appt.startDateTime);
         const dateStr = date.toLocaleDateString('es-MX', { 
           day: 'numeric', 
           month: 'short',
           year: date.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined
         });
+        const statusIcon = statusLabels[appt.status] || '📋';
 
         return `
           <div class="history-item" 
@@ -5561,7 +5565,7 @@
                data-service-id="${appt.serviceId || ''}" 
                onclick="selectHistoryService(this)">
             <div class="history-item-info">
-              <span class="history-item-date">${dateStr}</span>
+              <span class="history-item-date">${statusIcon} ${dateStr}</span>
               <span class="history-item-service">${appt.serviceName}</span>
             </div>
             <span class="history-item-select">Seleccionar →</span>
