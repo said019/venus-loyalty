@@ -156,8 +156,22 @@ export const AppointmentsController = {
             const appointment = await AppointmentModel.create(appointmentData);
 
             // 6. Enviar WhatsApp Confirmación
+            console.log('📱 sendWhatsAppConfirmation:', sendWhatsAppConfirmation);
             if (sendWhatsAppConfirmation) {
-                await WhatsAppService.sendConfirmation(appointment);
+                console.log('📱 Enviando confirmación de WhatsApp...');
+                try {
+                    const whatsappResult = await WhatsAppService.sendConfirmation(appointment);
+                    console.log('📱 Resultado WhatsApp:', whatsappResult);
+                    if (whatsappResult.success) {
+                        console.log('✅ WhatsApp enviado exitosamente:', whatsappResult.messageSid);
+                    } else {
+                        console.error('❌ Error enviando WhatsApp:', whatsappResult.error);
+                    }
+                } catch (whatsappError) {
+                    console.error('❌ Error en WhatsApp service:', whatsappError);
+                }
+            } else {
+                console.log('⏭️ Confirmación de WhatsApp no solicitada');
             }
 
             res.json({ success: true, data: appointment });

@@ -420,6 +420,44 @@ app.use('/api/calendar', calendarRoutes);
 // ✅ WhatsApp Webhook (Twilio)
 app.use('/api/whatsapp', whatsappWebhook);
 
+// 🧪 Test endpoint para WhatsApp
+app.post('/api/test/whatsapp', async (req, res) => {
+  try {
+    const { phone, name, service } = req.body;
+    
+    if (!phone || !name) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Se requiere phone y name' 
+      });
+    }
+
+    const testAppt = {
+      clientName: name,
+      clientPhone: phone,
+      serviceName: service || 'Servicio de prueba',
+      startDateTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // Mañana
+      location: 'Cactus 50, San Juan del Río'
+    };
+
+    const { WhatsAppService } = await import('./src/services/whatsapp.js');
+    const result = await WhatsAppService.sendConfirmation(testAppt);
+
+    res.json({
+      success: result.success,
+      messageSid: result.messageSid,
+      error: result.error,
+      testData: testAppt
+    });
+  } catch (error) {
+    console.error('Error en test WhatsApp:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
+  }
+});
+
 // ✅ Start Scheduler
 startScheduler();
 
