@@ -577,6 +577,185 @@ app.patch('/api/products/:id/stock', adminAuth, async (req, res) => {
   }
 });
 
+/* ========== GIFT CARDS ========== */
+
+// Generar código único
+function generateGiftCardCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = 'VGC-';
+  for (let i = 0; i < 8; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+}
+
+// GET /api/giftcards - Listar todas
+app.get('/api/giftcards', adminAuth, async (req, res) => {
+  try {
+    const snapshot = await firestore.collection('giftcards')
+      .orderBy('createdAt', 'desc')
+      .get();
+    
+    const giftcards = [];
+    snapshot.forEach(doc => {
+      giftcards.push({ id: doc.id, ...doc.data() });
+    });
+    
+    res.json({ success: true, data: giftcards });
+  } catch (error) {
+    console.error('Error fetching gift cards:', error);
+    res.json({ success: false, error: error.message });
+  }
+});
+
+// POST /api/giftcards - Crear
+app.post('/api/giftcards', adminAuth, async (req, res) => {
+  try {
+    const { recipientName, serviceId, serviceName, servicePrice, message, validityDays } = req.body;
+    
+    if (!serviceName || servicePrice === undefined) {
+      return res.json({ success: false, error: 'Servicio requerido' });
+    }
+    
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + (validityDays || 30) * 24 * 60 * 60 * 1000);
+    
+    const giftcardData = {
+      code: generateGiftCardCode(),
+      recipientName: recipientName || null,
+      serviceId,
+      serviceName,
+      servicePrice: parseFloat(servicePrice),
+      message: message || null,
+      validityDays: validityDays || 30,
+      status: 'pending',
+      createdAt: now.toISOString(),
+      expiresAt: expiresAt.toISOString(),
+      redeemedAt: null,
+      redeemedBy: null,
+      appointmentId: null
+    };
+    
+    const docRef = await firestore.collection('giftcards').add(giftcardData);
+    
+    res.json({ success: true, id: docRef.id, code: giftcardData.code });
+  } catch (error) {
+    console.error('Error creating gift card:', error);
+    res.json({ success: false, error: error.message });
+  }
+});
+
+// GET /api/giftcards/code/:code - Obtener por código
+app.get('/api/giftcards/code/:code', async (req, res) => {
+  try {
+    const { code } = req.params;
+    
+    const snapshot = await firestore.collection('giftcards')
+      .where('code', '==', code.toUpperCase())
+      .limit(1)
+      .get();
+    
+    if (snapshot.empty) {
+      return res.json({ success: false, error: 'Gift card no encontrada' });
+    }
+    
+    const doc = snapshot.docs[0];
+    const gc = { id: doc.id, ...doc.data() };
+    
+    // Verificar si expiró
+    if (gc.status === 'pending' && new Date(gc.expiresAt) <= new Date()) {
+      gc.status = 'expired';
+    }
+    
+    res.json({ success: true, data: gc });
+  } catch (error) {
+    console.error('Error fetching gift card:', error);
+    res.json({ success: false, error: error.message });
+  }
+});
+
+// POST /api/giftcards/:id/redeem - Canjear
+app.post('/api/giftcards/:id/redeem', adminAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { redeemedBy, appointmentId } = req.body;
+    
+    const docRef = firestore.collection('giftcards').doc(id);
+    const doc = await docRef.get();
+    
+    if (!doc.exists) {
+      return res.json({ success: false, error: 'Gift card no encontrada' });
+    }
+    
+    const gc = doc.data();
+    
+    if (gc.status === 'redeemed') {
+      return res.json({ success: false, error: 'Esta gift card ya fue canjeada' });
+    }
+    
+    if (new Date(gc.expiresAt) <= new Date()) {
+      return res.json({ success: false, error: 'Esta gift card ha expirado' });
+    }
+    
+    await docRef.update({
+      status: 'redeemed',
+      redeemedAt: new Date().toISOString(),
+      redeemedBy: redeemedBy || null,
+      appointmentId: appointmentId || null
+    });
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error redeeming gift card:', error);
+    res.json({ success: false, error: error.message });
+  }
+});
+
+// POST /api/giftcards/:id/renew - Renovar
+app.post('/api/giftcards/:id/renew', adminAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { days } = req.body;
+    
+    const docRef = firestore.collection('giftcards').doc(id);
+    const doc = await docRef.get();
+    
+    if (!doc.exists) {
+      return res.json({ success: false, error: 'Gift card no encontrada' });
+    }
+    
+    const gc = doc.data();
+    
+    if (gc.status === 'redeemed') {
+      return res.json({ success: false, error: 'No se puede renovar una gift card canjeada' });
+    }
+    
+    const newExpiry = new Date(Date.now() + (days || 30) * 24 * 60 * 60 * 1000);
+    
+    await docRef.update({
+      status: 'pending',
+      expiresAt: newExpiry.toISOString()
+    });
+    
+    res.json({ success: true, newExpiresAt: newExpiry.toISOString() });
+  } catch (error) {
+    console.error('Error renewing gift card:', error);
+    res.json({ success: false, error: error.message });
+  }
+});
+
+// DELETE /api/giftcards/:id - Eliminar
+app.delete('/api/giftcards/:id', adminAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    await firestore.collection('giftcards').doc(id).delete();
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting gift card:', error);
+    res.json({ success: false, error: error.message });
+  }
+});
+
 // ✅ Start Scheduler
 startScheduler();
 

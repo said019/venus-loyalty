@@ -113,6 +113,9 @@ export const AppointmentModel = {
             status: 'scheduled',
             createdAt: now,
             updatedAt: now,
+            // Guardar flags de WhatsApp directamente para compatibilidad
+            sendWhatsApp24h: data.sendWhatsApp24h || false,
+            sendWhatsApp2h: data.sendWhatsApp2h || false,
             reminders: {
                 send24h: data.sendWhatsApp24h || false,
                 send2h: data.sendWhatsApp2h || false,
