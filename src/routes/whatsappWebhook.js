@@ -84,7 +84,7 @@ async function buscarCitaActiva(telefono) {
         // Buscar citas futuras del cliente
         const snapshot = await firestore.collection('appointments')
             .where('clientPhone', '==', phone)
-            .where('status', 'in', ['scheduled', 'confirmed'])
+            .where('status', 'in', ['scheduled', 'confirmed', 'rescheduling'])
             .orderBy('startDateTime', 'asc')
             .limit(1)
             .get();
@@ -99,7 +99,7 @@ async function buscarCitaActiva(telefono) {
         console.log(`⚠️ No encontrado exacto. Buscando por terminación: ...${last10}`);
 
         const altSnapshot = await firestore.collection('appointments')
-            .where('status', 'in', ['scheduled', 'confirmed'])
+            .where('status', 'in', ['scheduled', 'confirmed', 'rescheduling'])
             .orderBy('startDateTime', 'asc')
             .limit(50) // Aumentado límite por seguridad
             .get();
