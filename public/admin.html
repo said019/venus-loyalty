@@ -8124,8 +8124,7 @@
           <div class="gift-card-content">
             <img src="/assets/logo.png" alt="Venus" class="gift-brand-logo" style="width:60px;height:60px;margin-bottom:12px;">
             <div style="font-size:18px;color:var(--venus-soft);font-weight:600;">Gift Card Venus</div>
-            <div style="font-size:15px;margin:8px 0;">${gc.serviceName}</div>
-            <div style="font-size:24px;font-weight:700;color:var(--venus-soft);margin:10px 0;">$${gc.servicePrice}</div>
+            <div style="font-size:22px;font-weight:700;margin:12px 0;color:#fff;">${gc.serviceName}</div>
             ${gc.recipientName ? `<div style="font-size:12px;color:var(--muted);margin:8px 0;">Para: ${gc.recipientName}</div>` : ''}
             ${gc.message ? `<div style="font-size:13px;font-style:italic;margin:10px 0;opacity:0.9;">"${gc.message}"</div>` : ''}
             <div style="background:white;padding:16px;border-radius:12px;display:inline-block;margin:16px 0;">
@@ -8133,6 +8132,10 @@
             </div>
             <div style="font-size:11px;color:var(--muted);">Código: ${gc.code}</div>
             <div style="font-size:11px;color:var(--muted);margin-top:4px;">Válida hasta: ${expiresDate}</div>
+            <div style="margin-top:16px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.1);">
+              <div style="font-size:11px;color:var(--muted);">📍 Cactus 50, Col. Indeco</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:2px;">📱 WhatsApp: 427 165 7595</div>
+            </div>
           </div>
         </div>
       `;
@@ -8173,7 +8176,7 @@
         const canvas = await html2canvas(element, { scale: 2, backgroundColor: '#3f4037', useCORS: true });
         const gc = selectedGiftCard;
         const url = `${window.location.origin}/giftcard/${gc.code}`;
-        const message = `🎁 ¡Te han regalado un servicio en Venus Cosmetología!\n\n✨ ${gc.serviceName} - $${gc.servicePrice}\n${gc.recipientName ? `👤 Para: ${gc.recipientName}\n` : ''}${gc.message ? `💬 "${gc.message}"\n` : ''}\n📱 Canjea tu gift card aquí:\n${url}`;
+        const message = `🎁 ¡Te han regalado un servicio en Venus Cosmetología!\n\n✨ ${gc.serviceName}\n${gc.recipientName ? `👤 Para: ${gc.recipientName}\n` : ''}${gc.message ? `💬 "${gc.message}"\n` : ''}\n📍 Cactus 50, Col. Indeco\n📱 WhatsApp: 427 165 7595\n\n🎁 Canjea tu gift card aquí:\n${url}`;
         
         if (navigator.share && navigator.canShare) {
           const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
@@ -8222,7 +8225,7 @@
       const gc = allGiftCards.find(g => g.id === id);
       if (!gc) return;
       const url = `${window.location.origin}/giftcard/${gc.code}`;
-      const text = encodeURIComponent(`🎁 ¡Te han regalado un servicio en Venus Cosmetología!\n\n${gc.serviceName} - $${gc.servicePrice}\n\nCanjea tu gift card aquí:\n${url}`);
+      const text = encodeURIComponent(`🎁 ¡Te han regalado un servicio en Venus Cosmetología!\n\n✨ ${gc.serviceName}\n\n📍 Cactus 50, Col. Indeco\n📱 WhatsApp: 427 165 7595\n\n🎁 Canjea tu gift card aquí:\n${url}`);
       window.open(`https://wa.me/?text=${text}`, '_blank');
     }
 
