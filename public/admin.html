@@ -1086,8 +1086,205 @@
       opacity: 1;
       color: #22c55e;
     }
+
+    /* ===== TABS SERVICIOS/PRODUCTOS ===== */
+    .tabs-header {
+      display: flex;
+      border-bottom: 1px solid var(--line);
+      background: rgba(0,0,0,0.2);
+      border-radius: 12px 12px 0 0;
+      overflow: hidden;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 14px 20px;
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      position: relative;
+    }
+
+    .tab-btn:hover {
+      color: var(--ink);
+      background: rgba(255,255,255,0.05);
+    }
+
+    .tab-btn.active {
+      color: var(--venus-soft);
+      background: rgba(140, 150, 104, 0.1);
+    }
+
+    .tab-btn.active::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--venus);
+      border-radius: 3px 3px 0 0;
+    }
+
+    .tab-count {
+      background: rgba(255,255,255,0.1);
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 11px;
+    }
+
+    .tab-btn.active .tab-count {
+      background: var(--venus);
+      color: white;
+    }
+
+    .tab-panel {
+      display: none;
+    }
+
+    .tab-panel.active {
+      display: block;
+    }
+
+    /* Productos */
+    .product-cell {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .product-img {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .stock {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+    }
+
+    .stock-ok {
+      background: rgba(34, 197, 94, 0.15);
+      color: #22c55e;
+    }
+
+    .stock-low {
+      background: rgba(251, 191, 36, 0.15);
+      color: #fbbf24;
+    }
+
+    .stock-out {
+      background: rgba(239, 68, 68, 0.15);
+      color: #ef4444;
+    }
+
+    .stats-bar {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .stat-item {
+      background: rgba(0,0,0,0.2);
+      padding: 12px 20px;
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .stat-item .stat-value {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--venus-soft);
+    }
+
+    .stat-item .stat-label {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .filter-chips {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .chip {
+      padding: 6px 14px;
+      border-radius: 20px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .chip:hover {
+      background: rgba(255,255,255,0.1);
+      color: var(--ink);
+    }
+
+    .chip.active {
+      background: var(--venus);
+      border-color: var(--venus);
+      color: white;
+    }
+
+    .item-category {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    /* ===== LUCIDE ICONS ===== */
+    [data-lucide] {
+      width: 18px;
+      height: 18px;
+      stroke-width: 1.75;
+      vertical-align: middle;
+      display: inline-block;
+      stroke: currentColor;
+    }
+
+    .icon-sm [data-lucide], [data-lucide].icon-sm { width: 14px; height: 14px; }
+    .icon-md [data-lucide], [data-lucide].icon-md { width: 18px; height: 18px; }
+    .icon-lg [data-lucide], [data-lucide].icon-lg { width: 24px; height: 24px; }
+    .icon-xl [data-lucide], [data-lucide].icon-xl { width: 32px; height: 32px; }
+
+    .btn [data-lucide] {
+      margin-right: 6px;
+    }
+
+    .btn.icon-only [data-lucide] {
+      margin: 0;
+    }
+
+    .btn:hover [data-lucide] {
+      transform: scale(1.05);
+      transition: transform 0.15s ease;
+    }
   </style>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 </head>
@@ -1110,13 +1307,13 @@
     </header>
 
     <nav class="nav">
-      <a href="#overview" data-tab="overview" class="is-active">Resumen</a>
-      <a href="#cards" data-tab="cards">Tarjetas</a>
-      <a href="#events" data-tab="events">Gift Cards</a>
-      <a href="#notifications" data-tab="notifications">Notificaciones</a>
-      <a href="#appointments" data-tab="appointments">Citas</a>
-      <a href="#services" data-tab="services">Servicios</a>
-      <a href="#settings" data-tab="settings">Configuración</a>
+      <a href="#overview" data-tab="overview" class="is-active"><i data-lucide="layout-dashboard"></i> Resumen</a>
+      <a href="#cards" data-tab="cards"><i data-lucide="credit-card"></i> Tarjetas</a>
+      <a href="#events" data-tab="events"><i data-lucide="gift"></i> Gift Cards</a>
+      <a href="#notifications" data-tab="notifications"><i data-lucide="bell"></i> Notificaciones</a>
+      <a href="#appointments" data-tab="appointments"><i data-lucide="calendar"></i> Citas</a>
+      <a href="#services" data-tab="services"><i data-lucide="sparkles"></i> Servicios</a>
+      <a href="#settings" data-tab="settings"><i data-lucide="settings"></i> Configuración</a>
     </nav>
 
     <!-- TAB: Overview - MODIFICADO CON FILTROS Y REPORTES -->
@@ -1177,7 +1374,7 @@
         style="margin-top: 20px; padding: 15px; background: rgba(255, 209, 102, 0.1); border: 1px solid rgba(255, 209, 102, 0.3); border-radius: 12px;">
         <div class="row" style="justify-content: space-between; align-items: center;">
           <div style="display: flex; align-items: center; gap: 10px;">
-            <span style="font-size: 24px;">🎂</span>
+            <span style="font-size: 24px;"><i data-lucide="cake" style="width:24px;height:24px;"></i></span>
             <div>
               <h3 style="margin: 0; color: #ffd166;" id="overview-birthday-title">Cumpleaños (últimos 30 días)</h3>
               <p class="muted" style="margin: 2px 0 0; font-size: 13px;">Pasados y próximos cumpleaños.</p>
@@ -1187,7 +1384,7 @@
 
         <!-- Cumpleaños próximos -->
         <div id="upcoming-birthdays-container" class="hidden" style="margin-top: 15px;">
-          <h4 style="margin: 0 0 8px; font-size: 13px; color: #a7f3d0; font-weight: 600;">🎉 Próximos Cumpleaños</h4>
+          <h4 style="margin: 0 0 8px; font-size: 13px; color: #a7f3d0; font-weight: 600;"><i data-lucide="party-popper" style="width:14px;height:14px;"></i> Próximos Cumpleaños</h4>
           <div id="upcoming-birthday-list" style="display: flex; gap: 8px; flex-wrap: wrap;">
             <!-- Lista de cumpleaños próximos -->
           </div>
@@ -1195,7 +1392,7 @@
 
         <!-- Cumpleaños pasados -->
         <div id="past-birthdays-container" class="hidden" style="margin-top: 15px;">
-          <h4 style="margin: 0 0 8px; font-size: 13px; color: #cbd5e1; font-weight: 600;">📅 Cumpleaños Pasados</h4>
+          <h4 style="margin: 0 0 8px; font-size: 13px; color: #cbd5e1; font-weight: 600;"><i data-lucide="calendar" style="width:14px;height:14px;"></i> Cumpleaños Pasados</h4>
           <div id="past-birthday-list" style="display: flex; gap: 8px; flex-wrap: wrap;">
             <!-- Lista de cumpleaños pasados -->
           </div>
@@ -1204,7 +1401,7 @@
 
       <!-- Gráfica Actividad reciente -->
       <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line);" data-module-section="activity">
-        <h3 style="margin:0 0 12px;font-size:15px;color:var(--ink);" id="activity-title">📈 Actividad reciente (7 días)
+        <h3 style="margin:0 0 12px;font-size:15px;color:var(--ink);" id="activity-title"><i data-lucide="trending-up"></i> Actividad reciente (7 días)
         </h3>
         <div style="background:rgba(255,255,255,0.05);border-radius:12px;padding:12px;">
           <canvas id="activity-chart" style="max-height:200px;"></canvas>
@@ -1213,7 +1410,7 @@
 
       <!-- Top clientes -->
       <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line);" data-module-section="topClients">
-        <h3 style="margin:0 0 12px;font-size:15px;color:var(--ink);">⭐ Top Clientes</h3>
+        <h3 style="margin:0 0 12px;font-size:15px;color:var(--ink);"><i data-lucide="star"></i> Top Clientes</h3>
         <div class="table-wrap">
           <table>
             <thead>
@@ -1234,29 +1431,29 @@
 
       <!-- Estado de Wallets - MEJORADO CON ESTADÍSTICAS REALES -->
       <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line);" data-module-section="walletStats">
-        <h3 style="margin:0 0 12px;font-size:15px;color:var(--ink);">📱 Estado de Wallets</h3>
+        <h3 style="margin:0 0 12px;font-size:15px;color:var(--ink);"><i data-lucide="smartphone"></i> Estado de Wallets</h3>
         <div class="grid-3-kpi">
           <div class="kpi">
             <span>🟢 Google Wallet</span>
             <span class="value" id="kpi-google">—</span>
           </div>
           <div class="kpi">
-            <span>🍎 Apple Wallet</span>
+            <span><i data-lucide="apple"></i> Apple Wallet</span>
             <span class="value" id="kpi-apple">—</span>
           </div>
           <div class="kpi">
-            <span>📲 Dispositivos totales</span>
+            <span><i data-lucide="smartphone"></i> Dispositivos totales</span>
             <span class="value" id="kpi-devices">—</span>
           </div>
         </div>
         <div style="margin-top:10px; text-align:center;">
-          <button id="btn-refresh-wallet-stats" class="btn small ghost">🔄 Actualizar estadísticas</button>
+          <button id="btn-refresh-wallet-stats" class="btn small ghost"><i data-lucide="refresh-cw"></i> Actualizar estadísticas</button>
         </div>
       </div>
 
       <!-- KPIs AVANZADOS (NUEVOS) -->
       <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line);" data-module-section="newKPIs">
-        <h3 style="margin:0 0 12px;font-size:15px;color:var(--ink);">📊 KPIs Avanzados</h3>
+        <h3 style="margin:0 0 12px;font-size:15px;color:var(--ink);"><i data-lucide="bar-chart-3"></i> KPIs Avanzados</h3>
 
         <!-- Primera fila: Clientes -->
         <div class="grid-3-kpi">
@@ -1269,7 +1466,7 @@
             <span class="value" id="kpi-active-clients">—</span>
           </div>
           <div class="kpi">
-            <span>🔴 Inactivos (30d)</span>
+            <span><i data-lucide="circle"></i> Inactivos (30d)</span>
             <span class="value" id="kpi-inactive-clients">—</span>
           </div>
         </div>
@@ -1313,7 +1510,7 @@
         style="margin: 15px 0; padding: 15px; background: rgba(255, 209, 102, 0.1); border: 1px solid rgba(255, 209, 102, 0.3); border-radius: 12px;">
         <div class="row" style="justify-content: space-between; align-items: center;">
           <div style="display: flex; align-items: center; gap: 10px;">
-            <span style="font-size: 24px;">🎂</span>
+            <span style="font-size: 24px;"><i data-lucide="cake" style="width:24px;height:24px;"></i></span>
             <div>
               <h3 style="margin: 0; color: #ffd166;">Cumpleaños Cercanos</h3>
               <p class="muted" style="margin: 2px 0 0; font-size: 13px;">Clientes que cumplen años en los próximos 7
@@ -1334,18 +1531,18 @@
 
         <!-- SORTING CONTROLS -->
         <select id="sort-cards" class="filter-select">
-          <option value="created_at:desc">📅 Recientes</option>
-          <option value="created_at:asc">📅 Antiguos</option>
-          <option value="name:asc">abc Nombre (A-Z)</option>
-          <option value="name:desc">zyx Nombre (Z-A)</option>
-          <option value="stamps:desc">⭐ Más sellos</option>
-          <option value="stamps:asc">⭐ Menos sellos</option>
-          <option value="last_visit:desc">🕒 Última visita</option>
+          <option value="created_at:desc">Recientes</option>
+          <option value="created_at:asc">Antiguos</option>
+          <option value="name:asc">Nombre (A-Z)</option>
+          <option value="name:desc">Nombre (Z-A)</option>
+          <option value="stamps:desc">Más sellos</option>
+          <option value="stamps:asc">Menos sellos</option>
+          <option value="last_visit:desc">Última visita</option>
         </select>
 
-        <button id="btn-search-cards" class="btn primary">🔍 Buscar</button>
-        <button id="btn-reload-cards" class="btn">🔄 Recargar</button>
-        <button id="btn-scan-card" class="btn ghost">📷 Escanear QR</button>
+        <button id="btn-search-cards" class="btn primary"><i data-lucide="search"></i> Buscar</button>
+        <button id="btn-reload-cards" class="btn"><i data-lucide="refresh-cw"></i> Recargar</button>
+        <button id="btn-scan-card" class="btn ghost"><i data-lucide="scan"></i> Escanear QR</button>
       </div>
 
       <div class="table-wrap" style="margin-top:12px;">
@@ -1379,7 +1576,7 @@
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
         <h2 style="margin:0;">Gift Cards</h2>
         <button id="btn-scan-gift-card" class="btn primary">
-          📷 Escanear QR
+          <i data-lucide="scan"></i> Escanear QR
         </button>
       </div>
 
@@ -1426,7 +1623,7 @@
         <div id="gift-actions" class="gift-actions hidden">
           <button type="button" id="gift-copy" class="btn small">Copiar texto</button>
           <button type="button" id="gift-whatsapp" class="btn small primary">Enviar por WhatsApp</button>
-          <button type="button" id="gift-whatsapp-image" class="btn small primary">📷 WhatsApp con imagen</button>
+          <button type="button" id="gift-whatsapp-image" class="btn small primary"><i data-lucide="camera"></i> WhatsApp con imagen</button>
         </div>
 
         <div id="gift-success" class="success-message hidden">
@@ -1441,7 +1638,7 @@
 
       <div
         style="background:rgba(140,150,104,0.1);border:1px solid rgba(140,150,104,0.3);border-radius:12px;padding:14px;margin:12px 0;">
-        <h3 style="margin:0 0 8px;">📲 Notificaciones Push</h3>
+        <h3 style="margin:0 0 8px;"><i data-lucide="smartphone"></i> Notificaciones Push</h3>
 
         <form id="push-notification-form">
           <label>Título de la notificación</label>
@@ -1455,9 +1652,9 @@
 
           <label style="margin-top:10px;">Tipo</label>
           <select id="push-type">
-            <option value="promo">🎁 Promoción</option>
-            <option value="reminder">⏰ Recordatorio</option>
-            <option value="update">ℹ️ Actualización</option>
+            <option value="promo">Promoción</option>
+            <option value="reminder">Recordatorio</option>
+            <option value="update">Actualización</option>
             <option value="alert">⚠️ Alerta</option>
           </select>
 
@@ -1490,8 +1687,8 @@
 
       <div style="margin-top:16px;">
         <div class="row" style="justify-content:space-between;margin-bottom:8px;">
-          <h3 style="margin:0;">📋 Historial</h3>
-          <button id="refresh-history" class="btn small ghost">🔄</button>
+          <h3 style="margin:0;"><i data-lucide="list"></i> Historial</h3>
+          <button id="refresh-history" class="btn small ghost"><i data-lucide="refresh-cw"></i></button>
         </div>
         <div class="table-wrap">
           <table>
@@ -1515,14 +1712,14 @@
 
       <!-- NUEVA SECCIÓN: DEBUGGING AVANZADO -->
       <div class="debug-section">
-        <h3 style="margin:0 0 12px;font-size:15px;color:var(--ink);">🐛 Debugging Avanzado</h3>
+        <h3 style="margin:0 0 12px;font-size:15px;color:var(--ink);"><i data-lucide="bug"></i> Debugging Avanzado</h3>
 
         <div class="row" style="gap:8px;flex-wrap:wrap;margin-bottom:12px;">
-          <button id="btn-test-apple-push" class="btn small">🧪 Test Apple Push</button>
-          <button id="btn-test-google-push" class="btn small">🧪 Test Google Push</button>
-          <button id="btn-fix-google-wallet" class="btn small">🔧 Reparar Google Wallet</button>
-          <button id="btn-check-devices" class="btn small">📱 Ver Dispositivos</button>
-          <button id="btn-check-apns" class="btn small">🍎 Ver Config APNs</button>
+          <button id="btn-test-apple-push" class="btn small"><i data-lucide="flask"></i> Test Apple Push</button>
+          <button id="btn-test-google-push" class="btn small"><i data-lucide="flask"></i> Test Google Push</button>
+          <button id="btn-fix-google-wallet" class="btn small"><i data-lucide="wrench"></i> Reparar Google Wallet</button>
+          <button id="btn-check-devices" class="btn small"><i data-lucide="smartphone"></i> Ver Dispositivos</button>
+          <button id="btn-check-apns" class="btn small"><i data-lucide="apple"></i> Ver Config APNs</button>
         </div>
         <div id="debug-output" class="debug-output hidden">
           <!-- Aquí se mostrarán los resultados del debugging -->
@@ -1532,7 +1729,7 @@
 
     <!-- TAB: Notificaciones -->
     <section id="tab-notifications" class="card hidden">
-      <h2>🔔 Notificaciones</h2>
+      <h2><i data-lucide="bell"></i> Notificaciones</h2>
       <p class="muted" style="margin:0 0 20px;font-size:13px;">
         Configura notificaciones automáticas para diferentes eventos del programa de lealtad.
       </p>
@@ -1540,7 +1737,7 @@
       <!-- Botón ejecutar todas -->
       <div style="margin-bottom:24px;">
         <button id="btn-run-all-automations" class="btn primary">
-          ▶️ Ejecutar Automatizaciones Activas
+          <i data-lucide="play"></i> Ejecutar Automatizaciones Activas
         </button>
         <span class="muted" style="font-size:12px;margin-left:10px;">Procesa todas las reglas activas ahora</span>
       </div>
@@ -1549,7 +1746,7 @@
       <div class="automation-card">
         <div class="automation-header">
           <div>
-            <span class="automation-icon">🎂</span>
+            <span class="automation-icon"><i data-lucide="cake"></i></span>
             <span class="automation-title">Recordatorio de Cumpleaños</span>
           </div>
           <label class="toggle-switch">
@@ -1565,7 +1762,7 @@
           <textarea id="auto-birthday-message" class="automation-textarea"
             rows="2">¡Feliz cumpleaños! 🎉 Te esperamos con un regalo especial en Venus.</textarea>
 
-          <button class="btn small ghost automation-test-btn" data-type="birthday">🧪 Probar</button>
+          <button class="btn small ghost automation-test-btn" data-type="birthday"><i data-lucide="flask"></i> Probar</button>
         </div>
       </div>
 
@@ -1573,7 +1770,7 @@
       <div class="automation-card">
         <div class="automation-header">
           <div>
-            <span class="automation-icon">😴</span>
+            <span class="automation-icon"><i data-lucide="moon"></i></span>
             <span class="automation-title">Alerta de Inactividad</span>
           </div>
           <label class="toggle-switch">
@@ -1589,7 +1786,7 @@
           <textarea id="auto-inactivity-message" class="automation-textarea"
             rows="2">¡Te extrañamos! 😊 Hace tiempo que no te vemos. Ven y disfruta nuestros servicios.</textarea>
 
-          <button class="btn small ghost automation-test-btn" data-type="inactivity">🧪 Probar</button>
+          <button class="btn small ghost automation-test-btn" data-type="inactivity"><i data-lucide="flask"></i> Probar</button>
         </div>
       </div>
 
@@ -1597,7 +1794,7 @@
       <div class="automation-card">
         <div class="automation-header">
           <div>
-            <span class="automation-icon">🎁</span>
+            <span class="automation-icon"><i data-lucide="gift"></i></span>
             <span class="automation-title">Tarjeta Completada</span>
           </div>
           <label class="toggle-switch">
@@ -1613,7 +1810,7 @@
           <textarea id="auto-completed-message" class="automation-textarea"
             rows="2">¡Felicidades! 🎁 Has completado tu tarjeta. Ven a canjear tu premio.</textarea>
 
-          <button class="btn small ghost automation-test-btn" data-type="completed">🧪 Probar</button>
+          <button class="btn small ghost automation-test-btn" data-type="completed"><i data-lucide="flask"></i> Probar</button>
         </div>
       </div>
 
@@ -1643,7 +1840,7 @@
 
       <!-- Historial de automatizaciones -->
       <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line);">
-        <h4 style="margin:0 0 10px;font-size:14px;color:var(--venus-soft);">📋 Historial Reciente</h4>
+        <h4 style="margin:0 0 10px;font-size:14px;color:var(--venus-soft);"><i data-lucide="list"></i> Historial Reciente</h4>
         <div id="automation-history" class="automation-history">
           <p class="muted" style="font-size:12px;">No hay envíos recientes</p>
         </div>
@@ -1653,7 +1850,7 @@
     <!-- TAB: Citas -->
     <section id="tab-appointments" class="tab-content hidden">
       <div class="header-actions">
-        <h2>📅 Agenda de Citas</h2>
+        <h2><i data-lucide="calendar"></i> Agenda de Citas</h2>
         <button class="btn primary" id="btn-new-appointment">Nueva Cita</button>
       </div>
 
@@ -1674,7 +1871,7 @@
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
           <h3 style="margin:0;">Citas del <span id="selected-date-label">Hoy</span></h3>
-          <button class="btn small" id="btn-refresh-appts">🔄 Actualizar</button>
+          <button class="btn small" id="btn-refresh-appts"><i data-lucide="refresh-cw"></i> Actualizar</button>
         </div>
 
         <table class="data-table">
@@ -1721,22 +1918,22 @@
 
       <!-- Resumen de Ventas del Mes -->
       <div class="card" style="margin-top:20px;">
-        <h3 style="margin-top:0;">💰 Ventas del Mes</h3>
+        <h3 style="margin-top:0;"><i data-lucide="dollar-sign"></i> Ventas del Mes</h3>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;">
           <div class="stat-card">
-            <div class="stat-label">💵 Efectivo</div>
+            <div class="stat-label"><i data-lucide="banknote"></i> Efectivo</div>
             <div class="stat-value stat-money" id="revenue-cash">$0.00</div>
           </div>
           <div class="stat-card">
-            <div class="stat-label">💳 Tarjeta</div>
+            <div class="stat-label"><i data-lucide="credit-card"></i> Tarjeta</div>
             <div class="stat-value stat-money" id="revenue-card">$0.00</div>
           </div>
           <div class="stat-card">
-            <div class="stat-label">🏦 Transferencia</div>
+            <div class="stat-label"><i data-lucide="building-2"></i> Transferencia</div>
             <div class="stat-value stat-money" id="revenue-transfer">$0.00</div>
           </div>
           <div class="stat-card">
-            <div class="stat-label">💰 Total</div>
+            <div class="stat-label"><i data-lucide="dollar-sign"></i> Total</div>
             <div class="stat-value stat-money" id="revenue-total" style="color:#FFD166;font-weight:700;">$0.00</div>
           </div>
         </div>
@@ -1746,13 +1943,13 @@
     <!-- TAB: Servicios -->
     <section id="tab-services" class="tab-content hidden">
       <div class="header-actions">
-        <h2>💆‍♀️ Gestión de Servicios</h2>
+        <h2><i data-lucide="sparkles"></i> Gestión de Servicios</h2>
         <button class="btn primary" id="btn-new-service">Nuevo Servicio</button>
       </div>
 
       <!-- Barra de búsqueda -->
       <div class="card" style="margin-bottom:16px;">
-        <input type="text" id="search-services" class="form-input" placeholder="🔍 Buscar servicio por nombre..."
+        <input type="text" id="search-services" class="form-input" placeholder="Buscar servicio por nombre..."
           style="width:100%;max-width:400px;">
       </div>
 
@@ -1780,7 +1977,7 @@
     <!-- DIALOG: Nueva Cita -->
     <dialog id="newApptDialog">
       <div class="dialog-content">
-        <h3 style="margin-top:0;margin-bottom:20px;">📅 Agendar Cita</h3>
+        <h3 style="margin-top:0;margin-bottom:20px;"><i data-lucide="calendar"></i> Agendar Cita</h3>
         <form id="form-new-appt">
           <div style="display:grid;gap:16px;">
             <!-- Cliente con búsqueda editable -->
@@ -1801,7 +1998,7 @@
                 <div class="history-header" id="toggle-history">
                   <div style="display:flex;align-items:center;gap:8px;">
                     <span class="history-toggle-icon">▼</span>
-                    <span>📅 Citas anteriores</span>
+                    <span><i data-lucide="calendar" style="width:14px;height:14px;"></i> Citas anteriores</span>
                     <span class="history-count" id="history-count">(0)</span>
                   </div>
                   <span class="history-hint" id="history-hint">Clic para repetir servicio</span>
@@ -1861,7 +2058,7 @@
             <!-- Fecha y Hora -->
             <div class="grid-date-time">
               <div style="position:relative;">
-                <label class="form-label">📅 Fecha</label>
+                <label class="form-label"><i data-lucide="calendar" style="width:14px;height:14px;"></i> Fecha</label>
                 <input type="text" id="new-appt-date" class="form-input date-picker-input" readonly required
                   placeholder="Seleccionar fecha" style="cursor:pointer;">
                 <div id="new-appt-calendar" class="calendar-dropdown" style="display:none;"></div>
@@ -1934,7 +2131,7 @@
     <!-- Modal: Modificar Cita -->
     <dialog id="editApptDialog">
       <div class="dialog-content">
-        <h2>✏️ Modificar Cita</h2>
+        <h2><i data-lucide="edit"></i> Modificar Cita</h2>
         <form id="form-edit-appt">
           <input type="hidden" id="edit-appt-id">
 
@@ -1973,7 +2170,7 @@
             <!-- Fecha y Hora -->
             <div class="grid-date-time full-width">
               <div style="position:relative;">
-                <label class="form-label">📅 Fecha</label>
+                <label class="form-label"><i data-lucide="calendar" style="width:14px;height:14px;"></i> Fecha</label>
                 <input type="text" id="edit-appt-date" class="form-input date-picker-input" readonly required
                   placeholder="Seleccionar fecha" style="cursor:pointer;">
                 <div id="edit-appt-calendar" class="calendar-dropdown" style="display:none;"></div>
@@ -2009,8 +2206,8 @@
     <!-- PAYMENT DIALOG -->
     <dialog id="paymentDialog">
       <div class="dialog-header">
-        <h3>💵 Registrar Pago</h3>
-        <button type="button" id="btn-close-payment" class="btn-close">✕</button>
+        <h3><i data-lucide="banknote"></i> Registrar Pago</h3>
+        <button type="button" id="btn-close-payment" class="btn-close"><i data-lucide="x"></i></button>
       </div>
       <form id="form-payment">
         <div class="form-row">
@@ -2024,10 +2221,10 @@
         <div class="form-row">
           <label>Método de Pago <span style="color:#ef4444;">*</span></label>
           <select id="payment-method" class="form-input" required>
-            <option value="efectivo">💵 Efectivo</option>
-            <option value="tarjeta">💳 Tarjeta</option>
-            <option value="transferencia">🏦 Transferencia</option>
-            <option value="no_pagado">❌ No Pagado</option>
+            <option value="efectivo">Efectivo</option>
+            <option value="tarjeta">Tarjeta</option>
+            <option value="transferencia">Transferencia</option>
+            <option value="no_pagado">No Pagado</option>
           </select>
         </div>
         <div class="form-row">
@@ -2035,7 +2232,7 @@
           <input id="payment-amount" type="number" step="0.01" min="0" class="form-input" placeholder="0.00" required>
         </div>
         <div class="dialog-footer">
-          <button type="submit" class="btn primary">💾 Guardar Pago</button>
+          <button type="submit" class="btn primary"><i data-lucide="save"></i> Guardar Pago</button>
           <button type="button" id="btn-cancel-payment" class="btn ghost">Cancelar</button>
         </div>
       </form>
@@ -2593,7 +2790,7 @@
     <dialog id="giftScanDialog"
       style="background:rgba(27,28,26,0.95);border:1px solid rgba(255,255,255,0.15);border-radius:16px;padding:20px;max-width:500px;width:90%;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <h3 style="margin:0;font-size:16px;color:#f9fafb;">📷 Escan gift card</h3>
+        <h3 style="margin:0;font-size:16px;color:#f9fafb;"><i data-lucide="scan"></i> Escan gift card</h3>
         <button type="button" id="gift-scan-close" class="btn small ghost">Cerrar</button>
       </div>
       <div id="gift-qr-reader" style="width:100%;"></div>
@@ -2610,7 +2807,7 @@
 
         <!-- Header con acciones rápidas -->
         <div class="modal-header" style="flex-wrap:wrap;gap:10px;">
-          <h3 style="margin:0;flex:1;">👤 Cliente</h3>
+          <h3 style="margin:0;flex:1;"><i data-lucide="user"></i> Cliente</h3>
           <div style="display:flex;gap:6px;">
             <button id="cm-stamp" class="btn small" style="background:#FFD166;color:#1b1b1b;font-weight:600;">⭐ +1
               sello</button>
@@ -2680,7 +2877,7 @@
               cliente</summary>
             <textarea id="cm-notes" class="modal-textarea" rows="2" placeholder="Agregar notas..."
               style="width:100%;background:rgba(0,0,0,0.2);border:1px solid var(--line);border-radius:8px;padding:10px;color:#fff;font-size:13px;resize:none;"></textarea>
-            <button id="cm-save-notes" class="btn small ghost" style="margin-top:6px;font-size:11px;">💾 Guardar
+            <button id="cm-save-notes" class="btn small ghost" style="margin-top:6px;font-size:11px;"><i data-lucide="save"></i> Guardar
               nota</button>
           </details>
 
@@ -2761,7 +2958,7 @@
     <div id="module-list">
       <div class="module-item" data-module="kpis">
         <div class="module-info">
-          <span class="module-icon">📊</span>
+          <span class="module-icon"><i data-lucide="bar-chart-3"></i></span>
           <span class="module-label">KPIs Principales</span>
         </div>
         <label class="toggle-switch">
@@ -2772,7 +2969,7 @@
 
       <div class="module-item" data-module="birthdays">
         <div class="module-info">
-          <span class="module-icon">🎂</span>
+          <span class="module-icon"><i data-lucide="cake"></i></span>
           <span class="module-label">Cumpleaños</span>
         </div>
         <label class="toggle-switch">
@@ -2783,7 +2980,7 @@
 
       <div class="module-item" data-module="activity">
         <div class="module-info">
-          <span class="module-icon">📈</span>
+          <span class="module-icon"><i data-lucide="trending-up"></i></span>
           <span class="module-label">Gráfica de Actividad</span>
         </div>
         <label class="toggle-switch">
@@ -2794,7 +2991,7 @@
 
       <div class="module-item" data-module="topClients">
         <div class="module-info">
-          <span class="module-icon">⭐</span>
+          <span class="module-icon"><i data-lucide="star"></i></span>
           <span class="module-label">Top Clientes</span>
         </div>
         <label class="toggle-switch">
@@ -2805,7 +3002,7 @@
 
       <div class="module-item" data-module="walletStats">
         <div class="module-info">
-          <span class="module-icon">📱</span>
+          <span class="module-icon"><i data-lucide="smartphone"></i></span>
           <span class="module-label">Estado de Wallets</span>
         </div>
         <label class="toggle-switch">
@@ -2816,7 +3013,7 @@
 
       <div class="module-item" data-module="newKPIs">
         <div class="module-info">
-          <span class="module-icon">📊</span>
+          <span class="module-icon"><i data-lucide="bar-chart-3"></i></span>
           <span class="module-label">KPIs Avanzados</span>
         </div>
         <label class="toggle-switch">
@@ -3959,7 +4156,7 @@
             </td>
             <td>
               <div style="display:flex;gap:6px;">
-                <button class="btn small" data-action="stamp" style="background:#FFD166;color:#000;font-weight:600;padding:4px 10px;">⭐+1</button>
+                <button class="btn small" data-action="stamp" style="background:#FFD166;color:#000;font-weight:600;padding:4px 10px;"><i data-lucide="star" style="width:14px;height:14px;"></i>+1</button>
                 <button class="btn small ghost" data-action="view" style="padding:4px 10px;">Ver</button>
               </div>
             </td>
@@ -5198,7 +5395,7 @@
 
         let actionBtn = '';
         if (daysUntil <= 2 && daysUntil >= 0) {
-          actionBtn = `<button onclick="sendBirthdayPush('${c.id}', '${c.name}')" class="btn small primary" style="font-size:10px; padding: 2px 6px;">🎁 Felicitar</button>`;
+          actionBtn = `<button onclick="sendBirthdayPush('${c.id}', '${c.name}')" class="btn small primary" style="font-size:10px; padding: 2px 6px;"><i data-lucide="gift" style="width:12px;height:12px;"></i> Felicitar</button>`;
         }
 
         const monthNames = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
@@ -5292,8 +5489,8 @@
           let daysLabel = '';
 
           if (daysUntil === 0) {
-            daysLabel = '<span style="color: #ffd166; font-weight: 600;">🎉 Hoy</span>';
-            actionBtn = `<button onclick="sendBirthdayPush('${c.id}', '${c.name}')" class="btn small primary" style="font-size:10px; padding: 2px 6px;">🎁 Felicitar</button>`;
+            daysLabel = '<span style="color: #ffd166; font-weight: 600;"><i data-lucide="party-popper" style="width:14px;height:14px;"></i> Hoy</span>';
+            actionBtn = `<button onclick="sendBirthdayPush('${c.id}', '${c.name}')" class="btn small primary" style="font-size:10px; padding: 2px 6px;"><i data-lucide="gift" style="width:12px;height:12px;"></i> Felicitar</button>`;
           } else {
             daysLabel = `<span style="color: #a7f3d0;">en ${daysUntil} día${daysUntil > 1 ? 's' : ''}</span>`;
           }
@@ -6523,9 +6720,9 @@
 
         let html = `
           <div class="calendar-header">
-            <button class="calendar-nav-btn" data-action="prev">◀</button>
+            <button class="calendar-nav-btn" data-action="prev"><i data-lucide="chevron-left"></i></button>
             <div class="calendar-month-year">${monthNames[month]} ${year}</div>
-            <button class="calendar-nav-btn" data-action="next">▶</button>
+            <button class="calendar-nav-btn" data-action="next"><i data-lucide="chevron-right"></i></button>
           </div>
           <div class="calendar-grid">
         `;

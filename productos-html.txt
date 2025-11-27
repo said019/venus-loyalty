@@ -1,0 +1,177 @@
+<!-- ============================================ -->
+<!-- REEMPLAZAR LA SECCIÓN tab-services COMPLETA -->
+<!-- Buscar: <section id="tab-services" -->
+<!-- Hasta: </section> (el cierre de esa sección) -->
+<!-- ============================================ -->
+
+<!-- TAB: Servicios y Productos -->
+<section id="tab-services" class="tab-content hidden">
+  <div class="header-actions">
+    <h2>💆 Catálogo</h2>
+  </div>
+
+  <!-- Tabs Header -->
+  <div class="tabs-header" style="margin-bottom:0;border-radius:12px 12px 0 0;">
+    <button class="tab-btn active" onclick="switchCatalogTab('services')" id="btn-tab-services">
+      💆 Servicios
+      <span class="tab-count" id="services-count">0</span>
+    </button>
+    <button class="tab-btn" onclick="switchCatalogTab('products')" id="btn-tab-products">
+      🛍️ Productos
+      <span class="tab-count" id="products-count">0</span>
+    </button>
+  </div>
+
+  <div class="card" style="border-radius:0 0 12px 12px;margin-top:0;">
+    
+    <!-- Panel: Servicios -->
+    <div id="panel-services" class="tab-panel active">
+      <div class="row" style="gap:12px;margin-bottom:16px;flex-wrap:wrap;">
+        <input type="text" id="search-services" class="form-input" placeholder="🔍 Buscar servicio..." style="flex:1;min-width:200px;">
+        <button class="btn primary" id="btn-new-service">➕ Nuevo Servicio</button>
+      </div>
+
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Duración</th>
+              <th>Precio</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="services-tbody">
+            <tr>
+              <td colspan="4" class="muted" style="text-align:center;padding:20px;">Cargando...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Panel: Productos -->
+    <div id="panel-products" class="tab-panel">
+      <!-- Stats -->
+      <div class="stats-bar">
+        <div class="stat-item">
+          <span class="stat-value" id="stat-products-total">0</span>
+          <span class="stat-label">Productos</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-value" id="stat-products-value">$0</span>
+          <span class="stat-label">Valor inventario</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-value" id="stat-products-low" style="color:#fbbf24;">0</span>
+          <span class="stat-label">Stock bajo</span>
+        </div>
+      </div>
+
+      <div class="row" style="gap:12px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">
+        <input type="text" id="search-products" class="form-input" placeholder="🔍 Buscar producto..." style="flex:1;min-width:200px;">
+        <div class="filter-chips">
+          <span class="chip active" data-category="all" onclick="filterProducts('all')">Todos</span>
+          <span class="chip" data-category="skincare" onclick="filterProducts('skincare')">Skincare</span>
+          <span class="chip" data-category="maquillaje" onclick="filterProducts('maquillaje')">Maquillaje</span>
+          <span class="chip" data-category="corporal" onclick="filterProducts('corporal')">Corporal</span>
+        </div>
+        <button class="btn primary" id="btn-new-product">➕ Nuevo Producto</button>
+      </div>
+
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Producto</th>
+              <th>Categoría</th>
+              <th>Precio</th>
+              <th>Stock</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="products-tbody">
+            <tr>
+              <td colspan="5" class="muted" style="text-align:center;padding:20px;">Cargando...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- Modal Nuevo/Editar Producto -->
+<div id="modal-product" class="modal-backdrop hidden">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h3 id="modal-product-title">🛍️ Nuevo Producto</h3>
+      <button class="btn small ghost" id="close-modal-product">✕</button>
+    </div>
+
+    <form id="form-product">
+      <input type="hidden" id="product-id">
+
+      <div class="form-group">
+        <label class="form-label">Nombre del producto</label>
+        <input type="text" id="product-name" class="form-input" required placeholder="Ej: Sérum Vitamina C">
+      </div>
+
+      <div class="row" style="gap:12px;">
+        <div class="form-group" style="flex:1;">
+          <label class="form-label">Categoría</label>
+          <select id="product-category" class="form-input" required>
+            <option value="skincare">Skincare</option>
+            <option value="maquillaje">Maquillaje</option>
+            <option value="corporal">Corporal</option>
+            <option value="cabello">Cabello</option>
+            <option value="otro">Otro</option>
+          </select>
+        </div>
+        <div class="form-group" style="flex:1;">
+          <label class="form-label">Presentación</label>
+          <input type="text" id="product-presentation" class="form-input" placeholder="Ej: 30ml, 50g">
+        </div>
+      </div>
+
+      <div class="row" style="gap:12px;">
+        <div class="form-group" style="flex:1;">
+          <label class="form-label">Precio de venta</label>
+          <div style="position:relative;">
+            <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);">$</span>
+            <input type="number" id="product-price" class="form-input" required min="0" step="10" style="padding-left:25px;">
+          </div>
+        </div>
+        <div class="form-group" style="flex:1;">
+          <label class="form-label">Costo (opcional)</label>
+          <div style="position:relative;">
+            <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);">$</span>
+            <input type="number" id="product-cost" class="form-input" min="0" step="10" style="padding-left:25px;">
+          </div>
+        </div>
+      </div>
+
+      <div class="row" style="gap:12px;">
+        <div class="form-group" style="flex:1;">
+          <label class="form-label">Stock actual</label>
+          <input type="number" id="product-stock" class="form-input" required min="0" value="0">
+        </div>
+        <div class="form-group" style="flex:1;">
+          <label class="form-label">Stock mínimo (alerta)</label>
+          <input type="number" id="product-min-stock" class="form-input" min="0" value="5">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Descripción (opcional)</label>
+        <input type="text" id="product-description" class="form-input" placeholder="Breve descripción">
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn ghost" id="cancel-product">Cancelar</button>
+        <button type="submit" class="btn primary">💾 Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>

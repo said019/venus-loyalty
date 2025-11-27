@@ -458,6 +458,125 @@ app.post('/api/test/whatsapp', async (req, res) => {
   }
 });
 
+/* ========== PRODUCTOS ========== */
+
+// GET /api/products - Listar todos los productos
+app.get('/api/products', adminAuth, async (req, res) => {
+  try {
+    const snapshot = await firestore.collection('products')
+      .orderBy('name', 'asc')
+      .get();
+
+    const products = [];
+    snapshot.forEach(doc => {
+      products.push({ id: doc.id, ...doc.data() });
+    });
+
+    res.json({ success: true, data: products });
+  } catch (error) {
+    console.error('Error fetching products:', error);
+    res.json({ success: false, error: error.message });
+  }
+});
+
+// POST /api/products - Crear producto
+app.post('/api/products', adminAuth, async (req, res) => {
+  try {
+    const { name, category, presentation, price, cost, stock, minStock, description } = req.body;
+
+    if (!name || price === undefined) {
+      return res.json({ success: false, error: 'Nombre y precio son requeridos' });
+    }
+
+    const productData = {
+      name,
+      category: category || 'otro',
+      presentation: presentation || '',
+      price: parseFloat(price),
+      cost: cost ? parseFloat(cost) : null,
+      stock: parseInt(stock) || 0,
+      minStock: parseInt(minStock) || 5,
+      description: description || '',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    const docRef = await firestore.collection('products').add(productData);
+
+    res.json({ success: true, id: docRef.id, data: productData });
+  } catch (error) {
+    console.error('Error creating product:', error);
+    res.json({ success: false, error: error.message });
+  }
+});
+
+// PUT /api/products/:id - Actualizar producto
+app.put('/api/products/:id', adminAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, category, presentation, price, cost, stock, minStock, description } = req.body;
+
+    const updateData = {
+      name,
+      category,
+      presentation,
+      price: parseFloat(price),
+      cost: cost ? parseFloat(cost) : null,
+      stock: parseInt(stock),
+      minStock: parseInt(minStock) || 5,
+      description,
+      updatedAt: new Date().toISOString()
+    };
+
+    await firestore.collection('products').doc(id).update(updateData);
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error updating product:', error);
+    res.json({ success: false, error: error.message });
+  }
+});
+
+// DELETE /api/products/:id - Eliminar producto
+app.delete('/api/products/:id', adminAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    await firestore.collection('products').doc(id).delete();
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting product:', error);
+    res.json({ success: false, error: error.message });
+  }
+});
+
+// PATCH /api/products/:id/stock - Actualizar solo stock (para ventas)
+app.patch('/api/products/:id/stock', adminAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { change } = req.body; // +1 o -1
+
+    const docRef = firestore.collection('products').doc(id);
+    const doc = await docRef.get();
+
+    if (!doc.exists) {
+      return res.json({ success: false, error: 'Producto no encontrado' });
+    }
+
+    const currentStock = doc.data().stock || 0;
+    const newStock = Math.max(0, currentStock + change);
+
+    await docRef.update({ 
+      stock: newStock,
+      updatedAt: new Date().toISOString()
+    });
+
+    res.json({ success: true, newStock });
+  } catch (error) {
+    console.error('Error updating stock:', error);
+    res.json({ success: false, error: error.message });
+  }
+});
+
 // ✅ Start Scheduler
 startScheduler();
 
