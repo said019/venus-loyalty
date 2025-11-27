@@ -96,7 +96,7 @@ export const WhatsAppService = {
     /**
      * Envía confirmación de cita al momento de crearla
      * Template: confirmacion_cita
-     * Variables: {{1}}=Nombre, {{2}}=Fecha, {{3}}=Hora
+     * Variables: {{1}}=Nombre, {{2}}=Servicio, {{3}}=Fecha, {{4}}=Hora, {{5}}=Lugar
      */
     async sendConfirmation(appt) {
         const fecha = formatearFechaLegible(appt.startDateTime);
@@ -107,8 +107,10 @@ export const WhatsAppService = {
             config.templates.CONFIRMACION_CITA,
             {
                 '1': appt.clientName,
-                '2': fecha,
-                '3': hora
+                '2': appt.serviceName,
+                '3': fecha,
+                '4': hora,
+                '5': config.venus.location
             }
         );
     },

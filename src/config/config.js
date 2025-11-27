@@ -9,12 +9,12 @@ export const config = {
     },
     // Template SIDs de Twilio (ya aprobados)
     templates: {
-        CONFIRMACION_CITA: 'HX1fcf97722319524060c53c9555d272dd', // Template de confirmación
-        RECORDATORIO_24H: 'HX7df380cf1918f41f494099a41dc39315',
-        RECORDATORIO_2H: 'HX93138eb3f7705c8e5601b139358f1528',
-        CONFIRMACION: 'HX1fcf9772319524060c53c9555d272dd',
-        REPROGRAMAR: 'HX066c8568b497a5cc795eadc4afafcd29',
-        CANCELACION_CONFIRMADA: 'HX5e7e284e1a5272535beef9fd780a22b6'
+        CONFIRMACION_CITA: 'HXd7b477afe0353eed28c16b3b40938a8f',    // 5 vars: Nombre, Servicio, Fecha, Hora, Lugar
+        RECORDATORIO_24H: 'HX7df380cf1918f41f494099a41dc39315',    // 4 vars: Nombre, Servicio, Fecha, Hora
+        RECORDATORIO_2H: 'HX93138eb3f7705c8e5601b139358f1528',     // 3 vars: Nombre, Servicio, Hora
+        CONFIRMACION: 'HX1fcf9772319524060c53c9555d272dd',          // 3 vars: Nombre, Fecha, Hora (cuando cliente confirma)
+        REPROGRAMAR: 'HX066c8568b497a5cc795eadc4afafcd29',          // 1 var: Nombre
+        CANCELACION_CONFIRMADA: 'HX5e7e284e1a5272535beef9fd780a22b6' // 1 var: Nombre
     },
     google: {
         clientId: process.env.GOOGLE_CLIENT_ID,
