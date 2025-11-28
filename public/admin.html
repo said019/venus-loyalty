@@ -3858,7 +3858,7 @@
         right: 0;
         width: 100px;
         height: 100px;
-        background: radial-gradient(circle, rgba(140,150,104,0.15) 0%, transparent 70%);
+        background: radial-gradient(circle, rgba(140, 150, 104, 0.15) 0%, transparent 70%);
         opacity: 0.5;
       }
 
@@ -3870,7 +3870,7 @@
         align-items: center;
         justify-content: center;
         margin-bottom: 14px;
-        background: rgba(140,150,104,0.15);
+        background: rgba(140, 150, 104, 0.15);
         color: var(--venus-soft);
       }
 
@@ -3930,7 +3930,7 @@
       }
 
       .today-card:hover {
-        background: rgba(255,255,255,0.05);
+        background: rgba(255, 255, 255, 0.05);
         border-color: var(--venus);
         transform: translateY(-2px);
       }
@@ -4334,11 +4334,13 @@
       }
 
       @keyframes scan {
+
         0%,
         100% {
           top: 20%;
           opacity: 0.5;
         }
+
         50% {
           top: 80%;
           opacity: 1;
@@ -4494,7 +4496,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
         transition: all 0.2s;
       }
 
@@ -7777,9 +7779,23 @@
         }
 
         const appt = json.data;
-        console.log('Appointment data:', appt);
-        console.log('Price:', appt.price);
-        openPaymentModal(apptId, appt.clientName, appt.serviceName, appt.price || 0);
+
+        // Buscar precio del servicio si no viene en la cita
+        let price = appt.price || 0;
+        if (!price && appt.serviceName) {
+          // Asegurar que los servicios estén cargados
+          if (typeof allServices === 'undefined' || allServices.length === 0) {
+            if (typeof loadServices === 'function') await loadServices();
+          }
+          if (typeof allServices !== 'undefined') {
+            const service = allServices.find(s => s.name === appt.serviceName);
+            if (service) {
+              price = service.price;
+            }
+          }
+        }
+
+        openPaymentModal(apptId, appt.clientName, appt.serviceName, price);
       } catch (e) {
         alert('Error: ' + e.message);
       }
@@ -9767,7 +9783,7 @@
       let greeting = 'Buenas noches';
       if (hour >= 5 && hour < 12) greeting = 'Buenos días';
       else if (hour >= 12 && hour < 19) greeting = 'Buenas tardes';
-      
+
       const el = document.getElementById('dash-greeting');
       if (el) el.textContent = greeting;
     }
@@ -9778,28 +9794,28 @@
         // Cargar clientes
         const clientsRes = await fetch('/api/admin/cards-firebase', { credentials: 'include' });
         const clientsJson = await clientsRes.json();
-        
+
         if (clientsJson.success) {
           const clients = clientsJson.data || [];
           const activeClients = clients.filter(c => c.stamps > 0 || c.cycles > 0).length;
           document.getElementById('stat-total-clients').textContent = activeClients || clients.length;
-          
+
           // Calcular sellos este mes
           const now = new Date();
           const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
           let stampsThisMonth = 0;
           let redeemsThisMonth = 0;
-          
+
           clients.forEach(c => {
             if (c.lastVisit && new Date(c.lastVisit) >= firstOfMonth) {
               stampsThisMonth += c.stamps || 0;
             }
             redeemsThisMonth += c.cycles || 0;
           });
-          
+
           document.getElementById('stat-stamps-month').textContent = stampsThisMonth;
           document.getElementById('stat-redeems-month').textContent = redeemsThisMonth;
-          
+
           // Tasa de retorno
           const returningClients = clients.filter(c => (c.stamps + (c.cycles * 8)) > 1).length;
           const returnRate = clients.length > 0 ? Math.round((returningClients / clients.length) * 100) : 0;
@@ -9814,7 +9830,7 @@
           document.getElementById('wallet-apple').textContent = appleCount;
           document.getElementById('wallet-google').textContent = googleCount;
         }
-        
+
         // Cargar citas de hoy
         await loadTodayStats();
 
@@ -9823,7 +9839,7 @@
 
         // Cargar cumpleaños
         await loadBirthdays();
-        
+
       } catch (error) {
         console.error('Error loading dashboard:', error);
       }
@@ -9832,11 +9848,15 @@
     // Cargar stats de hoy
     async function loadTodayStats() {
       try {
-        // Por ahora mostrar 0 - se actualizará cuando haya sistema de citas completo
-        document.getElementById('today-appointments').textContent = '-';
-        document.getElementById('today-pending').textContent = '-';
-        document.getElementById('today-income').textContent = '-';
-        
+        const res = await fetch('/api/dashboard/today', { credentials: 'include' });
+        const json = await res.json();
+
+        if (json.success) {
+          const { appointments, pending, income } = json.data;
+          document.getElementById('today-appointments').textContent = appointments;
+          document.getElementById('today-pending').textContent = pending;
+          document.getElementById('today-income').textContent = '$' + income.toLocaleString();
+        }
       } catch (error) {
         console.error('Error loading today stats:', error);
       }
@@ -9847,13 +9867,13 @@
       try {
         const res = await fetch('/api/giftcards', { credentials: 'include' });
         const json = await res.json();
-        
+
         if (json.success) {
           const giftcards = json.data || [];
           const now = new Date();
           const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
           const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-          
+
           const pending = giftcards.filter(gc => gc.status === 'pending' && new Date(gc.expiresAt) > now).length;
           const expiring = giftcards.filter(gc => {
             const expires = new Date(gc.expiresAt);
@@ -9862,7 +9882,7 @@
           const redeemedThisMonth = giftcards.filter(gc => {
             return gc.status === 'redeemed' && gc.redeemedAt && new Date(gc.redeemedAt) >= firstOfMonth;
           }).length;
-          
+
           document.getElementById('gc-pending').textContent = pending;
           document.getElementById('gc-expiring').textContent = expiring;
           document.getElementById('gc-redeemed').textContent = redeemedThisMonth;
@@ -9877,23 +9897,23 @@
       try {
         const res = await fetch('/api/admin/cards-firebase', { credentials: 'include' });
         const json = await res.json();
-        
+
         if (json.success) {
           const clients = json.data || [];
           const now = new Date();
           const birthdays = [];
-          
+
           clients.forEach(c => {
             if (c.birthday) {
               const bday = new Date(c.birthday);
               const thisYearBday = new Date(now.getFullYear(), bday.getMonth(), bday.getDate());
-              
+
               if (thisYearBday < now) {
                 thisYearBday.setFullYear(now.getFullYear() + 1);
               }
-              
+
               const daysUntil = Math.ceil((thisYearBday - now) / (1000 * 60 * 60 * 24));
-              
+
               if (daysUntil <= 30) {
                 birthdays.push({
                   name: c.name,
@@ -9904,7 +9924,7 @@
               }
             }
           });
-          
+
           birthdays.sort((a, b) => a.daysUntil - b.daysUntil);
           renderBirthdays(birthdays.slice(0, 3));
         }
@@ -9915,23 +9935,23 @@
 
     function renderBirthdays(birthdays) {
       const container = document.getElementById('birthday-list');
-      
+
       if (birthdays.length === 0) {
         container.innerHTML = '<div class="dash-empty"><p>Sin cumpleaños próximos</p></div>';
         return;
       }
-      
+
       container.innerHTML = birthdays.map(b => {
         let badgeClass = 'soon';
         let badgeText = `En ${b.daysUntil} días`;
-        
+
         if (b.daysUntil === 0) {
           badgeClass = 'today';
           badgeText = '¡Hoy!';
         } else if (b.daysUntil === 1) {
           badgeText = 'Mañana';
         }
-        
+
         return `
           <div class="birthday-item">
             <div class="birthday-avatar">🎂</div>
@@ -9948,21 +9968,21 @@
     // Renderizar top clientes
     function renderTopClients(clients) {
       const container = document.getElementById('top-clients-sidebar');
-      
+
       const sorted = [...clients]
         .map(c => ({ ...c, totalStamps: (c.stamps || 0) + ((c.cycles || 0) * 8) }))
         .sort((a, b) => b.totalStamps - a.totalStamps)
         .slice(0, 5);
-      
+
       if (sorted.length === 0 || sorted[0].totalStamps === 0) {
         container.innerHTML = '<div class="dash-empty"><p>Sin datos aún</p></div>';
         return;
       }
-      
+
       container.innerHTML = sorted.map((c, i) => {
         const maxStamps = 8;
         const remaining = maxStamps - c.stamps;
-        
+
         return `
           <div class="top-client-item">
             <div class="top-client-rank ${i === 0 ? 'gold' : ''}">${i + 1}</div>
@@ -9982,7 +10002,7 @@
     // Inicializar dashboard
     document.addEventListener('DOMContentLoaded', () => {
       updateGreeting();
-      
+
       const activeTab = document.querySelector('.tab-content:not(.hidden)');
       if (activeTab && activeTab.id === 'tab-overview') {
         loadDashboardStats();
@@ -10004,7 +10024,7 @@
       document.getElementById('scanner-manual').style.display = 'block';
       document.getElementById('scanner-viewport').style.display = 'block';
       document.getElementById('scanner-hint').textContent = 'Apunta la cámara al código QR';
-      
+
       startCamera();
     }
 
@@ -10015,10 +10035,10 @@
 
     async function startCamera() {
       const frame = document.getElementById('scanner-frame');
-      
+
       try {
         frame.style.display = 'block';
-        
+
         // Crear div para el scanner si no existe
         let scannerDiv = document.getElementById('universal-qr-reader');
         if (!scannerDiv) {
@@ -10027,16 +10047,16 @@
           scannerDiv.style.width = '100%';
           document.getElementById('scanner-viewport').appendChild(scannerDiv);
         }
-        
+
         frame.style.display = 'none';
-        
+
         universalScanner = new Html5Qrcode('universal-qr-reader');
-        
+
         const config = {
           fps: 10,
           qrbox: { width: 220, height: 220 }
         };
-        
+
         await universalScanner.start(
           { facingMode: 'environment' },
           config,
@@ -10047,7 +10067,7 @@
             // Ignorar errores de escaneo continuo
           }
         );
-        
+
       } catch (error) {
         console.error('Error accessing camera:', error);
         document.getElementById('scanner-hint').textContent = 'No se pudo acceder a la cámara. Usa el código manual.';
@@ -10069,11 +10089,11 @@
 
     async function handleScannedCode(code) {
       stopCamera();
-      
+
       document.getElementById('scanner-hint').textContent = 'Procesando...';
       document.getElementById('scanner-options').style.display = 'none';
       document.getElementById('scanner-manual').style.display = 'none';
-      
+
       try {
         if (code.startsWith('VGC-')) {
           await handleGiftCardScan(code);
@@ -10090,7 +10110,7 @@
       try {
         const res = await fetch(`/api/card/${cardId}`, { credentials: 'include' });
         const json = await res.json();
-        
+
         if (json.success) {
           const card = json.data;
           showScanResult('loyalty', card.name, `${card.stamps}/8 sellos`, cardId);
@@ -10111,7 +10131,7 @@
       try {
         const res = await fetch(`/api/giftcards/code/${code}`, { credentials: 'include' });
         const json = await res.json();
-        
+
         if (json.success) {
           const gc = json.data;
           const statusText = gc.status === 'redeemed' ? '(Ya canjeada)' : gc.serviceName;
@@ -10133,15 +10153,15 @@
       const resultDiv = document.getElementById('scanner-result');
       const iconDiv = document.getElementById('scanner-result-icon');
       const actionsDiv = document.getElementById('scanner-result-actions');
-      
+
       document.getElementById('scanner-result-title').textContent = title;
       document.getElementById('scanner-result-subtitle').textContent = subtitle;
-      
+
       iconDiv.className = 'scanner-result-icon ' + type;
-      iconDiv.innerHTML = type === 'loyalty' 
-        ? '<i class="fas fa-credit-card"></i>' 
+      iconDiv.innerHTML = type === 'loyalty'
+        ? '<i class="fas fa-credit-card"></i>'
         : '<i class="fas fa-gift"></i>';
-      
+
       if (type === 'loyalty') {
         actionsDiv.innerHTML = `
           <button class="btn primary" onclick="addStampFromScanner('${id}')">
@@ -10171,7 +10191,7 @@
           `;
         }
       }
-      
+
       document.getElementById('scanner-viewport').style.display = 'none';
       resultDiv.classList.add('active');
     }
@@ -10183,7 +10203,7 @@
           credentials: 'include'
         });
         const json = await res.json();
-        
+
         if (json.success) {
           alert('✓ Sello agregado correctamente');
           closeScanner();
@@ -10205,7 +10225,7 @@
           body: JSON.stringify({ redeemedBy: 'Scanner' })
         });
         const json = await res.json();
-        
+
         if (json.success) {
           alert('✓ Gift Card canjeada correctamente');
           closeScanner();
@@ -10259,7 +10279,7 @@
       <button class="scanner-close" onclick="closeScanner()">
         <i class="fas fa-times"></i>
       </button>
-      
+
       <div class="scanner-header">
         <h2><i class="fas fa-qrcode"></i> Escanear QR</h2>
         <p>Tarjetas de lealtad o Gift Cards</p>

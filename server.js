@@ -424,11 +424,11 @@ app.use('/api/whatsapp', whatsappWebhook);
 app.post('/api/test/whatsapp', async (req, res) => {
   try {
     const { phone, name, service } = req.body;
-    
+
     if (!phone || !name) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Se requiere phone y name' 
+      return res.status(400).json({
+        success: false,
+        error: 'Se requiere phone y name'
       });
     }
 
@@ -451,9 +451,9 @@ app.post('/api/test/whatsapp', async (req, res) => {
     });
   } catch (error) {
     console.error('Error en test WhatsApp:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: error.message 
+    res.status(500).json({
+      success: false,
+      error: error.message
     });
   }
 });
@@ -565,7 +565,7 @@ app.patch('/api/products/:id/stock', adminAuth, async (req, res) => {
     const currentStock = doc.data().stock || 0;
     const newStock = Math.max(0, currentStock + change);
 
-    await docRef.update({ 
+    await docRef.update({
       stock: newStock,
       updatedAt: new Date().toISOString()
     });
@@ -592,7 +592,7 @@ app.get('/api/appointments/:id', adminAuth, async (req, res) => {
     const data = { id: appointmentDoc.id, ...appointmentDoc.data() };
     console.log('[API] Appointment data:', data);
     console.log('[API] Price:', data.price);
-    
+
     res.json({ success: true, data });
   } catch (error) {
     console.error('Error getting appointment:', error);
@@ -701,12 +701,12 @@ app.get('/api/giftcards', adminAuth, async (req, res) => {
     const snapshot = await firestore.collection('giftcards')
       .orderBy('createdAt', 'desc')
       .get();
-    
+
     const giftcards = [];
     snapshot.forEach(doc => {
       giftcards.push({ id: doc.id, ...doc.data() });
     });
-    
+
     res.json({ success: true, data: giftcards });
   } catch (error) {
     console.error('Error fetching gift cards:', error);
@@ -718,14 +718,14 @@ app.get('/api/giftcards', adminAuth, async (req, res) => {
 app.post('/api/giftcards', adminAuth, async (req, res) => {
   try {
     const { recipientName, serviceId, serviceName, servicePrice, message, validityDays } = req.body;
-    
+
     if (!serviceName || servicePrice === undefined) {
       return res.json({ success: false, error: 'Servicio requerido' });
     }
-    
+
     const now = new Date();
     const expiresAt = new Date(now.getTime() + (validityDays || 30) * 24 * 60 * 60 * 1000);
-    
+
     const giftcardData = {
       code: generateGiftCardCode(),
       recipientName: recipientName || null,
@@ -741,9 +741,9 @@ app.post('/api/giftcards', adminAuth, async (req, res) => {
       redeemedBy: null,
       appointmentId: null
     };
-    
+
     const docRef = await firestore.collection('giftcards').add(giftcardData);
-    
+
     res.json({ success: true, id: docRef.id, code: giftcardData.code });
   } catch (error) {
     console.error('Error creating gift card:', error);
@@ -755,24 +755,24 @@ app.post('/api/giftcards', adminAuth, async (req, res) => {
 app.get('/api/giftcards/code/:code', async (req, res) => {
   try {
     const { code } = req.params;
-    
+
     const snapshot = await firestore.collection('giftcards')
       .where('code', '==', code.toUpperCase())
       .limit(1)
       .get();
-    
+
     if (snapshot.empty) {
       return res.json({ success: false, error: 'Gift card no encontrada' });
     }
-    
+
     const doc = snapshot.docs[0];
     const gc = { id: doc.id, ...doc.data() };
-    
+
     // Verificar si expiró
     if (gc.status === 'pending' && new Date(gc.expiresAt) <= new Date()) {
       gc.status = 'expired';
     }
-    
+
     res.json({ success: true, data: gc });
   } catch (error) {
     console.error('Error fetching gift card:', error);
@@ -785,31 +785,31 @@ app.post('/api/giftcards/:id/redeem', adminAuth, async (req, res) => {
   try {
     const { id } = req.params;
     const { redeemedBy, appointmentId } = req.body;
-    
+
     const docRef = firestore.collection('giftcards').doc(id);
     const doc = await docRef.get();
-    
+
     if (!doc.exists) {
       return res.json({ success: false, error: 'Gift card no encontrada' });
     }
-    
+
     const gc = doc.data();
-    
+
     if (gc.status === 'redeemed') {
       return res.json({ success: false, error: 'Esta gift card ya fue canjeada' });
     }
-    
+
     if (new Date(gc.expiresAt) <= new Date()) {
       return res.json({ success: false, error: 'Esta gift card ha expirado' });
     }
-    
+
     await docRef.update({
       status: 'redeemed',
       redeemedAt: new Date().toISOString(),
       redeemedBy: redeemedBy || null,
       appointmentId: appointmentId || null
     });
-    
+
     res.json({ success: true });
   } catch (error) {
     console.error('Error redeeming gift card:', error);
@@ -822,27 +822,27 @@ app.post('/api/giftcards/:id/renew', adminAuth, async (req, res) => {
   try {
     const { id } = req.params;
     const { days } = req.body;
-    
+
     const docRef = firestore.collection('giftcards').doc(id);
     const doc = await docRef.get();
-    
+
     if (!doc.exists) {
       return res.json({ success: false, error: 'Gift card no encontrada' });
     }
-    
+
     const gc = doc.data();
-    
+
     if (gc.status === 'redeemed') {
       return res.json({ success: false, error: 'No se puede renovar una gift card canjeada' });
     }
-    
+
     const newExpiry = new Date(Date.now() + (days || 30) * 24 * 60 * 60 * 1000);
-    
+
     await docRef.update({
       status: 'pending',
       expiresAt: newExpiry.toISOString()
     });
-    
+
     res.json({ success: true, newExpiresAt: newExpiry.toISOString() });
   } catch (error) {
     console.error('Error renewing gift card:', error);
@@ -1636,6 +1636,71 @@ app.get("/api/admin/events-firebase", adminAuth, async (req, res) => {
   } catch (e) {
     console.error("[EVENTS-FIREBASE]", e);
     res.status(500).json({ error: e.message });
+  }
+});
+
+// ⭐ NUEVO: Endpoint para estadísticas del dashboard (HOY)
+app.get("/api/dashboard/today", adminAuth, async (req, res) => {
+  try {
+    const now = new Date();
+    // Inicio del día en zona horaria local (aproximación simple o usar librería)
+    // Para simplificar, usaremos ISO string del inicio del día UTC o ajustado
+    // Mejor: usar toMexicoCityISO si estuviera disponible aquí, o simple Date manipulation
+
+    // Ajuste manual a zona horaria de México (-6) para "HOY"
+    const mexicoOffset = 6 * 60 * 60 * 1000;
+    const todayStart = new Date(now.getTime() - mexicoOffset);
+    todayStart.setUTCHours(0, 0, 0, 0);
+    const todayStartIso = todayStart.toISOString(); // Esto es inicio del día en UTC, cuidado
+
+    // Mejor enfoque: Buscar por rango de fecha string "YYYY-MM-DD" si guardamos así,
+    // pero guardamos ISO.
+    // Vamos a traer todas las citas del día.
+
+    // Definir rango del día en UTC que cubra el día en México
+    // Día en México: 00:00 a 23:59.
+    // UTC: 06:00 (día actual) a 06:00 (día siguiente)
+
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0); // Local del servidor
+    const endOfDay = new Date();
+    endOfDay.setHours(23, 59, 59, 999);
+
+    // Consultar citas
+    const snapshot = await firestore.collection('appointments')
+      .where('startDateTime', '>=', startOfDay.toISOString())
+      .where('startDateTime', '<=', endOfDay.toISOString())
+      .get();
+
+    let appointmentsCount = 0;
+    let pendingCount = 0;
+    let income = 0;
+
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      appointmentsCount++;
+
+      if (data.status === 'scheduled' || data.status === 'confirmed') {
+        pendingCount++;
+      }
+
+      if (data.status === 'completed' && data.totalPaid) {
+        income += parseFloat(data.totalPaid) || 0;
+      }
+    });
+
+    res.json({
+      success: true,
+      data: {
+        appointments: appointmentsCount,
+        pending: pendingCount,
+        income: income
+      }
+    });
+
+  } catch (error) {
+    console.error("Error fetching dashboard today stats:", error);
+    res.json({ success: false, error: error.message });
   }
 });
 
