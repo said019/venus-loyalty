@@ -5061,6 +5061,10 @@
           loadGiftCards();
         } else if (tabName === 'services') {
           loadServicesTable();
+        } else if (tabName === 'appointments') {
+          if (typeof loadAppointments === 'function') loadAppointments();
+          if (typeof loadTodayAppointments === 'function') loadTodayAppointments();
+          if (typeof loadMonthStats === 'function') loadMonthStats();
         }
       });
     });
@@ -9828,12 +9832,10 @@
     // Cargar stats de hoy
     async function loadTodayStats() {
       try {
-        const today = new Date().toISOString().split('T')[0];
-        
-        // Simular datos por ahora - conectar con API real cuando esté disponible
-        document.getElementById('today-appointments').textContent = '0';
-        document.getElementById('today-pending').textContent = '0';
-        document.getElementById('today-income').textContent = '$0';
+        // Por ahora mostrar 0 - se actualizará cuando haya sistema de citas completo
+        document.getElementById('today-appointments').textContent = '-';
+        document.getElementById('today-pending').textContent = '-';
+        document.getElementById('today-income').textContent = '-';
         
       } catch (error) {
         console.error('Error loading today stats:', error);

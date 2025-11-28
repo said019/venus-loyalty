@@ -589,7 +589,11 @@ app.get('/api/appointments/:id', adminAuth, async (req, res) => {
       return res.json({ success: false, error: 'Cita no encontrada' });
     }
 
-    res.json({ success: true, data: { id: appointmentDoc.id, ...appointmentDoc.data() } });
+    const data = { id: appointmentDoc.id, ...appointmentDoc.data() };
+    console.log('[API] Appointment data:', data);
+    console.log('[API] Price:', data.price);
+    
+    res.json({ success: true, data });
   } catch (error) {
     console.error('Error getting appointment:', error);
     res.json({ success: false, error: error.message });
