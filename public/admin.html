@@ -9129,11 +9129,18 @@
             <button class="btn small ghost" onclick="viewGiftCard('${gc.id}')" title="Ver QR"><i class="fas fa-qrcode"></i></button>
             <button class="btn small ghost" onclick="copyGiftCardLinkById('${gc.id}')" title="Copiar link"><i class="fas fa-link"></i></button>
             <button class="btn small ghost" onclick="sendGiftCardWhatsAppById('${gc.id}')" title="WhatsApp"><i class="fab fa-whatsapp"></i></button>
+            <button class="btn small ghost" onclick="deleteGiftCard('${gc.id}')" title="Eliminar" style="color:#ef4444;"><i class="fas fa-trash"></i></button>
           `;
         } else if (gc.displayStatus === 'redeemed') {
-          actionsHtml = `<button class="btn small ghost" onclick="viewGiftCard('${gc.id}')" title="Ver"><i class="fas fa-eye"></i></button>`;
+          actionsHtml = `
+            <button class="btn small ghost" onclick="viewGiftCard('${gc.id}')" title="Ver"><i class="fas fa-eye"></i></button>
+            <button class="btn small ghost" onclick="deleteGiftCard('${gc.id}')" title="Eliminar" style="color:#ef4444;"><i class="fas fa-trash"></i></button>
+          `;
         } else {
-          actionsHtml = `<button class="btn small ghost" onclick="renewGiftCard('${gc.id}')" title="Renovar" style="color:var(--venus-soft);"><i class="fas fa-sync-alt"></i></button>`;
+          actionsHtml = `
+            <button class="btn small ghost" onclick="renewGiftCard('${gc.id}')" title="Renovar" style="color:var(--venus-soft);"><i class="fas fa-sync-alt"></i></button>
+            <button class="btn small ghost" onclick="deleteGiftCard('${gc.id}')" title="Eliminar" style="color:#ef4444;"><i class="fas fa-trash"></i></button>
+          `;
         }
 
         return `
@@ -9370,8 +9377,31 @@
       }
     }
 
+    async function deleteGiftCard(id) {
+      if (!confirm('¿Eliminar esta gift card? Esta acción no se puede deshacer.')) return;
+
+      try {
+        const res = await fetch(`/api/giftcards/${id}`, {
+          method: 'DELETE',
+          credentials: 'include'
+        });
+
+        const json = await res.json();
+
+        if (json.success) {
+          loadGiftCards();
+          loadDashboardStats();
+        } else {
+          alert('Error: ' + json.error);
+        }
+      } catch (error) {
+        alert('Error de conexión');
+      }
+    }
+
     // Hacer funciones globales
     window.viewGiftCard = viewGiftCard;
+    window.deleteGiftCard = deleteGiftCard;
     window.closeGiftCardModal = closeGiftCardModal;
     window.copyGiftCardLink = copyGiftCardLink;
     window.copyGiftCardLinkById = copyGiftCardLinkById;
@@ -9963,7 +9993,7 @@
        SCANNER UNIVERSAL - FASE 3
        ========================================================= */
 
-    let scannerStream = null;
+    let universalScanner = null;
 
     function openScanner() {
       document.getElementById('scanner-modal').classList.add('active');
@@ -9982,41 +10012,57 @@
     }
 
     async function startCamera() {
-      const video = document.getElementById('scanner-video');
       const frame = document.getElementById('scanner-frame');
       
       try {
-        scannerStream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'environment' }
-        });
+        frame.style.display = 'block';
         
-        video.srcObject = scannerStream;
-        video.classList.add('active');
-        frame.classList.add('hidden');
+        // Crear div para el scanner si no existe
+        let scannerDiv = document.getElementById('universal-qr-reader');
+        if (!scannerDiv) {
+          scannerDiv = document.createElement('div');
+          scannerDiv.id = 'universal-qr-reader';
+          scannerDiv.style.width = '100%';
+          document.getElementById('scanner-viewport').appendChild(scannerDiv);
+        }
         
-        await video.play();
+        frame.style.display = 'none';
         
-        // Por ahora sin escaneo automático - requiere jsQR library
-        // Para demo, mostrar mensaje
-        setTimeout(() => {
-          document.getElementById('scanner-hint').textContent = 'Usa el botón de código manual para probar';
-        }, 2000);
+        universalScanner = new Html5Qrcode('universal-qr-reader');
+        
+        const config = {
+          fps: 10,
+          qrbox: { width: 220, height: 220 }
+        };
+        
+        await universalScanner.start(
+          { facingMode: 'environment' },
+          config,
+          (decodedText) => {
+            handleScannedCode(decodedText);
+          },
+          (errorMessage) => {
+            // Ignorar errores de escaneo continuo
+          }
+        );
         
       } catch (error) {
         console.error('Error accessing camera:', error);
         document.getElementById('scanner-hint').textContent = 'No se pudo acceder a la cámara. Usa el código manual.';
+        frame.style.display = 'block';
       }
     }
 
-    function stopCamera() {
-      if (scannerStream) {
-        scannerStream.getTracks().forEach(track => track.stop());
-        scannerStream = null;
+    async function stopCamera() {
+      if (universalScanner) {
+        try {
+          await universalScanner.stop();
+          universalScanner.clear();
+          universalScanner = null;
+        } catch (error) {
+          console.error('Error stopping scanner:', error);
+        }
       }
-      
-      const video = document.getElementById('scanner-video');
-      video.classList.remove('active');
-      document.getElementById('scanner-frame').classList.remove('hidden');
     }
 
     async function handleScannedCode(code) {
