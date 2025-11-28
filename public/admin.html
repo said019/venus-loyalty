@@ -4859,78 +4859,7 @@
       });
     }
 
-    // Open/close offcanvas
-    function openOffcanvas() {
-      document.getElementById('modules-offcanvas').classList.add('open');
-      document.getElementById('offcanvas-backdrop').classList.add('show');
-    }
 
-    function closeOffcanvas() {
-      document.getElementById('modules-offcanvas').classList.remove('open');
-      document.getElementById('offcanvas-backdrop').classList.remove('show');
-    }
-
-    // Initialize module toggles from localStorage
-    function initializeModuleToggles() {
-      const modules = getSelectedModules();
-
-      document.querySelectorAll('.toggle-switch input[type="checkbox"]').forEach(toggle => {
-        const moduleName = toggle.getAttribute('data-module');
-        toggle.checked = modules[moduleName] !== false;
-
-        // Add event listener
-        toggle.addEventListener('change', (e) => {
-          const modules = getSelectedModules();
-          modules[moduleName] = e.target.checked;
-          saveSelectedModules(modules);
-          applyModuleVisibility();
-
-          console.log('📊 Módulo', moduleName, e.target.checked ? 'activado' : 'desactivado');
-        });
-      });
-    }
-
-    // Event listeners for offcanvas
-    document.getElementById('btn-personalize-dashboard').addEventListener('click', openOffcanvas);
-    document.getElementById('close-offcanvas').addEventListener('click', closeOffcanvas);
-    document.getElementById('offcanvas-backdrop').addEventListener('click', closeOffcanvas);
-
-    // Reset to defaults
-    document.getElementById('reset-modules').addEventListener('click', () => {
-      if (confirm('¿Restaurar configuración por defecto?')) {
-        saveSelectedModules(DEFAULT_MODULES);
-        initializeModuleToggles();
-        applyModuleVisibility();
-        alert('✅ Configuración restaurada');
-      }
-    });
-
-    // Initialize on page load
-    initializeModuleToggles();
-    applyModuleVisibility();
-
-    /* ===== AUTOMATIZACIONES (UI PLACEHOLDER) ===== */
-    // Event listeners para los toggles de automatizaciones
-    document.querySelectorAll('[id^="auto-"][id$="-enabled"]').forEach(toggle => {
-      toggle.addEventListener('change', (e) => {
-        const ruleType = e.target.id.replace('auto-', '').replace('-enabled', '');
-        console.log(`🤖 Automatización "${ruleType}" ${e.target.checked ? 'activada' : 'desactivada'}`);
-        // TODO: Guardar en Firestore cuando se implemente backend
-      });
-    });
-
-    // Event listeners para botones de prueba
-    document.querySelectorAll('.automation-test-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const type = e.target.getAttribute('data-type');
-        alert(`🧪 Función de prueba para "${type}" será implementada próximamente.\n\nEsto enviará una notificación de prueba a un cliente aleatorio.`);
-      });
-    });
-
-    // Botón ejecutar todas las automatizaciones
-    document.getElementById('btn-run-all-automations')?.addEventListener('click', () => {
-      alert('▶️ Ejecución de automatizaciones será implementada próximamente.\n\nEsto procesará todas las reglas activas y enviará notificaciones a los clientes que cumplan las condiciones.');
-    });
 
     /* ===== GIFT CARD QR SCANNER ===== */
     let giftHtml5QrcodeScanner = null;
@@ -5122,7 +5051,7 @@
 
         const tabName = this.getAttribute('data-tab');
         if (tabName === 'overview') {
-          loadMetrics(document.getElementById('stats-filter').value);
+          loadDashboardStats();
         } else if (tabName === 'cards') {
           loadCards(1);
         } else if (tabName === 'settings') {
@@ -5139,13 +5068,10 @@
     /* ===== FILTRADO Y REPORTES ===== */
     let globalStatsData = {};
 
-    // Evento cambio de filtro
-    document.getElementById('stats-filter').addEventListener('change', (e) => {
-      loadMetrics(e.target.value);
-    });
-
-    // Evento descargar reporte
-    document.getElementById('btn-download-report').addEventListener('click', downloadCSV);
+    // Evento cambio de filtro (comentado - elemento no existe en nuevo dashboard)
+    // document.getElementById('stats-filter')?.addEventListener('change', (e) => {
+    //   loadMetrics(e.target.value);
+    // });
 
     function downloadCSV() {
       if (!globalStatsData.clientsToExport || globalStatsData.clientsToExport.length === 0) {
@@ -5156,8 +5082,8 @@
       // Get selected modules from localStorage
       const selectedModules = getSelectedModules();
 
-      const period = document.getElementById('stats-filter').value;
-      const periodLabel = period === 'day' ? 'Hoy' : period === 'week' ? 'Esta Semana' : 'Este Mes';
+      const period = 'month'; // Default period
+      const periodLabel = 'Este Mes';
 
       let csvContent = 'data:text/csv;charset=utf-8,';
 
@@ -5817,8 +5743,8 @@
       }
     }
 
-    // Botón para actualizar estadísticas de wallets
-    document.getElementById('btn-refresh-wallet-stats')?.addEventListener('click', loadWalletStats);
+    // Botón para actualizar estadísticas de wallets (comentado - elemento no existe)
+    // document.getElementById('btn-refresh-wallet-stats')?.addEventListener('click', loadWalletStats);
 
     /* ===== CARDS (Firestore + menú de acciones) ===== */
     let currentPage = 1;
