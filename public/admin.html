@@ -2811,7 +2811,8 @@
               <button onclick="setDiscountType('fixed')" id="btn-discount-fixed">$</button>
             </div>
             <div class="discount-input-wrap">
-              <input type="number" id="payment-discount-value" placeholder="0" min="0" value="0" oninput="calculateTotals()">
+              <input type="number" id="payment-discount-value" placeholder="0" min="0" value="0"
+                oninput="calculateTotals()">
               <span class="discount-symbol" id="discount-symbol">%</span>
             </div>
           </div>
@@ -3628,7 +3629,7 @@
         position: absolute;
         top: 16px;
         right: 16px;
-        background: rgba(255,255,255,0.05);
+        background: rgba(255, 255, 255, 0.05);
         border: 1px solid var(--line);
         color: var(--muted);
         width: 36px;
@@ -3664,7 +3665,7 @@
       .payment-price-input {
         width: 100px;
         padding: 6px 10px;
-        background: rgba(0,0,0,0.3);
+        background: rgba(0, 0, 0, 0.3);
         border: 1px solid var(--venus);
         border-radius: 8px;
         color: var(--ink);
@@ -3694,11 +3695,11 @@
 
       .btn-edit-price:hover {
         color: var(--venus-soft);
-        background: rgba(140,150,104,0.1);
+        background: rgba(140, 150, 104, 0.1);
       }
 
       .payment-section {
-        background: rgba(0,0,0,0.2);
+        background: rgba(0, 0, 0, 0.2);
         border-radius: 14px;
         padding: 16px;
         margin-bottom: 16px;
@@ -3729,7 +3730,7 @@
 
       .discount-toggle {
         display: flex;
-        background: rgba(0,0,0,0.3);
+        background: rgba(0, 0, 0, 0.3);
         border-radius: 8px;
         overflow: hidden;
         border: 1px solid var(--line);
@@ -3752,7 +3753,7 @@
       }
 
       .discount-toggle button:hover:not(.active) {
-        background: rgba(255,255,255,0.05);
+        background: rgba(255, 255, 255, 0.05);
       }
 
       .discount-input-wrap {
@@ -3764,7 +3765,7 @@
         width: 100%;
         padding: 10px 14px;
         padding-right: 36px;
-        background: rgba(0,0,0,0.3);
+        background: rgba(0, 0, 0, 0.3);
         border: 1px solid var(--line);
         border-radius: 10px;
         color: var(--ink);
@@ -8071,13 +8072,6 @@
       }
     };
 
-    // Cargar servicios al cambiar a la pestaña
-    document.querySelectorAll('.nav a[data-tab="services"]').forEach(link => {
-      link.addEventListener('click', () => {
-        loadServicesTable();
-      });
-    });
-
     // Búsqueda de servicios
     const searchServicesInput = document.getElementById('search-services');
     if (searchServicesInput) {
@@ -8123,6 +8117,20 @@
 
     // Hacer función global
     window.switchCatalogTab = switchCatalogTab;
+
+    // Cargar servicios al abrir la pestaña de Catálogo
+    document.querySelectorAll('.nav a[data-tab="catalog"], .nav a[data-tab="services"]').forEach(link => {
+      link.addEventListener('click', () => {
+        // Dar tiempo para que se muestre la pestaña
+        setTimeout(() => {
+          // Verificar qué sub-tab está activo
+          const servicesTabActive = document.getElementById('btn-tab-services')?.classList.contains('active');
+          if (servicesTabActive) {
+            loadServicesTable();
+          }
+        }, 100);
+      });
+    });
 
     /* ========== PRODUCTOS ========== */
 
