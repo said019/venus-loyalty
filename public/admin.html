@@ -1575,6 +1575,68 @@
       margin-bottom: 10px;
       opacity: 0.4;
     }
+
+    /* Mobile Menu Styles */
+    .mobile-menu-btn {
+      display: none;
+      background: none;
+      border: none;
+      color: var(--ink);
+      font-size: 24px;
+      cursor: pointer;
+    }
+
+    .mobile-menu {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      z-index: 3000;
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+    }
+
+    .mobile-menu-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    .close-menu-btn {
+      background: none;
+      border: none;
+      color: var(--ink);
+      font-size: 24px;
+      cursor: pointer;
+    }
+
+    .mobile-nav-link {
+      display: block;
+      padding: 12px;
+      color: var(--ink);
+      text-decoration: none;
+      font-size: 16px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+    }
+
+    .mobile-nav-link:hover,
+    .mobile-nav-link.is-active {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    @media (max-width: 768px) {
+      .desktop-only {
+        display: none !important;
+      }
+
+      .mobile-menu-btn {
+        display: block;
+      }
+    }
   </style>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -1592,13 +1654,37 @@
           <div class="muted" id="me-line">Sesión iniciada</div>
         </div>
       </div>
-      <div class="actions">
+      <button class="mobile-menu-btn" id="mobile-menu-toggle"><i class="fas fa-bars"></i></button>
+      <div class="actions desktop-only">
         <a class="btn" href="/" target="_blank" rel="noopener">Página clientes</a>
         <button id="logout" class="btn">Cerrar sesión</button>
       </div>
     </header>
 
-    <nav class="nav">
+    <div class="mobile-menu hidden" id="mobile-menu">
+      <div class="mobile-menu-header">
+        <span>Menú</span>
+        <button class="close-menu-btn" id="mobile-menu-close"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="mobile-menu-content">
+        <a href="#overview" class="mobile-nav-link" data-tab="overview"><i class="fas fa-th-large"></i> Resumen</a>
+        <a href="#cards" class="mobile-nav-link" data-tab="cards"><i class="fas fa-credit-card"></i> Tarjetas</a>
+        <a href="#events" class="mobile-nav-link" data-tab="events"><i class="fas fa-gift"></i> Gift Cards</a>
+        <a href="#notifications" class="mobile-nav-link" data-tab="notifications"><i class="fas fa-bell"></i>
+          Notificaciones</a>
+        <a href="#appointments" class="mobile-nav-link" data-tab="appointments"><i class="fas fa-calendar"></i>
+          Citas</a>
+        <a href="#services" class="mobile-nav-link" data-tab="services"><i class="fas fa-sparkles"></i> Servicios</a>
+        <a href="#settings" class="mobile-nav-link" data-tab="settings"><i class="fas fa-cog"></i> Configuración</a>
+        <hr style="border-color:rgba(255,255,255,0.1);margin:10px 0;">
+        <a href="/" target="_blank" class="mobile-nav-link"><i class="fas fa-external-link-alt"></i> Página clientes</a>
+        <button id="logout-mobile" class="mobile-nav-link"
+          style="width:100%;text-align:left;background:none;border:none;color:var(--ink);font-size:16px;padding:12px;"><i
+            class="fas fa-sign-out-alt"></i> Cerrar sesión</button>
+      </div>
+    </div>
+
+    <nav class="nav desktop-only">
       <a href="#overview" data-tab="overview" class="is-active"><i class="fas fa-th-large"></i> Resumen</a>
       <a href="#cards" data-tab="cards"><i class="fas fa-credit-card"></i> Tarjetas</a>
       <a href="#events" data-tab="events"><i class="fas fa-gift"></i> Gift Cards</a>
@@ -2259,7 +2345,10 @@
             <button class="btn small ghost" id="btn-next-week">Siguiente →</button>
           </div>
         </div>
-        <div id="weekly-calendar" style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;"></div>
+        <div style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
+          <div id="weekly-calendar" style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;min-width: 800px;">
+          </div>
+        </div>
       </div>
 
       <!-- Citas del Día Seleccionado -->
@@ -7782,18 +7871,27 @@
 
         // Buscar precio del servicio si no viene en la cita
         let price = appt.price || 0;
+        console.log('Initial price from appt:', price);
+        console.log('Service Name:', appt.serviceName);
+
         if (!price && appt.serviceName) {
           // Asegurar que los servicios estén cargados
           if (typeof allServices === 'undefined' || allServices.length === 0) {
+            console.log('allServices empty, loading...');
             if (typeof loadServices === 'function') await loadServices();
           }
           if (typeof allServices !== 'undefined') {
+            console.log('Searching service in allServices:', allServices);
             const service = allServices.find(s => s.name === appt.serviceName);
             if (service) {
+              console.log('Service found:', service);
               price = service.price;
+            } else {
+              console.log('Service NOT found in allServices');
             }
           }
         }
+        console.log('Final price:', price);
 
         openPaymentModal(apptId, appt.clientName, appt.serviceName, price);
       } catch (e) {
@@ -8605,8 +8703,12 @@
           <td data-label="Precio">$${s.price}</td>
           <td data-label="Acciones">
             <div class="actions">
-              <button class="btn small ghost" onclick="editService('${s.id}')">Editar</button>
-              <button class="btn small ghost" style="color:#ef4444;border-color:#ef4444;" onclick="deleteService('${s.id}')">Eliminar</button>
+              <button class="btn small ghost" onclick="editService('${s.id}')" title="Editar">
+                <i class="fas fa-edit"></i>
+              </button>
+              <button class="btn small ghost" style="color:#ef4444;border-color:#ef4444;" onclick="deleteService('${s.id}')" title="Eliminar">
+                <i class="fas fa-trash"></i>
+              </button>
             </div>
           </td>
         </tr>
@@ -10343,6 +10445,49 @@
           closeScanner();
         }
       }
+    });
+
+    // Mobile Menu Logic
+    const mobileMenu = document.getElementById('mobile-menu');
+    const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+    const mobileMenuClose = document.getElementById('mobile-menu-close');
+    const mobileNavLinks = document.querySelectorAll('.mobile-nav-link');
+
+    if (mobileMenuToggle) {
+      mobileMenuToggle.addEventListener('click', () => {
+        mobileMenu.classList.remove('hidden');
+      });
+    }
+
+    if (mobileMenuClose) {
+      mobileMenuClose.addEventListener('click', () => {
+        mobileMenu.classList.add('hidden');
+      });
+    }
+
+    mobileNavLinks.forEach(link => {
+      link.addEventListener('click', () => {
+        mobileMenu.classList.add('hidden');
+        // Handle tab switching if it's a tab link
+        const tab = link.dataset.tab;
+        if (tab) {
+          document.querySelectorAll('.nav a').forEach(a => a.classList.remove('is-active'));
+          document.querySelectorAll('.mobile-nav-link').forEach(a => a.classList.remove('is-active'));
+          link.classList.add('is-active');
+
+          document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+          const target = document.getElementById('tab-' + tab);
+          if (target) target.classList.add('active');
+        }
+      });
+    });
+
+    // Logout mobile
+    document.getElementById('logout-mobile')?.addEventListener('click', async () => {
+      try {
+        await fetch('/api/admin/logout', { method: 'POST' });
+        window.location.reload();
+      } catch (e) { console.error(e); }
     });
 
     window.openScanner = openScanner;

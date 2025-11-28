@@ -81,10 +81,17 @@ async function buscarCitaActiva(telefono) {
 
         const now = new Date().toISOString();
 
-        // Buscar citas futuras del cliente
+        // Buscar citas futuras del cliente (o recientes, ej. últimas 24h para permitir confirmar tarde)
+        // Pero lo ideal es >= now.
+        // Vamos a dar un margen de 2 horas atrás por si acaso.
+        const margin = new Date();
+        margin.setHours(margin.getHours() - 2);
+        const marginIso = margin.toISOString();
+
         const snapshot = await firestore.collection('appointments')
             .where('clientPhone', '==', phone)
             .where('status', 'in', ['scheduled', 'confirmed', 'rescheduling'])
+            .where('startDateTime', '>=', marginIso)
             .orderBy('startDateTime', 'asc')
             .limit(1)
             .get();
@@ -100,6 +107,7 @@ async function buscarCitaActiva(telefono) {
 
         const altSnapshot = await firestore.collection('appointments')
             .where('status', 'in', ['scheduled', 'confirmed', 'rescheduling'])
+            .where('startDateTime', '>=', marginIso)
             .orderBy('startDateTime', 'asc')
             .limit(50) // Aumentado límite por seguridad
             .get();
