@@ -1609,193 +1609,187 @@
     </nav>
 
     <!-- TAB: Overview - MODIFICADO CON FILTROS Y REPORTES -->
-    <section id="tab-overview" class="card">
-      <div class="section-header">
-        <h2>Resumen</h2>
-        <div class="header-actions">
-          <button id="btn-personalize-dashboard" class="btn small ghost">
-            ⚙️ Personalizar
+    <section id="tab-overview" class="tab-content">
+      <div class="header-actions" style="margin-bottom:20px;">
+        <h2 id="dash-greeting">Buenos días</h2>
+        <div style="display:flex;gap:10px;">
+          <button class="btn primary" onclick="newApptDialog.showModal()">
+            <i class="fas fa-plus"></i> Nueva Cita
           </button>
-          <div class="select-wrapper">
-            <select id="stats-filter" class="filter-select">
-              <option value="day">Hoy</option>
-              <option value="week" selected>Esta semana</option>
-              <option value="month">Este mes</option>
-            </select>
+        </div>
+      </div>
+
+      <!-- Hero Stats -->
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <div class="hero-stat-icon">
+            <i class="fas fa-users"></i>
           </div>
-          <button id="btn-download-report" class="btn small primary">
-            ⬇ Reporte
-          </button>
+          <div class="hero-stat-value" id="stat-total-clients">0</div>
+          <div class="hero-stat-label">Clientes activos</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-icon">
+            <i class="fas fa-star"></i>
+          </div>
+          <div class="hero-stat-value" id="stat-stamps-month">0</div>
+          <div class="hero-stat-label">Sellos este mes</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-icon">
+            <i class="fas fa-gift"></i>
+          </div>
+          <div class="hero-stat-value" id="stat-redeems-month">0</div>
+          <div class="hero-stat-label">Canjes este mes</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-icon">
+            <i class="fas fa-trophy"></i>
+          </div>
+          <div class="hero-stat-value" id="stat-return-rate">0%</div>
+          <div class="hero-stat-label">Tasa de retorno</div>
         </div>
       </div>
 
-      <!-- KPIs principales (fila 1) -->
-      <div class="grid-3-kpi" data-module-section="kpis">
-        <div class="kpi">
-          <span>Tarjetas totales</span>
-          <span class="value" id="kpi-total">—</span>
+      <!-- Sección HOY -->
+      <div class="today-grid">
+        <div class="today-card" onclick="switchTab('tab-appointments')">
+          <div class="today-card-icon citas">
+            <i class="fas fa-calendar-check"></i>
+          </div>
+          <div class="today-card-info">
+            <h4 id="today-appointments">0</h4>
+            <p>Citas hoy</p>
+          </div>
         </div>
-        <div class="kpi">
-          <span>Tarjetas completas</span>
-          <span class="value" id="kpi-full">—</span>
+        <div class="today-card">
+          <div class="today-card-icon pendientes">
+            <i class="fas fa-clock"></i>
+          </div>
+          <div class="today-card-info">
+            <h4 id="today-pending">0</h4>
+            <p>Por confirmar</p>
+          </div>
         </div>
-        <div class="kpi">
-          <span id="stamps-period-label">Sellos hoy</span>
-          <span class="value" id="kpi-stamps">—</span>
+        <div class="today-card">
+          <div class="today-card-icon ingresos">
+            <i class="fas fa-dollar-sign"></i>
+          </div>
+          <div class="today-card-info">
+            <h4 id="today-income">$0</h4>
+            <p>Ingresos hoy</p>
+          </div>
         </div>
       </div>
 
-      <!-- KPIs adicionales (fila 2) -->
-      <div class="grid-3-kpi" style="margin-top:14px;" data-module-section="kpis">
-        <div class="kpi">
-          <span id="redeems-period-label">Canjes hoy</span>
-          <span class="value" id="kpi-redeems">—</span>
-        </div>
-        <div class="kpi">
-          <span>Promedio sellos</span>
-          <span class="value" id="kpi-avg">—</span>
-        </div>
-        <div class="kpi">
-          <span>Tasa completitud</span>
-          <span class="value" id="kpi-rate">—</span>
-        </div>
-      </div>
-
-      <!-- CUMPLEAÑOS DEL MES (Overview) -->
-      <div id="overview-birthday-section" class="hidden" data-module-section="birthdays"
-        style="margin-top: 20px; padding: 15px; background: rgba(255, 209, 102, 0.1); border: 1px solid rgba(255, 209, 102, 0.3); border-radius: 12px;">
-        <div class="row" style="justify-content: space-between; align-items: center;">
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <span style="font-size: 24px;"><i class="fas fa-birthday-cake"></i></span>
-            <div>
-              <h3 style="margin: 0; color: #ffd166;" id="overview-birthday-title">Cumpleaños (últimos 30 días)</h3>
-              <p class="muted" style="margin: 2px 0 0; font-size: 13px;">Pasados y próximos cumpleaños.</p>
+      <!-- Grid principal con sidebar -->
+      <div class="dash-grid">
+        <!-- Columna principal (vacía por ahora, se llenará en Fase 3) -->
+        <div class="dash-main">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">
+                <i class="fas fa-chart-line"></i> Actividad reciente
+              </span>
+            </div>
+            <div class="card-body">
+              <div class="dash-empty">
+                <p>Próximamente: Gráfica de actividad</p>
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- Cumpleaños próximos -->
-        <div id="upcoming-birthdays-container" class="hidden" style="margin-top: 15px;">
-          <h4 style="margin: 0 0 8px; font-size: 13px; color: #a7f3d0; font-weight: 600;"><i
-              class="fas fa-party-horn"></i> Próximos Cumpleaños</h4>
-          <div id="upcoming-birthday-list" style="display: flex; gap: 8px; flex-wrap: wrap;">
-            <!-- Lista de cumpleaños próximos -->
+        <!-- Sidebar derecho -->
+        <div class="dash-sidebar">
+          <!-- Gift Cards -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">
+                <i class="fas fa-gift"></i> Gift Cards
+              </span>
+              <a href="#" class="card-header-link" onclick="switchTab('tab-events');return false;">
+                Ver todas <i class="fas fa-chevron-right"></i>
+              </a>
+            </div>
+            <div class="card-body" style="padding:16px;">
+              <div class="gc-summary">
+                <div class="gc-summary-row">
+                  <span class="gc-dot pending"></span>
+                  <span class="gc-label">Pendientes</span>
+                  <span class="gc-value" id="gc-pending">0</span>
+                </div>
+                <div class="gc-summary-row">
+                  <span class="gc-dot expiring"></span>
+                  <span class="gc-label">Por vencer (7 días)</span>
+                  <span class="gc-value warning" id="gc-expiring">0</span>
+                </div>
+                <div class="gc-summary-row">
+                  <span class="gc-dot redeemed"></span>
+                  <span class="gc-label">Canjeadas este mes</span>
+                  <span class="gc-value" id="gc-redeemed">0</span>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
 
-        <!-- Cumpleaños pasados -->
-        <div id="past-birthdays-container" class="hidden" style="margin-top: 15px;">
-          <h4 style="margin: 0 0 8px; font-size: 13px; color: #cbd5e1; font-weight: 600;"><i
-              class="fas fa-calendar"></i> Cumpleaños Pasados</h4>
-          <div id="past-birthday-list" style="display: flex; gap: 8px; flex-wrap: wrap;">
-            <!-- Lista de cumpleaños pasados -->
+          <!-- Cumpleaños -->
+          <div class="card" id="card-birthdays">
+            <div class="card-header">
+              <span class="card-title">
+                <i class="fas fa-birthday-cake"></i> Cumpleaños
+              </span>
+            </div>
+            <div class="card-body" style="padding:16px;">
+              <div class="birthday-list" id="birthday-list">
+                <div class="dash-empty">
+                  <p>Sin cumpleaños próximos</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Top Clientes -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">
+                <i class="fas fa-trophy"></i> Top Clientes
+              </span>
+            </div>
+            <div class="card-body" style="padding:12px 16px;">
+              <div id="top-clients-sidebar">
+                <div class="dash-empty">
+                  <p>Sin datos aún</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Wallets -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">
+                <i class="fas fa-wallet"></i> Wallets
+              </span>
+            </div>
+            <div class="card-body" style="padding:16px;">
+              <div class="wallets-grid">
+                <div class="wallet-card">
+                  <div class="wallet-card-icon">🍎</div>
+                  <div class="wallet-card-value" id="wallet-apple">0</div>
+                  <div class="wallet-card-label">Apple Wallet</div>
+                </div>
+                <div class="wallet-card">
+                  <div class="wallet-card-icon">🤖</div>
+                  <div class="wallet-card-value" id="wallet-google">0</div>
+                  <div class="wallet-card-label">Google Wallet</div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- Gráfica Actividad reciente -->
-      <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line);" data-module-section="activity">
-        <h3 style="margin:0 0 12px;font-size:15px;color:var(--ink);" id="activity-title"><i
-            class="fas fa-chart-line"></i> Actividad reciente (7 días)
-        </h3>
-        <div style="background:rgba(255,255,255,0.05);border-radius:12px;padding:12px;">
-          <canvas id="activity-chart" style="max-height:200px;"></canvas>
-        </div>
-      </div>
-
-      <!-- Top clientes -->
-      <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line);" data-module-section="topClients">
-        <h3 style="margin:0 0 12px;font-size:15px;color:var(--ink);"><i class="fas fa-star"></i> Top Clientes</h3>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Cliente</th>
-                <th>Sellos</th>
-                <th>Estado</th>
-              </tr>
-            </thead>
-            <tbody id="top-clients">
-              <tr>
-                <td colspan="3" style="text-align:center;padding:12px;" class="muted">Cargando...</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Estado de Wallets - MEJORADO CON ESTADÍSTICAS REALES -->
-      <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line);" data-module-section="walletStats">
-        <h3 style="margin:0 0 12px;font-size:15px;color:var(--ink);"><i class="fas fa-mobile-alt"></i> Estado de Wallets
-        </h3>
-        <div class="grid-3-kpi">
-          <div class="kpi">
-            <span>🟢 Google Wallet</span>
-            <span class="value" id="kpi-google">—</span>
-          </div>
-          <div class="kpi">
-            <span><i class="fab fa-apple"></i> Apple Wallet</span>
-            <span class="value" id="kpi-apple">—</span>
-          </div>
-          <div class="kpi">
-            <span><i class="fas fa-mobile-alt"></i> Dispositivos totales</span>
-            <span class="value" id="kpi-devices">—</span>
-          </div>
-        </div>
-        <div style="margin-top:10px; text-align:center;">
-          <button id="btn-refresh-wallet-stats" class="btn small ghost"><i class="fas fa-sync-alt"></i> Actualizar
-            estadísticas</button>
-        </div>
-      </div>
-
-      <!-- KPIs AVANZADOS (NUEVOS) -->
-      <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line);" data-module-section="newKPIs">
-        <h3 style="margin:0 0 12px;font-size:15px;color:var(--ink);"><i class="fas fa-chart-bar"></i> KPIs Avanzados
-        </h3>
-
-        <!-- Primera fila: Clientes -->
-        <div class="grid-3-kpi">
-          <div class="kpi">
-            <span>Clientes nuevos</span>
-            <span class="value" id="kpi-new-clients">—</span>
-          </div>
-          <div class="kpi">
-            <span>🟢 Activos (30d)</span>
-            <span class="value" id="kpi-active-clients">—</span>
-          </div>
-          <div class="kpi">
-            <span><i class="fas fa-circle"></i> Inactivos (30d)</span>
-            <span class="value" id="kpi-inactive-clients">—</span>
-          </div>
-        </div>
-
-        <!-- Segunda fila: Análisis -->
-        <div class="grid-3-kpi" style="margin-top:14px;">
-          <div class="kpi">
-            <span>Promedio días inactivo</span>
-            <span class="value" id="kpi-avg-last-visit">—</span>
-          </div>
-          <div class="kpi">
-            <span>Ciclos completados</span>
-            <span class="value" id="kpi-cycles-completed">—</span>
-          </div>
-          <div class="kpi">
-            <span>Tasa de retorno</span>
-            <span class="value" id="kpi-return-rate">—</span>
-          </div>
-        </div>
-
-        <!-- Gráficas de distribución -->
-        <div style="margin-top:16px;background:rgba(255,255,255,0.05);border-radius:12px;padding:12px;">
-          <h4 style="margin:0 0 10px;font-size:13px;color:var(--venus-soft);">Distribución por día de la semana</h4>
-          <canvas id="day-distribution-chart"></canvas>
-        </div>
-
-        <div style="margin-top:16px;background:rgba(255,255,255,0.05);border-radius:12px;padding:12px;">
-          <h4 style="margin:0 0 10px;font-size:13px;color:var(--venus-soft);">Distribución por hora del día</h4>
-          <canvas id="hour-distribution-chart"></canvas>
-        </div>
-      </div>
     </section>
 
     <!-- TAB: Cards -->
@@ -3832,6 +3826,686 @@
         font-size: 15px;
         font-weight: 600;
         border-radius: 12px;
+      }
+
+      /* ===== DASHBOARD MEJORADO ===== */
+      .hero-stats {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+
+      @media (max-width: 900px) {
+        .hero-stats {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+
+      .hero-stat {
+        background: var(--card);
+        border-radius: 16px;
+        padding: 20px;
+        border: 1px solid var(--line);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .hero-stat::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 100px;
+        height: 100px;
+        background: radial-gradient(circle, rgba(140,150,104,0.15) 0%, transparent 70%);
+        opacity: 0.5;
+      }
+
+      .hero-stat-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 14px;
+        background: rgba(140,150,104,0.15);
+        color: var(--venus-soft);
+      }
+
+      .hero-stat-value {
+        font-size: 32px;
+        font-weight: 700;
+        color: var(--ink);
+        line-height: 1;
+        margin-bottom: 6px;
+      }
+
+      .hero-stat-label {
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      .hero-stat-trend {
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        font-size: 11px;
+        padding: 4px 8px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .hero-stat-trend.up {
+        background: rgba(34, 197, 94, 0.15);
+        color: #22c55e;
+      }
+
+      .today-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        margin-bottom: 24px;
+      }
+
+      @media (max-width: 700px) {
+        .today-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .today-card {
+        background: var(--card);
+        border-radius: 14px;
+        padding: 18px;
+        border: 1px solid var(--line);
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .today-card:hover {
+        background: rgba(255,255,255,0.05);
+        border-color: var(--venus);
+        transform: translateY(-2px);
+      }
+
+      .today-card-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+
+      .today-card-icon.citas {
+        background: rgba(59, 130, 246, 0.15);
+        color: #60a5fa;
+      }
+
+      .today-card-icon.pendientes {
+        background: rgba(251, 191, 36, 0.15);
+        color: #fbbf24;
+      }
+
+      .today-card-icon.ingresos {
+        background: rgba(34, 197, 94, 0.15);
+        color: #22c55e;
+      }
+
+      .today-card-info h4 {
+        font-size: 24px;
+        font-weight: 700;
+        margin-bottom: 2px;
+      }
+
+      .today-card-info p {
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .dash-empty {
+        text-align: center;
+        padding: 30px 20px;
+        color: var(--muted);
+      }
+
+      .dash-empty p {
+        font-size: 13px;
+      }
+
+      /* Sidebar y layout */
+      .dash-grid {
+        display: grid;
+        grid-template-columns: 1fr 340px;
+        gap: 24px;
+      }
+
+      @media (max-width: 1000px) {
+        .dash-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .dash-sidebar {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+
+      /* Gift Cards summary */
+      .gc-summary {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .gc-summary-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .gc-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+      }
+
+      .gc-dot.pending {
+        background: var(--venus);
+      }
+
+      .gc-dot.expiring {
+        background: #fbbf24;
+      }
+
+      .gc-dot.redeemed {
+        background: #22c55e;
+      }
+
+      .gc-label {
+        flex: 1;
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      .gc-value {
+        font-size: 14px;
+        font-weight: 600;
+      }
+
+      .gc-value.warning {
+        color: #fbbf24;
+      }
+
+      /* Cumpleaños */
+      .birthday-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .birthday-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px;
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 10px;
+      }
+
+      .birthday-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #ff6b6b, #feca57);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+      }
+
+      .birthday-info {
+        flex: 1;
+      }
+
+      .birthday-info h4 {
+        font-size: 13px;
+        font-weight: 500;
+      }
+
+      .birthday-info p {
+        font-size: 11px;
+        color: var(--muted);
+      }
+
+      .birthday-badge {
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 10px;
+        font-weight: 600;
+      }
+
+      .birthday-badge.soon {
+        background: rgba(251, 191, 36, 0.15);
+        color: #fbbf24;
+      }
+
+      .birthday-badge.today {
+        background: rgba(239, 68, 68, 0.15);
+        color: #ef4444;
+      }
+
+      /* Top clientes */
+      .top-client-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .top-client-item:last-child {
+        border-bottom: none;
+      }
+
+      .top-client-rank {
+        width: 24px;
+        height: 24px;
+        border-radius: 6px;
+        background: rgba(140, 150, 104, 0.15);
+        color: var(--venus-soft);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: 700;
+      }
+
+      .top-client-rank.gold {
+        background: linear-gradient(135deg, #fbbf24, #f59e0b);
+        color: #1a1a1a;
+      }
+
+      .top-client-info {
+        flex: 1;
+      }
+
+      .top-client-info h4 {
+        font-size: 13px;
+        font-weight: 500;
+      }
+
+      .top-client-info p {
+        font-size: 11px;
+        color: var(--muted);
+      }
+
+      .top-client-stamps {
+        text-align: right;
+      }
+
+      .top-client-stamps .count {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--venus-soft);
+      }
+
+      .top-client-stamps .label {
+        font-size: 10px;
+        color: var(--muted);
+      }
+
+      /* Wallets */
+      .wallets-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+      }
+
+      .wallet-card {
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 12px;
+        padding: 16px;
+        text-align: center;
+      }
+
+      .wallet-card-icon {
+        font-size: 24px;
+        margin-bottom: 8px;
+      }
+
+      .wallet-card-value {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--ink);
+      }
+
+      .wallet-card-label {
+        font-size: 11px;
+        color: var(--muted);
+      }
+
+      .card-header-link {
+        color: var(--venus-soft);
+        font-size: 12px;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .card-header-link:hover {
+        text-decoration: underline;
+      }
+
+      /* Scanner Modal */
+      .scanner-modal {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.95);
+        z-index: 1000;
+        display: none;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+      }
+
+      .scanner-modal.active {
+        display: flex;
+      }
+
+      .scanner-content {
+        width: 100%;
+        max-width: 400px;
+        text-align: center;
+      }
+
+      .scanner-close {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        background: rgba(255, 255, 255, 0.1);
+        border: none;
+        color: white;
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .scanner-close:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+
+      .scanner-header {
+        margin-bottom: 24px;
+      }
+
+      .scanner-header h2 {
+        font-size: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        margin-bottom: 6px;
+        color: var(--ink);
+      }
+
+      .scanner-header p {
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .scanner-viewport {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 20px;
+        padding: 30px;
+        margin-bottom: 24px;
+        position: relative;
+      }
+
+      .scanner-frame {
+        width: 220px;
+        height: 220px;
+        margin: 0 auto 16px;
+        position: relative;
+        border-radius: 16px;
+      }
+
+      .scanner-corner {
+        position: absolute;
+        width: 30px;
+        height: 30px;
+        border: 3px solid var(--venus);
+      }
+
+      .scanner-corner.tl {
+        top: 0;
+        left: 0;
+        border-right: none;
+        border-bottom: none;
+        border-radius: 8px 0 0 0;
+      }
+
+      .scanner-corner.tr {
+        top: 0;
+        right: 0;
+        border-left: none;
+        border-bottom: none;
+        border-radius: 0 8px 0 0;
+      }
+
+      .scanner-corner.bl {
+        bottom: 0;
+        left: 0;
+        border-right: none;
+        border-top: none;
+        border-radius: 0 0 0 8px;
+      }
+
+      .scanner-corner.br {
+        bottom: 0;
+        right: 0;
+        border-left: none;
+        border-top: none;
+        border-radius: 0 0 8px 0;
+      }
+
+      .scanner-line {
+        position: absolute;
+        left: 10px;
+        right: 10px;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, var(--venus), transparent);
+        top: 50%;
+        animation: scan 2s ease-in-out infinite;
+      }
+
+      @keyframes scan {
+        0%,
+        100% {
+          top: 20%;
+          opacity: 0.5;
+        }
+        50% {
+          top: 80%;
+          opacity: 1;
+        }
+      }
+
+      .scanner-hint {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .scanner-video {
+        width: 100%;
+        height: 220px;
+        object-fit: cover;
+        border-radius: 12px;
+        background: #000;
+        display: none;
+      }
+
+      .scanner-video.active {
+        display: block;
+      }
+
+      .scanner-frame.hidden {
+        display: none;
+      }
+
+      .scanner-options {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 20px;
+      }
+
+      .scanner-option {
+        flex: 1;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 16px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        text-align: left;
+      }
+
+      .scanner-option-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+
+      .scanner-option-icon.loyalty {
+        background: rgba(140, 150, 104, 0.2);
+        color: var(--venus-soft);
+      }
+
+      .scanner-option-icon.gift {
+        background: rgba(251, 191, 36, 0.2);
+        color: #fbbf24;
+      }
+
+      .scanner-option-info h4 {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--ink);
+        margin-bottom: 2px;
+      }
+
+      .scanner-option-info p {
+        font-size: 11px;
+        color: var(--muted);
+      }
+
+      .scanner-manual {
+        padding-top: 16px;
+        border-top: 1px solid var(--line);
+      }
+
+      .scanner-manual p {
+        font-size: 12px;
+        color: var(--muted);
+        margin-bottom: 10px;
+      }
+
+      .scanner-result {
+        display: none;
+        text-align: center;
+        padding: 20px;
+      }
+
+      .scanner-result.active {
+        display: block;
+      }
+
+      .scanner-result-icon {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        margin: 0 auto 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .scanner-result-icon.loyalty {
+        background: rgba(140, 150, 104, 0.2);
+        color: var(--venus-soft);
+      }
+
+      .scanner-result-icon.gift {
+        background: rgba(251, 191, 36, 0.2);
+        color: #fbbf24;
+      }
+
+      .scanner-result h3 {
+        font-size: 18px;
+        margin-bottom: 4px;
+      }
+
+      .scanner-result .subtitle {
+        font-size: 14px;
+        color: var(--muted);
+        margin-bottom: 20px;
+      }
+
+      .scanner-result-actions {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+      }
+
+      .quick-actions {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        z-index: 100;
+      }
+
+      .quick-action-btn {
+        width: 56px;
+        height: 56px;
+        border-radius: 16px;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        transition: all 0.2s;
+      }
+
+      .quick-action-btn.primary {
+        background: var(--venus);
+        color: white;
+      }
+
+      .quick-action-btn.primary:hover {
+        background: var(--venus-soft);
+        transform: scale(1.1);
       }
     </style>
 
@@ -9122,7 +9796,553 @@
         alert('❌ Error de red al simular webhook');
       }
     }
+
+    /* =========================================================
+       DASHBOARD MEJORADO - FASE 1
+       ========================================================= */
+
+    // Saludo según hora del día
+    function updateGreeting() {
+      const hour = new Date().getHours();
+      let greeting = 'Buenas noches';
+      if (hour >= 5 && hour < 12) greeting = 'Buenos días';
+      else if (hour >= 12 && hour < 19) greeting = 'Buenas tardes';
+      
+      const el = document.getElementById('dash-greeting');
+      if (el) el.textContent = greeting;
+    }
+
+    // Cargar estadísticas del dashboard
+    async function loadDashboardStats() {
+      try {
+        // Cargar clientes
+        const clientsRes = await fetch('/api/admin/cards-firebase', { credentials: 'include' });
+        const clientsJson = await clientsRes.json();
+        
+        if (clientsJson.success) {
+          const clients = clientsJson.data || [];
+          const activeClients = clients.filter(c => c.stamps > 0 || c.cycles > 0).length;
+          document.getElementById('stat-total-clients').textContent = activeClients || clients.length;
+          
+          // Calcular sellos este mes
+          const now = new Date();
+          const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+          let stampsThisMonth = 0;
+          let redeemsThisMonth = 0;
+          
+          clients.forEach(c => {
+            if (c.lastVisit && new Date(c.lastVisit) >= firstOfMonth) {
+              stampsThisMonth += c.stamps || 0;
+            }
+            redeemsThisMonth += c.cycles || 0;
+          });
+          
+          document.getElementById('stat-stamps-month').textContent = stampsThisMonth;
+          document.getElementById('stat-redeems-month').textContent = redeemsThisMonth;
+          
+          // Tasa de retorno
+          const returningClients = clients.filter(c => (c.stamps + (c.cycles * 8)) > 1).length;
+          const returnRate = clients.length > 0 ? Math.round((returningClients / clients.length) * 100) : 0;
+          document.getElementById('stat-return-rate').textContent = returnRate + '%';
+
+          // Top clientes
+          renderTopClients(clients);
+
+          // Wallets
+          const appleCount = clients.filter(c => c.walletType === 'apple').length;
+          const googleCount = clients.filter(c => c.walletType === 'google').length;
+          document.getElementById('wallet-apple').textContent = appleCount;
+          document.getElementById('wallet-google').textContent = googleCount;
+        }
+        
+        // Cargar citas de hoy
+        await loadTodayStats();
+
+        // Cargar gift cards
+        await loadGiftCardStats();
+
+        // Cargar cumpleaños
+        await loadBirthdays();
+        
+      } catch (error) {
+        console.error('Error loading dashboard:', error);
+      }
+    }
+
+    // Cargar stats de hoy
+    async function loadTodayStats() {
+      try {
+        const today = new Date().toISOString().split('T')[0];
+        
+        // Simular datos por ahora - conectar con API real cuando esté disponible
+        document.getElementById('today-appointments').textContent = '0';
+        document.getElementById('today-pending').textContent = '0';
+        document.getElementById('today-income').textContent = '$0';
+        
+      } catch (error) {
+        console.error('Error loading today stats:', error);
+      }
+    }
+
+    // Cargar stats de gift cards
+    async function loadGiftCardStats() {
+      try {
+        const res = await fetch('/api/giftcards', { credentials: 'include' });
+        const json = await res.json();
+        
+        if (json.success) {
+          const giftcards = json.data || [];
+          const now = new Date();
+          const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+          const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+          
+          const pending = giftcards.filter(gc => gc.status === 'pending' && new Date(gc.expiresAt) > now).length;
+          const expiring = giftcards.filter(gc => {
+            const expires = new Date(gc.expiresAt);
+            return gc.status === 'pending' && expires > now && expires <= sevenDaysFromNow;
+          }).length;
+          const redeemedThisMonth = giftcards.filter(gc => {
+            return gc.status === 'redeemed' && gc.redeemedAt && new Date(gc.redeemedAt) >= firstOfMonth;
+          }).length;
+          
+          document.getElementById('gc-pending').textContent = pending;
+          document.getElementById('gc-expiring').textContent = expiring;
+          document.getElementById('gc-redeemed').textContent = redeemedThisMonth;
+        }
+      } catch (error) {
+        console.error('Error loading gift card stats:', error);
+      }
+    }
+
+    // Cargar cumpleaños
+    async function loadBirthdays() {
+      try {
+        const res = await fetch('/api/admin/cards-firebase', { credentials: 'include' });
+        const json = await res.json();
+        
+        if (json.success) {
+          const clients = json.data || [];
+          const now = new Date();
+          const birthdays = [];
+          
+          clients.forEach(c => {
+            if (c.birthday) {
+              const bday = new Date(c.birthday);
+              const thisYearBday = new Date(now.getFullYear(), bday.getMonth(), bday.getDate());
+              
+              if (thisYearBday < now) {
+                thisYearBday.setFullYear(now.getFullYear() + 1);
+              }
+              
+              const daysUntil = Math.ceil((thisYearBday - now) / (1000 * 60 * 60 * 24));
+              
+              if (daysUntil <= 30) {
+                birthdays.push({
+                  name: c.name,
+                  date: thisYearBday,
+                  daysUntil,
+                  dateStr: thisYearBday.toLocaleDateString('es-MX', { day: 'numeric', month: 'long' })
+                });
+              }
+            }
+          });
+          
+          birthdays.sort((a, b) => a.daysUntil - b.daysUntil);
+          renderBirthdays(birthdays.slice(0, 3));
+        }
+      } catch (error) {
+        console.error('Error loading birthdays:', error);
+      }
+    }
+
+    function renderBirthdays(birthdays) {
+      const container = document.getElementById('birthday-list');
+      
+      if (birthdays.length === 0) {
+        container.innerHTML = '<div class="dash-empty"><p>Sin cumpleaños próximos</p></div>';
+        return;
+      }
+      
+      container.innerHTML = birthdays.map(b => {
+        let badgeClass = 'soon';
+        let badgeText = `En ${b.daysUntil} días`;
+        
+        if (b.daysUntil === 0) {
+          badgeClass = 'today';
+          badgeText = '¡Hoy!';
+        } else if (b.daysUntil === 1) {
+          badgeText = 'Mañana';
+        }
+        
+        return `
+          <div class="birthday-item">
+            <div class="birthday-avatar">🎂</div>
+            <div class="birthday-info">
+              <h4>${b.name}</h4>
+              <p>${b.dateStr}</p>
+            </div>
+            <span class="birthday-badge ${badgeClass}">${badgeText}</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Renderizar top clientes
+    function renderTopClients(clients) {
+      const container = document.getElementById('top-clients-sidebar');
+      
+      const sorted = [...clients]
+        .map(c => ({ ...c, totalStamps: (c.stamps || 0) + ((c.cycles || 0) * 8) }))
+        .sort((a, b) => b.totalStamps - a.totalStamps)
+        .slice(0, 5);
+      
+      if (sorted.length === 0 || sorted[0].totalStamps === 0) {
+        container.innerHTML = '<div class="dash-empty"><p>Sin datos aún</p></div>';
+        return;
+      }
+      
+      container.innerHTML = sorted.map((c, i) => {
+        const maxStamps = 8;
+        const remaining = maxStamps - c.stamps;
+        
+        return `
+          <div class="top-client-item">
+            <div class="top-client-rank ${i === 0 ? 'gold' : ''}">${i + 1}</div>
+            <div class="top-client-info">
+              <h4>${c.name}</h4>
+              <p>${remaining > 0 ? remaining + ' para canjear' : '¡Listo para canjear!'}</p>
+            </div>
+            <div class="top-client-stamps">
+              <div class="count">${c.stamps}/${maxStamps}</div>
+              <div class="label">sellos</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Inicializar dashboard
+    document.addEventListener('DOMContentLoaded', () => {
+      updateGreeting();
+      
+      const activeTab = document.querySelector('.tab-content:not(.hidden)');
+      if (activeTab && activeTab.id === 'tab-overview') {
+        loadDashboardStats();
+      }
+    });
+
+    window.loadDashboardStats = loadDashboardStats;
+
+    /* =========================================================
+       SCANNER UNIVERSAL - FASE 3
+       ========================================================= */
+
+    let scannerStream = null;
+
+    function openScanner() {
+      document.getElementById('scanner-modal').classList.add('active');
+      document.getElementById('scanner-result').classList.remove('active');
+      document.getElementById('scanner-options').style.display = 'flex';
+      document.getElementById('scanner-manual').style.display = 'block';
+      document.getElementById('scanner-viewport').style.display = 'block';
+      document.getElementById('scanner-hint').textContent = 'Apunta la cámara al código QR';
+      
+      startCamera();
+    }
+
+    function closeScanner() {
+      document.getElementById('scanner-modal').classList.remove('active');
+      stopCamera();
+    }
+
+    async function startCamera() {
+      const video = document.getElementById('scanner-video');
+      const frame = document.getElementById('scanner-frame');
+      
+      try {
+        scannerStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment' }
+        });
+        
+        video.srcObject = scannerStream;
+        video.classList.add('active');
+        frame.classList.add('hidden');
+        
+        await video.play();
+        
+        // Por ahora sin escaneo automático - requiere jsQR library
+        // Para demo, mostrar mensaje
+        setTimeout(() => {
+          document.getElementById('scanner-hint').textContent = 'Usa el botón de código manual para probar';
+        }, 2000);
+        
+      } catch (error) {
+        console.error('Error accessing camera:', error);
+        document.getElementById('scanner-hint').textContent = 'No se pudo acceder a la cámara. Usa el código manual.';
+      }
+    }
+
+    function stopCamera() {
+      if (scannerStream) {
+        scannerStream.getTracks().forEach(track => track.stop());
+        scannerStream = null;
+      }
+      
+      const video = document.getElementById('scanner-video');
+      video.classList.remove('active');
+      document.getElementById('scanner-frame').classList.remove('hidden');
+    }
+
+    async function handleScannedCode(code) {
+      stopCamera();
+      
+      document.getElementById('scanner-hint').textContent = 'Procesando...';
+      document.getElementById('scanner-options').style.display = 'none';
+      document.getElementById('scanner-manual').style.display = 'none';
+      
+      try {
+        if (code.startsWith('VGC-')) {
+          await handleGiftCardScan(code);
+        } else {
+          await handleLoyaltyScan(code);
+        }
+      } catch (error) {
+        console.error('Error processing code:', error);
+        document.getElementById('scanner-hint').textContent = 'Error al procesar. Intenta de nuevo.';
+      }
+    }
+
+    async function handleLoyaltyScan(cardId) {
+      try {
+        const res = await fetch(`/api/card/${cardId}`, { credentials: 'include' });
+        const json = await res.json();
+        
+        if (json.success) {
+          const card = json.data;
+          showScanResult('loyalty', card.name, `${card.stamps}/8 sellos`, cardId);
+        } else {
+          document.getElementById('scanner-hint').textContent = 'Tarjeta no encontrada';
+          setTimeout(() => {
+            document.getElementById('scanner-options').style.display = 'flex';
+            document.getElementById('scanner-manual').style.display = 'block';
+            document.getElementById('scanner-hint').textContent = 'Intenta de nuevo';
+          }, 2000);
+        }
+      } catch (error) {
+        document.getElementById('scanner-hint').textContent = 'Error de conexión';
+      }
+    }
+
+    async function handleGiftCardScan(code) {
+      try {
+        const res = await fetch(`/api/giftcards/code/${code}`, { credentials: 'include' });
+        const json = await res.json();
+        
+        if (json.success) {
+          const gc = json.data;
+          const statusText = gc.status === 'redeemed' ? '(Ya canjeada)' : gc.serviceName;
+          showScanResult('gift', gc.recipientName || 'Gift Card', statusText, gc.id, gc.status);
+        } else {
+          document.getElementById('scanner-hint').textContent = 'Gift Card no encontrada';
+          setTimeout(() => {
+            document.getElementById('scanner-options').style.display = 'flex';
+            document.getElementById('scanner-manual').style.display = 'block';
+            document.getElementById('scanner-hint').textContent = 'Intenta de nuevo';
+          }, 2000);
+        }
+      } catch (error) {
+        document.getElementById('scanner-hint').textContent = 'Error de conexión';
+      }
+    }
+
+    function showScanResult(type, title, subtitle, id, status) {
+      const resultDiv = document.getElementById('scanner-result');
+      const iconDiv = document.getElementById('scanner-result-icon');
+      const actionsDiv = document.getElementById('scanner-result-actions');
+      
+      document.getElementById('scanner-result-title').textContent = title;
+      document.getElementById('scanner-result-subtitle').textContent = subtitle;
+      
+      iconDiv.className = 'scanner-result-icon ' + type;
+      iconDiv.innerHTML = type === 'loyalty' 
+        ? '<i class="fas fa-credit-card"></i>' 
+        : '<i class="fas fa-gift"></i>';
+      
+      if (type === 'loyalty') {
+        actionsDiv.innerHTML = `
+          <button class="btn primary" onclick="addStampFromScanner('${id}')">
+            <i class="fas fa-star"></i> Agregar Sello
+          </button>
+          <button class="btn ghost" onclick="closeScanner()">Cancelar</button>
+        `;
+      } else {
+        if (status === 'redeemed') {
+          actionsDiv.innerHTML = `
+            <button class="btn ghost" onclick="closeScanner()">
+              <i class="fas fa-check"></i> Ya canjeada
+            </button>
+          `;
+        } else if (status === 'expired') {
+          actionsDiv.innerHTML = `
+            <button class="btn ghost" onclick="closeScanner()">
+              <i class="fas fa-times"></i> Expirada
+            </button>
+          `;
+        } else {
+          actionsDiv.innerHTML = `
+            <button class="btn primary" onclick="redeemGiftCardFromScanner('${id}')">
+              <i class="fas fa-gift"></i> Canjear
+            </button>
+            <button class="btn ghost" onclick="closeScanner()">Cancelar</button>
+          `;
+        }
+      }
+      
+      document.getElementById('scanner-viewport').style.display = 'none';
+      resultDiv.classList.add('active');
+    }
+
+    async function addStampFromScanner(cardId) {
+      try {
+        const res = await fetch(`/api/stamp/${cardId}`, {
+          method: 'POST',
+          credentials: 'include'
+        });
+        const json = await res.json();
+        
+        if (json.success) {
+          alert('✓ Sello agregado correctamente');
+          closeScanner();
+          loadDashboardStats();
+        } else {
+          alert('Error: ' + json.error);
+        }
+      } catch (error) {
+        alert('Error de conexión');
+      }
+    }
+
+    async function redeemGiftCardFromScanner(giftcardId) {
+      try {
+        const res = await fetch(`/api/giftcards/${giftcardId}/redeem`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ redeemedBy: 'Scanner' })
+        });
+        const json = await res.json();
+        
+        if (json.success) {
+          alert('✓ Gift Card canjeada correctamente');
+          closeScanner();
+          loadDashboardStats();
+        } else {
+          alert('Error: ' + json.error);
+        }
+      } catch (error) {
+        alert('Error de conexión');
+      }
+    }
+
+    function showManualCodeInput() {
+      const code = prompt('Ingresa el código de la tarjeta o gift card:');
+      if (code && code.trim()) {
+        handleScannedCode(code.trim().toUpperCase());
+      }
+    }
+
+    // Cerrar scanner con ESC
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const modal = document.getElementById('scanner-modal');
+        if (modal && modal.classList.contains('active')) {
+          closeScanner();
+        }
+      }
+    });
+
+    window.openScanner = openScanner;
+    window.closeScanner = closeScanner;
+    window.showManualCodeInput = showManualCodeInput;
+    window.addStampFromScanner = addStampFromScanner;
+    window.redeemGiftCardFromScanner = redeemGiftCardFromScanner;
+
   </script>
+
+  <!-- Botones flotantes -->
+  <div class="quick-actions">
+    <button class="quick-action-btn scanner" title="Escanear QR" onclick="openScanner()">
+      <i class="fas fa-qrcode"></i>
+    </button>
+    <button class="quick-action-btn primary" title="Nueva cita" onclick="newApptDialog.showModal()">
+      <i class="fas fa-plus"></i>
+    </button>
+  </div>
+
+  <!-- Modal Scanner Universal -->
+  <div class="scanner-modal" id="scanner-modal">
+    <div class="scanner-content">
+      <button class="scanner-close" onclick="closeScanner()">
+        <i class="fas fa-times"></i>
+      </button>
+      
+      <div class="scanner-header">
+        <h2><i class="fas fa-qrcode"></i> Escanear QR</h2>
+        <p>Tarjetas de lealtad o Gift Cards</p>
+      </div>
+
+      <div class="scanner-viewport" id="scanner-viewport">
+        <video id="scanner-video" class="scanner-video" playsinline></video>
+        <div class="scanner-frame" id="scanner-frame">
+          <div class="scanner-corner tl"></div>
+          <div class="scanner-corner tr"></div>
+          <div class="scanner-corner bl"></div>
+          <div class="scanner-corner br"></div>
+          <div class="scanner-line"></div>
+        </div>
+        <p class="scanner-hint" id="scanner-hint">Apunta la cámara al código QR</p>
+      </div>
+
+      <div class="scanner-result" id="scanner-result">
+        <div class="scanner-result-icon" id="scanner-result-icon">
+          <i class="fas fa-credit-card"></i>
+        </div>
+        <h3 id="scanner-result-title">Cliente encontrado</h3>
+        <p class="subtitle" id="scanner-result-subtitle">-</p>
+        <div class="scanner-result-actions" id="scanner-result-actions">
+          <!-- Botones dinámicos -->
+        </div>
+      </div>
+
+      <div class="scanner-options" id="scanner-options">
+        <div class="scanner-option">
+          <div class="scanner-option-icon loyalty">
+            <i class="fas fa-credit-card"></i>
+          </div>
+          <div class="scanner-option-info">
+            <h4>Tarjeta de Lealtad</h4>
+            <p>Agregar sello (+1)</p>
+          </div>
+        </div>
+        <div class="scanner-option">
+          <div class="scanner-option-icon gift">
+            <i class="fas fa-gift"></i>
+          </div>
+          <div class="scanner-option-info">
+            <h4>Gift Card</h4>
+            <p>Canjear servicio</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="scanner-manual" id="scanner-manual">
+        <p>¿No funciona la cámara?</p>
+        <button class="btn ghost" style="width:100%;" onclick="showManualCodeInput()">
+          <i class="fas fa-keyboard"></i> Ingresar código manual
+        </button>
+      </div>
+    </div>
+  </div>
 </body>
 
 </html>
