@@ -7025,15 +7025,22 @@
           apptsTbody.innerHTML = json.data.map(appt => {
             const time = new Date(appt.startDateTime).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false });
             const statusColors = {
-              'scheduled': 'var(--venus-green)',
-              'cancelled': 'var(--err-text)',
-              'completed': 'var(--ok-text)'
+              'scheduled': '#3b82f6',      // Azul
+              'confirmed': '#22c55e',      // Verde
+              'rescheduling': '#fbbf24',   // Amarillo
+              'completed': 'var(--venus-soft)', // Verde Venus
+              'cancelled': '#ef4444'       // Rojo
             };
             const statusLabels = {
               'scheduled': 'Agendada',
-              'cancelled': 'Cancelada',
-              'completed': 'Completada'
+              'confirmed': 'Confirmada',
+              'rescheduling': 'Reagendada',
+              'completed': 'Pagada',
+              'cancelled': 'Cancelada'
             };
+
+            // Mostrar botones para todos los estados excepto cancelada y completada
+            const showButtons = !['cancelled', 'completed'].includes(appt.status);
 
             return `
           <tr>
@@ -7045,7 +7052,7 @@
             <td>${appt.serviceName}</td>
             <td><span class="tag" style="background:rgba(255,255,255,0.1);color:${statusColors[appt.status] || '#fff'}">${statusLabels[appt.status] || appt.status}</span></td>
             <td>
-          ${appt.status === 'scheduled' || appt.status === 'rescheduling' ? `
+          ${showButtons ? `
             <button class="btn small" onclick="openPaymentDialog('${appt.id}')"
               style="background:#22c55e;color:white;margin-right:5px;">
               💵 Pagar
