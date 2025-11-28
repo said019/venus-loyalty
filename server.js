@@ -1704,6 +1704,51 @@ app.get("/api/dashboard/today", adminAuth, async (req, res) => {
   }
 });
 
+// ⭐ NUEVO: Endpoint para historial de actividad (7 días)
+app.get("/api/dashboard/history", adminAuth, async (req, res) => {
+  try {
+    const history = [];
+    const now = new Date();
+
+    // Iterar últimos 7 días
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(now);
+      date.setDate(date.getDate() - i);
+      date.setHours(0, 0, 0, 0);
+
+      const nextDate = new Date(date);
+      nextDate.setDate(date.getDate() + 1);
+
+      const snapshot = await firestore.collection('appointments')
+        .where('startDateTime', '>=', date.toISOString())
+        .where('startDateTime', '<', nextDate.toISOString())
+        .get();
+
+      let count = 0;
+      let income = 0;
+
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        count++;
+        if (data.status === 'completed' && data.totalPaid) {
+          income += parseFloat(data.totalPaid) || 0;
+        }
+      });
+
+      history.push({
+        date: date.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric' }),
+        appointments: count,
+        income: income
+      });
+    }
+
+    res.json({ success: true, data: history });
+  } catch (error) {
+    console.error("Error fetching dashboard history:", error);
+    res.json({ success: false, error: error.message });
+  }
+});
+
 /* =========================================================
    SUMAR SELLO (staff) - CON NOTIFICACIÓN APPLE - ⭐ CORREGIDO
    ========================================================= */
