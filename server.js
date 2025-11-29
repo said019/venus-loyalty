@@ -175,7 +175,10 @@ async function fsUpdateCard(cardId, data) {
 }
 
 async function fsUpdateCardStamps(cardId, stamps) {
-  return fsUpdateCard(cardId, { stamps });
+  return fsUpdateCard(cardId, {
+    stamps,
+    lastVisit: new Date().toISOString()
+  });
 }
 
 async function fsAddEvent(cardId, type, meta = {}) {

@@ -10778,7 +10778,14 @@
         });
         const json = await res.json();
 
-        if (json.success) {
+        if (json.success || json.stamps !== undefined) {
+          const clientName = json.name || 'Cliente';
+          const stamps = json.stamps || 0;
+          const maxStamps = json.max || 8;
+
+          // Crear notificación
+          notifySello(clientName, stamps, maxStamps);
+
           alert('✓ Sello agregado correctamente');
           closeScanner();
           loadDashboardStats();
