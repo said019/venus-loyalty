@@ -6847,8 +6847,15 @@
           document.getElementById('cm-visited-count').textContent = stamps.length;
           document.getElementById('cm-cycles-completed').textContent = redeems.length;
 
-          // Última visita (último stamp)
-          if (stamps.length > 0) {
+          // Última visita (usar campo directo de la tarjeta)
+          const lastVisitField = card.lastVisit || card.last_visit;
+          if (lastVisitField) {
+            const lastVisitDate = new Date(lastVisitField);
+            document.getElementById('cm-last-visit').textContent = lastVisitDate.toLocaleDateString('es-MX', {
+              day: 'numeric', month: 'short', year: 'numeric'
+            });
+          } else if (stamps.length > 0) {
+            // Fallback a eventos si no hay campo directo
             const lastStamp = stamps.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
             const lastVisitDate = new Date(lastStamp.createdAt);
             document.getElementById('cm-last-visit').textContent = lastVisitDate.toLocaleDateString('es-MX', {
