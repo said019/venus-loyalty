@@ -1630,6 +1630,58 @@ app.get("/api/admin/cards-firebase", adminAuth, async (req, res) => {
   }
 });
 
+// ⭐ NUEVO: Endpoint para corregir campo lastVisit en tarjetas existentes
+app.post("/api/admin/fix-lastvisit", adminAuth, async (req, res) => {
+  try {
+    console.log('🔧 Iniciando corrección de campo lastVisit...');
+    
+    const cardsSnap = await firestore.collection(COL_CARDS).get();
+    let fixed = 0;
+    let alreadyHave = 0;
+    let noDate = 0;
+    const total = cardsSnap.size;
+
+    for (const doc of cardsSnap.docs) {
+      const card = doc.data();
+      
+      // Si ya tiene lastVisit, skip
+      if (card.lastVisit) {
+        alreadyHave++;
+        continue;
+      }
+
+      // Si no tiene lastVisit, usar updatedAt o createdAt
+      const fallbackDate = card.updatedAt || card.createdAt;
+      
+      if (fallbackDate) {
+        await firestore.collection(COL_CARDS).doc(doc.id).update({
+          lastVisit: fallbackDate
+        });
+        
+        console.log(`✅ ${card.name || doc.id}: lastVisit = ${fallbackDate}`);
+        fixed++;
+      } else {
+        console.log(`⚠️  ${card.name || doc.id}: No hay fecha disponible`);
+        noDate++;
+      }
+    }
+
+    const result = {
+      success: true,
+      total,
+      alreadyHave,
+      fixed,
+      noDate
+    };
+
+    console.log('📊 Resumen:', result);
+    res.json(result);
+  } catch (e) {
+    console.error("[FIX-LASTVISIT]", e);
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
 app.get("/api/admin/events-firebase", adminAuth, async (req, res) => {
   try {
     const { cardId } = req.query || {};

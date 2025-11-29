@@ -203,13 +203,43 @@ async function procesarCancelacion(cita) {
     console.log(`❌ Procesando cancelación para cita ${cita.id}`);
 
     try {
+        // 1. Cancelar en Firestore
         await firestore.collection('appointments').doc(cita.id).update({
             status: 'cancelled',
             cancelledAt: new Date().toISOString(),
             cancelledVia: 'whatsapp'
         });
 
-        // Crear notificación
+        // 2. Eliminar de Google Calendar si hay eventIds
+        try {
+            const { deleteEvent } = await import('../services/googleCalendarService.js');
+            const { config } = await import('../config/config.js');
+
+            // Eliminar evento 1 si existe
+            if (cita.googleCalendarEventId) {
+                try {
+                    await deleteEvent(cita.googleCalendarEventId, config.google.calendarOwner1);
+                    console.log(`✅ Evento eliminado del calendar 1: ${cita.googleCalendarEventId}`);
+                } catch (err) {
+                    console.error(`❌ Error eliminando evento del calendar 1:`, err.message);
+                }
+            }
+
+            // Eliminar evento 2 si existe
+            if (cita.googleCalendarEventId2) {
+                try {
+                    await deleteEvent(cita.googleCalendarEventId2, config.google.calendarOwner2);
+                    console.log(`✅ Evento eliminado del calendar 2: ${cita.googleCalendarEventId2}`);
+                } catch (err) {
+                    console.error(`❌ Error eliminando evento del calendar 2:`, err.message);
+                }
+            }
+        } catch (calErr) {
+            console.error('⚠️ Error eliminando eventos del calendario:', calErr.message);
+            // Continuar de todos modos - la cita ya está cancelada en Firestore
+        }
+
+        // 3. Crear notificación
         await firestore.collection('notifications').add({
             type: 'alerta',
             icon: 'calendar-times',
@@ -220,9 +250,10 @@ async function procesarCancelacion(cita) {
             entityId: cita.id
         });
 
+        // 4. Enviar confirmación por WhatsApp
         await WhatsAppService.sendCancelacionConfirmada(cita);
 
-        console.log(`❌ Cita ${cita.id} cancelada exitosamente`);
+        console.log(`❌ Cita ${cita.id} cancelada exitosamente (Firestore + Google Calendar)`);
 
     } catch (error) {
         console.error('Error procesando cancelación:', error);

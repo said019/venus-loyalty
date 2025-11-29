@@ -5530,6 +5530,11 @@
           if (typeof loadAppointments === 'function') loadAppointments();
           if (typeof loadTodayAppointments === 'function') loadTodayAppointments();
           if (typeof loadMonthStats === 'function') loadMonthStats();
+          // Iniciar auto-refresh cuando se entra al tab de appointments
+          if (typeof startAppointmentsAutoRefresh === 'function') startAppointmentsAutoRefresh();
+        } else {
+          // Detener auto-refresh cuando se sale del tab de appointments
+          if (typeof stopAppointmentsAutoRefresh === 'function') stopAppointmentsAutoRefresh();
         }
       });
     });
@@ -5766,7 +5771,7 @@
 
         // 2 & 3. Clientes activos e inactivos (últimos 30 días)
         const activeClients = cards.filter(c => {
-          const lastVisit = c.last_visit || c.updated_at;
+          const lastVisit = c.lastVisit || c.last_visit || c.updatedAt || c.updated_at;
           if (!lastVisit) return false;
           return new Date(lastVisit) >= thirtyDaysAgo;
         });
@@ -5776,7 +5781,7 @@
         let totalDays = 0;
         let count = 0;
         cards.forEach(c => {
-          const lastVisit = c.last_visit || c.updated_at;
+          const lastVisit = c.lastVisit || c.last_visit || c.updatedAt || c.updated_at;
           if (lastVisit) {
             const days = Math.floor((Date.now() - new Date(lastVisit).getTime()) / (24 * 60 * 60 * 1000));
             totalDays += days;
@@ -5821,7 +5826,7 @@
       const dayCounts = [0, 0, 0, 0, 0, 0, 0];
 
       cards.forEach(c => {
-        const lastVisit = c.last_visit || c.updated_at;
+        const lastVisit = c.lastVisit || c.last_visit || c.updatedAt || c.updated_at;
         if (lastVisit) {
           const day = new Date(lastVisit).getDay();
           dayCounts[day]++;
@@ -5868,7 +5873,7 @@
       const hourCounts = new Array(24).fill(0);
 
       cards.forEach(c => {
-        const lastVisit = c.last_visit || c.updated_at;
+        const lastVisit = c.lastVisit || c.last_visit || c.updatedAt || c.updated_at;
         if (lastVisit) {
           const hour = new Date(lastVisit).getHours();
           hourCounts[hour]++;
@@ -6259,7 +6264,7 @@
         tbody.innerHTML = data.items.map(card => {
           // Formatear última visita
           let lastVisitStr = '—';
-          const lastVisitField = card.lastVisit || card.last_visit;
+          const lastVisitField = card.lastVisit || card.last_visit || card.updatedAt || card.updated_at;
 
           if (lastVisitField) {
             const lastDate = new Date(lastVisitField);
@@ -6270,8 +6275,6 @@
             else if (diffDays === 1) lastVisitStr = 'Ayer';
             else if (diffDays < 7) lastVisitStr = `Hace ${diffDays} días`;
             else lastVisitStr = lastDate.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' });
-          } else if (card.updated_at) {
-            lastVisitStr = new Date(card.updated_at).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' });
           }
 
           return `
@@ -8246,6 +8249,41 @@
         loadMonthStats();
       } catch (e) { alert('Error: ' + e.message); }
     };
+
+    // ========== AUTO-REFRESH PARA CITAS (detecta cambios de WhatsApp) ==========
+    let appointmentsRefreshInterval = null;
+
+    function startAppointmentsAutoRefresh() {
+      // Refrescar cada 30 segundos cuando está en el tab de appointments
+      if (appointmentsRefreshInterval) {
+        clearInterval(appointmentsRefreshInterval);
+      }
+      
+      appointmentsRefreshInterval = setInterval(() => {
+        const appointmentsTab = document.getElementById('tab-appointments');
+        if (appointmentsTab && !appointmentsTab.classList.contains('hidden')) {
+          console.log('🔄 Auto-refresh: actualizando citas...');
+          loadAppointments();
+          renderWeeklyCalendar();
+          loadMonthStats();
+        }
+      }, 30000); // 30 segundos
+    }
+
+    function stopAppointmentsAutoRefresh() {
+      if (appointmentsRefreshInterval) {
+        clearInterval(appointmentsRefreshInterval);
+        appointmentsRefreshInterval = null;
+      }
+    }
+
+    // Iniciar auto-refresh cuando se carga la página si está en appointments
+    document.addEventListener('DOMContentLoaded', () => {
+      const appointmentsTab = document.getElementById('tab-appointments');
+      if (appointmentsTab && !appointmentsTab.classList.contains('hidden')) {
+        startAppointmentsAutoRefresh();
+      }
+    });
 
     // ========== REGISTRAR PAGO ==========
     window.openPaymentDialog = async (apptId) => {
