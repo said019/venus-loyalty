@@ -1577,6 +1577,12 @@
     }
 
     /* Mobile Menu Styles */
+    .mobile-actions {
+      display: none;
+      align-items: center;
+      gap: 8px;
+    }
+
     .mobile-menu-btn {
       display: none;
       background: none;
@@ -1584,6 +1590,10 @@
       color: var(--ink);
       font-size: 24px;
       cursor: pointer;
+    }
+
+    .mobile-bell {
+      display: none;
     }
 
     .mobile-menu {
@@ -1633,7 +1643,15 @@
         display: none !important;
       }
 
+      .mobile-actions {
+        display: flex;
+      }
+
       .mobile-menu-btn {
+        display: block;
+      }
+
+      .mobile-bell {
         display: block;
       }
 
@@ -1958,8 +1976,16 @@
           <div class="muted" id="me-line">Sesión iniciada</div>
         </div>
       </div>
-      <button class="mobile-menu-btn" id="mobile-menu-toggle"><i class="fas fa-bars"></i></button>
-      <div class="actions desktop-only">
+      <!-- Campana móvil -->
+      <div class="mobile-actions">
+        <button class="notification-bell mobile-bell" onclick="toggleNotifications()" title="Notificaciones">
+          <i class="fas fa-bell"></i>
+          <span class="notification-badge hidden" id="notif-badge-mobile">0</span>
+        </button>
+        <button class="mobile-menu-btn" id="mobile-menu-toggle"><i class="fas fa-bars"></i></button>
+      </div>
+      
+      <div class="actions desktop-only"></div>
         <!-- Campana de Notificaciones -->
         <div class="notification-wrapper">
           <button class="notification-bell" onclick="toggleNotifications()" title="Notificaciones">
@@ -11033,9 +11059,17 @@
 
     function updateBadge() {
       const badge = document.getElementById('notif-badge');
+      const badgeMobile = document.getElementById('notif-badge-mobile');
+      const count = unreadCount > 99 ? '99+' : unreadCount;
+      
       if (badge) {
-        badge.textContent = unreadCount > 99 ? '99+' : unreadCount;
+        badge.textContent = count;
         badge.classList.toggle('hidden', unreadCount === 0);
+      }
+      
+      if (badgeMobile) {
+        badgeMobile.textContent = count;
+        badgeMobile.classList.toggle('hidden', unreadCount === 0);
       }
     }
 
