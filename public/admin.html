@@ -10322,12 +10322,27 @@
     // Cargar estadísticas del dashboard
     async function loadDashboardStats() {
       try {
-        // Cargar clientes
-        const clientsRes = await fetch('/api/admin/cards-firebase', { credentials: 'include' });
-        const clientsJson = await clientsRes.json();
+        // Cargar TODAS las tarjetas (no solo la primera página)
+        let allClients = [];
+        let page = 1;
+        let hasMore = true;
 
-        if (clientsJson.success) {
-          const clients = clientsJson.data || [];
+        while (hasMore) {
+          const clientsRes = await fetch(`/api/admin/cards-firebase?page=${page}&limit=100`, { credentials: 'include' });
+          const clientsJson = await clientsRes.json();
+
+          if (clientsJson.success && clientsJson.items) {
+            allClients = [...allClients, ...clientsJson.items];
+            hasMore = page < clientsJson.totalPages;
+            page++;
+          } else {
+            hasMore = false;
+          }
+        }
+
+        const clients = allClients;
+
+        if (clients.length > 0) {
           const activeClients = clients.filter(c => c.stamps > 0 || c.cycles > 0).length;
           document.getElementById('stat-total-clients').textContent = activeClients || clients.length;
 
@@ -10360,6 +10375,9 @@
           const googleCount = clients.filter(c => c.walletType === 'google').length;
           document.getElementById('wallet-apple').textContent = appleCount;
           document.getElementById('wallet-google').textContent = googleCount;
+
+          // Cargar cumpleaños con todas las tarjetas
+          loadBirthdaysFromClients(clients);
         }
 
         // Cargar citas de hoy
@@ -10367,9 +10385,6 @@
 
         // Cargar gift cards
         await loadGiftCardStats();
-
-        // Cargar cumpleaños
-        await loadBirthdays();
 
         // Cargar gráfica de actividad
         await loadActivityChart();
@@ -10426,42 +10441,42 @@
       }
     }
 
-    // Cargar cumpleaños
-    async function loadBirthdays() {
+    // Cargar cumpleaños desde clientes ya cargados
+    function loadBirthdaysFromClients(clients) {
       try {
-        const res = await fetch('/api/admin/cards-firebase', { credentials: 'include' });
-        const json = await res.json();
+        const now = new Date();
+        const birthdays = [];
 
-        if (json.success) {
-          const clients = json.data || [];
-          const now = new Date();
-          const birthdays = [];
+        clients.forEach(c => {
+          // Usar birthdate (no birthday)
+          const birthdateField = c.birthdate || c.birthday;
+          
+          if (birthdateField) {
+            // Parsear fecha en formato YYYY-MM-DD
+            const [year, month, day] = birthdateField.split('-').map(Number);
+            const thisYearBday = new Date(now.getFullYear(), month - 1, day);
 
-          clients.forEach(c => {
-            if (c.birthday) {
-              const bday = new Date(c.birthday);
-              const thisYearBday = new Date(now.getFullYear(), bday.getMonth(), bday.getDate());
-
-              if (thisYearBday < now) {
-                thisYearBday.setFullYear(now.getFullYear() + 1);
-              }
-
-              const daysUntil = Math.ceil((thisYearBday - now) / (1000 * 60 * 60 * 24));
-
-              if (daysUntil <= 30) {
-                birthdays.push({
-                  name: c.name,
-                  date: thisYearBday,
-                  daysUntil,
-                  dateStr: thisYearBday.toLocaleDateString('es-MX', { day: 'numeric', month: 'long' })
-                });
-              }
+            // Si ya pasó este año, usar el próximo año
+            if (thisYearBday < now) {
+              thisYearBday.setFullYear(now.getFullYear() + 1);
             }
-          });
 
-          birthdays.sort((a, b) => a.daysUntil - b.daysUntil);
-          renderBirthdays(birthdays.slice(0, 3));
-        }
+            const daysUntil = Math.ceil((thisYearBday - now) / (1000 * 60 * 60 * 24));
+
+            // Mostrar cumpleaños en los próximos 30 días
+            if (daysUntil <= 30) {
+              birthdays.push({
+                name: c.name,
+                date: thisYearBday,
+                daysUntil,
+                dateStr: thisYearBday.toLocaleDateString('es-MX', { day: 'numeric', month: 'long' })
+              });
+            }
+          }
+        });
+
+        birthdays.sort((a, b) => a.daysUntil - b.daysUntil);
+        renderBirthdays(birthdays.slice(0, 3));
       } catch (error) {
         console.error('Error loading birthdays:', error);
       }
