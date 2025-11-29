@@ -2039,7 +2039,8 @@ app.get("/api/admin/notifications", adminAuth, getNotifications);
 // ⭐ NUEVO: Borrar historial de notificaciones enviadas
 app.delete("/api/admin/notifications/clear", adminAuth, async (req, res) => {
   try {
-    const snapshot = await firestore.collection('push_notifications').get();
+    // Usar la misma colección que lee getNotifications: 'notifications'
+    const snapshot = await firestore.collection('notifications').get();
     
     if (snapshot.empty) {
       return res.json({ success: true, deleted: 0 });
