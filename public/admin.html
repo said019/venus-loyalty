@@ -10347,7 +10347,20 @@
     // Cargar estadísticas del dashboard
     async function loadDashboardStats() {
       try {
-        // Cargar TODAS las tarjetas (no solo la primera página)
+        // 1. Cargar métricas del mes desde el servidor (datos reales de eventos)
+        const metricsRes = await fetch('/api/admin/metrics-month', { credentials: 'include' });
+        const metricsJson = await metricsRes.json();
+
+        if (metricsJson.success && metricsJson.data) {
+          const { total, activeClients, stampsThisMonth, redeemsThisMonth, returnRate } = metricsJson.data;
+          
+          document.getElementById('stat-total-clients').textContent = activeClients || total;
+          document.getElementById('stat-stamps-month').textContent = stampsThisMonth;
+          document.getElementById('stat-redeems-month').textContent = redeemsThisMonth;
+          document.getElementById('stat-return-rate').textContent = returnRate + '%';
+        }
+
+        // 2. Cargar TODAS las tarjetas para top clientes y cumpleaños
         let allClients = [];
         let page = 1;
         let hasMore = true;
@@ -10356,7 +10369,7 @@
           const clientsRes = await fetch(`/api/admin/cards-firebase?page=${page}&limit=100`, { credentials: 'include' });
           const clientsJson = await clientsRes.json();
 
-          if (clientsJson.success && clientsJson.items) {
+          if (clientsJson.items && clientsJson.items.length > 0) {
             allClients = [...allClients, ...clientsJson.items];
             hasMore = page < clientsJson.totalPages;
             page++;
@@ -10368,30 +10381,6 @@
         const clients = allClients;
 
         if (clients.length > 0) {
-          const activeClients = clients.filter(c => c.stamps > 0 || c.cycles > 0).length;
-          document.getElementById('stat-total-clients').textContent = activeClients || clients.length;
-
-          // Calcular sellos este mes
-          const now = new Date();
-          const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-          let stampsThisMonth = 0;
-          let redeemsThisMonth = 0;
-
-          clients.forEach(c => {
-            if (c.lastVisit && new Date(c.lastVisit) >= firstOfMonth) {
-              stampsThisMonth += c.stamps || 0;
-            }
-            redeemsThisMonth += c.cycles || 0;
-          });
-
-          document.getElementById('stat-stamps-month').textContent = stampsThisMonth;
-          document.getElementById('stat-redeems-month').textContent = redeemsThisMonth;
-
-          // Tasa de retorno
-          const returningClients = clients.filter(c => (c.stamps + (c.cycles * 8)) > 1).length;
-          const returnRate = clients.length > 0 ? Math.round((returningClients / clients.length) * 100) : 0;
-          document.getElementById('stat-return-rate').textContent = returnRate + '%';
-
           // Top clientes
           renderTopClients(clients);
 
@@ -10405,13 +10394,13 @@
           loadBirthdaysFromClients(clients);
         }
 
-        // Cargar citas de hoy
+        // 3. Cargar citas de hoy
         await loadTodayStats();
 
-        // Cargar gift cards
+        // 4. Cargar gift cards
         await loadGiftCardStats();
 
-        // Cargar gráfica de actividad
+        // 5. Cargar gráfica de actividad
         await loadActivityChart();
 
       } catch (error) {

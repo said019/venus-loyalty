@@ -365,6 +365,53 @@ async function fsMetrics() {
   };
 }
 
+// ⭐ NUEVO: Métricas del mes actual
+async function fsMetricsMonth() {
+  const cardsSnap = await firestore.collection(COL_CARDS).get();
+  let total = cardsSnap.size;
+  let activeClients = 0;
+
+  cardsSnap.forEach((doc) => {
+    const c = doc.data();
+    if ((c.stamps || 0) > 0 || (c.cycles || 0) > 0) activeClients++;
+  });
+
+  // Inicio del mes actual
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const startOfMonthIso = startOfMonth.toISOString();
+
+  // Contar eventos del mes
+  const evSnap = await firestore
+    .collection(COL_EVENTS)
+    .where("createdAt", ">=", startOfMonthIso)
+    .get();
+
+  const counts = { STAMP: 0, REDEEM: 0 };
+  evSnap.forEach((doc) => {
+    const t = doc.data().type;
+    if (t === "STAMP") counts.STAMP++;
+    if (t === "REDEEM") counts.REDEEM++;
+  });
+
+  // Calcular tasa de retorno (clientes con más de 1 sello total)
+  let returningClients = 0;
+  cardsSnap.forEach((doc) => {
+    const c = doc.data();
+    const totalStamps = (c.stamps || 0) + ((c.cycles || 0) * 8);
+    if (totalStamps > 1) returningClients++;
+  });
+  const returnRate = total > 0 ? Math.round((returningClients / total) * 100) : 0;
+
+  return {
+    total,
+    activeClients,
+    stampsThisMonth: counts.STAMP,
+    redeemsThisMonth: counts.REDEEM,
+    returnRate
+  };
+}
+
 // ⭐ NUEVO: Funciones para dispositivos Google
 async function fsRegisterGoogleDevice(cardId, deviceId) {
   try {
@@ -1531,6 +1578,17 @@ app.get("/api/admin/metrics-firebase", adminAuth, async (_req, res) => {
   try {
     const m = await fsMetrics();
     res.json({ ...m, source: "firestore" });
+  } catch (e) {
+    console.error("[METRICS-FIREBASE]", e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ⭐ NUEVO: Endpoint para métricas del mes (dashboard)
+app.get("/api/admin/metrics-month", adminAuth, async (_req, res) => {
+  try {
+    const m = await fsMetricsMonth();
+    res.json({ success: true, data: m });
   } catch (e) {
     console.error("[METRICS-FIREBASE]", e);
     res.status(500).json({ error: e.message });
