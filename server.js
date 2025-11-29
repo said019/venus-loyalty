@@ -1750,6 +1750,126 @@ app.get("/api/dashboard/history", adminAuth, async (req, res) => {
 });
 
 /* =========================================================
+   NOTIFICACIONES - API ENDPOINTS
+   ========================================================= */
+
+// GET /api/notifications - Listar notificaciones
+app.get('/api/notifications', adminAuth, async (req, res) => {
+  try {
+    const { limit = 30 } = req.query;
+
+    const snapshot = await firestore.collection('notifications')
+      .orderBy('createdAt', 'desc')
+      .limit(parseInt(limit))
+      .get();
+
+    const data = [];
+    snapshot.forEach(doc => data.push({ id: doc.id, ...doc.data() }));
+
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error("Error fetching notifications:", error);
+    res.json({ success: false, error: error.message });
+  }
+});
+
+// GET /api/notifications/new - Verificar nuevas notificaciones
+app.get('/api/notifications/new', adminAuth, async (req, res) => {
+  try {
+    const { after } = req.query;
+    let query = firestore.collection('notifications').orderBy('createdAt', 'desc').limit(10);
+
+    if (after) {
+      const afterDoc = await firestore.collection('notifications').doc(after).get();
+      if (afterDoc.exists) {
+        query = firestore.collection('notifications')
+          .where('createdAt', '>', afterDoc.data().createdAt)
+          .orderBy('createdAt', 'desc')
+          .limit(10);
+      }
+    }
+
+    const snapshot = await query.get();
+    const data = [];
+    snapshot.forEach(doc => {
+      if (doc.id !== after) data.push({ id: doc.id, ...doc.data() });
+    });
+
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error("Error checking new notifications:", error);
+    res.json({ success: false, error: error.message });
+  }
+});
+
+// POST /api/notifications - Crear notificación
+app.post('/api/notifications', adminAuth, async (req, res) => {
+  try {
+    const { type, icon, title, message, entityId } = req.body;
+
+    const notifData = {
+      type: type || 'info',
+      icon: icon || 'bell',
+      title: title || 'Notificación',
+      message: message || '',
+      entityId: entityId || null,
+      read: false,
+      createdAt: new Date().toISOString()
+    };
+
+    const docRef = await firestore.collection('notifications').add(notifData);
+
+    res.json({ success: true, data: { id: docRef.id, ...notifData } });
+  } catch (error) {
+    console.error("Error creating notification:", error);
+    res.json({ success: false, error: error.message });
+  }
+});
+
+// POST /api/notifications/:id/read - Marcar como leída
+app.post('/api/notifications/:id/read', adminAuth, async (req, res) => {
+  try {
+    await firestore.collection('notifications').doc(req.params.id).update({
+      read: true,
+      readAt: new Date().toISOString()
+    });
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error marking notification as read:", error);
+    res.json({ success: false, error: error.message });
+  }
+});
+
+// POST /api/notifications/read-all - Marcar todas como leídas
+app.post('/api/notifications/read-all', adminAuth, async (req, res) => {
+  try {
+    const snapshot = await firestore.collection('notifications').where('read', '==', false).get();
+    const batch = firestore.batch();
+    snapshot.forEach(doc => batch.update(doc.ref, { read: true, readAt: new Date().toISOString() }));
+    await batch.commit();
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error marking all notifications as read:", error);
+    res.json({ success: false, error: error.message });
+  }
+});
+
+// DELETE /api/notifications/clear - Limpiar todas
+app.delete('/api/notifications/clear', adminAuth, async (req, res) => {
+  try {
+    const snapshot = await firestore.collection('notifications').get();
+    const batch = firestore.batch();
+    snapshot.forEach(doc => batch.delete(doc.ref));
+    await batch.commit();
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error clearing notifications:", error);
+    res.json({ success: false, error: error.message });
+  }
+});
+
+
+/* =========================================================
    SUMAR SELLO (staff) - CON NOTIFICACIÓN APPLE - ⭐ CORREGIDO
    ========================================================= */
 app.post("/api/stamp/:cardId", basicAuth, async (req, res) => {

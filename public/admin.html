@@ -10878,6 +10878,292 @@
     window.addStampFromScanner = addStampFromScanner;
     window.redeemGiftCardFromScanner = redeemGiftCardFromScanner;
 
+    /* =========================================================
+       SISTEMA DE NOTIFICACIONES - CAMPANA
+       ========================================================= */
+
+    let notifications = [];
+    let unreadCount = 0;
+
+    // Tipos de notificación con iconos
+    const NOTIF_TYPES = {
+      CITA_NUEVA: { type: 'cita', icon: 'calendar-plus', title: 'Nueva cita' },
+      CITA_CONFIRMADA: { type: 'cita', icon: 'calendar-check', title: 'Cita confirmada' },
+      CITA_CANCELADA: { type: 'alerta', icon: 'calendar-times', title: 'Cita cancelada' },
+      VENTA: { type: 'venta', icon: 'receipt', title: 'Venta completada' },
+      TARJETA_NUEVA: { type: 'tarjeta', icon: 'credit-card', title: 'Nueva tarjeta' },
+      SELLO: { type: 'sello', icon: 'star', title: 'Sello agregado' },
+      TARJETA_COMPLETA: { type: 'sello', icon: 'award', title: '¡Tarjeta completa!' },
+      GIFTCARD_NUEVA: { type: 'giftcard', icon: 'gift', title: 'Gift card creada' },
+      GIFTCARD_CANJEADA: { type: 'giftcard', icon: 'box-open', title: 'Gift card canjeada' },
+      CUMPLE: { type: 'cumple', icon: 'birthday-cake', title: '¡Cumpleaños!' }
+    };
+
+    async function initNotifications() {
+      await loadNotifications();
+      setInterval(checkNewNotifications, 30000);
+      checkBirthdays();
+    }
+
+    async function loadNotifications() {
+      try {
+        const res = await fetch('/api/notifications?limit=30', { credentials: 'include' });
+        const json = await res.json();
+
+        if (json.success) {
+          notifications = json.data || [];
+          unreadCount = notifications.filter(n => !n.read).length;
+          updateBadge();
+          renderNotifications();
+        }
+      } catch (error) {
+        console.error('Error loading notifications:', error);
+      }
+    }
+
+    async function checkNewNotifications() {
+      try {
+        const lastId = notifications[0]?.id || '';
+        const res = await fetch(`/api/notifications/new?after=${lastId}`, { credentials: 'include' });
+        const json = await res.json();
+
+        if (json.success && json.data?.length > 0) {
+          notifications = [...json.data, ...notifications];
+          unreadCount += json.data.length;
+          updateBadge();
+          renderNotifications();
+        }
+      } catch (error) {
+        console.error('Error checking notifications:', error);
+      }
+    }
+
+    function toggleNotifications() {
+      const dropdown = document.getElementById('notif-dropdown');
+      dropdown?.classList.toggle('active');
+
+      if (dropdown?.classList.contains('active')) {
+        renderNotifications();
+      }
+    }
+
+    document.addEventListener('click', (e) => {
+      const wrapper = e.target.closest('.notification-wrapper');
+      if (!wrapper) {
+        document.getElementById('notif-dropdown')?.classList.remove('active');
+      }
+    });
+
+    function updateBadge() {
+      const badge = document.getElementById('notif-badge');
+      if (badge) {
+        badge.textContent = unreadCount > 99 ? '99+' : unreadCount;
+        badge.classList.toggle('hidden', unreadCount === 0);
+      }
+    }
+
+    function renderNotifications() {
+      const list = document.getElementById('notif-list');
+      if (!list) return;
+
+      if (notifications.length === 0) {
+        list.innerHTML = `
+          <div class="notification-empty">
+            <i class="fas fa-bell-slash"></i>
+            <p>No hay notificaciones</p>
+          </div>
+        `;
+        return;
+      }
+
+      list.innerHTML = notifications.slice(0, 20).map(n => `
+        <div class="notification-item ${n.read ? '' : 'unread'}" onclick="clickNotification('${n.id}')">
+          <div class="notification-icon ${n.type}">
+            <i class="fas fa-${n.icon}"></i>
+          </div>
+          <div class="notification-content">
+            <div class="notification-title">
+              ${n.title}
+              ${!n.read ? '<span class="new-tag">Nuevo</span>' : ''}
+            </div>
+            <div class="notification-message">${n.message}</div>
+            <div class="notification-time">${timeAgo(n.createdAt)}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function timeAgo(dateStr) {
+      const date = new Date(dateStr);
+      const now = new Date();
+      const secs = Math.floor((now - date) / 1000);
+
+      if (secs < 60) return 'Ahora';
+      if (secs < 3600) return `Hace ${Math.floor(secs / 60)} min`;
+      if (secs < 86400) return `Hace ${Math.floor(secs / 3600)} hrs`;
+      if (secs < 604800) return `Hace ${Math.floor(secs / 86400)} días`;
+      return date.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' });
+    }
+
+    async function clickNotification(id) {
+      const notif = notifications.find(n => n.id === id);
+
+      if (notif && !notif.read) {
+        notif.read = true;
+        unreadCount = Math.max(0, unreadCount - 1);
+        updateBadge();
+        renderNotifications();
+        fetch(`/api/notifications/${id}/read`, { method: 'POST', credentials: 'include' });
+      }
+
+      document.getElementById('notif-dropdown')?.classList.remove('active');
+    }
+
+    async function markAllRead() {
+      try {
+        await fetch('/api/notifications/read-all', { method: 'POST', credentials: 'include' });
+        notifications.forEach(n => n.read = true);
+        unreadCount = 0;
+        updateBadge();
+        renderNotifications();
+      } catch (error) {
+        console.error('Error:', error);
+      }
+    }
+
+    async function clearAllNotifications() {
+      if (!confirm('¿Eliminar todas las notificaciones?')) return;
+
+      try {
+        await fetch('/api/notifications/clear', { method: 'DELETE', credentials: 'include' });
+        notifications = [];
+        unreadCount = 0;
+        updateBadge();
+        renderNotifications();
+      } catch (error) {
+        console.error('Error:', error);
+      }
+    }
+
+    async function createNotification(typeKey, message, entityId = null) {
+      const config = NOTIF_TYPES[typeKey];
+      if (!config) return;
+
+      const data = {
+        type: config.type,
+        icon: config.icon,
+        title: config.title,
+        message: message,
+        entityId: entityId
+      };
+
+      try {
+        const res = await fetch('/api/notifications', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(data)
+        });
+
+        const json = await res.json();
+
+        if (json.success) {
+          notifications.unshift(json.data);
+          unreadCount++;
+          updateBadge();
+        }
+      } catch (error) {
+        console.error('Error creating notification:', error);
+      }
+    }
+
+    function notifyCitaNueva(clientName, serviceName, date, time) {
+      createNotification('CITA_NUEVA', `${clientName} - ${serviceName} (${date} ${time})`);
+    }
+
+    function notifyCitaConfirmada(clientName, serviceName) {
+      createNotification('CITA_CONFIRMADA', `${clientName} confirmó ${serviceName}`);
+    }
+
+    function notifyCitaCancelada(clientName, serviceName) {
+      createNotification('CITA_CANCELADA', `${clientName} canceló ${serviceName}`);
+    }
+
+    function notifyVenta(clientName, total) {
+      createNotification('VENTA', `$${total.toLocaleString()} - ${clientName}`);
+    }
+
+    function notifyTarjetaNueva(clientName) {
+      createNotification('TARJETA_NUEVA', `Nueva tarjeta para ${clientName}`);
+    }
+
+    function notifySello(clientName, stamps, maxStamps = 8) {
+      const remaining = maxStamps - stamps;
+      if (remaining <= 0) {
+        createNotification('TARJETA_COMPLETA', `${clientName} completó su tarjeta 🎉`);
+      } else {
+        createNotification('SELLO', `${clientName} tiene ${stamps}/${maxStamps} sellos`);
+      }
+    }
+
+    function notifyGiftCardNueva(serviceName, recipientName) {
+      createNotification('GIFTCARD_NUEVA', `${serviceName} para ${recipientName}`);
+    }
+
+    function notifyGiftCardCanjeada(serviceName, recipientName) {
+      createNotification('GIFTCARD_CANJEADA', `${recipientName} canjeó ${serviceName}`);
+    }
+
+    async function checkBirthdays() {
+      try {
+        const res = await fetch('/api/admin/cards-firebase', { credentials: 'include' });
+        const json = await res.json();
+
+        if (json.success) {
+          const today = new Date();
+          const todayMD = `${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+          const birthdays = (json.data?.items || []).filter(c => {
+            if (!c.birthdate) return false;
+            const parts = c.birthdate.split('-');
+            const bday = `${parts[1]}-${parts[2]}`;
+            return bday === todayMD;
+          });
+
+          const notifiedKey = `birthdays_${today.toISOString().split('T')[0]}`;
+          if (localStorage.getItem(notifiedKey)) return;
+
+          birthdays.forEach(c => {
+            createNotification('CUMPLE', `¡${c.name} cumple años hoy! 🎂`);
+          });
+
+          if (birthdays.length > 0) {
+            localStorage.setItem(notifiedKey, 'true');
+          }
+        }
+      } catch (error) {
+        console.error('Error checking birthdays:', error);
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(initNotifications, 1000);
+    });
+
+    window.toggleNotifications = toggleNotifications;
+    window.markAllRead = markAllRead;
+    window.clearAllNotifications = clearAllNotifications;
+    window.clickNotification = clickNotification;
+    window.createNotification = createNotification;
+    window.notifyCitaNueva = notifyCitaNueva;
+    window.notifyCitaConfirmada = notifyCitaConfirmada;
+    window.notifyCitaCancelada = notifyCitaCancelada;
+    window.notifyVenta = notifyVenta;
+    window.notifyTarjetaNueva = notifyTarjetaNueva;
+    window.notifySello = notifySello;
+    window.notifyGiftCardNueva = notifyGiftCardNueva;
+    window.notifyGiftCardCanjeada = notifyGiftCardCanjeada;
+
   </script>
 
   <!-- Botones flotantes -->
