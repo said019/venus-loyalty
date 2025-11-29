@@ -8052,7 +8052,7 @@
       for (let i = 0; i < 7; i++) {
         const day = new Date(weekStart);
         day.setDate(day.getDate() + i);
-        const dateStr = day.toISOString().split('T')[0];
+        const dateStr = toLocalDateString(day);
 
         try {
           const res = await fetch(`/api/appointments?date=${dateStr}`);
@@ -10907,24 +10907,32 @@
     };
 
     async function initNotifications() {
+      console.log('[NOTIF] 🔔 Inicializando sistema de notificaciones...');
       await loadNotifications();
       setInterval(checkNewNotifications, 30000);
       checkBirthdays();
+      console.log('[NOTIF] ✅ Sistema de notificaciones iniciado');
     }
 
     async function loadNotifications() {
       try {
+        console.log('[NOTIF] 📥 Cargando notificaciones...');
         const res = await fetch('/api/notifications?limit=30', { credentials: 'include' });
         const json = await res.json();
+
+        console.log('[NOTIF] Respuesta:', json);
 
         if (json.success) {
           notifications = json.data || [];
           unreadCount = notifications.filter(n => !n.read).length;
+          console.log(`[NOTIF] ✅ ${notifications.length} notificaciones cargadas, ${unreadCount} no leídas`);
           updateBadge();
           renderNotifications();
+        } else {
+          console.error('[NOTIF] ❌ Error en respuesta:', json.error);
         }
       } catch (error) {
-        console.error('Error loading notifications:', error);
+        console.error('[NOTIF] ❌ Error loading notifications:', error);
       }
     }
 
