@@ -2036,6 +2036,30 @@ app.post("/api/admin/push-notification", adminAuth, sendMassPushNotification);
 app.post("/api/admin/push-test", adminAuth, sendTestPushNotification);
 app.get("/api/admin/notifications", adminAuth, getNotifications);
 
+// ⭐ NUEVO: Borrar historial de notificaciones enviadas
+app.delete("/api/admin/notifications/clear", adminAuth, async (req, res) => {
+  try {
+    const snapshot = await firestore.collection('push_notifications').get();
+    
+    if (snapshot.empty) {
+      return res.json({ success: true, deleted: 0 });
+    }
+
+    const batch = firestore.batch();
+    snapshot.docs.forEach(doc => {
+      batch.delete(doc.ref);
+    });
+    
+    await batch.commit();
+    
+    console.log(`[NOTIFICATIONS] ✅ Borradas ${snapshot.size} notificaciones del historial`);
+    res.json({ success: true, deleted: snapshot.size });
+  } catch (error) {
+    console.error('[NOTIFICATIONS] Error borrando historial:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 /* =========================================================
    CANJEAR (staff) - CON NOTIFICACIÓN APPLE
    ========================================================= */

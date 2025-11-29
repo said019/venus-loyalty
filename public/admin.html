@@ -2509,7 +2509,10 @@
       <div style="margin-top:16px;">
         <div class="row" style="justify-content:space-between;margin-bottom:8px;">
           <h3 style="margin:0;"><i class="fas fa-list"></i> Historial</h3>
-          <button id="refresh-history" class="btn small ghost"><i class="fas fa-sync-alt"></i></button>
+          <div style="display:flex;gap:8px;">
+            <button id="refresh-history" class="btn small ghost" title="Refrescar"><i class="fas fa-sync-alt"></i></button>
+            <button id="clear-notif-history" class="btn small ghost" style="color:#ef4444;" title="Borrar historial"><i class="fas fa-trash"></i></button>
+          </div>
         </div>
         <div class="table-wrap">
           <table>
@@ -6707,6 +6710,29 @@
     }
 
     document.getElementById('refresh-history').addEventListener('click', loadNotificationsHistory);
+
+    // Borrar historial de notificaciones
+    document.getElementById('clear-notif-history').addEventListener('click', async () => {
+      if (!confirm('¿Estás seguro de borrar todo el historial de notificaciones enviadas?')) return;
+      
+      try {
+        const response = await fetch('/api/admin/notifications/clear', {
+          method: 'DELETE',
+          credentials: 'include'
+        });
+        
+        if (response.ok) {
+          alert('✓ Historial borrado correctamente');
+          loadNotificationsHistory();
+        } else {
+          const data = await response.json();
+          alert('Error: ' + (data.error || 'No se pudo borrar el historial'));
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Error de red al borrar historial');
+      }
+    });
 
     // ===== Modal Tarjeta =====
     const modalBackdrop = document.getElementById('card-modal-backdrop');
