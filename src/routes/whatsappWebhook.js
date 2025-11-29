@@ -144,6 +144,17 @@ async function procesarConfirmacion(cita) {
             confirmedVia: 'whatsapp'
         });
 
+        // Crear notificación
+        await firestore.collection('notifications').add({
+            type: 'cita',
+            icon: 'calendar-check',
+            title: 'Cita confirmada',
+            message: `${cita.clientName} confirmó ${cita.serviceName}`,
+            read: false,
+            createdAt: new Date().toISOString(),
+            entityId: cita.id
+        });
+
         await WhatsAppService.sendConfirmacionRecibida(cita);
 
         console.log(`✅ Cita ${cita.id} confirmada exitosamente`);
@@ -163,6 +174,17 @@ async function procesarReprogramacion(cita) {
         await firestore.collection('appointments').doc(cita.id).update({
             status: 'rescheduling',
             rescheduleRequestedAt: new Date().toISOString()
+        });
+
+        // Crear notificación
+        await firestore.collection('notifications').add({
+            type: 'alerta',
+            icon: 'calendar-times',
+            title: 'Solicitud de reprogramación',
+            message: `${cita.clientName} quiere reprogramar ${cita.serviceName}`,
+            read: false,
+            createdAt: new Date().toISOString(),
+            entityId: cita.id
         });
 
         await WhatsAppService.sendSolicitudReprogramacion(cita);
@@ -185,6 +207,17 @@ async function procesarCancelacion(cita) {
             status: 'cancelled',
             cancelledAt: new Date().toISOString(),
             cancelledVia: 'whatsapp'
+        });
+
+        // Crear notificación
+        await firestore.collection('notifications').add({
+            type: 'alerta',
+            icon: 'calendar-times',
+            title: 'Cita cancelada',
+            message: `${cita.clientName} canceló ${cita.serviceName}`,
+            read: false,
+            createdAt: new Date().toISOString(),
+            entityId: cita.id
         });
 
         await WhatsAppService.sendCancelacionConfirmada(cita);
