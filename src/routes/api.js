@@ -3,25 +3,33 @@ import { ClientsController, ServicesController, AppointmentsController } from '.
 
 const router = express.Router();
 
+// Middleware de autenticación para rutas protegidas
+const adminAuth = (req, res, next) => {
+  const token = req.cookies?.admin_token;
+  if (!token) {
+    return res.status(401).json({ success: false, error: 'No autorizado' });
+  }
+  next();
+};
+
 // Clients
-router.post('/clients', ClientsController.createOrUpdate);
+router.post('/clients', adminAuth, ClientsController.createOrUpdate);
 
 // Services
 router.get('/services', ServicesController.getAll);
-router.post('/services', ServicesController.create);
-router.put('/services/:id', ServicesController.update);
-router.delete('/services/:id', ServicesController.delete);
+router.post('/services', adminAuth, ServicesController.create);
+router.put('/services/:id', adminAuth, ServicesController.update);
+router.delete('/services/:id', adminAuth, ServicesController.delete);
 
 // Appointments
-router.post('/appointments', AppointmentsController.create);
-router.get('/appointments/month', AppointmentsController.getByMonth);
-router.get('/appointments/client', AppointmentsController.getByClient);
-router.patch('/appointments/:id/cancel', AppointmentsController.cancel);
-router.get('/appointments/:id', AppointmentsController.getById);
-router.patch('/appointments/:id', AppointmentsController.update);
-router.post('/appointments/:id/payment', AppointmentsController.registerPayment);
-router.patch('/appointments/:id/status', AppointmentsController.updateStatus);
-router.get('/appointments', AppointmentsController.getByDate);
+router.post('/appointments', adminAuth, AppointmentsController.create);
+router.get('/appointments/month', adminAuth, AppointmentsController.getByMonth);
+router.get('/appointments/client', adminAuth, AppointmentsController.getByClient);
+router.patch('/appointments/:id/cancel', adminAuth, AppointmentsController.cancel);
+router.patch('/appointments/:id', adminAuth, AppointmentsController.update);
+router.get('/appointments', adminAuth, AppointmentsController.getByDate);
+// Nota: GET /appointments/:id, POST /appointments/:id/payment y PATCH /appointments/:id/status 
+// están definidos en server.js con lógica más completa
 
 // Debug: Ver citas pendientes de recordatorio
 router.get('/debug/pending-reminders', async (req, res) => {

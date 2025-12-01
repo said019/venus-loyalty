@@ -7772,7 +7772,9 @@
     let allServices = [];
     let allClients = [];
     let currentWeekStart = new Date();
+    currentWeekStart.setHours(0, 0, 0, 0);
     let selectedDate = new Date();
+    selectedDate.setHours(0, 0, 0, 0);
 
     // Helper function to convert Date to local YYYY-MM-DD
     function toLocalDateString(date) {
@@ -8084,9 +8086,11 @@
       for (let i = 0; i < 7; i++) {
         const day = new Date(weekStart);
         day.setDate(day.getDate() + i);
+        day.setHours(0, 0, 0, 0);
 
-        const isToday = day.getTime() === today.getTime();
-        const isSelected = day.getTime() === selectedDate.getTime();
+        const isToday = toLocalDateString(day) === toLocalDateString(today);
+        const isSelected = toLocalDateString(day) === toLocalDateString(selectedDate);
+        const dayDateStr = toLocalDateString(day);
 
         const dayCard = document.createElement('div');
         dayCard.className = 'day-card';
@@ -8096,11 +8100,11 @@
         dayCard.innerHTML = `
       <div class="day-name">${days[i]}</div>
       <div class="day-number">${day.getDate()}</div>
-      <div class="day-count" id="day-count-${day.toISOString().split('T')[0]}">-</div>
+      <div class="day-count" id="day-count-${dayDateStr}">-</div>
     `;
 
         dayCard.addEventListener('click', () => {
-          selectedDate = new Date(day);
+          selectedDate = new Date(day.getFullYear(), day.getMonth(), day.getDate());
           renderWeeklyCalendar();
           loadAppointments();
           updateSelectedDateLabel();
@@ -8382,7 +8386,7 @@
           renderWeeklyCalendar();
           loadMonthStats();
         }
-      }, 30000); // 30 segundos
+      }, 15000); // 15 segundos para detectar cambios de WhatsApp más rápido
     }
 
     function stopAppointmentsAutoRefresh() {
@@ -8947,7 +8951,9 @@
     if (btnToday) {
       btnToday.addEventListener('click', () => {
         currentWeekStart = new Date();
+        currentWeekStart.setHours(0, 0, 0, 0);
         selectedDate = new Date();
+        selectedDate.setHours(0, 0, 0, 0);
         renderWeeklyCalendar();
         loadAppointments();
         updateSelectedDateLabel();

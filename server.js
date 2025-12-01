@@ -733,6 +733,41 @@ app.post('/api/appointments/:id/payment', adminAuth, async (req, res) => {
   }
 });
 
+// PATCH /api/appointments/:id/status - Actualizar estado de cita
+app.patch('/api/appointments/:id/status', adminAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!status) {
+      return res.status(400).json({ success: false, error: 'Status es requerido' });
+    }
+
+    const validStatuses = ['scheduled', 'confirmed', 'completed', 'cancelled', 'no_show'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ success: false, error: 'Status inválido' });
+    }
+
+    const appointmentRef = firestore.collection('appointments').doc(id);
+    const appointmentDoc = await appointmentRef.get();
+
+    if (!appointmentDoc.exists) {
+      return res.status(404).json({ success: false, error: 'Cita no encontrada' });
+    }
+
+    await appointmentRef.update({
+      status,
+      updatedAt: new Date().toISOString()
+    });
+
+    console.log(`[API] Appointment ${id} status updated to: ${status}`);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error updating appointment status:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 /* ========== GIFT CARDS ========== */
 
 // Generar código único
