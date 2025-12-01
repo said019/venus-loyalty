@@ -8226,7 +8226,7 @@
                 <td style="padding:12px;">
                   <div style="display:flex;gap:8px;">
                     ${appt.status !== 'completed' ? `
-                    <button onclick="openPaymentModal('${appt.id}', ${appt.price || 0})" class="btn-icon" style="background:#10b981;color:white;padding:4px 10px;border-radius:6px;font-size:0.85em;display:flex;align-items:center;gap:4px;">
+                    <button onclick="openPaymentModal('${appt.id}', '${appt.clientName.replace(/'/g, "\\'") || ''}', '${appt.serviceName.replace(/'/g, "\\'") || ''}', ${appt.price || 0})" class="btn-icon" style="background:#10b981;color:white;padding:4px 10px;border-radius:6px;font-size:0.85em;display:flex;align-items:center;gap:4px;">
                       <i class="fas fa-money-bill-wave"></i> Pagar
                     </button>
                     ` : ''}
@@ -8354,7 +8354,6 @@
             renderWeeklyCalendar();
           }
           loadAppointments();
-          showToast('Estado actualizado correctamente');
         } else {
           alert('Error al actualizar estado: ' + json.error);
           loadAppointments();
