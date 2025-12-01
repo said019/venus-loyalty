@@ -1854,6 +1854,7 @@ app.post('/api/public/request', async (req, res) => {
     };
     
     const requestRef = await firestore.collection('booking_requests').add(requestData);
+    console.log(`[BOOKING REQUEST] ✅ Solicitud guardada con ID: ${requestRef.id}`);
     
     // 3. CREAR MENSAJE PARA WHATSAPP
     const settingsDoc = await firestore.collection('settings').doc('business').get();
@@ -1923,8 +1924,10 @@ app.get('/api/booking-requests', adminAuth, async (req, res) => {
     const data = [];
     snapshot.forEach(doc => data.push({ id: doc.id, ...doc.data() }));
     
+    console.log(`[BOOKING REQUESTS] 📋 Listando ${data.length} solicitudes`);
     res.json({ success: true, data });
   } catch (error) {
+    console.error('[BOOKING REQUESTS] ❌ Error:', error);
     res.json({ success: false, error: error.message });
   }
 });

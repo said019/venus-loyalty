@@ -11418,11 +11418,15 @@
     
     async function loadBookingRequests() {
       try {
+        console.log('[REQUESTS] 📥 Cargando solicitudes...');
         const res = await fetch('/api/booking-requests', { credentials: 'include' });
         const json = await res.json();
         
+        console.log('[REQUESTS] Respuesta:', json);
+        
         if (json.success) {
           const newRequests = json.data || [];
+          console.log(`[REQUESTS] ✅ ${newRequests.length} solicitudes cargadas`);
           
           // Detectar nuevas solicitudes
           if (lastRequestsCount > 0 && newRequests.length > lastRequestsCount) {
@@ -11442,9 +11446,11 @@
           bookingRequests = newRequests;
           renderBookingRequests();
           updateRequestStats();
+        } else {
+          console.error('[REQUESTS] ❌ Error en respuesta:', json.error);
         }
       } catch (error) {
-        console.error('Error loading booking requests:', error);
+        console.error('[REQUESTS] ❌ Error loading booking requests:', error);
       }
     }
     
