@@ -1980,6 +1980,19 @@ app.post('/api/booking-requests/:id/booked', adminAuth, async (req, res) => {
   }
 });
 
+// POST /api/booking-requests/:id/rejected - Marcar como rechazada
+app.post('/api/booking-requests/:id/rejected', adminAuth, async (req, res) => {
+  try {
+    await firestore.collection('booking_requests').doc(req.params.id).update({
+      status: 'rejected',
+      rejectedAt: new Date().toISOString()
+    });
+    res.json({ success: true });
+  } catch (error) {
+    res.json({ success: false, error: error.message });
+  }
+});
+
 /* =========================================================
    MÉTRICAS Y TARJETAS
    ========================================================= */

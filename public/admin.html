@@ -11521,25 +11521,36 @@
         const statusConfig = {
           pending: { bg: 'rgba(251,191,36,0.15)', color: '#fbbf24', icon: 'clock', text: 'Pendiente' },
           contacted: { bg: 'rgba(59,130,246,0.15)', color: '#3b82f6', icon: 'phone', text: 'Contactada' },
-          booked: { bg: 'rgba(34,197,94,0.15)', color: '#22c55e', icon: 'check-circle', text: 'Agendada' }
+          booked: { bg: 'rgba(34,197,94,0.15)', color: '#22c55e', icon: 'check-circle', text: 'Agendada' },
+          rejected: { bg: 'rgba(239,68,68,0.15)', color: '#ef4444', icon: 'times-circle', text: 'Rechazada' }
         }[req.status] || { bg: 'rgba(251,191,36,0.15)', color: '#fbbf24', icon: 'clock', text: 'Pendiente' };
 
+        const whatsappNum = req.clientPhone.startsWith('52') ? req.clientPhone : '52' + req.clientPhone;
+
         const actions = req.status === 'pending' ? `
-          <button class="btn small" onclick="contactRequest('${req.id}')" title="Marcar como contactada">
-            <i class="fas fa-phone"></i> Contactar
-          </button>
-          <a href="https://wa.me/${req.clientPhone}" target="_blank" class="btn small" style="background:#25D366;border-color:#25D366;" title="WhatsApp">
-            <i class="fab fa-whatsapp"></i>
+          <a href="https://wa.me/+${whatsappNum}" target="_blank" class="btn small" style="background:#25D366;border-color:#25D366;" title="Abrir WhatsApp">
+            <i class="fab fa-whatsapp"></i> WhatsApp
           </a>
+          <button class="btn small" onclick="contactRequest('${req.id}')" title="Marcar como contactada" style="background:#3b82f6;border-color:#3b82f6;color:white;">
+            <i class="fas fa-check"></i> Marcar contactada
+          </button>
+          <button class="btn small ghost" onclick="rejectRequest('${req.id}')" title="Rechazar solicitud" style="color:#ef4444;border-color:#ef4444;">
+            <i class="fas fa-times"></i>
+          </button>
         ` : req.status === 'contacted' ? `
-          <button class="btn small primary" onclick="markAsBooked('${req.id}')" title="Marcar como agendada">
-            <i class="fas fa-calendar-check"></i> Agendar
-          </button>
-          <a href="https://wa.me/${req.clientPhone}" target="_blank" class="btn small" style="background:#25D366;border-color:#25D366;" title="WhatsApp">
-            <i class="fab fa-whatsapp"></i>
+          <a href="https://wa.me/+${whatsappNum}" target="_blank" class="btn small" style="background:#25D366;border-color:#25D366;" title="Abrir WhatsApp">
+            <i class="fab fa-whatsapp"></i> WhatsApp
           </a>
+          <button class="btn small primary" onclick="markAsBooked('${req.id}')" title="Marcar como agendada">
+            <i class="fas fa-calendar-check"></i> Agendada
+          </button>
+          <button class="btn small ghost" onclick="rejectRequest('${req.id}')" title="Rechazar" style="color:#ef4444;border-color:#ef4444;">
+            <i class="fas fa-times"></i>
+          </button>
+        ` : req.status === 'rejected' ? `
+          <span class="muted" style="font-size:12px;"><i class="fas fa-times-circle"></i> Rechazada</span>
         ` : `
-          <span class="muted" style="font-size:12px;"><i class="fas fa-check-circle"></i> Completada</span>
+          <span class="muted" style="font-size:12px;"><i class="fas fa-check-circle"></i> Agendada</span>
         `;
 
         const statusBadge = `<span style="background:${statusConfig.bg};color:${statusConfig.color};padding:4px 8px;border-radius:6px;font-size:11px;font-weight:600;"><i class="fas fa-${statusConfig.icon}"></i> ${statusConfig.text}</span>`;
@@ -11605,6 +11616,25 @@
       }
     }
 
+    async function rejectRequest(id) {
+      if (!confirm('¿Rechazar esta solicitud?')) return;
+
+      try {
+        const res = await fetch(`/api/booking-requests/${id}/rejected`, {
+          method: 'POST',
+          credentials: 'include'
+        });
+        const json = await res.json();
+        if (json.success) {
+          loadBookingRequests();
+        } else {
+          alert('Error: ' + json.error);
+        }
+      } catch (error) {
+        alert('Error de conexión');
+      }
+    }
+
     function initAgendarUrl() {
       const urlEl = document.getElementById('agendar-url');
       if (urlEl) {
@@ -11624,6 +11654,7 @@
     window.loadBookingRequests = loadBookingRequests;
     window.contactRequest = contactRequest;
     window.markAsBooked = markAsBooked;
+    window.rejectRequest = rejectRequest;
     window.copyAgendarUrl = copyAgendarUrl;
 
     /* =========================================================
