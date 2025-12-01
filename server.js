@@ -1637,6 +1637,312 @@ app.post('/api/admin/gift-card/:id/redeem', adminAuth, async (req, res) => {
 });
 
 /* =========================================================
+   CONFIGURACIÓN DEL NEGOCIO Y SOLICITUD DE CITAS
+   ========================================================= */
+
+// GET /api/settings/business - Obtener configuración del negocio
+app.get('/api/settings/business', async (req, res) => {
+  try {
+    const doc = await firestore.collection('settings').doc('business').get();
+    
+    if (!doc.exists) {
+      return res.json({ 
+        success: true, 
+        data: {
+          businessHours: {
+            start: '09:00',
+            end: '20:00',
+            interval: 60,
+            closedDays: [0]
+          },
+          whatsappBusiness: '524271657595'
+        }
+      });
+    }
+    
+    res.json({ success: true, data: doc.data() });
+  } catch (error) {
+    res.json({ success: false, error: error.message });
+  }
+});
+
+// POST /api/settings/business - Guardar configuración del negocio
+app.post('/api/settings/business', adminAuth, async (req, res) => {
+  try {
+    await firestore.collection('settings').doc('business').set(req.body, { merge: true });
+    res.json({ success: true });
+  } catch (error) {
+    res.json({ success: false, error: error.message });
+  }
+});
+
+// GET /api/public/services - Servicios disponibles (público)
+app.get('/api/public/services', async (req, res) => {
+  try {
+    const snapshot = await firestore.collection('services')
+      .orderBy('name')
+      .get();
+    
+    const services = [];
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      if (data.active !== false && data.bookable !== false) {
+        services.push({
+          id: doc.id,
+          name: data.name,
+          price: data.price || 0,
+          duration: data.duration || 60
+        });
+      }
+    });
+    
+    res.json({ success: true, data: services });
+  } catch (error) {
+    res.json({ success: false, error: error.message });
+  }
+});
+
+// GET /api/public/config - Configuración pública (horarios)
+app.get('/api/public/config', async (req, res) => {
+  try {
+    const doc = await firestore.collection('settings').doc('business').get();
+    
+    const config = doc.exists ? doc.data() : {
+      businessHours: {
+        start: '09:00',
+        end: '20:00',
+        interval: 60,
+        closedDays: [0]
+      }
+    };
+    
+    res.json({ 
+      success: true, 
+      data: {
+        businessHours: config.businessHours
+      }
+    });
+  } catch (error) {
+    res.json({ success: false, error: error.message });
+  }
+});
+
+// GET /api/public/availability?date=2025-12-04 - Horarios ocupados
+app.get('/api/public/availability', async (req, res) => {
+  try {
+    const { date } = req.query;
+    
+    if (!date) {
+      return res.json({ success: false, error: 'Fecha requerida' });
+    }
+    
+    // Buscar citas existentes de ese día
+    const startOfDay = new Date(date + 'T00:00:00');
+    const endOfDay = new Date(date + 'T23:59:59');
+    
+    const snapshot = await firestore.collection('appointments')
+      .where('startDateTime', '>=', startOfDay.toISOString())
+      .where('startDateTime', '<=', endOfDay.toISOString())
+      .get();
+    
+    const busy = [];
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      if (data.status !== 'cancelled') {
+        const time = new Date(data.startDateTime);
+        busy.push(time.toTimeString().slice(0, 5));
+      }
+    });
+    
+    res.json({ success: true, busy });
+  } catch (error) {
+    res.json({ success: false, error: error.message });
+  }
+});
+
+// POST /api/public/request - Solicitar cita (NO agenda, solo solicita)
+app.post('/api/public/request', async (req, res) => {
+  try {
+    const {
+      serviceId,
+      serviceName,
+      servicePrice,
+      serviceDuration,
+      date,
+      time,
+      clientName,
+      clientPhone,
+      clientEmail,
+      clientBirthday
+    } = req.body;
+    
+    // Validaciones
+    if (!serviceName || !date || !time || !clientName || !clientPhone) {
+      return res.json({ success: false, error: 'Faltan campos requeridos' });
+    }
+    
+    const phoneClean = clientPhone.replace(/\D/g, '');
+    
+    // 1. BUSCAR O CREAR TARJETA DE LEALTAD
+    let cardId = null;
+    let isNewClient = false;
+    
+    const existingCard = await firestore.collection(COL_CARDS)
+      .where('phone', '==', phoneClean)
+      .limit(1)
+      .get();
+    
+    if (!existingCard.empty) {
+      cardId = existingCard.docs[0].id;
+      const updates = {};
+      if (clientEmail && !existingCard.docs[0].data().email) {
+        updates.email = clientEmail;
+      }
+      if (clientBirthday && !existingCard.docs[0].data().birthday) {
+        updates.birthday = clientBirthday;
+      }
+      if (Object.keys(updates).length > 0) {
+        await firestore.collection(COL_CARDS).doc(cardId).update(updates);
+      }
+    } else {
+      const cardData = {
+        name: clientName,
+        phone: phoneClean,
+        email: clientEmail || null,
+        birthday: clientBirthday || null,
+        stamps: 0,
+        max: 8,
+        cycles: 0,
+        status: 'active',
+        createdAt: new Date().toISOString(),
+        source: 'online-request'
+      };
+      
+      const cardRef = await firestore.collection(COL_CARDS).add(cardData);
+      cardId = cardRef.id;
+      isNewClient = true;
+    }
+    
+    // 2. GUARDAR SOLICITUD
+    const requestData = {
+      serviceId: serviceId || null,
+      serviceName,
+      servicePrice: parseFloat(servicePrice) || 0,
+      serviceDuration: parseInt(serviceDuration) || 60,
+      date,
+      time,
+      clientName,
+      clientPhone: phoneClean,
+      clientEmail: clientEmail || null,
+      cardId,
+      isNewClient,
+      status: 'pending',
+      createdAt: new Date().toISOString()
+    };
+    
+    const requestRef = await firestore.collection('booking_requests').add(requestData);
+    
+    // 3. CREAR MENSAJE PARA WHATSAPP
+    const settingsDoc = await firestore.collection('settings').doc('business').get();
+    const businessWhatsapp = settingsDoc.exists ? settingsDoc.data().whatsappBusiness : '524271657595';
+    
+    const dateObj = new Date(date + 'T00:00:00');
+    const dateStr = dateObj.toLocaleDateString('es-MX', { 
+      weekday: 'long', day: 'numeric', month: 'long' 
+    });
+    
+    const hour = parseInt(time.split(':')[0]);
+    const timeStr = hour === 12 ? '12:00 PM' : hour > 12 ? `${hour - 12}:00 PM` : `${hour}:00 AM`;
+    
+    const message = `📅 *Nueva solicitud de cita*
+
+👤 *${clientName}*
+📱 ${phoneClean}
+${clientEmail ? `📧 ${clientEmail}` : ''}
+${clientBirthday ? `🎂 ${clientBirthday}` : ''}
+
+💆 *${serviceName}*
+💰 $${servicePrice}
+📅 ${dateStr}
+🕐 ${timeStr}
+
+${isNewClient ? '🆕 *Cliente nueva* - Ya está en tu base de tarjetas' : '💳 Cliente existente'}
+
+_Solicitud #${requestRef.id.slice(-6)}_`;
+
+    const whatsappUrl = `https://wa.me/${businessWhatsapp}?text=${encodeURIComponent(message)}`;
+    
+    // 4. CREAR NOTIFICACIÓN EN ADMIN
+    await firestore.collection('notifications').add({
+      type: 'cita',
+      icon: 'calendar-plus',
+      title: 'Nueva solicitud',
+      message: `${clientName} quiere ${serviceName} - ${date} ${time}`,
+      entityId: requestRef.id,
+      read: false,
+      createdAt: new Date().toISOString()
+    });
+    
+    console.log(`[BOOKING REQUEST] Nueva solicitud de ${clientName} para ${serviceName}`);
+    
+    res.json({ 
+      success: true, 
+      requestId: requestRef.id,
+      cardId,
+      isNewClient,
+      whatsappUrl
+    });
+    
+  } catch (error) {
+    console.error('Error creating request:', error);
+    res.json({ success: false, error: error.message });
+  }
+});
+
+// GET /api/booking-requests - Listar solicitudes pendientes
+app.get('/api/booking-requests', adminAuth, async (req, res) => {
+  try {
+    const snapshot = await firestore.collection('booking_requests')
+      .orderBy('createdAt', 'desc')
+      .limit(50)
+      .get();
+    
+    const data = [];
+    snapshot.forEach(doc => data.push({ id: doc.id, ...doc.data() }));
+    
+    res.json({ success: true, data });
+  } catch (error) {
+    res.json({ success: false, error: error.message });
+  }
+});
+
+// POST /api/booking-requests/:id/contacted - Marcar como contactada
+app.post('/api/booking-requests/:id/contacted', adminAuth, async (req, res) => {
+  try {
+    await firestore.collection('booking_requests').doc(req.params.id).update({
+      status: 'contacted',
+      contactedAt: new Date().toISOString()
+    });
+    res.json({ success: true });
+  } catch (error) {
+    res.json({ success: false, error: error.message });
+  }
+});
+
+// POST /api/booking-requests/:id/booked - Marcar como agendada
+app.post('/api/booking-requests/:id/booked', adminAuth, async (req, res) => {
+  try {
+    await firestore.collection('booking_requests').doc(req.params.id).update({
+      status: 'booked',
+      bookedAt: new Date().toISOString()
+    });
+    res.json({ success: true });
+  } catch (error) {
+    res.json({ success: false, error: error.message });
+  }
+});
+
+/* =========================================================
    MÉTRICAS Y TARJETAS
    ========================================================= */
 app.get("/api/admin/metrics-firebase", adminAuth, async (_req, res) => {

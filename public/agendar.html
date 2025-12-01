@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agendar Cita - Venus Cosmetología</title>
+  <link rel="icon" href="/assets/logo.png">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    :root {
+      --bg: #faf9f6;
+      --card: #ffffff;
+      --venus: #8C9668;
+      --venus-soft: #a8b485;
+      --venus-light: #e8ebe0;
+      --ink: #2d2d1f;
+      --muted: #7a7a6a;
+      --line: rgba(0,0,0,0.08);
+      --success: #22c55e;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      min-height: 100vh;
+    }
+    .header {
+      background: linear-gradient(135deg, #3a3a2a 0%, #2d2d1f 100%);
+      padding: 30px 20px;
+      text-align: center;
+      color: white;
+    }
+    .logo {
+      width: 60px;
+      height: 60px;
+      border-radius: 16px;
+      margin: 0 auto 16px;
+    }
+    .header h1 { font-size: 24px; font-weight: 600; margin-bottom: 6px; }
+    .header p { font-size: 14px; opacity: 0.8; }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 24px 20px 40px;
+    }
+    .progress {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      margin-bottom: 32px;
+    }
+    .progress-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--line);
+    }
+    .progress-dot.active { background: var(--venus); }
+    .progress-dot.completed { background: var(--success); }
+
+    .card {
+      background: var(--card);
+      border-radius: 20px;
+      padding: 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      border: 1px solid var(--line);
+    }
+    .card-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .card-title i { color: var(--venus); }
+    .services-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 10px;
+    }
+    .service-item {
+      border: 2px solid var(--line);
+      border-radius: 12px;
+      padding: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+    .service-item:hover { border-color: var(--venus-soft); }
+    .service-item.selected { border-color: var(--venus); background: var(--venus-light); }
+    .service-item.selected::after {
+      content: '✓';
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: var(--venus);
+      color: white;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+    }
+    .service-name { font-weight: 600; font-size: 13px; margin-bottom: 4px; }
+    .service-meta { font-size: 11px; color: var(--muted); }
+    .service-price { color: var(--venus); font-weight: 600; }
+    .calendar-wrapper {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    @media (max-width: 600px) { .calendar-wrapper { grid-template-columns: 1fr; } }
+    .calendar {
+      background: var(--bg);
+      border-radius: 12px;
+      padding: 14px;
+    }
+    .calendar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .calendar-header h3 { font-size: 14px; font-weight: 600; }
+    .calendar-nav { display: flex; gap: 6px; }
+    .calendar-nav button {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: white;
+      cursor: pointer;
+    }
+    .calendar-nav button:hover { background: var(--venus-light); }
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 3px;
+      text-align: center;
+    }
+    .day-name { font-size: 10px; color: var(--muted); padding: 6px 0; }
+    .day {
+      aspect-ratio: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .day:hover:not(.disabled):not(.empty) { background: var(--venus-light); }
+    .day.selected { background: var(--venus); color: white; font-weight: 600; }
+    .day.today { border: 2px solid var(--venus); }
+    .day.disabled { color: #ccc; cursor: not-allowed; }
+    .time-slots {
+      background: var(--bg);
+      border-radius: 12px;
+      padding: 14px;
+    }
+    .time-slots h3 { font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+    .time-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+    }
+    .time-slot {
+      padding: 10px 6px;
+      border: 2px solid var(--line);
+      border-radius: 8px;
+      text-align: center;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .time-slot:hover:not(.disabled) { border-color: var(--venus-soft); }
+    .time-slot.selected { border-color: var(--venus); background: var(--venus); color: white; }
+    .time-slot.disabled { background: #f5f5f5; color: #ccc; cursor: not-allowed; text-decoration: line-through; }
+
+    .form-group { margin-bottom: 14px; }
+    .form-label { display: block; font-size: 12px; font-weight: 500; margin-bottom: 5px; }
+    .form-label .required { color: #ef4444; }
+    .form-input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 2px solid var(--line);
+      border-radius: 10px;
+      font-size: 15px;
+    }
+    .form-input:focus { outline: none; border-color: var(--venus); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    @media (max-width: 500px) { .form-row { grid-template-columns: 1fr; } }
+    .summary {
+      background: var(--venus-light);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      font-size: 13px;
+    }
+    .summary-row:not(:last-child) { border-bottom: 1px solid rgba(0,0,0,0.08); }
+    .summary-label { color: var(--muted); }
+    .summary-value { font-weight: 600; }
+    .summary-total { font-size: 16px; color: var(--venus); }
+    .btn {
+      padding: 14px 24px;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border: none;
+      transition: all 0.2s;
+      width: 100%;
+    }
+    .btn-primary { background: var(--venus); color: white; }
+    .btn-primary:hover { background: var(--venus-soft); }
+    .btn-primary:disabled { background: #ccc; cursor: not-allowed; }
+    .btn-outline { background: transparent; border: 2px solid var(--line); color: var(--ink); }
+    .btn-whatsapp { background: #25D366; color: white; }
+    .btn-whatsapp:hover { background: #20bd5a; }
+    .buttons-row { display: flex; gap: 10px; margin-top: 20px; }
+    .buttons-row .btn { flex: 1; }
+    .confirmation { text-align: center; padding: 30px 20px; }
+    .confirmation-icon {
+      width: 70px;
+      height: 70px;
+      background: rgba(34, 197, 94, 0.15);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+      color: var(--success);
+      font-size: 32px;
+    }
+    .confirmation h2 { font-size: 22px; margin-bottom: 8px; }
+    .confirmation p { color: var(--muted); font-size: 14px; margin-bottom: 20px; }
+    .confirmation-box {
+      background: var(--bg);
+      border-radius: 12px;
+      padding: 16px;
+      text-align: left;
+      margin-bottom: 20px;
+    }
+    .confirmation-row {
+      display: flex;
+      gap: 10px;
+      padding: 8px 0;
+      font-size: 13px;
+    }
+    .confirmation-row i { color: var(--venus); width: 18px; }
+    .step { display: none; }
+    .step.active { display: block; }
+    .loading { text-align: center; padding: 30px; color: var(--muted); }
+    .spinner {
+      width: 30px;
+      height: 30px;
+      border: 3px solid var(--line);
+      border-top-color: var(--venus);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .footer {
+      text-align: center;
+      padding: 20px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <img src="/assets/logo.png" alt="Venus" class="logo">
+    <h1>Venus Cosmetología</h1>
+    <p>Solicita tu cita</p>
+  </div>
+
+  <div class="container">
+    <div class="progress">
+      <div class="progress-dot active" id="dot-1"></div>
+      <div class="progress-dot" id="dot-2"></div>
+      <div class="progress-dot" id="dot-3"></div>
+      <div class="progress-dot" id="dot-4"></div>
+    </div>
+
+    <!-- PASO 1: Servicio -->
+    <div class="step active" id="step-1">
+      <div class="card">
+        <div class="card-title">
+          <i class="fas fa-sparkles"></i>
+          ¿Qué servicio te gustaría?
+        </div>
+        <div class="services-grid" id="services-list">
+          <div class="loading">
+            <div class="spinner"></div>
+            <p>Cargando servicios...</p>
+          </div>
+        </div>
+        <div class="buttons-row">
+          <button class="btn btn-primary" onclick="goToStep(2)" id="btn-step1" disabled>
+            Continuar <i class="fas fa-arrow-right"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PASO 2: Fecha y Hora -->
+    <div class="step" id="step-2">
+      <div class="card">
+        <div class="card-title">
+          <i class="fas fa-calendar"></i>
+          ¿Cuándo te gustaría venir?
+        </div>
+        <div class="calendar-wrapper">
+          <div class="calendar">
+            <div class="calendar-header">
+              <div class="calendar-nav">
+                <button onclick="prevMonth()"><i class="fas fa-chevron-left"></i></button>
+              </div>
+              <h3 id="calendar-month">Diciembre 2025</h3>
+              <div class="calendar-nav">
+                <button onclick="nextMonth()"><i class="fas fa-chevron-right"></i></button>
+              </div>
+            </div>
+            <div class="calendar-grid" id="calendar-grid"></div>
+          </div>
+          <div class="time-slots">
+            <h3 id="time-title">Selecciona un día</h3>
+            <div class="time-grid" id="time-grid">
+              <p style="grid-column:span 3;text-align:center;color:var(--muted);padding:16px;font-size:12px;">
+                Primero elige una fecha
+              </p>
+            </div>
+          </div>
+        </div>
+        <div class="buttons-row">
+          <button class="btn btn-outline" onclick="goToStep(1)">
+            <i class="fas fa-arrow-left"></i> Atrás
+          </button>
+          <button class="btn btn-primary" onclick="goToStep(3)" id="btn-step2" disabled>
+            Continuar <i class="fas fa-arrow-right"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PASO 3: Datos -->
+    <div class="step" id="step-3">
+      <div class="card">
+        <div class="card-title">
+          <i class="fas fa-user"></i>
+          Tus datos
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nombre completo <span class="required">*</span></label>
+          <input type="text" class="form-input" id="input-name" placeholder="Tu nombre completo">
+        </div>
+        <div class="form-group">
+          <label class="form-label">WhatsApp <span class="required">*</span></label>
+          <input type="tel" class="form-input" id="input-phone" placeholder="10 dígitos" maxlength="15">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <input type="email" class="form-input" id="input-email" placeholder="tu@email.com">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Cumpleaños</label>
+            <input type="date" class="form-input" id="input-birthday">
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">
+          <i class="fas fa-clipboard-list"></i>
+          Tu solicitud
+        </div>
+        <div class="summary">
+          <div class="summary-row">
+            <span class="summary-label">Servicio</span>
+            <span class="summary-value" id="sum-service">-</span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-label">Fecha</span>
+            <span class="summary-value" id="sum-date">-</span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-label">Hora</span>
+            <span class="summary-value" id="sum-time">-</span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-label">Precio</span>
+            <span class="summary-value summary-total" id="sum-price">-</span>
+          </div>
+        </div>
+        <div class="buttons-row">
+          <button class="btn btn-outline" onclick="goToStep(2)">
+            <i class="fas fa-arrow-left"></i> Atrás
+          </button>
+          <button class="btn btn-primary" onclick="submitRequest()" id="btn-submit">
+            Solicitar <i class="fas fa-paper-plane"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PASO 4: Confirmación -->
+    <div class="step" id="step-4">
+      <div class="card">
+        <div class="confirmation">
+          <div class="confirmation-icon">
+            <i class="fas fa-check-circle"></i>
+          </div>
+          <h2>¡Solicitud Enviada!</h2>
+          <p>Envíanos un WhatsApp para confirmar tu cita</p>
+          <div class="confirmation-box">
+            <div class="confirmation-row">
+              <i class="fas fa-sparkles"></i>
+              <span id="conf-service">-</span>
+            </div>
+            <div class="confirmation-row">
+              <i class="fas fa-calendar"></i>
+              <span id="conf-datetime">-</span>
+            </div>
+            <div class="confirmation-row">
+              <i class="fas fa-dollar-sign"></i>
+              <span id="conf-price">-</span>
+            </div>
+          </div>
+          <button class="btn btn-whatsapp" id="btn-whatsapp" onclick="openWhatsApp()">
+            <i class="fab fa-whatsapp"></i>
+            Enviar WhatsApp para confirmar
+          </button>
+          <p style="margin-top:16px;font-size:12px;color:var(--muted);">
+            Te contactaremos para confirmar disponibilidad
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    Venus Cosmetología · San Juan del Río, Qro.
+  </div>
+
+  <script>
+    let services = [];
+    let businessHours = { start: '09:00', end: '20:00', interval: 60, closedDays: [0] };
+    let selectedService = null;
+    let selectedDate = null;
+    let selectedTime = null;
+    let currentMonth = new Date();
+    let busySlots = {};
+    let whatsappUrl = '';
+
+    const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      await loadConfig();
+      await loadServices();
+      renderCalendar();
+    });
+
+    async function loadConfig() {
+      try {
+        const res = await fetch('/api/public/config');
+        const json = await res.json();
+        if (json.success && json.data?.businessHours) {
+          businessHours = json.data.businessHours;
+        }
+      } catch (e) { console.error(e); }
+    }
+
+    async function loadServices() {
+      try {
+        const res = await fetch('/api/public/services');
+        const json = await res.json();
+        if (json.success) {
+          services = json.data || [];
+          renderServices();
+        }
+      } catch (e) {
+        document.getElementById('services-list').innerHTML = '<p style="color:#ef4444;">Error al cargar</p>';
+      }
+    }
+
+    function renderServices() {
+      const el = document.getElementById('services-list');
+      if (services.length === 0) {
+        el.innerHTML = '<p style="color:var(--muted);">No hay servicios disponibles</p>';
+        return;
+      }
+      el.innerHTML = services.map(s => `
+        <div class="service-item" data-id="${s.id}" onclick="selectService(this, '${s.id}')">
+          <div class="service-name">${s.name}</div>
+          <div class="service-meta">
+            ${s.duration} min · <span class="service-price">$${s.price}</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function selectService(el, id) {
+      document.querySelectorAll('.service-item').forEach(e => e.classList.remove('selected'));
+      el.classList.add('selected');
+      selectedService = services.find(s => s.id === id);
+      document.getElementById('btn-step1').disabled = false;
+      updateSummary();
+    }
+
+    function renderCalendar() {
+      const year = currentMonth.getFullYear();
+      const month = currentMonth.getMonth();
+      document.getElementById('calendar-month').textContent = `${MONTHS[month]} ${year}`;
+      
+      const firstDay = new Date(year, month, 1).getDay();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      const today = new Date(); today.setHours(0,0,0,0);
+      
+      let html = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'].map(d => `<div class="day-name">${d}</div>`).join('');
+      
+      for (let i = 0; i < firstDay; i++) html += '<div class="day"></div>';
+      
+      for (let d = 1; d <= daysInMonth; d++) {
+        const date = new Date(year, month, d);
+        const dateStr = formatDateISO(date);
+        const isPast = date < today;
+        const isClosed = businessHours.closedDays?.includes(date.getDay());
+        const isToday = date.toDateString() === today.toDateString();
+        const isSelected = selectedDate === dateStr;
+        
+        let cls = 'day';
+        if (isToday) cls += ' today';
+        if (isSelected) cls += ' selected';
+        if (isPast || isClosed) cls += ' disabled';
+        
+        html += `<div class="${cls}" ${(!isPast && !isClosed) ? `onclick="selectDate('${dateStr}')"` : ''}>${d}</div>`;
+      }
+      
+      document.getElementById('calendar-grid').innerHTML = html;
+    }
+
+    function prevMonth() {
+      currentMonth.setMonth(currentMonth.getMonth() - 1);
+      renderCalendar();
+    }
+
+    function nextMonth() {
+      currentMonth.setMonth(currentMonth.getMonth() + 1);
+      renderCalendar();
+    }
+
+    async function selectDate(dateStr) {
+      selectedDate = dateStr;
+      selectedTime = null;
+      document.getElementById('btn-step2').disabled = true;
+      renderCalendar();
+      
+      document.getElementById('time-grid').innerHTML = '<p style="grid-column:span 3;text-align:center;padding:16px;">Cargando...</p>';
+      
+      try {
+        const res = await fetch(`/api/public/availability?date=${dateStr}`);
+        const json = await res.json();
+        busySlots[dateStr] = json.success ? json.busy : [];
+      } catch (e) {
+        busySlots[dateStr] = [];
+      }
+      
+      renderTimeSlots(dateStr);
+      updateSummary();
+    }
+
+    function renderTimeSlots(dateStr) {
+      const busy = busySlots[dateStr] || [];
+      const date = new Date(dateStr + 'T00:00:00');
+      document.getElementById('time-title').textContent = date.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'short' });
+      
+      const startH = parseInt(businessHours.start?.split(':')[0]) || 9;
+      const endH = parseInt(businessHours.end?.split(':')[0]) || 20;
+      
+      let html = '';
+      for (let h = startH; h < endH; h++) {
+        const time = `${h.toString().padStart(2,'0')}:00`;
+        const display = h === 12 ? '12:00 PM' : h > 12 ? `${h-12}:00 PM` : `${h}:00 AM`;
+        const isBusy = busy.includes(time);
+        
+        html += `<div class="time-slot ${isBusy ? 'disabled' : ''}" ${!isBusy ? `onclick="selectTime('${time}', this)"` : ''}>${display}</div>`;
+      }
+      
+      document.getElementById('time-grid').innerHTML = html;
+    }
+
+    function selectTime(time, el) {
+      document.querySelectorAll('.time-slot').forEach(e => e.classList.remove('selected'));
+      el.classList.add('selected');
+      selectedTime = time;
+      document.getElementById('btn-step2').disabled = false;
+      updateSummary();
+    }
+
+    function updateSummary() {
+      if (selectedService) {
+        document.getElementById('sum-service').textContent = selectedService.name;
+        document.getElementById('sum-price').textContent = '$' + selectedService.price;
+      }
+      if (selectedDate) {
+        const d = new Date(selectedDate + 'T00:00:00');
+        document.getElementById('sum-date').textContent = d.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' });
+      }
+      if (selectedTime) {
+        const h = parseInt(selectedTime.split(':')[0]);
+        document.getElementById('sum-time').textContent = h === 12 ? '12:00 PM' : h > 12 ? `${h-12}:00 PM` : `${h}:00 AM`;
+      }
+    }
+
+    async function submitRequest() {
+      const name = document.getElementById('input-name').value.trim();
+      const phone = document.getElementById('input-phone').value.trim().replace(/\D/g, '');
+      const email = document.getElementById('input-email').value.trim();
+      const birthday = document.getElementById('input-birthday').value;
+      
+      if (!name) { alert('Ingresa tu nombre'); return; }
+      if (phone.length < 10) { alert('Ingresa tu WhatsApp (10 dígitos)'); return; }
+      
+      const btn = document.getElementById('btn-submit');
+      btn.disabled = true;
+      btn.innerHTML = '<div class="spinner" style="width:18px;height:18px;display:inline-block;margin-right:8px;"></div> Enviando...';
+      
+      try {
+        const res = await fetch('/api/public/request', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            serviceId: selectedService.id,
+            serviceName: selectedService.name,
+            servicePrice: selectedService.price,
+            serviceDuration: selectedService.duration,
+            date: selectedDate,
+            time: selectedTime,
+            clientName: name,
+            clientPhone: phone,
+            clientEmail: email || null,
+            clientBirthday: birthday || null
+          })
+        });
+        
+        const json = await res.json();
+        
+        if (json.success) {
+          whatsappUrl = json.whatsappUrl;
+          showConfirmation();
+        } else {
+          alert('Error: ' + json.error);
+          btn.disabled = false;
+          btn.innerHTML = 'Solicitar <i class="fas fa-paper-plane"></i>';
+        }
+      } catch (e) {
+        alert('Error de conexión');
+        btn.disabled = false;
+        btn.innerHTML = 'Solicitar <i class="fas fa-paper-plane"></i>';
+      }
+    }
+
+    function showConfirmation() {
+      document.getElementById('conf-service').textContent = selectedService.name;
+      document.getElementById('conf-price').textContent = '$' + selectedService.price;
+      
+      const d = new Date(selectedDate + 'T00:00:00');
+      const h = parseInt(selectedTime.split(':')[0]);
+      const timeStr = h === 12 ? '12:00 PM' : h > 12 ? `${h-12}:00 PM` : `${h}:00 AM`;
+      document.getElementById('conf-datetime').textContent = d.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'short' }) + ', ' + timeStr;
+      
+      goToStep(4);
+    }
+
+    function openWhatsApp() {
+      if (whatsappUrl) window.open(whatsappUrl, '_blank');
+    }
+
+    function goToStep(n) {
+      document.querySelectorAll('.step').forEach(el => el.classList.remove('active'));
+      document.getElementById(`step-${n}`).classList.add('active');
+      
+      for (let i = 1; i <= 4; i++) {
+        const dot = document.getElementById(`dot-${i}`);
+        dot.className = 'progress-dot';
+        if (i < n) dot.classList.add('completed');
+        else if (i === n) dot.classList.add('active');
+      }
+      
+      window.scrollTo(0, 0);
+    }
+
+    function formatDateISO(d) {
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    }
+  </script>
+</body>
+</html>
