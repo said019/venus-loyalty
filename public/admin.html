@@ -8114,6 +8114,7 @@
     }
 
     async function loadWeekAppointmentCounts(weekStart) {
+      console.log('📅 Cargar conteos semana:', weekStart);
       for (let i = 0; i < 7; i++) {
         const day = new Date(weekStart);
         day.setDate(day.getDate() + i);
@@ -8122,6 +8123,8 @@
         try {
           const res = await fetch(`/api/appointments?date=${dateStr}`);
           const json = await res.json();
+          console.log(`   🗓️ Día ${dateStr}: ${json.data?.length} citas`);
+
           const countEl = document.getElementById(`day-count-${dateStr}`);
           if (countEl && json.success) {
             const count = json.data.length;
@@ -8154,9 +8157,12 @@
       apptsTbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;">Cargando...</td></tr>';
 
       const dateStr = toLocalDateString(selectedDate);
+      console.log(`📋 Cargar lista citas para: ${dateStr}`);
+
       try {
         const res = await fetch(`/api/appointments?date=${dateStr}`);
         const json = await res.json();
+        console.log(`   📦 Recibidas ${json.data?.length} citas para lista`);
 
         if (json.success) {
           if (json.data.length === 0) {
