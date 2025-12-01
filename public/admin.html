@@ -2798,63 +2798,45 @@
     <!-- TAB: Solicitudes de Citas Online -->
     <section id="tab-requests" class="tab-content hidden">
       <div class="header-actions">
-        <h2><i class="fas fa-inbox"></i> Solicitudes de Citas</h2>
-        <div style="display:flex;gap:10px;align-items:center;">
-          <span class="muted" style="font-size:12px;">Solicitudes desde la página de agendar</span>
-          <button class="btn small ghost" onclick="loadBookingRequests()"><i class="fas fa-sync"></i></button>
+        <h2><i class="fas fa-inbox"></i> Solicitudes</h2>
+        <button class="btn small ghost" onclick="loadBookingRequests()"><i class="fas fa-sync"></i></button>
+      </div>
+
+      <!-- Stats compactas -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:16px;">
+        <div class="kpi">
+          <span class="value" id="req-pending">0</span>
+          <span><i class="fas fa-clock"></i> Pendientes</span>
+        </div>
+        <div class="kpi">
+          <span class="value" id="req-contacted">0</span>
+          <span><i class="fas fa-phone"></i> Contactadas</span>
+        </div>
+        <div class="kpi">
+          <span class="value" id="req-booked">0</span>
+          <span><i class="fas fa-check"></i> Agendadas</span>
         </div>
       </div>
 
-      <!-- Stats de solicitudes -->
-      <div class="gc-stats" style="margin-bottom:20px;">
-        <div class="gc-stat">
-          <div class="gc-stat-value" id="req-pending">0</div>
-          <div class="gc-stat-label"><i class="fas fa-clock"></i> Pendientes</div>
-        </div>
-        <div class="gc-stat">
-          <div class="gc-stat-value" id="req-contacted">0</div>
-          <div class="gc-stat-label"><i class="fas fa-phone"></i> Contactadas</div>
-        </div>
-        <div class="gc-stat">
-          <div class="gc-stat-value" id="req-booked">0</div>
-          <div class="gc-stat-label"><i class="fas fa-calendar-check"></i> Agendadas</div>
+      <!-- Lista de solicitudes tipo tarjetas -->
+      <div id="requests-list" style="display:flex;flex-direction:column;gap:10px;">
+        <div style="text-align:center;padding:40px;" class="muted">
+          <i class="fas fa-inbox" style="font-size:32px;margin-bottom:12px;display:block;opacity:0.5;"></i>
+          Cargando solicitudes...
         </div>
       </div>
 
-      <!-- Lista de solicitudes -->
-      <div class="card">
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Fecha Solicitud</th>
-                <th>Cliente</th>
-                <th>Servicio</th>
-                <th>Fecha Deseada</th>
-                <th>Estado</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody id="requests-list">
-              <tr>
-                <td colspan="6" style="text-align:center;padding:20px;" class="muted">
-                  <i class="fas fa-inbox" style="font-size:24px;margin-bottom:8px;display:block;"></i>
-                  Cargando solicitudes...
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Link a página de agendar -->
-      <div style="margin-top:20px;padding:16px;background:rgba(140,150,104,0.1);border-radius:12px;border:1px solid rgba(140,150,104,0.2);">
-        <h4 style="margin:0 0 8px;"><i class="fas fa-link"></i> Página de Agendar</h4>
-        <p class="muted" style="margin:0 0 12px;font-size:13px;">Comparte este link con tus clientas para que soliciten citas online:</p>
-        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-          <code id="agendar-url" style="flex:1;padding:10px;background:rgba(0,0,0,0.3);border-radius:8px;font-size:13px;word-break:break-all;"></code>
-          <button class="btn small" onclick="copyAgendarUrl()"><i class="fas fa-copy"></i> Copiar</button>
-          <a href="/agendar.html" target="_blank" class="btn small ghost"><i class="fas fa-external-link-alt"></i> Abrir</a>
+      <!-- Link compacto -->
+      <div style="margin-top:16px;padding:12px;background:rgba(140,150,104,0.08);border-radius:10px;border:1px solid rgba(140,150,104,0.15);">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+          <div style="flex:1;min-width:200px;">
+            <div style="font-size:12px;font-weight:600;margin-bottom:4px;"><i class="fas fa-link"></i> Página de Agendar</div>
+            <code id="agendar-url" style="font-size:11px;word-break:break-all;"></code>
+          </div>
+          <div style="display:flex;gap:6px;">
+            <button class="btn small" onclick="copyAgendarUrl()" title="Copiar URL"><i class="fas fa-copy"></i></button>
+            <a href="/agendar.html" target="_blank" class="btn small ghost" title="Abrir"><i class="fas fa-external-link-alt"></i></a>
+          </div>
         </div>
       </div>
     </section>
@@ -5758,6 +5740,7 @@
         } else if (tabName === 'requests') {
           loadBookingRequests();
           initAgendarUrl();
+          startRequestsAutoRefresh();
           if (typeof stopDashboardAutoRefresh === 'function') stopDashboardAutoRefresh();
         } else if (tabName === 'settings') {
           loadBusinessConfig();
@@ -5771,8 +5754,9 @@
           // Detener auto-refresh del dashboard
           if (typeof stopDashboardAutoRefresh === 'function') stopDashboardAutoRefresh();
         } else {
-          // Detener auto-refresh cuando se sale del tab de appointments
+          // Detener auto-refresh cuando se sale de los tabs
           if (typeof stopAppointmentsAutoRefresh === 'function') stopAppointmentsAutoRefresh();
+          if (typeof stopRequestsAutoRefresh === 'function') stopRequestsAutoRefresh();
           if (typeof stopDashboardAutoRefresh === 'function') stopDashboardAutoRefresh();
         }
       });
@@ -11430,18 +11414,61 @@
     
     let bookingRequests = [];
     
+    let lastRequestsCount = 0;
+    
     async function loadBookingRequests() {
       try {
         const res = await fetch('/api/booking-requests', { credentials: 'include' });
         const json = await res.json();
         
         if (json.success) {
-          bookingRequests = json.data || [];
+          const newRequests = json.data || [];
+          
+          // Detectar nuevas solicitudes
+          if (lastRequestsCount > 0 && newRequests.length > lastRequestsCount) {
+            const newCount = newRequests.length - lastRequestsCount;
+            console.log(`[REQUESTS] 🆕 ${newCount} nueva(s) solicitud(es)`);
+            
+            // Mostrar notificación del navegador
+            if ("Notification" in window && Notification.permission === "granted") {
+              new Notification('Nueva solicitud de cita', {
+                body: `${newRequests[0].clientName} quiere ${newRequests[0].serviceName}`,
+                icon: '/assets/logo.png'
+              });
+            }
+          }
+          
+          lastRequestsCount = newRequests.length;
+          bookingRequests = newRequests;
           renderBookingRequests();
           updateRequestStats();
         }
       } catch (error) {
         console.error('Error loading booking requests:', error);
+      }
+    }
+    
+    // Auto-refresh cada 30 segundos cuando está en el tab de solicitudes
+    let requestsRefreshInterval = null;
+    
+    function startRequestsAutoRefresh() {
+      if (requestsRefreshInterval) return;
+      
+      requestsRefreshInterval = setInterval(() => {
+        const requestsTab = document.getElementById('tab-requests');
+        if (requestsTab && !requestsTab.classList.contains('hidden')) {
+          loadBookingRequests();
+        }
+      }, 30000); // 30 segundos
+      
+      console.log('[REQUESTS] ✅ Auto-refresh iniciado');
+    }
+    
+    function stopRequestsAutoRefresh() {
+      if (requestsRefreshInterval) {
+        clearInterval(requestsRefreshInterval);
+        requestsRefreshInterval = null;
+        console.log('[REQUESTS] ⏹️ Auto-refresh detenido');
       }
     }
     
@@ -11456,23 +11483,21 @@
     }
     
     function renderBookingRequests() {
-      const tbody = document.getElementById('requests-list');
-      if (!tbody) return;
+      const container = document.getElementById('requests-list');
+      if (!container) return;
       
       if (bookingRequests.length === 0) {
-        tbody.innerHTML = `
-          <tr>
-            <td colspan="6" style="text-align:center;padding:30px;" class="muted">
-              <i class="fas fa-inbox" style="font-size:32px;margin-bottom:12px;display:block;opacity:0.5;"></i>
-              No hay solicitudes de citas<br>
-              <small>Las solicitudes aparecerán aquí cuando las clientas agenden desde la página pública</small>
-            </td>
-          </tr>
+        container.innerHTML = `
+          <div style="text-align:center;padding:40px;" class="muted">
+            <i class="fas fa-inbox" style="font-size:32px;margin-bottom:12px;display:block;opacity:0.5;"></i>
+            No hay solicitudes de citas<br>
+            <small style="font-size:12px;">Las solicitudes aparecerán aquí cuando las clientas agenden desde la página pública</small>
+          </div>
         `;
         return;
       }
       
-      tbody.innerHTML = bookingRequests.map(req => {
+      container.innerHTML = bookingRequests.map(req => {
         const createdDate = new Date(req.createdAt);
         const createdStr = createdDate.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
         
@@ -11481,28 +11506,28 @@
         const hour = parseInt(req.time.split(':')[0]);
         const timeStr = hour === 12 ? '12:00 PM' : hour > 12 ? `${hour - 12}:00 PM` : `${hour}:00 AM`;
         
-        const statusBadge = {
-          pending: '<span class="gc-status pending"><i class="fas fa-clock"></i> Pendiente</span>',
-          contacted: '<span class="gc-status" style="background:rgba(59,130,246,0.15);color:#3b82f6;"><i class="fas fa-phone"></i> Contactada</span>',
-          booked: '<span class="gc-status redeemed"><i class="fas fa-check"></i> Agendada</span>'
-        }[req.status] || '<span class="gc-status pending">Pendiente</span>';
+        const statusConfig = {
+          pending: { bg: 'rgba(251,191,36,0.15)', color: '#fbbf24', icon: 'clock', text: 'Pendiente' },
+          contacted: { bg: 'rgba(59,130,246,0.15)', color: '#3b82f6', icon: 'phone', text: 'Contactada' },
+          booked: { bg: 'rgba(34,197,94,0.15)', color: '#22c55e', icon: 'check-circle', text: 'Agendada' }
+        }[req.status] || { bg: 'rgba(251,191,36,0.15)', color: '#fbbf24', icon: 'clock', text: 'Pendiente' };
         
         const actions = req.status === 'pending' ? `
           <button class="btn small" onclick="contactRequest('${req.id}')" title="Marcar como contactada">
-            <i class="fas fa-phone"></i>
+            <i class="fas fa-phone"></i> Contactar
           </button>
           <a href="https://wa.me/${req.clientPhone}" target="_blank" class="btn small" style="background:#25D366;border-color:#25D366;" title="WhatsApp">
             <i class="fab fa-whatsapp"></i>
           </a>
         ` : req.status === 'contacted' ? `
           <button class="btn small primary" onclick="markAsBooked('${req.id}')" title="Marcar como agendada">
-            <i class="fas fa-calendar-check"></i>
+            <i class="fas fa-calendar-check"></i> Agendar
           </button>
           <a href="https://wa.me/${req.clientPhone}" target="_blank" class="btn small" style="background:#25D366;border-color:#25D366;" title="WhatsApp">
             <i class="fab fa-whatsapp"></i>
           </a>
         ` : `
-          <span class="muted"><i class="fas fa-check-circle"></i></span>
+          <span class="muted" style="font-size:12px;"><i class="fas fa-check-circle"></i> Completada</span>
         `;
         
         return `
