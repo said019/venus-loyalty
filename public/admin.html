@@ -2064,6 +2064,7 @@
         <a href="#overview" class="mobile-nav-link" data-tab="overview"><i class="fas fa-th-large"></i> Resumen</a>
         <a href="#cards" class="mobile-nav-link" data-tab="cards"><i class="fas fa-credit-card"></i> Tarjetas</a>
         <a href="#events" class="mobile-nav-link" data-tab="events"><i class="fas fa-gift"></i> Gift Cards</a>
+        <a href="#requests" class="mobile-nav-link" data-tab="requests"><i class="fas fa-inbox"></i> Solicitudes</a>
         <a href="#appointments" class="mobile-nav-link" data-tab="appointments"><i class="fas fa-calendar"></i>
           Citas</a>
         <a href="#services" class="mobile-nav-link" data-tab="services"><i class="fas fa-sparkles"></i> Servicios</a>
@@ -2081,6 +2082,7 @@
       <a href="#cards" data-tab="cards"><i class="fas fa-credit-card"></i> Tarjetas</a>
       <a href="#events" data-tab="events"><i class="fas fa-gift"></i> Gift Cards</a>
       <a href="#notifications" data-tab="notifications"><i class="fas fa-bell"></i> Notificaciones</a>
+      <a href="#requests" data-tab="requests"><i class="fas fa-inbox"></i> Solicitudes</a>
       <a href="#appointments" data-tab="appointments"><i class="fas fa-calendar"></i> Citas</a>
       <a href="#services" data-tab="services"><i class="fas fa-sparkles"></i> Servicios</a>
       <a href="#settings" data-tab="settings"><i class="fas fa-cog"></i> Configuración</a>
@@ -2490,7 +2492,75 @@
     <!-- TAB: Settings - MEJORADO CON DEBUGGING -->
     <section id="tab-settings" class="card hidden">
       <h2>Configuración</h2>
-      <p class="muted">Envía notificaciones push a todos los pases en Google Wallet.</p>
+      
+      <!-- Configuración del Negocio -->
+      <div style="background:rgba(140,150,104,0.1);border:1px solid rgba(140,150,104,0.3);border-radius:12px;padding:14px;margin:12px 0;">
+        <h3 style="margin:0 0 12px;"><i class="fas fa-store"></i> Datos del Negocio</h3>
+        <p class="muted" style="margin:0 0 16px;font-size:12px;">Esta información se muestra en la página de agendar citas.</p>
+        
+        <form id="business-config-form">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div>
+              <label>Nombre del negocio</label>
+              <input id="biz-name" placeholder="Venus Estética" required>
+            </div>
+            <div>
+              <label>WhatsApp del negocio</label>
+              <input id="biz-whatsapp" placeholder="524271234567" required>
+              <small class="muted">Formato: código país + número (sin +)</small>
+            </div>
+          </div>
+          
+          <label style="margin-top:12px;">Dirección</label>
+          <input id="biz-address" placeholder="Cactus 50, San Juan del Río, Qro.">
+          
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
+            <div>
+              <label>Horario apertura</label>
+              <input type="time" id="biz-open" value="09:00">
+            </div>
+            <div>
+              <label>Horario cierre</label>
+              <input type="time" id="biz-close" value="19:00">
+            </div>
+          </div>
+          
+          <label style="margin-top:12px;">Días de trabajo</label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;">
+            <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;">
+              <input type="checkbox" id="biz-day-1" checked> Lun
+            </label>
+            <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;">
+              <input type="checkbox" id="biz-day-2" checked> Mar
+            </label>
+            <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;">
+              <input type="checkbox" id="biz-day-3" checked> Mié
+            </label>
+            <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;">
+              <input type="checkbox" id="biz-day-4" checked> Jue
+            </label>
+            <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;">
+              <input type="checkbox" id="biz-day-5" checked> Vie
+            </label>
+            <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;">
+              <input type="checkbox" id="biz-day-6" checked> Sáb
+            </label>
+            <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;">
+              <input type="checkbox" id="biz-day-0"> Dom
+            </label>
+          </div>
+          
+          <div style="margin-top:14px;">
+            <button type="submit" class="btn primary"><i class="fas fa-save"></i> Guardar configuración</button>
+          </div>
+        </form>
+        
+        <div id="biz-success" class="success-message hidden" style="margin-top:12px;">
+          ✅ Configuración guardada correctamente
+        </div>
+      </div>
+
+      <p class="muted" style="margin-top:20px;">Envía notificaciones push a todos los pases en Google Wallet.</p>
 
       <div
         style="background:rgba(140,150,104,0.1);border:1px solid rgba(140,150,104,0.3);border-radius:12px;padding:14px;margin:12px 0;">
@@ -2721,6 +2791,70 @@
           Reciente</h4>
         <div id="automation-history" class="automation-history">
           <p class="muted" style="font-size:12px;">No hay envíos recientes</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB: Solicitudes de Citas Online -->
+    <section id="tab-requests" class="tab-content hidden">
+      <div class="header-actions">
+        <h2><i class="fas fa-inbox"></i> Solicitudes de Citas</h2>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <span class="muted" style="font-size:12px;">Solicitudes desde la página de agendar</span>
+          <button class="btn small ghost" onclick="loadBookingRequests()"><i class="fas fa-sync"></i></button>
+        </div>
+      </div>
+
+      <!-- Stats de solicitudes -->
+      <div class="gc-stats" style="margin-bottom:20px;">
+        <div class="gc-stat">
+          <div class="gc-stat-value" id="req-pending">0</div>
+          <div class="gc-stat-label"><i class="fas fa-clock"></i> Pendientes</div>
+        </div>
+        <div class="gc-stat">
+          <div class="gc-stat-value" id="req-contacted">0</div>
+          <div class="gc-stat-label"><i class="fas fa-phone"></i> Contactadas</div>
+        </div>
+        <div class="gc-stat">
+          <div class="gc-stat-value" id="req-booked">0</div>
+          <div class="gc-stat-label"><i class="fas fa-calendar-check"></i> Agendadas</div>
+        </div>
+      </div>
+
+      <!-- Lista de solicitudes -->
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Fecha Solicitud</th>
+                <th>Cliente</th>
+                <th>Servicio</th>
+                <th>Fecha Deseada</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="requests-list">
+              <tr>
+                <td colspan="6" style="text-align:center;padding:20px;" class="muted">
+                  <i class="fas fa-inbox" style="font-size:24px;margin-bottom:8px;display:block;"></i>
+                  Cargando solicitudes...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Link a página de agendar -->
+      <div style="margin-top:20px;padding:16px;background:rgba(140,150,104,0.1);border-radius:12px;border:1px solid rgba(140,150,104,0.2);">
+        <h4 style="margin:0 0 8px;"><i class="fas fa-link"></i> Página de Agendar</h4>
+        <p class="muted" style="margin:0 0 12px;font-size:13px;">Comparte este link con tus clientas para que soliciten citas online:</p>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+          <code id="agendar-url" style="flex:1;padding:10px;background:rgba(0,0,0,0.3);border-radius:8px;font-size:13px;word-break:break-all;"></code>
+          <button class="btn small" onclick="copyAgendarUrl()"><i class="fas fa-copy"></i> Copiar</button>
+          <a href="/agendar.html" target="_blank" class="btn small ghost"><i class="fas fa-external-link-alt"></i> Abrir</a>
         </div>
       </div>
     </section>
@@ -5614,15 +5748,20 @@
           loadCards(1);
           // Detener auto-refresh del dashboard
           if (typeof stopDashboardAutoRefresh === 'function') stopDashboardAutoRefresh();
-        } else if (tabName === 'settings') {
-          loadNotificationsHistory();
-          if (typeof stopDashboardAutoRefresh === 'function') stopDashboardAutoRefresh();
         } else if (tabName === 'events') {
           loadGiftCardServices();
           loadGiftCards();
           if (typeof stopDashboardAutoRefresh === 'function') stopDashboardAutoRefresh();
         } else if (tabName === 'services') {
           loadServicesTable();
+          if (typeof stopDashboardAutoRefresh === 'function') stopDashboardAutoRefresh();
+        } else if (tabName === 'requests') {
+          loadBookingRequests();
+          initAgendarUrl();
+          if (typeof stopDashboardAutoRefresh === 'function') stopDashboardAutoRefresh();
+        } else if (tabName === 'settings') {
+          loadBusinessConfig();
+          loadNotificationsHistory();
           if (typeof stopDashboardAutoRefresh === 'function') stopDashboardAutoRefresh();
         } else if (tabName === 'appointments') {
           if (typeof loadAppointments === 'function') loadAppointments();
@@ -11284,6 +11423,239 @@
     window.showManualCodeInput = showManualCodeInput;
     window.addStampFromScanner = addStampFromScanner;
     window.redeemGiftCardFromScanner = redeemGiftCardFromScanner;
+
+    /* =========================================================
+       SOLICITUDES DE CITAS ONLINE
+       ========================================================= */
+    
+    let bookingRequests = [];
+    
+    async function loadBookingRequests() {
+      try {
+        const res = await fetch('/api/booking-requests', { credentials: 'include' });
+        const json = await res.json();
+        
+        if (json.success) {
+          bookingRequests = json.data || [];
+          renderBookingRequests();
+          updateRequestStats();
+        }
+      } catch (error) {
+        console.error('Error loading booking requests:', error);
+      }
+    }
+    
+    function updateRequestStats() {
+      const pending = bookingRequests.filter(r => r.status === 'pending').length;
+      const contacted = bookingRequests.filter(r => r.status === 'contacted').length;
+      const booked = bookingRequests.filter(r => r.status === 'booked').length;
+      
+      document.getElementById('req-pending').textContent = pending;
+      document.getElementById('req-contacted').textContent = contacted;
+      document.getElementById('req-booked').textContent = booked;
+    }
+    
+    function renderBookingRequests() {
+      const tbody = document.getElementById('requests-list');
+      if (!tbody) return;
+      
+      if (bookingRequests.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6" style="text-align:center;padding:30px;" class="muted">
+              <i class="fas fa-inbox" style="font-size:32px;margin-bottom:12px;display:block;opacity:0.5;"></i>
+              No hay solicitudes de citas<br>
+              <small>Las solicitudes aparecerán aquí cuando las clientas agenden desde la página pública</small>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+      
+      tbody.innerHTML = bookingRequests.map(req => {
+        const createdDate = new Date(req.createdAt);
+        const createdStr = createdDate.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+        
+        const desiredDate = new Date(req.date + 'T00:00:00');
+        const desiredStr = desiredDate.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' });
+        const hour = parseInt(req.time.split(':')[0]);
+        const timeStr = hour === 12 ? '12:00 PM' : hour > 12 ? `${hour - 12}:00 PM` : `${hour}:00 AM`;
+        
+        const statusBadge = {
+          pending: '<span class="gc-status pending"><i class="fas fa-clock"></i> Pendiente</span>',
+          contacted: '<span class="gc-status" style="background:rgba(59,130,246,0.15);color:#3b82f6;"><i class="fas fa-phone"></i> Contactada</span>',
+          booked: '<span class="gc-status redeemed"><i class="fas fa-check"></i> Agendada</span>'
+        }[req.status] || '<span class="gc-status pending">Pendiente</span>';
+        
+        const actions = req.status === 'pending' ? `
+          <button class="btn small" onclick="contactRequest('${req.id}')" title="Marcar como contactada">
+            <i class="fas fa-phone"></i>
+          </button>
+          <a href="https://wa.me/${req.clientPhone}" target="_blank" class="btn small" style="background:#25D366;border-color:#25D366;" title="WhatsApp">
+            <i class="fab fa-whatsapp"></i>
+          </a>
+        ` : req.status === 'contacted' ? `
+          <button class="btn small primary" onclick="markAsBooked('${req.id}')" title="Marcar como agendada">
+            <i class="fas fa-calendar-check"></i>
+          </button>
+          <a href="https://wa.me/${req.clientPhone}" target="_blank" class="btn small" style="background:#25D366;border-color:#25D366;" title="WhatsApp">
+            <i class="fab fa-whatsapp"></i>
+          </a>
+        ` : `
+          <span class="muted"><i class="fas fa-check-circle"></i></span>
+        `;
+        
+        return `
+          <tr>
+            <td>${createdStr}</td>
+            <td>
+              <strong>${req.clientName}</strong><br>
+              <small class="muted">${req.clientPhone}</small>
+              ${req.isNewClient ? '<br><span style="font-size:10px;color:#22c55e;"><i class="fas fa-star"></i> Nueva</span>' : ''}
+            </td>
+            <td>
+              ${req.serviceName}<br>
+              <small class="muted">$${req.servicePrice || 0}</small>
+            </td>
+            <td>
+              ${desiredStr}<br>
+              <small class="muted">${timeStr}</small>
+            </td>
+            <td>${statusBadge}</td>
+            <td style="white-space:nowrap;">
+              <div style="display:flex;gap:6px;">
+                ${actions}
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+    
+    async function contactRequest(id) {
+      try {
+        const res = await fetch(`/api/booking-requests/${id}/contacted`, {
+          method: 'POST',
+          credentials: 'include'
+        });
+        const json = await res.json();
+        if (json.success) {
+          loadBookingRequests();
+        } else {
+          alert('Error: ' + json.error);
+        }
+      } catch (error) {
+        alert('Error de conexión');
+      }
+    }
+    
+    async function markAsBooked(id) {
+      try {
+        const res = await fetch(`/api/booking-requests/${id}/booked`, {
+          method: 'POST',
+          credentials: 'include'
+        });
+        const json = await res.json();
+        if (json.success) {
+          loadBookingRequests();
+        } else {
+          alert('Error: ' + json.error);
+        }
+      } catch (error) {
+        alert('Error de conexión');
+      }
+    }
+    
+    function initAgendarUrl() {
+      const urlEl = document.getElementById('agendar-url');
+      if (urlEl) {
+        urlEl.textContent = window.location.origin + '/agendar.html';
+      }
+    }
+    
+    function copyAgendarUrl() {
+      const url = window.location.origin + '/agendar.html';
+      navigator.clipboard.writeText(url).then(() => {
+        alert('✅ URL copiada al portapapeles');
+      }).catch(() => {
+        prompt('Copia esta URL:', url);
+      });
+    }
+    
+    window.loadBookingRequests = loadBookingRequests;
+    window.contactRequest = contactRequest;
+    window.markAsBooked = markAsBooked;
+    window.copyAgendarUrl = copyAgendarUrl;
+
+    /* =========================================================
+       CONFIGURACIÓN DEL NEGOCIO
+       ========================================================= */
+    
+    async function loadBusinessConfig() {
+      try {
+        const res = await fetch('/api/settings/business');
+        const json = await res.json();
+        
+        if (json.success && json.data) {
+          const d = json.data;
+          document.getElementById('biz-name').value = d.businessName || '';
+          document.getElementById('biz-whatsapp').value = d.whatsappBusiness || '';
+          document.getElementById('biz-address').value = d.address || '';
+          document.getElementById('biz-open').value = d.openTime || '09:00';
+          document.getElementById('biz-close').value = d.closeTime || '19:00';
+          
+          // Días de trabajo
+          const workDays = d.workDays || [1,2,3,4,5,6];
+          for (let i = 0; i <= 6; i++) {
+            const cb = document.getElementById(`biz-day-${i}`);
+            if (cb) cb.checked = workDays.includes(i);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading business config:', error);
+      }
+    }
+    
+    document.getElementById('business-config-form')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const workDays = [];
+      for (let i = 0; i <= 6; i++) {
+        const cb = document.getElementById(`biz-day-${i}`);
+        if (cb && cb.checked) workDays.push(i);
+      }
+      
+      const data = {
+        businessName: document.getElementById('biz-name').value,
+        whatsappBusiness: document.getElementById('biz-whatsapp').value,
+        address: document.getElementById('biz-address').value,
+        openTime: document.getElementById('biz-open').value,
+        closeTime: document.getElementById('biz-close').value,
+        workDays
+      };
+      
+      try {
+        const res = await fetch('/api/settings/business', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(data)
+        });
+        const json = await res.json();
+        
+        if (json.success) {
+          const successEl = document.getElementById('biz-success');
+          successEl.classList.remove('hidden');
+          setTimeout(() => successEl.classList.add('hidden'), 3000);
+        } else {
+          alert('Error: ' + json.error);
+        }
+      } catch (error) {
+        alert('Error de conexión');
+      }
+    });
+    
+    window.loadBusinessConfig = loadBusinessConfig;
 
     /* =========================================================
        SISTEMA DE NOTIFICACIONES - CAMPANA
