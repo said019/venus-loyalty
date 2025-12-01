@@ -4773,10 +4773,32 @@
         display: flex;
         align-items: center;
         justify-content: center;
+        z-index: 1000;
+        font-size: 20px;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
       }
 
-      .scanner-close:hover {
+      .scanner-close:hover,
+      .scanner-close:active {
         background: rgba(255, 255, 255, 0.2);
+      }
+
+      /* Mejorar área de toque en móviles */
+      @media (max-width: 768px) {
+        .scanner-close {
+          width: 48px;
+          height: 48px;
+          top: 16px;
+          right: 16px;
+          background: rgba(0, 0, 0, 0.6);
+          backdrop-filter: blur(10px);
+        }
+
+        .scanner-close:active {
+          background: rgba(255, 255, 255, 0.3);
+          transform: scale(0.95);
+        }
       }
 
       .scanner-header {
@@ -10952,9 +10974,38 @@
     }
 
     function closeScanner() {
-      document.getElementById('scanner-modal').classList.remove('active');
+      console.log('🔴 Cerrando scanner...');
+      const modal = document.getElementById('scanner-modal');
+      if (modal) {
+        modal.classList.remove('active');
+      }
       stopCamera();
     }
+
+    // Agregar event listener al botón de cerrar para asegurar que funcione en móviles
+    document.addEventListener('DOMContentLoaded', () => {
+      const closeBtn = document.getElementById('scanner-close-btn');
+      if (closeBtn) {
+        console.log('✅ Event listener del scanner close agregado');
+        
+        // Agregar múltiples eventos para asegurar compatibilidad
+        closeBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          console.log('👆 Click en cerrar scanner');
+          closeScanner();
+        });
+        
+        closeBtn.addEventListener('touchend', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          console.log('👆 Touch en cerrar scanner');
+          closeScanner();
+        });
+      } else {
+        console.error('❌ No se encontró el botón de cerrar scanner');
+      }
+    });
 
     async function startCamera() {
       const frame = document.getElementById('scanner-frame');
@@ -11566,7 +11617,7 @@
   <!-- Modal Scanner Universal -->
   <div class="scanner-modal" id="scanner-modal">
     <div class="scanner-content">
-      <button class="scanner-close" onclick="closeScanner()">
+      <button class="scanner-close" id="scanner-close-btn" aria-label="Cerrar scanner">
         <i class="fas fa-times"></i>
       </button>
 
