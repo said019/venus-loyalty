@@ -1796,14 +1796,6 @@ app.get('/api/public/availability', async (req, res) => {
   }
 });
 
-console.log(`[AVAILABILITY] ${date}: ${busy.length} horarios ocupados:`, busy);
-res.json({ success: true, busy });
-  } catch (error) {
-  console.error('[AVAILABILITY] Error:', error);
-  res.json({ success: false, error: error.message });
-}
-});
-
 // POST /api/public/request - Solicitar cita (NO agenda, solo solicita)
 app.post('/api/public/request', async (req, res) => {
   try {
