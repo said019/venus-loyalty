@@ -1644,10 +1644,10 @@ app.post('/api/admin/gift-card/:id/redeem', adminAuth, async (req, res) => {
 app.get('/api/settings/business', async (req, res) => {
   try {
     const doc = await firestore.collection('settings').doc('business').get();
-    
+
     if (!doc.exists) {
-      return res.json({ 
-        success: true, 
+      return res.json({
+        success: true,
         data: {
           businessHours: {
             start: '09:00',
@@ -1659,7 +1659,7 @@ app.get('/api/settings/business', async (req, res) => {
         }
       });
     }
-    
+
     res.json({ success: true, data: doc.data() });
   } catch (error) {
     res.json({ success: false, error: error.message });
@@ -1683,7 +1683,7 @@ app.get('/api/public/services', async (req, res) => {
       .orderBy('category')
       .orderBy('name')
       .get();
-    
+
     const services = [];
     snapshot.forEach(doc => {
       const data = doc.data();
@@ -1697,7 +1697,7 @@ app.get('/api/public/services', async (req, res) => {
         });
       }
     });
-    
+
     res.json({ success: true, data: services });
   } catch (error) {
     // Si falla por índice, intentar sin ordenar por categoría
@@ -1727,7 +1727,7 @@ app.get('/api/public/services', async (req, res) => {
 app.get('/api/public/config', async (req, res) => {
   try {
     const doc = await firestore.collection('settings').doc('business').get();
-    
+
     const config = doc.exists ? doc.data() : {
       businessHours: {
         start: '09:00',
@@ -1736,9 +1736,9 @@ app.get('/api/public/config', async (req, res) => {
         closedDays: [0]
       }
     };
-    
-    res.json({ 
-      success: true, 
+
+    res.json({
+      success: true,
       data: {
         businessHours: config.businessHours
       }
@@ -1752,47 +1752,56 @@ app.get('/api/public/config', async (req, res) => {
 app.get('/api/public/availability', async (req, res) => {
   try {
     const { date } = req.query;
-    
+
     if (!date) {
       return res.json({ success: false, error: 'Fecha requerida' });
     }
-    
-    // Buscar citas existentes de ese día
-    // Usar formato ISO simple para la búsqueda
+
+    // Buscar citas existentes de ese día usando el mismo formato que AppointmentModel.getByDate
+    const start = `${date}T00:00:00-06:00`;
+    const end = `${date}T23:59:59-06:00`;
+
     const snapshot = await firestore.collection('appointments')
-      .where('startDateTime', '>=', `${date}T00:00:00`)
-      .where('startDateTime', '<=', `${date}T23:59:59`)
+      .where('startDateTime', '>=', start)
+      .where('startDateTime', '<=', end)
       .get();
-    
+
     const busy = [];
     snapshot.forEach(doc => {
       const data = doc.data();
-      
+
       // Ignorar citas canceladas
       if (data.status === 'cancelled') return;
-      
-      // Extraer la hora de startDateTime
-      const dateTime = new Date(data.startDateTime);
-      const hours = dateTime.getHours().toString().padStart(2, '0');
-      const minutes = dateTime.getMinutes().toString().padStart(2, '0');
-      const timeSlot = `${hours}:${minutes}`;
-      
+
+      // Extraer la hora de startDateTime (formato: 2025-12-04T16:00:00-06:00)
+      const timePart = data.startDateTime.split('T')[1]; // 16:00:00-06:00
+      const timeOnly = timePart.split('-')[0].substring(0, 5); // 16:00
+
       // Agregar el slot ocupado
-      busy.push(timeSlot);
-      
-      const duration = data.duration || 60;
+      busy.push(timeOnly);
+
+      const duration = data.duration || data.serviceDuration || 60;
       if (duration > 60) {
-        const nextHour = (dateTime.getHours() + 1).toString().padStart(2, '0');
-        busy.push(`${nextHour}:${minutes}`);
+        const hour = parseInt(timeOnly.split(':')[0]);
+        const nextHour = (hour + 1).toString().padStart(2, '0');
+        busy.push(`${nextHour}:00`);
       }
     });
-    
+
     console.log(`[AVAILABILITY] ${date}: ${busy.length} horarios ocupados:`, busy);
     res.json({ success: true, busy });
   } catch (error) {
     console.error('[AVAILABILITY] Error:', error);
     res.json({ success: false, error: error.message });
   }
+});
+
+console.log(`[AVAILABILITY] ${date}: ${busy.length} horarios ocupados:`, busy);
+res.json({ success: true, busy });
+  } catch (error) {
+  console.error('[AVAILABILITY] Error:', error);
+  res.json({ success: false, error: error.message });
+}
 });
 
 // POST /api/public/request - Solicitar cita (NO agenda, solo solicita)
@@ -1810,23 +1819,23 @@ app.post('/api/public/request', async (req, res) => {
       clientEmail,
       clientBirthday
     } = req.body;
-    
+
     // Validaciones
     if (!serviceName || !date || !time || !clientName || !clientPhone) {
       return res.json({ success: false, error: 'Faltan campos requeridos' });
     }
-    
+
     const phoneClean = clientPhone.replace(/\D/g, '');
-    
+
     // 1. BUSCAR O CREAR TARJETA DE LEALTAD
     let cardId = null;
     let isNewClient = false;
-    
+
     const existingCard = await firestore.collection(COL_CARDS)
       .where('phone', '==', phoneClean)
       .limit(1)
       .get();
-    
+
     if (!existingCard.empty) {
       cardId = existingCard.docs[0].id;
       const updates = {};
@@ -1852,12 +1861,12 @@ app.post('/api/public/request', async (req, res) => {
         createdAt: new Date().toISOString(),
         source: 'online-request'
       };
-      
+
       const cardRef = await firestore.collection(COL_CARDS).add(cardData);
       cardId = cardRef.id;
       isNewClient = true;
     }
-    
+
     // 2. GUARDAR SOLICITUD
     const requestData = {
       serviceId: serviceId || null,
@@ -1874,22 +1883,22 @@ app.post('/api/public/request', async (req, res) => {
       status: 'pending',
       createdAt: new Date().toISOString()
     };
-    
+
     const requestRef = await firestore.collection('booking_requests').add(requestData);
     console.log(`[BOOKING REQUEST] ✅ Solicitud guardada con ID: ${requestRef.id}`);
-    
+
     // 3. CREAR MENSAJE PARA WHATSAPP
     const settingsDoc = await firestore.collection('settings').doc('business').get();
     const businessWhatsapp = settingsDoc.exists ? settingsDoc.data().whatsappBusiness : '524271657595';
-    
+
     const dateObj = new Date(date + 'T00:00:00');
-    const dateStr = dateObj.toLocaleDateString('es-MX', { 
-      weekday: 'long', day: 'numeric', month: 'long' 
+    const dateStr = dateObj.toLocaleDateString('es-MX', {
+      weekday: 'long', day: 'numeric', month: 'long'
     });
-    
+
     const hour = parseInt(time.split(':')[0]);
     const timeStr = hour === 12 ? '12:00 PM' : hour > 12 ? `${hour - 12}:00 PM` : `${hour}:00 AM`;
-    
+
     const message = `*NUEVA SOLICITUD DE CITA*
 
 *Cliente:* ${clientName}
@@ -1906,7 +1915,7 @@ ${isNewClient ? '_Cliente nueva - Ya registrada en tarjetas_' : '_Cliente existe
 #${requestRef.id.slice(-6)}`;
 
     const whatsappUrl = `https://wa.me/${businessWhatsapp}?text=${encodeURIComponent(message)}`;
-    
+
     // 4. CREAR NOTIFICACIÓN EN ADMIN
     await firestore.collection('notifications').add({
       type: 'cita',
@@ -1917,17 +1926,17 @@ ${isNewClient ? '_Cliente nueva - Ya registrada en tarjetas_' : '_Cliente existe
       read: false,
       createdAt: new Date().toISOString()
     });
-    
+
     console.log(`[BOOKING REQUEST] Nueva solicitud de ${clientName} para ${serviceName}`);
-    
-    res.json({ 
-      success: true, 
+
+    res.json({
+      success: true,
       requestId: requestRef.id,
       cardId,
       isNewClient,
       whatsappUrl
     });
-    
+
   } catch (error) {
     console.error('Error creating request:', error);
     res.json({ success: false, error: error.message });
@@ -1941,10 +1950,10 @@ app.get('/api/booking-requests', adminAuth, async (req, res) => {
       .orderBy('createdAt', 'desc')
       .limit(50)
       .get();
-    
+
     const data = [];
     snapshot.forEach(doc => data.push({ id: doc.id, ...doc.data() }));
-    
+
     console.log(`[BOOKING REQUESTS] 📋 Listando ${data.length} solicitudes`);
     res.json({ success: true, data });
   } catch (error) {
@@ -2100,7 +2109,7 @@ app.get("/api/admin/cards-firebase", adminAuth, async (req, res) => {
 app.post("/api/admin/fix-lastvisit", adminAuth, async (req, res) => {
   try {
     console.log('🔧 Iniciando corrección de campo lastVisit...');
-    
+
     const cardsSnap = await firestore.collection(COL_CARDS).get();
     let fixed = 0;
     let alreadyHave = 0;
@@ -2109,7 +2118,7 @@ app.post("/api/admin/fix-lastvisit", adminAuth, async (req, res) => {
 
     for (const doc of cardsSnap.docs) {
       const card = doc.data();
-      
+
       // Si ya tiene lastVisit, skip
       if (card.lastVisit) {
         alreadyHave++;
@@ -2118,12 +2127,12 @@ app.post("/api/admin/fix-lastvisit", adminAuth, async (req, res) => {
 
       // Si no tiene lastVisit, usar updatedAt o createdAt
       const fallbackDate = card.updatedAt || card.createdAt;
-      
+
       if (fallbackDate) {
         await firestore.collection(COL_CARDS).doc(doc.id).update({
           lastVisit: fallbackDate
         });
-        
+
         console.log(`✅ ${card.name || doc.id}: lastVisit = ${fallbackDate}`);
         fixed++;
       } else {
@@ -2451,7 +2460,7 @@ app.delete("/api/admin/notifications/clear", adminAuth, async (req, res) => {
   try {
     // Usar la misma colección que lee getNotifications: 'notifications'
     const snapshot = await firestore.collection('notifications').get();
-    
+
     if (snapshot.empty) {
       return res.json({ success: true, deleted: 0 });
     }
@@ -2460,9 +2469,9 @@ app.delete("/api/admin/notifications/clear", adminAuth, async (req, res) => {
     snapshot.docs.forEach(doc => {
       batch.delete(doc.ref);
     });
-    
+
     await batch.commit();
-    
+
     console.log(`[NOTIFICATIONS] ✅ Borradas ${snapshot.size} notificaciones del historial`);
     res.json({ success: true, deleted: snapshot.size });
   } catch (error) {
@@ -3105,9 +3114,9 @@ app.post("/api/admin/force-update-pass", adminAuth, async (req, res) => {
       console.error("[APPLE WALLET] ❌ Error:", err);
     }
 
-    res.json({ 
-      ok: true, 
-      cardId, 
+    res.json({
+      ok: true,
+      cardId,
       stamps: card.stamps,
       cycles: card.cycles || 0,
       message: 'Pase actualizado forzadamente'
@@ -3134,7 +3143,7 @@ app.post("/api/admin/redeem", adminAuth, async (req, res) => {
       cycles: newCycles,
       lastVisit: new Date().toISOString()
     });
-    
+
     await fsAddEvent(cardId, "REDEEM", { by: "admin", cycle: newCycles });
 
     console.log(`[REDEEM] Cliente ${card.name} completó ciclo ${newCycles}`);

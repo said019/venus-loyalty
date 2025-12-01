@@ -2492,12 +2492,14 @@
     <!-- TAB: Settings - MEJORADO CON DEBUGGING -->
     <section id="tab-settings" class="card hidden">
       <h2>Configuración</h2>
-      
+
       <!-- Configuración del Negocio -->
-      <div style="background:rgba(140,150,104,0.1);border:1px solid rgba(140,150,104,0.3);border-radius:12px;padding:14px;margin:12px 0;">
+      <div
+        style="background:rgba(140,150,104,0.1);border:1px solid rgba(140,150,104,0.3);border-radius:12px;padding:14px;margin:12px 0;">
         <h3 style="margin:0 0 12px;"><i class="fas fa-store"></i> Datos del Negocio</h3>
-        <p class="muted" style="margin:0 0 16px;font-size:12px;">Esta información se muestra en la página de agendar citas.</p>
-        
+        <p class="muted" style="margin:0 0 16px;font-size:12px;">Esta información se muestra en la página de agendar
+          citas.</p>
+
         <form id="business-config-form">
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
             <div>
@@ -2510,10 +2512,10 @@
               <small class="muted">Formato: código país + número (sin +)</small>
             </div>
           </div>
-          
+
           <label style="margin-top:12px;">Dirección</label>
           <input id="biz-address" placeholder="Cactus 50, San Juan del Río, Qro.">
-          
+
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
             <div>
               <label>Horario apertura</label>
@@ -2524,7 +2526,7 @@
               <input type="time" id="biz-close" value="19:00">
             </div>
           </div>
-          
+
           <label style="margin-top:12px;">Días de trabajo</label>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;">
             <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;">
@@ -2549,12 +2551,12 @@
               <input type="checkbox" id="biz-day-0"> Dom
             </label>
           </div>
-          
+
           <div style="margin-top:14px;">
             <button type="submit" class="btn primary"><i class="fas fa-save"></i> Guardar configuración</button>
           </div>
         </form>
-        
+
         <div id="biz-success" class="success-message hidden" style="margin-top:12px;">
           ✅ Configuración guardada correctamente
         </div>
@@ -2827,15 +2829,18 @@
       </div>
 
       <!-- Link compacto -->
-      <div style="margin-top:16px;padding:12px;background:rgba(140,150,104,0.08);border-radius:10px;border:1px solid rgba(140,150,104,0.15);">
+      <div
+        style="margin-top:16px;padding:12px;background:rgba(140,150,104,0.08);border-radius:10px;border:1px solid rgba(140,150,104,0.15);">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
           <div style="flex:1;min-width:200px;">
-            <div style="font-size:12px;font-weight:600;margin-bottom:4px;"><i class="fas fa-link"></i> Página de Agendar</div>
+            <div style="font-size:12px;font-weight:600;margin-bottom:4px;"><i class="fas fa-link"></i> Página de Agendar
+            </div>
             <code id="agendar-url" style="font-size:11px;word-break:break-all;"></code>
           </div>
           <div style="display:flex;gap:6px;">
             <button class="btn small" onclick="copyAgendarUrl()" title="Copiar URL"><i class="fas fa-copy"></i></button>
-            <a href="/agendar.html" target="_blank" class="btn small ghost" title="Abrir"><i class="fas fa-external-link-alt"></i></a>
+            <a href="/agendar.html" target="_blank" class="btn small ghost" title="Abrir"><i
+                class="fas fa-external-link-alt"></i></a>
           </div>
         </div>
       </div>
@@ -5322,7 +5327,8 @@
           <button id="cm-notify" class="btn-link"
             style="background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;">Notificar</button>
           <button id="cm-force-update" class="btn-link"
-            style="background:none;border:none;color:var(--venus-soft);font-size:11px;cursor:pointer;">🔄 Actualizar pase</button>
+            style="background:none;border:none;color:var(--venus-soft);font-size:11px;cursor:pointer;">🔄 Actualizar
+            pase</button>
           <button id="cm-delete" class="btn-link"
             style="background:none;border:none;color:#ef4444;font-size:11px;cursor:pointer;">Eliminar</button>
         </div>
@@ -7386,7 +7392,7 @@
     // ✅ NUEVO: Botón para forzar actualización del pase
     document.getElementById('cm-force-update')?.addEventListener('click', async () => {
       if (!currentCardId) return;
-      
+
       if (!confirm('¿Forzar actualización del pase en Apple/Google Wallet?')) return;
 
       try {
@@ -7396,9 +7402,9 @@
           credentials: 'include',
           body: JSON.stringify({ cardId: currentCardId })
         });
-        
+
         const data = await res.json();
-        
+
         if (data.ok) {
           alert(`✅ Pase actualizado!\nSellos: ${data.stamps}\nCiclos: ${data.cycles}`);
         } else {
@@ -8607,10 +8613,10 @@
           try {
             const res = await fetch(`/api/appointments?date=${dateStr}`);
             const json = await res.json();
-            
+
             if (json.success) {
               const currentData = JSON.stringify(json.data);
-              
+
               // Solo actualizar si hay cambios
               if (currentData !== lastAppointmentsData) {
                 console.log('🔄 Auto-refresh: cambios detectados, actualizando...');
@@ -10381,11 +10387,11 @@
         try {
           const res = await fetch(`/api/appointments/${appointmentId}`, { credentials: 'include' });
           const json = await res.json();
-          
+
           if (json.success && json.data) {
             console.log('[PAYMENT] Datos de cita:', json.data);
             servicePrice = json.data.price || json.data.servicePrice || 0;
-            
+
             // Si aún no hay precio, buscar en servicios
             if (!servicePrice || servicePrice === 0) {
               const serviceId = json.data.serviceId;
@@ -11045,10 +11051,10 @@
           try {
             const res = await fetch('/api/dashboard/today', { credentials: 'include' });
             const json = await res.json();
-            
+
             if (json.success) {
               const currentData = JSON.stringify(json.data);
-              
+
               // Solo actualizar si hay cambios
               if (currentData !== lastDashboardData) {
                 console.log('🔄 Auto-refresh: cambios detectados en dashboard...');
@@ -11110,7 +11116,7 @@
       const closeBtn = document.getElementById('scanner-close-btn');
       if (closeBtn) {
         console.log('✅ Event listener del scanner close agregado');
-        
+
         // Agregar múltiples eventos para asegurar compatibilidad
         closeBtn.addEventListener('click', (e) => {
           e.preventDefault();
@@ -11118,7 +11124,7 @@
           console.log('👆 Click en cerrar scanner');
           closeScanner();
         });
-        
+
         closeBtn.addEventListener('touchend', (e) => {
           e.preventDefault();
           e.stopPropagation();
@@ -11411,28 +11417,28 @@
     /* =========================================================
        SOLICITUDES DE CITAS ONLINE
        ========================================================= */
-    
+
     let bookingRequests = [];
-    
+
     let lastRequestsCount = 0;
-    
+
     async function loadBookingRequests() {
       try {
         console.log('[REQUESTS] 📥 Cargando solicitudes...');
         const res = await fetch('/api/booking-requests', { credentials: 'include' });
         const json = await res.json();
-        
+
         console.log('[REQUESTS] Respuesta:', json);
-        
+
         if (json.success) {
           const newRequests = json.data || [];
           console.log(`[REQUESTS] ✅ ${newRequests.length} solicitudes cargadas`);
-          
+
           // Detectar nuevas solicitudes
           if (lastRequestsCount > 0 && newRequests.length > lastRequestsCount) {
             const newCount = newRequests.length - lastRequestsCount;
             console.log(`[REQUESTS] 🆕 ${newCount} nueva(s) solicitud(es)`);
-            
+
             // Mostrar notificación del navegador
             if ("Notification" in window && Notification.permission === "granted") {
               new Notification('Nueva solicitud de cita', {
@@ -11441,7 +11447,7 @@
               });
             }
           }
-          
+
           lastRequestsCount = newRequests.length;
           bookingRequests = newRequests;
           renderBookingRequests();
@@ -11453,23 +11459,23 @@
         console.error('[REQUESTS] ❌ Error loading booking requests:', error);
       }
     }
-    
+
     // Auto-refresh cada 30 segundos cuando está en el tab de solicitudes
     let requestsRefreshInterval = null;
-    
+
     function startRequestsAutoRefresh() {
       if (requestsRefreshInterval) return;
-      
+
       requestsRefreshInterval = setInterval(() => {
         const requestsTab = document.getElementById('tab-requests');
         if (requestsTab && !requestsTab.classList.contains('hidden')) {
           loadBookingRequests();
         }
       }, 30000); // 30 segundos
-      
+
       console.log('[REQUESTS] ✅ Auto-refresh iniciado');
     }
-    
+
     function stopRequestsAutoRefresh() {
       if (requestsRefreshInterval) {
         clearInterval(requestsRefreshInterval);
@@ -11477,21 +11483,21 @@
         console.log('[REQUESTS] ⏹️ Auto-refresh detenido');
       }
     }
-    
+
     function updateRequestStats() {
       const pending = bookingRequests.filter(r => r.status === 'pending').length;
       const contacted = bookingRequests.filter(r => r.status === 'contacted').length;
       const booked = bookingRequests.filter(r => r.status === 'booked').length;
-      
+
       document.getElementById('req-pending').textContent = pending;
       document.getElementById('req-contacted').textContent = contacted;
       document.getElementById('req-booked').textContent = booked;
     }
-    
+
     function renderBookingRequests() {
       const container = document.getElementById('requests-list');
       if (!container) return;
-      
+
       if (bookingRequests.length === 0) {
         container.innerHTML = `
           <div style="text-align:center;padding:40px;" class="muted">
@@ -11502,22 +11508,22 @@
         `;
         return;
       }
-      
+
       container.innerHTML = bookingRequests.map(req => {
         const createdDate = new Date(req.createdAt);
         const createdStr = createdDate.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-        
+
         const desiredDate = new Date(req.date + 'T00:00:00');
         const desiredStr = desiredDate.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' });
         const hour = parseInt(req.time.split(':')[0]);
         const timeStr = hour === 12 ? '12:00 PM' : hour > 12 ? `${hour - 12}:00 PM` : `${hour}:00 AM`;
-        
+
         const statusConfig = {
           pending: { bg: 'rgba(251,191,36,0.15)', color: '#fbbf24', icon: 'clock', text: 'Pendiente' },
           contacted: { bg: 'rgba(59,130,246,0.15)', color: '#3b82f6', icon: 'phone', text: 'Contactada' },
           booked: { bg: 'rgba(34,197,94,0.15)', color: '#22c55e', icon: 'check-circle', text: 'Agendada' }
         }[req.status] || { bg: 'rgba(251,191,36,0.15)', color: '#fbbf24', icon: 'clock', text: 'Pendiente' };
-        
+
         const actions = req.status === 'pending' ? `
           <button class="btn small" onclick="contactRequest('${req.id}')" title="Marcar como contactada">
             <i class="fas fa-phone"></i> Contactar
@@ -11535,7 +11541,9 @@
         ` : `
           <span class="muted" style="font-size:12px;"><i class="fas fa-check-circle"></i> Completada</span>
         `;
-        
+
+        const statusBadge = `<span style="background:${statusConfig.bg};color:${statusConfig.color};padding:4px 8px;border-radius:6px;font-size:11px;font-weight:600;"><i class="fas fa-${statusConfig.icon}"></i> ${statusConfig.text}</span>`;
+
         return `
           <tr>
             <td>${createdStr}</td>
@@ -11562,7 +11570,7 @@
         `;
       }).join('');
     }
-    
+
     async function contactRequest(id) {
       try {
         const res = await fetch(`/api/booking-requests/${id}/contacted`, {
@@ -11579,7 +11587,7 @@
         alert('Error de conexión');
       }
     }
-    
+
     async function markAsBooked(id) {
       try {
         const res = await fetch(`/api/booking-requests/${id}/booked`, {
@@ -11596,14 +11604,14 @@
         alert('Error de conexión');
       }
     }
-    
+
     function initAgendarUrl() {
       const urlEl = document.getElementById('agendar-url');
       if (urlEl) {
         urlEl.textContent = window.location.origin + '/agendar.html';
       }
     }
-    
+
     function copyAgendarUrl() {
       const url = window.location.origin + '/agendar.html';
       navigator.clipboard.writeText(url).then(() => {
@@ -11612,7 +11620,7 @@
         prompt('Copia esta URL:', url);
       });
     }
-    
+
     window.loadBookingRequests = loadBookingRequests;
     window.contactRequest = contactRequest;
     window.markAsBooked = markAsBooked;
@@ -11621,12 +11629,12 @@
     /* =========================================================
        CONFIGURACIÓN DEL NEGOCIO
        ========================================================= */
-    
+
     async function loadBusinessConfig() {
       try {
         const res = await fetch('/api/settings/business');
         const json = await res.json();
-        
+
         if (json.success && json.data) {
           const d = json.data;
           document.getElementById('biz-name').value = d.businessName || '';
@@ -11634,9 +11642,9 @@
           document.getElementById('biz-address').value = d.address || '';
           document.getElementById('biz-open').value = d.openTime || '09:00';
           document.getElementById('biz-close').value = d.closeTime || '19:00';
-          
+
           // Días de trabajo
-          const workDays = d.workDays || [1,2,3,4,5,6];
+          const workDays = d.workDays || [1, 2, 3, 4, 5, 6];
           for (let i = 0; i <= 6; i++) {
             const cb = document.getElementById(`biz-day-${i}`);
             if (cb) cb.checked = workDays.includes(i);
@@ -11646,16 +11654,16 @@
         console.error('Error loading business config:', error);
       }
     }
-    
+
     document.getElementById('business-config-form')?.addEventListener('submit', async (e) => {
       e.preventDefault();
-      
+
       const workDays = [];
       for (let i = 0; i <= 6; i++) {
         const cb = document.getElementById(`biz-day-${i}`);
         if (cb && cb.checked) workDays.push(i);
       }
-      
+
       const data = {
         businessName: document.getElementById('biz-name').value,
         whatsappBusiness: document.getElementById('biz-whatsapp').value,
@@ -11664,7 +11672,7 @@
         closeTime: document.getElementById('biz-close').value,
         workDays
       };
-      
+
       try {
         const res = await fetch('/api/settings/business', {
           method: 'POST',
@@ -11673,7 +11681,7 @@
           body: JSON.stringify(data)
         });
         const json = await res.json();
-        
+
         if (json.success) {
           const successEl = document.getElementById('biz-success');
           successEl.classList.remove('hidden');
@@ -11685,7 +11693,7 @@
         alert('Error de conexión');
       }
     });
-    
+
     window.loadBusinessConfig = loadBusinessConfig;
 
     /* =========================================================
