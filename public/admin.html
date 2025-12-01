@@ -4408,6 +4408,7 @@
         color: var(--ink);
         line-height: 1;
         margin-bottom: 6px;
+        transition: all 0.3s ease;
       }
 
       .hero-stat-label {
@@ -4492,6 +4493,7 @@
         font-size: 24px;
         font-weight: 700;
         margin-bottom: 2px;
+        transition: all 0.3s ease;
       }
 
       .today-card-info p {
@@ -8415,22 +8417,40 @@
 
     // ========== AUTO-REFRESH PARA CITAS (detecta cambios de WhatsApp) ==========
     let appointmentsRefreshInterval = null;
+    let lastAppointmentsData = null;
 
     function startAppointmentsAutoRefresh() {
-      // Refrescar cada 30 segundos cuando está en el tab de appointments
+      // Refrescar cada 60 segundos cuando está en el tab de appointments
       if (appointmentsRefreshInterval) {
         clearInterval(appointmentsRefreshInterval);
       }
 
-      appointmentsRefreshInterval = setInterval(() => {
+      appointmentsRefreshInterval = setInterval(async () => {
         const appointmentsTab = document.getElementById('tab-appointments');
         if (appointmentsTab && !appointmentsTab.classList.contains('hidden')) {
-          console.log('🔄 Auto-refresh: actualizando citas...');
-          loadAppointments();
-          renderWeeklyCalendar();
-          loadMonthStats();
+          // Verificar si hay cambios antes de actualizar
+          const dateStr = toLocalDateString(selectedDate);
+          try {
+            const res = await fetch(`/api/appointments?date=${dateStr}`);
+            const json = await res.json();
+            
+            if (json.success) {
+              const currentData = JSON.stringify(json.data);
+              
+              // Solo actualizar si hay cambios
+              if (currentData !== lastAppointmentsData) {
+                console.log('🔄 Auto-refresh: cambios detectados, actualizando...');
+                lastAppointmentsData = currentData;
+                loadAppointments();
+                renderWeeklyCalendar();
+                loadMonthStats();
+              }
+            }
+          } catch (error) {
+            console.error('Error en auto-refresh:', error);
+          }
         }
-      }, 15000); // 15 segundos para detectar cambios de WhatsApp más rápido
+      }, 60000); // 60 segundos (1 minuto)
     }
 
     function stopAppointmentsAutoRefresh() {
@@ -10835,23 +10855,39 @@
 
     window.loadDashboardStats = loadDashboardStats;
 
-    // ========== AUTO-REFRESH DASHBOARD (cada 30 segundos) ==========
+    // ========== AUTO-REFRESH DASHBOARD (cada 60 segundos) ==========
     let dashboardRefreshInterval = null;
+    let lastDashboardData = null;
 
     function startDashboardAutoRefresh() {
       if (dashboardRefreshInterval) {
         clearInterval(dashboardRefreshInterval);
       }
 
-      dashboardRefreshInterval = setInterval(() => {
+      dashboardRefreshInterval = setInterval(async () => {
         const overviewTab = document.getElementById('tab-overview');
         if (overviewTab && !overviewTab.classList.contains('hidden')) {
-          console.log('🔄 Auto-refresh: actualizando dashboard...');
-          loadTodayStats();
-          loadGiftCardStats();
-          // No recargar todo para evitar parpadeo, solo stats que cambian frecuentemente
+          // Verificar si hay cambios antes de actualizar
+          try {
+            const res = await fetch('/api/dashboard/today', { credentials: 'include' });
+            const json = await res.json();
+            
+            if (json.success) {
+              const currentData = JSON.stringify(json.data);
+              
+              // Solo actualizar si hay cambios
+              if (currentData !== lastDashboardData) {
+                console.log('🔄 Auto-refresh: cambios detectados en dashboard...');
+                lastDashboardData = currentData;
+                loadTodayStats();
+                loadGiftCardStats();
+              }
+            }
+          } catch (error) {
+            console.error('Error en auto-refresh dashboard:', error);
+          }
         }
-      }, 30000); // 30 segundos
+      }, 60000); // 60 segundos (1 minuto)
     }
 
     function stopDashboardAutoRefresh() {
