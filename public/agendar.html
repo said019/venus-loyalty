@@ -76,10 +76,21 @@
       gap: 10px;
     }
     .card-title i { color: var(--venus); }
+    .category-section {
+      margin-bottom: 20px;
+    }
+    .category-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--venus);
+      margin-bottom: 10px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--line);
+    }
     .services-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-      gap: 10px;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 8px;
     }
     .service-item {
       border: 2px solid var(--line);
@@ -504,14 +515,44 @@
         el.innerHTML = '<p style="color:var(--muted);">No hay servicios disponibles</p>';
         return;
       }
-      el.innerHTML = services.map(s => `
-        <div class="service-item" data-id="${s.id}" onclick="selectService(this, '${s.id}')">
-          <div class="service-name">${s.name}</div>
-          <div class="service-meta">
-            ${s.duration} min · <span class="service-price">$${s.price}</span>
+      
+      // Agrupar por categoría
+      const categories = {};
+      services.forEach(s => {
+        const cat = s.category || 'Otros';
+        if (!categories[cat]) categories[cat] = [];
+        categories[cat].push(s);
+      });
+      
+      // Ordenar categorías
+      const catOrder = ['Faciales', 'Corporales', 'Depilación', 'Masajes', 'Otros'];
+      const sortedCats = Object.keys(categories).sort((a, b) => {
+        const ia = catOrder.indexOf(a);
+        const ib = catOrder.indexOf(b);
+        if (ia === -1 && ib === -1) return a.localeCompare(b);
+        if (ia === -1) return 1;
+        if (ib === -1) return -1;
+        return ia - ib;
+      });
+      
+      let html = '';
+      sortedCats.forEach(cat => {
+        html += `<div class="category-section">
+          <h3 class="category-title">${cat}</h3>
+          <div class="services-grid">
+            ${categories[cat].map(s => `
+              <div class="service-item" data-id="${s.id}" onclick="selectService(this, '${s.id}')">
+                <div class="service-name">${s.name}</div>
+                <div class="service-meta">
+                  ${s.duration} min · <span class="service-price">$${s.price}</span>
+                </div>
+              </div>
+            `).join('')}
           </div>
-        </div>
-      `).join('');
+        </div>`;
+      });
+      
+      el.innerHTML = html;
     }
 
     function selectService(el, id) {

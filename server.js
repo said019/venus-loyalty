@@ -1680,6 +1680,7 @@ app.post('/api/settings/business', adminAuth, async (req, res) => {
 app.get('/api/public/services', async (req, res) => {
   try {
     const snapshot = await firestore.collection('services')
+      .orderBy('category')
       .orderBy('name')
       .get();
     
@@ -1690,6 +1691,7 @@ app.get('/api/public/services', async (req, res) => {
         services.push({
           id: doc.id,
           name: data.name,
+          category: data.category || 'Otros',
           price: data.price || 0,
           duration: data.duration || 60
         });
@@ -1698,7 +1700,26 @@ app.get('/api/public/services', async (req, res) => {
     
     res.json({ success: true, data: services });
   } catch (error) {
-    res.json({ success: false, error: error.message });
+    // Si falla por índice, intentar sin ordenar por categoría
+    try {
+      const snapshot2 = await firestore.collection('services').orderBy('name').get();
+      const services2 = [];
+      snapshot2.forEach(doc => {
+        const data = doc.data();
+        if (data.active !== false && data.bookable !== false) {
+          services2.push({
+            id: doc.id,
+            name: data.name,
+            category: data.category || 'Otros',
+            price: data.price || 0,
+            duration: data.duration || 60
+          });
+        }
+      });
+      res.json({ success: true, data: services2 });
+    } catch (e2) {
+      res.json({ success: false, error: e2.message });
+    }
   }
 });
 
@@ -1736,26 +1757,27 @@ app.get('/api/public/availability', async (req, res) => {
       return res.json({ success: false, error: 'Fecha requerida' });
     }
     
-    // Buscar citas existentes de ese día (con timezone de México)
-    const start = `${date}T00:00:00-06:00`;
-    const end = `${date}T23:59:59-06:00`;
-    
+    // Buscar citas existentes de ese día
+    // Usar formato ISO simple para la búsqueda
     const snapshot = await firestore.collection('appointments')
-      .where('startDateTime', '>=', start)
-      .where('startDateTime', '<=', end)
-      .where('status', '!=', 'cancelled')
+      .where('startDateTime', '>=', `${date}T00:00:00`)
+      .where('startDateTime', '<=', `${date}T23:59:59`)
       .get();
     
     const busy = [];
     snapshot.forEach(doc => {
       const data = doc.data();
-      // Extraer la hora de startDateTime (formato: 2025-12-04T16:00:00-06:00)
+      
+      // Ignorar citas canceladas
+      if (data.status === 'cancelled') return;
+      
+      // Extraer la hora de startDateTime
       const dateTime = new Date(data.startDateTime);
       const hours = dateTime.getHours().toString().padStart(2, '0');
       const minutes = dateTime.getMinutes().toString().padStart(2, '0');
       const timeSlot = `${hours}:${minutes}`;
       
-      // También bloquear el slot siguiente si la duración es mayor a 60 min
+      // Agregar el slot ocupado
       busy.push(timeSlot);
       
       const duration = data.duration || 60;
@@ -1868,21 +1890,20 @@ app.post('/api/public/request', async (req, res) => {
     const hour = parseInt(time.split(':')[0]);
     const timeStr = hour === 12 ? '12:00 PM' : hour > 12 ? `${hour - 12}:00 PM` : `${hour}:00 AM`;
     
-    const message = `📅 *Nueva solicitud de cita*
+    const message = `*NUEVA SOLICITUD DE CITA*
 
-👤 *${clientName}*
-📱 ${phoneClean}
-${clientEmail ? `📧 ${clientEmail}` : ''}
-${clientBirthday ? `🎂 ${clientBirthday}` : ''}
+*Cliente:* ${clientName}
+*Tel:* ${phoneClean}
+${clientEmail ? `*Email:* ${clientEmail}` : ''}
 
-💆 *${serviceName}*
-💰 $${servicePrice}
-📅 ${dateStr}
-🕐 ${timeStr}
+*Servicio:* ${serviceName}
+*Precio:* $${servicePrice}
+*Fecha:* ${dateStr}
+*Hora:* ${timeStr}
 
-${isNewClient ? '🆕 *Cliente nueva* - Ya está en tu base de tarjetas' : '💳 Cliente existente'}
+${isNewClient ? '_Cliente nueva - Ya registrada en tarjetas_' : '_Cliente existente_'}
 
-_Solicitud #${requestRef.id.slice(-6)}_`;
+#${requestRef.id.slice(-6)}`;
 
     const whatsappUrl = `https://wa.me/${businessWhatsapp}?text=${encodeURIComponent(message)}`;
     
