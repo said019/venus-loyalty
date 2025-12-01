@@ -1,16 +1,8 @@
 import express from 'express';
 import { ClientsController, ServicesController, AppointmentsController } from '../controllers/index.js';
+import { adminAuth } from '../../lib/auth.js';
 
 const router = express.Router();
-
-// Middleware de autenticación para rutas protegidas
-const adminAuth = (req, res, next) => {
-  const token = req.cookies?.admin_token;
-  if (!token) {
-    return res.status(401).json({ success: false, error: 'No autorizado' });
-  }
-  next();
-};
 
 // Clients
 router.post('/clients', adminAuth, ClientsController.createOrUpdate);
