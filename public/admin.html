@@ -8177,40 +8177,65 @@
               'confirmed': '#22c55e',      // Verde
               'rescheduling': '#fbbf24',   // Amarillo
               'completed': 'var(--venus-soft)', // Verde Venus
-              'cancelled': '#ef4444'       // Rojo
+              'cancelled': '#ef4444',       // Rojo
+              'no_show': '#6b7280'         // Gris
             };
-            const statusLabels = {
+            const statusOptions = {
               'scheduled': 'Agendada',
               'confirmed': 'Confirmada',
-              'rescheduling': 'Reagendada',
-              'completed': 'Pagada',
-              'cancelled': 'Cancelada'
+              'completed': 'Completada',
+              'cancelled': 'Cancelada',
+              'no_show': 'No asistió'
             };
 
-            // Mostrar botones para todos los estados excepto cancelada y completada
-            const showButtons = !['cancelled', 'completed'].includes(appt.status);
+            const statusBg = statusColors[appt.status] || '#6b7280';
 
             return `
-          <tr>
-            <td style="font-weight:bold;color:#fff;">${time}</td>
-            <td>
-              <div>${appt.clientName}</div>
-              <div class="muted" style="font-size:11px;">${appt.clientPhone}</div>
-            </td>
-            <td>${appt.serviceName}</td>
-            <td><span class="tag" style="background:rgba(255,255,255,0.1);color:${statusColors[appt.status] || '#fff'}">${statusLabels[appt.status] || appt.status}</span></td>
-            <td>
-          ${showButtons ? `
-            <button class="btn small" onclick="openPaymentDialog('${appt.id}')"
-              style="background:#22c55e;color:white;margin-right:5px;">
-              💵 Pagar
-            </button>
-            <button class="btn small" onclick="editAppointment('${appt.id}')" style="margin-right:5px;">Modificar</button>
-            <button class="btn small ghost" onclick="cancelAppointment('${appt.id}')">Cancelar</button>
-          ` : ''}
-        </td>
-          </tr>
-        `;
+              <tr>
+                <td style="padding:12px;font-weight:bold;color:#e5e7eb;">${time}</td>
+                <td style="padding:12px;">
+                  <div style="font-weight:600;color:#f3f4f6;">${appt.clientName}</div>
+                  <div style="font-size:0.85em;color:#9ca3af;">${appt.clientPhone}</div>
+                </td>
+                <td style="padding:12px;color:#d1d5db;">${appt.serviceName}</td>
+                <td style="padding:12px;">
+                  <select 
+                    onchange="updateAppointmentStatus('${appt.id}', this.value)"
+                    style="
+                      background-color: ${statusBg};
+                      color: white;
+                      border: none;
+                      padding: 4px 8px;
+                      border-radius: 12px;
+                      font-size: 0.85em;
+                      font-weight: 500;
+                      cursor: pointer;
+                      appearance: none;
+                      -webkit-appearance: none;
+                      text-align: center;
+                      width: 100px;
+                    "
+                  >
+                    ${Object.entries(statusOptions).map(([key, label]) => `
+                      <option value="${key}" ${appt.status === key ? 'selected' : ''} style="background-color:#1f2937;color:white;">
+                        ${label}
+                      </option>
+                    `).join('')}
+                  </select>
+                </td>
+                <td style="padding:12px;">
+                  <div style="display:flex;gap:8px;">
+                    ${appt.status !== 'completed' ? `
+                    <button onclick="openPaymentModal('${appt.id}', ${appt.price || 0})" class="btn-icon" style="background:#10b981;color:white;padding:4px 10px;border-radius:6px;font-size:0.85em;display:flex;align-items:center;gap:4px;">
+                      <i class="fas fa-money-bill-wave"></i> Pagar
+                    </button>
+                    ` : ''}
+                    <button onclick="editAppointment('${appt.id}')" class="btn-icon" style="background:#6b7280;color:white;padding:4px 10px;border-radius:6px;font-size:0.85em;">Modificar</button>
+                    <button onclick="cancelAppointment('${appt.id}')" class="btn-icon" style="background:#6b7280;color:white;padding:4px 10px;border-radius:6px;font-size:0.85em;">Cancelar</button>
+                  </div>
+                </td>
+              </tr>
+            `;
           }).join('');
         }
       } catch (e) {
@@ -8308,6 +8333,38 @@
         loadMonthStats();
       } catch (e) { alert('Error: ' + e.message); }
     };
+
+    async function updateAppointmentStatus(id, newStatus) {
+      if (!confirm(`¿Cambiar estado a "${newStatus}"?`)) {
+        loadAppointments(); // Revertir selección visualmente
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/appointments/${id}/status`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: newStatus })
+        });
+        const json = await res.json();
+
+        if (json.success) {
+          // Si se canceló, recargar todo para actualizar calendarios y contadores
+          if (newStatus === 'cancelled') {
+            renderWeeklyCalendar();
+          }
+          loadAppointments();
+          showToast('Estado actualizado correctamente');
+        } else {
+          alert('Error al actualizar estado: ' + json.error);
+          loadAppointments();
+        }
+      } catch (e) {
+        console.error(e);
+        alert('Error de conexión');
+        loadAppointments();
+      }
+    }
 
     // ========== AUTO-REFRESH PARA CITAS (detecta cambios de WhatsApp) ==========
     let appointmentsRefreshInterval = null;

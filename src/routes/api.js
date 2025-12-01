@@ -20,6 +20,7 @@ router.patch('/appointments/:id/cancel', AppointmentsController.cancel);
 router.get('/appointments/:id', AppointmentsController.getById);
 router.patch('/appointments/:id', AppointmentsController.update);
 router.post('/appointments/:id/payment', AppointmentsController.registerPayment);
+router.patch('/appointments/:id/status', AppointmentsController.updateStatus);
 router.get('/appointments', AppointmentsController.getByDate);
 
 // Debug: Ver citas pendientes de recordatorio

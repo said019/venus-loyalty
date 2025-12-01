@@ -363,6 +363,62 @@ export const AppointmentsController = {
         }
     },
 
+    async updateStatus(req, res) {
+        try {
+            const { id } = req.params;
+            const { status } = req.body;
+
+            if (!status) {
+                return res.status(400).json({ success: false, error: 'Status is required' });
+            }
+
+            // Validar status permitidos
+            const validStatuses = ['scheduled', 'confirmed', 'completed', 'cancelled', 'no_show'];
+            if (!validStatuses.includes(status)) {
+                return res.status(400).json({ success: false, error: 'Invalid status' });
+            }
+
+            const apptRef = firestore.collection('appointments').doc(id);
+            const apptDoc = await apptRef.get();
+
+            if (!apptDoc.exists) {
+                return res.status(404).json({ success: false, error: 'Appointment not found' });
+            }
+
+            // Si es 'cancelled', usar la lógica de cancelación completa para limpiar calendario
+            if (status === 'cancelled') {
+                // Reutilizar lógica de cancel (podríamos llamar a this.cancel pero req/res son diferentes)
+                // Mejor llamar al modelo directamente
+                await AppointmentModel.cancel(id);
+
+                // Limpiar calendario (copiado de cancel)
+                const apptData = apptDoc.data();
+                try {
+                    const { deleteEvent } = await import('../services/googleCalendarService.js');
+                    if (apptData.googleCalendarEventId) {
+                        await deleteEvent(apptData.googleCalendarEventId, config.google.calendarOwner1).catch(e => console.error(e));
+                    }
+                    if (apptData.googleCalendarEventId2) {
+                        await deleteEvent(apptData.googleCalendarEventId2, config.google.calendarOwner2).catch(e => console.error(e));
+                    }
+                } catch (e) { console.error(e); }
+
+                return res.json({ success: true });
+            }
+
+            // Para otros estados, solo actualizar campo
+            await apptRef.update({
+                status,
+                updatedAt: new Date().toISOString()
+            });
+
+            res.json({ success: true });
+        } catch (error) {
+            console.error('Error updating status:', error);
+            res.status(500).json({ success: false, error: error.message });
+        }
+    },
+
     async registerPayment(req, res) {
         try {
             const { id } = req.params;
@@ -407,20 +463,20 @@ export const AppointmentsController = {
 
             const appointmentsRef = firestore.collection('appointments');
             let appointments = [];
-            
+
             // Normalizar teléfono (agregar prefijo 52 si es número de 10 dígitos)
             let phoneSearch = search.replace(/\D/g, '');
             if (phoneSearch.length === 10) {
                 phoneSearch = '52' + phoneSearch;
             }
-            
+
             // Buscar por teléfono normalizado
             let snapshot = await appointmentsRef
                 .where('clientPhone', '==', phoneSearch)
                 .orderBy('startDateTime', 'desc')
                 .limit(20)
                 .get();
-            
+
             snapshot.forEach(doc => {
                 appointments.push({ id: doc.id, ...doc.data() });
             });
@@ -432,12 +488,12 @@ export const AppointmentsController = {
                     .orderBy('startDateTime', 'desc')
                     .limit(20)
                     .get();
-                
+
                 snapshot.forEach(doc => {
                     appointments.push({ id: doc.id, ...doc.data() });
                 });
             }
-            
+
             // Si aún no hay resultados, buscar por nombre
             if (appointments.length === 0) {
                 snapshot = await appointmentsRef
@@ -445,7 +501,7 @@ export const AppointmentsController = {
                     .orderBy('startDateTime', 'desc')
                     .limit(20)
                     .get();
-                
+
                 snapshot.forEach(doc => {
                     appointments.push({ id: doc.id, ...doc.data() });
                 });
