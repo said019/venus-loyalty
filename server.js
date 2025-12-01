@@ -1736,26 +1736,39 @@ app.get('/api/public/availability', async (req, res) => {
       return res.json({ success: false, error: 'Fecha requerida' });
     }
     
-    // Buscar citas existentes de ese día
-    const startOfDay = new Date(date + 'T00:00:00');
-    const endOfDay = new Date(date + 'T23:59:59');
+    // Buscar citas existentes de ese día (con timezone de México)
+    const start = `${date}T00:00:00-06:00`;
+    const end = `${date}T23:59:59-06:00`;
     
     const snapshot = await firestore.collection('appointments')
-      .where('startDateTime', '>=', startOfDay.toISOString())
-      .where('startDateTime', '<=', endOfDay.toISOString())
+      .where('startDateTime', '>=', start)
+      .where('startDateTime', '<=', end)
+      .where('status', '!=', 'cancelled')
       .get();
     
     const busy = [];
     snapshot.forEach(doc => {
       const data = doc.data();
-      if (data.status !== 'cancelled') {
-        const time = new Date(data.startDateTime);
-        busy.push(time.toTimeString().slice(0, 5));
+      // Extraer la hora de startDateTime (formato: 2025-12-04T16:00:00-06:00)
+      const dateTime = new Date(data.startDateTime);
+      const hours = dateTime.getHours().toString().padStart(2, '0');
+      const minutes = dateTime.getMinutes().toString().padStart(2, '0');
+      const timeSlot = `${hours}:${minutes}`;
+      
+      // También bloquear el slot siguiente si la duración es mayor a 60 min
+      busy.push(timeSlot);
+      
+      const duration = data.duration || 60;
+      if (duration > 60) {
+        const nextHour = (dateTime.getHours() + 1).toString().padStart(2, '0');
+        busy.push(`${nextHour}:${minutes}`);
       }
     });
     
+    console.log(`[AVAILABILITY] ${date}: ${busy.length} horarios ocupados:`, busy);
     res.json({ success: true, busy });
   } catch (error) {
+    console.error('[AVAILABILITY] Error:', error);
     res.json({ success: false, error: error.message });
   }
 });
