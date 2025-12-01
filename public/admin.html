@@ -1984,7 +1984,7 @@
         </button>
         <button class="mobile-menu-btn" id="mobile-menu-toggle"><i class="fas fa-bars"></i></button>
       </div>
-      
+
       <!-- Acciones desktop -->
       <div class="actions desktop-only">
         <!-- Campana de Notificaciones -->
@@ -2510,8 +2510,10 @@
         <div class="row" style="justify-content:space-between;margin-bottom:8px;">
           <h3 style="margin:0;"><i class="fas fa-list"></i> Historial</h3>
           <div style="display:flex;gap:8px;">
-            <button id="refresh-history" class="btn small ghost" title="Refrescar"><i class="fas fa-sync-alt"></i></button>
-            <button id="clear-notif-history" class="btn small ghost" style="color:#ef4444;" title="Borrar historial"><i class="fas fa-trash"></i></button>
+            <button id="refresh-history" class="btn small ghost" title="Refrescar"><i
+                class="fas fa-sync-alt"></i></button>
+            <button id="clear-notif-history" class="btn small ghost" style="color:#ef4444;" title="Borrar historial"><i
+                class="fas fa-trash"></i></button>
           </div>
         </div>
         <div class="table-wrap">
@@ -6714,13 +6716,13 @@
     // Borrar historial de notificaciones
     document.getElementById('clear-notif-history').addEventListener('click', async () => {
       if (!confirm('¿Estás seguro de borrar todo el historial de notificaciones enviadas?')) return;
-      
+
       try {
         const response = await fetch('/api/admin/notifications/clear', {
           method: 'DELETE',
           credentials: 'include'
         });
-        
+
         if (response.ok) {
           alert('✓ Historial borrado correctamente');
           loadNotificationsHistory();
@@ -8309,7 +8311,7 @@
       if (appointmentsRefreshInterval) {
         clearInterval(appointmentsRefreshInterval);
       }
-      
+
       appointmentsRefreshInterval = setInterval(() => {
         const appointmentsTab = document.getElementById('tab-appointments');
         if (appointmentsTab && !appointmentsTab.classList.contains('hidden')) {
@@ -10379,7 +10381,7 @@
 
         if (metricsJson.success && metricsJson.data) {
           const { total, activeClients, stampsThisMonth, redeemsThisMonth, returnRate } = metricsJson.data;
-          
+
           document.getElementById('stat-total-clients').textContent = activeClients || total;
           document.getElementById('stat-stamps-month').textContent = stampsThisMonth;
           document.getElementById('stat-redeems-month').textContent = redeemsThisMonth;
@@ -10490,7 +10492,7 @@
         clients.forEach(c => {
           // Usar birthdate (no birthday)
           const birthdateField = c.birthdate || c.birthday;
-          
+
           if (birthdateField) {
             // Parsear fecha en formato YYYY-MM-DD
             const [year, month, day] = birthdateField.split('-').map(Number);
@@ -11049,6 +11051,16 @@
           unreadCount += json.data.length;
           updateBadge();
           renderNotifications();
+
+          // Mostrar notificaciones de navegador
+          if ("Notification" in window && Notification.permission === "granted") {
+            json.data.forEach(n => {
+              new Notification(n.title, {
+                body: n.message,
+                icon: '/assets/icon.png' // Fallback icon if available
+              });
+            });
+          }
         }
       } catch (error) {
         console.error('Error checking notifications:', error);
@@ -11056,6 +11068,11 @@
     }
 
     function toggleNotifications() {
+      // Solicitar permiso si aún no se tiene
+      if ("Notification" in window && Notification.permission === "default") {
+        Notification.requestPermission();
+      }
+
       const dropdown = document.getElementById('notif-dropdown');
       dropdown?.classList.toggle('active');
 
@@ -11075,12 +11092,12 @@
       const badge = document.getElementById('notif-badge');
       const badgeMobile = document.getElementById('notif-badge-mobile');
       const count = unreadCount > 99 ? '99+' : unreadCount;
-      
+
       if (badge) {
         badge.textContent = count;
         badge.classList.toggle('hidden', unreadCount === 0);
       }
-      
+
       if (badgeMobile) {
         badgeMobile.textContent = count;
         badgeMobile.classList.toggle('hidden', unreadCount === 0);
