@@ -1967,15 +1967,71 @@ app.post('/api/booking-requests/:id/contacted', adminAuth, async (req, res) => {
   }
 });
 
-// POST /api/booking-requests/:id/booked - Marcar como agendada
+// POST /api/booking-requests/:id/booked - Marcar como agendada (crea la cita real)
 app.post('/api/booking-requests/:id/booked', adminAuth, async (req, res) => {
   try {
+    const requestDoc = await firestore.collection('booking_requests').doc(req.params.id).get();
+
+    if (!requestDoc.exists) {
+      return res.status(404).json({ success: false, error: 'Solicitud no encontrada' });
+    }
+
+    const requestData = requestDoc.data();
+
+    // Construir startDateTime y endDateTime con timezone de México
+    const startDateTime = `${requestData.date}T${requestData.time}:00-06:00`;
+    const duration = requestData.serviceDuration || 60;
+
+    // Calcular endDateTime
+    const startDate = new Date(startDateTime);
+    const endDate = new Date(startDate.getTime() + duration * 60000);
+    const endHours = endDate.getHours().toString().padStart(2, '0');
+    const endMinutes = endDate.getMinutes().toString().padStart(2, '0');
+    const endDateTime = `${requestData.date}T${endHours}:${endMinutes}:00-06:00`;
+
+    // Crear la cita en appointments
+    const appointmentData = {
+      serviceId: requestData.serviceId || null,
+      serviceName: requestData.serviceName,
+      price: requestData.servicePrice || 0,
+      duration: duration,
+      clientName: requestData.clientName,
+      clientPhone: requestData.clientPhone,
+      clientEmail: requestData.clientEmail || null,
+      cardId: requestData.cardId || null,
+      startDateTime,
+      endDateTime,
+      status: 'confirmed', // Ya fue confirmada manualmente por admin
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      source: 'online-request',
+      requestId: req.params.id
+    };
+
+    const appointmentRef = await firestore.collection('appointments').add(appointmentData);
+    console.log(`[BOOKING] ✅ Cita creada desde solicitud: ${appointmentRef.id}`);
+
+    // Actualizar la solicitud con el ID de la cita creada y marcar como booked
     await firestore.collection('booking_requests').doc(req.params.id).update({
       status: 'booked',
-      bookedAt: new Date().toISOString()
+      bookedAt: new Date().toISOString(),
+      appointmentId: appointmentRef.id
     });
-    res.json({ success: true });
+
+    // Crear notificación
+    await firestore.collection('notifications').add({
+      type: 'cita',
+      icon: 'calendar-check',
+      title: 'Solicitud agendada',
+      message: `${requestData.clientName} - ${requestData.serviceName} agendada para ${requestData.date}`,
+      entityId: appointmentRef.id,
+      read: false,
+      createdAt: new Date().toISOString()
+    });
+
+    res.json({ success: true, appointmentId: appointmentRef.id });
   } catch (error) {
+    console.error('[BOOKING] Error:', error);
     res.json({ success: false, error: error.message });
   }
 });
