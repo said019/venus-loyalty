@@ -5562,24 +5562,33 @@
         const tabName = this.getAttribute('data-tab');
         if (tabName === 'overview') {
           loadDashboardStats();
+          // Iniciar auto-refresh del dashboard
+          if (typeof startDashboardAutoRefresh === 'function') startDashboardAutoRefresh();
         } else if (tabName === 'cards') {
           loadCards(1);
+          // Detener auto-refresh del dashboard
+          if (typeof stopDashboardAutoRefresh === 'function') stopDashboardAutoRefresh();
         } else if (tabName === 'settings') {
           loadNotificationsHistory();
+          if (typeof stopDashboardAutoRefresh === 'function') stopDashboardAutoRefresh();
         } else if (tabName === 'events') {
           loadGiftCardServices();
           loadGiftCards();
+          if (typeof stopDashboardAutoRefresh === 'function') stopDashboardAutoRefresh();
         } else if (tabName === 'services') {
           loadServicesTable();
+          if (typeof stopDashboardAutoRefresh === 'function') stopDashboardAutoRefresh();
         } else if (tabName === 'appointments') {
           if (typeof loadAppointments === 'function') loadAppointments();
-          if (typeof loadTodayAppointments === 'function') loadTodayAppointments();
           if (typeof loadMonthStats === 'function') loadMonthStats();
           // Iniciar auto-refresh cuando se entra al tab de appointments
           if (typeof startAppointmentsAutoRefresh === 'function') startAppointmentsAutoRefresh();
+          // Detener auto-refresh del dashboard
+          if (typeof stopDashboardAutoRefresh === 'function') stopDashboardAutoRefresh();
         } else {
           // Detener auto-refresh cuando se sale del tab de appointments
           if (typeof stopAppointmentsAutoRefresh === 'function') stopAppointmentsAutoRefresh();
+          if (typeof stopDashboardAutoRefresh === 'function') stopDashboardAutoRefresh();
         }
       });
     });
@@ -10771,6 +10780,40 @@
     });
 
     window.loadDashboardStats = loadDashboardStats;
+
+    // ========== AUTO-REFRESH DASHBOARD (cada 30 segundos) ==========
+    let dashboardRefreshInterval = null;
+
+    function startDashboardAutoRefresh() {
+      if (dashboardRefreshInterval) {
+        clearInterval(dashboardRefreshInterval);
+      }
+
+      dashboardRefreshInterval = setInterval(() => {
+        const overviewTab = document.getElementById('tab-overview');
+        if (overviewTab && !overviewTab.classList.contains('hidden')) {
+          console.log('🔄 Auto-refresh: actualizando dashboard...');
+          loadTodayStats();
+          loadGiftCardStats();
+          // No recargar todo para evitar parpadeo, solo stats que cambian frecuentemente
+        }
+      }, 30000); // 30 segundos
+    }
+
+    function stopDashboardAutoRefresh() {
+      if (dashboardRefreshInterval) {
+        clearInterval(dashboardRefreshInterval);
+        dashboardRefreshInterval = null;
+      }
+    }
+
+    // Iniciar auto-refresh cuando se entra al tab overview
+    document.addEventListener('DOMContentLoaded', () => {
+      const overviewTab = document.getElementById('tab-overview');
+      if (overviewTab && !overviewTab.classList.contains('hidden')) {
+        startDashboardAutoRefresh();
+      }
+    });
 
     /* =========================================================
        SCANNER UNIVERSAL - FASE 3

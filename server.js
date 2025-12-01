@@ -1867,6 +1867,8 @@ app.get("/api/dashboard/today", adminAuth, async (req, res) => {
       }
     });
 
+    console.log(`[DASHBOARD TODAY] Citas: ${appointmentsCount}, Pendientes: ${pendingCount}, Ingresos: $${income}`);
+
     res.json({
       success: true,
       data: {
