@@ -10152,17 +10152,51 @@
       });
     }
 
-    function openPaymentModal(appointmentId, clientName, serviceName, servicePrice) {
+    async function openPaymentModal(appointmentId, clientName, serviceName, servicePrice) {
       paymentProducts = [];
-      paymentServicePrice = parseFloat(servicePrice) || 0;
       discountType = 'percent';
       isPriceEditing = false;
 
       document.getElementById('payment-appointment-id').value = appointmentId;
       document.getElementById('payment-client-name').textContent = clientName || '-';
       document.getElementById('payment-service-name').textContent = serviceName || '-';
-      document.getElementById('payment-original-price').value = paymentServicePrice;
 
+      // Si no hay precio, intentar obtenerlo del servidor
+      if (!servicePrice || servicePrice === 0) {
+        console.log('[PAYMENT] Precio no disponible, obteniendo del servidor...');
+        try {
+          const res = await fetch(`/api/appointments/${appointmentId}`, { credentials: 'include' });
+          const json = await res.json();
+          
+          if (json.success && json.data) {
+            console.log('[PAYMENT] Datos de cita:', json.data);
+            servicePrice = json.data.price || json.data.servicePrice || 0;
+            
+            // Si aún no hay precio, buscar en servicios
+            if (!servicePrice || servicePrice === 0) {
+              const serviceId = json.data.serviceId;
+              if (serviceId) {
+                const servRes = await fetch('/api/services', { credentials: 'include' });
+                const servJson = await servRes.json();
+                if (servJson.success) {
+                  const service = servJson.data.find(s => s.id === serviceId);
+                  if (service) {
+                    servicePrice = service.price || 0;
+                    console.log('[PAYMENT] Precio obtenido del servicio:', servicePrice);
+                  }
+                }
+              }
+            }
+          }
+        } catch (error) {
+          console.error('[PAYMENT] Error obteniendo precio:', error);
+        }
+      }
+
+      paymentServicePrice = parseFloat(servicePrice) || 0;
+      console.log('[PAYMENT] Precio final del servicio:', paymentServicePrice);
+
+      document.getElementById('payment-original-price').value = paymentServicePrice;
       document.getElementById('payment-price-display').textContent = '$' + paymentServicePrice.toLocaleString();
       document.getElementById('payment-price-display').classList.remove('hidden');
       document.getElementById('payment-price-input').value = paymentServicePrice;
