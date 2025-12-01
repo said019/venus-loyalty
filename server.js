@@ -755,9 +755,39 @@ app.patch('/api/appointments/:id/status', adminAuth, async (req, res) => {
       return res.status(404).json({ success: false, error: 'Cita no encontrada' });
     }
 
+    const apptData = appointmentDoc.data();
+    const oldStatus = apptData.status;
+
     await appointmentRef.update({
       status,
       updatedAt: new Date().toISOString()
+    });
+
+    // Crear notificación de cambio manual de estado
+    const statusLabels = {
+      'scheduled': 'Agendada',
+      'confirmed': 'Confirmada',
+      'completed': 'Completada',
+      'cancelled': 'Cancelada',
+      'no_show': 'No asistió'
+    };
+
+    const statusIcons = {
+      'scheduled': 'calendar',
+      'confirmed': 'calendar-check',
+      'completed': 'check-circle',
+      'cancelled': 'times-circle',
+      'no_show': 'user-times'
+    };
+
+    await firestore.collection('notifications').add({
+      type: 'cita',
+      icon: statusIcons[status] || 'calendar',
+      title: `Estado actualizado: ${statusLabels[status]}`,
+      message: `${apptData.clientName} - ${apptData.serviceName} (${statusLabels[oldStatus]} → ${statusLabels[status]})`,
+      read: false,
+      createdAt: new Date().toISOString(),
+      entityId: id
     });
 
     console.log(`[API] Appointment ${id} status updated to: ${status}`);
