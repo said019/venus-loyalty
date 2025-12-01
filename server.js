@@ -2733,6 +2733,48 @@ app.post("/api/admin/stamp", adminAuth, async (req, res) => {
   }
 });
 
+// Endpoint temporal para forzar actualización de pase
+app.post("/api/admin/force-update-pass", adminAuth, async (req, res) => {
+  try {
+    const { cardId } = req.body || {};
+    if (!cardId) return res.status(400).json({ error: "missing_cardId" });
+
+    const card = await fsGetCard(cardId);
+    if (!card) return res.status(404).json({ error: "card not found" });
+
+    console.log(`[FORCE UPDATE] Actualizando pase para: ${card.name}`);
+    console.log(`[FORCE UPDATE] Stamps: ${card.stamps}, Cycles: ${card.cycles || 0}`);
+
+    // Actualizar Google Wallet
+    try {
+      const { updateLoyaltyObject } = await import("./lib/google.js");
+      await updateLoyaltyObject(cardId, card.name, card.stamps || 0, card.max);
+      console.log(`[GOOGLE WALLET] ✅ Pase actualizado`);
+    } catch (googleError) {
+      console.error(`[GOOGLE WALLET] ❌ Error:`, googleError.message);
+    }
+
+    // Actualizar Apple Wallet
+    try {
+      await appleWebService.notifyCardUpdate(cardId);
+      console.log(`[APPLE WALLET] ✅ Pase actualizado`);
+    } catch (err) {
+      console.error("[APPLE WALLET] ❌ Error:", err);
+    }
+
+    res.json({ 
+      ok: true, 
+      cardId, 
+      stamps: card.stamps,
+      cycles: card.cycles || 0,
+      message: 'Pase actualizado forzadamente'
+    });
+  } catch (e) {
+    console.error('[FORCE UPDATE] Error:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.post("/api/admin/redeem", adminAuth, async (req, res) => {
   try {
     const { cardId } = req.body || {};
@@ -2742,11 +2784,19 @@ app.post("/api/admin/redeem", adminAuth, async (req, res) => {
     if (!card) return res.status(404).json({ error: "card not found" });
     if ((card.stamps || 0) < card.max) return res.status(400).json({ error: "not_enough_stamps" });
 
-    const prev = card.stamps;
-    await fsUpdateCardStamps(cardId, 0);
-    await fsAddEvent(cardId, "REDEEM", { by: "admin" });
+    // Incrementar ciclos y resetear sellos
+    const newCycles = (card.cycles || 0) + 1;
+    await fsUpdateCard(cardId, {
+      stamps: 0,
+      cycles: newCycles,
+      lastVisit: new Date().toISOString()
+    });
+    
+    await fsAddEvent(cardId, "REDEEM", { by: "admin", cycle: newCycles });
 
-    // ⭐ CORRECCIÓN: Agregar actualización de Google Wallet
+    console.log(`[REDEEM] Cliente ${card.name} completó ciclo ${newCycles}`);
+
+    // Actualizar Google Wallet
     try {
       const { updateLoyaltyObject } = await import("./lib/google.js");
       await updateLoyaltyObject(cardId, card.name, 0, card.max);
@@ -2755,14 +2805,17 @@ app.post("/api/admin/redeem", adminAuth, async (req, res) => {
       console.error(`[GOOGLE WALLET] ❌ Error actualizando redeem admin:`, googleError.message);
     }
 
+    // Actualizar Apple Wallet
     try {
       await appleWebService.notifyCardUpdate(cardId);
+      console.log(`[APPLE WALLET] ✅ Redeem admin actualizado para: ${cardId}`);
     } catch (err) {
-      console.error("[APPLE] Error notificando:", err);
+      console.error("[APPLE WALLET] ❌ Error notificando:", err);
     }
 
-    res.json({ ok: true, cardId });
+    res.json({ ok: true, cardId, cycles: newCycles });
   } catch (e) {
+    console.error('[REDEEM] Error:', e);
     res.status(500).json({ error: e.message });
   }
 });

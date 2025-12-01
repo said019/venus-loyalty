@@ -5176,13 +5176,15 @@
 
         <!-- Acciones secundarias -->
         <div
-          style="display:flex;justify-content:center;gap:12px;margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.05);">
+          style="display:flex;justify-content:center;gap:12px;margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.05);flex-wrap:wrap;">
           <button id="cm-copy" class="btn-link"
             style="background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;">Copiar ID</button>
           <button id="cm-open-url" class="btn-link"
             style="background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;">Abrir página</button>
           <button id="cm-notify" class="btn-link"
             style="background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;">Notificar</button>
+          <button id="cm-force-update" class="btn-link"
+            style="background:none;border:none;color:var(--venus-soft);font-size:11px;cursor:pointer;">🔄 Actualizar pase</button>
           <button id="cm-delete" class="btn-link"
             style="background:none;border:none;color:#ef4444;font-size:11px;cursor:pointer;">Eliminar</button>
         </div>
@@ -7233,6 +7235,33 @@
         } else {
           alert('❌ Error registrando dispositivo Google');
         }
+      }
+    });
+
+    // ✅ NUEVO: Botón para forzar actualización del pase
+    document.getElementById('cm-force-update')?.addEventListener('click', async () => {
+      if (!currentCardId) return;
+      
+      if (!confirm('¿Forzar actualización del pase en Apple/Google Wallet?')) return;
+
+      try {
+        const res = await fetch('/api/admin/force-update-pass', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ cardId: currentCardId })
+        });
+        
+        const data = await res.json();
+        
+        if (data.ok) {
+          alert(`✅ Pase actualizado!\nSellos: ${data.stamps}\nCiclos: ${data.cycles}`);
+        } else {
+          alert('❌ Error: ' + (data.error || 'No se pudo actualizar'));
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        alert('❌ Error de conexión');
       }
     });
 
