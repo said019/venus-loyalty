@@ -8535,19 +8535,23 @@
           json.data.forEach(appt => {
             if (appt.status === 'completed') {
               // Support both structures (legacy object or root fields)
-              const amount = appt.totalPaid || (appt.payment ? appt.payment.amount : 0) || 0;
+              const amount = parseFloat(appt.totalPaid || (appt.payment ? appt.payment.amount : 0) || 0);
               const method = appt.paymentMethod || (appt.payment ? appt.payment.method : '') || '';
 
-              switch (method) {
-                case 'efectivo':
-                  cashTotal += amount;
-                  break;
-                case 'tarjeta':
-                  cardTotal += amount;
-                  break;
-                case 'transferencia':
-                  transferTotal += amount;
-                  break;
+              console.log(`[REVENUE] Cita ${appt.id}: method=${method}, amount=${amount}, totalPaid=${appt.totalPaid}`);
+
+              if (amount > 0 && method) {
+                switch (method) {
+                  case 'efectivo':
+                    cashTotal += amount;
+                    break;
+                  case 'tarjeta':
+                    cardTotal += amount;
+                    break;
+                  case 'transferencia':
+                    transferTotal += amount;
+                    break;
+                }
               }
             }
           });
@@ -10483,10 +10487,14 @@
       document.getElementById('payment-price-input').value = paymentServicePrice;
       document.getElementById('payment-price-input').classList.remove('visible');
 
-      document.getElementById('payment-discount-value').value = 0;
-      document.getElementById('btn-discount-percent').classList.add('active');
-      document.getElementById('btn-discount-fixed').classList.remove('active');
-      document.getElementById('discount-symbol').textContent = '%';
+      // Solo resetear descuento si NO es edición
+      if (!isEdit) {
+        document.getElementById('payment-discount-value').value = 0;
+        document.getElementById('btn-discount-percent').classList.add('active');
+        document.getElementById('btn-discount-fixed').classList.remove('active');
+        document.getElementById('discount-symbol').textContent = '%';
+      }
+
       document.getElementById('payment-product-qty').value = 1;
 
       loadProductsForPayment();
