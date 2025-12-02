@@ -10425,12 +10425,17 @@
             if (appt.discountType) {
               discountType = appt.discountType;
               document.getElementById('payment-discount-value').value = appt.discountValue || 0;
-              document.querySelectorAll('.discount-type-btn').forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.type === discountType);
-              });
+
+              // Actualizar UI de botones de descuento
+              document.getElementById('btn-discount-percent').classList.toggle('active', discountType === 'percent');
+              document.getElementById('btn-discount-fixed').classList.toggle('active', discountType === 'fixed');
+              document.getElementById('discount-symbol').textContent = discountType === 'percent' ? '%' : '$';
             }
 
             // TODO: Cargar productos vendidos si es necesario (complejo porque requiere stock)
+
+            // Recalcular totales después de cargar datos
+            setTimeout(calculateTotals, 100);
           }
         } catch (e) {
           console.error('Error cargando datos de pago:', e);
