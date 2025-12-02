@@ -1764,7 +1764,7 @@ app.get('/api/public/config', async (req, res) => {
   try {
     const doc = await firestore.collection('settings').doc('business').get();
 
-    const config = doc.exists ? doc.data() : {
+    const businessConfig = doc.exists ? doc.data() : {
       businessHours: {
         start: '09:00',
         end: '20:00',
@@ -1776,7 +1776,7 @@ app.get('/api/public/config', async (req, res) => {
     res.json({
       success: true,
       data: {
-        businessHours: config.businessHours
+        businessHours: businessConfig.businessHours
       }
     });
   } catch (error) {
