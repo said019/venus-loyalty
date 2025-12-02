@@ -8495,6 +8495,8 @@
       const firstDay = new Date(year, month, 1);
       const lastDay = new Date(year, month + 1, 0);
 
+      console.log(`[STATS] Cargando estadísticas para: año=${year}, mes=${month + 1}`);
+
       try {
         // Obtener todas las citas del mes
         const res = await fetch('/api/appointments/month?' + new URLSearchParams({
@@ -8532,13 +8534,26 @@
         let transferTotal = 0;
 
         if (json.success && json.data) {
+          console.log(`[REVENUE] Total citas del mes: ${json.data.length}`);
+          const completedAppts = json.data.filter(a => a.status === 'completed');
+          console.log(`[REVENUE] Citas completadas: ${completedAppts.length}`);
+
           json.data.forEach(appt => {
             if (appt.status === 'completed') {
               // Support both structures (legacy object or root fields)
               const amount = parseFloat(appt.totalPaid || (appt.payment ? appt.payment.amount : 0) || 0);
               const method = appt.paymentMethod || (appt.payment ? appt.payment.method : '') || '';
 
-              console.log(`[REVENUE] Cita ${appt.id}: method=${method}, amount=${amount}, totalPaid=${appt.totalPaid}`);
+              console.log(`[REVENUE] Cita ${appt.id}:`, {
+                status: appt.status,
+                totalPaid: appt.totalPaid,
+                paymentMethod: appt.paymentMethod,
+                payment: appt.payment,
+                amount: amount,
+                method: method,
+                clientName: appt.clientName,
+                serviceName: appt.serviceName
+              });
 
               if (amount > 0 && method) {
                 switch (method) {
@@ -8555,6 +8570,8 @@
               }
             }
           });
+
+          console.log(`[REVENUE] Totales calculados: Efectivo=${cashTotal}, Tarjeta=${cardTotal}, Transferencia=${transferTotal}`);
         }
 
         const total = cashTotal + cardTotal + transferTotal;
