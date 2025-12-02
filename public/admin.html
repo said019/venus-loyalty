@@ -344,6 +344,15 @@
       color: var(--muted);
     }
 
+    /* Estilos para el componente web de Google Places */
+    gmp-place-autocomplete {
+      --gmp-input-background-color: rgba(255, 255, 255, 0.1);
+      --gmp-input-border-color: var(--line);
+      --gmp-input-text-color: var(--ink);
+      --gmp-input-placeholder-color: var(--muted);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
     textarea {
       resize: vertical;
       min-height: 70px;
@@ -2556,29 +2565,15 @@
 
           <label style="margin-top:12px;">Dirección</label>
           <div style="position:relative;">
-            <div style="display:flex;gap:8px;align-items:start;">
-              <input id="biz-address" placeholder="Ej: Cactus 50, San Juan del Río, Querétaro" style="flex:1;" autocomplete="off">
-              <button type="button" id="btn-search-address" class="btn small" style="margin-top:0;white-space:nowrap;">
-                <i class="fas fa-search"></i> Buscar
-              </button>
-            </div>
-            <div id="address-suggestions" style="
-              display:none;
-              position:absolute;
-              top:100%;
-              left:0;
-              right:0;
-              background:white;
-              border:1px solid var(--line);
-              border-radius:8px;
-              margin-top:4px;
-              box-shadow:0 4px 12px rgba(0,0,0,0.15);
-              max-height:300px;
-              overflow-y:auto;
-              z-index:1000;
-            "></div>
+            <!-- Nuevo componente web de Places API -->
+            <gmp-place-autocomplete
+              id="biz-address-autocomplete"
+              placeholder="Ej: Cactus 50, San Juan del Río, Querétaro"
+              style="width:100%;height:40px;border:1px solid var(--line);border-radius:8px;padding:0 12px;font-size:14px;font-family:inherit;">
+            </gmp-place-autocomplete>
+            <input type="hidden" id="biz-address">
           </div>
-          <small class="muted">Escribe tu dirección completa y haz clic en "Buscar" para encontrar sugerencias</small>
+          <small class="muted">Escribe tu dirección y selecciona una sugerencia del menú</small>
 
           <label style="margin-top:12px;">URL de Google Maps</label>
           <input id="biz-maps-url" type="url" placeholder="https://www.google.com/maps/search/..." readonly>
@@ -11993,7 +11988,12 @@
           const d = json.data;
           document.getElementById('biz-name').value = d.businessName || '';
           document.getElementById('biz-whatsapp').value = d.whatsappBusiness || '';
+
+          // Actualizar dirección en ambos lugares
           document.getElementById('biz-address').value = d.address || '';
+          const autocompleteEl = document.getElementById('biz-address-autocomplete');
+          if (autocompleteEl) autocompleteEl.value = d.address || '';
+
           document.getElementById('biz-maps-url').value = d.mapsUrl || '';
           document.getElementById('biz-open').value = d.openTime || '09:00';
           document.getElementById('biz-close').value = d.closeTime || '19:00';
@@ -12010,64 +12010,73 @@
       }
     }
 
-    // Inicializar Google Places Autocomplete cuando se cargue la API
+    // Inicializar Google Places Autocomplete con el nuevo componente web
     let autocompleteInitialized = false;
     let selectedPlaceData = null;
 
     window.initAddressAutocomplete = function() {
       if (autocompleteInitialized) return;
 
-      const addressInput = document.getElementById('biz-address');
-      if (!addressInput) {
-        console.log('[MAPS] Input de dirección no encontrado');
+      const autocompleteElement = document.getElementById('biz-address-autocomplete');
+      const hiddenInput = document.getElementById('biz-address');
+
+      if (!autocompleteElement) {
+        console.log('[MAPS] Componente de autocomplete no encontrado');
         return;
       }
 
       // Verificar si Google Maps API está cargada
-      if (typeof google === 'undefined' || !google.maps || !google.maps.places) {
+      if (typeof google === 'undefined' || !google.maps) {
         console.log('[MAPS] API no disponible aún, reintentando...');
         setTimeout(initAddressAutocomplete, 500);
         return;
       }
 
       try {
-        // Usar Autocomplete (sigue funcionando pero muestra warning)
-        const autocomplete = new google.maps.places.Autocomplete(addressInput, {
-          componentRestrictions: { country: 'mx' },
-          fields: ['formatted_address', 'geometry', 'name', 'place_id'],
-          types: ['address']
-        });
+        // Configurar el componente web
+        autocompleteElement.componentRestrictions = { country: 'mx' };
+        autocompleteElement.types = ['address'];
 
-        autocomplete.addListener('place_changed', () => {
-          const place = autocomplete.getPlace();
+        // Escuchar evento de selección de lugar
+        autocompleteElement.addEventListener('gmp-placeselect', async (event) => {
+          const place = event.detail.place;
 
-          if (!place.geometry) {
-            console.warn('[MAPS] No se encontró geometría para la dirección');
+          if (!place) {
+            console.warn('[MAPS] No se recibió información del lugar');
             return;
           }
 
-          selectedPlaceData = place;
+          try {
+            // Obtener detalles completos del lugar
+            await place.fetchFields({ fields: ['displayName', 'formattedAddress', 'location'] });
 
-          // Actualizar campos
-          addressInput.value = place.formatted_address || place.name;
+            selectedPlaceData = place;
 
-          // Generar URL de Google Maps con coordenadas
-          const lat = place.geometry.location.lat();
-          const lng = place.geometry.location.lng();
-          const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}&query_place_id=${place.place_id}`;
+            // Actualizar campo oculto con la dirección
+            const address = place.formattedAddress || place.displayName;
+            hiddenInput.value = address;
 
-          document.getElementById('biz-maps-url').value = mapsUrl;
+            // Generar URL de Google Maps con coordenadas
+            if (place.location) {
+              const lat = place.location.lat();
+              const lng = place.location.lng();
+              const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
 
-          console.log('[MAPS] Dirección seleccionada:', {
-            address: place.formatted_address,
-            lat: lat,
-            lng: lng,
-            place_id: place.place_id
-          });
+              document.getElementById('biz-maps-url').value = mapsUrl;
+
+              console.log('[MAPS] Dirección seleccionada:', {
+                address: address,
+                lat: lat,
+                lng: lng
+              });
+            }
+          } catch (error) {
+            console.error('[MAPS] Error obteniendo detalles del lugar:', error);
+          }
         });
 
         autocompleteInitialized = true;
-        console.log('[MAPS] Autocomplete inicializado correctamente');
+        console.log('[MAPS] Autocomplete (nuevo componente web) inicializado correctamente');
       } catch (error) {
         console.error('[MAPS] Error inicializando autocomplete:', error);
       }
@@ -12545,7 +12554,8 @@
 
         if (json.success && json.apiKey) {
           const script = document.createElement('script');
-          script.src = `https://maps.googleapis.com/maps/api/js?key=${json.apiKey}&libraries=places&language=es&region=MX&loading=async`;
+          // Usar v=beta para acceder a los nuevos componentes web
+          script.src = `https://maps.googleapis.com/maps/api/js?key=${json.apiKey}&libraries=places,marker&v=beta&language=es&region=MX&loading=async`;
           script.async = true;
           script.defer = true;
           script.onload = () => {
