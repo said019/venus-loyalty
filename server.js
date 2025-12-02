@@ -1967,7 +1967,7 @@ app.post('/api/booking-requests/:id/contacted', adminAuth, async (req, res) => {
   }
 });
 
-// POST /api/booking-requests/:id/booked - Marcar como agendada (crea la cita real)
+// POST /api/booking-requests/:id/booked - Marcar como agendada (crea la cita real con calendario y WhatsApp)
 app.post('/api/booking-requests/:id/booked', adminAuth, async (req, res) => {
   try {
     const requestDoc = await firestore.collection('booking_requests').doc(req.params.id).get();
@@ -1995,30 +1995,93 @@ app.post('/api/booking-requests/:id/booked', adminAuth, async (req, res) => {
       serviceName: requestData.serviceName,
       price: requestData.servicePrice || 0,
       duration: duration,
+      clientId: requestData.cardId || null,
       clientName: requestData.clientName,
       clientPhone: requestData.clientPhone,
       clientEmail: requestData.clientEmail || null,
       cardId: requestData.cardId || null,
       startDateTime,
       endDateTime,
+      location: 'Venus Cosmetología',
       status: 'confirmed', // Ya fue confirmada manualmente por admin
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       source: 'online-request',
-      requestId: req.params.id
+      requestId: req.params.id,
+      sendWhatsApp24h: true, // Enviar recordatorios automáticos
+      sendWhatsApp2h: true,
+      cosmetologistEmail: config.google.calendarOwner1 // Said por defecto
     };
 
+    // 1. CREAR EVENTOS EN GOOGLE CALENDAR (Said y Alondra)
+    const eventData = {
+      title: `${requestData.serviceName} - ${requestData.clientName}`,
+      description: `Cliente: ${requestData.clientName}\\nTel: ${requestData.clientPhone}\\nServicio: ${requestData.serviceName}\\nPrecio: $${requestData.servicePrice || 0}`,
+      location: 'Cactus 50, San Juan del Río',
+      startISO: startDateTime,
+      endISO: endDateTime
+    };
+
+    try {
+      const { createEvent } = await import('./src/services/googleCalendarService.js');
+
+      console.log('[BOOKING] 📅 Creando eventos en calendarios...');
+
+      // Crear en calendario 1 (Said)
+      try {
+        const eventId1 = await createEvent({
+          ...eventData,
+          calendarId: config.google.calendarOwner1
+        });
+        appointmentData.googleCalendarEventId = eventId1;
+        console.log(`[BOOKING] ✅ Evento creado en calendar Said: ${eventId1}`);
+      } catch (err1) {
+        console.error(`[BOOKING] ❌ Error en calendar Said:`, err1.message);
+      }
+
+      // Crear en calendario 2 (Alondra)
+      try {
+        const eventId2 = await createEvent({
+          ...eventData,
+          calendarId: config.google.calendarOwner2
+        });
+        appointmentData.googleCalendarEventId2 = eventId2;
+        console.log(`[BOOKING] ✅ Evento creado en calendar Alondra: ${eventId2}`);
+      } catch (err2) {
+        console.error(`[BOOKING] ❌ Error en calendar Alondra:`, err2.message);
+      }
+
+    } catch (calErr) {
+      console.error('[BOOKING] ⚠️ Error creating calendar event:', calErr.message);
+    }
+
+    // 2. GUARDAR CITA EN FIRESTORE
     const appointmentRef = await firestore.collection('appointments').add(appointmentData);
     console.log(`[BOOKING] ✅ Cita creada desde solicitud: ${appointmentRef.id}`);
 
-    // Actualizar la solicitud con el ID de la cita creada y marcar como booked
+    // 3. ENVIAR WHATSAPP DE CONFIRMACIÓN
+    try {
+      const { WhatsAppService } = await import('./src/services/whatsapp.js');
+      const appointment = { id: appointmentRef.id, ...appointmentData };
+      const whatsappResult = await WhatsAppService.sendConfirmation(appointment);
+
+      if (whatsappResult.success) {
+        console.log('[BOOKING] ✅ WhatsApp enviado:', whatsappResult.messageSid);
+      } else {
+        console.error('[BOOKING] ❌ Error enviando WhatsApp:', whatsappResult.error);
+      }
+    } catch (whatsappError) {
+      console.error('[BOOKING] ❌ Error en WhatsApp service:', whatsappError);
+    }
+
+    // 4. ACTUALIZAR SOLICITUD
     await firestore.collection('booking_requests').doc(req.params.id).update({
       status: 'booked',
       bookedAt: new Date().toISOString(),
       appointmentId: appointmentRef.id
     });
 
-    // Crear notificación
+    // 5. CREAR NOTIFICACIÓN
     await firestore.collection('notifications').add({
       type: 'cita',
       icon: 'calendar-check',
@@ -2032,6 +2095,26 @@ app.post('/api/booking-requests/:id/booked', adminAuth, async (req, res) => {
     res.json({ success: true, appointmentId: appointmentRef.id });
   } catch (error) {
     console.error('[BOOKING] Error:', error);
+    res.json({ success: false, error: error.message });
+  }
+});
+
+// DELETE /api/booking-requests - Borrar TODAS las solicitudes
+app.delete('/api/booking-requests', adminAuth, async (req, res) => {
+  try {
+    const snapshot = await firestore.collection('booking_requests').get();
+
+    const batch = firestore.batch();
+    snapshot.docs.forEach((doc) => {
+      batch.delete(doc.ref);
+    });
+
+    await batch.commit();
+    console.log(`[BOOKING] 🗑️ Se eliminaron ${snapshot.size} solicitudes`);
+
+    res.json({ success: true, count: snapshot.size });
+  } catch (error) {
+    console.error('[BOOKING] Error deleting all requests:', error);
     res.json({ success: false, error: error.message });
   }
 });

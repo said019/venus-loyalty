@@ -2801,7 +2801,13 @@
     <section id="tab-requests" class="tab-content hidden">
       <div class="header-actions">
         <h2><i class="fas fa-inbox"></i> Solicitudes</h2>
-        <button class="btn small ghost" onclick="loadBookingRequests()"><i class="fas fa-sync"></i></button>
+        <div style="display:flex;gap:8px;">
+          <button class="btn small ghost" onclick="deleteAllRequests()" title="Borrar todas las solicitudes"
+            style="color:#ef4444;border-color:#ef4444;">
+            <i class="fas fa-trash"></i> Borrar Todo
+          </button>
+          <button class="btn small ghost" onclick="loadBookingRequests()"><i class="fas fa-sync"></i></button>
+        </div>
       </div>
 
       <!-- Stats compactas -->
@@ -11666,10 +11672,34 @@
       });
     }
 
+    async function deleteAllRequests() {
+      if (!confirm('⚠️ ¿Estás seguro de que quieres BORRAR TODAS las solicitudes?\n\nEsta acción no se puede deshacer.')) return;
+
+      const code = prompt('Para confirmar, escribe "BORRAR":');
+      if (code !== 'BORRAR') return;
+
+      try {
+        const res = await fetch('/api/booking-requests', {
+          method: 'DELETE',
+          credentials: 'include'
+        });
+        const json = await res.json();
+        if (json.success) {
+          alert('✅ Todas las solicitudes han sido eliminadas');
+          loadBookingRequests();
+        } else {
+          alert('Error: ' + json.error);
+        }
+      } catch (error) {
+        alert('Error de conexión');
+      }
+    }
+
     window.loadBookingRequests = loadBookingRequests;
     window.contactRequest = contactRequest;
     window.markAsBooked = markAsBooked;
     window.rejectRequest = rejectRequest;
+    window.deleteAllRequests = deleteAllRequests;
     window.copyAgendarUrl = copyAgendarUrl;
 
     /* =========================================================
