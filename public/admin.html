@@ -12018,48 +12018,59 @@
       if (autocompleteInitialized) return;
 
       const addressInput = document.getElementById('biz-address');
-      if (!addressInput || !google || !google.maps || !google.maps.places) {
+      if (!addressInput) {
+        console.log('[MAPS] Input de dirección no encontrado');
+        return;
+      }
+
+      // Verificar si Google Maps API está cargada
+      if (typeof google === 'undefined' || !google.maps || !google.maps.places) {
         console.log('[MAPS] API no disponible aún, reintentando...');
         setTimeout(initAddressAutocomplete, 500);
         return;
       }
 
-      const autocomplete = new google.maps.places.Autocomplete(addressInput, {
-        componentRestrictions: { country: 'mx' },
-        fields: ['formatted_address', 'geometry', 'name', 'place_id', 'url'],
-        types: ['address']
-      });
-
-      autocomplete.addListener('place_changed', () => {
-        const place = autocomplete.getPlace();
-
-        if (!place.geometry) {
-          alert('⚠️ No se encontró información de ubicación para esa dirección');
-          return;
-        }
-
-        selectedPlaceData = place;
-
-        // Actualizar campos
-        addressInput.value = place.formatted_address || place.name;
-
-        // Generar URL de Google Maps con coordenadas
-        const lat = place.geometry.location.lat();
-        const lng = place.geometry.location.lng();
-        const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}&query_place_id=${place.place_id}`;
-
-        document.getElementById('biz-maps-url').value = mapsUrl;
-
-        console.log('[MAPS] Dirección seleccionada:', {
-          address: place.formatted_address,
-          lat: lat,
-          lng: lng,
-          place_id: place.place_id
+      try {
+        // Usar Autocomplete (sigue funcionando pero muestra warning)
+        const autocomplete = new google.maps.places.Autocomplete(addressInput, {
+          componentRestrictions: { country: 'mx' },
+          fields: ['formatted_address', 'geometry', 'name', 'place_id'],
+          types: ['address']
         });
-      });
 
-      autocompleteInitialized = true;
-      console.log('[MAPS] Autocomplete inicializado correctamente');
+        autocomplete.addListener('place_changed', () => {
+          const place = autocomplete.getPlace();
+
+          if (!place.geometry) {
+            console.warn('[MAPS] No se encontró geometría para la dirección');
+            return;
+          }
+
+          selectedPlaceData = place;
+
+          // Actualizar campos
+          addressInput.value = place.formatted_address || place.name;
+
+          // Generar URL de Google Maps con coordenadas
+          const lat = place.geometry.location.lat();
+          const lng = place.geometry.location.lng();
+          const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}&query_place_id=${place.place_id}`;
+
+          document.getElementById('biz-maps-url').value = mapsUrl;
+
+          console.log('[MAPS] Dirección seleccionada:', {
+            address: place.formatted_address,
+            lat: lat,
+            lng: lng,
+            place_id: place.place_id
+          });
+        });
+
+        autocompleteInitialized = true;
+        console.log('[MAPS] Autocomplete inicializado correctamente');
+      } catch (error) {
+        console.error('[MAPS] Error inicializando autocomplete:', error);
+      }
     };
 
     // Intentar inicializar cuando la página cargue
@@ -12526,7 +12537,7 @@
 
   <!-- Google Places API - Se carga dinámicamente con la API key del servidor -->
   <script>
-    // Cargar Google Maps API con la key del servidor
+    // Cargar Google Maps API con la key del servidor (usando loading=async)
     async function loadGoogleMapsAPI() {
       try {
         const res = await fetch('/api/config/maps-key', { credentials: 'include' });
@@ -12534,7 +12545,7 @@
 
         if (json.success && json.apiKey) {
           const script = document.createElement('script');
-          script.src = `https://maps.googleapis.com/maps/api/js?key=${json.apiKey}&libraries=places&language=es&region=MX`;
+          script.src = `https://maps.googleapis.com/maps/api/js?key=${json.apiKey}&libraries=places&language=es&region=MX&loading=async`;
           script.async = true;
           script.defer = true;
           script.onload = () => {
