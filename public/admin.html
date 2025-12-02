@@ -3147,6 +3147,9 @@
           <div class="row" style="gap:12px;margin-bottom:16px;flex-wrap:wrap;">
             <input type="text" id="search-services" class="form-input" placeholder="Buscar servicio..."
               style="flex:1;min-width:200px;">
+            <button class="btn ghost" onclick="autoCategorizarServicios()" style="white-space:nowrap;">
+              <i class="fas fa-magic"></i> Auto-organizar
+            </button>
             <button class="btn primary" id="btn-new-service"><i class="fas fa-plus"></i> Nuevo Servicio</button>
           </div>
 
@@ -3155,6 +3158,7 @@
               <thead>
                 <tr>
                   <th>Nombre</th>
+                  <th>Categoría</th>
                   <th>Duración</th>
                   <th>Precio</th>
                   <th>Acciones</th>
@@ -3162,7 +3166,7 @@
               </thead>
               <tbody id="services-tbody">
                 <tr>
-                  <td colspan="4" class="muted" style="text-align:center;padding:20px;">Cargando...</td>
+                  <td colspan="5" class="muted" style="text-align:center;padding:20px;">Cargando...</td>
                 </tr>
               </tbody>
             </table>
@@ -9691,14 +9695,14 @@
 
     async function loadServicesTable() {
       try {
-        servicesTbody.innerHTML = '<tr><td colspan="4" class="muted" style="text-align:center;padding:20px;">Cargando...</td></tr>';
+        servicesTbody.innerHTML = '<tr><td colspan="5" class="muted" style="text-align:center;padding:20px;">Cargando...</td></tr>';
         const res = await fetch('/api/services');
         const json = await res.json();
 
         if (json.success) {
           const services = json.data;
           if (services.length === 0) {
-            servicesTbody.innerHTML = '<tr><td colspan="4" class="muted" style="text-align:center;padding:20px;">No hay servicios registrados</td></tr>';
+            servicesTbody.innerHTML = '<tr><td colspan="5" class="muted" style="text-align:center;padding:20px;">No hay servicios registrados</td></tr>';
             return;
           }
 
@@ -9708,20 +9712,31 @@
         }
       } catch (error) {
         console.error('Error loading services:', error);
-        servicesTbody.innerHTML = '<tr><td colspan="4" style="color:red;text-align:center;">Error al cargar servicios</td></tr>';
+        servicesTbody.innerHTML = '<tr><td colspan="5" style="color:red;text-align:center;">Error al cargar servicios</td></tr>';
       }
     }
 
     // Función para renderizar la tabla de servicios
     function renderServicesTable(services) {
       if (services.length === 0) {
-        servicesTbody.innerHTML = '<tr><td colspan="4" class="muted" style="text-align:center;padding:20px;">No se encontraron servicios</td></tr>';
+        servicesTbody.innerHTML = '<tr><td colspan="5" class="muted" style="text-align:center;padding:20px;">No se encontraron servicios</td></tr>';
         return;
       }
 
       servicesTbody.innerHTML = services.map(s => `
         <tr>
           <td data-label="Nombre">${s.name}</td>
+          <td data-label="Categoría">
+            <span style="
+              display:inline-block;
+              padding:4px 10px;
+              border-radius:6px;
+              font-size:11px;
+              font-weight:500;
+              background:var(--venus-light);
+              color:var(--venus);
+            ">${s.category || 'Sin categoría'}</span>
+          </td>
           <td data-label="Duración">${s.durationMinutes} min</td>
           <td data-label="Precio">$${s.price}</td>
           <td data-label="Acciones">
@@ -9736,6 +9751,87 @@
           </td>
         </tr>
       `).join('');
+    }
+
+    // Auto-categorizar servicios según palabras clave
+    async function autoCategorizarServicios() {
+      if (!confirm('¿Quieres organizar automáticamente todos los servicios en categorías?\n\n• Depilación\n• Faciales\n• Masajes\n• Corporales\n• Diagnóstico')) {
+        return;
+      }
+
+      try {
+        console.log('[AUTO-CAT] Cargando servicios...');
+        const res = await fetch('/api/services');
+        const json = await res.json();
+
+        if (!json.success || !json.data) {
+          alert('❌ Error al cargar servicios');
+          return;
+        }
+
+        const services = json.data;
+        let updated = 0;
+        let errors = 0;
+
+        console.log(`[AUTO-CAT] Procesando ${services.length} servicios...`);
+
+        for (const service of services) {
+          const nameLower = service.name.toLowerCase();
+          let newCategory = 'Otros';
+
+          // Determinar categoría según el nombre
+          if (nameLower.includes('depil')) {
+            newCategory = 'Depilación';
+          } else if (nameLower.includes('facial') || nameLower.includes('limpieza') || nameLower.includes('colágeno') || nameLower.includes('anti-') || nameLower.includes('oxigenante') || nameLower.includes('detox') || nameLower.includes('vitamina')) {
+            newCategory = 'Faciales';
+          } else if (nameLower.includes('masaje') || nameLower.includes('drenaje')) {
+            newCategory = 'Masajes';
+          } else if (nameLower.includes('hifu') || nameLower.includes('dermapen') || nameLower.includes('aparatolog') || nameLower.includes('pqt') || nameLower.includes('despigmant') || nameLower.includes('radiofrec')) {
+            newCategory = 'Corporales';
+          } else if (nameLower.includes('seguimiento') || nameLower.includes('analyzer') || nameLower.includes('consulta') || nameLower.includes('diagnóstico')) {
+            newCategory = 'Diagnóstico';
+          }
+
+          // Solo actualizar si cambió la categoría
+          if (service.category !== newCategory) {
+            console.log(`[AUTO-CAT] ${service.name}: "${service.category || 'Sin categoría'}" → "${newCategory}"`);
+
+            try {
+              const updateRes = await fetch(`/api/services/${service.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  name: service.name,
+                  category: newCategory,
+                  durationMinutes: service.durationMinutes,
+                  price: service.price
+                }),
+                credentials: 'include'
+              });
+
+              const updateJson = await updateRes.json();
+              if (updateJson.success) {
+                updated++;
+              } else {
+                errors++;
+                console.error(`[AUTO-CAT] Error actualizando ${service.name}:`, updateJson.error);
+              }
+            } catch (error) {
+              errors++;
+              console.error(`[AUTO-CAT] Error en ${service.name}:`, error);
+            }
+          }
+        }
+
+        console.log(`[AUTO-CAT] Completado: ${updated} actualizados, ${errors} errores`);
+        alert(`✅ Organización completa!\n\n${updated} servicios reorganizados\n${errors} errores`);
+
+        // Recargar la tabla
+        await loadServicesTable();
+      } catch (error) {
+        console.error('[AUTO-CAT] Error general:', error);
+        alert('❌ Error al organizar servicios');
+      }
     }
 
     // Abrir modal (Nuevo o Editar)
