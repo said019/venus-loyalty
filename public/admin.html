@@ -8899,7 +8899,12 @@
             renderWeeklyCalendar();
             loadMonthStats();
           } else {
-            alert('❌ Error: ' + json.error);
+            // Mostrar mensaje específico para conflictos de horario
+            if (res.status === 409) {
+              alert('⚠️ ' + json.error);
+            } else {
+              alert('❌ Error: ' + json.error);
+            }
           }
         } catch (e) {
           alert('Error de conexión');
@@ -9439,7 +9444,12 @@
             loadAppointments();
             renderWeeklyCalendar();
           } else {
-            alert('❌ Error: ' + json.error);
+            // Mostrar mensaje específico para conflictos de horario
+            if (res.status === 409) {
+              alert('⚠️ ' + json.error);
+            } else {
+              alert('❌ Error: ' + json.error);
+            }
           }
         } catch (e) {
           alert('Error de conexión');

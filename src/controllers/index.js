@@ -91,6 +91,29 @@ export const AppointmentsController = {
             const end = new Date(start.getTime() + (durationMinutes || 60) * 60000);
             const endDateTime = end.toISOString();
 
+            // 3.1 VALIDAR CONFLICTOS DE HORARIO
+            // Buscar citas activas (no canceladas) que se solapen con este horario
+            const conflictingAppointments = await firestore.collection('appointments')
+                .where('startDateTime', '<', endDateTime)
+                .where('status', 'in', ['scheduled', 'confirmed'])
+                .get();
+
+            const hasConflict = conflictingAppointments.docs.some(doc => {
+                const appt = doc.data();
+                const apptEnd = appt.endDateTime;
+                // Hay conflicto si:
+                // - La cita existente termina DESPUÉS de que empieza la nueva (apptEnd > startDateTime)
+                // - Y la nueva termina DESPUÉS de que empieza la existente (endDateTime > appt.startDateTime)
+                return apptEnd > startDateTime;
+            });
+
+            if (hasConflict) {
+                return res.status(409).json({
+                    success: false,
+                    error: 'Ya existe una cita agendada en este horario. Por favor elige otro horario.'
+                });
+            }
+
             const appointmentData = {
                 clientId: client.id,
                 clientName: client.name,
@@ -303,6 +326,28 @@ export const AppointmentsController = {
             const start = new Date(startDateTime);
             const end = new Date(start.getTime() + (durationMinutes || 60) * 60000);
             const endDateTime = end.toISOString();
+
+            // VALIDAR CONFLICTOS DE HORARIO (excluyendo la cita actual)
+            const conflictingAppointments = await firestore.collection('appointments')
+                .where('startDateTime', '<', endDateTime)
+                .where('status', 'in', ['scheduled', 'confirmed'])
+                .get();
+
+            const hasConflict = conflictingAppointments.docs.some(doc => {
+                // Ignorar la cita que estamos editando
+                if (doc.id === id) return false;
+
+                const appt = doc.data();
+                const apptEnd = appt.endDateTime;
+                return apptEnd > startDateTime;
+            });
+
+            if (hasConflict) {
+                return res.status(409).json({
+                    success: false,
+                    error: 'Ya existe una cita agendada en este horario. Por favor elige otro horario.'
+                });
+            }
 
             const updateData = {
                 serviceId,
