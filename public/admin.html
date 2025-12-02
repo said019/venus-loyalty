@@ -143,6 +143,47 @@
       font-size: 12px;
     }
 
+    /* Estilo para días de trabajo */
+    .day-checkbox {
+      display: none;
+    }
+
+    .day-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      background: #e8eaf6;
+      color: #5c6bc0;
+      border: 2px solid transparent;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      user-select: none;
+    }
+
+    .day-label:hover {
+      background: #c5cae9;
+    }
+
+    .day-checkbox:checked + .day-label {
+      background: #5c6bc0;
+      color: white;
+      border-color: #5c6bc0;
+      box-shadow: 0 2px 8px rgba(92, 107, 192, 0.3);
+    }
+
+    .day-label .checkmark {
+      display: none;
+      font-size: 14px;
+    }
+
+    .day-checkbox:checked + .day-label .checkmark {
+      display: inline-block;
+    }
+
     .nav {
       display: flex;
       gap: 6px;
@@ -2653,27 +2694,40 @@
           </div>
 
           <label style="margin-top:12px;">Días de trabajo</label>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;">
-            <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;">
-              <input type="checkbox" id="biz-day-1" checked> Lun
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+            <input type="checkbox" id="biz-day-1" class="day-checkbox" checked>
+            <label for="biz-day-1" class="day-label">
+              <span class="checkmark">✓</span> Lun
             </label>
-            <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;">
-              <input type="checkbox" id="biz-day-2" checked> Mar
+
+            <input type="checkbox" id="biz-day-2" class="day-checkbox" checked>
+            <label for="biz-day-2" class="day-label">
+              <span class="checkmark">✓</span> Mar
             </label>
-            <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;">
-              <input type="checkbox" id="biz-day-3" checked> Mié
+
+            <input type="checkbox" id="biz-day-3" class="day-checkbox" checked>
+            <label for="biz-day-3" class="day-label">
+              <span class="checkmark">✓</span> Mié
             </label>
-            <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;">
-              <input type="checkbox" id="biz-day-4" checked> Jue
+
+            <input type="checkbox" id="biz-day-4" class="day-checkbox" checked>
+            <label for="biz-day-4" class="day-label">
+              <span class="checkmark">✓</span> Jue
             </label>
-            <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;">
-              <input type="checkbox" id="biz-day-5" checked> Vie
+
+            <input type="checkbox" id="biz-day-5" class="day-checkbox" checked>
+            <label for="biz-day-5" class="day-label">
+              <span class="checkmark">✓</span> Vie
             </label>
-            <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;">
-              <input type="checkbox" id="biz-day-6" checked> Sáb
+
+            <input type="checkbox" id="biz-day-6" class="day-checkbox" checked>
+            <label for="biz-day-6" class="day-label">
+              <span class="checkmark">✓</span> Sáb
             </label>
-            <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;">
-              <input type="checkbox" id="biz-day-0"> Dom
+
+            <input type="checkbox" id="biz-day-0" class="day-checkbox">
+            <label for="biz-day-0" class="day-label">
+              <span class="checkmark">✓</span> Dom
             </label>
           </div>
 
