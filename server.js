@@ -1804,12 +1804,18 @@ app.get('/api/public/services', async (req, res) => {
   }
 });
 
-// GET /api/public/config - Configuración pública (horarios)
+// GET /api/public/config - Configuración pública (información del negocio)
 app.get('/api/public/config', async (req, res) => {
   try {
     const doc = await firestore.collection('settings').doc('business').get();
 
     const businessConfig = doc.exists ? doc.data() : {
+      businessName: 'Venus Cosmetología',
+      address: 'San Juan del Río, Querétaro',
+      mapsUrl: '',
+      openTime: '09:00',
+      closeTime: '19:00',
+      workDays: [1, 2, 3, 4, 5, 6],
       businessHours: {
         start: '09:00',
         end: '20:00',
@@ -1821,7 +1827,18 @@ app.get('/api/public/config', async (req, res) => {
     res.json({
       success: true,
       data: {
-        businessHours: businessConfig.businessHours
+        businessName: businessConfig.businessName || 'Venus Cosmetología',
+        address: businessConfig.address || 'San Juan del Río, Querétaro',
+        mapsUrl: businessConfig.mapsUrl || '',
+        openTime: businessConfig.openTime || '09:00',
+        closeTime: businessConfig.closeTime || '19:00',
+        workDays: businessConfig.workDays || [1, 2, 3, 4, 5, 6],
+        businessHours: businessConfig.businessHours || {
+          start: businessConfig.openTime || '09:00',
+          end: businessConfig.closeTime || '19:00',
+          interval: 60,
+          closedDays: businessConfig.workDays ? [0, 1, 2, 3, 4, 5, 6].filter(d => !businessConfig.workDays.includes(d)) : [0]
+        }
       }
     });
   } catch (error) {

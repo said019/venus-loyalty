@@ -296,11 +296,50 @@
 <body>
   <div class="header">
     <img src="/assets/logo.png" alt="Venus" class="logo">
-    <h1>Venus Cosmetología</h1>
+    <h1 id="business-name">Venus Cosmetología</h1>
     <p>Solicita tu cita</p>
   </div>
 
   <div class="container">
+    <!-- Información del negocio -->
+    <div class="card" style="margin-bottom: 24px;">
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div style="display: flex; align-items: start; gap: 12px;">
+          <i class="fas fa-map-marker-alt" style="color: var(--venus); margin-top: 2px; font-size: 16px;"></i>
+          <div style="flex: 1;">
+            <div style="font-size: 13px; font-weight: 600; margin-bottom: 2px;">Ubicación</div>
+            <div id="business-address" style="font-size: 13px; color: var(--muted);">Cargando...</div>
+          </div>
+        </div>
+
+        <div style="display: flex; align-items: start; gap: 12px;">
+          <i class="fas fa-clock" style="color: var(--venus); margin-top: 2px; font-size: 16px;"></i>
+          <div style="flex: 1;">
+            <div style="font-size: 13px; font-weight: 600; margin-bottom: 2px;">Horario de atención</div>
+            <div id="business-hours" style="font-size: 13px; color: var(--muted);">Cargando...</div>
+          </div>
+        </div>
+
+        <div id="maps-button-container" style="display: none; margin-top: 8px;">
+          <a id="maps-button" href="#" target="_blank" class="btn" style="
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--venus);
+            color: white;
+            text-decoration: none;
+            padding: 10px 16px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s;
+          ">
+            <i class="fas fa-map-marked-alt"></i> Ver en Google Maps
+          </a>
+        </div>
+      </div>
+    </div>
+
     <div class="progress">
       <div class="progress-dot active" id="dot-1"></div>
       <div class="progress-dot" id="dot-2"></div>
@@ -464,13 +503,14 @@
     </div>
   </div>
 
-  <div class="footer">
+  <div class="footer" id="business-footer">
     Venus Cosmetología · San Juan del Río, Qro.
   </div>
 
   <script>
     let services = [];
     let businessHours = { start: '09:00', end: '20:00', interval: 60, closedDays: [0] };
+    let businessConfig = {};
     let selectedService = null;
     let selectedDate = null;
     let selectedTime = null;
@@ -479,6 +519,7 @@
     let whatsappUrl = '';
 
     const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    const DAYS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
     document.addEventListener('DOMContentLoaded', async () => {
       await loadConfig();
@@ -490,10 +531,55 @@
       try {
         const res = await fetch('/api/public/config');
         const json = await res.json();
-        if (json.success && json.data?.businessHours) {
-          businessHours = json.data.businessHours;
+        if (json.success && json.data) {
+          businessConfig = json.data;
+
+          // Actualizar horarios de negocio
+          if (json.data.businessHours) {
+            businessHours = json.data.businessHours;
+          }
+
+          // Actualizar información visible
+          updateBusinessInfo();
         }
-      } catch (e) { console.error(e); }
+      } catch (e) {
+        console.error('Error cargando configuración:', e);
+      }
+    }
+
+    function updateBusinessInfo() {
+      // Actualizar nombre del negocio
+      if (businessConfig.businessName) {
+        document.getElementById('business-name').textContent = businessConfig.businessName;
+        document.title = `Agendar Cita - ${businessConfig.businessName}`;
+      }
+
+      // Actualizar dirección
+      if (businessConfig.address) {
+        document.getElementById('business-address').textContent = businessConfig.address;
+      } else {
+        document.getElementById('business-address').textContent = 'San Juan del Río, Querétaro';
+      }
+
+      // Actualizar horarios
+      if (businessConfig.openTime && businessConfig.closeTime) {
+        const workDays = businessConfig.workDays || [1, 2, 3, 4, 5, 6];
+        const daysText = workDays.map(d => DAYS[d]).join(', ');
+        document.getElementById('business-hours').textContent = `${daysText} · ${businessConfig.openTime} - ${businessConfig.closeTime}`;
+      } else {
+        document.getElementById('business-hours').textContent = 'Lun - Sáb · 09:00 - 19:00';
+      }
+
+      // Actualizar botón de Google Maps
+      if (businessConfig.mapsUrl) {
+        document.getElementById('maps-button').href = businessConfig.mapsUrl;
+        document.getElementById('maps-button-container').style.display = 'block';
+      }
+
+      // Actualizar footer
+      const footerText = businessConfig.businessName || 'Venus Cosmetología';
+      const footerLocation = businessConfig.address ? businessConfig.address.split(',')[businessConfig.address.split(',').length - 1].trim() : 'San Juan del Río, Qro.';
+      document.getElementById('business-footer').textContent = `${footerText} · ${footerLocation}`;
     }
 
     async function loadServices() {
