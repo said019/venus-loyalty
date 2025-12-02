@@ -10397,8 +10397,8 @@
       document.getElementById('payment-client-name').textContent = clientName || '-';
       document.getElementById('payment-service-name').textContent = serviceName || '-';
 
-      const modalTitle = document.querySelector('#modal-payment h3');
-      const submitBtn = document.querySelector('#modal-payment .btn.primary');
+      const modalTitle = document.querySelector('#paymentDialog h3');
+      const submitBtn = document.querySelector('#paymentDialog .btn.primary');
 
       if (isEdit) {
         modalTitle.textContent = 'Editar Pago';
@@ -10704,6 +10704,7 @@
           closePaymentModal();
           if (typeof loadAppointments === 'function') loadAppointments();
           if (typeof loadTodayAppointments === 'function') loadTodayAppointments();
+          if (typeof loadMonthStats === 'function') loadMonthStats();
           alert('✓ Pago registrado: $' + grandTotal.toLocaleString());
         } else {
           alert('Error: ' + json.error);
