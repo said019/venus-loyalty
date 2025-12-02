@@ -11608,6 +11608,21 @@
         const json = await res.json();
         if (json.success) {
           loadBookingRequests();
+
+          // Recargar notificaciones inmediatamente
+          if (typeof loadNotifications === 'function') {
+            loadNotifications();
+          }
+
+          // Si estamos en el tab de citas, recargar
+          if (typeof loadAppointments === 'function') {
+            loadAppointments();
+          }
+          if (typeof renderWeeklyCalendar === 'function') {
+            renderWeeklyCalendar();
+          }
+
+          alert('✅ Cita agendada correctamente');
         } else {
           alert('Error: ' + json.error);
         }
