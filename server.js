@@ -1711,6 +1711,16 @@ app.post('/api/admin/gift-card/:id/redeem', adminAuth, async (req, res) => {
    CONFIGURACIÓN DEL NEGOCIO Y SOLICITUD DE CITAS
    ========================================================= */
 
+// GET /api/config/maps-key - Obtener API key de Google Maps (solo para admin)
+app.get('/api/config/maps-key', adminAuth, async (req, res) => {
+  try {
+    const apiKey = process.env.GOOGLE_MAPS_API_KEY || '';
+    res.json({ success: true, apiKey });
+  } catch (error) {
+    res.json({ success: false, error: error.message });
+  }
+});
+
 // GET /api/settings/business - Obtener configuración del negocio
 app.get('/api/settings/business', async (req, res) => {
   try {
