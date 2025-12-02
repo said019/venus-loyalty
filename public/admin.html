@@ -2514,11 +2514,17 @@
           </div>
 
           <label style="margin-top:12px;">Dirección</label>
-          <input id="biz-address" placeholder="Cactus 50, San Juan del Río, Qro.">
+          <div style="display:flex;gap:8px;align-items:start;">
+            <input id="biz-address" placeholder="Cactus 50, San Juan del Río, Qro." style="flex:1;">
+            <button type="button" id="btn-generate-maps" class="btn small" style="margin-top:0;white-space:nowrap;">
+              <i class="fas fa-map-marker-alt"></i> Generar Maps
+            </button>
+          </div>
+          <small class="muted">Escribe tu dirección y haz clic en "Generar Maps" para crear el enlace automáticamente</small>
 
           <label style="margin-top:12px;">URL de Google Maps</label>
-          <input id="biz-maps-url" type="url" placeholder="https://maps.app.goo.gl/...">
-          <small class="muted">Pega el enlace compartido de Google Maps para mostrar ubicación en reservas</small>
+          <input id="biz-maps-url" type="url" placeholder="https://www.google.com/maps/search/..." readonly>
+          <small class="muted">Este enlace se genera automáticamente basado en tu dirección</small>
 
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
             <div>
@@ -11852,6 +11858,33 @@
         console.error('Error loading business config:', error);
       }
     }
+
+    // Generar enlace de Google Maps desde la dirección
+    document.getElementById('btn-generate-maps')?.addEventListener('click', () => {
+      const address = document.getElementById('biz-address').value.trim();
+
+      if (!address) {
+        alert('⚠️ Por favor escribe una dirección primero');
+        return;
+      }
+
+      // Generar URL de búsqueda de Google Maps
+      const encodedAddress = encodeURIComponent(address);
+      const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
+
+      document.getElementById('biz-maps-url').value = mapsUrl;
+
+      // Confirmación visual
+      const btn = document.getElementById('btn-generate-maps');
+      const originalHTML = btn.innerHTML;
+      btn.innerHTML = '<i class="fas fa-check"></i> Generado';
+      btn.style.background = '#10b981';
+
+      setTimeout(() => {
+        btn.innerHTML = originalHTML;
+        btn.style.background = '';
+      }, 2000);
+    });
 
     document.getElementById('business-config-form')?.addEventListener('submit', async (e) => {
       e.preventDefault();
