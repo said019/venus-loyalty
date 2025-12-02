@@ -8460,12 +8460,19 @@
                   </select>
                 </td>
                 <td style="padding:12px;">
-                  <div style="display:flex;gap:8px;">
+                  <div style="display:flex;gap:8px;align-items:center;">
                     ${appt.status !== 'completed' ? `
                     <button onclick="openPaymentModal('${appt.id}', '${appt.clientName.replace(/'/g, "\\'") || ''}', '${appt.serviceName.replace(/'/g, "\\'") || ''}', ${appt.price || 0})" class="btn-icon" style="background:#10b981;color:white;padding:4px 10px;border-radius:6px;font-size:0.85em;display:flex;align-items:center;gap:4px;">
                       <i class="fas fa-money-bill-wave"></i> Pagar
                     </button>
-                    ` : ''}
+                    ` : `
+                    <div style="display:flex;align-items:center;gap:6px;background:rgba(34,197,94,0.1);padding:4px 8px;border-radius:6px;border:1px solid rgba(34,197,94,0.3);">
+                      <span style="color:#22c55e;font-weight:600;font-size:0.9em;">$${appt.totalPaid || 0}</span>
+                      <button onclick="openPaymentModal('${appt.id}', '${appt.clientName.replace(/'/g, "\\'") || ''}', '${appt.serviceName.replace(/'/g, "\\'") || ''}', ${appt.totalPaid || 0}, true)" title="Editar pago" style="background:none;border:none;color:#9ca3af;cursor:pointer;padding:0;font-size:0.8em;">
+                        <i class="fas fa-pencil-alt"></i>
+                      </button>
+                    </div>
+                    `}
                     <button onclick="editAppointment('${appt.id}')" class="btn-icon" style="background:#6b7280;color:white;padding:4px 10px;border-radius:6px;font-size:0.85em;">Modificar</button>
                     <button onclick="cancelAppointment('${appt.id}')" class="btn-icon" style="background:#6b7280;color:white;padding:4px 10px;border-radius:6px;font-size:0.85em;">Cancelar</button>
                   </div>
@@ -8526,9 +8533,12 @@
 
         if (json.success && json.data) {
           json.data.forEach(appt => {
-            if (appt.payment && appt.status === 'completed') {
-              const amount = appt.payment.amount || 0;
-              switch (appt.payment.method) {
+            if (appt.status === 'completed') {
+              // Support both structures (legacy object or root fields)
+              const amount = appt.totalPaid || (appt.payment ? appt.payment.amount : 0) || 0;
+              const method = appt.paymentMethod || (appt.payment ? appt.payment.method : '') || '';
+
+              switch (method) {
                 case 'efectivo':
                   cashTotal += amount;
                   break;
@@ -10378,7 +10388,7 @@
       });
     }
 
-    async function openPaymentModal(appointmentId, clientName, serviceName, servicePrice) {
+    async function openPaymentModal(appointmentId, clientName, serviceName, servicePrice, isEdit = false) {
       paymentProducts = [];
       discountType = 'percent';
       isPriceEditing = false;
@@ -10386,6 +10396,46 @@
       document.getElementById('payment-appointment-id').value = appointmentId;
       document.getElementById('payment-client-name').textContent = clientName || '-';
       document.getElementById('payment-service-name').textContent = serviceName || '-';
+
+      const modalTitle = document.querySelector('#modal-payment h3');
+      const submitBtn = document.querySelector('#modal-payment .btn.primary');
+
+      if (isEdit) {
+        modalTitle.textContent = 'Editar Pago';
+        submitBtn.innerHTML = '<i class="fas fa-save"></i> Guardar Cambios';
+      } else {
+        modalTitle.textContent = 'Registrar Pago';
+        submitBtn.innerHTML = '<i class="fas fa-check"></i> Completar Cita';
+      }
+
+      // Si es edición, obtener datos actuales de la cita
+      if (isEdit) {
+        try {
+          const res = await fetch(`/api/appointments/${appointmentId}`, { credentials: 'include' });
+          const json = await res.json();
+          if (json.success && json.data) {
+            const appt = json.data;
+            servicePrice = appt.serviceAmount || appt.price || 0;
+
+            // Pre-seleccionar método de pago
+            const methodSelect = document.getElementById('payment-method');
+            if (methodSelect) methodSelect.value = appt.paymentMethod || 'efectivo';
+
+            // Pre-llenar descuento si existe
+            if (appt.discountType) {
+              discountType = appt.discountType;
+              document.getElementById('payment-discount-value').value = appt.discountValue || 0;
+              document.querySelectorAll('.discount-type-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.type === discountType);
+              });
+            }
+
+            // TODO: Cargar productos vendidos si es necesario (complejo porque requiere stock)
+          }
+        } catch (e) {
+          console.error('Error cargando datos de pago:', e);
+        }
+      }
 
       // Si no hay precio, intentar obtenerlo del servidor
       if (!servicePrice || servicePrice === 0) {
