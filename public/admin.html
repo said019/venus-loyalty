@@ -367,6 +367,8 @@
       overflow-x: auto;
       -webkit-overflow-scrolling: touch;
       max-width: 100%;
+      min-height: 200px; /* Asegurar altura mínima */
+      position: relative;
     }
 
     /* Asegurar que el contenedor principal no se desborde */
@@ -377,17 +379,34 @@
 
     .card {
       max-width: 100%;
-      overflow: hidden;
+      overflow: visible; /* Cambiar de hidden a visible */
+      min-height: fit-content;
+    }
+
+    /* Fix específico para panel de servicios */
+    #panel-services,
+    #panel-products {
+      min-height: 400px;
+      overflow: visible;
     }
 
     table {
       border-collapse: collapse;
       width: 100%;
       font-size: 13px;
+      table-layout: auto;
+      visibility: visible !important;
+      opacity: 1 !important;
     }
 
     thead {
       background: rgba(255, 255, 255, .1);
+      visibility: visible !important;
+    }
+
+    tbody {
+      visibility: visible !important;
+      min-height: 100px;
     }
 
     th,
@@ -397,6 +416,7 @@
       text-align: left;
       white-space: nowrap;
       color: var(--ink);
+      visibility: visible !important;
     }
 
     tr:last-child td {
@@ -9695,35 +9715,60 @@
 
     async function loadServicesTable() {
       try {
-        servicesTbody.innerHTML = '<tr><td colspan="5" class="muted" style="text-align:center;padding:20px;">Cargando...</td></tr>';
-        const res = await fetch('/api/services');
+        console.log('[SERVICES] Iniciando carga de servicios...');
+
+        // Verificar que el elemento existe
+        if (!servicesTbody) {
+          console.error('[SERVICES] ERROR: services-tbody no encontrado en el DOM');
+          return;
+        }
+
+        servicesTbody.innerHTML = '<tr><td colspan="5" class="muted" style="text-align:center;padding:20px;visibility:visible !important;">Cargando...</td></tr>';
+
+        const res = await fetch('/api/services', { credentials: 'include' });
+        console.log('[SERVICES] Respuesta recibida:', res.status);
+
         const json = await res.json();
+        console.log('[SERVICES] Datos parseados:', json);
 
         if (json.success) {
-          const services = json.data;
+          const services = json.data || [];
+          console.log(`[SERVICES] ${services.length} servicios encontrados`);
+
           if (services.length === 0) {
-            servicesTbody.innerHTML = '<tr><td colspan="5" class="muted" style="text-align:center;padding:20px;">No hay servicios registrados</td></tr>';
+            servicesTbody.innerHTML = '<tr><td colspan="5" class="muted" style="text-align:center;padding:40px;visibility:visible !important;background:#f5f5f5;">No hay servicios registrados. Haz clic en "Nuevo Servicio" para agregar uno.</td></tr>';
             return;
           }
 
           // Store services globally for search
           window.allServicesData = services;
           renderServicesTable(services);
+          console.log('[SERVICES] Tabla renderizada correctamente');
+        } else {
+          console.error('[SERVICES] Error en respuesta:', json.error);
+          servicesTbody.innerHTML = '<tr><td colspan="5" style="color:#ef4444;text-align:center;padding:40px;visibility:visible !important;background:#fee;">❌ Error: ' + (json.error || 'Desconocido') + '</td></tr>';
         }
       } catch (error) {
-        console.error('Error loading services:', error);
-        servicesTbody.innerHTML = '<tr><td colspan="5" style="color:red;text-align:center;">Error al cargar servicios</td></tr>';
+        console.error('[SERVICES] Error fatal:', error);
+        servicesTbody.innerHTML = '<tr><td colspan="5" style="color:#ef4444;text-align:center;padding:40px;visibility:visible !important;background:#fee;">❌ Error al cargar servicios: ' + error.message + '</td></tr>';
       }
     }
 
     // Función para renderizar la tabla de servicios
     function renderServicesTable(services) {
-      if (services.length === 0) {
-        servicesTbody.innerHTML = '<tr><td colspan="5" class="muted" style="text-align:center;padding:20px;">No se encontraron servicios</td></tr>';
+      console.log('[RENDER] Renderizando tabla con', services.length, 'servicios');
+
+      if (!servicesTbody) {
+        console.error('[RENDER] ERROR: servicesTbody no existe');
         return;
       }
 
-      servicesTbody.innerHTML = services.map(s => `
+      if (services.length === 0) {
+        servicesTbody.innerHTML = '<tr><td colspan="5" class="muted" style="text-align:center;padding:40px;visibility:visible !important;background:#f5f5f5;">No se encontraron servicios</td></tr>';
+        return;
+      }
+
+      const html = services.map(s => `
         <tr>
           <td data-label="Nombre">${s.name}</td>
           <td data-label="Categoría">
@@ -9751,6 +9796,10 @@
           </td>
         </tr>
       `).join('');
+
+      console.log('[RENDER] HTML generado, longitud:', html.length);
+      servicesTbody.innerHTML = html;
+      console.log('[RENDER] HTML asignado al tbody');
     }
 
     // Auto-categorizar servicios según palabras clave
