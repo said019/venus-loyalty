@@ -630,6 +630,37 @@ app.patch('/api/products/:id/stock', adminAuth, async (req, res) => {
 
 /* ========== APPOINTMENTS ========== */
 
+// DEBUG: Ver todas las citas completadas con pagos
+app.get('/api/debug/completed-payments', adminAuth, async (req, res) => {
+  try {
+    const snapshot = await firestore.collection('appointments')
+      .where('status', '==', 'completed')
+      .orderBy('paidAt', 'desc')
+      .limit(20)
+      .get();
+
+    const appointments = [];
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      appointments.push({
+        id: doc.id,
+        clientName: data.clientName,
+        serviceName: data.serviceName,
+        startDateTime: data.startDateTime,
+        status: data.status,
+        paymentMethod: data.paymentMethod,
+        totalPaid: data.totalPaid,
+        paidAt: data.paidAt
+      });
+    });
+
+    res.json({ success: true, count: appointments.length, data: appointments });
+  } catch (error) {
+    console.error('[DEBUG] Error:', error);
+    res.json({ success: false, error: error.message });
+  }
+});
+
 // GET /api/appointments/month - Obtener citas del mes
 app.get('/api/appointments/month', adminAuth, async (req, res) => {
   try {
@@ -710,7 +741,7 @@ app.post('/api/appointments/:id/payment', adminAuth, async (req, res) => {
     }
 
     // Actualizar cita con datos de pago
-    await appointmentRef.update({
+    const paymentData = {
       status: 'completed',
       paymentMethod,
       serviceAmount: parseFloat(serviceAmount) || 0,
@@ -722,7 +753,11 @@ app.post('/api/appointments/:id/payment', adminAuth, async (req, res) => {
       totalPaid: parseFloat(totalAmount) || 0,
       productsSold: productsSold || [],
       paidAt: new Date().toISOString()
-    });
+    };
+
+    console.log('[PAYMENT] Guardando pago para cita', id, ':', paymentData);
+
+    await appointmentRef.update(paymentData);
 
     // Descontar stock de productos vendidos
     if (productsSold && productsSold.length > 0) {

@@ -8546,6 +8546,7 @@
 
               console.log(`[REVENUE] Cita ${appt.id}:`, {
                 status: appt.status,
+                startDateTime: appt.startDateTime,
                 totalPaid: appt.totalPaid,
                 paymentMethod: appt.paymentMethod,
                 payment: appt.payment,
@@ -8602,6 +8603,13 @@
     };
 
     async function updateAppointmentStatus(id, newStatus) {
+      // Prevenir cambio a 'completed' sin registrar pago
+      if (newStatus === 'completed') {
+        alert('⚠️ Para completar una cita debes registrar el pago.\n\nUsa el botón verde "Pagar" para registrar el pago y completar la cita.');
+        loadAppointments(); // Revertir selección visualmente
+        return;
+      }
+
       if (!confirm(`¿Cambiar estado a "${newStatus}"?`)) {
         loadAppointments(); // Revertir selección visualmente
         return;
