@@ -629,6 +629,41 @@ app.patch('/api/products/:id/stock', adminAuth, async (req, res) => {
 
 /* ========== APPOINTMENTS ========== */
 
+// GET /api/appointments/month - Obtener citas del mes
+app.get('/api/appointments/month', adminAuth, async (req, res) => {
+  try {
+    const { year, month } = req.query;
+    
+    if (!year || !month) {
+      return res.json({ success: false, error: 'Año y mes requeridos' });
+    }
+    
+    const y = parseInt(year);
+    const m = parseInt(month);
+    const firstDay = `${y}-${String(m).padStart(2, '0')}-01`;
+    const lastDay = new Date(y, m, 0).getDate();
+    const lastDayStr = `${y}-${String(m).padStart(2, '0')}-${lastDay}`;
+    
+    console.log(`[APPOINTMENTS MONTH] Buscando citas de ${firstDay} a ${lastDayStr}`);
+    
+    const snapshot = await firestore.collection('appointments')
+      .where('startDateTime', '>=', `${firstDay}T00:00:00`)
+      .where('startDateTime', '<=', `${lastDayStr}T23:59:59`)
+      .get();
+    
+    const data = [];
+    snapshot.forEach(doc => {
+      data.push({ id: doc.id, ...doc.data() });
+    });
+    
+    console.log(`[APPOINTMENTS MONTH] Encontradas ${data.length} citas`);
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error('[APPOINTMENTS MONTH] Error:', error);
+    res.json({ success: false, error: error.message });
+  }
+});
+
 // GET /api/appointments/:id - Obtener una cita por ID
 app.get('/api/appointments/:id', adminAuth, async (req, res) => {
   try {
