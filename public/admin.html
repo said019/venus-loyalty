@@ -168,7 +168,7 @@
       background: #c5cae9;
     }
 
-    .day-checkbox:checked + .day-label {
+    .day-checkbox:checked+.day-label {
       background: #5c6bc0;
       color: white;
       border-color: #5c6bc0;
@@ -180,7 +180,7 @@
       font-size: 14px;
     }
 
-    .day-checkbox:checked + .day-label .checkmark {
+    .day-checkbox:checked+.day-label .checkmark {
       display: inline-block;
     }
 
@@ -386,7 +386,8 @@
       overflow-x: auto;
       -webkit-overflow-scrolling: touch;
       max-width: 100%;
-      min-height: 200px; /* Asegurar altura mínima */
+      min-height: 200px;
+      /* Asegurar altura mínima */
       position: relative;
     }
 
@@ -398,7 +399,8 @@
 
     .card {
       max-width: 100%;
-      overflow: visible; /* Cambiar de hidden a visible */
+      overflow: visible;
+      /* Cambiar de hidden a visible */
       min-height: fit-content;
     }
 
@@ -2605,8 +2607,7 @@
           <label style="margin-top:12px;">Dirección</label>
           <div style="position:relative;">
             <!-- Nuevo componente web de Places API -->
-            <gmp-place-autocomplete
-              id="biz-address-autocomplete"
+            <gmp-place-autocomplete id="biz-address-autocomplete"
               placeholder="Ej: Cactus 50, San Juan del Río, Querétaro">
             </gmp-place-autocomplete>
             <input type="hidden" id="biz-address">
@@ -8460,62 +8461,80 @@
     // ========== CARGAR CLIENTES ==========
     async function loadClients() {
       try {
-        console.log('[CLIENTS] 🔍 Cargando clientes...');
-        const res = await fetch('/api/admin/cards?limit=1000');
-        const data = await res.json();
+        console.log('[CLIENTS] 🔍 Cargando TODOS los clientes...');
 
-        console.log('[CLIENTS] 📦 Respuesta:', data);
+        // Cargar TODAS las páginas de clientes
+        let allClientsData = [];
+        let page = 1;
+        let hasMore = true;
 
-        // La respuesta viene directa como objeto de paginación, no tiene success: true
-        if (data.items && Array.isArray(data.items)) {
-          // Map clients to dropdown options format
-          const options = data.items.map(c => ({
-            value: c.name,
-            label: c.name,
-            meta: c.phone || 'Sin teléfono',
-            data: { id: c.id, phone: c.phone }
-          }));
+        while (hasMore) {
+          const res = await fetch(`/api/admin/cards-firebase?page=${page}&limit=100`, { credentials: 'include' });
+          const data = await res.json();
 
-          console.log('[CLIENTS] 📋 Opciones mapeadas:', options.length);
-
-          // Verificar que los elementos existen
-          const inputEl = document.getElementById('new-appt-client-select');
-          const dropdownEl = document.getElementById('clients-dropdown-list');
-
-          console.log('[CLIENTS] 🔍 Input existe:', !!inputEl);
-          console.log('[CLIENTS] 🔍 Dropdown existe:', !!dropdownEl);
-
-          if (!inputEl || !dropdownEl) {
-            console.error('[CLIENTS] ❌ Elementos no encontrados en el DOM');
-            return;
-          }
-
-          if (!newApptClientDropdown) {
-            console.log('[CLIENTS] 🆕 Creando nuevo dropdown...');
-            newApptClientDropdown = new CustomSearchableDropdown(
-              'new-appt-client-select',
-              'clients-dropdown-list',
-              (item) => {
-                console.log('[CLIENTS] ✅ Cliente seleccionado:', item);
-                // Auto-fill phone when client selected
-                document.getElementById('new-appt-phone').value = item.data.phone || '';
-
-                // Cargar historial de citas del cliente
-                loadClientHistory(item.data.phone, item.label);
-              }
-            );
-          }
-
-          if (newApptClientDropdown) {
-            newApptClientDropdown.setOptions(options);
-            console.log('[CLIENTS] ✅ Opciones configuradas');
+          if (data.items && data.items.length > 0) {
+            allClientsData = [...allClientsData, ...data.items];
+            hasMore = page < data.totalPages;
+            page++;
+            console.log(`[CLIENTS] 📄 Página ${page - 1}: ${data.items.length} clientes (Total acumulado: ${allClientsData.length})`);
           } else {
-            console.error('[CLIENTS] ❌ Dropdown no se pudo crear');
+            hasMore = false;
           }
         }
-      } catch (e) {
-        console.error('[CLIENTS] ❌ Error loading clients:', e);
+
+        console.log(`[CLIENTS] ✅ Total de clientes cargados: ${allClientsData.length}`);
+
+        // Actualizar variable global
+        allClients = allClientsData;
+
+        // Map clients to dropdown options format
+        const options = allClientsData.map(c => ({
+          value: c.name,
+          label: c.name,
+          meta: c.phone || 'Sin teléfono',
+          data: { id: c.id, phone: c.phone }
+        }));
+
+        console.log('[CLIENTS] 📋 Opciones mapeadas:', options.length);
+
+        // Verificar que los elementos existen
+        const inputEl = document.getElementById('new-appt-client-select');
+        const dropdownEl = document.getElementById('clients-dropdown-list');
+
+        console.log('[CLIENTS] 🔍 Input existe:', !!inputEl);
+        console.log('[CLIENTS] 🔍 Dropdown existe:', !!dropdownEl);
+
+        if (!inputEl || !dropdownEl) {
+          console.error('[CLIENTS] ❌ Elementos no encontrados en el DOM');
+          return;
+        }
+
+        if (!newApptClientDropdown) {
+          console.log('[CLIENTS] 🆕 Creando nuevo dropdown...');
+          newApptClientDropdown = new CustomSearchableDropdown(
+            'new-appt-client-select',
+            'clients-dropdown-list',
+            (item) => {
+              console.log('[CLIENTS] ✅ Cliente seleccionado:', item);
+              // Auto-fill phone when client selected
+              document.getElementById('new-appt-phone').value = item.data.phone || '';
+
+              // Cargar historial de citas del cliente
+              loadClientHistory(item.data.phone, item.label);
+            }
+          );
+        }
+
+        if (newApptClientDropdown) {
+          newApptClientDropdown.setOptions(options);
+          console.log('[CLIENTS] ✅ Opciones configuradas');
+        } else {
+          console.error('[CLIENTS] ❌ Dropdown no se pudo crear');
+        }
       }
+      } catch (e) {
+      console.error('[CLIENTS] ❌ Error loading clients:', e);
+    }
     }
 
     // ========== CALENDARIO SEMANAL ==========
@@ -9670,6 +9689,13 @@
             sendWhatsApp24h: document.getElementById('check-whatsapp-24h').checked,
             sendWhatsApp2h: document.getElementById('check-whatsapp-2h').checked
           };
+
+          console.log('🕐 [APPOINTMENT] Creando cita con payload:', {
+            ...payload,
+            clientTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            localNow: new Date().toString(),
+            isoNow: new Date().toISOString()
+          });
 
           const res = await fetch('/api/appointments', {
             method: 'POST',
@@ -12042,6 +12068,15 @@
     }
 
     async function markAsBooked(id) {
+      // Prevenir doble clic
+      const btn = event?.target?.closest('button');
+      if (btn && btn.disabled) return;
+      if (btn) {
+        btn.disabled = true;
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Agendando...';
+      }
+
       try {
         const res = await fetch(`/api/booking-requests/${id}/booked`, {
           method: 'POST',
@@ -12067,9 +12102,19 @@
           alert('✅ Cita agendada correctamente');
         } else {
           alert('Error: ' + json.error);
+          // Re-habilitar botón en caso de error
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+          }
         }
       } catch (error) {
         alert('Error de conexión');
+        // Re-habilitar botón en caso de error
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = originalHtml;
+        }
       }
     }
 
@@ -12177,7 +12222,7 @@
     let autocompleteInitialized = false;
     let selectedPlaceData = null;
 
-    window.initAddressAutocomplete = function() {
+    window.initAddressAutocomplete = function () {
       if (autocompleteInitialized) return;
 
       const autocompleteElement = document.getElementById('biz-address-autocomplete');
