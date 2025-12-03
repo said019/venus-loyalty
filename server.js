@@ -728,19 +728,32 @@ app.get('/api/appointments/range', adminAuth, async (req, res) => {
 
     console.log('[REPORTS] Buscando citas desde', from, 'hasta', to);
 
-    const snapshot = await firestore.collection('appointments')
-      .where('startDateTime', '>=', from)
-      .where('startDateTime', '<=', to)
-      .orderBy('startDateTime', 'desc')
-      .get();
+    // Obtener TODAS las citas y filtrar en memoria
+    // Esto es más confiable que comparar strings ISO en Firestore
+    const snapshot = await firestore.collection('appointments').get();
+
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
+
+    console.log('[REPORTS] Rango de fechas:', fromDate.toISOString(), 'a', toDate.toISOString());
+    console.log('[REPORTS] Total citas en DB:', snapshot.size);
 
     const appointments = [];
     snapshot.forEach(doc => {
-      appointments.push({
-        id: doc.id,
-        ...doc.data()
-      });
+      const data = doc.data();
+      const apptDate = new Date(data.startDateTime);
+
+      // Filtrar por rango de fechas
+      if (apptDate >= fromDate && apptDate <= toDate) {
+        appointments.push({
+          id: doc.id,
+          ...data
+        });
+      }
     });
+
+    // Ordenar por fecha descendente
+    appointments.sort((a, b) => new Date(b.startDateTime) - new Date(a.startDateTime));
 
     console.log('[REPORTS] Encontradas', appointments.length, 'citas en el rango');
 

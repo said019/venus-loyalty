@@ -12971,28 +12971,61 @@
           return;
         }
 
-        // Filtrar solo las citas completadas con pago
-        let ventas = (json.data || []).filter(a =>
-          a.status === 'completed' &&
-          a.totalPaid &&
-          a.paymentMethod
-        );
+        const allAppointments = json.data || [];
+        console.log('[REPORTS] Total de citas recibidas:', allAppointments.length);
 
-        console.log('[REPORTS] Total de ventas:', ventas.length);
+        // Debug: Ver el estado de las primeras 5 citas
+        allAppointments.slice(0, 5).forEach((a, i) => {
+          console.log(`[REPORTS] Cita ${i + 1}:`, {
+            id: a.id,
+            clientName: a.clientName,
+            status: a.status,
+            totalPaid: a.totalPaid,
+            paymentMethod: a.paymentMethod,
+            startDateTime: a.startDateTime
+          });
+        });
+
+        // Filtrar solo las citas completadas con pago
+        let ventas = allAppointments.filter(a => {
+          const isCompleted = a.status === 'completed';
+          const hasTotalPaid = !!a.totalPaid;
+          const hasPaymentMethod = !!a.paymentMethod;
+
+          if (!isCompleted || !hasTotalPaid || !hasPaymentMethod) {
+            console.log('[REPORTS] Cita excluida:', {
+              id: a.id,
+              clientName: a.clientName,
+              isCompleted,
+              hasTotalPaid,
+              hasPaymentMethod
+            });
+          }
+
+          return isCompleted && hasTotalPaid && hasPaymentMethod;
+        });
+
+        console.log('[REPORTS] Citas completadas con pago:', ventas.length);
 
         // Aplicar filtros adicionales
         const paymentFilter = document.getElementById('filter-payment-method').value;
         const serviceFilter = document.getElementById('filter-service').value;
 
+        console.log('[REPORTS] Filtros adicionales:', { paymentFilter, serviceFilter });
+
         if (paymentFilter) {
+          const before = ventas.length;
           ventas = ventas.filter(v => v.paymentMethod === paymentFilter);
+          console.log(`[REPORTS] Filtro de método de pago: ${before} → ${ventas.length}`);
         }
 
         if (serviceFilter) {
+          const before = ventas.length;
           ventas = ventas.filter(v => v.serviceId === serviceFilter);
+          console.log(`[REPORTS] Filtro de servicio: ${before} → ${ventas.length}`);
         }
 
-        console.log('[REPORTS] Después de filtros:', ventas.length);
+        console.log('[REPORTS] Total final de ventas:', ventas.length);
 
         reportData = ventas;
         renderizarReporte(ventas);
