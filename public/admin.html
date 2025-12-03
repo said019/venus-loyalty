@@ -6098,6 +6098,9 @@
           if (typeof startAppointmentsAutoRefresh === 'function') startAppointmentsAutoRefresh();
           // Detener auto-refresh del dashboard
           if (typeof stopDashboardAutoRefresh === 'function') stopDashboardAutoRefresh();
+        } else if (tabName === 'reports') {
+          if (typeof initReportsTab === 'function') initReportsTab();
+          if (typeof stopDashboardAutoRefresh === 'function') stopDashboardAutoRefresh();
         } else {
           // Detener auto-refresh cuando se sale de los tabs
           if (typeof stopAppointmentsAutoRefresh === 'function') stopAppointmentsAutoRefresh();
@@ -12944,6 +12947,22 @@
       } catch (error) {
         console.error('[REPORTS] Error cargando servicios:', error);
       }
+    }
+
+    async function initReportsTab() {
+      console.log('[REPORTS] Inicializando tab de reportes');
+
+      // Cargar servicios para el dropdown
+      await cargarServiciosReporte();
+
+      // Establecer fechas por defecto (mes actual)
+      const hoy = new Date();
+      const primerDiaMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+
+      document.getElementById('filter-date-from').value = primerDiaMes.toISOString().split('T')[0];
+      document.getElementById('filter-date-to').value = hoy.toISOString().split('T')[0];
+
+      console.log('[REPORTS] Tab inicializado. Listo para aplicar filtros.');
     }
 
     async function aplicarFiltrosReporte() {
