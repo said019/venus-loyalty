@@ -12981,11 +12981,17 @@
         const fromISO = `${dateFrom}T00:00:00-06:00`;
         const toISO = `${dateTo}T23:59:59-06:00`;
 
+        console.log('[REPORTS] URL:', `/api/appointments/range?from=${fromISO}&to=${toISO}`);
+
         // Cargar todas las citas completadas en el rango
         const res = await fetch(`/api/appointments/range?from=${fromISO}&to=${toISO}`, { credentials: 'include' });
+        console.log('[REPORTS] Fetch completado. Status:', res.status, res.statusText);
+
         const json = await res.json();
+        console.log('[REPORTS] JSON recibido:', json);
 
         if (!json.success) {
+          console.error('[REPORTS] Error en respuesta:', json.error);
           alert('❌ Error cargando datos: ' + (json.error || 'Desconocido'));
           return;
         }
@@ -13049,7 +13055,10 @@
         reportData = ventas;
         renderizarReporte(ventas);
       } catch (error) {
-        console.error('[REPORTS] Error:', error);
+        console.error('[REPORTS] ❌ Error capturado:', error);
+        console.error('[REPORTS] Error name:', error.name);
+        console.error('[REPORTS] Error message:', error.message);
+        console.error('[REPORTS] Error stack:', error.stack);
         alert('❌ Error al cargar el reporte: ' + error.message);
       }
     }
