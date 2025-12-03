@@ -29,7 +29,8 @@ function setQR(cardId){
 }
 
 async function showCard(cardId){
-  const card = await api(`/api/card/${cardId}`);
+  const response = await api(`/api/card/${cardId}`);
+  const card = response.success ? response.data : response;
   el("c_name").textContent = card.name;
   el("c_info").textContent = `Progreso: ${card.stamps}/${card.max}`;
   renderGrid(card.stamps, card.max);

@@ -1504,11 +1504,13 @@ app.post("/api/create-card", async (req, res) => {
 app.get("/api/card/:cardId", async (req, res) => {
   try {
     const card = await fsGetCard(req.params.cardId);
-    if (!card) return res.status(404).json({ error: "not_found" });
-    res.json(card);
+    if (!card) {
+      return res.json({ success: false, error: "not_found" });
+    }
+    res.json({ success: true, data: card });
   } catch (e) {
     console.error("[GET /api/card]", e);
-    res.status(500).json({ error: e.message });
+    res.json({ success: false, error: e.message });
   }
 });
 

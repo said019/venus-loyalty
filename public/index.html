@@ -482,7 +482,11 @@
         if (!res.ok) throw new Error("Tarjeta no encontrada");
         return res.json();
       })
-      .then(showCardView)
+      .then((response) => {
+        // Manejar nuevo formato { success: true, data: {...} } y formato antiguo {...}
+        const cardData = response.success ? response.data : response;
+        showCardView(cardData);
+      })
       .catch(() => {
         showError(
           "No se pudo cargar la tarjeta. Verifica el enlace o crea una nueva."
