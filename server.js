@@ -696,28 +696,8 @@ app.get('/api/appointments/month', adminAuth, async (req, res) => {
   }
 });
 
-// GET /api/appointments/:id - Obtener una cita por ID
-app.get('/api/appointments/:id', adminAuth, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const appointmentDoc = await firestore.collection('appointments').doc(id).get();
-
-    if (!appointmentDoc.exists) {
-      return res.json({ success: false, error: 'Cita no encontrada' });
-    }
-
-    const data = { id: appointmentDoc.id, ...appointmentDoc.data() };
-    console.log('[API] Appointment data:', data);
-    console.log('[API] Price:', data.price);
-
-    res.json({ success: true, data });
-  } catch (error) {
-    console.error('Error getting appointment:', error);
-    res.json({ success: false, error: error.message });
-  }
-});
-
 // GET /api/appointments/range - Obtener citas en un rango de fechas (para reportes)
+// IMPORTANTE: Esta ruta debe estar ANTES de /api/appointments/:id para que no sea interceptada
 app.get('/api/appointments/range', adminAuth, async (req, res) => {
   try {
     const { from, to } = req.query;
@@ -760,6 +740,27 @@ app.get('/api/appointments/range', adminAuth, async (req, res) => {
     res.json({ success: true, data: appointments });
   } catch (error) {
     console.error('[REPORTS] Error:', error);
+    res.json({ success: false, error: error.message });
+  }
+});
+
+// GET /api/appointments/:id - Obtener una cita por ID
+app.get('/api/appointments/:id', adminAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const appointmentDoc = await firestore.collection('appointments').doc(id).get();
+
+    if (!appointmentDoc.exists) {
+      return res.json({ success: false, error: 'Cita no encontrada' });
+    }
+
+    const data = { id: appointmentDoc.id, ...appointmentDoc.data() };
+    console.log('[API] Appointment data:', data);
+    console.log('[API] Price:', data.price);
+
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error('Error getting appointment:', error);
     res.json({ success: false, error: error.message });
   }
 });
