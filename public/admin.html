@@ -2158,6 +2158,7 @@
         <a href="#requests" class="mobile-nav-link" data-tab="requests"><i class="fas fa-inbox"></i> Solicitudes</a>
         <a href="#appointments" class="mobile-nav-link" data-tab="appointments"><i class="fas fa-calendar"></i>
           Citas</a>
+        <a href="#reports" class="mobile-nav-link" data-tab="reports"><i class="fas fa-chart-line"></i> Reportes</a>
         <a href="#services" class="mobile-nav-link" data-tab="services"><i class="fas fa-sparkles"></i> Servicios</a>
         <a href="#settings" class="mobile-nav-link" data-tab="settings"><i class="fas fa-cog"></i> Configuración</a>
         <hr style="border-color:rgba(255,255,255,0.1);margin:10px 0;">
@@ -2175,6 +2176,7 @@
       <a href="#notifications" data-tab="notifications"><i class="fas fa-bell"></i> Notificaciones</a>
       <a href="#requests" data-tab="requests"><i class="fas fa-inbox"></i> Solicitudes</a>
       <a href="#appointments" data-tab="appointments"><i class="fas fa-calendar"></i> Citas</a>
+      <a href="#reports" data-tab="reports"><i class="fas fa-chart-line"></i> Reportes</a>
       <a href="#services" data-tab="services"><i class="fas fa-sparkles"></i> Servicios</a>
       <a href="#settings" data-tab="settings"><i class="fas fa-cog"></i> Configuración</a>
     </nav>
@@ -3157,6 +3159,120 @@
             <div class="stat-label"><i class="fas fa-dollar-sign"></i> Total</div>
             <div class="stat-value stat-money" id="revenue-total" style="color:#FFD166;font-weight:700;">$0.00</div>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB: Reportes de Ventas -->
+    <section id="tab-reports" class="tab-content hidden">
+      <div class="header-actions">
+        <h2><i class="fas fa-chart-line"></i> Reportes de Ventas</h2>
+        <button class="btn primary" onclick="exportarVentas()">
+          <i class="fas fa-download"></i> Exportar CSV
+        </button>
+      </div>
+
+      <!-- Filtros -->
+      <div class="card" style="margin-bottom:20px;">
+        <h3 style="margin-bottom:16px;font-size:15px;"><i class="fas fa-filter"></i> Filtros</h3>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;">
+          <div>
+            <label class="form-label">Desde</label>
+            <input type="date" id="filter-date-from" class="form-input">
+          </div>
+          <div>
+            <label class="form-label">Hasta</label>
+            <input type="date" id="filter-date-to" class="form-input">
+          </div>
+          <div>
+            <label class="form-label">Método de pago</label>
+            <select id="filter-payment-method" class="form-input">
+              <option value="">Todos</option>
+              <option value="efectivo">Efectivo</option>
+              <option value="tarjeta">Tarjeta</option>
+              <option value="transferencia">Transferencia</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label">Servicio</label>
+            <select id="filter-service" class="form-input">
+              <option value="">Todos</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-top:12px;display:flex;gap:8px;">
+          <button class="btn primary" onclick="aplicarFiltrosReporte()">
+            <i class="fas fa-search"></i> Aplicar Filtros
+          </button>
+          <button class="btn ghost" onclick="limpiarFiltrosReporte()">
+            <i class="fas fa-times"></i> Limpiar
+          </button>
+        </div>
+      </div>
+
+      <!-- Estadísticas -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:20px;">
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <span style="font-size:12px;color:var(--muted);text-transform:uppercase;font-weight:600;">Total Ventas</span>
+            <i class="fas fa-dollar-sign" style="color:var(--venus);font-size:20px;"></i>
+          </div>
+          <div id="report-total-sales" style="font-size:28px;font-weight:700;color:var(--venus);">$0.00</div>
+          <div id="report-sales-count" style="font-size:12px;color:var(--muted);margin-top:4px;">0 ventas</div>
+        </div>
+
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <span style="font-size:12px;color:var(--muted);text-transform:uppercase;font-weight:600;">Efectivo</span>
+            <i class="fas fa-money-bill-wave" style="color:#22c55e;font-size:20px;"></i>
+          </div>
+          <div id="report-cash-total" style="font-size:28px;font-weight:700;color:#22c55e;">$0.00</div>
+          <div id="report-cash-count" style="font-size:12px;color:var(--muted);margin-top:4px;">0 ventas</div>
+        </div>
+
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <span style="font-size:12px;color:var(--muted);text-transform:uppercase;font-weight:600;">Tarjeta</span>
+            <i class="fas fa-credit-card" style="color:#3b82f6;font-size:20px;"></i>
+          </div>
+          <div id="report-card-total" style="font-size:28px;font-weight:700;color:#3b82f6;">$0.00</div>
+          <div id="report-card-count" style="font-size:12px;color:var(--muted);margin-top:4px;">0 ventas</div>
+        </div>
+
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <span style="font-size:12px;color:var(--muted);text-transform:uppercase;font-weight:600;">Transferencia</span>
+            <i class="fas fa-exchange-alt" style="color:#8b5cf6;font-size:20px;"></i>
+          </div>
+          <div id="report-transfer-total" style="font-size:28px;font-weight:700;color:#8b5cf6;">$0.00</div>
+          <div id="report-transfer-count" style="font-size:12px;color:var(--muted);margin-top:4px;">0 ventas</div>
+        </div>
+      </div>
+
+      <!-- Tabla de ventas -->
+      <div class="card">
+        <h3 style="margin-bottom:16px;font-size:15px;"><i class="fas fa-list"></i> Detalle de Ventas</h3>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Cliente</th>
+                <th>Servicio</th>
+                <th>Método</th>
+                <th>Productos</th>
+                <th>Descuento</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody id="report-sales-tbody">
+              <tr>
+                <td colspan="7" class="muted" style="text-align:center;padding:40px;">
+                  Selecciona un rango de fechas y haz clic en "Aplicar Filtros"
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </section>
@@ -12785,6 +12901,270 @@
       document.addEventListener('DOMContentLoaded', loadGoogleMapsAPI);
     } else {
       loadGoogleMapsAPI();
+    }
+
+    // ========== SECCIÓN DE REPORTES DE VENTAS ==========
+
+    let reportData = [];
+
+    // Cargar servicios en el filtro cuando se entre a la pestaña de reportes
+    document.addEventListener('DOMContentLoaded', () => {
+      // Detectar cuando se abre la pestaña de reportes
+      const reportLink = document.querySelector('a[data-tab="reports"]');
+      if (reportLink) {
+        reportLink.addEventListener('click', async () => {
+          await cargarServiciosReporte();
+          // Establecer fechas por defecto (último mes)
+          const hoy = new Date();
+          const hace30Dias = new Date();
+          hace30Dias.setDate(hoy.getDate() - 30);
+          document.getElementById('filter-date-from').value = hace30Dias.toISOString().split('T')[0];
+          document.getElementById('filter-date-to').value = hoy.toISOString().split('T')[0];
+        });
+      }
+    });
+
+    async function cargarServiciosReporte() {
+      try {
+        const res = await fetch('/api/services', { credentials: 'include' });
+        const json = await res.json();
+
+        if (json.success) {
+          const servicios = json.data || [];
+          const select = document.getElementById('filter-service');
+          select.innerHTML = '<option value="">Todos</option>';
+
+          servicios.forEach(s => {
+            const option = document.createElement('option');
+            option.value = s.id;
+            option.textContent = s.name;
+            select.appendChild(option);
+          });
+        }
+      } catch (error) {
+        console.error('[REPORTS] Error cargando servicios:', error);
+      }
+    }
+
+    async function aplicarFiltrosReporte() {
+      try {
+        const dateFrom = document.getElementById('filter-date-from').value;
+        const dateTo = document.getElementById('filter-date-to').value;
+
+        if (!dateFrom || !dateTo) {
+          alert('⚠️ Por favor selecciona un rango de fechas');
+          return;
+        }
+
+        console.log('[REPORTS] Cargando ventas desde', dateFrom, 'hasta', dateTo);
+
+        // Convertir fechas a ISO con timezone de México
+        const fromISO = `${dateFrom}T00:00:00-06:00`;
+        const toISO = `${dateTo}T23:59:59-06:00`;
+
+        // Cargar todas las citas completadas en el rango
+        const res = await fetch(`/api/appointments/range?from=${fromISO}&to=${toISO}`, { credentials: 'include' });
+        const json = await res.json();
+
+        if (!json.success) {
+          alert('❌ Error cargando datos: ' + (json.error || 'Desconocido'));
+          return;
+        }
+
+        // Filtrar solo las citas completadas con pago
+        let ventas = (json.data || []).filter(a =>
+          a.status === 'completed' &&
+          a.totalPaid &&
+          a.paymentMethod
+        );
+
+        console.log('[REPORTS] Total de ventas:', ventas.length);
+
+        // Aplicar filtros adicionales
+        const paymentFilter = document.getElementById('filter-payment-method').value;
+        const serviceFilter = document.getElementById('filter-service').value;
+
+        if (paymentFilter) {
+          ventas = ventas.filter(v => v.paymentMethod === paymentFilter);
+        }
+
+        if (serviceFilter) {
+          ventas = ventas.filter(v => v.serviceId === serviceFilter);
+        }
+
+        console.log('[REPORTS] Después de filtros:', ventas.length);
+
+        reportData = ventas;
+        renderizarReporte(ventas);
+      } catch (error) {
+        console.error('[REPORTS] Error:', error);
+        alert('❌ Error al cargar el reporte: ' + error.message);
+      }
+    }
+
+    function renderizarReporte(ventas) {
+      console.log('[REPORTS] Renderizando reporte con', ventas.length, 'ventas');
+
+      // Calcular estadísticas
+      let totalGeneral = 0;
+      let totalEfectivo = 0;
+      let totalTarjeta = 0;
+      let totalTransferencia = 0;
+      let countEfectivo = 0;
+      let countTarjeta = 0;
+      let countTransferencia = 0;
+
+      ventas.forEach(v => {
+        const amount = parseFloat(v.totalPaid) || 0;
+        totalGeneral += amount;
+
+        switch (v.paymentMethod) {
+          case 'efectivo':
+            totalEfectivo += amount;
+            countEfectivo++;
+            break;
+          case 'tarjeta':
+            totalTarjeta += amount;
+            countTarjeta++;
+            break;
+          case 'transferencia':
+            totalTransferencia += amount;
+            countTransferencia++;
+            break;
+        }
+      });
+
+      // Actualizar estadísticas
+      document.getElementById('report-total-sales').textContent = '$' + totalGeneral.toFixed(2);
+      document.getElementById('report-sales-count').textContent = `${ventas.length} ventas`;
+
+      document.getElementById('report-cash-total').textContent = '$' + totalEfectivo.toFixed(2);
+      document.getElementById('report-cash-count').textContent = `${countEfectivo} ventas`;
+
+      document.getElementById('report-card-total').textContent = '$' + totalTarjeta.toFixed(2);
+      document.getElementById('report-card-count').textContent = `${countTarjeta} ventas`;
+
+      document.getElementById('report-transfer-total').textContent = '$' + totalTransferencia.toFixed(2);
+      document.getElementById('report-transfer-count').textContent = `${countTransferencia} ventas`;
+
+      // Renderizar tabla
+      const tbody = document.getElementById('report-sales-tbody');
+
+      if (ventas.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="muted" style="text-align:center;padding:40px;">No se encontraron ventas en este período</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = ventas.map(v => {
+        const fecha = new Date(v.paidAt || v.startDateTime);
+        const fechaStr = fecha.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+        const productosCount = (v.productsSold || []).length;
+        const productosText = productosCount > 0 ? `${productosCount} prod.` : '-';
+
+        const descuento = parseFloat(v.discountAmount) || 0;
+        const descuentoText = descuento > 0 ? `$${descuento.toFixed(2)}` : '-';
+
+        return `
+          <tr>
+            <td data-label="Fecha">${fechaStr}</td>
+            <td data-label="Cliente">${v.clientName || 'Sin nombre'}</td>
+            <td data-label="Servicio">${v.serviceName || '-'}</td>
+            <td data-label="Método">
+              <span style="
+                display:inline-block;
+                padding:4px 8px;
+                border-radius:6px;
+                font-size:11px;
+                font-weight:500;
+                background:${v.paymentMethod === 'efectivo' ? '#dcfce7' : v.paymentMethod === 'tarjeta' ? '#dbeafe' : '#f3e8ff'};
+                color:${v.paymentMethod === 'efectivo' ? '#166534' : v.paymentMethod === 'tarjeta' ? '#1e40af' : '#6b21a8'};
+              ">${v.paymentMethod || '-'}</span>
+            </td>
+            <td data-label="Productos">${productosText}</td>
+            <td data-label="Descuento">${descuentoText}</td>
+            <td data-label="Total" style="font-weight:600;">$${parseFloat(v.totalPaid).toFixed(2)}</td>
+          </tr>
+        `;
+      }).join('');
+
+      console.log('[REPORTS] Reporte renderizado correctamente');
+    }
+
+    function limpiarFiltrosReporte() {
+      document.getElementById('filter-date-from').value = '';
+      document.getElementById('filter-date-to').value = '';
+      document.getElementById('filter-payment-method').value = '';
+      document.getElementById('filter-service').value = '';
+
+      reportData = [];
+
+      document.getElementById('report-total-sales').textContent = '$0.00';
+      document.getElementById('report-sales-count').textContent = '0 ventas';
+      document.getElementById('report-cash-total').textContent = '$0.00';
+      document.getElementById('report-cash-count').textContent = '0 ventas';
+      document.getElementById('report-card-total').textContent = '$0.00';
+      document.getElementById('report-card-count').textContent = '0 ventas';
+      document.getElementById('report-transfer-total').textContent = '$0.00';
+      document.getElementById('report-transfer-count').textContent = '0 ventas';
+
+      const tbody = document.getElementById('report-sales-tbody');
+      tbody.innerHTML = '<tr><td colspan="7" class="muted" style="text-align:center;padding:40px;">Selecciona un rango de fechas y haz clic en "Aplicar Filtros"</td></tr>';
+    }
+
+    function exportarVentas() {
+      if (reportData.length === 0) {
+        alert('⚠️ No hay datos para exportar. Primero aplica los filtros.');
+        return;
+      }
+
+      try {
+        // Crear CSV
+        const headers = ['Fecha', 'Cliente', 'Teléfono', 'Servicio', 'Método Pago', 'Productos', 'Descuento', 'Total'];
+        const rows = reportData.map(v => {
+          const fecha = new Date(v.paidAt || v.startDateTime);
+          const fechaStr = fecha.toLocaleDateString('es-MX');
+
+          const productosCount = (v.productsSold || []).length;
+          const descuento = parseFloat(v.discountAmount) || 0;
+
+          return [
+            fechaStr,
+            v.clientName || 'Sin nombre',
+            v.clientPhone || '',
+            v.serviceName || '',
+            v.paymentMethod || '',
+            productosCount,
+            descuento.toFixed(2),
+            parseFloat(v.totalPaid).toFixed(2)
+          ];
+        });
+
+        // Convertir a CSV
+        const csvContent = [
+          headers.join(','),
+          ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+        ].join('\n');
+
+        // Descargar
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        const dateFrom = document.getElementById('filter-date-from').value;
+        const dateTo = document.getElementById('filter-date-to').value;
+
+        link.setAttribute('href', url);
+        link.setAttribute('download', `reporte-ventas-${dateFrom}-${dateTo}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        console.log('[REPORTS] CSV exportado correctamente');
+      } catch (error) {
+        console.error('[REPORTS] Error exportando:', error);
+        alert('❌ Error al exportar: ' + error.message);
+      }
     }
   </script>
 

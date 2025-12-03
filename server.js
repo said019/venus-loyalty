@@ -717,6 +717,40 @@ app.get('/api/appointments/:id', adminAuth, async (req, res) => {
   }
 });
 
+// GET /api/appointments/range - Obtener citas en un rango de fechas (para reportes)
+app.get('/api/appointments/range', adminAuth, async (req, res) => {
+  try {
+    const { from, to } = req.query;
+
+    if (!from || !to) {
+      return res.json({ success: false, error: 'Se requieren parámetros from y to' });
+    }
+
+    console.log('[REPORTS] Buscando citas desde', from, 'hasta', to);
+
+    const snapshot = await firestore.collection('appointments')
+      .where('startDateTime', '>=', from)
+      .where('startDateTime', '<=', to)
+      .orderBy('startDateTime', 'desc')
+      .get();
+
+    const appointments = [];
+    snapshot.forEach(doc => {
+      appointments.push({
+        id: doc.id,
+        ...doc.data()
+      });
+    });
+
+    console.log('[REPORTS] Encontradas', appointments.length, 'citas en el rango');
+
+    res.json({ success: true, data: appointments });
+  } catch (error) {
+    console.error('[REPORTS] Error:', error);
+    res.json({ success: false, error: error.message });
+  }
+});
+
 // POST /api/appointments/:id/payment - Registrar pago con productos y descuento
 app.post('/api/appointments/:id/payment', adminAuth, async (req, res) => {
   try {
