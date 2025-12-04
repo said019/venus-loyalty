@@ -1989,7 +1989,12 @@ app.post('/api/public/request', async (req, res) => {
         await firestore.collection(COL_CARDS).doc(cardId).update(updates);
       }
     } else {
+      // Generar ID único para la tarjeta
+      const newCardRef = firestore.collection(COL_CARDS).doc();
+      cardId = newCardRef.id;
+      
       const cardData = {
+        id: cardId,
         name: clientName,
         phone: phoneClean,
         email: clientEmail || null,
@@ -1999,12 +2004,13 @@ app.post('/api/public/request', async (req, res) => {
         cycles: 0,
         status: 'active',
         createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
         source: 'online-request'
       };
 
-      const cardRef = await firestore.collection(COL_CARDS).add(cardData);
-      cardId = cardRef.id;
+      await newCardRef.set(cardData);
       isNewClient = true;
+      console.log(`[BOOKING REQUEST] Nueva tarjeta creada: ${cardId}`);
     }
 
     // 2. GUARDAR SOLICITUD
