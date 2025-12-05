@@ -2184,6 +2184,9 @@
       <div class="header-actions" style="margin-bottom:20px;">
         <h2 id="dash-greeting">Buenos días</h2>
         <div style="display:flex;gap:10px;">
+          <button class="btn small ghost" onclick="loadTodayStats(); loadGiftCardStats();" title="Actualizar">
+            <i class="fas fa-sync"></i>
+          </button>
           <button class="btn primary" onclick="newApptDialog.showModal()">
             <i class="fas fa-plus"></i> Nueva Cita
           </button>
@@ -3069,7 +3072,12 @@
     <section id="tab-appointments" class="tab-content hidden">
       <div class="header-actions">
         <h2><i class="fas fa-calendar"></i> Agenda de Citas</h2>
-        <button class="btn primary" id="btn-new-appointment">Nueva Cita</button>
+        <div style="display:flex;gap:8px;">
+          <button class="btn small ghost" onclick="loadAppointments(); renderMonthlyCalendar(); loadMonthStats();" title="Actualizar">
+            <i class="fas fa-sync"></i>
+          </button>
+          <button class="btn primary" id="btn-new-appointment">Nueva Cita</button>
+        </div>
       </div>
 
       <!-- Calendario Mensual -->
@@ -9145,32 +9153,9 @@
         clearInterval(appointmentsRefreshInterval);
       }
 
-      appointmentsRefreshInterval = setInterval(async () => {
-        const appointmentsTab = document.getElementById('tab-appointments');
-        if (appointmentsTab && !appointmentsTab.classList.contains('hidden')) {
-          // Verificar si hay cambios antes de actualizar
-          const dateStr = toLocalDateString(selectedDate);
-          try {
-            const res = await fetch(`/api/appointments?date=${dateStr}`);
-            const json = await res.json();
-
-            if (json.success) {
-              const currentData = JSON.stringify(json.data);
-
-              // Solo actualizar si hay cambios
-              if (currentData !== lastAppointmentsData) {
-                console.log('🔄 Auto-refresh: cambios detectados, actualizando...');
-                lastAppointmentsData = currentData;
-                loadAppointments();
-                renderMonthlyCalendar();
-                loadMonthStats();
-              }
-            }
-          } catch (error) {
-            console.error('Error en auto-refresh:', error);
-          }
-        }
-      }, 60000); // 60 segundos (1 minuto)
+      // Auto-refresh deshabilitado para ahorrar cuota de Firestore
+      // Los datos se actualizan manualmente al cambiar de fecha o al realizar acciones
+      console.log('[APPOINTMENTS] ℹ️ Auto-refresh deshabilitado - actualización manual')
     }
 
     function stopAppointmentsAutoRefresh() {
@@ -11772,30 +11757,9 @@
         clearInterval(dashboardRefreshInterval);
       }
 
-      dashboardRefreshInterval = setInterval(async () => {
-        const overviewTab = document.getElementById('tab-overview');
-        if (overviewTab && !overviewTab.classList.contains('hidden')) {
-          // Verificar si hay cambios antes de actualizar
-          try {
-            const res = await fetch('/api/dashboard/today', { credentials: 'include' });
-            const json = await res.json();
-
-            if (json.success) {
-              const currentData = JSON.stringify(json.data);
-
-              // Solo actualizar si hay cambios
-              if (currentData !== lastDashboardData) {
-                console.log('🔄 Auto-refresh: cambios detectados en dashboard...');
-                lastDashboardData = currentData;
-                loadTodayStats();
-                loadGiftCardStats();
-              }
-            }
-          } catch (error) {
-            console.error('Error en auto-refresh dashboard:', error);
-          }
-        }
-      }, 60000); // 60 segundos (1 minuto)
+      // Auto-refresh deshabilitado para ahorrar cuota de Firestore
+      // El dashboard se actualiza manualmente al cambiar de pestaña
+      console.log('[DASHBOARD] ℹ️ Auto-refresh deshabilitado - actualización manual');
     }
 
     function stopDashboardAutoRefresh() {
@@ -12227,14 +12191,9 @@
     function startRequestsAutoRefresh() {
       if (requestsRefreshInterval) return;
 
-      requestsRefreshInterval = setInterval(() => {
-        const requestsTab = document.getElementById('tab-requests');
-        if (requestsTab && !requestsTab.classList.contains('hidden')) {
-          loadBookingRequests();
-        }
-      }, 30000); // 30 segundos
-
-      console.log('[REQUESTS] ✅ Auto-refresh iniciado');
+      // Auto-refresh deshabilitado para ahorrar cuota de Firestore
+      // Las solicitudes se actualizan manualmente al cambiar de pestaña o realizar acciones
+      console.log('[REQUESTS] ℹ️ Auto-refresh deshabilitado - actualización manual');
     }
 
     function stopRequestsAutoRefresh() {
@@ -12675,9 +12634,10 @@
     async function initNotifications() {
       console.log('[NOTIF] 🔔 Inicializando sistema de notificaciones...');
       await loadNotifications();
-      setInterval(checkNewNotifications, 30000);
+      // Auto-refresh deshabilitado para ahorrar cuota de Firestore
+      // Las notificaciones se actualizan manualmente al cambiar de pestaña
       checkBirthdays();
-      console.log('[NOTIF] ✅ Sistema de notificaciones iniciado');
+      console.log('[NOTIF] ✅ Sistema de notificaciones iniciado (sin auto-refresh)');
     }
 
     async function loadNotifications() {
