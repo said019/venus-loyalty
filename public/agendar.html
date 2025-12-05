@@ -99,8 +99,12 @@
       cursor: pointer;
       transition: all 0.2s;
       position: relative;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      user-select: none;
     }
     .service-item:hover { border-color: var(--venus-soft); }
+    .service-item:active { transform: scale(0.98); }
     .service-item.selected { border-color: var(--venus); background: var(--venus-light); }
     .service-item.selected::after {
       content: '✓';
@@ -146,8 +150,11 @@
       border: 1px solid var(--line);
       background: white;
       cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
     }
     .calendar-nav button:hover { background: var(--venus-light); }
+    .calendar-nav button:active { background: var(--venus-soft); }
     .calendar-grid {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
@@ -163,8 +170,12 @@
       border-radius: 8px;
       font-size: 12px;
       cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      user-select: none;
     }
     .day:hover:not(.disabled):not(.empty) { background: var(--venus-light); }
+    .day:active:not(.disabled):not(.empty) { background: var(--venus-soft); }
     .day.selected { background: var(--venus); color: white; font-weight: 600; }
     .day.today { border: 2px solid var(--venus); }
     .day.disabled { color: #ccc; cursor: not-allowed; }
@@ -187,8 +198,12 @@
       font-size: 12px;
       font-weight: 500;
       cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      user-select: none;
     }
     .time-slot:hover:not(.disabled) { border-color: var(--venus-soft); }
+    .time-slot:active:not(.disabled) { background: var(--venus-light); }
     .time-slot.selected { border-color: var(--venus); background: var(--venus); color: white; }
     .time-slot.disabled { background: #f5f5f5; color: #ccc; cursor: not-allowed; text-decoration: line-through; }
 
@@ -361,7 +376,7 @@
           </div>
         </div>
         <div class="buttons-row">
-          <button class="btn btn-primary" onclick="goToStep(2)" id="btn-step1" disabled>
+          <button class="btn btn-primary" id="btn-step1" disabled>
             Continuar <i class="fas fa-arrow-right"></i>
           </button>
         </div>
@@ -379,11 +394,11 @@
           <div class="calendar">
             <div class="calendar-header">
               <div class="calendar-nav">
-                <button onclick="prevMonth()"><i class="fas fa-chevron-left"></i></button>
+                <button id="btn-prev-month"><i class="fas fa-chevron-left"></i></button>
               </div>
               <h3 id="calendar-month">Diciembre 2025</h3>
               <div class="calendar-nav">
-                <button onclick="nextMonth()"><i class="fas fa-chevron-right"></i></button>
+                <button id="btn-next-month"><i class="fas fa-chevron-right"></i></button>
               </div>
             </div>
             <div class="calendar-grid" id="calendar-grid"></div>
@@ -398,10 +413,10 @@
           </div>
         </div>
         <div class="buttons-row">
-          <button class="btn btn-outline" onclick="goToStep(1)">
+          <button class="btn btn-outline" id="btn-back-to-1">
             <i class="fas fa-arrow-left"></i> Atrás
           </button>
-          <button class="btn btn-primary" onclick="goToStep(3)" id="btn-step2" disabled>
+          <button class="btn btn-primary" id="btn-step2" disabled>
             Continuar <i class="fas fa-arrow-right"></i>
           </button>
         </div>
@@ -458,10 +473,10 @@
           </div>
         </div>
         <div class="buttons-row">
-          <button class="btn btn-outline" onclick="goToStep(2)">
+          <button class="btn btn-outline" id="btn-back-to-2">
             <i class="fas fa-arrow-left"></i> Atrás
           </button>
-          <button class="btn btn-primary" onclick="submitRequest()" id="btn-submit">
+          <button class="btn btn-primary" id="btn-submit">
             Solicitar <i class="fas fa-paper-plane"></i>
           </button>
         </div>
@@ -491,7 +506,7 @@
               <span id="conf-price">-</span>
             </div>
           </div>
-          <button class="btn btn-whatsapp" id="btn-whatsapp" onclick="openWhatsApp()">
+          <button class="btn btn-whatsapp" id="btn-whatsapp">
             <i class="fab fa-whatsapp"></i>
             Enviar WhatsApp para confirmar
           </button>
@@ -525,7 +540,22 @@
       await loadConfig();
       await loadServices();
       renderCalendar();
+      setupEventListeners();
     });
+
+    function setupEventListeners() {
+      // Botones de navegación del calendario
+      document.getElementById('btn-prev-month').addEventListener('click', prevMonth);
+      document.getElementById('btn-next-month').addEventListener('click', nextMonth);
+      
+      // Botones de navegación entre pasos
+      document.getElementById('btn-step1').addEventListener('click', () => goToStep(2));
+      document.getElementById('btn-step2').addEventListener('click', () => goToStep(3));
+      document.getElementById('btn-back-to-1').addEventListener('click', () => goToStep(1));
+      document.getElementById('btn-back-to-2').addEventListener('click', () => goToStep(2));
+      document.getElementById('btn-submit').addEventListener('click', submitRequest);
+      document.getElementById('btn-whatsapp').addEventListener('click', openWhatsApp);
+    }
 
     async function loadConfig() {
       try {
@@ -639,6 +669,13 @@
       });
       
       el.innerHTML = html;
+      
+      // Agregar event listeners a los servicios
+      document.querySelectorAll('.service-item').forEach(item => {
+        item.addEventListener('click', function() {
+          selectService(this, this.dataset.id);
+        });
+      });
     }
 
     function selectService(el, id) {
@@ -660,7 +697,7 @@
       
       let html = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'].map(d => `<div class="day-name">${d}</div>`).join('');
       
-      for (let i = 0; i < firstDay; i++) html += '<div class="day"></div>';
+      for (let i = 0; i < firstDay; i++) html += '<div class="day empty"></div>';
       
       for (let d = 1; d <= daysInMonth; d++) {
         const date = new Date(year, month, d);
@@ -675,10 +712,18 @@
         if (isSelected) cls += ' selected';
         if (isPast || isClosed) cls += ' disabled';
         
-        html += `<div class="${cls}" ${(!isPast && !isClosed) ? `onclick="selectDate('${dateStr}')"` : ''}>${d}</div>`;
+        html += `<div class="${cls}" data-date="${dateStr}">${d}</div>`;
       }
       
       document.getElementById('calendar-grid').innerHTML = html;
+      
+      // Agregar event listeners a los días
+      document.querySelectorAll('.day:not(.disabled):not(.empty)').forEach(day => {
+        day.addEventListener('click', function() {
+          const dateStr = this.dataset.date;
+          if (dateStr) selectDate(dateStr);
+        });
+      });
     }
 
     function prevMonth() {
@@ -725,10 +770,17 @@
         const display = h === 12 ? '12:00 PM' : h > 12 ? `${h-12}:00 PM` : `${h}:00 AM`;
         const isBusy = busy.includes(time);
         
-        html += `<div class="time-slot ${isBusy ? 'disabled' : ''}" ${!isBusy ? `onclick="selectTime('${time}', this)"` : ''}>${display}</div>`;
+        html += `<div class="time-slot ${isBusy ? 'disabled' : ''}" data-time="${time}">${display}</div>`;
       }
       
       document.getElementById('time-grid').innerHTML = html;
+      
+      // Agregar event listeners a los horarios
+      document.querySelectorAll('.time-slot:not(.disabled)').forEach(slot => {
+        slot.addEventListener('click', function() {
+          selectTime(this.dataset.time, this);
+        });
+      });
     }
 
     function selectTime(time, el) {
