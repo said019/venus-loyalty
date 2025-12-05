@@ -3074,19 +3074,28 @@
         <button class="btn primary" id="btn-new-appointment">Nueva Cita</button>
       </div>
 
-      <!-- Calendario Semanal -->
+      <!-- Calendario Mensual -->
       <div class="card" style="margin-bottom:20px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-          <h3 style="margin:0;">Semana Actual</h3>
+          <h3 style="margin:0;" id="calendar-month-title">Mes Actual</h3>
           <div style="display:flex;gap:8px;">
-            <button class="btn small ghost" id="btn-prev-week">← Anterior</button>
+            <button class="btn small ghost" id="btn-prev-month"><i class="fas fa-chevron-left"></i></button>
             <button class="btn small ghost" id="btn-today">Hoy</button>
-            <button class="btn small ghost" id="btn-next-week">Siguiente →</button>
+            <button class="btn small ghost" id="btn-next-month"><i class="fas fa-chevron-right"></i></button>
           </div>
         </div>
-        <div style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
-          <div id="weekly-calendar" style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;min-width: 800px;">
-          </div>
+        
+        <!-- Calendario mensual completo -->
+        <div id="monthly-calendar" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;">
+          <!-- Días de la semana -->
+          <div style="text-align:center;font-size:11px;font-weight:600;padding:8px;color:var(--muted);">Dom</div>
+          <div style="text-align:center;font-size:11px;font-weight:600;padding:8px;color:var(--muted);">Lun</div>
+          <div style="text-align:center;font-size:11px;font-weight:600;padding:8px;color:var(--muted);">Mar</div>
+          <div style="text-align:center;font-size:11px;font-weight:600;padding:8px;color:var(--muted);">Mié</div>
+          <div style="text-align:center;font-size:11px;font-weight:600;padding:8px;color:var(--muted);">Jue</div>
+          <div style="text-align:center;font-size:11px;font-weight:600;padding:8px;color:var(--muted);">Vie</div>
+          <div style="text-align:center;font-size:11px;font-weight:600;padding:8px;color:var(--muted);">Sáb</div>
+          <!-- Los días se generan dinámicamente -->
         </div>
       </div>
 
@@ -4392,6 +4401,39 @@
 
       .calendar-day.other-month {
         color: rgba(255, 255, 255, 0.3);
+      }
+      
+      .calendar-day-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        width: 100%;
+      }
+      
+      .calendar-day-number {
+        font-size: 14px;
+      }
+      
+      .calendar-day-dots {
+        display: flex;
+        gap: 2px;
+        min-height: 6px;
+      }
+      
+      .calendar-day-dot {
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background: var(--venus-soft);
+      }
+      
+      .calendar-day.has-appointments {
+        background: rgba(140, 150, 104, 0.1);
+      }
+      
+      .calendar-day.selected .calendar-day-dot {
+        background: #000;
       }
 
       /* ===== MODAL COBRAR SERVICIO ===== */
@@ -8339,10 +8381,11 @@
     // Variables globales
     let allServices = [];
     let allClients = [];
-    let currentWeekStart = new Date();
-    currentWeekStart.setHours(0, 0, 0, 0);
+    let currentMonth = new Date();
+    currentMonth.setDate(1); // Primer día del mes
     let selectedDate = new Date();
     selectedDate.setHours(0, 0, 0, 0);
+    let monthAppointments = {}; // Cache de citas del mes
 
     // Helper function to convert Date to local YYYY-MM-DD
     function toLocalDateString(date) {
@@ -8368,10 +8411,11 @@
     const btnRefreshAppts = document.getElementById('btn-refresh-appts');
 
     // Navegación semanal
-    const btnPrevWeek = document.getElementById('btn-prev-week');
-    const btnNextWeek = document.getElementById('btn-next-week');
+    const btnPrevMonth = document.getElementById('btn-prev-month');
+    const btnNextMonth = document.getElementById('btn-next-month');
     const btnToday = document.getElementById('btn-today');
-    const weeklyCalendar = document.getElementById('weekly-calendar');
+    const monthlyCalendar = document.getElementById('monthly-calendar');
+    const calendarMonthTitle = document.getElementById('calendar-month-title');
     const selectedDateLabel = document.getElementById('selected-date-label');
 
     // Nuevo cliente
@@ -8655,90 +8699,133 @@
       }
     }
 
-    // ========== CALENDARIO SEMANAL ==========
-    function renderWeeklyCalendar() {
-      if (!weeklyCalendar) return;
+    
+    // ========== CALENDARIO MENSUAL ==========
+    async function renderMonthlyCalendar() {
+      if (!monthlyCalendar) return;
 
-      weeklyCalendar.innerHTML = '';
-      const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+      const year = currentMonth.getFullYear();
+      const month = currentMonth.getMonth();
+      
+      // Actualizar título
+      const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
+                          'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+      if (calendarMonthTitle) {
+        calendarMonthTitle.textContent = `${monthNames[month]} ${year}`;
+      }
+
+      // Limpiar calendario (mantener headers)
+      const headers = Array.from(monthlyCalendar.querySelectorAll('div')).slice(0, 7);
+      monthlyCalendar.innerHTML = '';
+      headers.forEach(h => monthlyCalendar.appendChild(h));
+
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      // Ajustar al inicio de la semana (domingo)
-      const weekStart = new Date(currentWeekStart);
-      weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+      // Primer día del mes y último día
+      const firstDay = new Date(year, month, 1);
+      const lastDay = new Date(year, month + 1, 0);
+      const daysInMonth = lastDay.getDate();
+      const startDayOfWeek = firstDay.getDay(); // 0 = Domingo
 
-      for (let i = 0; i < 7; i++) {
-        const day = new Date(weekStart);
-        day.setDate(day.getDate() + i);
-        day.setHours(0, 0, 0, 0);
+      // Días del mes anterior para llenar
+      const prevMonthLastDay = new Date(year, month, 0).getDate();
+      for (let i = startDayOfWeek - 1; i >= 0; i--) {
+        const dayNum = prevMonthLastDay - i;
+        const dayEl = createDayElement(dayNum, true, false, false, 0);
+        dayEl.classList.add('other-month');
+        monthlyCalendar.appendChild(dayEl);
+      }
 
-        const isToday = toLocalDateString(day) === toLocalDateString(today);
-        const isSelected = toLocalDateString(day) === toLocalDateString(selectedDate);
-        const dayDateStr = toLocalDateString(day);
-
-        const dayCard = document.createElement('div');
-        dayCard.className = 'day-card';
-        if (isToday) dayCard.classList.add('today');
-        if (isSelected) dayCard.classList.add('selected');
-
-        dayCard.innerHTML = `
-      <div class="day-name">${days[i]}</div>
-      <div class="day-number">${day.getDate()}</div>
-      <div class="day-count" id="day-count-${dayDateStr}">-</div>
-    `;
-
-        dayCard.addEventListener('click', () => {
-          selectedDate = new Date(day.getFullYear(), day.getMonth(), day.getDate());
-          renderWeeklyCalendar();
+      // Días del mes actual
+      for (let day = 1; day <= daysInMonth; day++) {
+        const date = new Date(year, month, day);
+        date.setHours(0, 0, 0, 0);
+        const dateStr = toLocalDateString(date);
+        
+        const isToday = date.getTime() === today.getTime();
+        const isSelected = date.getTime() === selectedDate.getTime();
+        const appointmentCount = monthAppointments[dateStr] || 0;
+        
+        const dayEl = createDayElement(day, false, isToday, isSelected, appointmentCount);
+        dayEl.addEventListener('click', () => {
+          selectedDate = new Date(date);
+          renderMonthlyCalendar();
           loadAppointments();
           updateSelectedDateLabel();
         });
-
-        weeklyCalendar.appendChild(dayCard);
+        
+        monthlyCalendar.appendChild(dayEl);
       }
 
-      // Cargar conteo de citas para cada día
-      loadWeekAppointmentCounts(weekStart);
+      // Días del siguiente mes para completar la cuadrícula
+      const totalCells = monthlyCalendar.children.length - 7; // Restar headers
+      const remainingCells = 35 - totalCells; // 5 semanas * 7 días = 35
+      for (let day = 1; day <= remainingCells; day++) {
+        const dayEl = createDayElement(day, true, false, false, 0);
+        dayEl.classList.add('other-month');
+        monthlyCalendar.appendChild(dayEl);
+      }
+
+      // Cargar citas del mes
+      await loadMonthAppointments();
     }
 
-    async function loadWeekAppointmentCounts(weekStart) {
-      console.log('📅 Cargar conteos semana:', weekStart);
-      for (let i = 0; i < 7; i++) {
-        const day = new Date(weekStart);
-        day.setDate(day.getDate() + i);
-        const dateStr = toLocalDateString(day);
-
-        try {
-          const res = await fetch(`/api/appointments?date=${dateStr}`);
-          const json = await res.json();
-          console.log(`   🗓️ Día ${dateStr}: ${json.data?.length} citas`);
-
-          const countEl = document.getElementById(`day-count-${dateStr}`);
-          if (countEl && json.success) {
-            const count = json.data.length;
-            countEl.textContent = count > 0 ? `${count} cita${count > 1 ? 's' : ''}` : 'Sin citas';
-          }
-        } catch (e) {
-          console.error('Error loading day count', e);
+    function createDayElement(dayNum, isEmpty, isToday, isSelected, appointmentCount) {
+      const dayEl = document.createElement('div');
+      dayEl.className = 'calendar-day';
+      
+      if (isEmpty) dayEl.classList.add('empty');
+      if (isToday) dayEl.classList.add('today');
+      if (isSelected) dayEl.classList.add('selected');
+      if (appointmentCount > 0) dayEl.classList.add('has-appointments');
+      
+      // Crear dots para indicar citas
+      let dots = '';
+      if (appointmentCount > 0) {
+        const dotCount = Math.min(appointmentCount, 3); // Máximo 3 dots
+        for (let i = 0; i < dotCount; i++) {
+          dots += '<div class="calendar-day-dot"></div>';
         }
       }
+      
+      dayEl.innerHTML = `
+        <div class="calendar-day-content">
+          <div class="calendar-day-number">${dayNum}</div>
+          <div class="calendar-day-dots">${dots}</div>
+        </div>
+      `;
+      
+      return dayEl;
     }
 
-    function updateSelectedDateLabel() {
-      if (!selectedDateLabel) return;
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const selected = new Date(selectedDate);
-      selected.setHours(0, 0, 0, 0);
-
-      if (selected.getTime() === today.getTime()) {
-        selectedDateLabel.textContent = 'Hoy';
-      } else {
-        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-        selectedDateLabel.textContent = selected.toLocaleDateString('es-MX', options);
+    async function loadMonthAppointments() {
+      const year = currentMonth.getFullYear();
+      const month = currentMonth.getMonth() + 1;
+      
+      try {
+        const res = await fetch(`/api/appointments/month?year=${year}&month=${month}`);
+        const json = await res.json();
+        
+        if (json.success) {
+          // Contar citas por día
+          monthAppointments = {};
+          json.data.forEach(appt => {
+            if (appt.status !== 'cancelled') {
+              const date = new Date(appt.startDateTime);
+              const dateStr = toLocalDateString(date);
+              monthAppointments[dateStr] = (monthAppointments[dateStr] || 0) + 1;
+            }
+          });
+          
+          // Re-renderizar con los conteos
+          renderMonthlyCalendar();
+        }
+      } catch (error) {
+        console.error('Error loading month appointments:', error);
       }
     }
+
 
     // ========== CARGAR CITAS ==========
     async function loadAppointments() {
@@ -8950,7 +9037,7 @@
       try {
         await fetch(`/api/appointments/${id}/cancel`, { method: 'PATCH' });
         loadAppointments();
-        renderWeeklyCalendar();
+        renderMonthlyCalendar();
         loadMonthStats();
       } catch (e) { alert('Error: ' + e.message); }
     };
@@ -8979,7 +9066,7 @@
         if (json.success) {
           // Si se canceló, recargar todo para actualizar calendarios y contadores
           if (newStatus === 'cancelled') {
-            renderWeeklyCalendar();
+            renderMonthlyCalendar();
           }
           loadAppointments();
         } else {
@@ -9020,7 +9107,7 @@
                 console.log('🔄 Auto-refresh: cambios detectados, actualizando...');
                 lastAppointmentsData = currentData;
                 loadAppointments();
-                renderWeeklyCalendar();
+                renderMonthlyCalendar();
                 loadMonthStats();
               }
             }
@@ -9274,7 +9361,7 @@
             editApptDialog.close();
             formEditAppt.reset();
             loadAppointments();
-            renderWeeklyCalendar();
+            renderMonthlyCalendar();
             loadMonthStats();
           } else {
             // Mostrar mensaje específico para conflictos de horario
@@ -9581,27 +9668,27 @@
     // ========== EVENT LISTENERS ==========
 
     // Navegación semanal
-    if (btnPrevWeek) {
-      btnPrevWeek.addEventListener('click', () => {
-        currentWeekStart.setDate(currentWeekStart.getDate() - 7);
-        renderWeeklyCalendar();
+    if (btnPrevMonth) {
+      btnPrevMonth.addEventListener('click', () => {
+        currentMonth.setMonth(currentMonth.getMonth() - 1);
+        renderMonthlyCalendar();
       });
     }
 
-    if (btnNextWeek) {
-      btnNextWeek.addEventListener('click', () => {
-        currentWeekStart.setDate(currentWeekStart.getDate() + 7);
-        renderWeeklyCalendar();
+    if (btnNextMonth) {
+      btnNextMonth.addEventListener('click', () => {
+        currentMonth.setMonth(currentMonth.getMonth() + 1);
+        renderMonthlyCalendar();
       });
     }
 
     if (btnToday) {
       btnToday.addEventListener('click', () => {
-        currentWeekStart = new Date();
-        currentWeekStart.setHours(0, 0, 0, 0);
+        currentMonth = new Date();
+        currentMonth.setDate(1);
         selectedDate = new Date();
         selectedDate.setHours(0, 0, 0, 0);
-        renderWeeklyCalendar();
+        renderMonthlyCalendar();
         loadAppointments();
         updateSelectedDateLabel();
       });
@@ -9610,7 +9697,7 @@
     if (btnRefreshAppts) {
       btnRefreshAppts.addEventListener('click', () => {
         loadAppointments();
-        renderWeeklyCalendar();
+        renderMonthlyCalendar();
       });
     }
 
@@ -9827,7 +9914,7 @@
             newApptDialog.close();
             formNewAppt.reset();
             loadAppointments();
-            renderWeeklyCalendar();
+            renderMonthlyCalendar();
           } else {
             // Mostrar mensaje específico para conflictos de horario
             if (res.status === 409) {
@@ -9846,14 +9933,14 @@
     }
 
     // Inicializar
-    renderWeeklyCalendar();
+    renderMonthlyCalendar();
     updateSelectedDateLabel();
     loadMonthStats();
 
     // Auto-load when tab is shown
     window.addEventListener('hashchange', () => {
       if (location.hash === '#appointments') {
-        renderWeeklyCalendar();
+        renderMonthlyCalendar();
         loadAppointments();
         updateSelectedDateLabel();
         loadMonthStats();
@@ -9861,7 +9948,7 @@
     });
 
     if (location.hash === '#appointments') {
-      renderWeeklyCalendar();
+      renderMonthlyCalendar();
       loadAppointments();
       updateSelectedDateLabel();
       loadMonthStats();
@@ -12214,7 +12301,7 @@
             loadAppointments();
           }
           if (typeof renderWeeklyCalendar === 'function') {
-            renderWeeklyCalendar();
+            renderMonthlyCalendar();
           }
 
           alert('✅ Cita agendada correctamente');
