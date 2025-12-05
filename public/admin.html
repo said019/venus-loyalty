@@ -2089,6 +2089,10 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 </head>
 
 <body class="checking-auth">
@@ -5935,6 +5939,97 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
   <script>
+    // ===== FIREBASE REAL-TIME LISTENERS =====
+    let db = null;
+    let unsubscribeAppointments = null;
+    let unsubscribeRequests = null;
+    let unsubscribeNotifications = null;
+
+    // Inicializar Firebase con configuración del servidor
+    async function initFirebase() {
+      try {
+        const res = await fetch('/api/config/firebase', { credentials: 'include' });
+        const json = await res.json();
+        
+        if (json.success && json.config) {
+          firebase.initializeApp(json.config);
+          db = firebase.firestore();
+          console.log('🔥 Firebase inicializado correctamente');
+          
+          // Iniciar listeners
+          setupRealtimeListeners();
+        } else {
+          console.warn('⚠️ No se pudo obtener configuración de Firebase, usando polling manual');
+        }
+      } catch (error) {
+        console.error('❌ Error inicializando Firebase:', error);
+      }
+    }
+
+    // Configurar listeners en tiempo real
+    function setupRealtimeListeners() {
+      console.log('👂 Configurando listeners en tiempo real...');
+      
+      // Listener para solicitudes de citas
+      unsubscribeRequests = db.collection('bookingRequests')
+        .orderBy('createdAt', 'desc')
+        .onSnapshot((snapshot) => {
+          console.log('🔔 Cambio detectado en solicitudes');
+          const requestsTab = document.getElementById('tab-requests');
+          if (requestsTab && !requestsTab.classList.contains('hidden')) {
+            loadBookingRequests();
+          }
+        }, (error) => {
+          console.error('❌ Error en listener de solicitudes:', error);
+        });
+
+      // Listener para citas (appointments)
+      const today = new Date();
+      const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+      const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      
+      unsubscribeAppointments = db.collection('appointments')
+        .where('date', '>=', startOfMonth.toISOString().split('T')[0])
+        .where('date', '<=', endOfMonth.toISOString().split('T')[0])
+        .onSnapshot((snapshot) => {
+          console.log('🔔 Cambio detectado en citas');
+          const appointmentsTab = document.getElementById('tab-appointments');
+          if (appointmentsTab && !appointmentsTab.classList.contains('hidden')) {
+            loadAppointments();
+            renderMonthlyCalendar();
+            loadMonthStats();
+          }
+          
+          // También actualizar dashboard si está visible
+          const overviewTab = document.getElementById('tab-overview');
+          if (overviewTab && !overviewTab.classList.contains('hidden')) {
+            loadTodayStats();
+          }
+        }, (error) => {
+          console.error('❌ Error en listener de citas:', error);
+        });
+
+      // Listener para notificaciones
+      unsubscribeNotifications = db.collection('notifications')
+        .orderBy('createdAt', 'desc')
+        .limit(50)
+        .onSnapshot((snapshot) => {
+          console.log('🔔 Cambio detectado en notificaciones');
+          loadNotifications();
+        }, (error) => {
+          console.error('❌ Error en listener de notificaciones:', error);
+        });
+
+      console.log('✅ Listeners en tiempo real configurados');
+    }
+
+    // Limpiar listeners cuando sea necesario
+    function cleanupListeners() {
+      if (unsubscribeAppointments) unsubscribeAppointments();
+      if (unsubscribeRequests) unsubscribeRequests();
+      if (unsubscribeNotifications) unsubscribeNotifications();
+    }
+
     // Global instances
     let newApptClientDropdown, newApptServiceDropdown, editApptServiceDropdown;
 
@@ -9153,9 +9248,9 @@
         clearInterval(appointmentsRefreshInterval);
       }
 
-      // Auto-refresh deshabilitado para ahorrar cuota de Firestore
-      // Los datos se actualizan manualmente al cambiar de fecha o al realizar acciones
-      console.log('[APPOINTMENTS] ℹ️ Auto-refresh deshabilitado - actualización manual')
+      // Los datos se actualizan automáticamente con listeners en tiempo real de Firestore
+      // Solo se ejecutan cuando hay cambios reales en la base de datos
+      console.log('[APPOINTMENTS] ✅ Usando listeners en tiempo real de Firestore')
     }
 
     function stopAppointmentsAutoRefresh() {
@@ -11757,9 +11852,9 @@
         clearInterval(dashboardRefreshInterval);
       }
 
-      // Auto-refresh deshabilitado para ahorrar cuota de Firestore
-      // El dashboard se actualiza manualmente al cambiar de pestaña
-      console.log('[DASHBOARD] ℹ️ Auto-refresh deshabilitado - actualización manual');
+      // El dashboard se actualiza automáticamente con listeners en tiempo real de Firestore
+      // Solo se ejecutan cuando hay cambios reales en las citas
+      console.log('[DASHBOARD] ✅ Usando listeners en tiempo real de Firestore');
     }
 
     function stopDashboardAutoRefresh() {
@@ -12191,9 +12286,9 @@
     function startRequestsAutoRefresh() {
       if (requestsRefreshInterval) return;
 
-      // Auto-refresh deshabilitado para ahorrar cuota de Firestore
-      // Las solicitudes se actualizan manualmente al cambiar de pestaña o realizar acciones
-      console.log('[REQUESTS] ℹ️ Auto-refresh deshabilitado - actualización manual');
+      // Las solicitudes se actualizan automáticamente con listeners en tiempo real de Firestore
+      // Solo se ejecutan cuando hay cambios reales en las solicitudes
+      console.log('[REQUESTS] ✅ Usando listeners en tiempo real de Firestore');
     }
 
     function stopRequestsAutoRefresh() {
@@ -12634,10 +12729,9 @@
     async function initNotifications() {
       console.log('[NOTIF] 🔔 Inicializando sistema de notificaciones...');
       await loadNotifications();
-      // Auto-refresh deshabilitado para ahorrar cuota de Firestore
-      // Las notificaciones se actualizan manualmente al cambiar de pestaña
+      // Las notificaciones se actualizan automáticamente con listeners en tiempo real de Firestore
       checkBirthdays();
-      console.log('[NOTIF] ✅ Sistema de notificaciones iniciado (sin auto-refresh)');
+      console.log('[NOTIF] ✅ Sistema de notificaciones iniciado con listeners en tiempo real');
     }
 
     async function loadNotifications() {
@@ -12911,6 +13005,10 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
+      // Inicializar Firebase y listeners en tiempo real
+      initFirebase();
+      
+      // Inicializar notificaciones
       setTimeout(initNotifications, 1000);
     });
 
