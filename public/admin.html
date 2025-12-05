@@ -2156,9 +2156,7 @@
         <a href="#cards" class="mobile-nav-link" data-tab="cards"><i class="fas fa-credit-card"></i> Tarjetas</a>
         <a href="#events" class="mobile-nav-link" data-tab="events"><i class="fas fa-gift"></i> Gift Cards</a>
         <a href="#requests" class="mobile-nav-link" data-tab="requests"><i class="fas fa-inbox"></i> Solicitudes</a>
-        <a href="#appointments" class="mobile-nav-link" data-tab="appointments"><i class="fas fa-calendar"></i>
-          Citas</a>
-        <a href="#reports" class="mobile-nav-link" data-tab="reports"><i class="fas fa-chart-line"></i> Reportes</a>
+        <a href="#appointments" class="mobile-nav-link" data-tab="appointments"><i class="fas fa-calendar"></i> Citas</a>
         <a href="#services" class="mobile-nav-link" data-tab="services"><i class="fas fa-sparkles"></i> Servicios</a>
         <a href="#settings" class="mobile-nav-link" data-tab="settings"><i class="fas fa-cog"></i> Configuración</a>
         <hr style="border-color:rgba(255,255,255,0.1);margin:10px 0;">
@@ -3086,15 +3084,15 @@
         </div>
         
         <!-- Calendario mensual completo -->
-        <div id="monthly-calendar" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;">
+        <div id="monthly-calendar" style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;max-width:900px;margin:0 auto;">
           <!-- Días de la semana -->
-          <div style="text-align:center;font-size:11px;font-weight:600;padding:8px;color:var(--muted);">Dom</div>
-          <div style="text-align:center;font-size:11px;font-weight:600;padding:8px;color:var(--muted);">Lun</div>
-          <div style="text-align:center;font-size:11px;font-weight:600;padding:8px;color:var(--muted);">Mar</div>
-          <div style="text-align:center;font-size:11px;font-weight:600;padding:8px;color:var(--muted);">Mié</div>
-          <div style="text-align:center;font-size:11px;font-weight:600;padding:8px;color:var(--muted);">Jue</div>
-          <div style="text-align:center;font-size:11px;font-weight:600;padding:8px;color:var(--muted);">Vie</div>
-          <div style="text-align:center;font-size:11px;font-weight:600;padding:8px;color:var(--muted);">Sáb</div>
+          <div style="text-align:center;font-size:12px;font-weight:700;padding:10px 4px;color:var(--venus-soft);letter-spacing:0.5px;">DOM</div>
+          <div style="text-align:center;font-size:12px;font-weight:700;padding:10px 4px;color:var(--venus-soft);letter-spacing:0.5px;">LUN</div>
+          <div style="text-align:center;font-size:12px;font-weight:700;padding:10px 4px;color:var(--venus-soft);letter-spacing:0.5px;">MAR</div>
+          <div style="text-align:center;font-size:12px;font-weight:700;padding:10px 4px;color:var(--venus-soft);letter-spacing:0.5px;">MIÉ</div>
+          <div style="text-align:center;font-size:12px;font-weight:700;padding:10px 4px;color:var(--venus-soft);letter-spacing:0.5px;">JUE</div>
+          <div style="text-align:center;font-size:12px;font-weight:700;padding:10px 4px;color:var(--venus-soft);letter-spacing:0.5px;">VIE</div>
+          <div style="text-align:center;font-size:12px;font-weight:700;padding:10px 4px;color:var(--venus-soft);letter-spacing:0.5px;">SÁB</div>
           <!-- Los días se generan dinámicamente -->
         </div>
       </div>
@@ -4367,73 +4365,130 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        border-radius: 6px;
+        border-radius: 10px;
         cursor: pointer;
         font-size: 13px;
         color: #fff;
-        transition: all 0.15s;
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid transparent;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        background: rgba(255, 255, 255, 0.03);
+        border: 2px solid transparent;
+        position: relative;
+        overflow: hidden;
+        min-height: 50px;
+      }
+      
+      .calendar-day::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at 50% 0%, rgba(140, 150, 104, 0.1), transparent 70%);
+        opacity: 0;
+        transition: opacity 0.2s;
+      }
+      
+      .calendar-day:hover::before {
+        opacity: 1;
       }
 
       .calendar-day:hover:not(.empty):not(.selected) {
-        background: rgba(140, 150, 104, 0.2);
-        border-color: var(--venus-green);
+        background: rgba(140, 150, 104, 0.15);
+        border-color: rgba(140, 150, 104, 0.3);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
       }
 
       .calendar-day.empty {
         cursor: default;
         background: transparent;
-        opacity: 0.3;
+        opacity: 0.2;
+        pointer-events: none;
       }
 
       .calendar-day.today {
         border-color: var(--venus-green);
-        background: rgba(140, 150, 104, 0.15);
+        background: rgba(140, 150, 104, 0.2);
         font-weight: 600;
+        box-shadow: 0 0 0 1px rgba(140, 150, 104, 0.3);
       }
 
       .calendar-day.selected {
-        background: var(--venus-green);
+        background: linear-gradient(135deg, var(--venus-green) 0%, #9aa066 100%);
         color: #000;
         font-weight: 600;
+        border-color: var(--venus-green);
+        box-shadow: 0 4px 16px rgba(140, 150, 104, 0.4);
+        transform: scale(1.05);
       }
 
       .calendar-day.other-month {
-        color: rgba(255, 255, 255, 0.3);
+        color: rgba(255, 255, 255, 0.2);
+        background: transparent;
       }
       
       .calendar-day-content {
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 2px;
+        gap: 4px;
         width: 100%;
+        position: relative;
+        z-index: 1;
       }
       
       .calendar-day-number {
-        font-size: 14px;
+        font-size: 15px;
+        font-weight: 500;
+      }
+      
+      .calendar-day.selected .calendar-day-number,
+      .calendar-day.today .calendar-day-number {
+        font-weight: 700;
       }
       
       .calendar-day-dots {
         display: flex;
-        gap: 2px;
-        min-height: 6px;
+        gap: 3px;
+        min-height: 8px;
       }
       
       .calendar-day-dot {
-        width: 4px;
-        height: 4px;
+        width: 5px;
+        height: 5px;
         border-radius: 50%;
         background: var(--venus-soft);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        animation: dotPulse 2s ease-in-out infinite;
+      }
+      
+      @keyframes dotPulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.6; }
       }
       
       .calendar-day.has-appointments {
-        background: rgba(140, 150, 104, 0.1);
+        background: rgba(140, 150, 104, 0.12);
+        border-color: rgba(140, 150, 104, 0.2);
       }
       
       .calendar-day.selected .calendar-day-dot {
         background: #000;
+      }
+      
+      /* Responsive */
+      @media (max-width: 768px) {
+        .calendar-day {
+          min-height: 45px;
+          border-radius: 8px;
+        }
+        
+        .calendar-day-number {
+          font-size: 13px;
+        }
+        
+        .calendar-day-dot {
+          width: 4px;
+          height: 4px;
+        }
       }
 
       /* ===== MODAL COBRAR SERVICIO ===== */
@@ -12057,18 +12112,51 @@
     }
 
     mobileNavLinks.forEach(link => {
-      link.addEventListener('click', () => {
-        mobileMenu.classList.add('hidden');
+      link.addEventListener('click', (e) => {
         // Handle tab switching if it's a tab link
         const tab = link.dataset.tab;
         if (tab) {
+          e.preventDefault();
+          
+          // Cerrar menú
+          mobileMenu.classList.add('hidden');
+          
+          // Actualizar navegación
           document.querySelectorAll('.nav a').forEach(a => a.classList.remove('is-active'));
           document.querySelectorAll('.mobile-nav-link').forEach(a => a.classList.remove('is-active'));
           link.classList.add('is-active');
-
-          document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
-          const target = document.getElementById('tab-' + tab);
-          if (target) target.classList.add('active');
+          
+          // Cambiar tab
+          document.querySelectorAll('[id^="tab-"]').forEach(s => s.classList.add('hidden'));
+          const targetId = 'tab-' + tab;
+          const targetSection = document.getElementById(targetId);
+          if (targetSection) {
+            targetSection.classList.remove('hidden');
+          }
+          
+          // Cargar datos del tab
+          if (tab === 'overview') {
+            loadDashboardStats();
+            if (typeof startDashboardAutoRefresh === 'function') startDashboardAutoRefresh();
+          } else if (tab === 'cards') {
+            loadCards(1);
+          } else if (tab === 'events') {
+            loadGiftCardServices();
+            loadGiftCards();
+          } else if (tab === 'requests') {
+            loadBookingRequests();
+            initAgendarUrl();
+            startRequestsAutoRefresh();
+          } else if (tab === 'appointments') {
+            if (typeof loadAppointments === 'function') loadAppointments();
+            if (typeof loadMonthStats === 'function') loadMonthStats();
+            if (typeof startAppointmentsAutoRefresh === 'function') startAppointmentsAutoRefresh();
+          } else if (tab === 'services') {
+            loadServicesTable();
+          } else if (tab === 'settings') {
+            loadBusinessConfig();
+            loadNotificationsHistory();
+          }
         }
       });
     });
