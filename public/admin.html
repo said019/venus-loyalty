@@ -2093,6 +2093,269 @@
       color: var(--muted);
     }
 
+    /* ===== GOOGLE CALENDAR STYLES ===== */
+    .google-calendar-container {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 0;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      border: 1px solid var(--line);
+    }
+
+    .calendar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(135deg, var(--bg) 0%, #2a2a2a 100%);
+      border-radius: var(--radius) var(--radius) 0 0;
+    }
+
+    .calendar-title-section {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .calendar-title-section h2 {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 400;
+      color: var(--ink);
+    }
+
+    .calendar-nav {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .btn-nav {
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: var(--ink);
+      padding: 8px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 36px;
+    }
+
+    .btn-nav:hover {
+      background: rgba(255,255,255,0.2);
+      border-color: rgba(255,255,255,0.3);
+    }
+
+    .calendar-actions {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .view-selector {
+      display: flex;
+      background: rgba(255,255,255,0.1);
+      border-radius: 8px;
+      padding: 2px;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+
+    .view-btn {
+      background: none;
+      border: none;
+      color: var(--muted);
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+
+    .view-btn.active {
+      background: var(--venus);
+      color: white;
+    }
+
+    .view-btn:hover:not(.active) {
+      background: rgba(255,255,255,0.1);
+      color: var(--ink);
+    }
+
+    .calendar-grid-container {
+      padding: 0;
+    }
+
+    .weekdays-header {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      background: #f8f9fa;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .weekday {
+      padding: 12px 8px;
+      text-align: center;
+      font-size: 11px;
+      font-weight: 600;
+      color: #5f6368;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-right: 1px solid var(--line);
+    }
+
+    .weekday:last-child {
+      border-right: none;
+    }
+
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      background: white;
+    }
+
+    .calendar-day {
+      min-height: 120px;
+      border-right: 1px solid #e8eaed;
+      border-bottom: 1px solid #e8eaed;
+      padding: 8px;
+      position: relative;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .calendar-day:hover {
+      background-color: #f8f9fa;
+    }
+
+    .calendar-day.selected {
+      background-color: #e3f2fd;
+      border-color: #1976d2;
+    }
+
+    .calendar-day.other-month {
+      background-color: #fafafa;
+      color: #9aa0a6;
+    }
+
+    .calendar-day.today {
+      background-color: #fff3e0;
+    }
+
+    .calendar-day.today .day-number {
+      background: var(--venus);
+      color: white;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+    }
+
+    .day-number {
+      font-size: 14px;
+      font-weight: 500;
+      color: #3c4043;
+      margin-bottom: 4px;
+      align-self: flex-start;
+    }
+
+    .day-events {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .calendar-event {
+      background: var(--venus);
+      color: white;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .calendar-event:hover {
+      background: var(--venus-soft);
+      transform: translateY(-1px);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .calendar-event.confirmed {
+      background: #4caf50;
+    }
+
+    .calendar-event.cancelled {
+      background: #f44336;
+    }
+
+    .calendar-event.pending {
+      background: #ff9800;
+    }
+
+    .event-more {
+      color: #5f6368;
+      font-size: 10px;
+      margin-top: 2px;
+      cursor: pointer;
+    }
+
+    .event-more:hover {
+      color: var(--venus);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .calendar-header {
+        flex-direction: column;
+        gap: 16px;
+        align-items: stretch;
+      }
+
+      .calendar-title-section {
+        justify-content: space-between;
+      }
+
+      .calendar-title-section h2 {
+        font-size: 20px;
+      }
+
+      .calendar-actions {
+        justify-content: space-between;
+      }
+
+      .calendar-day {
+        min-height: 80px;
+        padding: 4px;
+      }
+
+      .day-number {
+        font-size: 12px;
+      }
+
+      .calendar-event {
+        font-size: 10px;
+        padding: 1px 4px;
+      }
+    }
+
     .notification-empty i {
       font-size: 40px;
       margin-bottom: 12px;
@@ -3121,28 +3384,52 @@
         </div>
       </div>
 
-      <!-- Calendario Mensual -->
-      <div class="card" style="margin-bottom:20px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-          <h3 style="margin:0;" id="calendar-month-title">Mes Actual</h3>
-          <div style="display:flex;gap:8px;">
-            <button class="btn small ghost" id="btn-prev-month"><i class="fas fa-chevron-left"></i></button>
-            <button class="btn small ghost" id="btn-today">Hoy</button>
-            <button class="btn small ghost" id="btn-next-month"><i class="fas fa-chevron-right"></i></button>
+      <!-- Google Calendar Style -->
+      <div class="google-calendar-container">
+        <!-- Header del calendario -->
+        <div class="calendar-header">
+          <div class="calendar-title-section">
+            <h2 id="calendar-month-title">Diciembre 2024</h2>
+            <div class="calendar-nav">
+              <button class="btn-nav" id="btn-prev-month" title="Mes anterior">
+                <i class="fas fa-chevron-left"></i>
+              </button>
+              <button class="btn-nav" id="btn-today" title="Ir a hoy">Hoy</button>
+              <button class="btn-nav" id="btn-next-month" title="Mes siguiente">
+                <i class="fas fa-chevron-right"></i>
+              </button>
+            </div>
+          </div>
+          
+          <div class="calendar-actions">
+            <button class="btn small ghost" onclick="loadAppointments(); renderMonthlyCalendar(); loadMonthStats();" title="Actualizar">
+              <i class="fas fa-sync"></i>
+            </button>
+            <div class="view-selector">
+              <button class="view-btn active" data-view="month">Mes</button>
+              <button class="view-btn" data-view="week">Semana</button>
+              <button class="view-btn" data-view="day">Día</button>
+            </div>
           </div>
         </div>
-        
-        <!-- Calendario mensual completo -->
-        <div id="monthly-calendar" style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;max-width:900px;margin:0 auto;">
+
+        <!-- Calendario principal -->
+        <div class="calendar-grid-container">
           <!-- Días de la semana -->
-          <div style="text-align:center;font-size:12px;font-weight:700;padding:10px 4px;color:var(--venus-soft);letter-spacing:0.5px;">DOM</div>
-          <div style="text-align:center;font-size:12px;font-weight:700;padding:10px 4px;color:var(--venus-soft);letter-spacing:0.5px;">LUN</div>
-          <div style="text-align:center;font-size:12px;font-weight:700;padding:10px 4px;color:var(--venus-soft);letter-spacing:0.5px;">MAR</div>
-          <div style="text-align:center;font-size:12px;font-weight:700;padding:10px 4px;color:var(--venus-soft);letter-spacing:0.5px;">MIÉ</div>
-          <div style="text-align:center;font-size:12px;font-weight:700;padding:10px 4px;color:var(--venus-soft);letter-spacing:0.5px;">JUE</div>
-          <div style="text-align:center;font-size:12px;font-weight:700;padding:10px 4px;color:var(--venus-soft);letter-spacing:0.5px;">VIE</div>
-          <div style="text-align:center;font-size:12px;font-weight:700;padding:10px 4px;color:var(--venus-soft);letter-spacing:0.5px;">SÁB</div>
-          <!-- Los días se generan dinámicamente -->
+          <div class="weekdays-header">
+            <div class="weekday">Dom</div>
+            <div class="weekday">Lun</div>
+            <div class="weekday">Mar</div>
+            <div class="weekday">Mié</div>
+            <div class="weekday">Jue</div>
+            <div class="weekday">Vie</div>
+            <div class="weekday">Sáb</div>
+          </div>
+          
+          <!-- Grid de días -->
+          <div class="calendar-grid" id="monthly-calendar">
+            <!-- Los días se generan dinámicamente -->
+          </div>
         </div>
       </div>
 
@@ -12278,39 +12565,71 @@
       }
     });
 
-    // Mobile Menu Logic
-    const mobileMenu = document.getElementById('mobile-menu');
-    const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
-    const mobileMenuClose = document.getElementById('mobile-menu-close');
-    const mobileNavLinks = document.querySelectorAll('.mobile-nav-link');
-
-    if (mobileMenuToggle) {
-      mobileMenuToggle.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        mobileMenu.classList.remove('hidden');
-      });
+    // Mobile Menu Logic - Inicializar cuando el DOM esté listo
+    function initMobileMenu() {
+      console.log('🔧 Inicializando menú móvil...');
       
-      // También agregar soporte táctil
-      mobileMenuToggle.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        mobileMenu.classList.remove('hidden');
-      });
-    }
-
-    if (mobileMenuClose) {
-      mobileMenuClose.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        mobileMenu.classList.add('hidden');
-      });
+      const mobileMenu = document.getElementById('mobile-menu');
+      const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+      const mobileMenuClose = document.getElementById('mobile-menu-close');
       
-      mobileMenuClose.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        mobileMenu.classList.add('hidden');
+      console.log('📱 Elementos encontrados:', {
+        menu: !!mobileMenu,
+        toggle: !!mobileMenuToggle,
+        close: !!mobileMenuClose
       });
+
+      if (mobileMenuToggle && mobileMenu) {
+        console.log('✅ Configurando botón de abrir menú');
+        
+        mobileMenuToggle.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          console.log('👆 Click en menú móvil');
+          mobileMenu.classList.remove('hidden');
+          document.body.style.overflow = 'hidden'; // Prevenir scroll
+        });
+        
+        mobileMenuToggle.addEventListener('touchstart', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          console.log('👆 Touch en menú móvil');
+          mobileMenu.classList.remove('hidden');
+          document.body.style.overflow = 'hidden';
+        });
+      } else {
+        console.error('❌ No se encontraron elementos del menú móvil');
+      }
+
+      if (mobileMenuClose && mobileMenu) {
+        console.log('✅ Configurando botón de cerrar menú');
+        
+        mobileMenuClose.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          console.log('👆 Click en cerrar menú');
+          mobileMenu.classList.add('hidden');
+          document.body.style.overflow = '';
+        });
+        
+        mobileMenuClose.addEventListener('touchstart', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          console.log('👆 Touch en cerrar menú');
+          mobileMenu.classList.add('hidden');
+          document.body.style.overflow = '';
+        });
+      }
+      
+      // Cerrar menú al hacer click fuera
+      if (mobileMenu) {
+        mobileMenu.addEventListener('click', (e) => {
+          if (e.target === mobileMenu) {
+            mobileMenu.classList.add('hidden');
+            document.body.style.overflow = '';
+          }
+        });
+      }
     }
 
     mobileNavLinks.forEach(link => {
@@ -13193,6 +13512,9 @@
     document.addEventListener('DOMContentLoaded', () => {
       // Inicializar Firebase y listeners en tiempo real
       initFirebase();
+      
+      // Inicializar menú móvil
+      initMobileMenu();
       
       // Inicializar notificaciones
       setTimeout(initNotifications, 1000);
