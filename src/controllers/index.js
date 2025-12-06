@@ -5,6 +5,15 @@ import { config } from '../config/config.js';
 import { firestore } from '../../lib/firebase.js';
 import axios from 'axios';
 
+// Helper para convertir fecha a ISO con offset de México (-06:00)
+// Esto asegura comparaciones de strings correctas en Firestore
+const toMexicoOffset = (date) => {
+    const mexicoOffset = 6 * 60 * 60 * 1000;
+    const localMs = date.getTime() - mexicoOffset;
+    const localDate = new Date(localMs);
+    return localDate.toISOString().replace('Z', '-06:00');
+};
+
 export const ClientsController = {
     async createOrUpdate(req, res) {
         try {
@@ -89,7 +98,7 @@ export const AppointmentsController = {
             const startDateTime = `${date}T${time}:00-06:00`; // Mexico City timezone
             const start = new Date(startDateTime);
             const end = new Date(start.getTime() + (durationMinutes || 60) * 60000);
-            const endDateTime = end.toISOString();
+            const endDateTime = toMexicoOffset(end);
 
             // 3.1 VALIDAR CONFLICTOS DE HORARIO
             // Buscar citas activas (no canceladas) que se solapen con este horario
@@ -325,7 +334,7 @@ export const AppointmentsController = {
             const startDateTime = `${date}T${time}:00-06:00`;
             const start = new Date(startDateTime);
             const end = new Date(start.getTime() + (durationMinutes || 60) * 60000);
-            const endDateTime = end.toISOString();
+            const endDateTime = toMexicoOffset(end);
 
             // VALIDAR CONFLICTOS DE HORARIO (excluyendo la cita actual)
             const conflictingAppointments = await firestore.collection('appointments')
