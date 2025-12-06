@@ -306,6 +306,55 @@
       color: var(--muted);
       font-size: 11px;
     }
+
+    /* Tabs styles */
+    .tabs-header {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      padding-bottom: 12px;
+      margin-bottom: 20px;
+      scrollbar-width: none; /* Firefox */
+      -ms-overflow-style: none;  /* IE 10+ */
+      border-bottom: 1px solid var(--line);
+    }
+    .tabs-header::-webkit-scrollbar {
+      display: none;  /* Chrome/Safari */
+    }
+    .tab-btn {
+      padding: 8px 16px;
+      border-radius: 20px;
+      border: 1px solid var(--line);
+      background: white;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 500;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: all 0.2s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .tab-btn:hover {
+      background: var(--venus-light);
+      color: var(--venus);
+      border-color: var(--venus-soft);
+    }
+    .tab-btn.active {
+      background: var(--venus);
+      color: white;
+      border-color: var(--venus);
+    }
+    .tab-content {
+      display: none;
+      animation: fadeIn 0.3s ease;
+    }
+    .tab-content.active {
+      display: block;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
   </style>
 </head>
 <body>
@@ -626,9 +675,11 @@
     }
 
     function renderServices() {
-      const el = document.getElementById('services-list');
+      const container = document.getElementById('services-list');
+      container.classList.remove('services-grid');
+
       if (services.length === 0) {
-        el.innerHTML = '<p style="color:var(--muted);">No hay servicios disponibles</p>';
+        container.innerHTML = '<p style="color:var(--muted);">No hay servicios disponibles</p>';
         return;
       }
       
@@ -651,24 +702,50 @@
         return ia - ib;
       });
       
-      let html = '';
-      sortedCats.forEach(cat => {
-        html += `<div class="category-section">
-          <h3 class="category-title">${cat}</h3>
-          <div class="services-grid">
-            ${categories[cat].map(s => `
-              <div class="service-item" data-id="${s.id}" onclick="selectService(this, '${s.id}')">
-                <div class="service-name">${s.name}</div>
-                <div class="service-meta">
-                  ${s.duration} min · <span class="service-price">$${s.price}</span>
-                </div>
-              </div>
-            `).join('')}
+      // Build Tabs Header
+      const tabsHeader = document.createElement('div');
+      tabsHeader.className = 'tabs-header';
+
+      // Build Tabs Content Container
+      const tabsContentContainer = document.createElement('div');
+
+      // Keep track of tab mapping to avoid ID collisions
+      const tabMap = new Map();
+
+      sortedCats.forEach((cat, index) => {
+        const tabId = `tab-${index}`;
+        tabMap.set(cat, tabId);
+
+        // Tab Button
+        const btn = document.createElement('button');
+        btn.className = `tab-btn ${index === 0 ? 'active' : ''}`;
+        btn.textContent = cat;
+        btn.onclick = () => switchTab(tabId, btn);
+        tabsHeader.appendChild(btn);
+
+        // Tab Content
+        const content = document.createElement('div');
+        content.id = tabId;
+        content.className = `tab-content ${index === 0 ? 'active' : ''}`;
+
+        let servicesHtml = '<div class="services-grid">';
+        servicesHtml += categories[cat].map(s => `
+          <div class="service-item" data-id="${s.id}">
+            <div class="service-name">${s.name}</div>
+            <div class="service-meta">
+              ${s.duration} min · <span class="service-price">$${s.price}</span>
+            </div>
           </div>
-        </div>`;
+        `).join('');
+        servicesHtml += '</div>';
+
+        content.innerHTML = servicesHtml;
+        tabsContentContainer.appendChild(content);
       });
       
-      el.innerHTML = html;
+      container.innerHTML = '';
+      container.appendChild(tabsHeader);
+      container.appendChild(tabsContentContainer);
       
       // Agregar event listeners a los servicios
       document.querySelectorAll('.service-item').forEach(item => {
@@ -676,6 +753,15 @@
           selectService(this, this.dataset.id);
         });
       });
+    }
+
+    function switchTab(tabId, btnElement) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btnElement.classList.add('active');
+
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      const content = document.getElementById(tabId);
+      if(content) content.classList.add('active');
     }
 
     function selectService(el, id) {
