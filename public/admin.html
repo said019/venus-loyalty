@@ -13391,23 +13391,42 @@
     }
 
     // Event listeners para botones de notificaciones
-    document.addEventListener('DOMContentLoaded', () => {
+    function initNotificationButtons() {
+      console.log('[NOTIF] 🔘 Inicializando botones de notificaciones...');
+
       const notifBtnDesktop = document.getElementById('notif-btn-desktop');
       const notifBtnMobile = document.getElementById('notif-btn-mobile');
       const btnMarkAllRead = document.getElementById('btn-mark-all-read');
       const btnClearAll = document.getElementById('btn-clear-all-notif');
 
+      console.log('[NOTIF] Elementos encontrados:', {
+        desktop: !!notifBtnDesktop,
+        mobile: !!notifBtnMobile,
+        markRead: !!btnMarkAllRead,
+        clearAll: !!btnClearAll
+      });
+
       if (notifBtnDesktop) {
-        notifBtnDesktop.addEventListener('click', toggleNotifications);
+        console.log('[NOTIF] ✅ Configurando botón desktop');
+        notifBtnDesktop.addEventListener('click', (e) => {
+          console.log('[NOTIF] 👆 Click en campana desktop');
+          toggleNotifications(e);
+        });
+      } else {
+        console.error('[NOTIF] ❌ No se encontró botón desktop');
       }
 
       if (notifBtnMobile) {
+        console.log('[NOTIF] ✅ Configurando botón móvil');
         // Para móvil, solo usar click - el navegador maneja el touch automáticamente
         notifBtnMobile.addEventListener('click', (e) => {
+          console.log('[NOTIF] 👆 Click en campana móvil');
           e.preventDefault();
           e.stopPropagation();
           toggleNotifications(e);
         });
+      } else {
+        console.warn('[NOTIF] ⚠️ No se encontró botón móvil');
       }
 
       if (btnMarkAllRead) {
@@ -13423,7 +13442,9 @@
           clearAllNotifications();
         });
       }
-    });
+
+      console.log('[NOTIF] ✅ Botones inicializados correctamente');
+    }
 
     document.addEventListener('click', (e) => {
       const wrapper = e.target.closest('.notification-wrapper');
@@ -13638,6 +13659,9 @@
 
       // Inicializar menú móvil
       initMobileMenu();
+
+      // Inicializar botones de notificaciones
+      initNotificationButtons();
 
       // Inicializar notificaciones
       setTimeout(initNotifications, 1000);
