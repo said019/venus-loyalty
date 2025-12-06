@@ -9196,10 +9196,8 @@
         calendarMonthTitle.textContent = `${monthNames[month]} ${year}`;
       }
 
-      // Limpiar calendario (mantener headers)
-      const headers = Array.from(monthlyCalendar.querySelectorAll('div')).slice(0, 7);
+      // Limpiar calendario
       monthlyCalendar.innerHTML = '';
-      headers.forEach(h => monthlyCalendar.appendChild(h));
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -9214,72 +9212,134 @@
       const prevMonthLastDay = new Date(year, month, 0).getDate();
       for (let i = startDayOfWeek - 1; i >= 0; i--) {
         const dayNum = prevMonthLastDay - i;
-        const dayEl = createDayElement(dayNum, true, false, false, 0);
-        dayEl.classList.add('other-month');
+        const dayEl = createGoogleCalendarDay(dayNum, year, month - 1, true);
         monthlyCalendar.appendChild(dayEl);
       }
 
       // Días del mes actual
       for (let day = 1; day <= daysInMonth; day++) {
-        const date = new Date(year, month, day);
-        date.setHours(0, 0, 0, 0);
-        const dateStr = toLocalDateString(date);
-        
-        const isToday = date.getTime() === today.getTime();
-        const isSelected = date.getTime() === selectedDate.getTime();
-        const appointmentCount = monthAppointments[dateStr] || 0;
-        
-        const dayEl = createDayElement(day, false, isToday, isSelected, appointmentCount);
-        dayEl.addEventListener('click', () => {
-          selectedDate = new Date(date);
-          renderMonthlyCalendar();
-          loadAppointments();
-          updateSelectedDateLabel();
-        });
-        
+        const dayEl = createGoogleCalendarDay(day, year, month, false);
         monthlyCalendar.appendChild(dayEl);
       }
 
       // Días del siguiente mes para completar la cuadrícula
-      const totalCells = monthlyCalendar.children.length - 7; // Restar headers
-      const remainingCells = 35 - totalCells; // 5 semanas * 7 días = 35
-      for (let day = 1; day <= remainingCells; day++) {
-        const dayEl = createDayElement(day, true, false, false, 0);
-        dayEl.classList.add('other-month');
-        monthlyCalendar.appendChild(dayEl);
+      const totalCells = monthlyCalendar.children.length;
+      const remainingCells = Math.ceil(totalCells / 7) * 7 - totalCells;
+      if (remainingCells > 0 && remainingCells < 7) {
+        for (let day = 1; day <= remainingCells; day++) {
+          const dayEl = createGoogleCalendarDay(day, year, month + 1, true);
+          monthlyCalendar.appendChild(dayEl);
+        }
       }
 
       // Cargar citas del mes
       await loadMonthAppointments();
     }
 
-    function createDayElement(dayNum, isEmpty, isToday, isSelected, appointmentCount) {
+    function createGoogleCalendarDay(dayNum, year, month, isOtherMonth) {
       const dayEl = document.createElement('div');
       dayEl.className = 'calendar-day';
       
-      if (isEmpty) dayEl.classList.add('empty');
-      if (isToday) dayEl.classList.add('today');
-      if (isSelected) dayEl.classList.add('selected');
-      if (appointmentCount > 0) dayEl.classList.add('has-appointments');
+      const date = new Date(year, month, dayNum);
+      date.setHours(0, 0, 0, 0);
+      const dateStr = toLocalDateString(date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
       
-      // Crear dots para indicar citas
-      let dots = '';
-      if (appointmentCount > 0) {
-        const dotCount = Math.min(appointmentCount, 3); // Máximo 3 dots
-        for (let i = 0; i < dotCount; i++) {
-          dots += '<div class="calendar-day-dot"></div>';
-        }
+      // Clases CSS
+      if (isOtherMonth) {
+        dayEl.classList.add('other-month');
       }
       
-      dayEl.innerHTML = `
-        <div class="calendar-day-content">
-          <div class="calendar-day-number">${dayNum}</div>
-          <div class="calendar-day-dots">${dots}</div>
-        </div>
-      `;
+      if (date.getTime() === today.getTime()) {
+        dayEl.classList.add('today');
+      }
       
+      if (date.getTime() === selectedDate.getTime()) {
+        dayEl.classList.add('selected');
+      }
+
+      // Número del día
+      const dayNumber = document.createElement('div');
+      dayNumber.className = 'day-number';
+      dayNumber.textContent = dayNum;
+      dayEl.appendChild(dayNumber);
+
+      // Contenedor de eventos
+      const eventsContainer = document.createElement('div');
+      eventsContainer.className = 'day-events';
+      
+      // Obtener citas del día
+      const dayAppointments = appointments.filter(apt => {
+        const aptDate = new Date(apt.date + 'T00:00:00');
+        aptDate.setHours(0, 0, 0, 0);
+        return aptDate.getTime() === date.getTime();
+      });
+
+      // Mostrar hasta 3 eventos, el resto como "+X más"
+      const maxEvents = 3;
+      dayAppointments.slice(0, maxEvents).forEach(apt => {
+        const eventEl = document.createElement('div');
+        eventEl.className = 'calendar-event';
+        
+        // Color según estado
+        if (apt.status === 'confirmed') eventEl.classList.add('confirmed');
+        else if (apt.status === 'cancelled') eventEl.classList.add('cancelled');
+        else eventEl.classList.add('pending');
+        
+        eventEl.textContent = `${apt.time} ${apt.clientName}`;
+        eventEl.title = `${apt.time} - ${apt.clientName}\n${apt.serviceName}`;
+        
+        // Click en evento
+        eventEl.addEventListener('click', (e) => {
+          e.stopPropagation();
+          // Seleccionar el día y cargar sus citas
+          selectedDate = new Date(date);
+          renderMonthlyCalendar();
+          loadAppointments();
+          updateSelectedDateLabel();
+        });
+        
+        eventsContainer.appendChild(eventEl);
+      });
+
+      // Mostrar "+X más" si hay más eventos
+      if (dayAppointments.length > maxEvents) {
+        const moreEl = document.createElement('div');
+        moreEl.className = 'event-more';
+        moreEl.textContent = `+${dayAppointments.length - maxEvents} más`;
+        moreEl.addEventListener('click', (e) => {
+          e.stopPropagation();
+          selectedDate = new Date(date);
+          renderMonthlyCalendar();
+          loadAppointments();
+          updateSelectedDateLabel();
+        });
+        eventsContainer.appendChild(moreEl);
+      }
+
+      dayEl.appendChild(eventsContainer);
+
+      // Click en día
+      if (!isOtherMonth) {
+        dayEl.addEventListener('click', () => {
+          // Remover selección anterior
+          document.querySelectorAll('.calendar-day.selected').forEach(el => {
+            el.classList.remove('selected');
+          });
+          
+          // Seleccionar nuevo día
+          dayEl.classList.add('selected');
+          selectedDate = new Date(date);
+          loadAppointments();
+          updateSelectedDateLabel();
+        });
+      }
+
       return dayEl;
     }
+
+    // Función createDayElement eliminada - ahora usamos createGoogleCalendarDay
 
     async function loadMonthAppointments() {
       const year = currentMonth.getFullYear();
@@ -10159,6 +10219,28 @@
         renderMonthlyCalendar();
       });
     }
+
+    // Botones de vista del calendario
+    document.querySelectorAll('.view-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        // Remover active de todos
+        document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+        // Agregar active al clickeado
+        btn.classList.add('active');
+        
+        const view = btn.dataset.view;
+        console.log('Vista seleccionada:', view);
+        
+        // Por ahora solo soportamos vista de mes
+        // TODO: Implementar vistas de semana y día
+        if (view === 'week' || view === 'day') {
+          alert('Vista de ' + (view === 'week' ? 'semana' : 'día') + ' próximamente');
+          // Volver a mes
+          document.querySelector('.view-btn[data-view="month"]').classList.add('active');
+          btn.classList.remove('active');
+        }
+      });
+    });
 
     // Modal
     if (btnNewAppt) {
