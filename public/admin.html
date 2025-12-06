@@ -1701,10 +1701,27 @@
       color: var(--ink);
       font-size: 24px;
       cursor: pointer;
+      padding: 8px;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      user-select: none;
+    }
+    
+    .mobile-menu-btn:active {
+      opacity: 0.7;
+      transform: scale(0.95);
     }
 
     .mobile-bell {
       display: none;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      user-select: none;
+    }
+    
+    .mobile-bell:active {
+      opacity: 0.7;
+      transform: scale(0.95);
     }
 
     .mobile-menu {
@@ -1732,6 +1749,15 @@
       color: var(--ink);
       font-size: 24px;
       cursor: pointer;
+      padding: 8px;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      user-select: none;
+    }
+    
+    .close-menu-btn:active {
+      opacity: 0.7;
+      transform: scale(0.95);
     }
 
     .mobile-nav-link {
@@ -1741,6 +1767,9 @@
       text-decoration: none;
       font-size: 16px;
       border-radius: 8px;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      user-select: none;
       margin-bottom: 8px;
     }
 
@@ -1794,11 +1823,19 @@
       justify-content: center;
       transition: all 0.2s;
       position: relative;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      user-select: none;
     }
 
     .notification-bell:hover {
       background: rgba(255, 255, 255, 0.05);
       color: var(--ink);
+    }
+    
+    .notification-bell:active {
+      background: rgba(255, 255, 255, 0.1);
+      transform: scale(0.95);
     }
 
     .notification-bell i {
@@ -2108,7 +2145,7 @@
       </div>
       <!-- Campana y menú móvil -->
       <div class="mobile-actions">
-        <button class="notification-bell mobile-bell" onclick="toggleNotifications()" title="Notificaciones">
+        <button class="notification-bell mobile-bell" id="notif-btn-mobile" title="Notificaciones">
           <i class="fas fa-bell"></i>
           <span class="notification-badge hidden" id="notif-badge-mobile">0</span>
         </button>
@@ -2119,7 +2156,7 @@
       <div class="actions desktop-only">
         <!-- Campana de Notificaciones -->
         <div class="notification-wrapper">
-          <button class="notification-bell" onclick="toggleNotifications()" title="Notificaciones">
+          <button class="notification-bell" id="notif-btn-desktop" title="Notificaciones">
             <i class="fas fa-bell"></i>
             <span class="notification-badge hidden" id="notif-badge">0</span>
           </button>
@@ -2127,7 +2164,7 @@
           <div class="notification-dropdown" id="notif-dropdown">
             <div class="notification-header">
               <h3><i class="fas fa-bell"></i> Notificaciones</h3>
-              <button class="btn-mark-read" onclick="markAllRead()">
+              <button class="btn-mark-read" id="btn-mark-all-read">
                 <i class="fas fa-check-double"></i> Marcar leídas
               </button>
             </div>
@@ -2140,7 +2177,7 @@
             </div>
 
             <div class="notification-footer">
-              <button onclick="clearAllNotifications()">Limpiar todas</button>
+              <button id="btn-clear-all-notif">Limpiar todas</button>
             </div>
           </div>
         </div>
@@ -12159,13 +12196,30 @@
     const mobileNavLinks = document.querySelectorAll('.mobile-nav-link');
 
     if (mobileMenuToggle) {
-      mobileMenuToggle.addEventListener('click', () => {
+      mobileMenuToggle.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        mobileMenu.classList.remove('hidden');
+      });
+      
+      // También agregar soporte táctil
+      mobileMenuToggle.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
         mobileMenu.classList.remove('hidden');
       });
     }
 
     if (mobileMenuClose) {
-      mobileMenuClose.addEventListener('click', () => {
+      mobileMenuClose.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        mobileMenu.classList.add('hidden');
+      });
+      
+      mobileMenuClose.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
         mobileMenu.classList.add('hidden');
       });
     }
@@ -12783,7 +12837,12 @@
       }
     }
 
-    function toggleNotifications() {
+    function toggleNotifications(e) {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      
       // Solicitar permiso si aún no se tiene
       if ("Notification" in window && Notification.permission === "default") {
         Notification.requestPermission();
@@ -12796,6 +12855,44 @@
         renderNotifications();
       }
     }
+
+    // Event listeners para botones de notificaciones
+    document.addEventListener('DOMContentLoaded', () => {
+      const notifBtnDesktop = document.getElementById('notif-btn-desktop');
+      const notifBtnMobile = document.getElementById('notif-btn-mobile');
+      const btnMarkAllRead = document.getElementById('btn-mark-all-read');
+      const btnClearAll = document.getElementById('btn-clear-all-notif');
+      
+      if (notifBtnDesktop) {
+        notifBtnDesktop.addEventListener('click', toggleNotifications);
+        notifBtnDesktop.addEventListener('touchend', (e) => {
+          e.preventDefault();
+          toggleNotifications(e);
+        });
+      }
+      
+      if (notifBtnMobile) {
+        notifBtnMobile.addEventListener('click', toggleNotifications);
+        notifBtnMobile.addEventListener('touchend', (e) => {
+          e.preventDefault();
+          toggleNotifications(e);
+        });
+      }
+      
+      if (btnMarkAllRead) {
+        btnMarkAllRead.addEventListener('click', (e) => {
+          e.preventDefault();
+          markAllRead();
+        });
+      }
+      
+      if (btnClearAll) {
+        btnClearAll.addEventListener('click', (e) => {
+          e.preventDefault();
+          clearAllNotifications();
+        });
+      }
+    });
 
     document.addEventListener('click', (e) => {
       const wrapper = e.target.closest('.notification-wrapper');
