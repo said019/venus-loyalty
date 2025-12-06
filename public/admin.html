@@ -2196,7 +2196,7 @@
     .weekdays-header {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
-      background: #f8f9fa;
+      background: rgba(0,0,0,0.3);
       border-bottom: 1px solid var(--line);
     }
 
@@ -2205,7 +2205,7 @@
       text-align: center;
       font-size: 11px;
       font-weight: 600;
-      color: #5f6368;
+      color: var(--venus-soft);
       text-transform: uppercase;
       letter-spacing: 0.5px;
       border-right: 1px solid var(--line);
@@ -2218,45 +2218,46 @@
     .calendar-grid {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
-      background: white;
+      background: var(--bg);
     }
 
     .calendar-day {
-      min-height: 120px;
-      border-right: 1px solid #e8eaed;
-      border-bottom: 1px solid #e8eaed;
+      min-height: 100px;
+      border-right: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
       padding: 8px;
       position: relative;
       cursor: pointer;
       transition: background-color 0.2s;
       display: flex;
       flex-direction: column;
+      background: rgba(255,255,255,0.03);
     }
 
     .calendar-day:hover {
-      background-color: #f8f9fa;
+      background-color: rgba(255,255,255,0.08);
     }
 
     .calendar-day.selected {
-      background-color: #e3f2fd;
-      border-color: #1976d2;
+      background-color: rgba(140, 150, 104, 0.2);
+      border-color: var(--venus);
     }
 
     .calendar-day.other-month {
-      background-color: #fafafa;
-      color: #9aa0a6;
+      background-color: rgba(0,0,0,0.2);
+      opacity: 0.5;
     }
 
     .calendar-day.today {
-      background-color: #fff3e0;
+      background-color: rgba(140, 150, 104, 0.15);
     }
 
     .calendar-day.today .day-number {
       background: var(--venus);
       color: white;
       border-radius: 50%;
-      width: 24px;
-      height: 24px;
+      width: 28px;
+      height: 28px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -2266,7 +2267,7 @@
     .day-number {
       font-size: 14px;
       font-weight: 500;
-      color: #3c4043;
+      color: var(--ink);
       margin-bottom: 4px;
       align-self: flex-start;
     }
@@ -2276,12 +2277,13 @@
       display: flex;
       flex-direction: column;
       gap: 2px;
+      overflow: hidden;
     }
 
     .calendar-event {
       background: var(--venus);
       color: white;
-      padding: 2px 6px;
+      padding: 3px 6px;
       border-radius: 4px;
       font-size: 11px;
       font-weight: 500;
@@ -2293,25 +2295,27 @@
     }
 
     .calendar-event:hover {
-      background: var(--venus-soft);
+      filter: brightness(1.1);
       transform: translateY(-1px);
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     }
 
     .calendar-event.confirmed {
-      background: #4caf50;
+      background: #22c55e;
     }
 
     .calendar-event.cancelled {
-      background: #f44336;
+      background: #ef4444;
+      opacity: 0.6;
     }
 
-    .calendar-event.pending {
-      background: #ff9800;
+    .calendar-event.pending,
+    .calendar-event.scheduled {
+      background: #f59e0b;
     }
 
     .event-more {
-      color: #5f6368;
+      color: var(--muted);
       font-size: 10px;
       margin-top: 2px;
       cursor: pointer;
@@ -8868,6 +8872,7 @@
     let selectedDate = new Date();
     selectedDate.setHours(0, 0, 0, 0);
     let monthAppointments = {}; // Cache de citas del mes
+    let allAppointments = []; // Todas las citas del mes para el calendario
 
     // Helper function to convert Date to local YYYY-MM-DD
     function toLocalDateString(date) {
@@ -9270,7 +9275,7 @@
       eventsContainer.className = 'day-events';
       
       // Obtener citas del día
-      const dayAppointments = appointments.filter(apt => {
+      const dayAppointments = (allAppointments || []).filter(apt => {
         const aptDate = new Date(apt.date + 'T00:00:00');
         aptDate.setHours(0, 0, 0, 0);
         return aptDate.getTime() === date.getTime();
@@ -9350,6 +9355,13 @@
         const json = await res.json();
         
         if (json.success) {
+          // Guardar todas las citas del mes
+          allAppointments = json.data.map(appt => ({
+            ...appt,
+            date: appt.date || toLocalDateString(new Date(appt.startDateTime)),
+            time: appt.time || new Date(appt.startDateTime).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false })
+          }));
+          
           // Contar citas por día
           monthAppointments = {};
           json.data.forEach(appt => {
@@ -9360,11 +9372,19 @@
             }
           });
           
-          // Re-renderizar con los conteos
+          // Re-renderizar con los datos
           renderMonthlyCalendar();
         }
       } catch (error) {
         console.error('Error loading month appointments:', error);
+      }
+    }
+
+    function updateSelectedDateLabel() {
+      const label = document.getElementById('selected-date-label');
+      if (label) {
+        const options = { weekday: 'long', day: 'numeric', month: 'long' };
+        label.textContent = selectedDate.toLocaleDateString('es-MX', options);
       }
     }
 
