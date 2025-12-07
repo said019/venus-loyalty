@@ -662,25 +662,25 @@
     <p>Solicita tu cita</p>
   </div>
   <div class="container">
-    < !-- Información del negocio -->
-      <div class="card" style="margin-bottom: 24px;">
-        <div style="display: flex; flex-direction: column; gap: 12px;">
-          <div style="display: flex; align-items: start; gap: 12px;"><i class="fas fa-map-marker-alt"
-              style="color: var(--venus); margin-top: 2px; font-size: 16px;"></i>
-            <div style="flex: 1;">
-              <div style="font-size: 13px; font-weight: 600; margin-bottom: 2px;">Ubicación</div>
-              <div id="business-address" style="font-size: 13px; color: var(--muted);">Cargando...</div>
-            </div>
+    <!-- Información del negocio -->
+    <div class="card" style="margin-bottom: 24px;">
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div style="display: flex; align-items: start; gap: 12px;"><i class="fas fa-map-marker-alt"
+            style="color: var(--venus); margin-top: 2px; font-size: 16px;"></i>
+          <div style="flex: 1;">
+            <div style="font-size: 13px; font-weight: 600; margin-bottom: 2px;">Ubicación</div>
+            <div id="business-address" style="font-size: 13px; color: var(--muted);">Cargando...</div>
           </div>
-          <div style="display: flex; align-items: start; gap: 12px;"><i class="fas fa-clock"
-              style="color: var(--venus); margin-top: 2px; font-size: 16px;"></i>
-            <div style="flex: 1;">
-              <div style="font-size: 13px; font-weight: 600; margin-bottom: 2px;">Horario de atención</div>
-              <div id="business-hours" style="font-size: 13px; color: var(--muted);">Cargando...</div>
-            </div>
+        </div>
+        <div style="display: flex; align-items: start; gap: 12px;"><i class="fas fa-clock"
+            style="color: var(--venus); margin-top: 2px; font-size: 16px;"></i>
+          <div style="flex: 1;">
+            <div style="font-size: 13px; font-weight: 600; margin-bottom: 2px;">Horario de atención</div>
+            <div id="business-hours" style="font-size: 13px; color: var(--muted);">Cargando...</div>
           </div>
-          <div id="maps-button-container" style="display: none; margin-top: 8px;"><a id="maps-button" href="#"
-              target="_blank" class="btn" style="
+        </div>
+        <div id="maps-button-container" style="display: none; margin-top: 8px;"><a id="maps-button" href="#"
+            target="_blank" class="btn" style="
  display: inline-flex;
     align-items: center;
     gap: 8px;
@@ -693,115 +693,114 @@
     font-weight: 500;
     transition: all 0.2s;
     ">
-              <i class="fas fa-map-marked-alt"></i>Ver en Google Maps </a></div>
+            <i class="fas fa-map-marked-alt"></i>Ver en Google Maps </a></div>
+      </div>
+    </div>
+    <div class="progress">
+      <div class="progress-dot active" id="dot-1"></div>
+      <div class="progress-dot" id="dot-2"></div>
+      <div class="progress-dot" id="dot-3"></div>
+      <div class="progress-dot" id="dot-4"></div>
+    </div>
+    <!-- PASO 1: Servicio -->
+    <div class="step active" id="step-1">
+      <div class="card">
+        <div class="card-title"><i class="fas fa-sparkles"></i>¿Qué servicio te gustaría? </div>
+        <!-- Tabs Container -->
+        <div class="category-tabs" id="category-tabs">
+          <!-- Rendered by JS -->
         </div>
-      </div>
-      <div class="progress">
-        <div class="progress-dot active" id="dot-1"></div>
-        <div class="progress-dot" id="dot-2"></div>
-        <div class="progress-dot" id="dot-3"></div>
-        <div class="progress-dot" id="dot-4"></div>
-      </div>
-      < !-- PASO 1: Servicio -->
-        <div class="step active" id="step-1">
-          <div class="card">
-            <div class="card-title"><i class="fas fa-sparkles"></i>¿Qué servicio te gustaría? </div>
-            < !-- Tabs Container -->
-              <div class="category-tabs" id="category-tabs">
-                < !-- Rendered by JS -->
-              </div>
-              <div class="services-grid" id="services-list">
-                <div class="loading">
-                  <div class="spinner"></div>
-                  <p>Cargando servicios...</p>
-                </div>
-              </div>
-              <div class="buttons-row"><button class="btn btn-primary" id="btn-step1" disabled>Continuar <i
-                    class="fas fa-arrow-right"></i></button></div>
+        <div class="services-grid" id="services-list">
+          <div class="loading">
+            <div class="spinner"></div>
+            <p>Cargando servicios...</p>
           </div>
         </div>
-        < !-- PASO 2: Fecha y Hora -->
-          <div class="step" id="step-2">
-            <div class="card">
-              <div class="card-title"><i class="fas fa-calendar"></i>¿Cuándo te gustaría venir? </div>
-              <div class="calendar-wrapper">
-                <div class="calendar">
-                  <div class="calendar-header">
-                    <div class="calendar-nav"><button id="btn-prev-month"><i class="fas fa-chevron-left"></i></button>
-                    </div>
-                    <h3 id="calendar-month">Diciembre 2025</h3>
-                    <div class="calendar-nav"><button id="btn-next-month"><i class="fas fa-chevron-right"></i></button>
-                    </div>
-                  </div>
-                  <div class="calendar-grid" id="calendar-grid"></div>
-                </div>
-                <div class="time-slots">
-                  <h3 id="time-title">Selecciona un día</h3>
-                  <div class="time-grid" id="time-grid">
-                    <p style="grid-column:span 3;text-align:center;color:var(--muted);padding:16px;font-size:12px;">
-                      Primero elige una fecha </p>
-                  </div>
-                </div>
+        <div class="buttons-row"><button class="btn btn-primary" id="btn-step1" disabled>Continuar <i
+              class="fas fa-arrow-right"></i></button></div>
+      </div>
+    </div>
+    <!-- PASO 2: Fecha y Hora -->
+    <div class="step" id="step-2">
+      <div class="card">
+        <div class="card-title"><i class="fas fa-calendar"></i>¿Cuándo te gustaría venir? </div>
+        <div class="calendar-wrapper">
+          <div class="calendar">
+            <div class="calendar-header">
+              <div class="calendar-nav"><button id="btn-prev-month"><i class="fas fa-chevron-left"></i></button>
               </div>
-              <div class="buttons-row"><button class="btn btn-outline" id="btn-back-to-1"><i
-                    class="fas fa-arrow-left"></i>Atrás </button><button class="btn btn-primary" id="btn-step2"
-                  disabled>Continuar <i class="fas fa-arrow-right"></i></button></div>
+              <h3 id="calendar-month">Diciembre 2025</h3>
+              <div class="calendar-nav"><button id="btn-next-month"><i class="fas fa-chevron-right"></i></button>
+              </div>
+            </div>
+            <div class="calendar-grid" id="calendar-grid"></div>
+          </div>
+          <div class="time-slots">
+            <h3 id="time-title">Selecciona un día</h3>
+            <div class="time-grid" id="time-grid">
+              <p style="grid-column:span 3;text-align:center;color:var(--muted);padding:16px;font-size:12px;">
+                Primero elige una fecha </p>
             </div>
           </div>
-          < !-- PASO 3: Datos -->
-            <div class="step" id="step-3">
-              <div class="card">
-                <div class="card-title"><i class="fas fa-user"></i>Tus datos </div>
-                <div class="form-group"><label class="form-label">Nombre completo <span
-                      class="required">*</span></label><input type="text" class="form-input" id="input-name"
-                    placeholder="Tu nombre completo"></div>
-                <div class="form-group"><label class="form-label">WhatsApp <span class="required">*</span></label><input
-                    type="tel" class="form-input" id="input-phone" placeholder="10 dígitos" maxlength="15"></div>
-                <div class="form-row">
-                  <div class="form-group"><label class="form-label">Email</label><input type="email" class="form-input"
-                      id="input-email" placeholder="tu@email.com"></div>
-                  <div class="form-group"><label class="form-label">Cumpleaños</label><input type="date"
-                      class="form-input" id="input-birthday"></div>
-                </div>
-              </div>
-              <div class="card">
-                <div class="card-title"><i class="fas fa-clipboard-list"></i>Tu solicitud </div>
-                <div class="summary">
-                  <div class="summary-row"><span class="summary-label">Servicio</span><span class="summary-value"
-                      id="sum-service">-</span></div>
-                  <div class="summary-row"><span class="summary-label">Fecha</span><span class="summary-value"
-                      id="sum-date">-</span></div>
-                  <div class="summary-row"><span class="summary-label">Hora</span><span class="summary-value"
-                      id="sum-time">-</span></div>
-                  <div class="summary-row"><span class="summary-label">Precio</span><span
-                      class="summary-value summary-total" id="sum-price">-</span></div>
-                </div>
-                <div class="buttons-row"><button class="btn btn-outline" id="btn-back-to-2"><i
-                      class="fas fa-arrow-left"></i>Atrás </button><button class="btn btn-primary"
-                    id="btn-submit">Solicitar <i class="fas fa-paper-plane"></i></button></div>
-              </div>
+        </div>
+        <div class="buttons-row"><button class="btn btn-outline" id="btn-back-to-1"><i
+              class="fas fa-arrow-left"></i>Atrás </button><button class="btn btn-primary" id="btn-step2"
+            disabled>Continuar <i class="fas fa-arrow-right"></i></button></div>
+      </div>
+    </div>
+    <!-- PASO 3: Datos -->
+    <div class="step" id="step-3">
+      <div class="card">
+        <div class="card-title"><i class="fas fa-user"></i>Tus datos </div>
+        <div class="form-group"><label class="form-label">Nombre completo <span class="required">*</span></label><input
+            type="text" class="form-input" id="input-name" placeholder="Tu nombre completo"></div>
+        <div class="form-group"><label class="form-label">WhatsApp <span class="required">*</span></label><input
+            type="tel" class="form-input" id="input-phone" placeholder="10 dígitos" maxlength="15"></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Email</label><input type="email" class="form-input"
+              id="input-email" placeholder="tu@email.com"></div>
+          <div class="form-group"><label class="form-label">Cumpleaños</label><input type="date" class="form-input"
+              id="input-birthday"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title"><i class="fas fa-clipboard-list"></i>Tu solicitud </div>
+        <div class="summary">
+          <div class="summary-row"><span class="summary-label">Servicio</span><span class="summary-value"
+              id="sum-service">-</span></div>
+          <div class="summary-row"><span class="summary-label">Fecha</span><span class="summary-value"
+              id="sum-date">-</span></div>
+          <div class="summary-row"><span class="summary-label">Hora</span><span class="summary-value"
+              id="sum-time">-</span></div>
+          <div class="summary-row"><span class="summary-label">Precio</span><span class="summary-value summary-total"
+              id="sum-price">-</span></div>
+        </div>
+        <div class="buttons-row"><button class="btn btn-outline" id="btn-back-to-2"><i
+              class="fas fa-arrow-left"></i>Atrás </button><button class="btn btn-primary" id="btn-submit">Solicitar <i
+              class="fas fa-paper-plane"></i></button></div>
+      </div>
+    </div>
+    <!-- PASO 4: Confirmación -->
+    <div class="step" id="step-4">
+      <div class="card">
+        <div class="confirmation">
+          <div class="confirmation-icon"><i class="fas fa-check-circle"></i></div>
+          <h2>¡Solicitud Enviada !</h2>
+          <p>Envíanos un WhatsApp para confirmar tu cita</p>
+          <div class="confirmation-box">
+            <div class="confirmation-row"><i class="fas fa-sparkles"></i><span id="conf-service">-</span>
             </div>
-            < !-- PASO 4: Confirmación -->
-              <div class="step" id="step-4">
-                <div class="card">
-                  <div class="confirmation">
-                    <div class="confirmation-icon"><i class="fas fa-check-circle"></i></div>
-                    <h2>¡Solicitud Enviada !</h2>
-                    <p>Envíanos un WhatsApp para confirmar tu cita</p>
-                    <div class="confirmation-box">
-                      <div class="confirmation-row"><i class="fas fa-sparkles"></i><span id="conf-service">-</span>
-                      </div>
-                      <div class="confirmation-row"><i class="fas fa-calendar"></i><span id="conf-datetime">-</span>
-                      </div>
-                      <div class="confirmation-row"><i class="fas fa-dollar-sign"></i><span id="conf-price">-</span>
-                      </div>
-                    </div><button class="btn btn-whatsapp" id="btn-whatsapp"><i class="fab fa-whatsapp"></i>Enviar
-                      WhatsApp para confirmar </button>
-                    <p style="margin-top:16px;font-size:12px;color:var(--muted);">Te contactaremos para confirmar
-                      disponibilidad </p>
-                  </div>
-                </div>
-              </div>
+            <div class="confirmation-row"><i class="fas fa-calendar"></i><span id="conf-datetime">-</span>
+            </div>
+            <div class="confirmation-row"><i class="fas fa-dollar-sign"></i><span id="conf-price">-</span>
+            </div>
+          </div><button class="btn btn-whatsapp" id="btn-whatsapp"><i class="fab fa-whatsapp"></i>Enviar
+            WhatsApp para confirmar </button>
+          <p style="margin-top:16px;font-size:12px;color:var(--muted);">Te contactaremos para confirmar
+            disponibilidad </p>
+        </div>
+      </div>
+    </div>
   </div>
   <div class="footer" id="business-footer">Venus Cosmetología · San Juan del Río,
     Qro. </div>
