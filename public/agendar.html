@@ -653,8 +653,34 @@
       font-weight: 700;
       font-size: 15px;
     }
+  </style>
+</head>
 
-    </head><body><div class="header"><img src="/assets/logo.png" alt="Venus" class="logo"><h1 id="business-name">Venus Cosmetología</h1><p>Solicita tu cita</p></div><div class="container">< !-- Información del negocio --><div class="card" style="margin-bottom: 24px;"><div style="display: flex; flex-direction: column; gap: 12px;"><div style="display: flex; align-items: start; gap: 12px;"><i class="fas fa-map-marker-alt" style="color: var(--venus); margin-top: 2px; font-size: 16px;"></i><div style="flex: 1;"><div style="font-size: 13px; font-weight: 600; margin-bottom: 2px;">Ubicación</div><div id="business-address" style="font-size: 13px; color: var(--muted);">Cargando...</div></div></div><div style="display: flex; align-items: start; gap: 12px;"><i class="fas fa-clock" style="color: var(--venus); margin-top: 2px; font-size: 16px;"></i><div style="flex: 1;"><div style="font-size: 13px; font-weight: 600; margin-bottom: 2px;">Horario de atención</div><div id="business-hours" style="font-size: 13px; color: var(--muted);">Cargando...</div></div></div><div id="maps-button-container" style="display: none; margin-top: 8px;"><a id="maps-button" href="#" target="_blank" class="btn" style="
+<body>
+  <div class="header"><img src="/assets/logo.png" alt="Venus" class="logo">
+    <h1 id="business-name">Venus Cosmetología</h1>
+    <p>Solicita tu cita</p>
+  </div>
+  <div class="container">
+    < !-- Información del negocio -->
+      <div class="card" style="margin-bottom: 24px;">
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <div style="display: flex; align-items: start; gap: 12px;"><i class="fas fa-map-marker-alt"
+              style="color: var(--venus); margin-top: 2px; font-size: 16px;"></i>
+            <div style="flex: 1;">
+              <div style="font-size: 13px; font-weight: 600; margin-bottom: 2px;">Ubicación</div>
+              <div id="business-address" style="font-size: 13px; color: var(--muted);">Cargando...</div>
+            </div>
+          </div>
+          <div style="display: flex; align-items: start; gap: 12px;"><i class="fas fa-clock"
+              style="color: var(--venus); margin-top: 2px; font-size: 16px;"></i>
+            <div style="flex: 1;">
+              <div style="font-size: 13px; font-weight: 600; margin-bottom: 2px;">Horario de atención</div>
+              <div id="business-hours" style="font-size: 13px; color: var(--muted);">Cargando...</div>
+            </div>
+          </div>
+          <div id="maps-button-container" style="display: none; margin-top: 8px;"><a id="maps-button" href="#"
+              target="_blank" class="btn" style="
  display: inline-flex;
     align-items: center;
     gap: 8px;
@@ -667,7 +693,117 @@
     font-weight: 500;
     transition: all 0.2s;
     ">
- <i class="fas fa-map-marked-alt"></i>Ver en Google Maps </a></div></div></div><div class="progress"><div class="progress-dot active" id="dot-1"></div><div class="progress-dot" id="dot-2"></div><div class="progress-dot" id="dot-3"></div><div class="progress-dot" id="dot-4"></div></div>< !-- PASO 1: Servicio --><div class="step active" id="step-1"><div class="card"><div class="card-title"><i class="fas fa-sparkles"></i>¿Qué servicio te gustaría? </div>< !-- Tabs Container --><div class="category-tabs" id="category-tabs">< !-- Rendered by JS --></div><div class="services-grid" id="services-list"><div class="loading"><div class="spinner"></div><p>Cargando servicios...</p></div></div><div class="buttons-row"><button class="btn btn-primary" id="btn-step1" disabled>Continuar <i class="fas fa-arrow-right"></i></button></div></div></div>< !-- PASO 2: Fecha y Hora --><div class="step" id="step-2"><div class="card"><div class="card-title"><i class="fas fa-calendar"></i>¿Cuándo te gustaría venir? </div><div class="calendar-wrapper"><div class="calendar"><div class="calendar-header"><div class="calendar-nav"><button id="btn-prev-month"><i class="fas fa-chevron-left"></i></button></div><h3 id="calendar-month">Diciembre 2025</h3><div class="calendar-nav"><button id="btn-next-month"><i class="fas fa-chevron-right"></i></button></div></div><div class="calendar-grid" id="calendar-grid"></div></div><div class="time-slots"><h3 id="time-title">Selecciona un día</h3><div class="time-grid" id="time-grid"><p style="grid-column:span 3;text-align:center;color:var(--muted);padding:16px;font-size:12px;">Primero elige una fecha </p></div></div></div><div class="buttons-row"><button class="btn btn-outline" id="btn-back-to-1"><i class="fas fa-arrow-left"></i>Atrás </button><button class="btn btn-primary" id="btn-step2" disabled>Continuar <i class="fas fa-arrow-right"></i></button></div></div></div>< !-- PASO 3: Datos --><div class="step" id="step-3"><div class="card"><div class="card-title"><i class="fas fa-user"></i>Tus datos </div><div class="form-group"><label class="form-label">Nombre completo <span class="required">*</span></label><input type="text" class="form-input" id="input-name" placeholder="Tu nombre completo"></div><div class="form-group"><label class="form-label">WhatsApp <span class="required">*</span></label><input type="tel" class="form-input" id="input-phone" placeholder="10 dígitos" maxlength="15"></div><div class="form-row"><div class="form-group"><label class="form-label">Email</label><input type="email" class="form-input" id="input-email" placeholder="tu@email.com"></div><div class="form-group"><label class="form-label">Cumpleaños</label><input type="date" class="form-input" id="input-birthday"></div></div></div><div class="card"><div class="card-title"><i class="fas fa-clipboard-list"></i>Tu solicitud </div><div class="summary"><div class="summary-row"><span class="summary-label">Servicio</span><span class="summary-value" id="sum-service">-</span></div><div class="summary-row"><span class="summary-label">Fecha</span><span class="summary-value" id="sum-date">-</span></div><div class="summary-row"><span class="summary-label">Hora</span><span class="summary-value" id="sum-time">-</span></div><div class="summary-row"><span class="summary-label">Precio</span><span class="summary-value summary-total" id="sum-price">-</span></div></div><div class="buttons-row"><button class="btn btn-outline" id="btn-back-to-2"><i class="fas fa-arrow-left"></i>Atrás </button><button class="btn btn-primary" id="btn-submit">Solicitar <i class="fas fa-paper-plane"></i></button></div></div></div>< !-- PASO 4: Confirmación --><div class="step" id="step-4"><div class="card"><div class="confirmation"><div class="confirmation-icon"><i class="fas fa-check-circle"></i></div><h2>¡Solicitud Enviada !</h2><p>Envíanos un WhatsApp para confirmar tu cita</p><div class="confirmation-box"><div class="confirmation-row"><i class="fas fa-sparkles"></i><span id="conf-service">-</span></div><div class="confirmation-row"><i class="fas fa-calendar"></i><span id="conf-datetime">-</span></div><div class="confirmation-row"><i class="fas fa-dollar-sign"></i><span id="conf-price">-</span></div></div><button class="btn btn-whatsapp" id="btn-whatsapp"><i class="fab fa-whatsapp"></i>Enviar WhatsApp para confirmar </button><p style="margin-top:16px;font-size:12px;color:var(--muted);">Te contactaremos para confirmar disponibilidad </p></div></div></div></div><div class="footer" id="business-footer">Venus Cosmetología · San Juan del Río,
+              <i class="fas fa-map-marked-alt"></i>Ver en Google Maps </a></div>
+        </div>
+      </div>
+      <div class="progress">
+        <div class="progress-dot active" id="dot-1"></div>
+        <div class="progress-dot" id="dot-2"></div>
+        <div class="progress-dot" id="dot-3"></div>
+        <div class="progress-dot" id="dot-4"></div>
+      </div>
+      < !-- PASO 1: Servicio -->
+        <div class="step active" id="step-1">
+          <div class="card">
+            <div class="card-title"><i class="fas fa-sparkles"></i>¿Qué servicio te gustaría? </div>
+            < !-- Tabs Container -->
+              <div class="category-tabs" id="category-tabs">
+                < !-- Rendered by JS -->
+              </div>
+              <div class="services-grid" id="services-list">
+                <div class="loading">
+                  <div class="spinner"></div>
+                  <p>Cargando servicios...</p>
+                </div>
+              </div>
+              <div class="buttons-row"><button class="btn btn-primary" id="btn-step1" disabled>Continuar <i
+                    class="fas fa-arrow-right"></i></button></div>
+          </div>
+        </div>
+        < !-- PASO 2: Fecha y Hora -->
+          <div class="step" id="step-2">
+            <div class="card">
+              <div class="card-title"><i class="fas fa-calendar"></i>¿Cuándo te gustaría venir? </div>
+              <div class="calendar-wrapper">
+                <div class="calendar">
+                  <div class="calendar-header">
+                    <div class="calendar-nav"><button id="btn-prev-month"><i class="fas fa-chevron-left"></i></button>
+                    </div>
+                    <h3 id="calendar-month">Diciembre 2025</h3>
+                    <div class="calendar-nav"><button id="btn-next-month"><i class="fas fa-chevron-right"></i></button>
+                    </div>
+                  </div>
+                  <div class="calendar-grid" id="calendar-grid"></div>
+                </div>
+                <div class="time-slots">
+                  <h3 id="time-title">Selecciona un día</h3>
+                  <div class="time-grid" id="time-grid">
+                    <p style="grid-column:span 3;text-align:center;color:var(--muted);padding:16px;font-size:12px;">
+                      Primero elige una fecha </p>
+                  </div>
+                </div>
+              </div>
+              <div class="buttons-row"><button class="btn btn-outline" id="btn-back-to-1"><i
+                    class="fas fa-arrow-left"></i>Atrás </button><button class="btn btn-primary" id="btn-step2"
+                  disabled>Continuar <i class="fas fa-arrow-right"></i></button></div>
+            </div>
+          </div>
+          < !-- PASO 3: Datos -->
+            <div class="step" id="step-3">
+              <div class="card">
+                <div class="card-title"><i class="fas fa-user"></i>Tus datos </div>
+                <div class="form-group"><label class="form-label">Nombre completo <span
+                      class="required">*</span></label><input type="text" class="form-input" id="input-name"
+                    placeholder="Tu nombre completo"></div>
+                <div class="form-group"><label class="form-label">WhatsApp <span class="required">*</span></label><input
+                    type="tel" class="form-input" id="input-phone" placeholder="10 dígitos" maxlength="15"></div>
+                <div class="form-row">
+                  <div class="form-group"><label class="form-label">Email</label><input type="email" class="form-input"
+                      id="input-email" placeholder="tu@email.com"></div>
+                  <div class="form-group"><label class="form-label">Cumpleaños</label><input type="date"
+                      class="form-input" id="input-birthday"></div>
+                </div>
+              </div>
+              <div class="card">
+                <div class="card-title"><i class="fas fa-clipboard-list"></i>Tu solicitud </div>
+                <div class="summary">
+                  <div class="summary-row"><span class="summary-label">Servicio</span><span class="summary-value"
+                      id="sum-service">-</span></div>
+                  <div class="summary-row"><span class="summary-label">Fecha</span><span class="summary-value"
+                      id="sum-date">-</span></div>
+                  <div class="summary-row"><span class="summary-label">Hora</span><span class="summary-value"
+                      id="sum-time">-</span></div>
+                  <div class="summary-row"><span class="summary-label">Precio</span><span
+                      class="summary-value summary-total" id="sum-price">-</span></div>
+                </div>
+                <div class="buttons-row"><button class="btn btn-outline" id="btn-back-to-2"><i
+                      class="fas fa-arrow-left"></i>Atrás </button><button class="btn btn-primary"
+                    id="btn-submit">Solicitar <i class="fas fa-paper-plane"></i></button></div>
+              </div>
+            </div>
+            < !-- PASO 4: Confirmación -->
+              <div class="step" id="step-4">
+                <div class="card">
+                  <div class="confirmation">
+                    <div class="confirmation-icon"><i class="fas fa-check-circle"></i></div>
+                    <h2>¡Solicitud Enviada !</h2>
+                    <p>Envíanos un WhatsApp para confirmar tu cita</p>
+                    <div class="confirmation-box">
+                      <div class="confirmation-row"><i class="fas fa-sparkles"></i><span id="conf-service">-</span>
+                      </div>
+                      <div class="confirmation-row"><i class="fas fa-calendar"></i><span id="conf-datetime">-</span>
+                      </div>
+                      <div class="confirmation-row"><i class="fas fa-dollar-sign"></i><span id="conf-price">-</span>
+                      </div>
+                    </div><button class="btn btn-whatsapp" id="btn-whatsapp"><i class="fab fa-whatsapp"></i>Enviar
+                      WhatsApp para confirmar </button>
+                    <p style="margin-top:16px;font-size:12px;color:var(--muted);">Te contactaremos para confirmar
+                      disponibilidad </p>
+                  </div>
+                </div>
+              </div>
+  </div>
+  <div class="footer" id="business-footer">Venus Cosmetología · San Juan del Río,
     Qro. </div>
   <script>
     let services = [];
@@ -681,7 +817,7 @@
     let whatsappUrl = '';
     let currentCategory = null;
 
-    const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
     const DAYS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
     document.addEventListener('DOMContentLoaded', async () => {
@@ -782,7 +918,7 @@
 
       // 2. Set default category if none
       if (!currentCategory) {
-        currentCategory = categories[1] || 'Todos'; 
+        currentCategory = categories[1] || 'Todos';
       }
 
       // 3. Render Tabs
@@ -794,8 +930,8 @@
       `).join('');
 
       // 4. Filter Services
-      const filteredServices = currentCategory === 'Todos' 
-        ? services 
+      const filteredServices = currentCategory === 'Todos'
+        ? services
         : services.filter(s => (s.category || 'Otros') === currentCategory);
 
       // 5. Render Grid
@@ -830,15 +966,15 @@
       const year = currentMonth.getFullYear();
       const month = currentMonth.getMonth();
       document.getElementById('calendar-month').textContent = `${MONTHS[month]} ${year}`;
-      
+
       const firstDay = new Date(year, month, 1).getDay();
       const daysInMonth = new Date(year, month + 1, 0).getDate();
-      const today = new Date(); today.setHours(0,0,0,0);
-      
-      let html = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'].map(d => `<div class="day-name">${d}</div>`).join('');
-      
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+
+      let html = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'].map(d => `<div class="day-name">${d}</div>`).join('');
+
       for (let i = 0; i < firstDay; i++) html += '<div class="day empty"></div>';
-      
+
       for (let d = 1; d <= daysInMonth; d++) {
         const date = new Date(year, month, d);
         const dateStr = formatDateISO(date);
@@ -846,19 +982,19 @@
         const isClosed = businessHours.closedDays?.includes(date.getDay());
         const isToday = date.toDateString() === today.toDateString();
         const isSelected = selectedDate === dateStr;
-        
+
         let cls = 'day';
         if (isToday) cls += ' today';
         if (isSelected) cls += ' selected';
         if (isPast || isClosed) cls += ' disabled';
-        
+
         html += `<div class="${cls}" data-date="${dateStr}">${d}</div>`;
       }
-      
+
       document.getElementById('calendar-grid').innerHTML = html;
-      
+
       document.querySelectorAll('.day:not(.disabled):not(.empty)').forEach(day => {
-        day.addEventListener('click', function() {
+        day.addEventListener('click', function () {
           const dateStr = this.dataset.date;
           if (dateStr) selectDate(dateStr);
         });
@@ -880,9 +1016,9 @@
       selectedTime = null;
       document.getElementById('btn-step2').disabled = true;
       renderCalendar();
-      
+
       document.getElementById('time-grid').innerHTML = '<p style="grid-column:span 3;text-align:center;padding:16px;">Cargando...</p>';
-      
+
       try {
         const res = await fetch(`/api/public/availability?date=${dateStr}`);
         const json = await res.json();
@@ -890,7 +1026,7 @@
       } catch (e) {
         busySlots[dateStr] = [];
       }
-      
+
       renderTimeSlots(dateStr);
       updateSummary();
     }
@@ -899,23 +1035,23 @@
       const busy = busySlots[dateStr] || [];
       const date = new Date(dateStr + 'T00:00:00');
       document.getElementById('time-title').textContent = date.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'short' });
-      
+
       const startH = parseInt(businessHours.start?.split(':')[0]) || 9;
       const endH = parseInt(businessHours.end?.split(':')[0]) || 20;
-      
+
       let html = '';
       for (let h = startH; h < endH; h++) {
-        const time = `${h.toString().padStart(2,'0')}:00`;
-        const display = h === 12 ? '12:00 PM' : h > 12 ? `${h-12}:00 PM` : `${h}:00 AM`;
+        const time = `${h.toString().padStart(2, '0')}:00`;
+        const display = h === 12 ? '12:00 PM' : h > 12 ? `${h - 12}:00 PM` : `${h}:00 AM`;
         const isBusy = busy.includes(time);
-        
+
         html += `<div class="time-slot ${isBusy ? 'disabled' : ''}" data-time="${time}">${display}</div>`;
       }
-      
+
       document.getElementById('time-grid').innerHTML = html;
-      
+
       document.querySelectorAll('.time-slot:not(.disabled)').forEach(slot => {
-        slot.addEventListener('click', function() {
+        slot.addEventListener('click', function () {
           selectTime(this.dataset.time, this);
         });
       });
@@ -940,7 +1076,7 @@
       }
       if (selectedTime) {
         const h = parseInt(selectedTime.split(':')[0]);
-        document.getElementById('sum-time').textContent = h === 12 ? '12:00 PM' : h > 12 ? `${h-12}:00 PM` : `${h}:00 AM`;
+        document.getElementById('sum-time').textContent = h === 12 ? '12:00 PM' : h > 12 ? `${h - 12}:00 PM` : `${h}:00 AM`;
       }
     }
 
@@ -993,13 +1129,13 @@
     function showConfirmation() {
       document.getElementById('conf-service').textContent = selectedService.name;
       document.getElementById('conf-price').textContent = '$' + selectedService.price;
-      
+
       const d = new Date(selectedDate + 'T00:00:00');
       const h = parseInt(selectedTime.split(':')[0]);
-      const timeStr = h === 12 ? '12:00 PM' : h > 12 ? `${h-12}:00 PM` : `${h}:00 AM`;
-      
+      const timeStr = h === 12 ? '12:00 PM' : h > 12 ? `${h - 12}:00 PM` : `${h}:00 AM`;
+
       document.getElementById('conf-datetime').textContent = d.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'short' }) + ', ' + timeStr;
-      
+
       goToStep(4);
     }
 
@@ -1010,19 +1146,20 @@
     function goToStep(n) {
       document.querySelectorAll('.step').forEach(el => el.classList.remove('active'));
       document.getElementById(`step-${n}`).classList.add('active');
-      
+
       for (let i = 1; i <= 4; i++) {
         const dot = document.getElementById(`dot-${i}`);
         dot.className = 'progress-dot';
         if (i < n) dot.classList.add('completed');
         else if (i === n) dot.classList.add('active');
       }
-      window.scrollTo(0,0);
+      window.scrollTo(0, 0);
     }
 
     function formatDateISO(d) {
-      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     }
   </script>
 </body>
+
 </html>
