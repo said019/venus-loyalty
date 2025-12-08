@@ -3770,7 +3770,7 @@
               <div style="position:relative;">
                 <span
                   style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);">$</span>
-                <input type="number" id="product-price" class="form-input" required min="0" step="10"
+                <input type="number" id="product-price" class="form-input" required min="0" step="any"
                   style="padding-left:25px;">
               </div>
             </div>
@@ -3779,7 +3779,7 @@
               <div style="position:relative;">
                 <span
                   style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);">$</span>
-                <input type="number" id="product-cost" class="form-input" min="0" step="10" style="padding-left:25px;">
+                <input type="number" id="product-cost" class="form-input" min="0" step="any" style="padding-left:25px;">
               </div>
             </div>
           </div>
@@ -5973,6 +5973,14 @@
       .quick-action-btn.primary:hover {
         background: var(--venus-soft);
         transform: scale(1.1);
+      }
+
+      @media (max-width: 600px) {
+        #modal-product .row {
+          flex-direction: column;
+          align-items: stretch;
+          gap: 12px;
+        }
       }
     </style>
 
@@ -11032,18 +11040,31 @@
       e.preventDefault();
 
       const id = document.getElementById('product-id').value;
+
+      // Robust number parsing
+      const priceVal = parseFloat(document.getElementById('product-price').value);
+      const costVal = parseFloat(document.getElementById('product-cost').value);
+      const stockVal = parseInt(document.getElementById('product-stock').value, 10);
+      const minStockVal = parseInt(document.getElementById('product-min-stock').value, 10);
+
       const data = {
         name: document.getElementById('product-name').value,
         category: document.getElementById('product-category').value,
         presentation: document.getElementById('product-presentation').value,
-        price: parseFloat(document.getElementById('product-price').value),
-        cost: parseFloat(document.getElementById('product-cost').value) || null,
-        stock: parseInt(document.getElementById('product-stock').value),
-        minStock: parseInt(document.getElementById('product-min-stock').value) || 5,
+        price: isNaN(priceVal) ? 0 : priceVal,
+        cost: isNaN(costVal) ? null : costVal,
+        stock: isNaN(stockVal) ? 0 : stockVal,
+        minStock: isNaN(minStockVal) ? 5 : minStockVal,
         description: document.getElementById('product-description').value
       };
 
+      const submitBtn = formProduct.querySelector('button[type="submit"]');
+      const originalText = submitBtn.innerHTML;
+
       try {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+
         const url = id ? `/api/products/${id}` : '/api/products';
         const method = id ? 'PUT' : 'POST';
 
@@ -11059,11 +11080,18 @@
         if (json.success) {
           modalProduct.classList.add('hidden');
           loadProductsTable();
+          // Optional: Show success toast if available, or just reload grid which tells usage
         } else {
           alert('Error: ' + json.error);
         }
       } catch (error) {
+        console.error(error);
         alert('Error de conexión');
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = originalText;
+        }
       }
     });
 
