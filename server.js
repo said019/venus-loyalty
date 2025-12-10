@@ -1576,6 +1576,90 @@ app.get("/api/apple/test-pass", async (_req, res) => {
   }
 });
 
+// POST /api/clients - Crear cliente nuevo desde admin (sin cumpleaños requerido)
+app.post("/api/clients", adminAuth, async (req, res) => {
+  try {
+    const { name, phone, birthday } = req.body;
+
+    console.log('[CREATE CLIENT] 📝 Intentando crear cliente:', { name, phone, hasBirthday: !!birthday });
+
+    // Validar campos requeridos
+    if (!name || !phone) {
+      return res.status(400).json({
+        success: false,
+        error: "Nombre y teléfono son requeridos"
+      });
+    }
+
+    const cleanPhone = String(phone).replace(/\D/g, '');
+    const cleanName = String(name).trim();
+
+    // Verificar si ya existe un cliente con este teléfono
+    const existingSnap = await firestore.collection(COL_CARDS)
+      .where('phone', '==', cleanPhone)
+      .limit(1)
+      .get();
+
+    if (!existingSnap.empty) {
+      return res.status(400).json({
+        success: false,
+        error: "Ya existe un cliente con este teléfono"
+      });
+    }
+
+    // Crear tarjeta de lealtad
+    const cardId = `card_${Date.now()}`;
+    const cardData = {
+      id: cardId,
+      name: cleanName,
+      phone: cleanPhone,
+      birthday: birthday || null,  // ✅ cumpleaños es OPCIONAL
+      stamps: 0,
+      max: 8,
+      cycles: 0,
+      status: 'active',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      lastVisit: new Date().toISOString(),
+      source: 'admin-panel'
+    };
+
+    await firestore.collection(COL_CARDS).doc(cardId).set(cardData);
+
+    // Registrar evento
+    await fsAddEvent(cardId, "ISSUE", {
+      name: cleanName,
+      phone: cleanPhone,
+      birthday: birthday || null,
+      by: "admin"
+    });
+
+    console.log(`[CREATE CLIENT] ✅ Cliente creado exitosamente: ${cardId}`, {
+      name: cleanName,
+      phone: cleanPhone,
+      hasBirthday: !!birthday
+    });
+
+    res.json({
+      success: true,
+      client: {
+        id: cardId,
+        name: cleanName,
+        phone: cleanPhone,
+        birthday: birthday || null,
+        stamps: 0,
+        max: 8
+      }
+    });
+  } catch (error) {
+    console.error("[CREATE CLIENT] ❌ Error:", error);
+    res.status(500).json({
+      success: false,
+      error: error.message || "Error al crear cliente"
+    });
+  }
+});
+
 app.get("/api/apple/pass", async (req, res) => {
   try {
     const { cardId } = req.query;
@@ -1988,6 +2072,8 @@ app.post('/api/public/request', async (req, res) => {
     let cardId = null;
     let isNewClient = false;
 
+    console.log(`[BOOKING REQUEST] 🔍 Buscando tarjeta para teléfono: ${phoneClean}`);
+
     const existingCard = await firestore.collection(COL_CARDS)
       .where('phone', '==', phoneClean)
       .limit(1)
@@ -1995,21 +2081,31 @@ app.post('/api/public/request', async (req, res) => {
 
     if (!existingCard.empty) {
       cardId = existingCard.docs[0].id;
+      const existingData = existingCard.docs[0].data();
+      console.log(`[BOOKING REQUEST] ✅ Tarjeta existente encontrada: ${cardId}`, {
+        name: existingData.name,
+        hasEmail: !!existingData.email,
+        hasBirthday: !!existingData.birthday
+      });
+
       const updates = {};
-      if (clientEmail && !existingCard.docs[0].data().email) {
+      if (clientEmail && !existingData.email) {
         updates.email = clientEmail;
+        console.log(`[BOOKING REQUEST] 📧 Agregando email a tarjeta existente`);
       }
-      if (clientBirthday && !existingCard.docs[0].data().birthday) {
+      if (clientBirthday && !existingData.birthday) {
         updates.birthday = clientBirthday;
+        console.log(`[BOOKING REQUEST] 🎂 Agregando cumpleaños a tarjeta existente`);
       }
       if (Object.keys(updates).length > 0) {
         await firestore.collection(COL_CARDS).doc(cardId).update(updates);
+        console.log(`[BOOKING REQUEST] 🔄 Tarjeta actualizada con:`, updates);
       }
     } else {
       // Generar ID único para la tarjeta
       const newCardRef = firestore.collection(COL_CARDS).doc();
       cardId = newCardRef.id;
-      
+
       const cardData = {
         id: cardId,
         name: clientName,
@@ -2025,9 +2121,17 @@ app.post('/api/public/request', async (req, res) => {
         source: 'online-request'
       };
 
+      console.log(`[BOOKING REQUEST] 🆕 Creando nueva tarjeta:`, {
+        cardId,
+        name: clientName,
+        phone: phoneClean,
+        hasEmail: !!clientEmail,
+        hasBirthday: !!clientBirthday
+      });
+
       await newCardRef.set(cardData);
       isNewClient = true;
-      console.log(`[BOOKING REQUEST] Nueva tarjeta creada: ${cardId}`);
+      console.log(`[BOOKING REQUEST] ✅ Nueva tarjeta creada exitosamente: ${cardId}`);
     }
 
     // 2. GUARDAR SOLICITUD

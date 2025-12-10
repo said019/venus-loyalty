@@ -1085,6 +1085,17 @@
       const email = document.getElementById('input-email').value.trim();
       const birthday = document.getElementById('input-birthday').value;
 
+      // 🐛 DEBUG: Logs para verificar datos antes de enviar
+      console.log('📝 [BOOKING] Datos del formulario:', {
+        name,
+        phone,
+        email: email || 'sin email',
+        birthday: birthday || 'sin cumpleaños',
+        service: selectedService?.name,
+        date: selectedDate,
+        time: selectedTime
+      });
+
       if (!name) { alert('Ingresa tu nombre'); return; }
       if (phone.length < 10) { alert('Ingresa tu WhatsApp (10 dígitos)'); return; }
 
@@ -1092,34 +1103,50 @@
       btn.disabled = true;
       btn.innerHTML = '<div class="spinner" style="width:18px;height:18px;display:inline-block;margin-right:8px;"></div> Enviando...';
 
+      const requestData = {
+        serviceId: selectedService.id,
+        serviceName: selectedService.name,
+        servicePrice: selectedService.price,
+        serviceDuration: selectedService.duration,
+        date: selectedDate,
+        time: selectedTime,
+        clientName: name,
+        clientPhone: phone,
+        clientEmail: email || null,
+        clientBirthday: birthday || null
+      };
+
+      console.log('🚀 [BOOKING] Enviando solicitud:', requestData);
+
       try {
         const res = await fetch('/api/public/request', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            serviceId: selectedService.id,
-            serviceName: selectedService.name,
-            servicePrice: selectedService.price,
-            serviceDuration: selectedService.duration,
-            date: selectedDate,
-            time: selectedTime,
-            clientName: name,
-            clientPhone: phone,
-            clientEmail: email || null,
-            clientBirthday: birthday || null
-          })
+          body: JSON.stringify(requestData)
         });
+        
+        console.log('📡 [BOOKING] Respuesta HTTP:', res.status);
+        
         const json = await res.json();
+        console.log('📦 [BOOKING] Respuesta del servidor:', json);
+        
         if (json.success) {
+          console.log('✅ [BOOKING] Solicitud exitosa!', {
+            requestId: json.requestId,
+            cardId: json.cardId,
+            isNewClient: json.isNewClient
+          });
           whatsappUrl = json.whatsappUrl;
           showConfirmation();
         } else {
-          alert('Error: ' + json.error);
+          console.error('❌ [BOOKING] Error del servidor:', json.error);
+          alert('Error al enviar la solicitud:\n' + json.error);
           btn.disabled = false;
           btn.innerHTML = 'Solicitar <i class="fas fa-paper-plane"></i>';
         }
       } catch (e) {
-        alert('Error de conexión');
+        console.error('❌ [BOOKING] Error de conexión:', e);
+        alert('Error de conexión. Por favor verifica tu internet e intenta de nuevo.');
         btn.disabled = false;
         btn.innerHTML = 'Solicitar <i class="fas fa-paper-plane"></i>';
       }
