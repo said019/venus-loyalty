@@ -10394,6 +10394,7 @@
         try {
           const res = await fetch('/api/clients', {
             method: 'POST',
+            credentials: 'include',  // ← CRÍTICO: Necesario para autenticación
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name, phone })
           });
