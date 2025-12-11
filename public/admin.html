@@ -4800,8 +4800,136 @@
       .calendar-day-dots {
         display: flex;
         gap: 3px;
-        min-height: 8px;
+        margin-top: 4px;
       }
+
+      .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background-color: var(--venus-green);
+      }
+
+      /* Time Grid for Week/Day View */
+      .time-grid-container {
+        display: flex;
+        flex-direction: column;
+        height: 600px;
+        overflow: hidden;
+        background: #23241f;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+      }
+
+      .time-grid-header {
+        display: flex;
+        border-bottom: 1px solid var(--line);
+        background: #2c2d26;
+      }
+
+      .time-header-spacer {
+        width: 60px;
+        flex-shrink: 0;
+        border-right: 1px solid var(--line);
+      }
+
+      .day-headers {
+        display: flex;
+        flex: 1;
+      }
+
+      .day-header-cell {
+        flex: 1;
+        text-align: center;
+        padding: 10px;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--ink);
+        border-right: 1px solid rgba(255, 255, 255, 0.05);
+      }
+
+      .day-header-cell.today {
+        color: var(--venus);
+        background: rgba(140, 150, 104, 0.1);
+      }
+
+      .time-grid-body {
+        display: flex;
+        flex: 1;
+        overflow-y: auto;
+      }
+
+      .time-labels {
+        width: 60px;
+        flex-shrink: 0;
+        border-right: 1px solid var(--line);
+      }
+
+      .time-label {
+        height: 60px;
+        /* 1 hour */
+        text-align: right;
+        padding-right: 8px;
+        font-size: 11px;
+        color: var(--muted);
+        transform: translateY(-8px);
+      }
+
+      .days-grid {
+        display: flex;
+        flex: 1;
+        position: relative;
+      }
+
+      .day-column {
+        flex: 1;
+        border-right: 1px solid rgba(255, 255, 255, 0.05);
+        position: relative;
+      }
+
+      .time-slot {
+        height: 60px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        cursor: pointer;
+        transition: background 0.1s;
+      }
+
+      .time-slot:hover {
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      .time-slot::after {
+        content: '+ Agendar';
+        display: none;
+        color: var(--venus-soft);
+        font-size: 10px;
+        padding: 4px;
+      }
+
+      .time-slot:hover::after {
+        display: block;
+      }
+
+      .appt-block {
+        position: absolute;
+        left: 2px;
+        right: 2px;
+        padding: 4px;
+        border-radius: 4px;
+        font-size: 11px;
+        overflow: hidden;
+        cursor: pointer;
+        z-index: 10;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        border-left: 3px solid rgba(0, 0, 0, 0.2);
+      }
+
+      .appt-block:hover {
+        z-index: 20;
+        transform: scale(1.02);
+      }
+
+
 
       .calendar-day-dot {
         width: 5px;
@@ -8898,6 +9026,7 @@
     currentMonth.setDate(1); // Primer día del mes
     let selectedDate = new Date();
     selectedDate.setHours(0, 0, 0, 0);
+    let currentView = 'month';
     let monthAppointments = {}; // Cache de citas del mes
     let allAppointments = []; // Todas las citas del mes para el calendario
 
@@ -9214,7 +9343,195 @@
     }
 
 
-    // ========== CALENDARIO MENSUAL ==========
+    // ========== RENDERIZADO CALENDARIO (Mes/Semana/Día) ==========
+
+    function renderCalendar() {
+      const calendarGrid = document.getElementById('monthly-calendar');
+      if (!calendarGrid) return;
+
+      const weekdaysHeader = document.querySelector('.weekdays-header');
+
+      // Elemento título del mes
+      const calendarMonthTitle = document.getElementById('calendar-month-title');
+      // En este archivo el título a veces se actualiza dentro de renderMonthlyCalendar, 
+      // pero aquí centralizamos la lógica para otras vistas.
+
+      if (currentView === 'month') {
+        if (weekdaysHeader) weekdaysHeader.style.display = 'flex';
+        calendarGrid.className = 'calendar-grid'; // Reset class
+        renderMonthlyCalendar();
+      } else {
+        if (weekdaysHeader) weekdaysHeader.style.display = 'none';
+        calendarGrid.className = 'time-grid-container'; // Use container style
+
+        if (currentView === 'week') renderWeeklyCalendar();
+        else if (currentView === 'day') renderDailyCalendar();
+      }
+
+      // Update navigation Title for Week/Day view
+      if (calendarMonthTitle && currentView !== 'month') {
+        if (currentView === 'week') {
+          const startOfWeek = new Date(selectedDate);
+          startOfWeek.setDate(selectedDate.getDate() - selectedDate.getDay()); // Sunday
+          const endOfWeek = new Date(startOfWeek);
+          endOfWeek.setDate(startOfWeek.getDate() + 6);
+
+          const m1 = startOfWeek.toLocaleString('es-MX', { month: 'short' });
+          const m2 = endOfWeek.toLocaleString('es-MX', { month: 'short' });
+
+          calendarMonthTitle.textContent = `${startOfWeek.getDate()} ${m1} - ${endOfWeek.getDate()} ${m2} ${endOfWeek.getFullYear()}`;
+        } else if (currentView === 'day') {
+          const dateStr = selectedDate.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+          calendarMonthTitle.textContent = dateStr.charAt(0).toUpperCase() + dateStr.slice(1);
+        }
+      }
+    }
+
+    function renderWeeklyCalendar() {
+      const calendarContainer = document.getElementById('monthly-calendar');
+      calendarContainer.innerHTML = '';
+
+      // Start of week (Sunday)
+      const startOfWeek = new Date(selectedDate);
+      startOfWeek.setDate(selectedDate.getDate() - selectedDate.getDay());
+      startOfWeek.setHours(0, 0, 0, 0);
+
+      // Generate Headers
+      let headersHTML = '<div class="time-header-spacer"></div><div class="day-headers">';
+      const days = [];
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(startOfWeek);
+        d.setDate(startOfWeek.getDate() + i);
+        days.push(d);
+        const isToday = (d.toDateString() === new Date().toDateString());
+        headersHTML += `<div class="day-header-cell ${isToday ? 'today' : ''}">
+            ${d.toLocaleDateString('es-MX', { weekday: 'short' })} ${d.getDate()}
+         </div>`;
+      }
+      headersHTML += '</div>';
+
+      // Generate Time Grid
+      let bodyHTML = '<div class="time-grid-body"><div class="time-labels">';
+      for (let h = 8; h <= 20; h++) {
+        bodyHTML += `<div class="time-label">${h}:00</div>`;
+      }
+      bodyHTML += '</div><div class="days-grid">';
+
+      // Columns
+      days.forEach(day => {
+        bodyHTML += `<div class="day-column" data-date="${toLocalDateString(day)}">`;
+        for (let h = 8; h <= 20; h++) {
+          const timeStr = `${String(h).padStart(2, '0')}:00`;
+          bodyHTML += `<div class="time-slot" data-time="${timeStr}" onclick="openNewApptDialogWithDate('${toLocalDateString(day)}', '${timeStr}')"></div>`;
+        }
+
+        // Events
+        const dayStr = toLocalDateString(day);
+        const dailyAppts = (allAppointments || []).filter(a => a.date === dayStr && a.status !== 'cancelled');
+
+        dailyAppts.forEach(appt => {
+          if (!appt.time) return;
+          const [apptH, apptM] = appt.time.split(':').map(Number);
+          if (apptH < 8 || apptH > 20) return;
+
+          const top = ((apptH - 8) * 60) + (apptM || 0);
+          const height = (appt.durationMinutes || 60);
+
+          let bg = '#5c6bc0';
+          if (appt.status === 'confirmed') bg = '#10b981';
+          else if (appt.status === 'completed') bg = '#059669';
+          else if (appt.status === 'no_show') bg = '#ef4444';
+
+          bodyHTML += `<div class="appt-block" style="top:${top}px; height:${height}px; background:${bg}cc; border-left-color:${bg};" 
+                          onclick="event.stopPropagation(); editAppointment('${appt.id}')" title="${appt.clientName} - ${appt.serviceName}">
+                <strong>${appt.time}</strong> ${appt.clientName}
+            </div>`;
+        });
+
+        bodyHTML += '</div>';
+      });
+
+      bodyHTML += '</div></div>';
+      calendarContainer.innerHTML = `<div class="time-grid-header">${headersHTML}</div>` + bodyHTML;
+    }
+
+    function renderDailyCalendar() {
+      const calendarContainer = document.getElementById('monthly-calendar');
+      calendarContainer.innerHTML = '';
+
+      const d = new Date(selectedDate);
+
+      // Header
+      let headersHTML = '<div class="time-header-spacer"></div><div class="day-headers">';
+      const isToday = (d.toDateString() === new Date().toDateString());
+      headersHTML += `<div class="day-header-cell ${isToday ? 'today' : ''}">
+            ${d.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })}
+         </div>`;
+      headersHTML += '</div>';
+
+      // Body
+      let bodyHTML = '<div class="time-grid-body"><div class="time-labels">';
+      for (let h = 8; h <= 20; h++) {
+        bodyHTML += `<div class="time-label">${h}:00</div>`;
+      }
+      bodyHTML += '</div><div class="days-grid">';
+
+      // Column
+      bodyHTML += `<div class="day-column" style="flex:1;" data-date="${toLocalDateString(d)}">`;
+      for (let h = 8; h <= 20; h++) {
+        const timeStr = `${String(h).padStart(2, '0')}:00`;
+        bodyHTML += `<div class="time-slot" data-time="${timeStr}" onclick="openNewApptDialogWithDate('${toLocalDateString(d)}', '${timeStr}')"></div>`;
+      }
+
+      // Events
+      const dayStr = toLocalDateString(d);
+      const dailyAppts = (allAppointments || []).filter(a => a.date === dayStr && a.status !== 'cancelled');
+
+      dailyAppts.forEach(appt => {
+        if (!appt.time) return;
+        const [apptH, apptM] = appt.time.split(':').map(Number);
+        if (apptH < 8 || apptH > 20) return;
+
+        const top = ((apptH - 8) * 60) + (apptM || 0);
+        const height = (appt.durationMinutes || 60);
+        let bg = '#5c6bc0';
+        if (appt.status === 'confirmed') bg = '#10b981';
+        else if (appt.status === 'completed') bg = '#059669';
+        else if (appt.status === 'no_show') bg = '#ef4444';
+
+        bodyHTML += `<div class="appt-block" style="top:${top}px; height:${height}px; background:${bg}cc; border-left-color:${bg};" 
+                        onclick="event.stopPropagation(); editAppointment('${appt.id}')" title="${appt.clientName}">
+              <div style="font-weight:bold;">${appt.time} - ${appt.clientName}</div>
+              <div style="font-size:0.9em;">${appt.serviceName}</div>
+              <div style="font-size:0.8em;opacity:0.8;">${appt.clientPhone}</div>
+          </div>`;
+      });
+
+      bodyHTML += '</div></div></div>';
+      calendarContainer.innerHTML = `<div class="time-grid-header">${headersHTML}</div>` + bodyHTML;
+    }
+
+    // Función global para abrir modal desde el calendario
+    window.openNewApptDialogWithDate = function (dateIso, timeStr) {
+      if (newApptDialog) newApptDialog.showModal();
+
+      loadServices();
+      loadClients();
+      generateHourMinuteOptions();
+
+      if (newApptCalendar && typeof newApptCalendar.selectDate === 'function') {
+        newApptCalendar.selectDate(dateIso);
+      } else {
+        const dateInput = document.getElementById('new-appt-date');
+        if (dateInput) dateInput.value = dateIso;
+      }
+
+      const [h, m] = timeStr.split(':');
+      const hourSelect = document.getElementById('new-appt-hour');
+      const minuteSelect = document.getElementById('new-appt-minute');
+      if (hourSelect) hourSelect.value = h;
+      if (minuteSelect) minuteSelect.value = m;
+    }
     async function renderMonthlyCalendar() {
       if (!monthlyCalendar) return;
 
@@ -9397,7 +9714,7 @@
           });
 
           // Re-renderizar con los datos
-          renderMonthlyCalendar();
+          renderCalendar();
         }
       } catch (error) {
         console.error('Error loading month appointments:', error);
@@ -10231,27 +10548,44 @@
     // ========== EVENT LISTENERS ==========
 
     // Navegación semanal
+    // Navegación del calendario (Mes/Semana/Día)
     if (btnPrevMonth) {
       btnPrevMonth.addEventListener('click', () => {
-        currentMonth.setMonth(currentMonth.getMonth() - 1);
-        renderMonthlyCalendar();
+        if (currentView === 'month') {
+          currentMonth.setMonth(currentMonth.getMonth() - 1);
+        } else if (currentView === 'week') {
+          selectedDate.setDate(selectedDate.getDate() - 7);
+          currentMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
+        } else if (currentView === 'day') {
+          selectedDate.setDate(selectedDate.getDate() - 1);
+          currentMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
+        }
+        loadMonthAppointments(); // Fetch data then render
       });
     }
 
     if (btnNextMonth) {
       btnNextMonth.addEventListener('click', () => {
-        currentMonth.setMonth(currentMonth.getMonth() + 1);
-        renderMonthlyCalendar();
+        if (currentView === 'month') {
+          currentMonth.setMonth(currentMonth.getMonth() + 1);
+        } else if (currentView === 'week') {
+          selectedDate.setDate(selectedDate.getDate() + 7);
+          currentMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
+        } else if (currentView === 'day') {
+          selectedDate.setDate(selectedDate.getDate() + 1);
+          currentMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
+        }
+        loadMonthAppointments(); // Fetch data then render
       });
     }
 
     if (btnToday) {
       btnToday.addEventListener('click', () => {
-        currentMonth = new Date();
-        currentMonth.setDate(1);
+        const today = new Date();
+        currentMonth = new Date(today.getFullYear(), today.getMonth(), 1);
         selectedDate = new Date();
         selectedDate.setHours(0, 0, 0, 0);
-        renderMonthlyCalendar();
+        loadMonthAppointments(); // Fetch data then render
         loadAppointments();
         updateSelectedDateLabel();
       });
@@ -10275,14 +10609,8 @@
         const view = btn.dataset.view;
         console.log('Vista seleccionada:', view);
 
-        // Por ahora solo soportamos vista de mes
-        // TODO: Implementar vistas de semana y día
-        if (view === 'week' || view === 'day') {
-          alert('Vista de ' + (view === 'week' ? 'semana' : 'día') + ' próximamente');
-          // Volver a mes
-          document.querySelector('.view-btn[data-view="month"]').classList.add('active');
-          btn.classList.remove('active');
-        }
+        currentView = view;
+        renderCalendar();
       });
     });
 
