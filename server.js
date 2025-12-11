@@ -852,6 +852,83 @@ app.post('/api/appointments/:id/payment', adminAuth, async (req, res) => {
   }
 });
 
+// POST /api/appointments - Crear nueva cita
+app.post('/api/appointments', adminAuth, async (req, res) => {
+  try {
+    const {
+      name,
+      phone,
+      serviceId,
+      serviceName,
+      date,
+      time,
+      durationMinutes,
+      sendWhatsAppConfirmation,
+      sendWhatsApp24h,
+      sendWhatsApp2h
+    } = req.body;
+
+    // Validaciones
+    if (!name || !phone || !serviceName || !date || !time) {
+      return res.status(400).json({
+        success: false,
+        error: 'Faltan campos requeridos'
+      });
+    }
+
+    // Construir startDateTime e endDateTime
+    const startDateTime = new Date(`${date}T${time}:00`);
+    const duration = parseInt(durationMinutes) || 60;
+    const endDateTime = new Date(startDateTime.getTime() + duration * 60000);
+
+    console.log('[APPOINTMENT] Creando cita:', {
+      name,
+      phone,
+      serviceName,
+      startDateTime: startDateTime.toISOString(),
+      endDateTime: endDateTime.toISOString()
+    });
+
+    // Crear documento de cita
+    const appointmentData = {
+      clientName: name,
+      clientPhone: phone.replace(/\D/g, ''),
+      serviceId: serviceId || null,
+      serviceName,
+      date,
+      time,
+      startDateTime: startDateTime.toISOString(),
+      endDateTime: endDateTime.toISOString(),
+      durationMinutes: duration,
+      status: 'scheduled',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      source: 'admin-panel'
+    };
+
+    const docRef = await firestore.collection('appointments').add(appointmentData);
+
+    console.log('[APPOINTMENT] ✅ Cita creada:', docRef.id);
+
+    // TODO: Enviar recordatorios WhatsApp según configuración
+    // if (sendWhatsAppConfirmation) { ... }
+    // if (sendWhatsApp24h) { ... }
+    // if (sendWhatsApp2h) { ... }
+
+    res.json({
+      success: true,
+      appointmentId: docRef.id
+    });
+
+  } catch (error) {
+    console.error('[APPOINTMENT] Error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 // PATCH /api/appointments/:id/status - Actualizar estado de cita
 app.patch('/api/appointments/:id/status', adminAuth, async (req, res) => {
   try {
