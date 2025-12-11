@@ -9319,14 +9319,11 @@
         eventEl.textContent = `${apt.time} ${apt.clientName}`;
         eventEl.title = `${apt.time} - ${apt.clientName}\n${apt.serviceName}`;
 
-        // Click en evento
+        // Click en evento - ABRIR DIRECTAMENTE LA CITA
         eventEl.addEventListener('click', (e) => {
           e.stopPropagation();
-          // Seleccionar el día y cargar sus citas
-          selectedDate = new Date(date);
-          renderMonthlyCalendar();
-          loadAppointments();
-          updateSelectedDateLabel();
+          // Abrir el modal de edición de cita
+          editAppointment(apt.id);
         });
 
         eventsContainer.appendChild(eventEl);
@@ -9792,8 +9789,8 @@
         // Initialize calendar with existing date
         editApptCalendar.selectedDate = isoDate;
         const date = new Date(isoDate + 'T12:00:00');
-        const day = date.getDate();
-        const month = date.getMonth() + 1;
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
         const year = date.getFullYear();
         editDateInput.value = `${day}/${month}/${year}`;
         editDateInput.dataset.isoDate = isoDate;
