@@ -101,19 +101,33 @@ export const AppointmentsController = {
             const endDateTime = toMexicoOffset(end);
 
             // 3.1 VALIDAR CONFLICTOS DE HORARIO
-            // Buscar citas activas (no canceladas) que se solapen con este horario
-            const conflictingAppointments = await firestore.collection('appointments')
-                .where('startDateTime', '<', endDateTime)
+            // Buscar citas activas del mismo día que puedan solaparse
+            const dayStart = `${date}T00:00:00-06:00`;
+            const dayEnd = `${date}T23:59:59-06:00`;
+            
+            const sameDayAppointments = await firestore.collection('appointments')
+                .where('startDateTime', '>=', dayStart)
+                .where('startDateTime', '<=', dayEnd)
                 .where('status', 'in', ['scheduled', 'confirmed'])
                 .get();
 
-            const hasConflict = conflictingAppointments.docs.some(doc => {
+            const hasConflict = sameDayAppointments.docs.some(doc => {
                 const appt = doc.data();
-                const apptEnd = appt.endDateTime;
-                // Hay conflicto si:
-                // - La cita existente termina DESPUÉS de que empieza la nueva (apptEnd > startDateTime)
-                // - Y la nueva termina DESPUÉS de que empieza la existente (endDateTime > appt.startDateTime)
-                return apptEnd > startDateTime;
+                const apptStart = new Date(appt.startDateTime).getTime();
+                const apptEnd = new Date(appt.endDateTime).getTime();
+                const newStart = start.getTime();
+                const newEnd = end.getTime();
+                
+                // Hay conflicto si los rangos se solapan
+                const overlaps = newStart < apptEnd && newEnd > apptStart;
+                
+                if (overlaps) {
+                    console.log(`[CONFLICT] Conflicto detectado con cita ${doc.id}:`);
+                    console.log(`   Existente: ${appt.startDateTime} - ${appt.endDateTime}`);
+                    console.log(`   Nueva: ${startDateTime} - ${endDateTime}`);
+                }
+                
+                return overlaps;
             });
 
             if (hasConflict) {
