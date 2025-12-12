@@ -10738,30 +10738,38 @@
           return;
         }
 
-        try {
-          const res = await fetch('/api/clients', {
-            method: 'POST',
-            credentials: 'include',  // ← CRÍTICO: Necesario para autenticación
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, phone })
-          });
+          let res;
+          try {
+            res = await fetch('/api/clients', {
+              method: 'POST',
+              credentials: 'include',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ name, phone })
+            });
+          } catch (netErr) {
+            alert('⚠️ Error de Red: No se pudo conectar con el servidor.');
+            console.error(netErr);
+            return;
+          }
 
           let json;
+          const text = await res.text();
+
           try {
-            const text = await res.text();
-            try {
-              json = JSON.parse(text);
-            } catch (e) {
-              console.error('Error parseando respuesta:', text);
-              throw new Error('Respuesta del servidor no válida: ' + text.substring(0, 100));
-            }
+            json = JSON.parse(text);
           } catch (e) {
-            alert('Error de conexión: ' + e.message);
+            console.error('Respuesta no JSON:', text);
+            alert(`⚠️ Error del Servidor (${res.status}): ${text.substring(0, 100)}`);
+            return;
+          }
+
+          if (!res.ok) {
+            alert(`❌ Error (${res.status}): ${json.error || json.message || 'Error desconocido'}`);
             return;
           }
 
           if (json.success) {
-            alert('✅ Cliente guardado');
+            alert('✅ Cliente guardado exitosamente');
             await loadClients();
 
             // Seleccionar el nuevo cliente
@@ -10778,11 +10786,11 @@
             document.getElementById('new-client-name').value = '';
             document.getElementById('new-client-phone').value = '';
           } else {
-            alert('❌ Error: ' + json.error);
+            alert('❌ Error: ' + (json.error || 'No se pudo guardar'));
           }
         } catch (e) {
           console.error(e);
-          alert('Error: ' + e.message);
+          alert('⚠️ Error Inesperado: ' + e.message);
         }
       });
     }
