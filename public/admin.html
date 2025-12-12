@@ -1021,7 +1021,7 @@
       box-shadow: 0 0 0 3px rgba(140, 150, 104, 0.15);
     }
 
-    .notify-btn-group {}
+
 
     .automation-textarea:focus {
       outline: none;
@@ -3989,8 +3989,18 @@
               </div>
             </div>
 
+            <!-- Gift Card -->
+            <div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(140,150,104,0.15);">
+              <label class="form-label" style="display:flex;align-items:center;gap:6px;color:var(--venus-soft);">
+                <i class="fas fa-gift"></i> Canjear Gift Card
+              </label>
+              <input type="text" id="new-appt-giftcard" class="form-input"
+                placeholder="Ingresa el código de la tarjeta (Opcional)"
+                style="background:rgba(140,150,104,0.05);border-color:rgba(140,150,104,0.3);">
+            </div>
+
             <!-- Botones -->
-            <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:8px;">
+            <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px;">
               <button type="button" class="btn ghost" id="btn-cancel-appt">Cancelar</button>
               <button type="submit" class="btn primary">Agendar</button>
             </div>
@@ -6131,7 +6141,7 @@
           <div style="display:flex;gap:6px;">
             <button id="cm-stamp" class="btn small" style="background:#FFD166;color:#1b1b1b;font-weight:600;">⭐ +1
               sello</button>
-            <button id="cm-close" class="btn small ghost">✕</button>
+            <button id="cm-close" class="btn small ghost" onclick="closeCardModal()">✕</button>
           </div>
         </div>
 
@@ -10815,7 +10825,8 @@
             durationMinutes: parseInt(service.durationMinutes),
             sendWhatsAppConfirmation: document.getElementById('check-whatsapp-confirm').checked,
             sendWhatsApp24h: document.getElementById('check-whatsapp-24h').checked,
-            sendWhatsApp2h: document.getElementById('check-whatsapp-2h').checked
+            sendWhatsApp2h: document.getElementById('check-whatsapp-2h').checked,
+            giftCardCode: document.getElementById('new-appt-giftcard').value.trim() || null
           };
 
           console.log('🕐 [APPOINTMENT] Creando cita con payload:', {
