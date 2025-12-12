@@ -10773,9 +10773,12 @@
             alert('✅ Cliente guardado exitosamente');
             await loadClients();
 
-            // Seleccionar el nuevo cliente
-            const newClientId = json.client.id;
-            clientSelect.value = newClientId;
+            // Seleccionar el nuevo cliente en el dropdown de búsqueda
+            const newClientId = json.client?.id || '';
+            const newClientInput = document.getElementById('new-appt-client-select');
+            if (newClientInput) {
+              newClientInput.value = name;  // Usar el nombre ingresado
+            }
             phoneInput.value = phone;
             phoneInput.readOnly = true;
 
