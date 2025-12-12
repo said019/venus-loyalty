@@ -10746,7 +10746,20 @@
             body: JSON.stringify({ name, phone })
           });
 
-          const json = await res.json();
+          let json;
+          try {
+            const text = await res.text();
+            try {
+              json = JSON.parse(text);
+            } catch (e) {
+              console.error('Error parseando respuesta:', text);
+              throw new Error('Respuesta del servidor no válida: ' + text.substring(0, 100));
+            }
+          } catch (e) {
+            alert('Error de conexión: ' + e.message);
+            return;
+          }
+
           if (json.success) {
             alert('✅ Cliente guardado');
             await loadClients();
@@ -10768,7 +10781,8 @@
             alert('❌ Error: ' + json.error);
           }
         } catch (e) {
-          alert('Error de conexión');
+          console.error(e);
+          alert('Error: ' + e.message);
         }
       });
     }
