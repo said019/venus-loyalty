@@ -598,6 +598,7 @@
         opacity: 0;
         transform: scale(0.95) translateY(-10px);
       }
+
       to {
         opacity: 1;
         transform: scale(1) translateY(0);
@@ -758,7 +759,9 @@
     .modal-backdrop {
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, .55);
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -4217,9 +4220,9 @@
         max-width: 650px;
         width: 92%;
         background: #1a1b18;
-        box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.6), 
-                    0 0 0 1px rgba(255, 255, 255, 0.1),
-                    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.6),
+          0 0 0 1px rgba(255, 255, 255, 0.1),
+          inset 0 1px 0 rgba(255, 255, 255, 0.05);
       }
 
       .dialog-content {
@@ -9030,7 +9033,7 @@
           document.body.style.overflow = '';
           document.body.style.paddingRight = '';
         });
-        
+
         // Observar cuando se abre el diálogo
         const observer = new MutationObserver((mutations) => {
           mutations.forEach((mutation) => {
@@ -9046,7 +9049,7 @@
         observer.observe(dialog, { attributes: true });
       });
     }
-    
+
     // Inicializar bloqueo de scroll
     setupDialogScrollLock();
     const apptsTbody = document.getElementById('appts-tbody');
