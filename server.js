@@ -852,6 +852,70 @@ app.post('/api/appointments/:id/payment', adminAuth, async (req, res) => {
   }
 });
 
+// POST /api/direct-sales - Registrar venta directa (sin cita)
+app.post('/api/direct-sales', adminAuth, async (req, res) => {
+  try {
+    const {
+      clientName,
+      paymentMethod,
+      productsAmount,
+      discountType,
+      discountValue,
+      discountAmount,
+      totalAmount,
+      productsSold
+    } = req.body;
+
+    if (!productsSold || productsSold.length === 0) {
+      return res.json({ success: false, error: 'Se requiere al menos un producto' });
+    }
+
+    console.log('[DIRECT SALE] Procesando venta directa:', { clientName, productsAmount, totalAmount });
+
+    // Descontar stock de productos vendidos
+    const batch = firestore.batch();
+    for (const product of productsSold) {
+      const productRef = firestore.collection('products').doc(product.productId);
+      const productDoc = await productRef.get();
+
+      if (productDoc.exists) {
+        const currentStock = productDoc.data().stock || 0;
+        const newStock = Math.max(0, currentStock - product.qty);
+        batch.update(productRef, {
+          stock: newStock,
+          updatedAt: new Date().toISOString()
+        });
+        console.log(`[DIRECT SALE] Stock actualizado: ${product.name} ${currentStock} -> ${newStock}`);
+      }
+    }
+    await batch.commit();
+
+    // Registrar en colección de ventas
+    const saleRef = await firestore.collection('sales').add({
+      type: 'direct', // Venta directa (sin cita)
+      clientName: clientName || 'Venta directa',
+      serviceName: null,
+      serviceAmount: 0,
+      productsAmount: parseFloat(productsAmount) || 0,
+      subtotal: parseFloat(productsAmount) || 0,
+      discountType,
+      discountValue,
+      discountAmount: parseFloat(discountAmount) || 0,
+      totalAmount: parseFloat(totalAmount) || 0,
+      productsSold,
+      paymentMethod,
+      createdAt: new Date().toISOString()
+    });
+
+    console.log('[DIRECT SALE] ✅ Venta registrada:', saleRef.id);
+
+    res.json({ success: true, saleId: saleRef.id });
+  } catch (error) {
+    console.error('[DIRECT SALE] Error:', error);
+    res.json({ success: false, error: error.message });
+  }
+});
+
 // POST /api/appointments - Crear nueva cita
 app.post('/api/appointments', adminAuth, async (req, res) => {
   try {
