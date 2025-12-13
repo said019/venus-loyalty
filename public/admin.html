@@ -2351,11 +2351,34 @@
       color: var(--venus);
     }
 
-    /* Responsive */
-    @media (max-width: 768px) {
+    /* ===== RESPONSIVE CALENDAR (Inspirado en Apple Calendar iOS 18) ===== */
+
+    /* Tablet Landscape (900-1200px) */
+    @media (max-width: 1200px) {
+      .calendar-day {
+        min-height: 90px;
+        padding: 6px;
+      }
+
+      .calendar-event {
+        font-size: 10px;
+        padding: 2px 4px;
+      }
+
+      .day-number {
+        font-size: 13px;
+      }
+    }
+
+    /* Tablet Portrait / iPad (600-900px) - Vista Compacta */
+    @media (max-width: 900px) {
+      .google-calendar-container {
+        padding: 12px;
+      }
+
       .calendar-header {
         flex-direction: column;
-        gap: 16px;
+        gap: 12px;
         align-items: stretch;
       }
 
@@ -2364,7 +2387,7 @@
       }
 
       .calendar-title-section h2 {
-        font-size: 20px;
+        font-size: 22px;
       }
 
       .calendar-actions {
@@ -2372,17 +2395,152 @@
       }
 
       .calendar-day {
-        min-height: 80px;
+        min-height: 70px;
         padding: 4px;
       }
 
       .day-number {
         font-size: 12px;
+        width: 24px;
+        height: 24px;
+        line-height: 24px;
       }
 
-      .calendar-event {
+      .weekday {
+        padding: 10px 4px;
         font-size: 10px;
-        padding: 1px 4px;
+      }
+
+      /* Ocultar texto de eventos, mostrar solo indicadores */
+      .calendar-event {
+        font-size: 0;
+        padding: 0;
+        height: 4px;
+        min-height: 4px;
+        border-radius: 2px;
+        margin: 1px 0;
+      }
+
+      .calendar-event::before {
+        content: none;
+      }
+
+      .event-more {
+        font-size: 9px;
+      }
+    }
+
+    /* Móvil (<600px) - Vista Ultra Compacta */
+    @media (max-width: 600px) {
+      .google-calendar-container {
+        padding: 8px;
+        border-radius: 12px;
+      }
+
+      .calendar-header {
+        gap: 8px;
+        padding-bottom: 8px;
+      }
+
+      .calendar-title-section h2 {
+        font-size: 18px;
+      }
+
+      .calendar-nav button {
+        width: 32px;
+        height: 32px;
+        font-size: 12px;
+      }
+
+      .calendar-actions {
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .calendar-actions .btn {
+        padding: 6px 10px;
+        font-size: 11px;
+      }
+
+      .weekday {
+        padding: 8px 2px;
+        font-size: 9px;
+        letter-spacing: 0;
+      }
+
+      .calendar-day {
+        min-height: 52px;
+        padding: 3px;
+      }
+
+      .day-number {
+        font-size: 11px;
+        width: 22px;
+        height: 22px;
+        line-height: 22px;
+      }
+
+      /* Solo mostrar dots de colores para eventos */
+      .calendar-event {
+        height: 5px;
+        width: 5px;
+        min-height: 5px;
+        border-radius: 50%;
+        margin: 1px;
+        display: inline-block;
+      }
+
+      .calendar-events-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 2px;
+        justify-content: center;
+      }
+
+      .event-more {
+        display: none;
+      }
+
+      /* Indicador de día seleccionado más visible */
+      .calendar-day.selected {
+        background: rgba(140, 150, 104, 0.25);
+        box-shadow: inset 0 0 0 2px var(--venus);
+      }
+
+      .calendar-day.today .day-number {
+        background: var(--venus);
+        color: white;
+        font-weight: 700;
+      }
+    }
+
+    /* Extra pequeño (<400px) */
+    @media (max-width: 400px) {
+      .calendar-title-section h2 {
+        font-size: 16px;
+      }
+
+      .calendar-nav button {
+        width: 28px;
+        height: 28px;
+        font-size: 10px;
+      }
+
+      .calendar-day {
+        min-height: 44px;
+        padding: 2px;
+      }
+
+      .day-number {
+        font-size: 10px;
+        width: 20px;
+        height: 20px;
+        line-height: 20px;
+      }
+
+      .weekday {
+        padding: 6px 1px;
+        font-size: 8px;
       }
     }
 
@@ -14822,12 +14980,66 @@
         return;
       }
 
-      tbody.innerHTML = ventas.map(v => {
+      tbody.innerHTML = ventas.map((v, index) => {
         const fecha = new Date(v.paidAt || v.startDateTime);
         const fechaStr = fecha.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
-        const productosCount = (v.productsSold || []).length;
-        const productosText = productosCount > 0 ? `${productosCount} prod.` : '-';
+        const productsSold = v.productsSold || [];
+        const productosCount = productsSold.length;
+        const productosQty = productsSold.reduce((sum, p) => sum + (p.qty || 1), 0);
+
+        // Crear HTML de productos para el tooltip/expandible
+        let productosHtml = '-';
+        if (productosCount > 0) {
+          const productosListHtml = productsSold.map(p =>
+            `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.1);">
+              <span>${p.name}</span>
+              <span style="color:#a78bfa;font-weight:600;">×${p.qty} = $${(p.price * p.qty).toLocaleString()}</span>
+            </div>`
+          ).join('');
+
+          productosHtml = `
+            <div class="productos-cell" style="position:relative;">
+              <button onclick="toggleProductosDetail(${index})" style="
+                background:#8b5cf6;
+                color:white;
+                border:none;
+                padding:4px 10px;
+                border-radius:6px;
+                font-size:11px;
+                font-weight:600;
+                cursor:pointer;
+                display:flex;
+                align-items:center;
+                gap:4px;
+              ">
+                📦 ${productosQty} <i class="fas fa-chevron-down" style="font-size:9px;"></i>
+              </button>
+              <div id="productos-detail-${index}" class="productos-detail-popup" style="
+                display:none;
+                position:absolute;
+                top:100%;
+                left:0;
+                z-index:100;
+                background:#1a1b18;
+                border:1px solid rgba(139,92,246,0.3);
+                border-radius:10px;
+                padding:12px;
+                min-width:250px;
+                box-shadow:0 10px 25px rgba(0,0,0,0.4);
+                margin-top:4px;
+              ">
+                <div style="font-size:12px;font-weight:600;margin-bottom:8px;color:#a78bfa;">
+                  <i class="fas fa-shopping-bag"></i> Productos Vendidos
+                </div>
+                ${productosListHtml}
+                <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.1);font-weight:600;text-align:right;color:#22c55e;">
+                  Total: $${productsSold.reduce((sum, p) => sum + (p.price * p.qty), 0).toLocaleString()}
+                </div>
+              </div>
+            </div>
+          `;
+        }
 
         const descuento = parseFloat(v.discountAmount) || 0;
         const descuentoText = descuento > 0 ? `$${descuento.toFixed(2)}` : '-';
@@ -14848,7 +15060,7 @@
                 color:${v.paymentMethod === 'efectivo' ? '#166534' : v.paymentMethod === 'tarjeta' ? '#1e40af' : '#6b21a8'};
               ">${v.paymentMethod || '-'}</span>
             </td>
-            <td data-label="Productos">${productosText}</td>
+            <td data-label="Productos">${productosHtml}</td>
             <td data-label="Descuento">${descuentoText}</td>
             <td data-label="Total" style="font-weight:600;">$${parseFloat(v.totalPaid).toFixed(2)}</td>
           </tr>
@@ -14878,6 +15090,33 @@
       const tbody = document.getElementById('report-sales-tbody');
       tbody.innerHTML = '<tr><td colspan="7" class="muted" style="text-align:center;padding:40px;">Selecciona un rango de fechas y haz clic en "Aplicar Filtros"</td></tr>';
     }
+
+    // Función para mostrar/ocultar detalle de productos en reportes
+    function toggleProductosDetail(index) {
+      const popup = document.getElementById('productos-detail-' + index);
+      if (!popup) return;
+
+      // Cerrar otros popups abiertos
+      document.querySelectorAll('.productos-detail-popup').forEach(p => {
+        if (p.id !== 'productos-detail-' + index) {
+          p.style.display = 'none';
+        }
+      });
+
+      // Toggle el popup actual
+      popup.style.display = popup.style.display === 'none' ? 'block' : 'none';
+    }
+
+    // Cerrar popups al hacer clic fuera
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.productos-cell')) {
+        document.querySelectorAll('.productos-detail-popup').forEach(p => {
+          p.style.display = 'none';
+        });
+      }
+    });
+
+    window.toggleProductosDetail = toggleProductosDetail;
 
     function exportarVentas() {
       if (reportData.length === 0) {
