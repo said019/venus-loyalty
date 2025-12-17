@@ -10501,13 +10501,40 @@
             return;
           }
 
+          // Obtener la fecha - primero del calendario, luego del dataset, luego del input
+          let dateValue = editApptCalendar.getISODate();
+          if (!dateValue) {
+            dateValue = editDateInput.dataset.isoDate;
+          }
+          if (!dateValue) {
+            // Intentar parsear del input (formato dd/mm/yyyy)
+            const parts = editDateInput.value.split('/');
+            if (parts.length === 3) {
+              dateValue = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+            }
+          }
+          
+          console.log('📅 Fecha a enviar:', dateValue);
+          console.log('📅 Calendario ISO:', editApptCalendar.getISODate());
+          console.log('📅 Dataset ISO:', editDateInput.dataset.isoDate);
+          console.log('📅 Input value:', editDateInput.value);
+
+          if (!dateValue) {
+            alert('Por favor selecciona una fecha');
+            btn.disabled = false;
+            btn.textContent = originalText;
+            return;
+          }
+
           const body = {
             serviceId: service.id,
             serviceName: service.name,
-            date: editApptCalendar.getISODate() || editDateInput.value,
+            date: dateValue,
             time: time,
             durationMinutes: parseInt(service.durationMinutes)
           };
+          
+          console.log('📤 Enviando:', body);
 
           const res = await fetch(`/api/appointments/${editApptId.value}`, {
             method: 'PATCH',
