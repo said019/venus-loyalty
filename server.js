@@ -1061,11 +1061,20 @@ app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
       // Solapamiento: newStart < existingEnd AND newEnd > existingStart
       const hasOverlap = newStartMinutes < existingEndMinutes && newEndMinutes > existingStartMinutes;
       
+      console.log(`[PATCH] Solapamiento check: ${newStartMinutes} < ${existingEndMinutes} = ${newStartMinutes < existingEndMinutes}, ${newEndMinutes} > ${existingStartMinutes} = ${newEndMinutes > existingStartMinutes}`);
+      
       if (hasOverlap) {
         console.log(`[PATCH] ❌ Conflicto detectado con ${existingAppt.clientName} a las ${existingTime}`);
         return res.status(409).json({ 
           success: false, 
-          error: `Conflicto de horario con cita de ${existingAppt.clientName} a las ${existingTime}` 
+          error: `Conflicto: ${existingAppt.clientName} tiene cita de ${existingTime} a ${Math.floor(existingEndMinutes/60)}:${String(existingEndMinutes%60).padStart(2,'0')} (status: ${existingAppt.status})`,
+          debug: {
+            newTime: `${time} - ${Math.floor(newEndMinutes/60)}:${String(newEndMinutes%60).padStart(2,'0')}`,
+            existingTime: `${existingTime} - ${Math.floor(existingEndMinutes/60)}:${String(existingEndMinutes%60).padStart(2,'0')}`,
+            existingClient: existingAppt.clientName,
+            existingStatus: existingAppt.status,
+            existingId: doc.id
+          }
         });
       } else {
         console.log(`[PATCH] ✓ Sin conflicto con ${existingAppt.clientName}`);
