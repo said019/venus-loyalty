@@ -1019,34 +1019,58 @@ app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
     endDate.setMinutes(endDate.getMinutes() + duration);
     const endDateTime = endDate.toISOString();
 
-    // Verificar conflictos de horario (excluyendo la cita actual)
+    // Verificar conflictos de horario (excluyendo la cita actual y canceladas)
     const dayStart = `${date}T00:00:00`;
     const dayEnd = `${date}T23:59:59`;
+    
+    console.log(`[PATCH] Verificando conflictos para ${date} ${time}`);
+    console.log(`[PATCH] Rango: ${dayStart} - ${dayEnd}`);
     
     const conflictQuery = await firestore.collection('appointments')
       .where('startDateTime', '>=', dayStart)
       .where('startDateTime', '<=', dayEnd)
-      .where('status', 'in', ['scheduled', 'confirmed'])
       .get();
 
     const newStart = new Date(startDateTime);
     const newEnd = endDate;
+    
+    console.log(`[PATCH] Nueva cita: ${newStart.toISOString()} - ${newEnd.toISOString()}`);
+    console.log(`[PATCH] Citas encontradas en el día: ${conflictQuery.docs.length}`);
 
     for (const doc of conflictQuery.docs) {
-      if (doc.id === id) continue; // Ignorar la cita actual
+      // Ignorar la cita actual
+      if (doc.id === id) {
+        console.log(`[PATCH] Ignorando cita actual: ${doc.id}`);
+        continue;
+      }
       
       const existingAppt = doc.data();
+      
+      // Ignorar citas canceladas o completadas
+      if (existingAppt.status === 'cancelled' || existingAppt.status === 'completed' || existingAppt.status === 'no_show') {
+        console.log(`[PATCH] Ignorando cita ${doc.id} con status: ${existingAppt.status}`);
+        continue;
+      }
+      
       const existingStart = new Date(existingAppt.startDateTime);
       const existingEnd = new Date(existingAppt.endDateTime);
+      
+      console.log(`[PATCH] Comparando con cita ${doc.id}: ${existingAppt.clientName} ${existingStart.toISOString()} - ${existingEnd.toISOString()}`);
 
-      // Verificar si hay solapamiento
-      if (newStart < existingEnd && newEnd > existingStart) {
+      // Verificar si hay solapamiento real
+      // Solapamiento: newStart < existingEnd AND newEnd > existingStart
+      const hasOverlap = newStart < existingEnd && newEnd > existingStart;
+      
+      if (hasOverlap) {
+        console.log(`[PATCH] ❌ Conflicto detectado con ${existingAppt.clientName}`);
         return res.status(409).json({ 
           success: false, 
           error: `Conflicto de horario con cita de ${existingAppt.clientName} a las ${existingAppt.time}` 
         });
       }
     }
+    
+    console.log(`[PATCH] ✅ No hay conflictos, actualizando cita`);
 
     // Actualizar la cita
     const updateData = {
