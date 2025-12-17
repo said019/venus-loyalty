@@ -1019,54 +1019,56 @@ app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
     endDate.setMinutes(endDate.getMinutes() + duration);
     const endDateTime = endDate.toISOString();
 
-    // Verificar conflictos de horario (excluyendo la cita actual y canceladas)
-    const dayStart = `${date}T00:00:00`;
-    const dayEnd = `${date}T23:59:59`;
-    
+    // Verificar conflictos de horario usando el campo 'date' directamente
     console.log(`[PATCH] Verificando conflictos para ${date} ${time}`);
-    console.log(`[PATCH] Rango: ${dayStart} - ${dayEnd}`);
+    console.log(`[PATCH] ID de cita actual: ${id}`);
     
+    // Buscar citas del mismo día usando el campo 'date'
     const conflictQuery = await firestore.collection('appointments')
-      .where('startDateTime', '>=', dayStart)
-      .where('startDateTime', '<=', dayEnd)
+      .where('date', '==', date)
       .get();
 
-    const newStart = new Date(startDateTime);
-    const newEnd = endDate;
+    const newStartMinutes = parseInt(time.split(':')[0]) * 60 + parseInt(time.split(':')[1]);
+    const newEndMinutes = newStartMinutes + (durationMinutes || 60);
     
-    console.log(`[PATCH] Nueva cita: ${newStart.toISOString()} - ${newEnd.toISOString()}`);
-    console.log(`[PATCH] Citas encontradas en el día: ${conflictQuery.docs.length}`);
+    console.log(`[PATCH] Nueva cita: ${time} (${newStartMinutes} - ${newEndMinutes} minutos)`);
+    console.log(`[PATCH] Citas encontradas en el día ${date}: ${conflictQuery.docs.length}`);
 
     for (const doc of conflictQuery.docs) {
       // Ignorar la cita actual
       if (doc.id === id) {
-        console.log(`[PATCH] Ignorando cita actual: ${doc.id}`);
+        console.log(`[PATCH] ✓ Ignorando cita actual: ${doc.id}`);
         continue;
       }
       
       const existingAppt = doc.data();
       
-      // Ignorar citas canceladas o completadas
-      if (existingAppt.status === 'cancelled' || existingAppt.status === 'completed' || existingAppt.status === 'no_show') {
-        console.log(`[PATCH] Ignorando cita ${doc.id} con status: ${existingAppt.status}`);
+      // Ignorar citas canceladas, completadas o no_show
+      if (['cancelled', 'completed', 'no_show'].includes(existingAppt.status)) {
+        console.log(`[PATCH] ✓ Ignorando cita ${doc.id} (${existingAppt.clientName}) - status: ${existingAppt.status}`);
         continue;
       }
       
-      const existingStart = new Date(existingAppt.startDateTime);
-      const existingEnd = new Date(existingAppt.endDateTime);
+      // Calcular minutos de la cita existente
+      const existingTime = existingAppt.time || '00:00';
+      const existingStartMinutes = parseInt(existingTime.split(':')[0]) * 60 + parseInt(existingTime.split(':')[1]);
+      const existingDuration = existingAppt.durationMinutes || 60;
+      const existingEndMinutes = existingStartMinutes + existingDuration;
       
-      console.log(`[PATCH] Comparando con cita ${doc.id}: ${existingAppt.clientName} ${existingStart.toISOString()} - ${existingEnd.toISOString()}`);
+      console.log(`[PATCH] Comparando con: ${existingAppt.clientName} ${existingTime} (${existingStartMinutes} - ${existingEndMinutes} min) status: ${existingAppt.status}`);
 
-      // Verificar si hay solapamiento real
+      // Verificar si hay solapamiento
       // Solapamiento: newStart < existingEnd AND newEnd > existingStart
-      const hasOverlap = newStart < existingEnd && newEnd > existingStart;
+      const hasOverlap = newStartMinutes < existingEndMinutes && newEndMinutes > existingStartMinutes;
       
       if (hasOverlap) {
-        console.log(`[PATCH] ❌ Conflicto detectado con ${existingAppt.clientName}`);
+        console.log(`[PATCH] ❌ Conflicto detectado con ${existingAppt.clientName} a las ${existingTime}`);
         return res.status(409).json({ 
           success: false, 
-          error: `Conflicto de horario con cita de ${existingAppt.clientName} a las ${existingAppt.time}` 
+          error: `Conflicto de horario con cita de ${existingAppt.clientName} a las ${existingTime}` 
         });
+      } else {
+        console.log(`[PATCH] ✓ Sin conflicto con ${existingAppt.clientName}`);
       }
     }
     
