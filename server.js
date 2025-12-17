@@ -1019,19 +1019,24 @@ app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
     endDate.setMinutes(endDate.getMinutes() + duration);
     const endDateTime = endDate.toISOString();
 
-    // Verificar conflictos de horario usando el campo 'date' directamente
+    // Verificar conflictos de horario
     console.log(`[PATCH] Verificando conflictos para ${date} ${time}`);
     console.log(`[PATCH] ID de cita actual: ${id}`);
     
-    // Buscar citas del mismo día usando el campo 'date'
+    // Buscar citas del mismo día usando startDateTime (rango del día)
+    const dayStart = `${date}T00:00:00`;
+    const dayEnd = `${date}T23:59:59`;
+    
     const conflictQuery = await firestore.collection('appointments')
-      .where('date', '==', date)
+      .where('startDateTime', '>=', dayStart)
+      .where('startDateTime', '<=', dayEnd + 'Z')
       .get();
 
     const newStartMinutes = parseInt(time.split(':')[0]) * 60 + parseInt(time.split(':')[1]);
     const newEndMinutes = newStartMinutes + (durationMinutes || 60);
     
     console.log(`[PATCH] Nueva cita: ${time} (${newStartMinutes} - ${newEndMinutes} minutos)`);
+    console.log(`[PATCH] Rango búsqueda: ${dayStart} - ${dayEnd}`);
     console.log(`[PATCH] Citas encontradas en el día ${date}: ${conflictQuery.docs.length}`);
 
     for (const doc of conflictQuery.docs) {
@@ -1050,7 +1055,15 @@ app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
       }
       
       // Calcular minutos de la cita existente
-      const existingTime = existingAppt.time || '00:00';
+      let existingTime = existingAppt.time;
+      
+      // Si no tiene campo time, extraerlo de startDateTime
+      if (!existingTime && existingAppt.startDateTime) {
+        const startDT = new Date(existingAppt.startDateTime);
+        existingTime = `${String(startDT.getHours()).padStart(2, '0')}:${String(startDT.getMinutes()).padStart(2, '0')}`;
+      }
+      existingTime = existingTime || '00:00';
+      
       const existingStartMinutes = parseInt(existingTime.split(':')[0]) * 60 + parseInt(existingTime.split(':')[1]);
       const existingDuration = existingAppt.durationMinutes || 60;
       const existingEndMinutes = existingStartMinutes + existingDuration;
