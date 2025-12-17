@@ -9831,10 +9831,10 @@
       const daysInMonth = lastDay.getDate();
       const startDayOfWeek = firstDay.getDay(); // 0 = Domingo
 
-      // Días del mes anterior para llenar
+      // Días del mes anterior para llenar (si el mes no empieza en Domingo)
       const prevMonthLastDay = new Date(year, month, 0).getDate();
-      for (let i = startDayOfWeek - 1; i >= 0; i--) {
-        const dayNum = prevMonthLastDay - i;
+      for (let i = 0; i < startDayOfWeek; i++) {
+        const dayNum = prevMonthLastDay - startDayOfWeek + 1 + i;
         const dayEl = createGoogleCalendarDay(dayNum, year, month - 1, true);
         monthlyCalendar.appendChild(dayEl);
       }

@@ -993,6 +993,95 @@ app.post('/api/appointments', adminAuth, async (req, res) => {
   }
 });
 
+// PATCH /api/appointments/:id - Actualizar cita (fecha, hora, servicio)
+app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { serviceId, serviceName, date, time, durationMinutes } = req.body;
+
+    if (!date || !time) {
+      return res.status(400).json({ success: false, error: 'Fecha y hora son requeridos' });
+    }
+
+    const appointmentRef = firestore.collection('appointments').doc(id);
+    const appointmentDoc = await appointmentRef.get();
+
+    if (!appointmentDoc.exists) {
+      return res.status(404).json({ success: false, error: 'Cita no encontrada' });
+    }
+
+    const apptData = appointmentDoc.data();
+
+    // Calcular startDateTime y endDateTime
+    const startDateTime = `${date}T${time}:00`;
+    const duration = durationMinutes || 60;
+    const endDate = new Date(startDateTime);
+    endDate.setMinutes(endDate.getMinutes() + duration);
+    const endDateTime = endDate.toISOString();
+
+    // Verificar conflictos de horario (excluyendo la cita actual)
+    const dayStart = `${date}T00:00:00`;
+    const dayEnd = `${date}T23:59:59`;
+    
+    const conflictQuery = await firestore.collection('appointments')
+      .where('startDateTime', '>=', dayStart)
+      .where('startDateTime', '<=', dayEnd)
+      .where('status', 'in', ['scheduled', 'confirmed'])
+      .get();
+
+    const newStart = new Date(startDateTime);
+    const newEnd = endDate;
+
+    for (const doc of conflictQuery.docs) {
+      if (doc.id === id) continue; // Ignorar la cita actual
+      
+      const existingAppt = doc.data();
+      const existingStart = new Date(existingAppt.startDateTime);
+      const existingEnd = new Date(existingAppt.endDateTime);
+
+      // Verificar si hay solapamiento
+      if (newStart < existingEnd && newEnd > existingStart) {
+        return res.status(409).json({ 
+          success: false, 
+          error: `Conflicto de horario con cita de ${existingAppt.clientName} a las ${existingAppt.time}` 
+        });
+      }
+    }
+
+    // Actualizar la cita
+    const updateData = {
+      date,
+      time,
+      startDateTime,
+      endDateTime,
+      updatedAt: new Date().toISOString()
+    };
+
+    if (serviceId) updateData.serviceId = serviceId;
+    if (serviceName) updateData.serviceName = serviceName;
+    if (durationMinutes) updateData.durationMinutes = durationMinutes;
+
+    await appointmentRef.update(updateData);
+
+    // Crear notificación
+    await firestore.collection('notifications').add({
+      type: 'cita',
+      icon: 'edit',
+      title: 'Cita modificada',
+      message: `${apptData.clientName} - ${serviceName || apptData.serviceName} reprogramada para ${date} a las ${time}`,
+      read: false,
+      createdAt: new Date().toISOString(),
+      entityId: id
+    });
+
+    console.log(`[API] Appointment ${id} updated: ${date} ${time}`);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error updating appointment:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // PATCH /api/appointments/:id/status - Actualizar estado de cita
 app.patch('/api/appointments/:id/status', adminAuth, async (req, res) => {
   try {
