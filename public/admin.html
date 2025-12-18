@@ -2596,7 +2596,7 @@
       </div>
       <!-- Campana y menú móvil -->
       <div class="mobile-actions">
-        <button class="notification-bell mobile-bell" id="notif-btn-mobile" title="Notificaciones" onclick="toggleNotifications(event)">
+        <button class="notification-bell mobile-bell" id="notif-btn-mobile" title="Notificaciones" onclick="toggleNotifications(event)"></button>
           <i class="fas fa-bell"></i>
           <span class="notification-badge hidden" id="notif-badge-mobile">0</span>
         </button>
@@ -10573,7 +10573,12 @@
           } else {
             // Mostrar mensaje específico para conflictos de horario
             if (res.status === 409) {
-              alert('⚠️ ' + json.error);
+              console.log('🔴 Conflicto detectado:', json);
+              let msg = '⚠️ ' + json.error;
+              if (json.debug) {
+                msg += `\n\nDetalles:\n- Tu cita: ${json.debug.newTime}\n- Cita existente: ${json.debug.existingClient} (${json.debug.existingTime})\n- Status: ${json.debug.existingStatus}\n- ID: ${json.debug.existingId}`;
+              }
+              alert(msg);
             } else {
               alert('❌ Error: ' + json.error);
             }
