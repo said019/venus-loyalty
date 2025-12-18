@@ -1023,23 +1023,51 @@ app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
     console.log(`[PATCH] Verificando conflictos para ${date} ${time}`);
     console.log(`[PATCH] ID de cita actual: ${id}`);
     
-    // Buscar citas del mismo día usando startDateTime (rango del día)
+    // Buscar citas del mismo día - usar campo date si existe, o filtrar por startDateTime
+    // Primero intentar con campo date (citas nuevas)
+    let conflictDocs = [];
+    
+    // Buscar citas que tengan el campo date igual
+    const dateQuery = await firestore.collection('appointments')
+      .where('date', '==', date)
+      .get();
+    
+    conflictDocs = [...dateQuery.docs];
+    console.log(`[PATCH] Citas con campo date=${date}: ${dateQuery.docs.length}`);
+    
+    // También buscar citas antiguas que solo tienen startDateTime
+    // Usar rango amplio para capturar diferentes timezones
     const dayStart = `${date}T00:00:00`;
     const dayEnd = `${date}T23:59:59`;
     
-    const conflictQuery = await firestore.collection('appointments')
+    const startDateTimeQuery = await firestore.collection('appointments')
       .where('startDateTime', '>=', dayStart)
       .where('startDateTime', '<=', dayEnd + 'Z')
       .get();
+    
+    // Agregar solo las que no están ya en conflictDocs
+    const existingIds = new Set(conflictDocs.map(d => d.id));
+    for (const doc of startDateTimeQuery.docs) {
+      if (!existingIds.has(doc.id)) {
+        // Verificar que realmente sea del mismo día (por si el timezone causa problemas)
+        const apptData = doc.data();
+        if (apptData.startDateTime) {
+          const apptDateStr = apptData.startDateTime.split('T')[0];
+          if (apptDateStr === date) {
+            conflictDocs.push(doc);
+          }
+        }
+      }
+    }
+    
+    console.log(`[PATCH] Total citas a verificar: ${conflictDocs.length}`);
 
     const newStartMinutes = parseInt(time.split(':')[0]) * 60 + parseInt(time.split(':')[1]);
     const newEndMinutes = newStartMinutes + (durationMinutes || 60);
     
     console.log(`[PATCH] Nueva cita: ${time} (${newStartMinutes} - ${newEndMinutes} minutos)`);
-    console.log(`[PATCH] Rango búsqueda: ${dayStart} - ${dayEnd}`);
-    console.log(`[PATCH] Citas encontradas en el día ${date}: ${conflictQuery.docs.length}`);
 
-    for (const doc of conflictQuery.docs) {
+    for (const doc of conflictDocs) {
       // Ignorar la cita actual
       if (doc.id === id) {
         console.log(`[PATCH] ✓ Ignorando cita actual: ${doc.id}`);
@@ -1059,8 +1087,14 @@ app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
       
       // Si no tiene campo time, extraerlo de startDateTime
       if (!existingTime && existingAppt.startDateTime) {
-        const startDT = new Date(existingAppt.startDateTime);
-        existingTime = `${String(startDT.getHours()).padStart(2, '0')}:${String(startDT.getMinutes()).padStart(2, '0')}`;
+        // Extraer hora directamente del string para evitar problemas de timezone
+        // Formato: 2025-12-23T15:00:00-06:00
+        const timeMatch = existingAppt.startDateTime.match(/T(\d{2}):(\d{2})/);
+        if (timeMatch) {
+          existingTime = `${timeMatch[1]}:${timeMatch[2]}`;
+        } else {
+          existingTime = '00:00';
+        }
       }
       existingTime = existingTime || '00:00';
       

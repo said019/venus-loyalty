@@ -2596,11 +2596,11 @@
       </div>
       <!-- Campana y menú móvil -->
       <div class="mobile-actions">
-        <button class="notification-bell mobile-bell" id="notif-btn-mobile" title="Notificaciones">
+        <button class="notification-bell mobile-bell" id="notif-btn-mobile" title="Notificaciones" onclick="toggleNotifications(event)">
           <i class="fas fa-bell"></i>
           <span class="notification-badge hidden" id="notif-badge-mobile">0</span>
         </button>
-        <button class="mobile-menu-btn" id="mobile-menu-toggle"><i class="fas fa-bars"></i></button>
+        <button class="mobile-menu-btn" id="mobile-menu-toggle" onclick="openMobileMenu()"><i class="fas fa-bars"></i></button>
       </div>
 
       <!-- Acciones desktop -->
@@ -2641,7 +2641,7 @@
     <div class="mobile-menu hidden" id="mobile-menu">
       <div class="mobile-menu-header">
         <span>Menú</span>
-        <button class="close-menu-btn" id="mobile-menu-close"><i class="fas fa-times"></i></button>
+        <button class="close-menu-btn" id="mobile-menu-close" onclick="closeMobileMenu()"><i class="fas fa-times"></i></button>
       </div>
       <div class="mobile-menu-content">
         <a href="#overview" class="mobile-nav-link" data-tab="overview"><i class="fas fa-th-large"></i> Resumen</a>
@@ -6668,6 +6668,26 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
   <script>
+    // ===== FUNCIONES GLOBALES MENÚ MÓVIL =====
+    // Definidas al inicio para que estén disponibles para onclick en HTML
+    function openMobileMenu() {
+      console.log('👆 Abriendo menú móvil');
+      const mobileMenu = document.getElementById('mobile-menu');
+      if (mobileMenu) {
+        mobileMenu.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+      }
+    }
+
+    function closeMobileMenu() {
+      console.log('👆 Cerrando menú móvil');
+      const mobileMenu = document.getElementById('mobile-menu');
+      if (mobileMenu) {
+        mobileMenu.classList.add('hidden');
+        document.body.style.overflow = '';
+      }
+    }
+
     // ===== FIREBASE REAL-TIME LISTENERS =====
     let db = null;
     let unsubscribeAppointments = null;
@@ -13690,54 +13710,11 @@
         links: mobileNavLinks.length
       });
 
-      if (mobileMenuToggle && mobileMenu) {
-        console.log('✅ Configurando botón de abrir menú');
-
-        mobileMenuToggle.addEventListener('click', (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          console.log('👆 Click en menú móvil');
-          mobileMenu.classList.remove('hidden');
-          document.body.style.overflow = 'hidden'; // Prevenir scroll
-        });
-
-        mobileMenuToggle.addEventListener('touchstart', (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          console.log('👆 Touch en menú móvil');
-          mobileMenu.classList.remove('hidden');
-          document.body.style.overflow = 'hidden';
-        }, { passive: false });
-      } else {
-        console.error('❌ No se encontraron elementos del menú móvil');
-      }
-
-      if (mobileMenuClose && mobileMenu) {
-        console.log('✅ Configurando botón de cerrar menú');
-
-        mobileMenuClose.addEventListener('click', (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          console.log('👆 Click en cerrar menú');
-          mobileMenu.classList.add('hidden');
-          document.body.style.overflow = '';
-        });
-
-        mobileMenuClose.addEventListener('touchstart', (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          console.log('👆 Touch en cerrar menú');
-          mobileMenu.classList.add('hidden');
-          document.body.style.overflow = '';
-        }, { passive: false });
-      }
-
-      // Cerrar menú al hacer click fuera
+      // Cerrar menú al hacer click fuera (en el overlay)
       if (mobileMenu) {
-        mobileMenu.addEventListener('click', (e) => {
+        mobileMenu.addEventListener('click', function(e) {
           if (e.target === mobileMenu) {
-            mobileMenu.classList.add('hidden');
-            document.body.style.overflow = '';
+            closeMobileMenu();
           }
         });
       }
