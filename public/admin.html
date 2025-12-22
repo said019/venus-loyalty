@@ -10097,9 +10097,9 @@
                   </select>
                 </td>
                 <td style="padding:12px;">
-                  <div style="display:flex;gap:8px;align-items:center;">
+                  <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
                     ${appt.status !== 'completed' ? `
-                    <button onclick="openPaymentModal('${appt.id}', '${appt.clientName.replace(/'/g, "\\'") || ''}', '${appt.serviceName.replace(/'/g, "\\'") || ''}', ${appt.price || 0})" class="btn-icon" style="background:#10b981;color:white;padding:4px 10px;border-radius:6px;font-size:0.85em;display:flex;align-items:center;gap:4px;">
+                    <button onclick="openPaymentModal('${appt.id}', '${appt.clientName.replace(/'/g, "\\'") || ''}', '${appt.serviceName.replace(/'/g, "\\'") || ''}', ${appt.price || 0})" class="btn-icon" style="background:linear-gradient(135deg, #10b981 0%, #059669 100%);color:white;padding:6px 12px;border-radius:8px;font-size:0.85em;display:flex;align-items:center;gap:6px;border:none;cursor:pointer;transition:all 0.2s;box-shadow:0 2px 4px rgba(16,185,129,0.3);" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 8px rgba(16,185,129,0.4)'" onmouseout="this.style.transform='';this.style.boxShadow='0 2px 4px rgba(16,185,129,0.3)'">
                       <i class="fas fa-money-bill-wave"></i> Pagar
                     </button>
                     ` : `
@@ -10116,8 +10116,15 @@
                       </button>
                     </div>
                     `}
-                    <button onclick="editAppointment('${appt.id}')" class="btn-icon" style="background:#6b7280;color:white;padding:4px 10px;border-radius:6px;font-size:0.85em;">Modificar</button>
-                    <button onclick="cancelAppointment('${appt.id}')" class="btn-icon" style="background:#6b7280;color:white;padding:4px 10px;border-radius:6px;font-size:0.85em;">Cancelar</button>
+                    <button onclick="sendWhatsAppReminder('${appt.id}', '${appt.clientPhone}', '${appt.clientName.replace(/'/g, "\\'")}', '${appt.serviceName.replace(/'/g, "\\'")}', '${appt.startDateTime}')" class="btn-icon" style="background:linear-gradient(135deg, #25D366 0%, #128C7E 100%);color:white;padding:6px 12px;border-radius:8px;font-size:0.85em;display:flex;align-items:center;gap:6px;border:none;cursor:pointer;transition:all 0.2s;box-shadow:0 2px 4px rgba(37,211,102,0.3);" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 8px rgba(37,211,102,0.4)'" onmouseout="this.style.transform='';this.style.boxShadow='0 2px 4px rgba(37,211,102,0.3)'" title="Enviar recordatorio por WhatsApp">
+                      <i class="fab fa-whatsapp"></i>
+                    </button>
+                    <button onclick="editAppointment('${appt.id}')" class="btn-icon" style="background:linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);color:white;padding:6px 12px;border-radius:8px;font-size:0.85em;display:flex;align-items:center;gap:6px;border:none;cursor:pointer;transition:all 0.2s;box-shadow:0 2px 4px rgba(59,130,246,0.3);" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 8px rgba(59,130,246,0.4)'" onmouseout="this.style.transform='';this.style.boxShadow='0 2px 4px rgba(59,130,246,0.3)'">
+                      <i class="fas fa-edit"></i> Modificar
+                    </button>
+                    <button onclick="cancelAppointment('${appt.id}')" class="btn-icon" style="background:linear-gradient(135deg, #ef4444 0%, #dc2626 100%);color:white;padding:6px 12px;border-radius:8px;font-size:0.85em;display:flex;align-items:center;gap:6px;border:none;cursor:pointer;transition:all 0.2s;box-shadow:0 2px 4px rgba(239,68,68,0.3);" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 8px rgba(239,68,68,0.4)'" onmouseout="this.style.transform='';this.style.boxShadow='0 2px 4px rgba(239,68,68,0.3)'">
+                      <i class="fas fa-times-circle"></i> Cancelar
+                    </button>
                   </div>
                 </td>
               </tr>
@@ -10243,6 +10250,50 @@
         renderMonthlyCalendar();
         loadMonthStats();
       } catch (e) { alert('Error: ' + e.message); }
+    };
+
+    // ========== ENVIAR RECORDATORIO POR WHATSAPP ==========
+    window.sendWhatsAppReminder = (id, phone, clientName, serviceName, startDateTime) => {
+      try {
+        // Formatear fecha y hora
+        const date = new Date(startDateTime);
+        const dateStr = date.toLocaleDateString('es-MX', { 
+          weekday: 'long', 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        });
+        const timeStr = date.toLocaleTimeString('es-MX', { 
+          hour: '2-digit', 
+          minute: '2-digit',
+          hour12: true
+        });
+
+        // Crear mensaje
+        const message = `Hola ${clientName} 👋
+
+🌟 *Recordatorio de tu cita en Venus Cosmetología*
+
+📅 *Fecha:* ${dateStr}
+⏰ *Hora:* ${timeStr}
+💆‍♀️ *Servicio:* ${serviceName}
+
+Te esperamos! Si necesitas reagendar, por favor avísanos con anticipación.
+
+Gracias por tu preferencia ✨`;
+
+        // Limpiar número de teléfono (quitar espacios, guiones, etc)
+        const cleanPhone = phone.replace(/[^0-9]/g, '');
+        
+        // Abrir WhatsApp
+        const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+        window.open(whatsappUrl, '_blank');
+        
+        console.log('📱 WhatsApp abierto para:', clientName, cleanPhone);
+      } catch (error) {
+        console.error('Error enviando recordatorio WhatsApp:', error);
+        alert('Error al abrir WhatsApp. Verifica que el número de teléfono sea válido.');
+      }
     };
 
     async function updateAppointmentStatus(id, newStatus) {
