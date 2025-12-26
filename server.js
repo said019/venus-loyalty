@@ -945,18 +945,62 @@ app.post('/api/appointments', adminAuth, async (req, res) => {
     const duration = parseInt(durationMinutes) || 60;
     const endDateTime = new Date(startDateTime.getTime() + duration * 60000);
 
+    const phoneClean = phone.replace(/\D/g, '');
+
     console.log('[APPOINTMENT] Creando cita:', {
       name,
-      phone,
+      phone: phoneClean,
       serviceName,
       startDateTime: startDateTime.toISOString(),
       endDateTime: endDateTime.toISOString()
     });
 
+    // Buscar o crear tarjeta de lealtad por teléfono
+    let cardId = null;
+    let clientId = null;
+
+    console.log(`[APPOINTMENT] 🔍 Buscando tarjeta para teléfono: ${phoneClean}`);
+
+    const existingCard = await firestore.collection(COL_CARDS)
+      .where('phone', '==', phoneClean)
+      .limit(1)
+      .get();
+
+    if (!existingCard.empty) {
+      cardId = existingCard.docs[0].id;
+      clientId = cardId; // En este sistema, cardId = clientId
+      console.log(`[APPOINTMENT] ✅ Tarjeta existente encontrada: ${cardId}`);
+    } else {
+      // Crear nueva tarjeta
+      const newCardRef = firestore.collection(COL_CARDS).doc();
+      cardId = newCardRef.id;
+      clientId = cardId;
+
+      const cardData = {
+        id: cardId,
+        name: name,
+        phone: phoneClean,
+        email: null,
+        birthday: null,
+        stamps: 0,
+        max: 8,
+        cycles: 0,
+        status: 'active',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        source: 'admin-appointment'
+      };
+
+      await newCardRef.set(cardData);
+      console.log(`[APPOINTMENT] 🆕 Nueva tarjeta creada: ${cardId}`);
+    }
+
     // Crear documento de cita
     const appointmentData = {
+      clientId: clientId,
+      cardId: cardId,
       clientName: name,
-      clientPhone: phone.replace(/\D/g, ''),
+      clientPhone: phoneClean,
       serviceId: serviceId || null,
       serviceName,
       date,
@@ -972,7 +1016,7 @@ app.post('/api/appointments', adminAuth, async (req, res) => {
 
     const docRef = await firestore.collection('appointments').add(appointmentData);
 
-    console.log('[APPOINTMENT] ✅ Cita creada:', docRef.id);
+    console.log('[APPOINTMENT] ✅ Cita creada y vinculada a tarjeta:', docRef.id, 'cardId:', cardId);
 
     // TODO: Enviar recordatorios WhatsApp según configuración
     // if (sendWhatsAppConfirmation) { ... }
