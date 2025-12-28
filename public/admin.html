@@ -11249,18 +11249,27 @@ Gracias por tu preferencia ✨`;
       // Calcular duración total
       let totalDuration = 0;
 
-      // Si hay servicios en la lista, sumar sus duraciones
+      // Sumar duración de servicios en la lista
       if (selectedServices.length > 0) {
         totalDuration = selectedServices.reduce((sum, s) => sum + (parseInt(s.durationMinutes) || 60), 0);
-      } else {
-        // Si no hay servicios en la lista, usar el servicio del formulario
-        const serviceName = serviceSelect ? serviceSelect.value.trim() : '';
+      }
+      
+      // También sumar el servicio del campo principal si existe y no está vacío
+      const serviceName = serviceSelect ? serviceSelect.value.trim() : '';
+      if (serviceName) {
         const service = allServices.find(s => s.name === serviceName);
         if (service) {
-          totalDuration = parseInt(service.durationMinutes) || 60;
-        } else {
-          totalDuration = 60; // Default 1 hora
+          // Solo agregar si no está ya en la lista de servicios seleccionados
+          const alreadyInList = selectedServices.find(s => s.id === service.id);
+          if (!alreadyInList) {
+            totalDuration += parseInt(service.durationMinutes) || 60;
+          }
         }
+      }
+      
+      // Si no hay ningún servicio, usar default de 60 min
+      if (totalDuration === 0) {
+        totalDuration = 60;
       }
 
       const startDate = new Date();
@@ -11274,6 +11283,13 @@ Gracias por tu preferencia ✨`;
       const period = endHours >= 12 ? 'PM' : 'AM';
 
       endTimeInput.value = `${displayHour}:${String(endMinutes).padStart(2, '0')} ${period}`;
+      
+      console.log('📊 Hora fin calculada:', {
+        serviciosEnLista: selectedServices.length,
+        servicioEnCampo: serviceName,
+        duracionTotal: totalDuration,
+        horaFin: endTimeInput.value
+      });
     }
 
 
@@ -11430,18 +11446,35 @@ Gracias por tu preferencia ✨`;
         </div>
       `).join('');
       
-      // Mostrar duración total y precio total
-      const totalDuration = selectedServices.reduce((sum, s) => sum + (parseInt(s.durationMinutes) || 60), 0);
-      const totalPrice = selectedServices.reduce((sum, s) => sum + (parseFloat(s.price) || 0), 0);
+      // Mostrar duración total y precio total (incluyendo servicio del campo principal)
+      let totalDuration = selectedServices.reduce((sum, s) => sum + (parseInt(s.durationMinutes) || 60), 0);
+      let totalPrice = selectedServices.reduce((sum, s) => sum + (parseFloat(s.price) || 0), 0);
+      let extraServiceNote = '';
+      
+      // Verificar si hay un servicio en el campo principal que no está en la lista
+      const serviceName = serviceSelect ? serviceSelect.value.trim() : '';
+      if (serviceName) {
+        const service = allServices.find(s => s.name === serviceName);
+        if (service && !selectedServices.find(s => s.id === service.id)) {
+          const extraDuration = parseInt(service.durationMinutes) || 60;
+          const extraPrice = parseFloat(priceInput.value) || 0;
+          totalDuration += extraDuration;
+          totalPrice += extraPrice;
+          extraServiceNote = `<div style="font-size:11px;color:var(--muted);margin-top:4px;">+ ${serviceName} (${extraDuration} min)</div>`;
+        }
+      }
       
       servicesListContainer.innerHTML += `
-        <div style="display:flex;justify-content:space-between;padding:10px;background:rgba(140,150,104,0.2);border-radius:8px;margin-top:8px;border:1px solid rgba(140,150,104,0.3);">
-          <div style="font-weight:600;color:var(--venus-soft);">
-            <i class="fas fa-clock"></i> Total: ${totalDuration} min
+        <div style="padding:10px;background:rgba(140,150,104,0.2);border-radius:8px;margin-top:8px;border:1px solid rgba(140,150,104,0.3);">
+          <div style="display:flex;justify-content:space-between;">
+            <div style="font-weight:600;color:var(--venus-soft);">
+              <i class="fas fa-clock"></i> Total: ${totalDuration} min
+            </div>
+            <div style="font-weight:600;color:var(--venus-soft);">
+              $${totalPrice.toFixed(0)}
+            </div>
           </div>
-          <div style="font-weight:600;color:var(--venus-soft);">
-            $${totalPrice.toFixed(0)}
-          </div>
+          ${extraServiceNote}
         </div>
       `;
     }
