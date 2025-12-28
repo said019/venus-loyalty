@@ -11526,30 +11526,38 @@ Gracias por tu preferencia ✨`;
           // Determinar qué servicios agendar
           let servicesToBook = [];
           
-          if (selectedServices.length > 0) {
-            // Usar servicios de la lista
-            servicesToBook = selectedServices;
-          } else {
-            // Usar el servicio del formulario principal
-            const serviceName = serviceSelect.value.trim();
-            const service = allServices.find(s => s.name === serviceName);
-
-            if (!service) {
-              alert('Por favor selecciona un servicio válido');
-              btn.disabled = false;
-              btn.textContent = originalText;
-              return;
+          // Primero agregar el servicio del campo principal si existe
+          const mainServiceName = serviceSelect.value.trim();
+          if (mainServiceName) {
+            const mainService = allServices.find(s => s.name === mainServiceName);
+            if (mainService) {
+              // Solo agregar si no está ya en la lista de servicios seleccionados
+              const alreadyInList = selectedServices.find(s => s.id === mainService.id);
+              if (!alreadyInList) {
+                servicesToBook.push({
+                  id: mainService.id,
+                  name: mainService.name,
+                  price: parseFloat(priceInput.value) || 0,
+                  durationMinutes: parseInt(mainService.durationMinutes)
+                });
+              }
             }
-
-            servicesToBook = [{
-              id: service.id,
-              name: service.name,
-              price: parseFloat(priceInput.value) || 0,
-              durationMinutes: parseInt(service.durationMinutes)
-            }];
+          }
+          
+          // Luego agregar los servicios de la lista
+          if (selectedServices.length > 0) {
+            servicesToBook = [...servicesToBook, ...selectedServices];
+          }
+          
+          // Validar que hay al menos un servicio
+          if (servicesToBook.length === 0) {
+            alert('Por favor selecciona al menos un servicio');
+            btn.disabled = false;
+            btn.textContent = originalText;
+            return;
           }
 
-          console.log('🕐 [APPOINTMENT] Creando citas para', servicesToBook.length, 'servicios');
+          console.log('🕐 [APPOINTMENT] Creando citas para', servicesToBook.length, 'servicios:', servicesToBook.map(s => s.name));
 
           // Crear citas para cada servicio
           let currentTime = time;
