@@ -3788,6 +3788,78 @@
         </div>
       </div>
 
+      <!-- Panel de Gastos del Mes -->
+      <div class="card" style="margin-bottom:20px;background:linear-gradient(135deg, rgba(239,68,68,0.05) 0%, rgba(220,38,38,0.05) 100%);border:1px solid rgba(239,68,68,0.2);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+          <h3 style="margin:0;font-size:18px;display:flex;align-items:center;gap:10px;">
+            <i class="fas fa-receipt" style="color:#ef4444;"></i>
+            <span>Gastos del Mes</span>
+          </h3>
+          <button class="btn primary" onclick="openExpenseModal()" style="background:linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">
+            <i class="fas fa-plus"></i> Nuevo Gasto
+          </button>
+        </div>
+
+        <!-- Resumen de Gastos -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:20px;">
+          <div style="background:rgba(255,255,255,0.05);padding:16px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+              <i class="fas fa-wallet" style="color:#ef4444;"></i>
+              <span style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:600;">Total Gastos</span>
+            </div>
+            <div id="expenses-total" style="font-size:24px;font-weight:700;color:#ef4444;">$0.00</div>
+            <div id="expenses-count" style="font-size:11px;color:var(--muted);margin-top:4px;">0 gastos</div>
+          </div>
+
+          <div style="background:rgba(255,255,255,0.05);padding:16px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+              <i class="fas fa-chart-line" style="color:#10b981;"></i>
+              <span style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:600;">Utilidad Neta</span>
+            </div>
+            <div id="net-profit" style="font-size:24px;font-weight:700;color:#10b981;">$0.00</div>
+            <div id="profit-margin" style="font-size:11px;color:var(--muted);margin-top:4px;">0% margen</div>
+          </div>
+
+          <div style="background:rgba(255,255,255,0.05);padding:16px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+              <i class="fas fa-shopping-cart" style="color:#f59e0b;"></i>
+              <span style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:600;">Productos</span>
+            </div>
+            <div id="expenses-products" style="font-size:24px;font-weight:700;color:#f59e0b;">$0.00</div>
+          </div>
+
+          <div style="background:rgba(255,255,255,0.05);padding:16px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+              <i class="fas fa-ellipsis-h" style="color:#8b5cf6;"></i>
+              <span style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:600;">Otros</span>
+            </div>
+            <div id="expenses-others" style="font-size:24px;font-weight:700;color:#8b5cf6;">$0.00</div>
+          </div>
+        </div>
+
+        <!-- Tabla de Gastos -->
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Categoría</th>
+                <th>Descripción</th>
+                <th>Monto</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="expenses-tbody">
+              <tr>
+                <td colspan="5" class="muted" style="text-align:center;padding:20px;">
+                  No hay gastos registrados este mes
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <!-- Tabla de ventas -->
       <div class="card">
         <h3 style="margin-bottom:16px;font-size:15px;"><i class="fas fa-list"></i> Detalle de Ventas</h3>
@@ -4473,6 +4545,72 @@
           <i class="fas fa-check-circle"></i> Cobrar <span id="btn-ds-total">$0</span>
         </button>
         <button type="button" onclick="closeDirectSaleModal()" class="btn ghost">Cancelar</button>
+      </div>
+    </dialog>
+
+    <!-- EXPENSE DIALOG -->
+    <dialog id="expenseDialog">
+      <div class="dialog-content">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+          <h3 style="margin:0;display:flex;align-items:center;gap:10px;">
+            <i class="fas fa-receipt" style="color:#ef4444;"></i>
+            <span id="expense-modal-title">Nuevo Gasto</span>
+          </h3>
+          <button type="button" class="btn ghost" onclick="closeExpenseModal()"
+            style="min-width:auto;padding:8px 12px;" title="Cerrar">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <form id="form-expense">
+          <input type="hidden" id="expense-id">
+          <div style="display:grid;gap:16px;">
+            <!-- Fecha -->
+            <div>
+              <label class="form-label">Fecha</label>
+              <input type="date" id="expense-date" class="form-input" required>
+            </div>
+
+            <!-- Categoría -->
+            <div>
+              <label class="form-label">Categoría</label>
+              <select id="expense-category" class="form-input" required>
+                <option value="">Seleccionar...</option>
+                <option value="productos">📦 Productos/Inventario</option>
+                <option value="renta">🏠 Renta</option>
+                <option value="servicios">💡 Servicios (luz, agua, internet)</option>
+                <option value="salarios">👥 Salarios</option>
+                <option value="marketing">📢 Marketing/Publicidad</option>
+                <option value="equipo">🔧 Equipo/Herramientas</option>
+                <option value="mantenimiento">🛠️ Mantenimiento</option>
+                <option value="transporte">🚗 Transporte</option>
+                <option value="otros">📝 Otros</option>
+              </select>
+            </div>
+
+            <!-- Descripción -->
+            <div>
+              <label class="form-label">Descripción</label>
+              <textarea id="expense-description" class="form-input" rows="3" placeholder="Ej: Compra de productos para tratamientos faciales" required></textarea>
+            </div>
+
+            <!-- Monto -->
+            <div>
+              <label class="form-label">Monto</label>
+              <div style="position:relative;">
+                <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--venus-soft);font-size:14px;">$</span>
+                <input type="number" id="expense-amount" class="form-input" placeholder="0.00" min="0" step="0.01" style="padding-left:28px;" required>
+              </div>
+            </div>
+
+            <!-- Botones -->
+            <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px;">
+              <button type="button" class="btn ghost" onclick="closeExpenseModal()">Cancelar</button>
+              <button type="submit" class="btn primary" style="background:linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">
+                <i class="fas fa-save"></i> Guardar Gasto
+              </button>
+            </div>
+          </div>
+        </form>
       </div>
     </dialog>
 
@@ -15403,6 +15541,224 @@ Gracias por tu preferencia ✨`;
         alert('❌ Error al exportar: ' + error.message);
       }
     }
+
+    // ========== GASTOS DEL MES ==========
+    let currentExpenseId = null;
+    const expenseDialog = document.getElementById('expenseDialog');
+    const formExpense = document.getElementById('form-expense');
+
+    async function loadExpenses() {
+      try {
+        // Obtener mes actual
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const firstDay = `${year}-${month}-01`;
+        const lastDay = new Date(year, now.getMonth() + 1, 0).getDate();
+        const lastDayStr = `${year}-${month}-${String(lastDay).padStart(2, '0')}`;
+
+        const res = await fetch(`/api/expenses?from=${firstDay}&to=${lastDayStr}`, { credentials: 'include' });
+        const json = await res.json();
+
+        if (!json.success) {
+          console.error('Error cargando gastos:', json.error);
+          return;
+        }
+
+        const expenses = json.data || [];
+        renderExpenses(expenses);
+        calculateExpenseStats(expenses);
+      } catch (error) {
+        console.error('Error cargando gastos:', error);
+      }
+    }
+
+    function renderExpenses(expenses) {
+      const tbody = document.getElementById('expenses-tbody');
+
+      if (expenses.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="muted" style="text-align:center;padding:20px;">No hay gastos registrados este mes</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = expenses.map(exp => {
+        const date = new Date(exp.date);
+        const dateStr = date.toLocaleDateString('es-MX', { day: '2-digit', month: 'short' });
+        const categoryIcons = {
+          productos: '📦',
+          renta: '🏠',
+          servicios: '💡',
+          salarios: '👥',
+          marketing: '📢',
+          equipo: '🔧',
+          mantenimiento: '🛠️',
+          transporte: '🚗',
+          otros: '📝'
+        };
+
+        return `
+          <tr>
+            <td>${dateStr}</td>
+            <td>${categoryIcons[exp.category] || '📝'} ${exp.category}</td>
+            <td>${exp.description}</td>
+            <td style="font-weight:600;color:#ef4444;">$${parseFloat(exp.amount).toFixed(2)}</td>
+            <td>
+              <button onclick="editExpense('${exp.id}')" class="btn-icon" style="background:#3b82f6;color:white;padding:4px 8px;border-radius:6px;font-size:0.85em;">
+                <i class="fas fa-edit"></i>
+              </button>
+              <button onclick="deleteExpense('${exp.id}')" class="btn-icon" style="background:#ef4444;color:white;padding:4px 8px;border-radius:6px;font-size:0.85em;">
+                <i class="fas fa-trash"></i>
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function calculateExpenseStats(expenses) {
+      let totalExpenses = 0;
+      let productsExpenses = 0;
+      let othersExpenses = 0;
+
+      expenses.forEach(exp => {
+        const amount = parseFloat(exp.amount) || 0;
+        totalExpenses += amount;
+
+        if (exp.category === 'productos') {
+          productsExpenses += amount;
+        } else {
+          othersExpenses += amount;
+        }
+      });
+
+      // Obtener total de ventas del mes
+      const totalSales = parseFloat(document.getElementById('report-total-sales').textContent.replace('$', '').replace(',', '')) || 0;
+      const netProfit = totalSales - totalExpenses;
+      const profitMargin = totalSales > 0 ? ((netProfit / totalSales) * 100).toFixed(1) : 0;
+
+      document.getElementById('expenses-total').textContent = '$' + totalExpenses.toFixed(2);
+      document.getElementById('expenses-count').textContent = `${expenses.length} gastos`;
+      document.getElementById('expenses-products').textContent = '$' + productsExpenses.toFixed(2);
+      document.getElementById('expenses-others').textContent = '$' + othersExpenses.toFixed(2);
+      document.getElementById('net-profit').textContent = '$' + netProfit.toFixed(2);
+      document.getElementById('profit-margin').textContent = `${profitMargin}% margen`;
+
+      // Cambiar color según utilidad
+      const netProfitEl = document.getElementById('net-profit');
+      if (netProfit >= 0) {
+        netProfitEl.style.color = '#10b981';
+      } else {
+        netProfitEl.style.color = '#ef4444';
+      }
+    }
+
+    window.openExpenseModal = function() {
+      currentExpenseId = null;
+      formExpense.reset();
+      document.getElementById('expense-modal-title').textContent = 'Nuevo Gasto';
+      document.getElementById('expense-date').valueAsDate = new Date();
+      expenseDialog.showModal();
+    };
+
+    window.closeExpenseModal = function() {
+      expenseDialog.close();
+      currentExpenseId = null;
+    };
+
+    window.editExpense = async function(id) {
+      try {
+        const res = await fetch(`/api/expenses/${id}`, { credentials: 'include' });
+        const json = await res.json();
+
+        if (!json.success) {
+          alert('Error cargando gasto');
+          return;
+        }
+
+        const expense = json.data;
+        currentExpenseId = id;
+        document.getElementById('expense-id').value = id;
+        document.getElementById('expense-date').value = expense.date;
+        document.getElementById('expense-category').value = expense.category;
+        document.getElementById('expense-description').value = expense.description;
+        document.getElementById('expense-amount').value = expense.amount;
+        document.getElementById('expense-modal-title').textContent = 'Editar Gasto';
+        expenseDialog.showModal();
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Error cargando gasto');
+      }
+    };
+
+    window.deleteExpense = async function(id) {
+      if (!confirm('¿Eliminar este gasto?')) return;
+
+      try {
+        const res = await fetch(`/api/expenses/${id}`, {
+          method: 'DELETE',
+          credentials: 'include'
+        });
+
+        const json = await res.json();
+
+        if (json.success) {
+          alert('✅ Gasto eliminado');
+          loadExpenses();
+        } else {
+          alert('❌ Error: ' + json.error);
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Error eliminando gasto');
+      }
+    };
+
+    if (formExpense) {
+      formExpense.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const data = {
+          date: document.getElementById('expense-date').value,
+          category: document.getElementById('expense-category').value,
+          description: document.getElementById('expense-description').value,
+          amount: parseFloat(document.getElementById('expense-amount').value)
+        };
+
+        try {
+          const url = currentExpenseId ? `/api/expenses/${currentExpenseId}` : '/api/expenses';
+          const method = currentExpenseId ? 'PUT' : 'POST';
+
+          const res = await fetch(url, {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify(data)
+          });
+
+          const json = await res.json();
+
+          if (json.success) {
+            alert(currentExpenseId ? '✅ Gasto actualizado' : '✅ Gasto registrado');
+            closeExpenseModal();
+            loadExpenses();
+          } else {
+            alert('❌ Error: ' + json.error);
+          }
+        } catch (error) {
+          console.error('Error:', error);
+          alert('Error guardando gasto');
+        }
+      });
+    }
+
+    // Cargar gastos cuando se abre la pestaña de reportes
+    document.querySelectorAll('[data-tab="reports"]').forEach(tab => {
+      tab.addEventListener('click', () => {
+        setTimeout(() => {
+          loadExpenses();
+        }, 100);
+      });
+    });
   </script>
 
 </body>

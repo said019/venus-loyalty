@@ -1932,6 +1932,129 @@ app.get("/api/apple/test-pass", async (_req, res) => {
   }
 });
 
+/* =========================================================
+   GASTOS (EXPENSES)
+   ========================================================= */
+
+// GET /api/expenses - Listar gastos en un rango de fechas
+app.get('/api/expenses', adminAuth, async (req, res) => {
+  try {
+    const { from, to } = req.query;
+
+    if (!from || !to) {
+      return res.status(400).json({ success: false, error: 'Se requieren fechas from y to' });
+    }
+
+    const snapshot = await firestore.collection('expenses')
+      .where('date', '>=', from)
+      .where('date', '<=', to)
+      .orderBy('date', 'desc')
+      .get();
+
+    const data = [];
+    snapshot.forEach(doc => {
+      data.push({ id: doc.id, ...doc.data() });
+    });
+
+    console.log(`[EXPENSES] Listando ${data.length} gastos de ${from} a ${to}`);
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error('[EXPENSES] Error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// GET /api/expenses/:id - Obtener un gasto por ID
+app.get('/api/expenses/:id', adminAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const doc = await firestore.collection('expenses').doc(id).get();
+
+    if (!doc.exists) {
+      return res.status(404).json({ success: false, error: 'Gasto no encontrado' });
+    }
+
+    res.json({ success: true, data: { id: doc.id, ...doc.data() } });
+  } catch (error) {
+    console.error('[EXPENSES] Error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// POST /api/expenses - Crear nuevo gasto
+app.post('/api/expenses', adminAuth, async (req, res) => {
+  try {
+    const { date, category, description, amount } = req.body;
+
+    if (!date || !category || !description || !amount) {
+      return res.status(400).json({ success: false, error: 'Faltan campos requeridos' });
+    }
+
+    const expenseData = {
+      date,
+      category,
+      description,
+      amount: parseFloat(amount),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    const docRef = await firestore.collection('expenses').add(expenseData);
+    console.log(`[EXPENSES] Gasto creado: ${docRef.id}`);
+
+    res.json({ success: true, id: docRef.id });
+  } catch (error) {
+    console.error('[EXPENSES] Error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// PUT /api/expenses/:id - Actualizar gasto
+app.put('/api/expenses/:id', adminAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { date, category, description, amount } = req.body;
+
+    if (!date || !category || !description || !amount) {
+      return res.status(400).json({ success: false, error: 'Faltan campos requeridos' });
+    }
+
+    const updateData = {
+      date,
+      category,
+      description,
+      amount: parseFloat(amount),
+      updatedAt: new Date().toISOString()
+    };
+
+    await firestore.collection('expenses').doc(id).update(updateData);
+    console.log(`[EXPENSES] Gasto actualizado: ${id}`);
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('[EXPENSES] Error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// DELETE /api/expenses/:id - Eliminar gasto
+app.delete('/api/expenses/:id', adminAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    await firestore.collection('expenses').doc(id).delete();
+    console.log(`[EXPENSES] Gasto eliminado: ${id}`);
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('[EXPENSES] Error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/* =========================================================
+   CLIENTES
+   ========================================================= */
+
 // POST /api/clients - Crear cliente nuevo desde admin (sin cumpleaños requerido)
 app.post("/api/clients", adminAuth, async (req, res) => {
   try {
