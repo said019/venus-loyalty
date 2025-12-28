@@ -4084,6 +4084,17 @@
               </div>
             </div>
 
+            <!-- Botón para agregar servicio -->
+            <button type="button" id="btn-add-service" class="btn small ghost" style="width:100%;">
+              <i class="fas fa-plus"></i> Agregar otro servicio
+            </button>
+
+            <!-- Lista de servicios seleccionados -->
+            <div id="selected-services-list" style="display:none;background:rgba(140,150,104,0.1);border:1px solid rgba(140,150,104,0.3);border-radius:12px;padding:16px;">
+              <h4 style="margin:0 0 12px 0;color:var(--venus-soft);"><i class="fas fa-list"></i> Servicios seleccionados</h4>
+              <div id="services-list-container"></div>
+            </div>
+
             <!-- Fecha y Hora -->
             <div class="grid-date-time">
               <div style="position:relative;">
@@ -11196,6 +11207,79 @@ Gracias por tu preferencia ✨`;
       });
     }
 
+    // ========== MÚLTIPLES SERVICIOS ==========
+    let selectedServices = [];
+
+    const btnAddService = document.getElementById('btn-add-service');
+    const selectedServicesList = document.getElementById('selected-services-list');
+    const servicesListContainer = document.getElementById('services-list-container');
+
+    function addServiceToList() {
+      const serviceName = serviceSelect.value.trim();
+      const price = parseFloat(priceInput.value) || 0;
+      
+      if (!serviceName) {
+        alert('Por favor selecciona un servicio');
+        return;
+      }
+
+      const service = allServices.find(s => s.name === serviceName);
+      if (!service) {
+        alert('Por favor selecciona un servicio válido');
+        return;
+      }
+
+      // Verificar si ya está agregado
+      if (selectedServices.find(s => s.id === service.id)) {
+        alert('Este servicio ya está agregado');
+        return;
+      }
+
+      selectedServices.push({
+        id: service.id,
+        name: service.name,
+        price: price,
+        durationMinutes: service.durationMinutes
+      });
+
+      renderSelectedServices();
+      
+      // Limpiar campos
+      serviceSelect.value = '';
+      priceInput.value = '';
+    }
+
+    function removeServiceFromList(serviceId) {
+      selectedServices = selectedServices.filter(s => s.id !== serviceId);
+      renderSelectedServices();
+    }
+
+    function renderSelectedServices() {
+      if (selectedServices.length === 0) {
+        selectedServicesList.style.display = 'none';
+        return;
+      }
+
+      selectedServicesList.style.display = 'block';
+      servicesListContainer.innerHTML = selectedServices.map(service => `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:rgba(255,255,255,0.05);border-radius:8px;margin-bottom:8px;">
+          <div>
+            <div style="font-weight:600;color:var(--ink);">${service.name}</div>
+            <div style="font-size:12px;color:var(--muted);">$${service.price} • ${service.durationMinutes} min</div>
+          </div>
+          <button type="button" onclick="removeServiceFromList('${service.id}')" class="btn small ghost" style="color:#ef4444;">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      `).join('');
+    }
+
+    window.removeServiceFromList = removeServiceFromList;
+
+    if (btnAddService) {
+      btnAddService.addEventListener('click', addServiceToList);
+    }
+
     // Submit form
     if (formNewAppt) {
       formNewAppt.addEventListener('submit', async (e) => {
@@ -11218,19 +11302,8 @@ Gracias por tu preferencia ✨`;
           }
 
           const time = `${hour}:${minute}`;
-
-          // Buscar servicio en allServices
-          const serviceName = serviceSelect.value.trim();
-          const service = allServices.find(s => s.name === serviceName);
-
-          if (!service) {
-            alert('Por favor selecciona un servicio válido');
-            btn.disabled = false;
-            btn.textContent = originalText;
-            return;
-          }
-
           const isoDate = newApptCalendar.getISODate();
+          
           if (!isoDate) {
             alert('Por favor selecciona una fecha del calendario');
             btn.disabled = false;
@@ -11238,48 +11311,113 @@ Gracias por tu preferencia ✨`;
             return;
           }
 
-          const payload = {
-            name: clientSelect.value.trim(),
-            phone: phoneInput.value.trim(),
-            serviceId: service.id,
-            serviceName: serviceSelect.value.trim(),
-            date: isoDate,
-            time: time,
-            durationMinutes: parseInt(service.durationMinutes),
-            sendWhatsAppConfirmation: document.getElementById('check-whatsapp-confirm').checked,
-            sendWhatsApp24h: document.getElementById('check-whatsapp-24h').checked,
-            sendWhatsApp2h: document.getElementById('check-whatsapp-2h').checked,
-            giftCardCode: document.getElementById('new-appt-giftcard').value.trim() || null
-          };
+          const clientName = clientSelect.value.trim();
+          const clientPhone = phoneInput.value.trim();
+          const sendWhatsAppConfirmation = document.getElementById('check-whatsapp-confirm').checked;
+          const sendWhatsApp24h = document.getElementById('check-whatsapp-24h').checked;
+          const sendWhatsApp2h = document.getElementById('check-whatsapp-2h').checked;
+          const giftCardCode = document.getElementById('new-appt-giftcard').value.trim() || null;
 
-          console.log('🕐 [APPOINTMENT] Creando cita con payload:', {
-            ...payload,
-            clientTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-            localNow: new Date().toString(),
-            isoNow: new Date().toISOString()
-          });
-
-          const res = await fetch('/api/appointments', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-          });
-
-          const json = await res.json();
-          if (json.success) {
-            alert('✅ Cita agendada');
-            newApptDialog.close();
-            formNewAppt.reset();
-            loadAppointments();
-            renderMonthlyCalendar();
+          // Determinar qué servicios agendar
+          let servicesToBook = [];
+          
+          if (selectedServices.length > 0) {
+            // Usar servicios de la lista
+            servicesToBook = selectedServices;
           } else {
-            // Mostrar mensaje específico para conflictos de horario
-            if (res.status === 409) {
-              alert('⚠️ ' + json.error);
-            } else {
-              alert('❌ Error: ' + json.error);
+            // Usar el servicio del formulario principal
+            const serviceName = serviceSelect.value.trim();
+            const service = allServices.find(s => s.name === serviceName);
+
+            if (!service) {
+              alert('Por favor selecciona un servicio válido');
+              btn.disabled = false;
+              btn.textContent = originalText;
+              return;
             }
+
+            servicesToBook = [{
+              id: service.id,
+              name: service.name,
+              price: parseFloat(priceInput.value) || 0,
+              durationMinutes: parseInt(service.durationMinutes)
+            }];
           }
+
+          console.log('🕐 [APPOINTMENT] Creando citas para', servicesToBook.length, 'servicios');
+
+          // Crear citas para cada servicio
+          let currentTime = time;
+          const createdAppointments = [];
+          
+          for (let i = 0; i < servicesToBook.length; i++) {
+            const service = servicesToBook[i];
+            
+            const payload = {
+              name: clientName,
+              phone: clientPhone,
+              serviceId: service.id,
+              serviceName: service.name,
+              date: isoDate,
+              time: currentTime,
+              durationMinutes: service.durationMinutes,
+              sendWhatsAppConfirmation: sendWhatsAppConfirmation && i === 0, // Solo enviar confirmación en la primera
+              sendWhatsApp24h: sendWhatsApp24h,
+              sendWhatsApp2h: sendWhatsApp2h,
+              giftCardCode: i === 0 ? giftCardCode : null, // Solo aplicar gift card a la primera
+              isMultiService: servicesToBook.length > 1,
+              multiServiceIndex: i,
+              multiServiceTotal: servicesToBook.length
+            };
+
+            console.log(`🕐 [APPOINTMENT] Creando cita ${i + 1}/${servicesToBook.length}:`, service.name);
+
+            const res = await fetch('/api/appointments', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+
+            const json = await res.json();
+            
+            if (!json.success) {
+              if (res.status === 409) {
+                alert(`⚠️ Error en ${service.name}: ${json.error}`);
+              } else {
+                alert(`❌ Error en ${service.name}: ${json.error}`);
+              }
+              btn.disabled = false;
+              btn.textContent = originalText;
+              return;
+            }
+
+            createdAppointments.push({
+              id: json.appointmentId,
+              serviceName: service.name
+            });
+
+            // Calcular siguiente hora (sumar duración del servicio actual)
+            const [h, m] = currentTime.split(':').map(Number);
+            const totalMinutes = h * 60 + m + service.durationMinutes;
+            const nextHour = Math.floor(totalMinutes / 60);
+            const nextMinute = totalMinutes % 60;
+            currentTime = `${String(nextHour).padStart(2, '0')}:${String(nextMinute).padStart(2, '0')}`;
+          }
+
+          // Enviar WhatsApp con todos los servicios si hay múltiples
+          if (servicesToBook.length > 1 && sendWhatsAppConfirmation) {
+            const servicesText = servicesToBook.map(s => `• ${s.name}`).join('\n');
+            console.log('📱 [APPOINTMENT] Enviando WhatsApp con múltiples servicios');
+            // El backend ya envió el WhatsApp de la primera cita, aquí solo logueamos
+          }
+
+          alert(`✅ ${servicesToBook.length === 1 ? 'Cita agendada' : servicesToBook.length + ' citas agendadas'}`);
+          newApptDialog.close();
+          formNewAppt.reset();
+          selectedServices = [];
+          renderSelectedServices();
+          loadAppointments();
+          renderMonthlyCalendar();
         } catch (e) {
           alert('Error de conexión');
         } finally {
