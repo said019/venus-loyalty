@@ -9951,6 +9951,22 @@
         moreEl.addEventListener('click', (e) => {
           e.stopPropagation();
           selectedDate = new Date(date);
+          
+          // Cambiar a la pestaña de Citas
+          document.querySelectorAll('.nav a').forEach(a => a.classList.remove('is-active'));
+          document.querySelectorAll('.mobile-nav-link').forEach(a => a.classList.remove('is-active'));
+          
+          const appointmentsTab = document.querySelector('[data-tab="appointments"]');
+          if (appointmentsTab) {
+            appointmentsTab.classList.add('is-active');
+          }
+          
+          document.querySelectorAll('[id^="tab-"]').forEach(s => s.classList.add('hidden'));
+          const appointmentsSection = document.getElementById('tab-appointments');
+          if (appointmentsSection) {
+            appointmentsSection.classList.remove('hidden');
+          }
+          
           renderMonthlyCalendar();
           loadAppointments();
           updateSelectedDateLabel();
@@ -9971,6 +9987,23 @@
           // Seleccionar nuevo día
           dayEl.classList.add('selected');
           selectedDate = new Date(date);
+          
+          // Cambiar a la pestaña de Citas
+          document.querySelectorAll('.nav a').forEach(a => a.classList.remove('is-active'));
+          document.querySelectorAll('.mobile-nav-link').forEach(a => a.classList.remove('is-active'));
+          
+          const appointmentsTab = document.querySelector('[data-tab="appointments"]');
+          if (appointmentsTab) {
+            appointmentsTab.classList.add('is-active');
+          }
+          
+          document.querySelectorAll('[id^="tab-"]').forEach(s => s.classList.add('hidden'));
+          const appointmentsSection = document.getElementById('tab-appointments');
+          if (appointmentsSection) {
+            appointmentsSection.classList.remove('hidden');
+          }
+          
+          // Cargar citas del día seleccionado
           loadAppointments();
           updateSelectedDateLabel();
         });
