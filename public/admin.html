@@ -2225,21 +2225,24 @@
     .weekdays-header {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
-      background: rgba(0, 0, 0, 0.3);
+      background: #1b1c1a;
       border-bottom: 1px solid var(--line);
       width: 100%;
       box-sizing: border-box;
+      border-radius: 12px 12px 0 0;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     }
 
     .weekday {
-      padding: 12px 8px;
+      padding: 14px 8px;
       text-align: center;
-      font-size: 11px;
-      font-weight: 600;
+      font-size: 12px;
+      font-weight: 700;
       color: var(--venus-soft);
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 1px;
       border-right: 1px solid var(--line);
+      background: rgba(140, 150, 104, 0.05);
     }
 
     .weekday:last-child {
@@ -4253,7 +4256,7 @@
                 <div style="position:relative;">
                   <span
                     style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--venus-soft);font-size:14px;">$</span>
-                  <input type="number" id="new-appt-price" class="form-input" placeholder="0" min="0" step="10"
+                  <input type="number" id="new-appt-price" class="form-input" placeholder="0" min="0" step="any"
                     style="padding-left:28px;">
                 </div>
               </div>
@@ -4452,7 +4455,7 @@
             <div class="payment-info-value" id="payment-service-name">-</div>
             <div class="payment-price-row">
               <span class="payment-price-display" id="payment-price-display">$0</span>
-              <input type="number" class="payment-price-input" id="payment-price-input" min="0" step="10">
+              <input type="number" class="payment-price-input" id="payment-price-input" min="0" step="any">
               <button class="btn-edit-price" onclick="togglePriceEdit()" title="Editar precio">
                 <i class="fas fa-pencil" style="font-size:12px;"></i>
               </button>
@@ -6904,7 +6907,7 @@
             <div style="position:relative;">
               <span
                 style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px;">$</span>
-              <input type="number" id="service-price" class="form-input" required min="0" step="50"
+              <input type="number" id="service-price" class="form-input" required min="0" step="any"
                 style="padding-left:25px;">
             </div>
           </div>
@@ -9921,7 +9924,7 @@
       // pero aquí centralizamos la lógica para otras vistas.
 
       if (currentView === 'month') {
-        if (weekdaysHeader) weekdaysHeader.style.display = 'flex';
+        if (weekdaysHeader) weekdaysHeader.style.display = 'grid';
         calendarGrid.className = 'calendar-grid'; // Reset class
         renderMonthlyCalendar();
       } else {
