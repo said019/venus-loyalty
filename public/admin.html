@@ -3828,175 +3828,167 @@
             </select>
           </div>
         </div>
-        <<<<<<< HEAD <div class="table-wrap" style="max-height:500px;overflow-y:auto;">
+        <div class="table-wrap" style="max-height:500px;overflow-y:auto;">
           <table class="data-table" style="font-size:12px;">
             <thead style="position:sticky;top:0;background:#2c2d26;z-index:1;">
-              =======
-              <div style="margin-top:12px;display:flex;gap:8px;">
-                <button class="btn primary" onclick="aplicarFiltrosReporte()">
-                  <i class="fas fa-search"></i> Aplicar Filtros
-                </button>
-                <button class="btn ghost" onclick="limpiarFiltrosReporte()">
-                  <i class="fas fa-times"></i> Limpiar
-                </button>
+        </div>
+
+        <!-- Estadísticas -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:20px;">
+          <div class="card">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+              <span style="font-size:12px;color:var(--muted);text-transform:uppercase;font-weight:600;">Total
+                Ventas</span>
+              <i class="fas fa-dollar-sign" style="color:var(--venus);font-size:20px;"></i>
+            </div>
+            <div id="report-total-sales" style="font-size:28px;font-weight:700;color:var(--venus);">$0.00</div>
+            <div id="report-sales-count" style="font-size:12px;color:var(--muted);margin-top:4px;">0 ventas</div>
+          </div>
+
+          <div class="card">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+              <span style="font-size:12px;color:var(--muted);text-transform:uppercase;font-weight:600;">Efectivo</span>
+              <i class="fas fa-money-bill-wave" style="color:#22c55e;font-size:20px;"></i>
+            </div>
+            <div id="report-cash-total" style="font-size:28px;font-weight:700;color:#22c55e;">$0.00</div>
+            <div id="report-cash-count" style="font-size:12px;color:var(--muted);margin-top:4px;">0 ventas</div>
+          </div>
+
+          <div class="card">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+              <span style="font-size:12px;color:var(--muted);text-transform:uppercase;font-weight:600;">Tarjeta</span>
+              <i class="fas fa-credit-card" style="color:#3b82f6;font-size:20px;"></i>
+            </div>
+            <div id="report-card-total" style="font-size:28px;font-weight:700;color:#3b82f6;">$0.00</div>
+            <div id="report-card-count" style="font-size:12px;color:var(--muted);margin-top:4px;">0 ventas</div>
+          </div>
+
+          <div class="card">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+              <span
+                style="font-size:12px;color:var(--muted);text-transform:uppercase;font-weight:600;">Transferencia</span>
+              <i class="fas fa-exchange-alt" style="color:#8b5cf6;font-size:20px;"></i>
+            </div>
+            <div id="report-transfer-total" style="font-size:28px;font-weight:700;color:#8b5cf6;">$0.00</div>
+            <div id="report-transfer-count" style="font-size:12px;color:var(--muted);margin-top:4px;">0 ventas</div>
+          </div>
+        </div>
+
+        <!-- Panel de Gastos del Mes -->
+        <div class="card"
+          style="margin-bottom:20px;background:linear-gradient(135deg, rgba(239,68,68,0.05) 0%, rgba(220,38,38,0.05) 100%);border:1px solid rgba(239,68,68,0.2);">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+            <h3 style="margin:0;font-size:18px;display:flex;align-items:center;gap:10px;">
+              <i class="fas fa-receipt" style="color:#ef4444;"></i>
+              <span>Gastos del Mes</span>
+            </h3>
+            <button class="btn primary" onclick="openExpenseModal()"
+              style="background:linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">
+              <i class="fas fa-plus"></i> Nuevo Gasto
+            </button>
+          </div>
+
+          <!-- Resumen de Gastos -->
+          <div
+            style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:20px;">
+            <div
+              style="background:rgba(255,255,255,0.05);padding:16px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                <i class="fas fa-wallet" style="color:#ef4444;"></i>
+                <span style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:600;">Total
+                  Gastos</span>
               </div>
-      </div>
-
-      <!-- Estadísticas -->
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:20px;">
-        <div class="card">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-            <span style="font-size:12px;color:var(--muted);text-transform:uppercase;font-weight:600;">Total
-              Ventas</span>
-            <i class="fas fa-dollar-sign" style="color:var(--venus);font-size:20px;"></i>
-          </div>
-          <div id="report-total-sales" style="font-size:28px;font-weight:700;color:var(--venus);">$0.00</div>
-          <div id="report-sales-count" style="font-size:12px;color:var(--muted);margin-top:4px;">0 ventas</div>
-        </div>
-
-        <div class="card">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-            <span style="font-size:12px;color:var(--muted);text-transform:uppercase;font-weight:600;">Efectivo</span>
-            <i class="fas fa-money-bill-wave" style="color:#22c55e;font-size:20px;"></i>
-          </div>
-          <div id="report-cash-total" style="font-size:28px;font-weight:700;color:#22c55e;">$0.00</div>
-          <div id="report-cash-count" style="font-size:12px;color:var(--muted);margin-top:4px;">0 ventas</div>
-        </div>
-
-        <div class="card">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-            <span style="font-size:12px;color:var(--muted);text-transform:uppercase;font-weight:600;">Tarjeta</span>
-            <i class="fas fa-credit-card" style="color:#3b82f6;font-size:20px;"></i>
-          </div>
-          <div id="report-card-total" style="font-size:28px;font-weight:700;color:#3b82f6;">$0.00</div>
-          <div id="report-card-count" style="font-size:12px;color:var(--muted);margin-top:4px;">0 ventas</div>
-        </div>
-
-        <div class="card">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-            <span
-              style="font-size:12px;color:var(--muted);text-transform:uppercase;font-weight:600;">Transferencia</span>
-            <i class="fas fa-exchange-alt" style="color:#8b5cf6;font-size:20px;"></i>
-          </div>
-          <div id="report-transfer-total" style="font-size:28px;font-weight:700;color:#8b5cf6;">$0.00</div>
-          <div id="report-transfer-count" style="font-size:12px;color:var(--muted);margin-top:4px;">0 ventas</div>
-        </div>
-      </div>
-
-      <!-- Panel de Gastos del Mes -->
-      <div class="card"
-        style="margin-bottom:20px;background:linear-gradient(135deg, rgba(239,68,68,0.05) 0%, rgba(220,38,38,0.05) 100%);border:1px solid rgba(239,68,68,0.2);">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-          <h3 style="margin:0;font-size:18px;display:flex;align-items:center;gap:10px;">
-            <i class="fas fa-receipt" style="color:#ef4444;"></i>
-            <span>Gastos del Mes</span>
-          </h3>
-          <button class="btn primary" onclick="openExpenseModal()"
-            style="background:linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">
-            <i class="fas fa-plus"></i> Nuevo Gasto
-          </button>
-        </div>
-
-        <!-- Resumen de Gastos -->
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:20px;">
-          <div
-            style="background:rgba(255,255,255,0.05);padding:16px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-              <i class="fas fa-wallet" style="color:#ef4444;"></i>
-              <span style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:600;">Total
-                Gastos</span>
+              <div id="expenses-total" style="font-size:24px;font-weight:700;color:#ef4444;">$0.00</div>
+              <div id="expenses-count" style="font-size:11px;color:var(--muted);margin-top:4px;">0 gastos</div>
             </div>
-            <div id="expenses-total" style="font-size:24px;font-weight:700;color:#ef4444;">$0.00</div>
-            <div id="expenses-count" style="font-size:11px;color:var(--muted);margin-top:4px;">0 gastos</div>
+
+            <div
+              style="background:rgba(255,255,255,0.05);padding:16px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                <i class="fas fa-chart-line" style="color:#10b981;"></i>
+                <span style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:600;">Utilidad
+                  Neta</span>
+              </div>
+              <div id="net-profit" style="font-size:24px;font-weight:700;color:#10b981;">$0.00</div>
+              <div id="profit-margin" style="font-size:11px;color:var(--muted);margin-top:4px;">0% margen</div>
+            </div>
+
+            <div
+              style="background:rgba(255,255,255,0.05);padding:16px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                <i class="fas fa-shopping-cart" style="color:#f59e0b;"></i>
+                <span
+                  style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:600;">Productos</span>
+              </div>
+              <div id="expenses-products" style="font-size:24px;font-weight:700;color:#f59e0b;">$0.00</div>
+            </div>
+
+            <div
+              style="background:rgba(255,255,255,0.05);padding:16px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                <i class="fas fa-ellipsis-h" style="color:#8b5cf6;"></i>
+                <span style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:600;">Otros</span>
+              </div>
+              <div id="expenses-others" style="font-size:24px;font-weight:700;color:#8b5cf6;">$0.00</div>
+            </div>
           </div>
 
-          <div
-            style="background:rgba(255,255,255,0.05);padding:16px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-              <i class="fas fa-chart-line" style="color:#10b981;"></i>
-              <span style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:600;">Utilidad
-                Neta</span>
-            </div>
-            <div id="net-profit" style="font-size:24px;font-weight:700;color:#10b981;">$0.00</div>
-            <div id="profit-margin" style="font-size:11px;color:var(--muted);margin-top:4px;">0% margen</div>
-          </div>
-
-          <div
-            style="background:rgba(255,255,255,0.05);padding:16px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-              <i class="fas fa-shopping-cart" style="color:#f59e0b;"></i>
-              <span style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:600;">Productos</span>
-            </div>
-            <div id="expenses-products" style="font-size:24px;font-weight:700;color:#f59e0b;">$0.00</div>
-          </div>
-
-          <div
-            style="background:rgba(255,255,255,0.05);padding:16px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-              <i class="fas fa-ellipsis-h" style="color:#8b5cf6;"></i>
-              <span style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:600;">Otros</span>
-            </div>
-            <div id="expenses-others" style="font-size:24px;font-weight:700;color:#8b5cf6;">$0.00</div>
+          <!-- Tabla de Gastos -->
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Categoría</th>
+                  <th>Descripción</th>
+                  <th>Monto</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="expenses-tbody">
+                <tr>
+                  <td colspan="5" class="muted" style="text-align:center;padding:20px;">
+                    No hay gastos registrados este mes
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
 
-        <!-- Tabla de Gastos -->
-        <div class="table-wrap">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Fecha</th>
-                <th>Categoría</th>
-                <th>Descripción</th>
-                <th>Monto</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody id="expenses-tbody">
-              <tr>
-                <td colspan="5" class="muted" style="text-align:center;padding:20px;">
-                  No hay gastos registrados este mes
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <!-- Tabla de ventas -->
+        <div class="card">
+          <h3 style="margin-bottom:16px;font-size:15px;"><i class="fas fa-list"></i> Detalle de Ventas</h3>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th style="white-space:nowrap;">Fecha de pago</th>
+                  <th>Cliente</th>
+                  <th>Servicio</th>
+                  <th>Tipo</th>
+                  <th style="white-space:nowrap;">Forma de pago</th>
+                  <th style="white-space:nowrap;">Cuenta Bancaria</th>
+                  <th>Subtotal</th>
+                  <th>IVA</th>
+                  <th>Descuento</th>
+                  <th>Total</th>
+                  <th>Comentarios</th>
+                </tr>
+              </thead>
+              <tbody id="report-sales-tbody">
+                <tr>
+                  <td colspan="11" class="muted" style="text-align:center;padding:40px;">
+                    Selecciona un mes para ver los ingresos
+                  </td>
+                </tr>
+              </tbody>
+              <tfoot id="report-sales-tfoot" style="background:rgba(140,150,104,0.15);font-weight:600;">
+                <!-- Totales -->
+              </tfoot>
+            </table>
+          </div>
         </div>
-      </div>
-
-      <!-- Tabla de ventas -->
-      <div class="card">
-        <h3 style="margin-bottom:16px;font-size:15px;"><i class="fas fa-list"></i> Detalle de Ventas</h3>
-        <div class="table-wrap">
-          <table class="data-table">
-            <thead>
-              >>>>>>> origin/main
-              <tr>
-                <th style="white-space:nowrap;">Fecha de pago</th>
-                <th>Cliente</th>
-                <th>Servicio</th>
-                <th>Tipo</th>
-                <th style="white-space:nowrap;">Forma de pago</th>
-                <th style="white-space:nowrap;">Cuenta Bancaria</th>
-                <th>Subtotal</th>
-                <th>IVA</th>
-                <th>Descuento</th>
-                <th>Total</th>
-                <th>Comentarios</th>
-              </tr>
-            </thead>
-            <tbody id="report-sales-tbody">
-              <tr>
-                <td colspan="11" class="muted" style="text-align:center;padding:40px;">
-                  Selecciona un mes para ver los ingresos
-                </td>
-              </tr>
-            </tbody>
-            <tfoot id="report-sales-tfoot" style="background:rgba(140,150,104,0.15);font-weight:600;">
-              <!-- Totales -->
-            </tfoot>
-          </table>
-        </div>
-      </div>
     </section>
 
     <!-- TAB: Servicios y Productos -->
@@ -15779,8 +15771,8 @@ Gracias por tu preferencia ✨`;
     let currentReportMonth = { year: new Date().getFullYear(), month: new Date().getMonth() + 1 };
     const MESES = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
     const SERVICE_COLORS = [
-      '#556B2F', '#6B8E23', '#8F9779', '#A2AA86', '#4F5D3E',
-      '#739072', '#86A789', '#9EB384', '#D2E3C8', '#3F4F3A'
+      '#7D8F69', '#A9AF90', '#5F7464', '#8C9A86', '#4A5D23',
+      '#9EB384', '#B5C99A', '#708238', '#556B2F', '#3F4F3A'
     ];
 
     function initReportMonthTabs() {
