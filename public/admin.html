@@ -11243,17 +11243,30 @@ Gracias por tu preferencia ✨`;
 
       const hour = hourSelect.value;
       const minute = minuteSelect.value;
-      const serviceName = serviceSelect ? serviceSelect.value.trim() : '';
-      const service = allServices.find(s => s.name === serviceName);
 
-      if (!hour || !minute || !service) return;
+      if (!hour || !minute) return;
 
-      const duration = parseInt(service.durationMinutes) || 60;
+      // Calcular duración total
+      let totalDuration = 0;
+
+      // Si hay servicios en la lista, sumar sus duraciones
+      if (selectedServices.length > 0) {
+        totalDuration = selectedServices.reduce((sum, s) => sum + (parseInt(s.durationMinutes) || 60), 0);
+      } else {
+        // Si no hay servicios en la lista, usar el servicio del formulario
+        const serviceName = serviceSelect ? serviceSelect.value.trim() : '';
+        const service = allServices.find(s => s.name === serviceName);
+        if (service) {
+          totalDuration = parseInt(service.durationMinutes) || 60;
+        } else {
+          totalDuration = 60; // Default 1 hora
+        }
+      }
 
       const startDate = new Date();
       startDate.setHours(parseInt(hour), parseInt(minute), 0);
 
-      const endDate = new Date(startDate.getTime() + duration * 60000);
+      const endDate = new Date(startDate.getTime() + totalDuration * 60000);
 
       const endHours = endDate.getHours();
       const endMinutes = endDate.getMinutes();
@@ -11385,11 +11398,17 @@ Gracias por tu preferencia ✨`;
       // Limpiar campos
       serviceSelect.value = '';
       priceInput.value = '';
+      
+      // Recalcular hora fin
+      calculateEndTime();
     }
 
     function removeServiceFromList(serviceId) {
       selectedServices = selectedServices.filter(s => s.id !== serviceId);
       renderSelectedServices();
+      
+      // Recalcular hora fin
+      calculateEndTime();
     }
 
     function renderSelectedServices() {
@@ -11410,6 +11429,21 @@ Gracias por tu preferencia ✨`;
           </button>
         </div>
       `).join('');
+      
+      // Mostrar duración total y precio total
+      const totalDuration = selectedServices.reduce((sum, s) => sum + (parseInt(s.durationMinutes) || 60), 0);
+      const totalPrice = selectedServices.reduce((sum, s) => sum + (parseFloat(s.price) || 0), 0);
+      
+      servicesListContainer.innerHTML += `
+        <div style="display:flex;justify-content:space-between;padding:10px;background:rgba(140,150,104,0.2);border-radius:8px;margin-top:8px;border:1px solid rgba(140,150,104,0.3);">
+          <div style="font-weight:600;color:var(--venus-soft);">
+            <i class="fas fa-clock"></i> Total: ${totalDuration} min
+          </div>
+          <div style="font-weight:600;color:var(--venus-soft);">
+            $${totalPrice.toFixed(0)}
+          </div>
+        </div>
+      `;
     }
 
     window.removeServiceFromList = removeServiceFromList;
