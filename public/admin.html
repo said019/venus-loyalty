@@ -2216,7 +2216,10 @@
     }
 
     .calendar-grid-container {
+      display: block;
       padding: 0;
+      width: 100%;
+      overflow: hidden;
     }
 
     .weekdays-header {
@@ -2224,6 +2227,8 @@
       grid-template-columns: repeat(7, 1fr);
       background: rgba(0, 0, 0, 0.3);
       border-bottom: 1px solid var(--line);
+      width: 100%;
+      box-sizing: border-box;
     }
 
     .weekday {
@@ -2245,6 +2250,8 @@
       display: grid;
       grid-template-columns: repeat(7, 1fr);
       background: var(--bg);
+      width: 100%;
+      box-sizing: border-box;
     }
 
     .calendar-day {
@@ -2597,11 +2604,13 @@
       </div>
       <!-- Campana y menú móvil -->
       <div class="mobile-actions">
-        <button class="notification-bell mobile-bell" id="notif-btn-mobile" title="Notificaciones">
-          <i class="fas fa-bell"></i>
-          <span class="notification-badge hidden" id="notif-badge-mobile">0</span>
+        <button class="notification-bell mobile-bell" id="notif-btn-mobile" title="Notificaciones"
+          onclick="toggleNotifications(event)"></button>
+        <i class="fas fa-bell"></i>
+        <span class="notification-badge hidden" id="notif-badge-mobile">0</span>
         </button>
-        <button class="mobile-menu-btn" id="mobile-menu-toggle"><i class="fas fa-bars"></i></button>
+        <button class="mobile-menu-btn" id="mobile-menu-toggle" onclick="openMobileMenu()"><i
+            class="fas fa-bars"></i></button>
       </div>
 
       <!-- Acciones desktop -->
@@ -2642,7 +2651,8 @@
     <div class="mobile-menu hidden" id="mobile-menu">
       <div class="mobile-menu-header">
         <span>Menú</span>
-        <button class="close-menu-btn" id="mobile-menu-close"><i class="fas fa-times"></i></button>
+        <button class="close-menu-btn" id="mobile-menu-close" onclick="closeMobileMenu()"><i
+            class="fas fa-times"></i></button>
       </div>
       <div class="mobile-menu-content">
         <a href="#overview" class="mobile-nav-link" data-tab="overview"><i class="fas fa-th-large"></i> Resumen</a>
@@ -3817,9 +3827,148 @@
             </select>
           </div>
         </div>
-        <div class="table-wrap" style="max-height:500px;overflow-y:auto;">
+        <<<<<<< HEAD <div class="table-wrap" style="max-height:500px;overflow-y:auto;">
           <table class="data-table" style="font-size:12px;">
             <thead style="position:sticky;top:0;background:#2c2d26;z-index:1;">
+              =======
+              <div style="margin-top:12px;display:flex;gap:8px;">
+                <button class="btn primary" onclick="aplicarFiltrosReporte()">
+                  <i class="fas fa-search"></i> Aplicar Filtros
+                </button>
+                <button class="btn ghost" onclick="limpiarFiltrosReporte()">
+                  <i class="fas fa-times"></i> Limpiar
+                </button>
+              </div>
+      </div>
+
+      <!-- Estadísticas -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:20px;">
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <span style="font-size:12px;color:var(--muted);text-transform:uppercase;font-weight:600;">Total
+              Ventas</span>
+            <i class="fas fa-dollar-sign" style="color:var(--venus);font-size:20px;"></i>
+          </div>
+          <div id="report-total-sales" style="font-size:28px;font-weight:700;color:var(--venus);">$0.00</div>
+          <div id="report-sales-count" style="font-size:12px;color:var(--muted);margin-top:4px;">0 ventas</div>
+        </div>
+
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <span style="font-size:12px;color:var(--muted);text-transform:uppercase;font-weight:600;">Efectivo</span>
+            <i class="fas fa-money-bill-wave" style="color:#22c55e;font-size:20px;"></i>
+          </div>
+          <div id="report-cash-total" style="font-size:28px;font-weight:700;color:#22c55e;">$0.00</div>
+          <div id="report-cash-count" style="font-size:12px;color:var(--muted);margin-top:4px;">0 ventas</div>
+        </div>
+
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <span style="font-size:12px;color:var(--muted);text-transform:uppercase;font-weight:600;">Tarjeta</span>
+            <i class="fas fa-credit-card" style="color:#3b82f6;font-size:20px;"></i>
+          </div>
+          <div id="report-card-total" style="font-size:28px;font-weight:700;color:#3b82f6;">$0.00</div>
+          <div id="report-card-count" style="font-size:12px;color:var(--muted);margin-top:4px;">0 ventas</div>
+        </div>
+
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <span
+              style="font-size:12px;color:var(--muted);text-transform:uppercase;font-weight:600;">Transferencia</span>
+            <i class="fas fa-exchange-alt" style="color:#8b5cf6;font-size:20px;"></i>
+          </div>
+          <div id="report-transfer-total" style="font-size:28px;font-weight:700;color:#8b5cf6;">$0.00</div>
+          <div id="report-transfer-count" style="font-size:12px;color:var(--muted);margin-top:4px;">0 ventas</div>
+        </div>
+      </div>
+
+      <!-- Panel de Gastos del Mes -->
+      <div class="card"
+        style="margin-bottom:20px;background:linear-gradient(135deg, rgba(239,68,68,0.05) 0%, rgba(220,38,38,0.05) 100%);border:1px solid rgba(239,68,68,0.2);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+          <h3 style="margin:0;font-size:18px;display:flex;align-items:center;gap:10px;">
+            <i class="fas fa-receipt" style="color:#ef4444;"></i>
+            <span>Gastos del Mes</span>
+          </h3>
+          <button class="btn primary" onclick="openExpenseModal()"
+            style="background:linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">
+            <i class="fas fa-plus"></i> Nuevo Gasto
+          </button>
+        </div>
+
+        <!-- Resumen de Gastos -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:20px;">
+          <div
+            style="background:rgba(255,255,255,0.05);padding:16px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+              <i class="fas fa-wallet" style="color:#ef4444;"></i>
+              <span style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:600;">Total
+                Gastos</span>
+            </div>
+            <div id="expenses-total" style="font-size:24px;font-weight:700;color:#ef4444;">$0.00</div>
+            <div id="expenses-count" style="font-size:11px;color:var(--muted);margin-top:4px;">0 gastos</div>
+          </div>
+
+          <div
+            style="background:rgba(255,255,255,0.05);padding:16px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+              <i class="fas fa-chart-line" style="color:#10b981;"></i>
+              <span style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:600;">Utilidad
+                Neta</span>
+            </div>
+            <div id="net-profit" style="font-size:24px;font-weight:700;color:#10b981;">$0.00</div>
+            <div id="profit-margin" style="font-size:11px;color:var(--muted);margin-top:4px;">0% margen</div>
+          </div>
+
+          <div
+            style="background:rgba(255,255,255,0.05);padding:16px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+              <i class="fas fa-shopping-cart" style="color:#f59e0b;"></i>
+              <span style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:600;">Productos</span>
+            </div>
+            <div id="expenses-products" style="font-size:24px;font-weight:700;color:#f59e0b;">$0.00</div>
+          </div>
+
+          <div
+            style="background:rgba(255,255,255,0.05);padding:16px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+              <i class="fas fa-ellipsis-h" style="color:#8b5cf6;"></i>
+              <span style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:600;">Otros</span>
+            </div>
+            <div id="expenses-others" style="font-size:24px;font-weight:700;color:#8b5cf6;">$0.00</div>
+          </div>
+        </div>
+
+        <!-- Tabla de Gastos -->
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Categoría</th>
+                <th>Descripción</th>
+                <th>Monto</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="expenses-tbody">
+              <tr>
+                <td colspan="5" class="muted" style="text-align:center;padding:20px;">
+                  No hay gastos registrados este mes
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Tabla de ventas -->
+      <div class="card">
+        <h3 style="margin-bottom:16px;font-size:15px;"><i class="fas fa-list"></i> Detalle de Ventas</h3>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              >>>>>>> origin/main
               <tr>
                 <th style="white-space:nowrap;">Fecha de pago</th>
                 <th>Cliente</th>
@@ -4101,7 +4250,7 @@
                 <label class="form-label">Servicio</label>
                 <div class="custom-select-wrapper">
                   <input type="text" id="new-appt-service" class="form-input"
-                    placeholder="Buscar o escribir servicio..." autocomplete="off" required>
+                    placeholder="Buscar o escribir servicio..." autocomplete="off">
                   <span class="dropdown-toggle-icon">▼</span>
                   <div id="services-dropdown-list" class="custom-dropdown-list" style="display:none;"></div>
                 </div>
@@ -4115,6 +4264,19 @@
                     style="padding-left:28px;">
                 </div>
               </div>
+            </div>
+
+            <!-- Botón para agregar servicio -->
+            <button type="button" id="btn-add-service" class="btn small ghost" style="width:100%;">
+              <i class="fas fa-plus"></i> Agregar otro servicio
+            </button>
+
+            <!-- Lista de servicios seleccionados -->
+            <div id="selected-services-list"
+              style="display:none;background:rgba(140,150,104,0.1);border:1px solid rgba(140,150,104,0.3);border-radius:12px;padding:16px;">
+              <h4 style="margin:0 0 12px 0;color:var(--venus-soft);"><i class="fas fa-list"></i> Servicios seleccionados
+              </h4>
+              <div id="services-list-container"></div>
             </div>
 
             <!-- Fecha y Hora -->
@@ -4495,6 +4657,76 @@
           <i class="fas fa-check-circle"></i> Cobrar <span id="btn-ds-total">$0</span>
         </button>
         <button type="button" onclick="closeDirectSaleModal()" class="btn ghost">Cancelar</button>
+      </div>
+    </dialog>
+
+    <!-- EXPENSE DIALOG -->
+    <dialog id="expenseDialog">
+      <div class="dialog-content">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+          <h3 style="margin:0;display:flex;align-items:center;gap:10px;">
+            <i class="fas fa-receipt" style="color:#ef4444;"></i>
+            <span id="expense-modal-title">Nuevo Gasto</span>
+          </h3>
+          <button type="button" class="btn ghost" onclick="closeExpenseModal()" style="min-width:auto;padding:8px 12px;"
+            title="Cerrar">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <form id="form-expense">
+          <input type="hidden" id="expense-id">
+          <div style="display:grid;gap:16px;">
+            <!-- Fecha -->
+            <div>
+              <label class="form-label">Fecha</label>
+              <input type="date" id="expense-date" class="form-input" required>
+            </div>
+
+            <!-- Categoría -->
+            <div>
+              <label class="form-label">Categoría</label>
+              <select id="expense-category" class="form-input" required>
+                <option value="">Seleccionar...</option>
+                <option value="productos">📦 Productos/Inventario</option>
+                <option value="renta">🏠 Renta</option>
+                <option value="servicios">💡 Servicios (luz, agua, internet)</option>
+                <option value="salarios">👥 Salarios</option>
+                <option value="marketing">📢 Marketing/Publicidad</option>
+                <option value="equipo">🔧 Equipo/Herramientas</option>
+                <option value="mantenimiento">🛠️ Mantenimiento</option>
+                <option value="transporte">🚗 Transporte</option>
+                <option value="otros">📝 Otros</option>
+              </select>
+            </div>
+
+            <!-- Descripción -->
+            <div>
+              <label class="form-label">Descripción</label>
+              <textarea id="expense-description" class="form-input" rows="3"
+                placeholder="Ej: Compra de productos para tratamientos faciales" required></textarea>
+            </div>
+
+            <!-- Monto -->
+            <div>
+              <label class="form-label">Monto</label>
+              <div style="position:relative;">
+                <span
+                  style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--venus-soft);font-size:14px;">$</span>
+                <input type="number" id="expense-amount" class="form-input" placeholder="0.00" min="0" step="0.01"
+                  style="padding-left:28px;" required>
+              </div>
+            </div>
+
+            <!-- Botones -->
+            <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px;">
+              <button type="button" class="btn ghost" onclick="closeExpenseModal()">Cancelar</button>
+              <button type="submit" class="btn primary"
+                style="background:linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">
+                <i class="fas fa-save"></i> Guardar Gasto
+              </button>
+            </div>
+          </div>
+        </form>
       </div>
     </dialog>
 
@@ -6713,6 +6945,26 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
   <script>
+    // ===== FUNCIONES GLOBALES MENÚ MÓVIL =====
+    // Definidas al inicio para que estén disponibles para onclick en HTML
+    function openMobileMenu() {
+      console.log('👆 Abriendo menú móvil');
+      const mobileMenu = document.getElementById('mobile-menu');
+      if (mobileMenu) {
+        mobileMenu.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+      }
+    }
+
+    function closeMobileMenu() {
+      console.log('👆 Cerrando menú móvil');
+      const mobileMenu = document.getElementById('mobile-menu');
+      if (mobileMenu) {
+        mobileMenu.classList.add('hidden');
+        document.body.style.overflow = '';
+      }
+    }
+
     // ===== FIREBASE REAL-TIME LISTENERS =====
     let db = null;
     let unsubscribeAppointments = null;
@@ -9876,10 +10128,10 @@
       const daysInMonth = lastDay.getDate();
       const startDayOfWeek = firstDay.getDay(); // 0 = Domingo
 
-      // Días del mes anterior para llenar
+      // Días del mes anterior para llenar (si el mes no empieza en Domingo)
       const prevMonthLastDay = new Date(year, month, 0).getDate();
-      for (let i = startDayOfWeek - 1; i >= 0; i--) {
-        const dayNum = prevMonthLastDay - i;
+      for (let i = 0; i < startDayOfWeek; i++) {
+        const dayNum = prevMonthLastDay - startDayOfWeek + 1 + i;
         const dayEl = createGoogleCalendarDay(dayNum, year, month - 1, true);
         monthlyCalendar.appendChild(dayEl);
       }
@@ -9976,6 +10228,22 @@
         moreEl.addEventListener('click', (e) => {
           e.stopPropagation();
           selectedDate = new Date(date);
+
+          // Cambiar a la pestaña de Citas
+          document.querySelectorAll('.nav a').forEach(a => a.classList.remove('is-active'));
+          document.querySelectorAll('.mobile-nav-link').forEach(a => a.classList.remove('is-active'));
+
+          const appointmentsTab = document.querySelector('[data-tab="appointments"]');
+          if (appointmentsTab) {
+            appointmentsTab.classList.add('is-active');
+          }
+
+          document.querySelectorAll('[id^="tab-"]').forEach(s => s.classList.add('hidden'));
+          const appointmentsSection = document.getElementById('tab-appointments');
+          if (appointmentsSection) {
+            appointmentsSection.classList.remove('hidden');
+          }
+
           renderMonthlyCalendar();
           loadAppointments();
           updateSelectedDateLabel();
@@ -9996,6 +10264,23 @@
           // Seleccionar nuevo día
           dayEl.classList.add('selected');
           selectedDate = new Date(date);
+
+          // Cambiar a la pestaña de Citas
+          document.querySelectorAll('.nav a').forEach(a => a.classList.remove('is-active'));
+          document.querySelectorAll('.mobile-nav-link').forEach(a => a.classList.remove('is-active'));
+
+          const appointmentsTab = document.querySelector('[data-tab="appointments"]');
+          if (appointmentsTab) {
+            appointmentsTab.classList.add('is-active');
+          }
+
+          document.querySelectorAll('[id^="tab-"]').forEach(s => s.classList.add('hidden'));
+          const appointmentsSection = document.getElementById('tab-appointments');
+          if (appointmentsSection) {
+            appointmentsSection.classList.remove('hidden');
+          }
+
+          // Cargar citas del día seleccionado
           loadAppointments();
           updateSelectedDateLabel();
         });
@@ -10122,9 +10407,9 @@
                   </select>
                 </td>
                 <td style="padding:12px;">
-                  <div style="display:flex;gap:8px;align-items:center;">
+                  <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
                     ${appt.status !== 'completed' ? `
-                    <button onclick="openPaymentModal('${appt.id}', '${appt.clientName.replace(/'/g, "\\'") || ''}', '${appt.serviceName.replace(/'/g, "\\'") || ''}', ${appt.price || 0})" class="btn-icon" style="background:#10b981;color:white;padding:4px 10px;border-radius:6px;font-size:0.85em;display:flex;align-items:center;gap:4px;">
+                    <button onclick="openPaymentModal('${appt.id}', '${appt.clientName.replace(/'/g, "\\'") || ''}', '${appt.serviceName.replace(/'/g, "\\'") || ''}', ${appt.price || 0})" class="btn-icon" style="background:linear-gradient(135deg, #10b981 0%, #059669 100%);color:white;padding:6px 12px;border-radius:8px;font-size:0.85em;display:flex;align-items:center;gap:6px;border:none;cursor:pointer;transition:all 0.2s;box-shadow:0 2px 4px rgba(16,185,129,0.3);" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 8px rgba(16,185,129,0.4)'" onmouseout="this.style.transform='';this.style.boxShadow='0 2px 4px rgba(16,185,129,0.3)'">
                       <i class="fas fa-money-bill-wave"></i> Pagar
                     </button>
                     ` : `
@@ -10141,8 +10426,15 @@
                       </button>
                     </div>
                     `}
-                    <button onclick="editAppointment('${appt.id}')" class="btn-icon" style="background:#6b7280;color:white;padding:4px 10px;border-radius:6px;font-size:0.85em;">Modificar</button>
-                    <button onclick="cancelAppointment('${appt.id}')" class="btn-icon" style="background:#6b7280;color:white;padding:4px 10px;border-radius:6px;font-size:0.85em;">Cancelar</button>
+                    <button onclick="sendWhatsAppReminder('${appt.id}', '${appt.clientPhone}', '${appt.clientName.replace(/'/g, "\\'")}', '${appt.serviceName.replace(/'/g, "\\'")}', '${appt.startDateTime}')" class="btn-icon" style="background:linear-gradient(135deg, #25D366 0%, #128C7E 100%);color:white;padding:6px 12px;border-radius:8px;font-size:0.85em;display:flex;align-items:center;gap:6px;border:none;cursor:pointer;transition:all 0.2s;box-shadow:0 2px 4px rgba(37,211,102,0.3);" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 8px rgba(37,211,102,0.4)'" onmouseout="this.style.transform='';this.style.boxShadow='0 2px 4px rgba(37,211,102,0.3)'" title="Enviar recordatorio por WhatsApp">
+                      <i class="fab fa-whatsapp"></i>
+                    </button>
+                    <button onclick="editAppointment('${appt.id}')" class="btn-icon" style="background:linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);color:white;padding:6px 12px;border-radius:8px;font-size:0.85em;display:flex;align-items:center;gap:6px;border:none;cursor:pointer;transition:all 0.2s;box-shadow:0 2px 4px rgba(59,130,246,0.3);" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 8px rgba(59,130,246,0.4)'" onmouseout="this.style.transform='';this.style.boxShadow='0 2px 4px rgba(59,130,246,0.3)'">
+                      <i class="fas fa-edit"></i> Modificar
+                    </button>
+                    <button onclick="cancelAppointment('${appt.id}')" class="btn-icon" style="background:linear-gradient(135deg, #ef4444 0%, #dc2626 100%);color:white;padding:6px 12px;border-radius:8px;font-size:0.85em;display:flex;align-items:center;gap:6px;border:none;cursor:pointer;transition:all 0.2s;box-shadow:0 2px 4px rgba(239,68,68,0.3);" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 8px rgba(239,68,68,0.4)'" onmouseout="this.style.transform='';this.style.boxShadow='0 2px 4px rgba(239,68,68,0.3)'">
+                      <i class="fas fa-times-circle"></i> Cancelar
+                    </button>
                   </div>
                 </td>
               </tr>
@@ -10268,6 +10560,50 @@
         renderMonthlyCalendar();
         loadMonthStats();
       } catch (e) { alert('Error: ' + e.message); }
+    };
+
+    // ========== ENVIAR RECORDATORIO POR WHATSAPP ==========
+    window.sendWhatsAppReminder = (id, phone, clientName, serviceName, startDateTime) => {
+      try {
+        // Formatear fecha y hora
+        const date = new Date(startDateTime);
+        const dateStr = date.toLocaleDateString('es-MX', {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        });
+        const timeStr = date.toLocaleTimeString('es-MX', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true
+        });
+
+        // Crear mensaje
+        const message = `Hola ${clientName} 👋
+
+🌟 *Recordatorio de tu cita en Venus Cosmetología*
+
+📅 *Fecha:* ${dateStr}
+⏰ *Hora:* ${timeStr}
+💆‍♀️ *Servicio:* ${serviceName}
+
+Te esperamos! Si necesitas reagendar, por favor avísanos con anticipación.
+
+Gracias por tu preferencia ✨`;
+
+        // Limpiar número de teléfono (quitar espacios, guiones, etc)
+        const cleanPhone = phone.replace(/[^0-9]/g, '');
+
+        // Abrir WhatsApp
+        const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+        window.open(whatsappUrl, '_blank');
+
+        console.log('📱 WhatsApp abierto para:', clientName, cleanPhone);
+      } catch (error) {
+        console.error('Error enviando recordatorio WhatsApp:', error);
+        alert('Error al abrir WhatsApp. Verifica que el número de teléfono sea válido.');
+      }
     };
 
     async function updateAppointmentStatus(id, newStatus) {
@@ -10546,13 +10882,40 @@
             return;
           }
 
+          // Obtener la fecha - primero del calendario, luego del dataset, luego del input
+          let dateValue = editApptCalendar.getISODate();
+          if (!dateValue) {
+            dateValue = editDateInput.dataset.isoDate;
+          }
+          if (!dateValue) {
+            // Intentar parsear del input (formato dd/mm/yyyy)
+            const parts = editDateInput.value.split('/');
+            if (parts.length === 3) {
+              dateValue = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+            }
+          }
+
+          console.log('📅 Fecha a enviar:', dateValue);
+          console.log('📅 Calendario ISO:', editApptCalendar.getISODate());
+          console.log('📅 Dataset ISO:', editDateInput.dataset.isoDate);
+          console.log('📅 Input value:', editDateInput.value);
+
+          if (!dateValue) {
+            alert('Por favor selecciona una fecha');
+            btn.disabled = false;
+            btn.textContent = originalText;
+            return;
+          }
+
           const body = {
             serviceId: service.id,
             serviceName: service.name,
-            date: editApptCalendar.getISODate() || editDateInput.value,
+            date: dateValue,
             time: time,
             durationMinutes: parseInt(service.durationMinutes)
           };
+
+          console.log('📤 Enviando:', body);
 
           const res = await fetch(`/api/appointments/${editApptId.value}`, {
             method: 'PATCH',
@@ -10571,7 +10934,12 @@
           } else {
             // Mostrar mensaje específico para conflictos de horario
             if (res.status === 409) {
-              alert('⚠️ ' + json.error);
+              console.log('🔴 Conflicto detectado:', json);
+              let msg = '⚠️ ' + json.error;
+              if (json.debug) {
+                msg += `\n\nDetalles:\n- Tu cita: ${json.debug.newTime}\n- Cita existente: ${json.debug.existingClient} (${json.debug.existingTime})\n- Status: ${json.debug.existingStatus}\n- ID: ${json.debug.existingId}`;
+              }
+              alert(msg);
             } else {
               alert('❌ Error: ' + json.error);
             }
@@ -11003,17 +11371,39 @@
 
       const hour = hourSelect.value;
       const minute = minuteSelect.value;
+
+      if (!hour || !minute) return;
+
+      // Calcular duración total
+      let totalDuration = 0;
+
+      // Sumar duración de servicios en la lista
+      if (selectedServices.length > 0) {
+        totalDuration = selectedServices.reduce((sum, s) => sum + (parseInt(s.durationMinutes) || 60), 0);
+      }
+
+      // También sumar el servicio del campo principal si existe y no está vacío
       const serviceName = serviceSelect ? serviceSelect.value.trim() : '';
-      const service = allServices.find(s => s.name === serviceName);
+      if (serviceName) {
+        const service = allServices.find(s => s.name === serviceName);
+        if (service) {
+          // Solo agregar si no está ya en la lista de servicios seleccionados
+          const alreadyInList = selectedServices.find(s => s.id === service.id);
+          if (!alreadyInList) {
+            totalDuration += parseInt(service.durationMinutes) || 60;
+          }
+        }
+      }
 
-      if (!hour || !minute || !service) return;
-
-      const duration = parseInt(service.durationMinutes) || 60;
+      // Si no hay ningún servicio, usar default de 60 min
+      if (totalDuration === 0) {
+        totalDuration = 60;
+      }
 
       const startDate = new Date();
       startDate.setHours(parseInt(hour), parseInt(minute), 0);
 
-      const endDate = new Date(startDate.getTime() + duration * 60000);
+      const endDate = new Date(startDate.getTime() + totalDuration * 60000);
 
       const endHours = endDate.getHours();
       const endMinutes = endDate.getMinutes();
@@ -11021,6 +11411,13 @@
       const period = endHours >= 12 ? 'PM' : 'AM';
 
       endTimeInput.value = `${displayHour}:${String(endMinutes).padStart(2, '0')} ${period}`;
+
+      console.log('📊 Hora fin calculada:', {
+        serviciosEnLista: selectedServices.length,
+        servicioEnCampo: serviceName,
+        duracionTotal: totalDuration,
+        horaFin: endTimeInput.value
+      });
     }
 
 
@@ -11105,6 +11502,117 @@
       });
     }
 
+    // ========== MÚLTIPLES SERVICIOS ==========
+    let selectedServices = [];
+
+    const btnAddService = document.getElementById('btn-add-service');
+    const selectedServicesList = document.getElementById('selected-services-list');
+    const servicesListContainer = document.getElementById('services-list-container');
+
+    function addServiceToList() {
+      const serviceName = serviceSelect.value.trim();
+      const price = parseFloat(priceInput.value) || 0;
+
+      if (!serviceName) {
+        alert('Por favor selecciona un servicio');
+        return;
+      }
+
+      const service = allServices.find(s => s.name === serviceName);
+      if (!service) {
+        alert('Por favor selecciona un servicio válido');
+        return;
+      }
+
+      // Verificar si ya está agregado
+      if (selectedServices.find(s => s.id === service.id)) {
+        alert('Este servicio ya está agregado');
+        return;
+      }
+
+      selectedServices.push({
+        id: service.id,
+        name: service.name,
+        price: price,
+        durationMinutes: service.durationMinutes
+      });
+
+      renderSelectedServices();
+
+      // Limpiar campos
+      serviceSelect.value = '';
+      priceInput.value = '';
+
+      // Recalcular hora fin
+      calculateEndTime();
+    }
+
+    function removeServiceFromList(serviceId) {
+      selectedServices = selectedServices.filter(s => s.id !== serviceId);
+      renderSelectedServices();
+
+      // Recalcular hora fin
+      calculateEndTime();
+    }
+
+    function renderSelectedServices() {
+      if (selectedServices.length === 0) {
+        selectedServicesList.style.display = 'none';
+        return;
+      }
+
+      selectedServicesList.style.display = 'block';
+      servicesListContainer.innerHTML = selectedServices.map(service => `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:rgba(255,255,255,0.05);border-radius:8px;margin-bottom:8px;">
+          <div>
+            <div style="font-weight:600;color:var(--ink);">${service.name}</div>
+            <div style="font-size:12px;color:var(--muted);">$${service.price} • ${service.durationMinutes} min</div>
+          </div>
+          <button type="button" onclick="removeServiceFromList('${service.id}')" class="btn small ghost" style="color:#ef4444;">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      `).join('');
+
+      // Mostrar duración total y precio total (incluyendo servicio del campo principal)
+      let totalDuration = selectedServices.reduce((sum, s) => sum + (parseInt(s.durationMinutes) || 60), 0);
+      let totalPrice = selectedServices.reduce((sum, s) => sum + (parseFloat(s.price) || 0), 0);
+      let extraServiceNote = '';
+
+      // Verificar si hay un servicio en el campo principal que no está en la lista
+      const serviceName = serviceSelect ? serviceSelect.value.trim() : '';
+      if (serviceName) {
+        const service = allServices.find(s => s.name === serviceName);
+        if (service && !selectedServices.find(s => s.id === service.id)) {
+          const extraDuration = parseInt(service.durationMinutes) || 60;
+          const extraPrice = parseFloat(priceInput.value) || 0;
+          totalDuration += extraDuration;
+          totalPrice += extraPrice;
+          extraServiceNote = `<div style="font-size:11px;color:var(--muted);margin-top:4px;">+ ${serviceName} (${extraDuration} min)</div>`;
+        }
+      }
+
+      servicesListContainer.innerHTML += `
+        <div style="padding:10px;background:rgba(140,150,104,0.2);border-radius:8px;margin-top:8px;border:1px solid rgba(140,150,104,0.3);">
+          <div style="display:flex;justify-content:space-between;">
+            <div style="font-weight:600;color:var(--venus-soft);">
+              <i class="fas fa-clock"></i> Total: ${totalDuration} min
+            </div>
+            <div style="font-weight:600;color:var(--venus-soft);">
+              $${totalPrice.toFixed(0)}
+            </div>
+          </div>
+          ${extraServiceNote}
+        </div>
+      `;
+    }
+
+    window.removeServiceFromList = removeServiceFromList;
+
+    if (btnAddService) {
+      btnAddService.addEventListener('click', addServiceToList);
+    }
+
     // Submit form
     if (formNewAppt) {
       formNewAppt.addEventListener('submit', async (e) => {
@@ -11127,19 +11635,8 @@
           }
 
           const time = `${hour}:${minute}`;
-
-          // Buscar servicio en allServices
-          const serviceName = serviceSelect.value.trim();
-          const service = allServices.find(s => s.name === serviceName);
-
-          if (!service) {
-            alert('Por favor selecciona un servicio válido');
-            btn.disabled = false;
-            btn.textContent = originalText;
-            return;
-          }
-
           const isoDate = newApptCalendar.getISODate();
+
           if (!isoDate) {
             alert('Por favor selecciona una fecha del calendario');
             btn.disabled = false;
@@ -11147,48 +11644,143 @@
             return;
           }
 
-          const payload = {
-            name: clientSelect.value.trim(),
-            phone: phoneInput.value.trim(),
-            serviceId: service.id,
-            serviceName: serviceSelect.value.trim(),
-            date: isoDate,
-            time: time,
-            durationMinutes: parseInt(service.durationMinutes),
-            sendWhatsAppConfirmation: document.getElementById('check-whatsapp-confirm').checked,
-            sendWhatsApp24h: document.getElementById('check-whatsapp-24h').checked,
-            sendWhatsApp2h: document.getElementById('check-whatsapp-2h').checked,
-            giftCardCode: document.getElementById('new-appt-giftcard').value.trim() || null
-          };
+          const clientName = clientSelect.value.trim();
+          const clientPhone = phoneInput.value.trim();
+          const sendWhatsAppConfirmation = document.getElementById('check-whatsapp-confirm').checked;
+          const sendWhatsApp24h = document.getElementById('check-whatsapp-24h').checked;
+          const sendWhatsApp2h = document.getElementById('check-whatsapp-2h').checked;
+          const giftCardCode = document.getElementById('new-appt-giftcard').value.trim() || null;
 
-          console.log('🕐 [APPOINTMENT] Creando cita con payload:', {
-            ...payload,
-            clientTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-            localNow: new Date().toString(),
-            isoNow: new Date().toISOString()
-          });
+          // Determinar qué servicios agendar
+          let servicesToBook = [];
 
-          const res = await fetch('/api/appointments', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-          });
-
-          const json = await res.json();
-          if (json.success) {
-            alert('✅ Cita agendada');
-            newApptDialog.close();
-            formNewAppt.reset();
-            loadAppointments();
-            renderMonthlyCalendar();
-          } else {
-            // Mostrar mensaje específico para conflictos de horario
-            if (res.status === 409) {
-              alert('⚠️ ' + json.error);
-            } else {
-              alert('❌ Error: ' + json.error);
+          // Primero agregar el servicio del campo principal si existe
+          const mainServiceName = serviceSelect.value.trim();
+          if (mainServiceName) {
+            const mainService = allServices.find(s => s.name === mainServiceName);
+            if (mainService) {
+              // Solo agregar si no está ya en la lista de servicios seleccionados
+              const alreadyInList = selectedServices.find(s => s.id === mainService.id);
+              if (!alreadyInList) {
+                servicesToBook.push({
+                  id: mainService.id,
+                  name: mainService.name,
+                  price: parseFloat(priceInput.value) || 0,
+                  durationMinutes: parseInt(mainService.durationMinutes)
+                });
+              }
             }
           }
+
+          // Luego agregar los servicios de la lista
+          if (selectedServices.length > 0) {
+            servicesToBook = [...servicesToBook, ...selectedServices];
+          }
+
+          // Validar que hay al menos un servicio
+          if (servicesToBook.length === 0) {
+            alert('Por favor selecciona al menos un servicio');
+            btn.disabled = false;
+            btn.textContent = originalText;
+            return;
+          }
+
+          console.log('🕐 [APPOINTMENT] Creando citas para', servicesToBook.length, 'servicios:', servicesToBook.map(s => s.name));
+
+          // Crear citas para cada servicio
+          let currentTime = time;
+          const createdAppointments = [];
+
+          for (let i = 0; i < servicesToBook.length; i++) {
+            const service = servicesToBook[i];
+
+            const payload = {
+              name: clientName,
+              phone: clientPhone,
+              serviceId: service.id,
+              serviceName: service.name,
+              date: isoDate,
+              time: currentTime,
+              durationMinutes: service.durationMinutes,
+              sendWhatsAppConfirmation: false, // No enviar WhatsApp individual, lo enviamos después con todos los servicios
+              sendWhatsApp24h: sendWhatsApp24h,
+              sendWhatsApp2h: sendWhatsApp2h,
+              giftCardCode: i === 0 ? giftCardCode : null, // Solo aplicar gift card a la primera
+              isMultiService: servicesToBook.length > 1,
+              multiServiceIndex: i,
+              multiServiceTotal: servicesToBook.length
+            };
+
+            console.log(`🕐 [APPOINTMENT] Creando cita ${i + 1}/${servicesToBook.length}:`, service.name);
+
+            const res = await fetch('/api/appointments', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+
+            const json = await res.json();
+
+            if (!json.success) {
+              if (res.status === 409) {
+                alert(`⚠️ Error en ${service.name}: ${json.error}`);
+              } else {
+                alert(`❌ Error en ${service.name}: ${json.error}`);
+              }
+              btn.disabled = false;
+              btn.textContent = originalText;
+              return;
+            }
+
+            createdAppointments.push({
+              id: json.appointmentId,
+              serviceName: service.name
+            });
+
+            // Calcular siguiente hora (sumar duración del servicio actual)
+            const [h, m] = currentTime.split(':').map(Number);
+            const totalMinutes = h * 60 + m + service.durationMinutes;
+            const nextHour = Math.floor(totalMinutes / 60);
+            const nextMinute = totalMinutes % 60;
+            currentTime = `${String(nextHour).padStart(2, '0')}:${String(nextMinute).padStart(2, '0')}`;
+          }
+
+          // Enviar UN solo WhatsApp con todos los servicios
+          if (sendWhatsAppConfirmation && createdAppointments.length > 0) {
+            const serviceNames = servicesToBook.map(s => s.name);
+            console.log('📱 [APPOINTMENT] Enviando WhatsApp con servicios:', serviceNames);
+
+            try {
+              const whatsappRes = await fetch('/api/whatsapp/confirmation', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  clientName,
+                  clientPhone,
+                  services: serviceNames,
+                  date: isoDate,
+                  time: time
+                })
+              });
+
+              const whatsappJson = await whatsappRes.json();
+              if (whatsappJson.success) {
+                console.log('✅ [APPOINTMENT] WhatsApp enviado:', whatsappJson.messageSid);
+              } else {
+                console.error('❌ [APPOINTMENT] Error WhatsApp:', whatsappJson.error);
+              }
+            } catch (whatsappError) {
+              console.error('❌ [APPOINTMENT] Error enviando WhatsApp:', whatsappError);
+            }
+          }
+
+          alert(`✅ ${servicesToBook.length === 1 ? 'Cita agendada' : servicesToBook.length + ' citas agendadas'}`);
+          newApptDialog.close();
+          formNewAppt.reset();
+          selectedServices = [];
+          renderSelectedServices();
+          loadAppointments();
+          renderMonthlyCalendar();
         } catch (e) {
           alert('Error de conexión');
         } finally {
@@ -13712,54 +14304,11 @@
         links: mobileNavLinks.length
       });
 
-      if (mobileMenuToggle && mobileMenu) {
-        console.log('✅ Configurando botón de abrir menú');
-
-        mobileMenuToggle.addEventListener('click', (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          console.log('👆 Click en menú móvil');
-          mobileMenu.classList.remove('hidden');
-          document.body.style.overflow = 'hidden'; // Prevenir scroll
-        });
-
-        mobileMenuToggle.addEventListener('touchstart', (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          console.log('👆 Touch en menú móvil');
-          mobileMenu.classList.remove('hidden');
-          document.body.style.overflow = 'hidden';
-        }, { passive: false });
-      } else {
-        console.error('❌ No se encontraron elementos del menú móvil');
-      }
-
-      if (mobileMenuClose && mobileMenu) {
-        console.log('✅ Configurando botón de cerrar menú');
-
-        mobileMenuClose.addEventListener('click', (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          console.log('👆 Click en cerrar menú');
-          mobileMenu.classList.add('hidden');
-          document.body.style.overflow = '';
-        });
-
-        mobileMenuClose.addEventListener('touchstart', (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          console.log('👆 Touch en cerrar menú');
-          mobileMenu.classList.add('hidden');
-          document.body.style.overflow = '';
-        }, { passive: false });
-      }
-
-      // Cerrar menú al hacer click fuera
+      // Cerrar menú al hacer click fuera (en el overlay)
       if (mobileMenu) {
-        mobileMenu.addEventListener('click', (e) => {
+        mobileMenu.addEventListener('click', function (e) {
           if (e.target === mobileMenu) {
-            mobileMenu.classList.add('hidden');
-            document.body.style.overflow = '';
+            closeMobileMenu();
           }
         });
       }
@@ -15450,7 +15999,7 @@
 
       if (ventas.length === 0) {
         tbody.innerHTML = '<tr><td colspan="11" class="muted" style="text-align:center;padding:40px;">No hay ingresos registrados este mes</td></tr>';
-        tfoot.innerHTML = '';
+        if (tfoot) tfoot.innerHTML = '';
         return;
       }
 
@@ -15496,16 +16045,18 @@
       }).join('');
 
       // Renderizar footer con totales
-      tfoot.innerHTML = `
-        <tr>
-          <td colspan="6" style="text-align:right;">TOTALES:</td>
-          <td>$${totalSubtotal.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
-          <td>${totalIVA > 0 ? '$' + totalIVA.toFixed(2) : '-'}</td>
-          <td>${totalDescuento > 0 ? '$' + totalDescuento.toFixed(2) : '-'}</td>
-          <td style="color:var(--venus-soft);">$${totalGeneral.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
-          <td></td>
-        </tr>
-      `;
+      if (tfoot) {
+        tfoot.innerHTML = `
+          <tr>
+            <td colspan="6" style="text-align:right;">TOTALES:</td>
+            <td>$${totalSubtotal.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
+            <td>${totalIVA > 0 ? '$' + totalIVA.toFixed(2) : '-'}</td>
+            <td>${totalDescuento > 0 ? '$' + totalDescuento.toFixed(2) : '-'}</td>
+            <td style="color:var(--venus-soft);">$${totalGeneral.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
+            <td></td>
+          </tr>
+        `;
+      }
     }
 
     function filtrarTablaReporte() {
@@ -15519,24 +16070,244 @@
       renderExcelTable(filteredVentas);
     }
 
-    // Inicializar reportes cuando se muestra el tab
-    document.addEventListener('DOMContentLoaded', () => {
-      // Inicializar cuando se cambia al tab de reportes
-      const reportTabBtn = document.querySelector('[data-tab="reports"]');
-      if (reportTabBtn) {
-        reportTabBtn.addEventListener('click', () => {
-          setTimeout(() => {
-            initReportMonthTabs();
-            cargarReportesMes();
-          }, 100);
-        });
-      }
-    });
-
     // Exponer funciones globalmente
     window.selectReportMonth = selectReportMonth;
     window.cargarReportesMes = cargarReportesMes;
     window.filtrarTablaReporte = filtrarTablaReporte;
+
+    // ========== GASTOS DEL MES ==========
+    let currentExpenseId = null;
+    const expenseDialog = document.getElementById('expenseDialog');
+    const formExpense = document.getElementById('form-expense');
+
+    async function loadExpenses() {
+      try {
+        // Obtener mes actual
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const firstDay = `${year}-${month}-01`;
+        const lastDay = new Date(year, now.getMonth() + 1, 0).getDate();
+        const lastDayStr = `${year}-${month}-${String(lastDay).padStart(2, '0')}`;
+
+        const res = await fetch(`/api/expenses?from=${firstDay}&to=${lastDayStr}`, { credentials: 'include' });
+        const json = await res.json();
+
+        if (!json.success) {
+          console.error('Error cargando gastos:', json.error);
+          return;
+        }
+
+        const expenses = json.data || [];
+        renderExpenses(expenses);
+        calculateExpenseStats(expenses);
+      } catch (error) {
+        console.error('Error cargando gastos:', error);
+      }
+    }
+
+    function renderExpenses(expenses) {
+      const tbody = document.getElementById('expenses-tbody');
+
+      if (!expenses || expenses.length === 0) {
+        if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="muted" style="text-align:center;padding:20px;">No hay gastos registrados este mes</td></tr>';
+        return;
+      }
+
+      if (tbody) {
+        tbody.innerHTML = expenses.map(exp => {
+          const date = new Date(exp.date);
+          const dateStr = date.toLocaleDateString('es-MX', { day: '2-digit', month: 'short' });
+          const categoryIcons = {
+            productos: '📦',
+            renta: '🏠',
+            servicios: '💡',
+            salarios: '👥',
+            marketing: '📢',
+            equipo: '🔧',
+            mantenimiento: '🛠️',
+            transporte: '🚗',
+            otros: '📝'
+          };
+
+          return `
+            <tr>
+              <td>${dateStr}</td>
+              <td>${categoryIcons[exp.category] || '📝'} ${exp.category}</td>
+              <td>${exp.description}</td>
+              <td style="font-weight:600;color:#ef4444;">$${parseFloat(exp.amount).toFixed(2)}</td>
+              <td>
+                <button onclick="editExpense('${exp.id}')" class="btn-icon" style="background:#3b82f6;color:white;padding:4px 8px;border-radius:6px;font-size:0.85em;">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button onclick="deleteExpense('${exp.id}')" class="btn-icon" style="background:#ef4444;color:white;padding:4px 8px;border-radius:6px;font-size:0.85em;">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      }
+    }
+
+    function calculateExpenseStats(expenses) {
+      let totalExpenses = 0;
+      let productsExpenses = 0;
+      let othersExpenses = 0;
+
+      expenses.forEach(exp => {
+        const amount = parseFloat(exp.amount) || 0;
+        totalExpenses += amount;
+
+        if (exp.category === 'productos') {
+          productsExpenses += amount;
+        } else {
+          othersExpenses += amount;
+        }
+      });
+
+      // Obtener total de ventas del mes
+      const totalSalesEl = document.getElementById('report-total-sales');
+      const totalSales = totalSalesEl ? parseFloat(totalSalesEl.textContent.replace('$', '').replace(',', '')) || 0 : 0;
+      const netProfit = totalSales - totalExpenses;
+      const profitMargin = totalSales > 0 ? ((netProfit / totalSales) * 100).toFixed(1) : 0;
+
+      const ids = ['expenses-total', 'expenses-count', 'expenses-products', 'expenses-others', 'net-profit', 'profit-margin'];
+      ids.forEach(id => {
+        if (!document.getElementById(id)) console.warn('Missing element:', id);
+      });
+
+      if (document.getElementById('expenses-total')) document.getElementById('expenses-total').textContent = '$' + totalExpenses.toFixed(2);
+      if (document.getElementById('expenses-count')) document.getElementById('expenses-count').textContent = `${expenses.length} gastos`;
+      if (document.getElementById('expenses-products')) document.getElementById('expenses-products').textContent = '$' + productsExpenses.toFixed(2);
+      if (document.getElementById('expenses-others')) document.getElementById('expenses-others').textContent = '$' + othersExpenses.toFixed(2);
+
+      const netProfitEl = document.getElementById('net-profit');
+      if (netProfitEl) {
+        netProfitEl.textContent = '$' + netProfit.toFixed(2);
+        if (netProfit >= 0) {
+          netProfitEl.style.color = '#10b981';
+        } else {
+          netProfitEl.style.color = '#ef4444';
+        }
+      }
+
+      if (document.getElementById('profit-margin')) document.getElementById('profit-margin').textContent = `${profitMargin}% margen`;
+    }
+
+    window.openExpenseModal = function () {
+      currentExpenseId = null;
+      if (formExpense) formExpense.reset();
+      const title = document.getElementById('expense-modal-title');
+      if (title) title.textContent = 'Nuevo Gasto';
+      const dateInput = document.getElementById('expense-date');
+      if (dateInput) dateInput.valueAsDate = new Date();
+      if (expenseDialog) expenseDialog.showModal();
+    };
+
+    window.closeExpenseModal = function () {
+      if (expenseDialog) expenseDialog.close();
+      currentExpenseId = null;
+    };
+
+    window.editExpense = async function (id) {
+      try {
+        const res = await fetch(`/api/expenses/${id}`, { credentials: 'include' });
+        const json = await res.json();
+
+        if (!json.success) {
+          alert('Error cargando gasto');
+          return;
+        }
+
+        const expense = json.data;
+        currentExpenseId = id;
+        document.getElementById('expense-id').value = id;
+        document.getElementById('expense-date').value = expense.date;
+        document.getElementById('expense-category').value = expense.category;
+        document.getElementById('expense-description').value = expense.description;
+        document.getElementById('expense-amount').value = expense.amount;
+        document.getElementById('expense-modal-title').textContent = 'Editar Gasto';
+        expenseDialog.showModal();
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Error cargando gasto');
+      }
+    };
+
+    window.deleteExpense = async function (id) {
+      if (!confirm('¿Eliminar este gasto?')) return;
+
+      try {
+        const res = await fetch(`/api/expenses/${id}`, {
+          method: 'DELETE',
+          credentials: 'include'
+        });
+
+        const json = await res.json();
+
+        if (json.success) {
+          alert('✅ Gasto eliminado');
+          loadExpenses();
+        } else {
+          alert('❌ Error: ' + json.error);
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Error eliminando gasto');
+      }
+    };
+
+    if (formExpense) {
+      formExpense.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const data = {
+          date: document.getElementById('expense-date').value,
+          category: document.getElementById('expense-category').value,
+          description: document.getElementById('expense-description').value,
+          amount: parseFloat(document.getElementById('expense-amount').value)
+        };
+
+        try {
+          const url = currentExpenseId ? `/api/expenses/${currentExpenseId}` : '/api/expenses';
+          const method = currentExpenseId ? 'PUT' : 'POST';
+
+          const res = await fetch(url, {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify(data)
+          });
+
+          const json = await res.json();
+
+          if (json.success) {
+            alert(currentExpenseId ? '✅ Gasto actualizado' : '✅ Gasto registrado');
+            closeExpenseModal();
+            loadExpenses();
+          } else {
+            alert('❌ Error: ' + json.error);
+          }
+        } catch (error) {
+          console.error('Error:', error);
+          alert('Error guardando gasto');
+        }
+      });
+    }
+
+    // Inicializar listeners combinados (Reportes y Gastos)
+    document.querySelectorAll('[data-tab="reports"]').forEach(tab => {
+      tab.addEventListener('click', () => {
+        setTimeout(() => {
+          // Mis funciones
+          if (typeof initReportMonthTabs === 'function') initReportMonthTabs();
+          if (typeof cargarReportesMes === 'function') cargarReportesMes();
+          // Sus funciones
+          if (typeof loadExpenses === 'function') loadExpenses();
+        }, 100);
+      });
+    });
   </script>
 
 </body>

@@ -509,6 +509,59 @@ app.post('/api/test/whatsapp', async (req, res) => {
   }
 });
 
+// POST /api/whatsapp/confirmation - Enviar confirmación de cita(s) por WhatsApp
+app.post('/api/whatsapp/confirmation', adminAuth, async (req, res) => {
+  try {
+    const { clientName, clientPhone, services, date, time } = req.body;
+
+    if (!clientName || !clientPhone || !services || !date || !time) {
+      return res.status(400).json({
+        success: false,
+        error: 'Faltan campos requeridos'
+      });
+    }
+
+    // Construir nombre de servicios (uno o múltiples)
+    let serviceName;
+    if (Array.isArray(services) && services.length > 1) {
+      serviceName = services.join(' + ');
+    } else if (Array.isArray(services)) {
+      serviceName = services[0];
+    } else {
+      serviceName = services;
+    }
+
+    // Construir startDateTime para el formato
+    const startDateTime = new Date(`${date}T${time}:00`).toISOString();
+
+    const appointmentData = {
+      clientName,
+      clientPhone: clientPhone.replace(/\D/g, ''),
+      serviceName,
+      startDateTime
+    };
+
+    console.log('[WHATSAPP] Enviando confirmación:', appointmentData);
+
+    const { WhatsAppService } = await import('./src/services/whatsapp.js');
+    const result = await WhatsAppService.sendConfirmation(appointmentData);
+
+    console.log('[WHATSAPP] Resultado:', result);
+
+    res.json({
+      success: result.success,
+      messageSid: result.messageSid,
+      error: result.error
+    });
+  } catch (error) {
+    console.error('[WHATSAPP] Error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 /* ========== PRODUCTOS ========== */
 
 // GET /api/products - Listar todos los productos
@@ -945,18 +998,62 @@ app.post('/api/appointments', adminAuth, async (req, res) => {
     const duration = parseInt(durationMinutes) || 60;
     const endDateTime = new Date(startDateTime.getTime() + duration * 60000);
 
+    const phoneClean = phone.replace(/\D/g, '');
+
     console.log('[APPOINTMENT] Creando cita:', {
       name,
-      phone,
+      phone: phoneClean,
       serviceName,
       startDateTime: startDateTime.toISOString(),
       endDateTime: endDateTime.toISOString()
     });
 
+    // Buscar o crear tarjeta de lealtad por teléfono
+    let cardId = null;
+    let clientId = null;
+
+    console.log(`[APPOINTMENT] 🔍 Buscando tarjeta para teléfono: ${phoneClean}`);
+
+    const existingCard = await firestore.collection(COL_CARDS)
+      .where('phone', '==', phoneClean)
+      .limit(1)
+      .get();
+
+    if (!existingCard.empty) {
+      cardId = existingCard.docs[0].id;
+      clientId = cardId; // En este sistema, cardId = clientId
+      console.log(`[APPOINTMENT] ✅ Tarjeta existente encontrada: ${cardId}`);
+    } else {
+      // Crear nueva tarjeta
+      const newCardRef = firestore.collection(COL_CARDS).doc();
+      cardId = newCardRef.id;
+      clientId = cardId;
+
+      const cardData = {
+        id: cardId,
+        name: name,
+        phone: phoneClean,
+        email: null,
+        birthday: null,
+        stamps: 0,
+        max: 8,
+        cycles: 0,
+        status: 'active',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        source: 'admin-appointment'
+      };
+
+      await newCardRef.set(cardData);
+      console.log(`[APPOINTMENT] 🆕 Nueva tarjeta creada: ${cardId}`);
+    }
+
     // Crear documento de cita
     const appointmentData = {
+      clientId: clientId,
+      cardId: cardId,
       clientName: name,
-      clientPhone: phone.replace(/\D/g, ''),
+      clientPhone: phoneClean,
       serviceId: serviceId || null,
       serviceName,
       date,
@@ -972,7 +1069,7 @@ app.post('/api/appointments', adminAuth, async (req, res) => {
 
     const docRef = await firestore.collection('appointments').add(appointmentData);
 
-    console.log('[APPOINTMENT] ✅ Cita creada:', docRef.id);
+    console.log('[APPOINTMENT] ✅ Cita creada y vinculada a tarjeta:', docRef.id, 'cardId:', cardId);
 
     // TODO: Enviar recordatorios WhatsApp según configuración
     // if (sendWhatsAppConfirmation) { ... }
@@ -990,6 +1087,177 @@ app.post('/api/appointments', adminAuth, async (req, res) => {
       success: false,
       error: error.message
     });
+  }
+});
+
+// PATCH /api/appointments/:id - Actualizar cita (fecha, hora, servicio)
+app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { serviceId, serviceName, date, time, durationMinutes } = req.body;
+
+    if (!date || !time) {
+      return res.status(400).json({ success: false, error: 'Fecha y hora son requeridos' });
+    }
+
+    const appointmentRef = firestore.collection('appointments').doc(id);
+    const appointmentDoc = await appointmentRef.get();
+
+    if (!appointmentDoc.exists) {
+      return res.status(404).json({ success: false, error: 'Cita no encontrada' });
+    }
+
+    const apptData = appointmentDoc.data();
+
+    // Calcular startDateTime y endDateTime
+    const startDateTime = `${date}T${time}:00`;
+    const duration = durationMinutes || 60;
+    const endDate = new Date(startDateTime);
+    endDate.setMinutes(endDate.getMinutes() + duration);
+    const endDateTime = endDate.toISOString();
+
+    // Verificar conflictos de horario
+    console.log(`[PATCH] Verificando conflictos para ${date} ${time}`);
+    console.log(`[PATCH] ID de cita actual: ${id}`);
+    
+    // Buscar citas del mismo día - usar campo date si existe, o filtrar por startDateTime
+    // Primero intentar con campo date (citas nuevas)
+    let conflictDocs = [];
+    
+    // Buscar citas que tengan el campo date igual
+    const dateQuery = await firestore.collection('appointments')
+      .where('date', '==', date)
+      .get();
+    
+    conflictDocs = [...dateQuery.docs];
+    console.log(`[PATCH] Citas con campo date=${date}: ${dateQuery.docs.length}`);
+    
+    // También buscar citas antiguas que solo tienen startDateTime
+    // Usar rango amplio para capturar diferentes timezones
+    const dayStart = `${date}T00:00:00`;
+    const dayEnd = `${date}T23:59:59`;
+    
+    const startDateTimeQuery = await firestore.collection('appointments')
+      .where('startDateTime', '>=', dayStart)
+      .where('startDateTime', '<=', dayEnd + 'Z')
+      .get();
+    
+    // Agregar solo las que no están ya en conflictDocs
+    const existingIds = new Set(conflictDocs.map(d => d.id));
+    for (const doc of startDateTimeQuery.docs) {
+      if (!existingIds.has(doc.id)) {
+        // Verificar que realmente sea del mismo día (por si el timezone causa problemas)
+        const apptData = doc.data();
+        if (apptData.startDateTime) {
+          const apptDateStr = apptData.startDateTime.split('T')[0];
+          if (apptDateStr === date) {
+            conflictDocs.push(doc);
+          }
+        }
+      }
+    }
+    
+    console.log(`[PATCH] Total citas a verificar: ${conflictDocs.length}`);
+
+    const newStartMinutes = parseInt(time.split(':')[0]) * 60 + parseInt(time.split(':')[1]);
+    const newEndMinutes = newStartMinutes + (durationMinutes || 60);
+    
+    console.log(`[PATCH] Nueva cita: ${time} (${newStartMinutes} - ${newEndMinutes} minutos)`);
+
+    for (const doc of conflictDocs) {
+      // Ignorar la cita actual
+      if (doc.id === id) {
+        console.log(`[PATCH] ✓ Ignorando cita actual: ${doc.id}`);
+        continue;
+      }
+      
+      const existingAppt = doc.data();
+      
+      // Ignorar citas canceladas, completadas o no_show
+      if (['cancelled', 'completed', 'no_show'].includes(existingAppt.status)) {
+        console.log(`[PATCH] ✓ Ignorando cita ${doc.id} (${existingAppt.clientName}) - status: ${existingAppt.status}`);
+        continue;
+      }
+      
+      // Calcular minutos de la cita existente
+      let existingTime = existingAppt.time;
+      
+      // Si no tiene campo time, extraerlo de startDateTime
+      if (!existingTime && existingAppt.startDateTime) {
+        // Extraer hora directamente del string para evitar problemas de timezone
+        // Formato: 2025-12-23T15:00:00-06:00
+        const timeMatch = existingAppt.startDateTime.match(/T(\d{2}):(\d{2})/);
+        if (timeMatch) {
+          existingTime = `${timeMatch[1]}:${timeMatch[2]}`;
+        } else {
+          existingTime = '00:00';
+        }
+      }
+      existingTime = existingTime || '00:00';
+      
+      const existingStartMinutes = parseInt(existingTime.split(':')[0]) * 60 + parseInt(existingTime.split(':')[1]);
+      const existingDuration = existingAppt.durationMinutes || 60;
+      const existingEndMinutes = existingStartMinutes + existingDuration;
+      
+      console.log(`[PATCH] Comparando con: ${existingAppt.clientName} ${existingTime} (${existingStartMinutes} - ${existingEndMinutes} min) status: ${existingAppt.status}`);
+
+      // Verificar si hay solapamiento
+      // Solapamiento: newStart < existingEnd AND newEnd > existingStart
+      const hasOverlap = newStartMinutes < existingEndMinutes && newEndMinutes > existingStartMinutes;
+      
+      console.log(`[PATCH] Solapamiento check: ${newStartMinutes} < ${existingEndMinutes} = ${newStartMinutes < existingEndMinutes}, ${newEndMinutes} > ${existingStartMinutes} = ${newEndMinutes > existingStartMinutes}`);
+      
+      if (hasOverlap) {
+        console.log(`[PATCH] ❌ Conflicto detectado con ${existingAppt.clientName} a las ${existingTime}`);
+        return res.status(409).json({ 
+          success: false, 
+          error: `Conflicto: ${existingAppt.clientName} tiene cita de ${existingTime} a ${Math.floor(existingEndMinutes/60)}:${String(existingEndMinutes%60).padStart(2,'0')} (status: ${existingAppt.status})`,
+          debug: {
+            newTime: `${time} - ${Math.floor(newEndMinutes/60)}:${String(newEndMinutes%60).padStart(2,'0')}`,
+            existingTime: `${existingTime} - ${Math.floor(existingEndMinutes/60)}:${String(existingEndMinutes%60).padStart(2,'0')}`,
+            existingClient: existingAppt.clientName,
+            existingStatus: existingAppt.status,
+            existingId: doc.id
+          }
+        });
+      } else {
+        console.log(`[PATCH] ✓ Sin conflicto con ${existingAppt.clientName}`);
+      }
+    }
+    
+    console.log(`[PATCH] ✅ No hay conflictos, actualizando cita`);
+
+    // Actualizar la cita
+    const updateData = {
+      date,
+      time,
+      startDateTime,
+      endDateTime,
+      updatedAt: new Date().toISOString()
+    };
+
+    if (serviceId) updateData.serviceId = serviceId;
+    if (serviceName) updateData.serviceName = serviceName;
+    if (durationMinutes) updateData.durationMinutes = durationMinutes;
+
+    await appointmentRef.update(updateData);
+
+    // Crear notificación
+    await firestore.collection('notifications').add({
+      type: 'cita',
+      icon: 'edit',
+      title: 'Cita modificada',
+      message: `${apptData.clientName} - ${serviceName || apptData.serviceName} reprogramada para ${date} a las ${time}`,
+      read: false,
+      createdAt: new Date().toISOString(),
+      entityId: id
+    });
+
+    console.log(`[API] Appointment ${id} updated: ${date} ${time}`);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error updating appointment:', error);
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
@@ -1716,6 +1984,129 @@ app.get("/api/apple/test-pass", async (_req, res) => {
     res.status(500).json({ error: error.message, stack: error.stack });
   }
 });
+
+/* =========================================================
+   GASTOS (EXPENSES)
+   ========================================================= */
+
+// GET /api/expenses - Listar gastos en un rango de fechas
+app.get('/api/expenses', adminAuth, async (req, res) => {
+  try {
+    const { from, to } = req.query;
+
+    if (!from || !to) {
+      return res.status(400).json({ success: false, error: 'Se requieren fechas from y to' });
+    }
+
+    const snapshot = await firestore.collection('expenses')
+      .where('date', '>=', from)
+      .where('date', '<=', to)
+      .orderBy('date', 'desc')
+      .get();
+
+    const data = [];
+    snapshot.forEach(doc => {
+      data.push({ id: doc.id, ...doc.data() });
+    });
+
+    console.log(`[EXPENSES] Listando ${data.length} gastos de ${from} a ${to}`);
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error('[EXPENSES] Error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// GET /api/expenses/:id - Obtener un gasto por ID
+app.get('/api/expenses/:id', adminAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const doc = await firestore.collection('expenses').doc(id).get();
+
+    if (!doc.exists) {
+      return res.status(404).json({ success: false, error: 'Gasto no encontrado' });
+    }
+
+    res.json({ success: true, data: { id: doc.id, ...doc.data() } });
+  } catch (error) {
+    console.error('[EXPENSES] Error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// POST /api/expenses - Crear nuevo gasto
+app.post('/api/expenses', adminAuth, async (req, res) => {
+  try {
+    const { date, category, description, amount } = req.body;
+
+    if (!date || !category || !description || !amount) {
+      return res.status(400).json({ success: false, error: 'Faltan campos requeridos' });
+    }
+
+    const expenseData = {
+      date,
+      category,
+      description,
+      amount: parseFloat(amount),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    const docRef = await firestore.collection('expenses').add(expenseData);
+    console.log(`[EXPENSES] Gasto creado: ${docRef.id}`);
+
+    res.json({ success: true, id: docRef.id });
+  } catch (error) {
+    console.error('[EXPENSES] Error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// PUT /api/expenses/:id - Actualizar gasto
+app.put('/api/expenses/:id', adminAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { date, category, description, amount } = req.body;
+
+    if (!date || !category || !description || !amount) {
+      return res.status(400).json({ success: false, error: 'Faltan campos requeridos' });
+    }
+
+    const updateData = {
+      date,
+      category,
+      description,
+      amount: parseFloat(amount),
+      updatedAt: new Date().toISOString()
+    };
+
+    await firestore.collection('expenses').doc(id).update(updateData);
+    console.log(`[EXPENSES] Gasto actualizado: ${id}`);
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('[EXPENSES] Error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// DELETE /api/expenses/:id - Eliminar gasto
+app.delete('/api/expenses/:id', adminAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    await firestore.collection('expenses').doc(id).delete();
+    console.log(`[EXPENSES] Gasto eliminado: ${id}`);
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('[EXPENSES] Error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/* =========================================================
+   CLIENTES
+   ========================================================= */
 
 // POST /api/clients - Crear cliente nuevo desde admin (sin cumpleaños requerido)
 app.post("/api/clients", adminAuth, async (req, res) => {
