@@ -2066,7 +2066,9 @@ app.get('/api/public/services', async (req, res) => {
           name: data.name,
           category: data.category || 'Otros',
           price: data.price || 0,
-          duration: data.duration || 60
+          duration: data.duration || 60,
+          description: data.description || [],
+          discount: data.discount || null
         });
       }
     });
@@ -2085,7 +2087,9 @@ app.get('/api/public/services', async (req, res) => {
             name: data.name,
             category: data.category || 'Otros',
             price: data.price || 0,
-            duration: data.duration || 60
+            duration: data.duration || 60,
+            description: data.description || [],
+            discount: data.discount || null
           });
         }
       });
@@ -2094,6 +2098,11 @@ app.get('/api/public/services', async (req, res) => {
       res.json({ success: false, error: e2.message });
     }
   }
+});
+
+// GET /api/public/services - Servicios disponibles (público)
+app.get('/api/public/services', async (req, res) => {
+  // ... existing code ...
 });
 
 // GET /api/public/config - Configuración pública (información del negocio)
