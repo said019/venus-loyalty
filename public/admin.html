@@ -11581,7 +11581,7 @@ Gracias por tu preferencia ✨`;
               date: isoDate,
               time: currentTime,
               durationMinutes: service.durationMinutes,
-              sendWhatsAppConfirmation: sendWhatsAppConfirmation && i === 0, // Solo enviar confirmación en la primera
+              sendWhatsAppConfirmation: false, // No enviar WhatsApp individual, lo enviamos después con todos los servicios
               sendWhatsApp24h: sendWhatsApp24h,
               sendWhatsApp2h: sendWhatsApp2h,
               giftCardCode: i === 0 ? giftCardCode : null, // Solo aplicar gift card a la primera
@@ -11624,11 +11624,33 @@ Gracias por tu preferencia ✨`;
             currentTime = `${String(nextHour).padStart(2, '0')}:${String(nextMinute).padStart(2, '0')}`;
           }
 
-          // Enviar WhatsApp con todos los servicios si hay múltiples
-          if (servicesToBook.length > 1 && sendWhatsAppConfirmation) {
-            const servicesText = servicesToBook.map(s => `• ${s.name}`).join('\n');
-            console.log('📱 [APPOINTMENT] Enviando WhatsApp con múltiples servicios');
-            // El backend ya envió el WhatsApp de la primera cita, aquí solo logueamos
+          // Enviar UN solo WhatsApp con todos los servicios
+          if (sendWhatsAppConfirmation && createdAppointments.length > 0) {
+            const serviceNames = servicesToBook.map(s => s.name);
+            console.log('📱 [APPOINTMENT] Enviando WhatsApp con servicios:', serviceNames);
+            
+            try {
+              const whatsappRes = await fetch('/api/whatsapp/confirmation', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  clientName,
+                  clientPhone,
+                  services: serviceNames,
+                  date: isoDate,
+                  time: time
+                })
+              });
+              
+              const whatsappJson = await whatsappRes.json();
+              if (whatsappJson.success) {
+                console.log('✅ [APPOINTMENT] WhatsApp enviado:', whatsappJson.messageSid);
+              } else {
+                console.error('❌ [APPOINTMENT] Error WhatsApp:', whatsappJson.error);
+              }
+            } catch (whatsappError) {
+              console.error('❌ [APPOINTMENT] Error enviando WhatsApp:', whatsappError);
+            }
           }
 
           alert(`✅ ${servicesToBook.length === 1 ? 'Cita agendada' : servicesToBook.length + ' citas agendadas'}`);

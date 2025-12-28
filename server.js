@@ -509,6 +509,59 @@ app.post('/api/test/whatsapp', async (req, res) => {
   }
 });
 
+// POST /api/whatsapp/confirmation - Enviar confirmación de cita(s) por WhatsApp
+app.post('/api/whatsapp/confirmation', adminAuth, async (req, res) => {
+  try {
+    const { clientName, clientPhone, services, date, time } = req.body;
+
+    if (!clientName || !clientPhone || !services || !date || !time) {
+      return res.status(400).json({
+        success: false,
+        error: 'Faltan campos requeridos'
+      });
+    }
+
+    // Construir nombre de servicios (uno o múltiples)
+    let serviceName;
+    if (Array.isArray(services) && services.length > 1) {
+      serviceName = services.join(' + ');
+    } else if (Array.isArray(services)) {
+      serviceName = services[0];
+    } else {
+      serviceName = services;
+    }
+
+    // Construir startDateTime para el formato
+    const startDateTime = new Date(`${date}T${time}:00`).toISOString();
+
+    const appointmentData = {
+      clientName,
+      clientPhone: clientPhone.replace(/\D/g, ''),
+      serviceName,
+      startDateTime
+    };
+
+    console.log('[WHATSAPP] Enviando confirmación:', appointmentData);
+
+    const { WhatsAppService } = await import('./src/services/whatsapp.js');
+    const result = await WhatsAppService.sendConfirmation(appointmentData);
+
+    console.log('[WHATSAPP] Resultado:', result);
+
+    res.json({
+      success: result.success,
+      messageSid: result.messageSid,
+      error: result.error
+    });
+  } catch (error) {
+    console.error('[WHATSAPP] Error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 /* ========== PRODUCTOS ========== */
 
 // GET /api/products - Listar todos los productos
