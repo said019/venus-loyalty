@@ -15825,6 +15825,8 @@ Gracias por tu preferencia ✨`;
       currentReportMonth = { year, month };
       initReportMonthTabs();
       await cargarReportesMes();
+      // Recargar gastos del mes seleccionado
+      if (typeof loadExpenses === 'function') loadExpenses();
     }
 
     async function cargarReportesMes() {
@@ -16095,13 +16097,24 @@ Gracias por tu preferencia ✨`;
 
     async function loadExpenses() {
       try {
-        // Obtener mes actual
-        const now = new Date();
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0');
+        // Usar el mes seleccionado del reporte (currentReportMonth) en lugar del mes actual
+        let year, month;
+        
+        if (typeof currentReportMonth !== 'undefined' && currentReportMonth.year && currentReportMonth.month) {
+          year = currentReportMonth.year;
+          month = String(currentReportMonth.month).padStart(2, '0');
+        } else {
+          // Fallback al mes actual si no hay mes seleccionado
+          const now = new Date();
+          year = now.getFullYear();
+          month = String(now.getMonth() + 1).padStart(2, '0');
+        }
+        
         const firstDay = `${year}-${month}-01`;
-        const lastDay = new Date(year, now.getMonth() + 1, 0).getDate();
+        const lastDay = new Date(year, parseInt(month), 0).getDate();
         const lastDayStr = `${year}-${month}-${String(lastDay).padStart(2, '0')}`;
+
+        console.log(`[EXPENSES] Cargando gastos del ${firstDay} al ${lastDayStr}`);
 
         const res = await fetch(`/api/expenses?from=${firstDay}&to=${lastDayStr}`, { credentials: 'include' });
         const json = await res.json();
@@ -16112,6 +16125,7 @@ Gracias por tu preferencia ✨`;
         }
 
         const expenses = json.data || [];
+        console.log(`[EXPENSES] ${expenses.length} gastos encontrados`);
         renderExpenses(expenses);
         calculateExpenseStats(expenses);
       } catch (error) {
