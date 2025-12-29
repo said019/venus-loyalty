@@ -3735,6 +3735,47 @@
         </div>
       </div>
 
+      <!-- Filtro de Fechas Personalizado -->
+      <div class="card" style="padding:16px;margin-bottom:16px;background:linear-gradient(135deg, rgba(140,150,104,0.1) 0%, rgba(140,150,104,0.05) 100%);border:1px solid rgba(140,150,104,0.2);">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <i class="fas fa-filter" style="color:var(--venus);"></i>
+            <span style="font-weight:600;font-size:14px;">Filtrar por fechas:</span>
+          </div>
+          
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <label style="font-size:12px;color:var(--muted);">Desde:</label>
+              <input type="date" id="report-date-from" class="form-control" style="padding:8px 12px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:13px;">
+            </div>
+            
+            <div style="display:flex;align-items:center;gap:6px;">
+              <label style="font-size:12px;color:var(--muted);">Hasta:</label>
+              <input type="date" id="report-date-to" class="form-control" style="padding:8px 12px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:13px;">
+            </div>
+            
+            <button class="btn primary" onclick="filtrarReportePorFechas()" style="padding:8px 16px;font-size:13px;">
+              <i class="fas fa-search"></i> Filtrar
+            </button>
+            
+            <button class="btn ghost" onclick="limpiarFiltroFechas()" style="padding:8px 12px;font-size:13px;">
+              <i class="fas fa-times"></i> Limpiar
+            </button>
+          </div>
+          
+          <!-- Atajos rápidos -->
+          <div style="display:flex;gap:6px;margin-left:auto;">
+            <button class="btn ghost small" onclick="filtroRapido('hoy')" style="padding:6px 10px;font-size:11px;">Hoy</button>
+            <button class="btn ghost small" onclick="filtroRapido('semana')" style="padding:6px 10px;font-size:11px;">Esta semana</button>
+            <button class="btn ghost small" onclick="filtroRapido('mes')" style="padding:6px 10px;font-size:11px;">Este mes</button>
+          </div>
+        </div>
+        
+        <div id="filter-active-label" style="display:none;margin-top:10px;padding:8px 12px;background:rgba(140,150,104,0.15);border-radius:8px;font-size:12px;color:var(--venus);">
+          <i class="fas fa-info-circle"></i> <span id="filter-range-text"></span>
+        </div>
+      </div>
+
       <!-- Layout Principal tipo Excel -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
 
@@ -16085,10 +16126,182 @@ Gracias por tu preferencia ✨`;
       renderExcelTable(filteredVentas);
     }
 
+    // ========== FILTRO POR FECHAS PERSONALIZADO ==========
+    let customDateFilter = { from: null, to: null };
+
+    function filtrarReportePorFechas() {
+      const fromInput = document.getElementById('report-date-from');
+      const toInput = document.getElementById('report-date-to');
+      
+      if (!fromInput.value || !toInput.value) {
+        alert('Por favor selecciona ambas fechas');
+        return;
+      }
+      
+      const from = fromInput.value;
+      const to = toInput.value;
+      
+      if (from > to) {
+        alert('La fecha "Desde" no puede ser mayor que "Hasta"');
+        return;
+      }
+      
+      customDateFilter = { from, to };
+      cargarReportePorRango(from, to);
+      
+      // Mostrar label de filtro activo
+      const label = document.getElementById('filter-active-label');
+      const text = document.getElementById('filter-range-text');
+      if (label && text) {
+        const fromDate = new Date(from + 'T00:00:00');
+        const toDate = new Date(to + 'T00:00:00');
+        const options = { day: 'numeric', month: 'short', year: 'numeric' };
+        text.textContent = `Mostrando del ${fromDate.toLocaleDateString('es-MX', options)} al ${toDate.toLocaleDateString('es-MX', options)}`;
+        label.style.display = 'block';
+      }
+    }
+
+    function limpiarFiltroFechas() {
+      document.getElementById('report-date-from').value = '';
+      document.getElementById('report-date-to').value = '';
+      document.getElementById('filter-active-label').style.display = 'none';
+      customDateFilter = { from: null, to: null };
+      
+      // Volver al mes actual
+      cargarReportesMes();
+      loadExpenses();
+    }
+
+    function filtroRapido(tipo) {
+      const now = new Date();
+      let from, to;
+      
+      if (tipo === 'hoy') {
+        from = to = now.toISOString().split('T')[0];
+      } else if (tipo === 'semana') {
+        const dayOfWeek = now.getDay();
+        const startOfWeek = new Date(now);
+        startOfWeek.setDate(now.getDate() - dayOfWeek);
+        from = startOfWeek.toISOString().split('T')[0];
+        to = now.toISOString().split('T')[0];
+      } else if (tipo === 'mes') {
+        from = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+        to = now.toISOString().split('T')[0];
+      }
+      
+      document.getElementById('report-date-from').value = from;
+      document.getElementById('report-date-to').value = to;
+      filtrarReportePorFechas();
+    }
+
+    async function cargarReportePorRango(from, to) {
+      try {
+        document.getElementById('report-current-month').textContent = 'Rango personalizado';
+
+        const fromISO = `${from}T00:00:00-06:00`;
+        const toISO = `${to}T23:59:59-06:00`;
+
+        console.log('[REPORTS] Cargando rango:', from, 'a', to);
+
+        const res = await fetch(`/api/appointments/range?from=${fromISO}&to=${toISO}`, { credentials: 'include' });
+        const json = await res.json();
+
+        if (!json.success) {
+          console.error('[REPORTS] Error:', json.error);
+          return;
+        }
+
+        // Filtrar ventas completadas
+        const ventas = (json.data || []).filter(a =>
+          a.status === 'completed' && a.totalPaid && a.paymentMethod
+        );
+
+        console.log('[REPORTS] Ventas encontradas:', ventas.length);
+
+        // Guardar datos para filtros
+        reportData = ventas;
+
+        // Calcular totales
+        let totalGeneral = 0;
+        let totalEfectivo = 0;
+        let totalTarjeta = 0;
+        let totalTransferencia = 0;
+        const serviciosTotales = {};
+
+        ventas.forEach(v => {
+          const total = parseFloat(v.totalPaid) || 0;
+          totalGeneral += total;
+
+          if (v.paymentMethod === 'efectivo') totalEfectivo += total;
+          else if (v.paymentMethod === 'tarjeta') totalTarjeta += total;
+          else if (v.paymentMethod === 'transferencia') totalTransferencia += total;
+
+          const serviceName = v.serviceName || 'Otro';
+          if (!serviciosTotales[serviceName]) serviciosTotales[serviceName] = 0;
+          serviciosTotales[serviceName] += total;
+        });
+
+        // Actualizar estadísticas
+        document.getElementById('report-total-sales').textContent = '$' + totalGeneral.toFixed(2);
+        document.getElementById('report-sales-count').textContent = `${ventas.length} ventas`;
+        document.getElementById('report-cash-total').textContent = '$' + totalEfectivo.toFixed(2);
+        document.getElementById('report-card-total').textContent = '$' + totalTarjeta.toFixed(2);
+        document.getElementById('report-transfer-total').textContent = '$' + totalTransferencia.toFixed(2);
+
+        // Actualizar resumen financiero
+        document.getElementById('report-total-ingresos').textContent = '$' + totalGeneral.toFixed(2);
+
+        // Renderizar lista de servicios
+        const serviciosList = document.getElementById('report-servicios-list');
+        if (serviciosList) {
+          const sortedServicios = Object.entries(serviciosTotales).sort((a, b) => b[1] - a[1]);
+          serviciosList.innerHTML = sortedServicios.map(([name, total]) => `
+            <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.1);">
+              <span style="font-size:12px;color:rgba(255,255,255,0.85);">${name}</span>
+              <span style="font-size:12px;font-weight:600;color:#C1D7AE;">$${total.toFixed(2)}</span>
+            </div>
+          `).join('');
+        }
+
+        // Renderizar tabla
+        renderExcelTable(ventas);
+
+        // Cargar gastos del rango
+        await cargarGastosPorRango(from, to);
+
+      } catch (error) {
+        console.error('[REPORTS] Error:', error);
+      }
+    }
+
+    async function cargarGastosPorRango(from, to) {
+      try {
+        console.log(`[EXPENSES] Cargando gastos del ${from} al ${to}`);
+
+        const res = await fetch(`/api/expenses?from=${from}&to=${to}`, { credentials: 'include' });
+        const json = await res.json();
+
+        if (!json.success) {
+          console.error('Error cargando gastos:', json.error);
+          return;
+        }
+
+        const expenses = json.data || [];
+        console.log(`[EXPENSES] ${expenses.length} gastos encontrados`);
+        renderExpenses(expenses);
+        calculateExpenseStats(expenses);
+      } catch (error) {
+        console.error('Error cargando gastos:', error);
+      }
+    }
+
     // Exponer funciones globalmente
     window.selectReportMonth = selectReportMonth;
     window.cargarReportesMes = cargarReportesMes;
     window.filtrarTablaReporte = filtrarTablaReporte;
+    window.filtrarReportePorFechas = filtrarReportePorFechas;
+    window.limpiarFiltroFechas = limpiarFiltroFechas;
+    window.filtroRapido = filtroRapido;
 
     // ========== GASTOS DEL MES ==========
     let currentExpenseId = null;
