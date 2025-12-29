@@ -9688,7 +9688,7 @@
           const options = allServices.map(s => ({
             value: s.name,
             label: s.name,
-            meta: `${s.durationMinutes} min - $${s.price}`,
+            meta: `[${s.category || 'Otros'}] ${s.durationMinutes} min - $${s.price}`,
             data: { id: s.id, price: s.price, duration: s.durationMinutes }
           }));
 
@@ -12107,7 +12107,8 @@ Gracias por tu preferencia ✨`;
           renderServicesTable(window.allServicesData);
         } else {
           const filtered = window.allServicesData.filter(s =>
-            s.name.toLowerCase().includes(searchTerm)
+            s.name.toLowerCase().includes(searchTerm) ||
+            (s.category && s.category.toLowerCase().includes(searchTerm))
           );
           renderServicesTable(filtered);
         }
