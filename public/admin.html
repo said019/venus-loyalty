@@ -6897,6 +6897,20 @@
           <input type="text" id="service-name" class="form-input" required placeholder="Ej. Facial Hidratante">
         </div>
 
+        <div class="form-group">
+          <label class="form-label">Categoría</label>
+          <input type="text" id="service-category" class="form-input" list="categories-list" placeholder="Ej. Faciales">
+          <datalist id="categories-list">
+            <option value="Faciales">
+            <option value="Corporales">
+            <option value="Depilación">
+            <option value="Masajes">
+            <option value="Paquetes">
+            <option value="Diagnóstico">
+            <option value="Otros">
+          </datalist>
+        </div>
+
         <div class="row" style="gap:15px;">
           <div class="form-group" style="flex:1;">
             <label class="form-label">Duración (min)</label>
@@ -12000,6 +12014,7 @@ Gracias por tu preferencia ✨`;
           document.getElementById('service-duration').value = service.durationMinutes;
           document.getElementById('service-price').value = service.price;
           document.getElementById('service-description').value = (service.description || []).join('\n');
+          document.getElementById('service-category').value = service.category || '';
           document.getElementById('service-discount').value = service.discount || '';
           document.getElementById('modal-service-title').textContent = 'Editar Servicio';
           modalService.classList.remove('hidden');
@@ -12030,6 +12045,7 @@ Gracias por tu preferencia ✨`;
           name: document.getElementById('service-name').value,
           durationMinutes: parseInt(document.getElementById('service-duration').value),
           price: parseFloat(document.getElementById('service-price').value),
+          category: document.getElementById('service-category').value || 'Otros',
           description: document.getElementById('service-description').value.split('\n').map(l => l.trim()).filter(l => l.length > 0),
           discount: document.getElementById('service-discount').value
         };
