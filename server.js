@@ -2549,22 +2549,44 @@ app.get('/api/public/availability', async (req, res) => {
 
     console.log(`[AVAILABILITY] Buscando disponibilidad para: ${date}`);
 
-    // Buscar citas que comiencen con la fecha (sin importar timezone)
-    // Usamos >= date y < date+1 para capturar todas las variantes de timezone
-    const nextDate = new Date(date);
-    nextDate.setDate(nextDate.getDate() + 1);
-    const nextDateStr = nextDate.toISOString().split('T')[0];
+    // Las citas se guardan en UTC (toISOString)
+    // Para hora local México (-06:00), el día 2025-12-31 abarca:
+    // Desde 2025-12-31T06:00:00.000Z hasta 2025-01-01T05:59:59.999Z
 
-    // Buscar con rangos amplios para capturar todas las citas del día
+    // Crear rangos de búsqueda considerando timezone
+    const localDate = new Date(date + 'T00:00:00');
+    const utcStart = new Date(localDate.getTime() + 6 * 60 * 60 * 1000); // +6 horas para UTC
+    const utcEnd = new Date(utcStart.getTime() + 24 * 60 * 60 * 1000);
+
+    const startStr = utcStart.toISOString();
+    const endStr = utcEnd.toISOString();
+
+    console.log(`[AVAILABILITY] Rango UTC: ${startStr} a ${endStr}`);
+
+    // Buscar citas en el rango UTC
     const snapshot = await firestore.collection('appointments')
-      .where('startDateTime', '>=', date)
-      .where('startDateTime', '<', nextDateStr + 'T99')
+      .where('startDateTime', '>=', startStr)
+      .where('startDateTime', '<', endStr)
       .get();
 
-    console.log(`[AVAILABILITY] Encontradas ${snapshot.size} citas potenciales`);
+    console.log(`[AVAILABILITY] Encontradas ${snapshot.size} citas en rango UTC`);
+
+    // También buscar citas que podrían estar guardadas sin UTC (formato local)
+    const localSnapshot = await firestore.collection('appointments')
+      .where('startDateTime', '>=', date)
+      .where('startDateTime', '<', date + 'T99')
+      .get();
+
+    console.log(`[AVAILABILITY] Encontradas ${localSnapshot.size} citas en formato local`);
 
     const busy = [];
-    snapshot.forEach(doc => {
+    const processedIds = new Set();
+
+    // Función para procesar cada cita
+    const processCita = (doc) => {
+      if (processedIds.has(doc.id)) return;
+      processedIds.add(doc.id);
+
       const data = doc.data();
       const startDateTime = data.startDateTime || '';
 
@@ -2576,37 +2598,63 @@ app.get('/api/public/availability', async (req, res) => {
         return;
       }
 
-      // Verificar que la fecha coincida (solo la parte YYYY-MM-DD)
-      if (!startDateTime.startsWith(date)) {
-        console.log(`[AVAILABILITY] - Ignorando (fecha diferente: ${startDateTime.substring(0, 10)} vs ${date})`);
-        return;
+      let hour, minute;
+
+      // Si el formato es ISO UTC (termina en Z o tiene milisegundos)
+      if (startDateTime.includes('Z') || startDateTime.includes('.')) {
+        const utcDate = new Date(startDateTime);
+        // Convertir a hora local de México (-6 horas)
+        const localHour = utcDate.getUTCHours() - 6;
+        hour = localHour < 0 ? localHour + 24 : localHour;
+        minute = utcDate.getUTCMinutes();
+
+        // Verificar que la fecha local coincida
+        const localDateFromUTC = new Date(utcDate.getTime() - 6 * 60 * 60 * 1000);
+        const localDateStr = localDateFromUTC.toISOString().split('T')[0];
+        if (localDateStr !== date && localHour >= 0) {
+          console.log(`[AVAILABILITY] - Ignorando (fecha local diferente: ${localDateStr} vs ${date})`);
+          return;
+        }
+      } else {
+        // Formato local: 2025-12-31T16:00:00 o 2025-12-31T16:00:00-06:00
+        if (!startDateTime.startsWith(date)) {
+          console.log(`[AVAILABILITY] - Ignorando (fecha diferente)`);
+          return;
+        }
+
+        const timePart = startDateTime.split('T')[1] || '';
+        const timeMatch = timePart.match(/^(\d{2}):(\d{2})/);
+        if (!timeMatch) {
+          console.log(`[AVAILABILITY] - No se pudo extraer hora de: ${timePart}`);
+          return;
+        }
+        hour = parseInt(timeMatch[1]);
+        minute = parseInt(timeMatch[2]);
       }
 
-      // Extraer la hora de startDateTime
-      // Soporta formatos: 2025-12-31T16:00:00-06:00, 2025-12-31T16:00:00Z, 2025-12-31T16:00:00
-      const timePart = startDateTime.split('T')[1] || '';
-      // Extraer solo HH:MM (quitar segundos y timezone)
-      const timeMatch = timePart.match(/^(\d{2}):(\d{2})/);
-      if (!timeMatch) {
-        console.log(`[AVAILABILITY] - No se pudo extraer hora de: ${timePart}`);
-        return;
-      }
-
-      const timeOnly = `${timeMatch[1]}:${timeMatch[2]}`;
+      const timeOnly = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
       console.log(`[AVAILABILITY] - Hora ocupada: ${timeOnly}`);
 
       // Agregar el slot ocupado
-      busy.push(timeOnly);
+      if (!busy.includes(timeOnly)) {
+        busy.push(timeOnly);
+      }
 
       // Si el servicio dura más de 60 minutos, ocupar el siguiente slot también
       const duration = data.duration || data.serviceDuration || 60;
       if (duration > 60) {
-        const hour = parseInt(timeMatch[1]);
-        const nextHour = (hour + 1).toString().padStart(2, '0');
-        busy.push(`${nextHour}:00`);
-        console.log(`[AVAILABILITY] - También ocupando siguiente hora: ${nextHour}:00`);
+        const nextHour = ((hour + 1) % 24).toString().padStart(2, '0');
+        const nextSlot = `${nextHour}:00`;
+        if (!busy.includes(nextSlot)) {
+          busy.push(nextSlot);
+          console.log(`[AVAILABILITY] - También ocupando siguiente hora: ${nextSlot}`);
+        }
       }
-    });
+    };
+
+    // Procesar ambos resultados
+    snapshot.forEach(processCita);
+    localSnapshot.forEach(processCita);
 
     console.log(`[AVAILABILITY] ${date}: ${busy.length} horarios ocupados:`, busy);
     res.json({ success: true, busy });
