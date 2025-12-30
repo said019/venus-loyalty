@@ -1119,29 +1119,29 @@ app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
     // Verificar conflictos de horario
     console.log(`[PATCH] Verificando conflictos para ${date} ${time}`);
     console.log(`[PATCH] ID de cita actual: ${id}`);
-    
+
     // Buscar citas del mismo día - usar campo date si existe, o filtrar por startDateTime
     // Primero intentar con campo date (citas nuevas)
     let conflictDocs = [];
-    
+
     // Buscar citas que tengan el campo date igual
     const dateQuery = await firestore.collection('appointments')
       .where('date', '==', date)
       .get();
-    
+
     conflictDocs = [...dateQuery.docs];
     console.log(`[PATCH] Citas con campo date=${date}: ${dateQuery.docs.length}`);
-    
+
     // También buscar citas antiguas que solo tienen startDateTime
     // Usar rango amplio para capturar diferentes timezones
     const dayStart = `${date}T00:00:00`;
     const dayEnd = `${date}T23:59:59`;
-    
+
     const startDateTimeQuery = await firestore.collection('appointments')
       .where('startDateTime', '>=', dayStart)
       .where('startDateTime', '<=', dayEnd + 'Z')
       .get();
-    
+
     // Agregar solo las que no están ya en conflictDocs
     const existingIds = new Set(conflictDocs.map(d => d.id));
     for (const doc of startDateTimeQuery.docs) {
@@ -1156,12 +1156,12 @@ app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
         }
       }
     }
-    
+
     console.log(`[PATCH] Total citas a verificar: ${conflictDocs.length}`);
 
     const newStartMinutes = parseInt(time.split(':')[0]) * 60 + parseInt(time.split(':')[1]);
     const newEndMinutes = newStartMinutes + (durationMinutes || 60);
-    
+
     console.log(`[PATCH] Nueva cita: ${time} (${newStartMinutes} - ${newEndMinutes} minutos)`);
 
     for (const doc of conflictDocs) {
@@ -1170,18 +1170,18 @@ app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
         console.log(`[PATCH] ✓ Ignorando cita actual: ${doc.id}`);
         continue;
       }
-      
+
       const existingAppt = doc.data();
-      
+
       // Ignorar citas canceladas, completadas o no_show
       if (['cancelled', 'completed', 'no_show'].includes(existingAppt.status)) {
         console.log(`[PATCH] ✓ Ignorando cita ${doc.id} (${existingAppt.clientName}) - status: ${existingAppt.status}`);
         continue;
       }
-      
+
       // Calcular minutos de la cita existente
       let existingTime = existingAppt.time;
-      
+
       // Si no tiene campo time, extraerlo de startDateTime
       if (!existingTime && existingAppt.startDateTime) {
         // Extraer hora directamente del string para evitar problemas de timezone
@@ -1194,27 +1194,27 @@ app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
         }
       }
       existingTime = existingTime || '00:00';
-      
+
       const existingStartMinutes = parseInt(existingTime.split(':')[0]) * 60 + parseInt(existingTime.split(':')[1]);
       const existingDuration = existingAppt.durationMinutes || 60;
       const existingEndMinutes = existingStartMinutes + existingDuration;
-      
+
       console.log(`[PATCH] Comparando con: ${existingAppt.clientName} ${existingTime} (${existingStartMinutes} - ${existingEndMinutes} min) status: ${existingAppt.status}`);
 
       // Verificar si hay solapamiento
       // Solapamiento: newStart < existingEnd AND newEnd > existingStart
       const hasOverlap = newStartMinutes < existingEndMinutes && newEndMinutes > existingStartMinutes;
-      
+
       console.log(`[PATCH] Solapamiento check: ${newStartMinutes} < ${existingEndMinutes} = ${newStartMinutes < existingEndMinutes}, ${newEndMinutes} > ${existingStartMinutes} = ${newEndMinutes > existingStartMinutes}`);
-      
+
       if (hasOverlap) {
         console.log(`[PATCH] ❌ Conflicto detectado con ${existingAppt.clientName} a las ${existingTime}`);
-        return res.status(409).json({ 
-          success: false, 
-          error: `Conflicto: ${existingAppt.clientName} tiene cita de ${existingTime} a ${Math.floor(existingEndMinutes/60)}:${String(existingEndMinutes%60).padStart(2,'0')} (status: ${existingAppt.status})`,
+        return res.status(409).json({
+          success: false,
+          error: `Conflicto: ${existingAppt.clientName} tiene cita de ${existingTime} a ${Math.floor(existingEndMinutes / 60)}:${String(existingEndMinutes % 60).padStart(2, '0')} (status: ${existingAppt.status})`,
           debug: {
-            newTime: `${time} - ${Math.floor(newEndMinutes/60)}:${String(newEndMinutes%60).padStart(2,'0')}`,
-            existingTime: `${existingTime} - ${Math.floor(existingEndMinutes/60)}:${String(existingEndMinutes%60).padStart(2,'0')}`,
+            newTime: `${time} - ${Math.floor(newEndMinutes / 60)}:${String(newEndMinutes % 60).padStart(2, '0')}`,
+            existingTime: `${existingTime} - ${Math.floor(existingEndMinutes / 60)}:${String(existingEndMinutes % 60).padStart(2, '0')}`,
             existingClient: existingAppt.clientName,
             existingStatus: existingAppt.status,
             existingId: doc.id
@@ -1224,7 +1224,7 @@ app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
         console.log(`[PATCH] ✓ Sin conflicto con ${existingAppt.clientName}`);
       }
     }
-    
+
     console.log(`[PATCH] ✅ No hay conflictos, actualizando cita`);
 
     // Actualizar la cita
@@ -2547,34 +2547,64 @@ app.get('/api/public/availability', async (req, res) => {
       return res.json({ success: false, error: 'Fecha requerida' });
     }
 
-    // Buscar citas existentes de ese día usando el mismo formato que AppointmentModel.getByDate
-    const start = `${date}T00:00:00-06:00`;
-    const end = `${date}T23:59:59-06:00`;
+    console.log(`[AVAILABILITY] Buscando disponibilidad para: ${date}`);
 
+    // Buscar citas que comiencen con la fecha (sin importar timezone)
+    // Usamos >= date y < date+1 para capturar todas las variantes de timezone
+    const nextDate = new Date(date);
+    nextDate.setDate(nextDate.getDate() + 1);
+    const nextDateStr = nextDate.toISOString().split('T')[0];
+
+    // Buscar con rangos amplios para capturar todas las citas del día
     const snapshot = await firestore.collection('appointments')
-      .where('startDateTime', '>=', start)
-      .where('startDateTime', '<=', end)
+      .where('startDateTime', '>=', date)
+      .where('startDateTime', '<', nextDateStr + 'T99')
       .get();
+
+    console.log(`[AVAILABILITY] Encontradas ${snapshot.size} citas potenciales`);
 
     const busy = [];
     snapshot.forEach(doc => {
       const data = doc.data();
+      const startDateTime = data.startDateTime || '';
+
+      console.log(`[AVAILABILITY] Cita: ${doc.id}, status: ${data.status}, startDateTime: ${startDateTime}`);
 
       // Ignorar citas canceladas
-      if (data.status === 'cancelled') return;
+      if (data.status === 'cancelled') {
+        console.log(`[AVAILABILITY] - Ignorando (cancelada)`);
+        return;
+      }
 
-      // Extraer la hora de startDateTime (formato: 2025-12-04T16:00:00-06:00)
-      const timePart = data.startDateTime.split('T')[1]; // 16:00:00-06:00
-      const timeOnly = timePart.split('-')[0].substring(0, 5); // 16:00
+      // Verificar que la fecha coincida (solo la parte YYYY-MM-DD)
+      if (!startDateTime.startsWith(date)) {
+        console.log(`[AVAILABILITY] - Ignorando (fecha diferente: ${startDateTime.substring(0, 10)} vs ${date})`);
+        return;
+      }
+
+      // Extraer la hora de startDateTime
+      // Soporta formatos: 2025-12-31T16:00:00-06:00, 2025-12-31T16:00:00Z, 2025-12-31T16:00:00
+      const timePart = startDateTime.split('T')[1] || '';
+      // Extraer solo HH:MM (quitar segundos y timezone)
+      const timeMatch = timePart.match(/^(\d{2}):(\d{2})/);
+      if (!timeMatch) {
+        console.log(`[AVAILABILITY] - No se pudo extraer hora de: ${timePart}`);
+        return;
+      }
+
+      const timeOnly = `${timeMatch[1]}:${timeMatch[2]}`;
+      console.log(`[AVAILABILITY] - Hora ocupada: ${timeOnly}`);
 
       // Agregar el slot ocupado
       busy.push(timeOnly);
 
+      // Si el servicio dura más de 60 minutos, ocupar el siguiente slot también
       const duration = data.duration || data.serviceDuration || 60;
       if (duration > 60) {
-        const hour = parseInt(timeOnly.split(':')[0]);
+        const hour = parseInt(timeMatch[1]);
         const nextHour = (hour + 1).toString().padStart(2, '0');
         busy.push(`${nextHour}:00`);
+        console.log(`[AVAILABILITY] - También ocupando siguiente hora: ${nextHour}:00`);
       }
     });
 
