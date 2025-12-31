@@ -9,6 +9,7 @@ import crypto from 'crypto';
 // Mapeo de colecciones a modelos de Prisma
 const collectionMap = {
   'cards': 'card',
+  'clients': 'card', // Alias - algunos módulos usan 'clients' en lugar de 'cards'
   'services': 'service',
   'appointments': 'appointment',
   'events': 'event',
@@ -17,6 +18,7 @@ const collectionMap = {
   'giftcards': 'giftCard',
   'notifications': 'notification',
   'booking_requests': 'bookingRequest',
+  'bookingRequests': 'bookingRequest', // Alias camelCase
   'settings': 'setting',
   'sales': 'sale',
   'admins': 'admin',
