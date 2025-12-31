@@ -1274,12 +1274,20 @@ app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
 
     console.log(`[PATCH] ✅ No hay conflictos, actualizando cita`);
 
+    // Formatear fechas con timezone de México
+    const startDateTimeMX = `${date}T${time}:00-06:00`;
+    const endDateObj = new Date(`${date}T${time}:00`);
+    endDateObj.setMinutes(endDateObj.getMinutes() + (durationMinutes || 60));
+    const endHours = String(endDateObj.getHours()).padStart(2, '0');
+    const endMinutes = String(endDateObj.getMinutes()).padStart(2, '0');
+    const endDateTimeMX = `${date}T${endHours}:${endMinutes}:00-06:00`;
+
     // Actualizar la cita
     const updateData = {
       date,
       time,
-      startDateTime,
-      endDateTime,
+      startDateTime: startDateTimeMX,
+      endDateTime: endDateTimeMX,
       updatedAt: new Date().toISOString()
     };
 
@@ -1288,6 +1296,52 @@ app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
     if (durationMinutes) updateData.durationMinutes = durationMinutes;
 
     await appointmentRef.update(updateData);
+
+    // ⭐ ACTUALIZAR GOOGLE CALENDAR si hay eventos asociados
+    if (apptData.googleCalendarEventId || apptData.googleCalendarEventId2) {
+      try {
+        const { updateEvent } = await import('./src/services/googleCalendarService.js');
+
+        console.log('[PATCH] 📅 Actualizando eventos en Google Calendar...');
+
+        // Actualizar en calendario 1 (Said)
+        if (apptData.googleCalendarEventId) {
+          try {
+            await updateEvent(apptData.googleCalendarEventId, {
+              calendarId: config.google.calendarOwner1,
+              title: `${serviceName || apptData.serviceName} - ${apptData.clientName}`,
+              description: `Cliente: ${apptData.clientName}\nTel: ${apptData.clientPhone}\nServicio: ${serviceName || apptData.serviceName}`,
+              location: 'Cactus 50, San Juan del Río',
+              startISO: startDateTimeMX,
+              endISO: endDateTimeMX
+            });
+            console.log(`[PATCH] ✅ Evento actualizado en calendar Said: ${apptData.googleCalendarEventId}`);
+          } catch (err1) {
+            console.error(`[PATCH] ⚠️ Error actualizando calendar Said:`, err1.message);
+          }
+        }
+
+        // Actualizar en calendario 2 (Alondra)
+        if (apptData.googleCalendarEventId2) {
+          try {
+            await updateEvent(apptData.googleCalendarEventId2, {
+              calendarId: config.google.calendarOwner2,
+              title: `${serviceName || apptData.serviceName} - ${apptData.clientName}`,
+              description: `Cliente: ${apptData.clientName}\nTel: ${apptData.clientPhone}\nServicio: ${serviceName || apptData.serviceName}`,
+              location: 'Cactus 50, San Juan del Río',
+              startISO: startDateTimeMX,
+              endISO: endDateTimeMX
+            });
+            console.log(`[PATCH] ✅ Evento actualizado en calendar Alondra: ${apptData.googleCalendarEventId2}`);
+          } catch (err2) {
+            console.error(`[PATCH] ⚠️ Error actualizando calendar Alondra:`, err2.message);
+          }
+        }
+      } catch (calErr) {
+        console.error('[PATCH] ⚠️ Error con Google Calendar:', calErr.message);
+        // No falla la operación si Google Calendar falla
+      }
+    }
 
     // Crear notificación
     await firestore.collection('notifications').add({

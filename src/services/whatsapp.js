@@ -80,30 +80,48 @@ function formatearFechaLegible(fecha) {
 
 /**
  * Formatea hora para mostrar
- * Usa timezone de México para consistencia
+ * Maneja objetos Date de Prisma (UTC) y strings ISO
  */
 function formatearHora(dateTimeStr) {
     // Si viene el campo 'time' directamente (HH:MM), usarlo
     if (typeof dateTimeStr === 'string' && /^\d{2}:\d{2}$/.test(dateTimeStr)) {
         return dateTimeStr;
     }
-    
-    // Si es un objeto Date de Prisma o string ISO
-    let date;
+
+    // Si es un objeto Date de Prisma
     if (dateTimeStr instanceof Date) {
-        date = dateTimeStr;
-    } else if (typeof dateTimeStr === 'string') {
-        date = new Date(dateTimeStr);
-    } else {
-        return '00:00';
+        // Prisma devuelve fechas en UTC, convertir a hora de México
+        // México es UTC-6
+        const utcHours = dateTimeStr.getUTCHours();
+        const utcMinutes = dateTimeStr.getUTCMinutes();
+
+        // Ajustar a hora de México (UTC-6)
+        let mexicoHours = utcHours - 6;
+        if (mexicoHours < 0) mexicoHours += 24;
+
+        return `${mexicoHours.toString().padStart(2, '0')}:${utcMinutes.toString().padStart(2, '0')}`;
     }
-    
-    return date.toLocaleTimeString('es-MX', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false,
-        timeZone: 'America/Mexico_City'
-    });
+
+    // Si es un string ISO con offset de México (ej: 2025-01-01T10:30:00-06:00)
+    if (typeof dateTimeStr === 'string' && dateTimeStr.includes('T')) {
+        // Extraer la hora directamente del string si tiene offset -06:00
+        if (dateTimeStr.includes('-06:00') || dateTimeStr.includes('-6:00')) {
+            const timePart = dateTimeStr.split('T')[1];
+            const hourMinute = timePart.substring(0, 5); // "10:30"
+            return hourMinute;
+        }
+
+        // Si es UTC (termina en Z) o tiene otro offset, convertir
+        const date = new Date(dateTimeStr);
+        const utcHours = date.getUTCHours();
+        const utcMinutes = date.getUTCMinutes();
+        let mexicoHours = utcHours - 6;
+        if (mexicoHours < 0) mexicoHours += 24;
+
+        return `${mexicoHours.toString().padStart(2, '0')}:${utcMinutes.toString().padStart(2, '0')}`;
+    }
+
+    return '00:00';
 }
 
 /**
