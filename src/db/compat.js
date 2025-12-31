@@ -19,6 +19,11 @@ const collectionMap = {
   'booking_requests': 'bookingRequest',
   'settings': 'setting',
   'sales': 'sale',
+  'admins': 'admin',
+  'admin_resets': 'adminReset',
+  'apple_devices': 'appleDevice',
+  'apple_updates': 'appleUpdate',
+  'google_devices': 'googleDevice',
 };
 
 // Clase que simula un documento de Firestore

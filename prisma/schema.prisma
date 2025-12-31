@@ -218,3 +218,58 @@ model Sale {
 
   @@map("sales")
 }
+
+// Administradores
+model Admin {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  pass_hash String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("admins")
+}
+
+// Reset de contraseñas de admin
+model AdminReset {
+  id        String   @id @default(cuid())
+  adminId   String
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("admin_resets")
+}
+
+// Dispositivos Apple Wallet
+model AppleDevice {
+  id             String   @id @default(cuid())
+  deviceId       String
+  pushToken      String
+  passTypeId     String
+  serialNumber   String
+  createdAt      DateTime @default(now())
+
+  @@unique([deviceId, passTypeId, serialNumber])
+  @@map("apple_devices")
+}
+
+// Actualizaciones Apple Wallet
+model AppleUpdate {
+  id           String   @id @default(cuid())
+  serialNumber String
+  updatedAt    DateTime @default(now())
+
+  @@map("apple_updates")
+}
+
+// Dispositivos Google Wallet
+model GoogleDevice {
+  id        String   @id @default(cuid())
+  cardId    String
+  objectId  String
+  createdAt DateTime @default(now())
+
+  @@map("google_devices")
+}
