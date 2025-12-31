@@ -90,12 +90,14 @@ class DocRef {
       const processedData = processDataForUpdate(this.modelName, data);
       
       if (options.merge) {
-        return await prisma[this.modelName].upsert({
+        // Solo actualizar, no crear (merge = true significa que el doc ya existe)
+        return await prisma[this.modelName].update({
           where: { id: this.id },
-          update: processedData,
-          create: { id: this.id, ...processedData }
+          data: processedData
         });
       }
+      
+      // Sin merge, intentar upsert (pero esto requiere todos los campos requeridos)
       return await prisma[this.modelName].upsert({
         where: { id: this.id },
         update: processedData,
@@ -162,6 +164,18 @@ function processDataForUpdate(modelName, data) {
   // Mapear clientId a cardId ANTES de eliminar clientId
   if (processed.clientId && !processed.cardId) {
     processed.cardId = processed.clientId;
+  }
+  
+  // Mapear birthdate a birthday (frontend usa birthdate, Prisma usa birthday)
+  if (processed.birthdate !== undefined) {
+    processed.birthday = processed.birthdate;
+    delete processed.birthdate;
+  }
+  
+  // Mapear active a isActive (frontend usa active, Prisma usa isActive)
+  if (processed.active !== undefined) {
+    processed.isActive = processed.active;
+    delete processed.active;
   }
   
   // Eliminar campos que no existen en los modelos de Prisma
