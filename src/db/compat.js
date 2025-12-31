@@ -27,11 +27,32 @@ const collectionMap = {
   'gift_card_redeems': 'giftCardRedeem',
 };
 
+// Mapeo inverso de campos (camelCase a lo que espera el código legacy)
+const reverseFieldMap = {
+  'isActive': 'active',
+  'redeemedAt': 'redeemed_at',
+  'clientName': 'client_name',
+  'expiryDate': 'expiry_date',
+};
+
+// Función para mapear datos de salida (Prisma -> formato legacy)
+function mapOutputData(data) {
+  if (!data) return data;
+  const mapped = { ...data };
+  for (const [prismaField, legacyField] of Object.entries(reverseFieldMap)) {
+    if (prismaField in mapped) {
+      mapped[legacyField] = mapped[prismaField];
+      // No eliminamos el campo original para mantener compatibilidad
+    }
+  }
+  return mapped;
+}
+
 // Clase que simula un documento de Firestore
 class DocSnapshot {
   constructor(id, data) {
     this.id = id;
-    this._data = data;
+    this._data = mapOutputData(data);
     this.exists = data !== null;
   }
 
@@ -144,6 +165,7 @@ const fieldMap = {
   'redeemed_at': 'redeemedAt',
   'client_name': 'clientName',
   'expiry_date': 'expiryDate',
+  'active': 'isActive',
 };
 
 // Clase que simula una query de Firestore
