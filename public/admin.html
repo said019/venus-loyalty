@@ -7442,29 +7442,36 @@
         });
         const data = await response.json();
 
-        // KPIs principales
-        document.getElementById('kpi-total').textContent = data.total || 0;
-        document.getElementById('kpi-full').textContent = data.full || 0;
+        // KPIs principales (con verificación null)
+        const kpiTotal = document.getElementById('kpi-total');
+        const kpiFull = document.getElementById('kpi-full');
+        const kpiStamps = document.getElementById('kpi-stamps');
+        const kpiRedeems = document.getElementById('kpi-redeems');
+        const kpiAvg = document.getElementById('kpi-avg');
+        const kpiRate = document.getElementById('kpi-rate');
+
+        if (kpiTotal) kpiTotal.textContent = data.total || 0;
+        if (kpiFull) kpiFull.textContent = data.full || 0;
 
         // Actualizar según el rango
         if (range === 'day') {
-          document.getElementById('kpi-stamps').textContent = data.stampsToday || 0;
-          document.getElementById('kpi-redeems').textContent = data.redeemsToday || 0;
+          if (kpiStamps) kpiStamps.textContent = data.stampsToday || 0;
+          if (kpiRedeems) kpiRedeems.textContent = data.redeemsToday || 0;
         } else if (range === 'week') {
-          document.getElementById('kpi-stamps').textContent = data.stampsWeek || 0;
-          document.getElementById('kpi-redeems').textContent = data.redeemsWeek || 0;
+          if (kpiStamps) kpiStamps.textContent = data.stampsWeek || 0;
+          if (kpiRedeems) kpiRedeems.textContent = data.redeemsWeek || 0;
         } else if (range === 'month') {
-          document.getElementById('kpi-stamps').textContent = data.stampsMonth || 0;
-          document.getElementById('kpi-redeems').textContent = data.redeemsMonth || 0;
+          if (kpiStamps) kpiStamps.textContent = data.stampsMonth || 0;
+          if (kpiRedeems) kpiRedeems.textContent = data.redeemsMonth || 0;
         }
 
         // Promedio sellos
         const avg = data.total > 0 ? (((data.totalStamps || 0) / data.total)).toFixed(1) : '0.0';
-        document.getElementById('kpi-avg').textContent = avg;
+        if (kpiAvg) kpiAvg.textContent = avg;
 
         // Tasa de completitud
         const rate = data.total > 0 ? ((data.full / data.total) * 100).toFixed(0) : '0';
-        document.getElementById('kpi-rate').textContent = rate + '%';
+        if (kpiRate) kpiRate.textContent = rate + '%';
 
         // Cargar componentes adicionales
         await loadTopClients();
@@ -7730,13 +7737,20 @@
         kpiRedeems = 25;
       }
 
-      // Actualizar UI con datos de ejemplo
-      document.getElementById('kpi-total').textContent = "142";
-      document.getElementById('kpi-full').textContent = "18";
-      document.getElementById('kpi-stamps').textContent = kpiStamps;
-      document.getElementById('kpi-redeems').textContent = kpiRedeems;
-      document.getElementById('kpi-avg').textContent = "5.2";
-      document.getElementById('kpi-rate').textContent = "13%";
+      // Actualizar UI con datos de ejemplo (con verificación null)
+      const kpiTotal = document.getElementById('kpi-total');
+      const kpiFull = document.getElementById('kpi-full');
+      const kpiStampsEl = document.getElementById('kpi-stamps');
+      const kpiRedeemsEl = document.getElementById('kpi-redeems');
+      const kpiAvg = document.getElementById('kpi-avg');
+      const kpiRate = document.getElementById('kpi-rate');
+
+      if (kpiTotal) kpiTotal.textContent = "142";
+      if (kpiFull) kpiFull.textContent = "18";
+      if (kpiStampsEl) kpiStampsEl.textContent = kpiStamps;
+      if (kpiRedeemsEl) kpiRedeemsEl.textContent = kpiRedeems;
+      if (kpiAvg) kpiAvg.textContent = "5.2";
+      if (kpiRate) kpiRate.textContent = "13%";
 
       // Actualizar gráfica
       renderChart(labels, dataStamps);
