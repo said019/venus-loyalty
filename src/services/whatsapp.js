@@ -83,7 +83,21 @@ function formatearFechaLegible(fecha) {
  * Usa timezone de México para consistencia
  */
 function formatearHora(dateTimeStr) {
-    const date = new Date(dateTimeStr);
+    // Si viene el campo 'time' directamente (HH:MM), usarlo
+    if (typeof dateTimeStr === 'string' && /^\d{2}:\d{2}$/.test(dateTimeStr)) {
+        return dateTimeStr;
+    }
+    
+    // Si es un objeto Date de Prisma o string ISO
+    let date;
+    if (dateTimeStr instanceof Date) {
+        date = dateTimeStr;
+    } else if (typeof dateTimeStr === 'string') {
+        date = new Date(dateTimeStr);
+    } else {
+        return '00:00';
+    }
+    
     return date.toLocaleTimeString('es-MX', {
         hour: '2-digit',
         minute: '2-digit',
@@ -137,8 +151,9 @@ export const WhatsAppService = {
      * Variables: {{1}}=Nombre, {{2}}=Servicio, {{3}}=Fecha, {{4}}=Hora, {{5}}=Lugar
      */
     async sendConfirmation(appt) {
-        const fecha = formatearFechaLegible(appt.startDateTime);
-        const hora = formatearHora(appt.startDateTime);
+        const fecha = formatearFechaLegible(appt.date || appt.startDateTime);
+        // Usar el campo 'time' directamente si existe, sino formatear desde startDateTime
+        const hora = appt.time || formatearHora(appt.startDateTime);
 
         return await sendWhatsAppTemplate(
             appt.clientPhone,
@@ -159,8 +174,8 @@ export const WhatsAppService = {
      * Variables: {{1}}=Nombre, {{2}}=Servicio, {{3}}=Fecha, {{4}}=Hora
      */
     async sendReminder24h(appt) {
-        const fecha = formatearFechaLegible(appt.startDateTime);
-        const hora = formatearHora(appt.startDateTime);
+        const fecha = formatearFechaLegible(appt.date || appt.startDateTime);
+        const hora = appt.time || formatearHora(appt.startDateTime);
 
         return await sendWhatsAppTemplate(
             appt.clientPhone,
@@ -180,7 +195,7 @@ export const WhatsAppService = {
      * Variables: {{1}}=Nombre, {{2}}=Servicio, {{3}}=Hora
      */
     async sendReminder2h(appt) {
-        const hora = formatearHora(appt.startDateTime);
+        const hora = appt.time || formatearHora(appt.startDateTime);
 
         return await sendWhatsAppTemplate(
             appt.clientPhone,
@@ -198,8 +213,8 @@ export const WhatsAppService = {
      * USA TEXTO LIBRE (Respuesta a sesión activa)
      */
     async sendConfirmacionRecibida(appt) {
-        const fecha = formatearFechaLegible(appt.startDateTime);
-        const hora = formatearHora(appt.startDateTime);
+        const fecha = formatearFechaLegible(appt.date || appt.startDateTime);
+        const hora = appt.time || formatearHora(appt.startDateTime);
 
         const mensaje = `✅ ¡Gracias ${appt.clientName}! Tu cita ha sido confirmada para el ${fecha} a las ${hora}. Te esperamos en Venus Cosmetología.`;
 

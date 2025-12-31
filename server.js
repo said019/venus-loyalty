@@ -190,11 +190,14 @@ async function fsUpdateCardStamps(cardId, stamps) {
 }
 
 async function fsAddEvent(cardId, type, meta = {}) {
+  // Normalizar tipo a minúsculas (Prisma espera 'stamp' o 'redeem')
+  const normalizedType = type.toLowerCase();
+  
   await firestore.collection(COL_EVENTS).add({
     cardId,
-    type,
-    meta,
-    createdAt: new Date().toISOString(),
+    type: normalizedType,
+    staffName: meta.by || null,
+    note: meta.note || null,
   });
 }
 

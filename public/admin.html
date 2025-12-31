@@ -12066,7 +12066,8 @@ Gracias por tu preferencia ✨`;
           document.getElementById('service-name').value = service.name;
           document.getElementById('service-duration').value = service.durationMinutes;
           document.getElementById('service-price').value = service.price;
-          document.getElementById('service-description').value = (service.description || []).join('\n');
+          // description es string en Prisma, no array
+          document.getElementById('service-description').value = service.description || '';
           document.getElementById('service-category').value = service.category || '';
           document.getElementById('service-discount').value = service.discount || '';
           document.getElementById('modal-service-title').textContent = 'Editar Servicio';
