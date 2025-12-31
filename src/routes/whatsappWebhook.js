@@ -32,6 +32,9 @@ router.post('/webhook', async (req, res) => {
 
         if (!cita) {
             console.log(`⚠️ No se encontró cita activa para ${telefono}`);
+            // Responder al usuario que no se encontró cita (ayuda a debug y UX)
+            const { WhatsAppService } = await import('../services/whatsapp.js');
+            await WhatsAppService.sendWhatsAppText(telefono, 'Lo siento, no encontré ninguna cita próxima pendiente de confirmar para este número. Por favor verifica con administración.');
             return res.status(200).send('OK');
         }
 
