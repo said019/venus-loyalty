@@ -136,19 +136,29 @@ class Query {
   where(field, op, value) {
     const newQuery = this._clone();
     
+    // Campos que son DateTime en Prisma - convertir strings a Date
+    const dateTimeFields = ['startDateTime', 'endDateTime', 'createdAt', 'updatedAt', 
+                            'lastVisit', 'confirmedAt', 'cancelledAt', 'sent24hAt', 
+                            'sent2hAt', 'expiresAt', 'usedAt', 'timestamp'];
+    
+    let processedValue = value;
+    if (dateTimeFields.includes(field) && typeof value === 'string') {
+      processedValue = new Date(value);
+    }
+    
     // Convertir operadores de Firestore a Prisma
     if (op === '==') {
-      newQuery._where[field] = value;
+      newQuery._where[field] = processedValue;
     } else if (op === '!=') {
-      newQuery._where[field] = { not: value };
+      newQuery._where[field] = { not: processedValue };
     } else if (op === '>') {
-      newQuery._where[field] = { gt: value };
+      newQuery._where[field] = { gt: processedValue };
     } else if (op === '>=') {
-      newQuery._where[field] = { gte: value };
+      newQuery._where[field] = { gte: processedValue };
     } else if (op === '<') {
-      newQuery._where[field] = { lt: value };
+      newQuery._where[field] = { lt: processedValue };
     } else if (op === '<=') {
-      newQuery._where[field] = { lte: value };
+      newQuery._where[field] = { lte: processedValue };
     } else if (op === 'in') {
       newQuery._where[field] = { in: value };
     } else if (op === 'array-contains') {
