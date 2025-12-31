@@ -53,10 +53,14 @@ function mapOutputData(data) {
 
 // Clase que simula un documento de Firestore
 class DocSnapshot {
-  constructor(id, data) {
+  constructor(id, data, collectionName = null) {
     this.id = id;
     this._data = mapOutputData(data);
     this.exists = data !== null;
+    // Agregar ref para compatibilidad con Firestore
+    if (collectionName) {
+      this.ref = new DocRef(collectionName, id);
+    }
   }
 
   data() {
@@ -77,10 +81,10 @@ class DocRef {
       const data = await prisma[this.modelName].findUnique({
         where: { id: this.id }
       });
-      return new DocSnapshot(this.id, data);
+      return new DocSnapshot(this.id, data, this.collectionName);
     } catch (error) {
       console.error(`Error getting doc ${this.collectionName}/${this.id}:`, error);
-      return new DocSnapshot(this.id, null);
+      return new DocSnapshot(this.id, null, this.collectionName);
     }
   }
 
@@ -300,10 +304,10 @@ class Query {
       });
 
       return {
-        docs: results.map(r => new DocSnapshot(r.id, r)),
+        docs: results.map(r => new DocSnapshot(r.id, r, this.collectionName)),
         empty: results.length === 0,
         size: results.length,
-        forEach: (callback) => results.forEach((r, i) => callback(new DocSnapshot(r.id, r), i)),
+        forEach: (callback) => results.forEach((r, i) => callback(new DocSnapshot(r.id, r, this.collectionName), i)),
       };
     } catch (error) {
       console.error(`Error querying ${this.collectionName}:`, error);
