@@ -86,17 +86,20 @@ class DocRef {
 
   async set(data, options = {}) {
     try {
+      // Procesar datos para convertir fechas y eliminar campos inválidos
+      const processedData = processDataForUpdate(this.modelName, data);
+      
       if (options.merge) {
         return await prisma[this.modelName].upsert({
           where: { id: this.id },
-          update: data,
-          create: { id: this.id, ...data }
+          update: processedData,
+          create: { id: this.id, ...processedData }
         });
       }
       return await prisma[this.modelName].upsert({
         where: { id: this.id },
-        update: data,
-        create: { id: this.id, ...data }
+        update: processedData,
+        create: { id: this.id, ...processedData }
       });
     } catch (error) {
       console.error(`Error setting doc ${this.collectionName}/${this.id}:`, error);
