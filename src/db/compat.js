@@ -35,6 +35,7 @@ const reverseFieldMap = {
   'redeemedAt': 'redeemed_at',
   'clientName': 'client_name',
   'expiryDate': 'expiry_date',
+  'birthday': 'birthdate', // El frontend usa birthdate, Prisma usa birthday
 };
 
 // Función para mapear datos de salida (Prisma -> formato legacy)
@@ -194,6 +195,7 @@ const fieldMap = {
   'client_name': 'clientName',
   'expiry_date': 'expiryDate',
   'active': 'isActive',
+  'birthdate': 'birthday', // El frontend usa birthdate, Prisma usa birthday
 };
 
 // Clase que simula una query de Firestore
