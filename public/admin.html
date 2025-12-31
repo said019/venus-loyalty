@@ -7595,13 +7595,20 @@
         // 6. Tasa de retorno (activos / total)
         const returnRate = cards.length > 0 ? Math.round((activeClients.length / cards.length) * 100) : 0;
 
-        // Actualizar UI
-        document.getElementById('kpi-new-clients').textContent = newClients.length;
-        document.getElementById('kpi-active-clients').textContent = `${activeClients.length} (${returnRate}%)`;
-        document.getElementById('kpi-inactive-clients').textContent = inactiveClients;
-        document.getElementById('kpi-avg-last-visit').textContent = `${avgLastVisit} días`;
-        document.getElementById('kpi-cycles-completed').textContent = cyclesCompleted;
-        document.getElementById('kpi-return-rate').textContent = `${returnRate}%`;
+        // Actualizar UI (con verificación null)
+        const kpiNewClients = document.getElementById('kpi-new-clients');
+        const kpiActiveClients = document.getElementById('kpi-active-clients');
+        const kpiInactiveClients = document.getElementById('kpi-inactive-clients');
+        const kpiAvgLastVisit = document.getElementById('kpi-avg-last-visit');
+        const kpiCyclesCompleted = document.getElementById('kpi-cycles-completed');
+        const kpiReturnRate = document.getElementById('kpi-return-rate');
+
+        if (kpiNewClients) kpiNewClients.textContent = newClients.length;
+        if (kpiActiveClients) kpiActiveClients.textContent = `${activeClients.length} (${returnRate}%)`;
+        if (kpiInactiveClients) kpiInactiveClients.textContent = inactiveClients;
+        if (kpiAvgLastVisit) kpiAvgLastVisit.textContent = `${avgLastVisit} días`;
+        if (kpiCyclesCompleted) kpiCyclesCompleted.textContent = cyclesCompleted;
+        if (kpiReturnRate) kpiReturnRate.textContent = `${returnRate}%`;
 
         // 7. Renderizar gráficas de distribución
         renderDayDistribution(cards);
@@ -7610,13 +7617,13 @@
         console.log('📊 KPIs avanzados cargados');
       } catch (error) {
         console.error('Error cargando KPIs avanzados:', error);
-        // Valores por defecto en caso de error
-        document.getElementById('kpi-new-clients').textContent = '—';
-        document.getElementById('kpi-active-clients').textContent = '—';
-        document.getElementById('kpi-inactive-clients').textContent = '—';
-        document.getElementById('kpi-avg-last-visit').textContent = '—';
-        document.getElementById('kpi-cycles-completed').textContent = '—';
-        document.getElementById('kpi-return-rate').textContent = '—';
+        // Valores por defecto en caso de error (con verificación null)
+        const els = ['kpi-new-clients', 'kpi-active-clients', 'kpi-inactive-clients', 
+                     'kpi-avg-last-visit', 'kpi-cycles-completed', 'kpi-return-rate'];
+        els.forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.textContent = '—';
+        });
       }
     }
 
@@ -7987,10 +7994,14 @@
           if (deviceStatsResponse.ok) {
             const deviceStats = await deviceStatsResponse.json();
 
-            // Mostrar en UI
-            document.getElementById('kpi-google').textContent = deviceStats.googleWallet || 0;
-            document.getElementById('kpi-apple').textContent = deviceStats.appleWallet || 0;
-            document.getElementById('kpi-devices').textContent = deviceStats.totalDevices || 0;
+            // Mostrar en UI (con verificación null)
+            const kpiGoogle = document.getElementById('kpi-google');
+            const kpiApple = document.getElementById('kpi-apple');
+            const kpiDevices = document.getElementById('kpi-devices');
+
+            if (kpiGoogle) kpiGoogle.textContent = deviceStats.googleWallet || 0;
+            if (kpiApple) kpiApple.textContent = deviceStats.appleWallet || 0;
+            if (kpiDevices) kpiDevices.textContent = deviceStats.totalDevices || 0;
 
             // ⭐ Guardar en globalStatsData para CSV
             globalStatsData.walletStats = {
@@ -8012,14 +8023,22 @@
         });
         const data = await response.json();
 
-        document.getElementById('kpi-google').textContent = data.googleWallets || 0;
-        document.getElementById('kpi-apple').textContent = data.appleWallets || 0;
-        document.getElementById('kpi-devices').textContent = data.appleDevices || 0;
+        const kpiGoogle = document.getElementById('kpi-google');
+        const kpiApple = document.getElementById('kpi-apple');
+        const kpiDevices = document.getElementById('kpi-devices');
+
+        if (kpiGoogle) kpiGoogle.textContent = data.googleWallets || 0;
+        if (kpiApple) kpiApple.textContent = data.appleWallets || 0;
+        if (kpiDevices) kpiDevices.textContent = data.appleDevices || 0;
       } catch (error) {
         console.error('Error cargando wallet stats:', error);
-        document.getElementById('kpi-google').textContent = '—';
-        document.getElementById('kpi-apple').textContent = '—';
-        document.getElementById('kpi-devices').textContent = '—';
+        const kpiGoogle = document.getElementById('kpi-google');
+        const kpiApple = document.getElementById('kpi-apple');
+        const kpiDevices = document.getElementById('kpi-devices');
+
+        if (kpiGoogle) kpiGoogle.textContent = '—';
+        if (kpiApple) kpiApple.textContent = '—';
+        if (kpiDevices) kpiDevices.textContent = '—';
       }
     }
 
