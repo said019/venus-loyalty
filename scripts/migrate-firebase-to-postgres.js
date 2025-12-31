@@ -51,13 +51,19 @@ async function migrateServices() {
   for (const doc of snapshot.docs) {
     const data = doc.data();
     try {
+      // Convertir description de array a string si es necesario
+      let description = data.description;
+      if (Array.isArray(description)) {
+        description = description.join(' ');
+      }
+      
       await prisma.service.upsert({
         where: { id: doc.id },
         update: {},
         create: {
           id: doc.id,
           name: data.name || 'Sin nombre',
-          description: data.description || null,
+          description: description || null,
           price: data.price || 0,
           durationMinutes: data.durationMinutes || 60,
           category: data.category || null,
