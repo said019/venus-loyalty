@@ -13697,7 +13697,7 @@ Gracias por tu preferencia ✨`;
         await loadGiftCardStats();
 
         // 5. Cargar gráfica de actividad
-        await loadActivityChart();
+        await loadDashboardActivityChart();
 
       } catch (error) {
         console.error('Error loading dashboard:', error);
@@ -13824,8 +13824,8 @@ Gracias por tu preferencia ✨`;
       }).join('');
     }
 
-    // Cargar y renderizar gráfica de actividad
-    async function loadActivityChart() {
+    // Cargar y renderizar gráfica de actividad del dashboard
+    async function loadDashboardActivityChart() {
       try {
         const res = await fetch('/api/dashboard/history', { credentials: 'include' });
         const json = await res.json();
@@ -13833,7 +13833,10 @@ Gracias por tu preferencia ✨`;
         if (!json.success) return;
 
         const data = json.data;
-        const ctx = document.getElementById('activity-chart').getContext('2d');
+        const canvas = document.getElementById('dashboard-activity-chart');
+        if (!canvas) return;
+        
+        const ctx = canvas.getContext('2d');
 
         // Destruir chart previo si existe
         if (window.myActivityChart) {

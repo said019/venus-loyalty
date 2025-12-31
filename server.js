@@ -193,12 +193,17 @@ async function fsAddEvent(cardId, type, meta = {}) {
   // Normalizar tipo a minúsculas (Prisma espera 'stamp' o 'redeem')
   const normalizedType = type.toLowerCase();
   
-  await firestore.collection(COL_EVENTS).add({
-    cardId,
-    type: normalizedType,
-    staffName: meta.by || null,
-    note: meta.note || null,
-  });
+  try {
+    await firestore.collection(COL_EVENTS).add({
+      cardId,
+      type: normalizedType,
+      staffName: meta.by || null,
+      note: meta.note || null,
+    });
+  } catch (error) {
+    console.error('[fsAddEvent] Error:', error.message);
+    // No lanzar error para no bloquear el flujo principal
+  }
 }
 
 async function fsListEvents(cardId) {
@@ -218,7 +223,7 @@ async function fsGetLastStampDate(cardId) {
   const snap = await firestore
     .collection(COL_EVENTS)
     .where("cardId", "==", cardId)
-    .where("type", "==", "STAMP")
+    .where("type", "==", "stamp") // minúsculas para coincidir con Prisma
     .orderBy("createdAt", "desc")
     .limit(1)
     .get();
@@ -361,18 +366,18 @@ async function fsMetrics() {
     .where("createdAt", ">=", startIso)
     .get();
 
-  const counts = { STAMP: 0, REDEEM: 0 };
+  const counts = { stamp: 0, redeem: 0 };
   evSnap.forEach((doc) => {
-    const t = doc.data().type;
-    if (t === "STAMP") counts.STAMP++;
-    if (t === "REDEEM") counts.REDEEM++;
+    const t = (doc.data().type || '').toLowerCase();
+    if (t === "stamp") counts.stamp++;
+    if (t === "redeem") counts.redeem++;
   });
 
   return {
     total,
     full,
-    stampsToday: counts.STAMP,
-    redeemsToday: counts.REDEEM,
+    stampsToday: counts.stamp,
+    redeemsToday: counts.redeem,
   };
 }
 
@@ -398,11 +403,11 @@ async function fsMetricsMonth() {
     .where("createdAt", ">=", startOfMonthIso)
     .get();
 
-  const counts = { STAMP: 0, REDEEM: 0 };
+  const counts = { stamp: 0, redeem: 0 };
   evSnap.forEach((doc) => {
-    const t = doc.data().type;
-    if (t === "STAMP") counts.STAMP++;
-    if (t === "REDEEM") counts.REDEEM++;
+    const t = (doc.data().type || '').toLowerCase();
+    if (t === "stamp") counts.stamp++;
+    if (t === "redeem") counts.redeem++;
   });
 
   // Calcular tasa de retorno (clientes con más de 1 sello total)
@@ -417,8 +422,8 @@ async function fsMetricsMonth() {
   return {
     total,
     activeClients,
-    stampsThisMonth: counts.STAMP,
-    redeemsThisMonth: counts.REDEEM,
+    stampsThisMonth: counts.stamp,
+    redeemsThisMonth: counts.redeem,
     returnRate
   };
 }
@@ -3105,7 +3110,7 @@ app.get("/api/admin/activity-week", adminAuth, async (req, res) => {
 
       const snap = await firestore
         .collection(COL_EVENTS)
-        .where("type", "==", "STAMP")
+        .where("type", "==", "stamp") // minúsculas
         .where("createdAt", ">=", day.toISOString())
         .where("createdAt", "<", nextDay.toISOString())
         .get();
