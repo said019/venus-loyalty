@@ -4,7 +4,7 @@ import { WhatsAppService } from '../services/whatsapp.js';
 import { firestore } from '../db/compat.js';
 
 export function startScheduler() {
-    console.log('⏰ Scheduler de recordatorios WhatsApp iniciado (cada 10 min)');
+    console.log('⏰ Scheduler de recordatorios WhatsApp iniciado (cada hora)');
     console.log('⏰ Scheduler de notificaciones automáticas iniciado');
 
     // Helper para convertir a ISO con offset de México (-06:00)
@@ -15,16 +15,16 @@ export function startScheduler() {
         return localDate.toISOString().replace('Z', '-06:00');
     };
 
-    // Correr cada 10 minutos
-    cron.schedule('*/10 * * * *', async () => {
+    // Correr cada hora (al minuto 0)
+    cron.schedule('0 * * * *', async () => {
         console.log('⏰ Ejecutando chequeo de recordatorios...');
         const now = new Date();
 
         try {
             // --- RECORDATORIO 24 HORAS ---
-            // Buscamos citas que ocurran entre 23.5h y 24.5h desde ahora
-            const date24hStart = new Date(now.getTime() + 23.5 * 60 * 60 * 1000);
-            const date24hEnd = new Date(now.getTime() + 24.5 * 60 * 60 * 1000);
+            // Buscamos citas que ocurran entre 23h y 25h desde ahora (ventana de 2 horas)
+            const date24hStart = new Date(now.getTime() + 23 * 60 * 60 * 1000);
+            const date24hEnd = new Date(now.getTime() + 25 * 60 * 60 * 1000);
 
             const start24h = toMexicoCityISO(date24hStart);
             const end24h = toMexicoCityISO(date24hEnd);
@@ -44,9 +44,9 @@ export function startScheduler() {
             }
 
             // --- RECORDATORIO 2 HORAS ---
-            // Buscamos citas que ocurran entre 1.5h y 2.5h desde ahora
-            const date2hStart = new Date(now.getTime() + 1.5 * 60 * 60 * 1000);
-            const date2hEnd = new Date(now.getTime() + 2.5 * 60 * 60 * 1000);
+            // Buscamos citas que ocurran entre 1h y 3h desde ahora (ventana de 2 horas)
+            const date2hStart = new Date(now.getTime() + 1 * 60 * 60 * 1000);
+            const date2hEnd = new Date(now.getTime() + 3 * 60 * 60 * 1000);
 
             const start2h = toMexicoCityISO(date2hStart);
             const end2h = toMexicoCityISO(date2hEnd);
