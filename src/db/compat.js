@@ -145,6 +145,23 @@ function processDataForUpdate(modelName, data) {
     }
   }
   
+  // Eliminar updatedAt ya que Prisma lo maneja automáticamente con @updatedAt
+  if (processed.updatedAt) {
+    delete processed.updatedAt;
+  }
+  
+  // Eliminar createdAt si es string (Prisma usa @default(now()))
+  if (processed.createdAt && typeof processed.createdAt === 'string') {
+    delete processed.createdAt;
+  }
+  
+  // Eliminar campos que no existen en los modelos de Prisma
+  delete processed.notes; // Card no tiene campo notes
+  delete processed.favoriteServices; // Card no tiene este campo
+  delete processed.reminders; // Appointment no tiene este campo (era para Firebase)
+  delete processed.cosmetologistEmail; // No existe en el modelo
+  delete processed.entityId; // Notification no tiene este campo
+  
   // Mapear campos con nombres diferentes (snake_case a camelCase)
   if (processed.redeemed_at) {
     processed.redeemedAt = processed.redeemed_at instanceof Date ? processed.redeemed_at : new Date(processed.redeemed_at);
@@ -210,7 +227,12 @@ class Query {
     } else if (op === '<=') {
       newQuery._where[mappedField] = { lte: processedValue };
     } else if (op === 'in') {
-      newQuery._where[mappedField] = { in: value };
+      // Para 'in', procesar cada valor si es un campo de fecha
+      if (dateTimeFields.includes(mappedField) && Array.isArray(value)) {
+        newQuery._where[mappedField] = { in: value.map(v => typeof v === 'string' ? new Date(v) : v) };
+      } else {
+        newQuery._where[mappedField] = { in: value };
+      }
     } else if (op === 'array-contains') {
       // Para JSON arrays, esto es más complejo
       newQuery._where[mappedField] = { has: value };

@@ -108,21 +108,31 @@ export const ServiceModel = {
 export const AppointmentModel = {
     async create(data) {
         const now = new Date().toISOString();
+        
+        // Extraer date y time del startDateTime si no vienen
+        let date = data.date;
+        let time = data.time;
+        if (!date && data.startDateTime) {
+            // startDateTime viene como "2025-01-02T10:00:00-06:00"
+            const dt = new Date(data.startDateTime);
+            date = data.startDateTime.split('T')[0]; // "2025-01-02"
+            time = data.startDateTime.split('T')[1].substring(0, 5); // "10:00"
+        }
+        
         const docData = {
             ...data,
+            date,
+            time,
             status: 'scheduled',
-            createdAt: now,
-            updatedAt: now,
             // Guardar flags de WhatsApp directamente para compatibilidad
             sendWhatsApp24h: data.sendWhatsApp24h || false,
             sendWhatsApp2h: data.sendWhatsApp2h || false,
-            reminders: {
-                send24h: data.sendWhatsApp24h || false,
-                send2h: data.sendWhatsApp2h || false,
-                sent24hAt: null,
-                sent2hAt: null
-            }
         };
+        
+        // Eliminar campos que no existen en el modelo de Prisma
+        delete docData.reminders;
+        delete docData.cosmetologistEmail;
+        
         const ref = await firestore.collection(COL_APPOINTMENTS).add(docData);
         return { id: ref.id, ...docData };
     },
