@@ -115,7 +115,7 @@ export const AppointmentModel = {
             date = data.startDateTime.split('T')[0]; // "2025-01-02"
             time = data.startDateTime.split('T')[1].substring(0, 5); // "10:00"
         }
-        
+
         const docData = {
             clientName: data.clientName,
             clientPhone: data.clientPhone,
@@ -134,7 +134,7 @@ export const AppointmentModel = {
             sendWhatsApp24h: data.sendWhatsApp24h || false,
             sendWhatsApp2h: data.sendWhatsApp2h || false,
         };
-        
+
         const ref = await firestore.collection(COL_APPOINTMENTS).add(docData);
         return { id: ref.id, ...docData };
     },
@@ -167,7 +167,7 @@ export const AppointmentModel = {
     async getPendingReminders(type, rangeStart, rangeEnd) {
         // type: 'send24h' o 'send2h'
         // rangeStart/End: ISO strings
-        
+
         console.log(`🔍 Buscando recordatorios ${type} entre ${rangeStart} y ${rangeEnd}`);
 
         // Simplificado: traer todas las citas scheduled en el rango y filtrar en código
@@ -178,22 +178,22 @@ export const AppointmentModel = {
 
         console.log(`   📦 Encontradas ${snap.size} citas en el rango`);
 
-        // Filtrar en código
-        const reminderField = type === 'send24h' ? 'sent24hAt' : 'sent2hAt';
+        // Campos para PostgreSQL (sin objeto reminders)
         const sendField = type === 'send24h' ? 'sendWhatsApp24h' : 'sendWhatsApp2h';
-        
+        const sentField = type === 'send24h' ? 'sent24hAt' : 'sent2hAt';
+
         const pending = snap.docs
             .map(d => ({ id: d.id, ...d.data() }))
             .filter(a => {
                 // Debe estar scheduled o confirmed
                 if (a.status !== 'scheduled' && a.status !== 'confirmed') return false;
-                
-                // Debe tener el flag de envío activado
-                if (!a[sendField] && !a.reminders?.[type]) return false;
-                
-                // No debe haberse enviado ya
-                if (a.reminders?.[reminderField]) return false;
-                
+
+                // Debe tener el flag de envío activado (sendWhatsApp24h o sendWhatsApp2h)
+                if (!a[sendField]) return false;
+
+                // No debe haberse enviado ya (sent24hAt o sent2hAt debe ser null)
+                if (a[sentField]) return false;
+
                 return true;
             });
 
@@ -203,7 +203,8 @@ export const AppointmentModel = {
 
     async markReminderSent(id, type) {
         // type: '24h' o '2h'
-        const field = `reminders.sent${type}At`;
+        // Campos directos para PostgreSQL (sin objeto reminders)
+        const field = type === '24h' ? 'sent24hAt' : 'sent2hAt';
         await firestore.collection(COL_APPOINTMENTS).doc(id).update({
             [field]: new Date().toISOString()
         });
