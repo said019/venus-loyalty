@@ -273,3 +273,16 @@ model GoogleDevice {
 
   @@map("google_devices")
 }
+
+// Historial de canjes de Gift Cards
+model GiftCardRedeem {
+  id          String   @id @default(cuid())
+  code        String
+  service     String?
+  clientName  String?  @map("client_name")
+  expiryDate  String?  @map("expiry_date")
+  redeemedAt  DateTime @default(now()) @map("redeemed_at")
+  createdAt   DateTime @default(now())
+
+  @@map("gift_card_redeems")
+}

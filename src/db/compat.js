@@ -24,6 +24,7 @@ const collectionMap = {
   'apple_devices': 'appleDevice',
   'apple_updates': 'appleUpdate',
   'google_devices': 'googleDevice',
+  'gift_card_redeems': 'giftCardRedeem',
 };
 
 // Clase que simula un documento de Firestore
@@ -112,7 +113,8 @@ function processDataForUpdate(modelName, data) {
   
   // Campos que son DateTime en Prisma
   const dateFields = ['createdAt', 'updatedAt', 'lastVisit', 'startDateTime', 'endDateTime', 
-                      'confirmedAt', 'cancelledAt', 'sent24hAt', 'sent2hAt', 'expiresAt', 'usedAt', 'timestamp'];
+                      'confirmedAt', 'cancelledAt', 'sent24hAt', 'sent2hAt', 'expiresAt', 'usedAt', 
+                      'timestamp', 'redeemedAt', 'redeemed_at'];
   
   for (const field of dateFields) {
     if (processed[field] && typeof processed[field] === 'string') {
@@ -120,8 +122,29 @@ function processDataForUpdate(modelName, data) {
     }
   }
   
+  // Mapear campos con nombres diferentes (snake_case a camelCase)
+  if (processed.redeemed_at) {
+    processed.redeemedAt = processed.redeemed_at instanceof Date ? processed.redeemed_at : new Date(processed.redeemed_at);
+    delete processed.redeemed_at;
+  }
+  if (processed.client_name) {
+    processed.clientName = processed.client_name;
+    delete processed.client_name;
+  }
+  if (processed.expiry_date) {
+    processed.expiryDate = processed.expiry_date;
+    delete processed.expiry_date;
+  }
+  
   return processed;
 }
+
+// Mapeo de campos snake_case a camelCase
+const fieldMap = {
+  'redeemed_at': 'redeemedAt',
+  'client_name': 'clientName',
+  'expiry_date': 'expiryDate',
+};
 
 // Clase que simula una query de Firestore
 class Query {
@@ -136,34 +159,37 @@ class Query {
   where(field, op, value) {
     const newQuery = this._clone();
     
+    // Mapear nombre de campo si es necesario
+    const mappedField = fieldMap[field] || field;
+    
     // Campos que son DateTime en Prisma - convertir strings a Date
     const dateTimeFields = ['startDateTime', 'endDateTime', 'createdAt', 'updatedAt', 
                             'lastVisit', 'confirmedAt', 'cancelledAt', 'sent24hAt', 
-                            'sent2hAt', 'expiresAt', 'usedAt', 'timestamp'];
+                            'sent2hAt', 'expiresAt', 'usedAt', 'timestamp', 'redeemedAt'];
     
     let processedValue = value;
-    if (dateTimeFields.includes(field) && typeof value === 'string') {
+    if (dateTimeFields.includes(mappedField) && typeof value === 'string') {
       processedValue = new Date(value);
     }
     
     // Convertir operadores de Firestore a Prisma
     if (op === '==') {
-      newQuery._where[field] = processedValue;
+      newQuery._where[mappedField] = processedValue;
     } else if (op === '!=') {
-      newQuery._where[field] = { not: processedValue };
+      newQuery._where[mappedField] = { not: processedValue };
     } else if (op === '>') {
-      newQuery._where[field] = { gt: processedValue };
+      newQuery._where[mappedField] = { gt: processedValue };
     } else if (op === '>=') {
-      newQuery._where[field] = { gte: processedValue };
+      newQuery._where[mappedField] = { gte: processedValue };
     } else if (op === '<') {
-      newQuery._where[field] = { lt: processedValue };
+      newQuery._where[mappedField] = { lt: processedValue };
     } else if (op === '<=') {
-      newQuery._where[field] = { lte: processedValue };
+      newQuery._where[mappedField] = { lte: processedValue };
     } else if (op === 'in') {
-      newQuery._where[field] = { in: value };
+      newQuery._where[mappedField] = { in: value };
     } else if (op === 'array-contains') {
       // Para JSON arrays, esto es más complejo
-      newQuery._where[field] = { has: value };
+      newQuery._where[mappedField] = { has: value };
     }
     
     return newQuery;
@@ -171,7 +197,9 @@ class Query {
 
   orderBy(field, direction = 'asc') {
     const newQuery = this._clone();
-    newQuery._orderBy.push({ [field]: direction });
+    // Mapear nombre de campo si es necesario
+    const mappedField = fieldMap[field] || field;
+    newQuery._orderBy.push({ [mappedField]: direction });
     return newQuery;
   }
 

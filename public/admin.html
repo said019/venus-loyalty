@@ -2588,8 +2588,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <!-- Firebase removido - ahora usamos PostgreSQL -->
   <!-- Chart.js for Reports -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -7017,94 +7016,39 @@
     }
 
     // ===== FIREBASE REAL-TIME LISTENERS =====
-    let db = null;
-    let unsubscribeAppointments = null;
-    let unsubscribeRequests = null;
-    let unsubscribeNotifications = null;
+    // Sistema de polling para actualización de datos (reemplaza Firebase realtime)
+    let pollingInterval = null;
 
-    // Inicializar Firebase con configuración del servidor
+    // Inicializar sistema de polling (reemplaza Firebase)
     async function initFirebase() {
-      try {
-        const res = await fetch('/api/config/firebase', { credentials: 'include' });
-        const json = await res.json();
+      console.log('📊 Usando PostgreSQL - iniciando polling para actualizaciones');
+      startPolling();
+    }
 
-        if (json.success && json.config) {
-          firebase.initializeApp(json.config);
-          db = firebase.firestore();
-          console.log('🔥 Firebase inicializado correctamente');
-
-          // Iniciar listeners
-          setupRealtimeListeners();
-        } else {
-          console.warn('⚠️ No se pudo obtener configuración de Firebase, usando polling manual');
+    // Polling cada 30 segundos para detectar cambios
+    function startPolling() {
+      // Polling inicial
+      console.log('🔄 Sistema de polling iniciado (cada 30s)');
+      
+      pollingInterval = setInterval(() => {
+        const requestsTab = document.getElementById('tab-requests');
+        if (requestsTab && !requestsTab.classList.contains('hidden')) {
+          loadBookingRequests();
         }
-      } catch (error) {
-        console.error('❌ Error inicializando Firebase:', error);
-      }
+        
+        const overviewTab = document.getElementById('tab-overview');
+        if (overviewTab && !overviewTab.classList.contains('hidden')) {
+          loadTodayStats();
+        }
+      }, 30000); // 30 segundos
     }
 
-    // Configurar listeners en tiempo real
-    function setupRealtimeListeners() {
-      console.log('👂 Configurando listeners en tiempo real...');
-
-      // Listener para solicitudes de citas
-      unsubscribeRequests = db.collection('bookingRequests')
-        .orderBy('createdAt', 'desc')
-        .onSnapshot((snapshot) => {
-          console.log('🔔 Cambio detectado en solicitudes');
-          const requestsTab = document.getElementById('tab-requests');
-          if (requestsTab && !requestsTab.classList.contains('hidden')) {
-            loadBookingRequests();
-          }
-        }, (error) => {
-          console.error('❌ Error en listener de solicitudes:', error);
-        });
-
-      // Listener para citas (appointments)
-      const today = new Date();
-      const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-      const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-
-      unsubscribeAppointments = db.collection('appointments')
-        .where('date', '>=', startOfMonth.toISOString().split('T')[0])
-        .where('date', '<=', endOfMonth.toISOString().split('T')[0])
-        .onSnapshot((snapshot) => {
-          console.log('🔔 Cambio detectado en citas');
-          const appointmentsTab = document.getElementById('tab-appointments');
-          if (appointmentsTab && !appointmentsTab.classList.contains('hidden')) {
-            loadAppointments();
-            renderMonthlyCalendar();
-            loadMonthStats();
-          }
-
-          // También actualizar dashboard si está visible
-          const overviewTab = document.getElementById('tab-overview');
-          if (overviewTab && !overviewTab.classList.contains('hidden')) {
-            loadTodayStats();
-          }
-        }, (error) => {
-          console.error('❌ Error en listener de citas:', error);
-        });
-
-      // Listener para notificaciones
-      unsubscribeNotifications = db.collection('notifications')
-        .orderBy('createdAt', 'desc')
-        .limit(50)
-        .onSnapshot((snapshot) => {
-          console.log('🔔 Cambio detectado en notificaciones');
-          loadNotifications();
-        }, (error) => {
-          console.error('❌ Error en listener de notificaciones:', error);
-        });
-
-      console.log('✅ Listeners en tiempo real configurados');
-    }
-
-    // Limpiar listeners cuando sea necesario
+    // Limpiar polling cuando sea necesario
     function cleanupListeners() {
-      if (unsubscribeAppointments) unsubscribeAppointments();
-      if (unsubscribeRequests) unsubscribeRequests();
-      if (unsubscribeNotifications) unsubscribeNotifications();
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+        pollingInterval = null;
+      }
     }
 
     // Global instances
@@ -7570,17 +7514,17 @@
       const activityTitle = document.getElementById('activity-title');
 
       if (range === 'day') {
-        stampsLabel.textContent = 'Sellos hoy';
-        redeemsLabel.textContent = 'Canjes hoy';
-        activityTitle.textContent = '📈 Actividad hoy';
+        if (stampsLabel) stampsLabel.textContent = 'Sellos hoy';
+        if (redeemsLabel) redeemsLabel.textContent = 'Canjes hoy';
+        if (activityTitle) activityTitle.textContent = '📈 Actividad hoy';
       } else if (range === 'week') {
-        stampsLabel.textContent = 'Sellos esta semana';
-        redeemsLabel.textContent = 'Canjes esta semana';
-        activityTitle.textContent = '📈 Actividad reciente (7 días)';
+        if (stampsLabel) stampsLabel.textContent = 'Sellos esta semana';
+        if (redeemsLabel) redeemsLabel.textContent = 'Canjes esta semana';
+        if (activityTitle) activityTitle.textContent = '📈 Actividad reciente (7 días)';
       } else if (range === 'month') {
-        stampsLabel.textContent = 'Sellos este mes';
-        redeemsLabel.textContent = 'Canjes este mes';
-        activityTitle.textContent = '📈 Actividad mensual';
+        if (stampsLabel) stampsLabel.textContent = 'Sellos este mes';
+        if (redeemsLabel) redeemsLabel.textContent = 'Canjes este mes';
+        if (activityTitle) activityTitle.textContent = '📈 Actividad mensual';
       }
     }
 
