@@ -36,6 +36,14 @@ const reverseFieldMap = {
   'clientName': 'client_name',
   'expiryDate': 'expiry_date',
   'birthday': 'birthdate', // El frontend usa birthdate, Prisma usa birthday
+  // Apple Devices
+  'deviceId': 'device_id',
+  'pushToken': 'push_token',
+  'passTypeId': 'pass_type_id',
+  'serialNumber': 'serial_number',
+  // Google Devices
+  'cardId': 'card_id',
+  'objectId': 'object_id',
 };
 
 // Función para mapear datos de salida (Prisma -> formato legacy)
@@ -217,6 +225,18 @@ const fieldMap = {
   'expiry_date': 'expiryDate',
   'active': 'isActive',
   'birthdate': 'birthday', // El frontend usa birthdate, Prisma usa birthday
+  // Apple Devices
+  'device_id': 'deviceId',
+  'push_token': 'pushToken',
+  'pass_type_id': 'passTypeId',
+  'serial_number': 'serialNumber',
+  'registered_at': 'createdAt',
+  'last_updated': 'updatedAt',
+  // Apple Updates
+  'updated_at': 'updatedAt',
+  // Google Devices
+  'card_id': 'cardId',
+  'object_id': 'objectId',
 };
 
 // Clase que simula una query de Firestore
