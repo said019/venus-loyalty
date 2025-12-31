@@ -161,6 +161,12 @@ function processDataForUpdate(modelName, data) {
   delete processed.reminders; // Appointment no tiene este campo (era para Firebase)
   delete processed.cosmetologistEmail; // No existe en el modelo
   delete processed.entityId; // Notification no tiene este campo
+  delete processed.clientId; // En Prisma es cardId, no clientId
+  
+  // Mapear clientId a cardId si existe
+  if (data.clientId && !processed.cardId) {
+    processed.cardId = data.clientId;
+  }
   
   // Mapear campos con nombres diferentes (snake_case a camelCase)
   if (processed.redeemed_at) {
