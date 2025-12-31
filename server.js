@@ -192,7 +192,7 @@ async function fsUpdateCardStamps(cardId, stamps) {
 async function fsAddEvent(cardId, type, meta = {}) {
   // Normalizar tipo a minúsculas (Prisma espera 'stamp' o 'redeem')
   const normalizedType = type.toLowerCase();
-  
+
   try {
     await firestore.collection(COL_EVENTS).add({
       cardId,
@@ -1063,6 +1063,17 @@ app.post('/api/appointments', adminAuth, async (req, res) => {
       console.log(`[APPOINTMENT] 🆕 Nueva tarjeta creada: ${cardId}`);
     }
 
+    // Formatear startDateTime con timezone de México para consistencia con el scheduler
+    const formatToMexicoTZ = (date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      const seconds = String(date.getSeconds()).padStart(2, '0');
+      return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}-06:00`;
+    };
+
     // Crear documento de cita
     const appointmentData = {
       clientId: clientId,
@@ -1073,23 +1084,44 @@ app.post('/api/appointments', adminAuth, async (req, res) => {
       serviceName,
       date,
       time,
-      startDateTime: startDateTime.toISOString(),
-      endDateTime: endDateTime.toISOString(),
+      startDateTime: formatToMexicoTZ(startDateTime),
+      endDateTime: formatToMexicoTZ(endDateTime),
       durationMinutes: duration,
       status: 'scheduled',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      source: 'admin-panel'
+      source: 'admin-panel',
+      // ⭐ Flags para recordatorios WhatsApp automáticos
+      sendWhatsApp24h: sendWhatsApp24h !== false, // Por defecto true
+      sendWhatsApp2h: sendWhatsApp2h !== false,   // Por defecto true
+      reminders: {
+        send24h: sendWhatsApp24h !== false,
+        send2h: sendWhatsApp2h !== false
+      }
     };
 
     const docRef = await firestore.collection('appointments').add(appointmentData);
 
-    console.log('[APPOINTMENT] ✅ Cita creada y vinculada a tarjeta:', docRef.id, 'cardId:', cardId);
+    console.log('[APPOINTMENT] ✅ Cita creada y vinculada a tarjeta:', docRef.id, 'cardId:', cardId, {
+      sendWhatsApp24h: appointmentData.sendWhatsApp24h,
+      sendWhatsApp2h: appointmentData.sendWhatsApp2h
+    });
 
-    // TODO: Enviar recordatorios WhatsApp según configuración
-    // if (sendWhatsAppConfirmation) { ... }
-    // if (sendWhatsApp24h) { ... }
-    // if (sendWhatsApp2h) { ... }
+    // Enviar confirmación WhatsApp si está activado
+    if (sendWhatsAppConfirmation) {
+      try {
+        const { WhatsAppService } = await import('./src/services/whatsapp.js');
+        const appointment = { id: docRef.id, ...appointmentData };
+        const result = await WhatsAppService.sendConfirmation(appointment);
+        if (result.success) {
+          console.log('[APPOINTMENT] ✅ WhatsApp confirmación enviado:', result.messageSid);
+        } else {
+          console.log('[APPOINTMENT] ⚠️ WhatsApp confirmación falló:', result.error);
+        }
+      } catch (whatsappError) {
+        console.error('[APPOINTMENT] ❌ Error enviando WhatsApp:', whatsappError.message);
+      }
+    }
 
     res.json({
       success: true,
@@ -3819,7 +3851,7 @@ app.post("/api/admin/push-all", adminAuth, async (req, res) => {
     });
 
     await Promise.all(updates);
-    
+
     // ⭐ Registrar actualizaciones para Apple Wallet
     console.log(`[PUSH ALL] 📲 Registrando actualizaciones Apple...`);
     const appleUpdates = cardsSnap.docs.map(doc => {
@@ -3830,7 +3862,7 @@ app.post("/api/admin/push-all", adminAuth, async (req, res) => {
       });
     });
     await Promise.all(appleUpdates);
-    
+
     console.log(`[PUSH ALL] ✅ DB Actualizada. Verificando...`);
 
     // ⭐ VERIFICACIÓN DE SEGURIDAD
