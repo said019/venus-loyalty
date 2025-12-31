@@ -68,7 +68,7 @@ async function buscarCitaActiva(telefono) {
 
         let phone = telefono.replace(/\D/g, '');
 
-        // Si tiene 12 dígitos y empieza con 521, quitar el 1 (convertir a 52...)
+        // Si tiene 13 dígitos y empieza con 521, quitar el 1 (convertir a 52...)
         if (phone.length === 13 && phone.startsWith('521')) {
             phone = '52' + phone.substring(3);
         }
@@ -88,17 +88,27 @@ async function buscarCitaActiva(telefono) {
         margin.setHours(margin.getHours() - 2);
         const marginIso = margin.toISOString();
 
+        console.log(`📅 Buscando citas desde: ${marginIso}`);
+
+        // Buscar por teléfono exacto primero
         const snapshot = await firestore.collection('appointments')
             .where('clientPhone', '==', phone)
-            .where('status', 'in', ['scheduled', 'confirmed', 'rescheduling'])
             .where('startDateTime', '>=', marginIso)
-            .orderBy('startDateTime', 'asc')
-            .limit(1)
             .get();
 
-        if (!snapshot.empty) {
-            const doc = snapshot.docs[0];
-            return { id: doc.id, ...doc.data() };
+        console.log(`📦 Citas encontradas por teléfono exacto (${phone}): ${snapshot.size}`);
+
+        // Filtrar por status en código (más seguro que 'in' para compatibilidad)
+        const validStatuses = ['scheduled', 'confirmed', 'rescheduling'];
+        const filtered = snapshot.docs
+            .map(d => ({ id: d.id, ...d.data() }))
+            .filter(a => validStatuses.includes(a.status))
+            .sort((a, b) => new Date(a.startDateTime) - new Date(b.startDateTime));
+
+        console.log(`✅ Citas con status válido: ${filtered.length}`);
+        if (filtered.length > 0) {
+            console.log(`✅ Usando cita: ${filtered[0].id} - ${filtered[0].clientName} - ${filtered[0].serviceName}`);
+            return filtered[0];
         }
 
         // Búsqueda alternativa por últimos 10 dígitos (más robusta)
@@ -106,18 +116,17 @@ async function buscarCitaActiva(telefono) {
         console.log(`⚠️ No encontrado exacto. Buscando por terminación: ...${last10}`);
 
         const altSnapshot = await firestore.collection('appointments')
-            .where('status', 'in', ['scheduled', 'confirmed', 'rescheduling'])
             .where('startDateTime', '>=', marginIso)
-            .orderBy('startDateTime', 'asc')
-            .limit(50) // Aumentado límite por seguridad
             .get();
+
+        console.log(`📦 Citas totales desde ${marginIso}: ${altSnapshot.size}`);
 
         for (const doc of altSnapshot.docs) {
             const data = doc.data();
             const dbPhone = (data.clientPhone || '').replace(/\D/g, '');
 
-            if (dbPhone.endsWith(last10)) {
-                console.log(`✅ Encontrado por coincidencia parcial: ${doc.id}`);
+            if (dbPhone.endsWith(last10) && validStatuses.includes(data.status)) {
+                console.log(`✅ Encontrado por coincidencia parcial: ${doc.id} - Tel DB: ${dbPhone}`);
                 return { id: doc.id, ...data };
             }
         }
@@ -126,7 +135,7 @@ async function buscarCitaActiva(telefono) {
         return null;
 
     } catch (error) {
-        console.error('Error buscando cita:', error);
+        console.error('❌ Error buscando cita:', error);
         return null;
     }
 }

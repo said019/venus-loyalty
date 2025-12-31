@@ -141,19 +141,22 @@ export const AppointmentModel = {
 
     async getByDate(dateStr) {
         // dateStr YYYY-MM-DD
-        // Buscar rango del día con timezone de México
-        const start = `${dateStr}T00:00:00-06:00`;
-        const end = `${dateStr}T23:59:59-06:00`;
+        console.log(`📅 [getByDate] Buscando citas para fecha: ${dateStr}`);
 
+        // Buscar por campo 'date' directamente (más confiable que comparar startDateTime con timezone)
         const snap = await firestore.collection(COL_APPOINTMENTS)
-            .where('startDateTime', '>=', start)
-            .where('startDateTime', '<=', end)
+            .where('date', '==', dateStr)
             .get();
 
+        console.log(`📦 [getByDate] Encontradas ${snap.size} citas para ${dateStr}`);
+
         // Filtrar cancelled en código para evitar índice compuesto
-        return snap.docs
+        const results = snap.docs
             .map(d => ({ id: d.id, ...d.data() }))
             .filter(appt => appt.status !== 'cancelled');
+
+        console.log(`✅ [getByDate] Retornando ${results.length} citas (excluidas canceladas)`);
+        return results;
     },
 
     async cancel(id) {
