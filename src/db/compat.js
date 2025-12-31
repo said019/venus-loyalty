@@ -155,6 +155,11 @@ function processDataForUpdate(modelName, data) {
     delete processed.createdAt;
   }
   
+  // Mapear clientId a cardId ANTES de eliminar clientId
+  if (processed.clientId && !processed.cardId) {
+    processed.cardId = processed.clientId;
+  }
+  
   // Eliminar campos que no existen en los modelos de Prisma
   delete processed.notes; // Card no tiene campo notes
   delete processed.favoriteServices; // Card no tiene este campo
@@ -162,11 +167,6 @@ function processDataForUpdate(modelName, data) {
   delete processed.cosmetologistEmail; // No existe en el modelo
   delete processed.entityId; // Notification no tiene este campo
   delete processed.clientId; // En Prisma es cardId, no clientId
-  
-  // Mapear clientId a cardId si existe
-  if (data.clientId && !processed.cardId) {
-    processed.cardId = data.clientId;
-  }
   
   // Mapear campos con nombres diferentes (snake_case a camelCase)
   if (processed.redeemed_at) {
