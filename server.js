@@ -3759,6 +3759,13 @@ app.post("/api/admin/push-one", adminAuth, async (req, res) => {
       updatedAt: new Date().toISOString()
     }, { merge: true });
 
+    // ⭐ Registrar actualización para Apple Wallet (upsert por serialNumber)
+    const updateId = `update_${cardId}_${Date.now()}`;
+    await firestore.collection(COL_UPDATES).doc(updateId).set({
+      serialNumber: cardId,
+      updatedAt: new Date().toISOString()
+    });
+
     console.log(`[PUSH ONE] 💾 Guardado. Esperando propagación...`);
 
     // ⭐ PAUSA CRÍTICA para que Firestore replique antes de que el iPhone lea
@@ -3803,14 +3810,27 @@ app.post("/api/admin/push-all", adminAuth, async (req, res) => {
     console.log(`[PUSH ALL] 📝 Escribiendo en ${cardsSnap.size} tarjetas...`);
 
     // Convertimos a array de promesas para Promise.all (paralelo pero individual)
+    const now = new Date().toISOString();
     const updates = cardsSnap.docs.map(doc => {
       return doc.ref.set({
         latestMessage: message,
-        updatedAt: new Date().toISOString()
+        updatedAt: now
       }, { merge: true });
     });
 
     await Promise.all(updates);
+    
+    // ⭐ Registrar actualizaciones para Apple Wallet
+    console.log(`[PUSH ALL] 📲 Registrando actualizaciones Apple...`);
+    const appleUpdates = cardsSnap.docs.map(doc => {
+      const updateId = `update_${doc.id}_${Date.now()}`;
+      return firestore.collection(COL_UPDATES).doc(updateId).set({
+        serialNumber: doc.id,
+        updatedAt: now
+      });
+    });
+    await Promise.all(appleUpdates);
+    
     console.log(`[PUSH ALL] ✅ DB Actualizada. Verificando...`);
 
     // ⭐ VERIFICACIÓN DE SEGURIDAD
