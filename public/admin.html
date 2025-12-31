@@ -7778,14 +7778,24 @@
     }
 
     function renderChart(labels, data) {
-      const ctx = document.getElementById('activity-chart');
+      const canvas = document.getElementById('activity-chart');
+      if (!canvas) return;
 
-      // Destruir gráfica anterior si existe
+      // Destruir TODOS los charts previos
       if (activityChart) {
         activityChart.destroy();
+        activityChart = null;
+      }
+      if (window.myActivityChart) {
+        window.myActivityChart.destroy();
+        window.myActivityChart = null;
+      }
+      const existingChart = Chart.getChart(canvas);
+      if (existingChart) {
+        existingChart.destroy();
       }
 
-      activityChart = new Chart(ctx, {
+      activityChart = new Chart(canvas, {
         type: 'line',
         data: {
           labels: labels,
@@ -7852,6 +7862,8 @@
       ];
 
       const tbody = document.getElementById('top-clients');
+      if (!tbody) return; // Verificación null
+      
       tbody.innerHTML = clients.map(c => `
         <tr>
           <td>${c.name}</td>
@@ -7877,6 +7889,8 @@
         const data = await response.json();
 
         const tbody = document.getElementById('top-clients');
+        if (!tbody) return; // Verificación null
+        
         if (!data.clients || data.clients.length === 0) {
           tbody.innerHTML = `<tr><td colspan="3" style="text-align:center;padding:12px;" class="muted">No hay datos</td></tr>`;
           return;
@@ -7914,14 +7928,24 @@
         }
 
         const data = await response.json();
-        const ctx = document.getElementById('activity-chart');
+        const canvas = document.getElementById('activity-chart');
+        if (!canvas) return;
 
-        // Destruir gráfica anterior si existe
+        // Destruir TODOS los charts previos que usen este canvas
         if (activityChart) {
           activityChart.destroy();
+          activityChart = null;
+        }
+        if (window.myActivityChart) {
+          window.myActivityChart.destroy();
+          window.myActivityChart = null;
+        }
+        const existingChart = Chart.getChart(canvas);
+        if (existingChart) {
+          existingChart.destroy();
         }
 
-        activityChart = new Chart(ctx, {
+        activityChart = new Chart(canvas, {
           type: 'line',
           data: {
             labels: data.labels || ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
@@ -13833,14 +13857,24 @@ Gracias por tu preferencia ✨`;
         if (!json.success) return;
 
         const data = json.data;
-        const canvas = document.getElementById('dashboard-activity-chart');
+        const canvas = document.getElementById('activity-chart');
         if (!canvas) return;
         
         const ctx = canvas.getContext('2d');
 
-        // Destruir chart previo si existe
+        // Destruir TODOS los charts previos que usen este canvas
         if (window.myActivityChart) {
           window.myActivityChart.destroy();
+          window.myActivityChart = null;
+        }
+        if (window.activityChart) {
+          window.activityChart.destroy();
+          window.activityChart = null;
+        }
+        // También destruir por ID del chart
+        const existingChart = Chart.getChart(canvas);
+        if (existingChart) {
+          existingChart.destroy();
         }
 
         window.myActivityChart = new Chart(ctx, {
