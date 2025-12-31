@@ -2,7 +2,7 @@ import { AppointmentModel, ClientModel, ServiceModel } from '../models/index.js'
 import { CalendarService } from '../services/calendar.js';
 import { WhatsAppService } from '../services/whatsapp.js';
 import { config } from '../config/config.js';
-import { firestore } from '../../lib/firebase.js';
+import { firestore } from '../db/compat.js';
 import axios from 'axios';
 
 // Helper para convertir fecha a ISO con offset de México (-06:00)

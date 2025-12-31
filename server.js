@@ -10,7 +10,14 @@ import crypto from "crypto";
 import { sendGoogleMessage } from "./lib/google.js"
 import nodemailer from "nodemailer";
 import fs from "fs";
-import { firestore } from "./lib/firebase.js";
+
+// Database - Prisma con capa de compatibilidad
+import { prisma } from './src/db/index.js';
+import { firestore } from './src/db/compat.js';
+
+// Firebase legacy (solo para migración - remover después)
+// import { firestore } from "./lib/firebase.js";
+
 import {
   sendMassPushNotification,
   sendTestPushNotification,

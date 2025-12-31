@@ -1,4 +1,4 @@
-import { firestore } from '../../lib/firebase.js';
+import { firestore } from '../db/compat.js';
 
 const COL_CLIENTS = 'clients';
 const COL_SERVICES = 'services';

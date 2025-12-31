@@ -1,0 +1,223 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Tarjetas de lealtad
+model Card {
+  id          String    @id @default(cuid())
+  name        String
+  phone       String    @unique
+  email       String?
+  birthday    String?
+  stamps      Int       @default(0)
+  max         Int       @default(8)
+  cycles      Int       @default(0)
+  status      String    @default("active")
+  lastVisit   DateTime?
+  source      String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relaciones
+  appointments Appointment[]
+  events       Event[]
+
+  @@map("cards")
+}
+
+// Servicios
+model Service {
+  id              String   @id @default(cuid())
+  name            String
+  description     String?
+  price           Decimal  @db.Decimal(10, 2)
+  durationMinutes Int      @default(60)
+  category        String?
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relaciones
+  appointments Appointment[]
+
+  @@map("services")
+}
+
+// Citas
+model Appointment {
+  id                     String    @id @default(cuid())
+  clientName             String
+  clientPhone            String
+  serviceName            String
+  date                   String
+  time                   String
+  startDateTime          DateTime
+  endDateTime            DateTime
+  durationMinutes        Int       @default(60)
+  status                 String    @default("scheduled") // scheduled, confirmed, completed, cancelled, rescheduling
+  location               String?
+  
+  // Pago
+  totalPaid              Decimal?  @db.Decimal(10, 2)
+  paymentMethod          String?   // efectivo, tarjeta, transferencia
+  discount               Decimal?  @db.Decimal(10, 2)
+  
+  // Google Calendar
+  googleCalendarEventId  String?
+  googleCalendarEventId2 String?
+  
+  // WhatsApp reminders
+  sendWhatsApp24h        Boolean   @default(true)
+  sendWhatsApp2h         Boolean   @default(true)
+  sent24hAt              DateTime?
+  sent2hAt               DateTime?
+  
+  // Confirmación
+  confirmedAt            DateTime?
+  cancelledAt            DateTime?
+  cancelReason           String?
+  
+  // Productos vendidos (JSON)
+  productsSold           Json?
+  
+  source                 String?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  // Relaciones
+  cardId    String?
+  card      Card?    @relation(fields: [cardId], references: [id])
+  serviceId String?
+  service   Service? @relation(fields: [serviceId], references: [id])
+
+  @@map("appointments")
+}
+
+// Eventos (sellos, canjes)
+model Event {
+  id        String   @id @default(cuid())
+  type      String   // stamp, redeem
+  cardId    String
+  card      Card     @relation(fields: [cardId], references: [id])
+  staffId   String?
+  staffName String?
+  note      String?
+  timestamp DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  @@map("events")
+}
+
+// Productos
+model Product {
+  id           String   @id @default(cuid())
+  name         String
+  category     String?
+  presentation String?
+  price        Decimal  @db.Decimal(10, 2)
+  cost         Decimal? @db.Decimal(10, 2)
+  stock        Int      @default(0)
+  minStock     Int      @default(5)
+  description  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("products")
+}
+
+// Gastos
+model Expense {
+  id          String   @id @default(cuid())
+  date        String
+  category    String   // productos, renta, servicios, salarios, marketing, equipo, mantenimiento, transporte, otros
+  description String
+  amount      Decimal  @db.Decimal(10, 2)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("expenses")
+}
+
+// Tarjetas de regalo
+model GiftCard {
+  id             String    @id @default(cuid())
+  code           String    @unique
+  amount         Decimal   @db.Decimal(10, 2)
+  remainingAmount Decimal  @db.Decimal(10, 2)
+  status         String    @default("pending") // pending, active, used, expired
+  purchaserName  String?
+  purchaserPhone String?
+  recipientName  String?
+  recipientPhone String?
+  message        String?
+  expiresAt      DateTime?
+  usedAt         DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@map("giftcards")
+}
+
+// Notificaciones
+model Notification {
+  id        String   @id @default(cuid())
+  type      String   // cumpleaños, premio, stock, giftcard, cita, alerta
+  icon      String?
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  data      Json?
+  createdAt DateTime @default(now())
+
+  @@map("notifications")
+}
+
+// Solicitudes de reserva (desde página pública)
+model BookingRequest {
+  id          String   @id @default(cuid())
+  name        String
+  phone       String
+  serviceId   String?
+  serviceName String
+  date        String
+  time        String
+  status      String   @default("pending") // pending, approved, rejected
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("booking_requests")
+}
+
+// Configuración
+model Setting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("settings")
+}
+
+// Ventas (historial)
+model Sale {
+  id            String   @id @default(cuid())
+  appointmentId String?
+  clientName    String?
+  clientPhone   String?
+  serviceName   String?
+  products      Json?
+  subtotal      Decimal  @db.Decimal(10, 2)
+  discount      Decimal? @db.Decimal(10, 2)
+  total         Decimal  @db.Decimal(10, 2)
+  paymentMethod String
+  date          DateTime
+  createdAt     DateTime @default(now())
+
+  @@map("sales")
+}
