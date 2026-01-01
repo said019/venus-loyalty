@@ -3721,8 +3721,8 @@
           <button class="btn ghost" onclick="cargarReportesMes()">
             <i class="fas fa-sync"></i> Actualizar
           </button>
-          <button class="btn primary" onclick="exportarVentas()">
-            <i class="fas fa-download"></i> Exportar CSV
+          <button class="btn primary" onclick="exportarVentasExcel()">
+            <i class="fas fa-file-excel"></i> Exportar Excel
           </button>
         </div>
       </div>
@@ -15874,6 +15874,205 @@ Gracias por tu preferencia ✨`;
         alert('❌ Error al exportar: ' + error.message);
       }
     }
+
+    // ===== EXPORTAR A EXCEL FORMATO VENTAS VENUS =====
+    async function exportarVentasExcel() {
+      if (reportData.length === 0) {
+        alert('⚠️ No hay datos para exportar. Primero selecciona un mes.');
+        return;
+      }
+
+      try {
+        // Cargar librería SheetJS si no está cargada
+        if (typeof XLSX === 'undefined') {
+          await new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js';
+            script.onload = resolve;
+            script.onerror = reject;
+            document.head.appendChild(script);
+          });
+        }
+
+        const { year, month } = currentReportMonth;
+        const mesNombre = MESES[month];
+        const sheetName = `${mesNombre} ${year}`;
+
+        // Calcular totales
+        let totalIngresos = 0;
+        let totalEgresos = 0;
+        const ingresosPorServicio = {};
+
+        reportData.forEach(v => {
+          const amount = parseFloat(v.totalPaid) || 0;
+          totalIngresos += amount;
+          const serviceName = v.serviceName || 'Otro';
+          if (!ingresosPorServicio[serviceName]) ingresosPorServicio[serviceName] = 0;
+          ingresosPorServicio[serviceName] += amount;
+        });
+
+        // Obtener gastos del mes
+        const expenseElements = document.querySelectorAll('#expenses-tbody tr');
+        const gastos = [];
+        expenseElements.forEach(row => {
+          const cells = row.querySelectorAll('td');
+          if (cells.length >= 4) {
+            const fecha = cells[0]?.textContent?.trim() || '';
+            const concepto = cells[2]?.textContent?.trim() || '';
+            const monto = parseFloat(cells[3]?.textContent?.replace('$', '').replace(',', '')) || 0;
+            if (monto > 0) {
+              totalEgresos += monto;
+              gastos.push({ fecha, concepto, monto });
+            }
+          }
+        });
+
+        // Crear hoja de trabajo con el formato VENTAS VENUS
+        const wsData = [];
+
+        // Filas vacías iniciales (como en el archivo original)
+        wsData.push([]);
+        wsData.push([]);
+        wsData.push([]);
+
+        // Fila 4: Mes y encabezado de servicios
+        wsData.push(['Mes:', mesNombre, null, 'Ingresos por servicios']);
+
+        // Filas 5-11: Resumen y servicios
+        const serviciosOrdenados = Object.entries(ingresosPorServicio).sort((a, b) => b[1] - a[1]);
+        const serviciosPadded = [...serviciosOrdenados];
+        while (serviciosPadded.length < 8) serviciosPadded.push(['', 0]);
+
+        wsData.push([null, null, null, serviciosPadded[0]?.[0] || '', serviciosPadded[0]?.[1] || 0]);
+        wsData.push(['Resumen Financiero', null, null, serviciosPadded[1]?.[0] || '', serviciosPadded[1]?.[1] || 0]);
+        wsData.push(['TOTAL Ingresos', totalIngresos, null, serviciosPadded[2]?.[0] || '', serviciosPadded[2]?.[1] || 0]);
+        wsData.push(['TOTAL Egresos', totalEgresos, null, serviciosPadded[3]?.[0] || '', serviciosPadded[3]?.[1] || 0]);
+        wsData.push([null, null, null, serviciosPadded[4]?.[0] || '', serviciosPadded[4]?.[1] || 0]);
+        wsData.push([null, totalIngresos - totalEgresos, null, serviciosPadded[5]?.[0] || '', serviciosPadded[5]?.[1] || 0]);
+        wsData.push([null, null, null, serviciosPadded[6]?.[0] || '', serviciosPadded[6]?.[1] || 0]);
+        wsData.push([null, null, null, serviciosPadded[7]?.[0] || '', serviciosPadded[7]?.[1] || 0]);
+
+        // Fila vacía
+        wsData.push([]);
+
+        // Fila 14: Encabezados INGRESOS y EGRESOS
+        wsData.push([
+          'INGRESOS', null, null, null, null, null, null, null, null, null, null, null, null,
+          'EGRESOS'
+        ]);
+
+        // Fila 15: Cabeceras de columnas
+        wsData.push([
+          'Fecha de pago', 'Cliente', 'Servicio', 'Tipo', 'Forma de pago', 'Cuenta Bancaria',
+          'Subtotal', 'IVA', 'Descuento', 'Total', 'Comentarios', null, null,
+          'Fecha de pago', 'Concepto', 'Forma de pago', 'Cuenta Bancaria', 'Subtotal', 'IVA', 'Total', 'Comentarios'
+        ]);
+
+        // Filas de datos: INGRESOS y EGRESOS lado a lado
+        const maxRows = Math.max(reportData.length, gastos.length);
+
+        for (let i = 0; i < maxRows; i++) {
+          const venta = reportData[i];
+          const gasto = gastos[i];
+
+          const row = [];
+
+          // Datos de INGRESOS
+          if (venta) {
+            const fecha = new Date(venta.paidAt || venta.startDateTime);
+            const subtotal = parseFloat(venta.serviceAmount || venta.totalPaid) || 0;
+            const iva = 0;
+            const descuento = parseFloat(venta.discountAmount) || 0;
+            const total = parseFloat(venta.totalPaid) || 0;
+            const tipo = (venta.productsSold?.length > 0) ? 'PRODUCTO' : null;
+            const formaPago = (venta.paymentMethod || '').charAt(0).toUpperCase() + (venta.paymentMethod || '').slice(1);
+            const cuentaBancaria = venta.paymentMethod === 'transferencia' || venta.paymentMethod === 'tarjeta'
+              ? 'BBVA Alo' : 'Caja';
+
+            row.push(
+              fecha,
+              venta.clientName || '',
+              venta.serviceName || '',
+              tipo,
+              formaPago,
+              cuentaBancaria,
+              subtotal > 0 ? subtotal : null,
+              iva > 0 ? iva : null,
+              descuento > 0 ? descuento : null,
+              total,
+              null
+            );
+          } else {
+            row.push(null, null, null, null, null, null, null, null, null, null, null);
+          }
+
+          // Separador
+          row.push(null, null);
+
+          // Datos de EGRESOS
+          if (gasto) {
+            row.push(
+              gasto.fecha,
+              gasto.concepto,
+              'Efectivo',
+              'Caja',
+              gasto.monto,
+              0,
+              gasto.monto,
+              null
+            );
+          } else {
+            row.push(null, null, null, null, null, null, null, null);
+          }
+
+          wsData.push(row);
+        }
+
+        // Crear workbook y worksheet
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+        // Configurar anchos de columna
+        ws['!cols'] = [
+          { wch: 14 }, // Fecha
+          { wch: 25 }, // Cliente
+          { wch: 22 }, // Servicio
+          { wch: 12 }, // Tipo
+          { wch: 14 }, // Forma de pago
+          { wch: 14 }, // Cuenta Bancaria
+          { wch: 12 }, // Subtotal
+          { wch: 8 },  // IVA
+          { wch: 10 }, // Descuento
+          { wch: 12 }, // Total
+          { wch: 15 }, // Comentarios
+          { wch: 3 },  // Separador
+          { wch: 3 },  // Separador
+          { wch: 14 }, // Fecha Egreso
+          { wch: 20 }, // Concepto
+          { wch: 14 }, // Forma pago
+          { wch: 14 }, // Cuenta
+          { wch: 12 }, // Subtotal
+          { wch: 8 },  // IVA
+          { wch: 12 }, // Total
+          { wch: 15 }  // Comentarios
+        ];
+
+        XLSX.utils.book_append_sheet(wb, ws, sheetName);
+
+        // Generar archivo
+        const fileName = `VENTAS VENUS - ${mesNombre} ${year}.xlsx`;
+        XLSX.writeFile(wb, fileName);
+
+        console.log('[REPORTS] Excel exportado correctamente:', fileName);
+        alert('✅ Archivo Excel generado: ' + fileName);
+
+      } catch (error) {
+        console.error('[REPORTS] Error exportando Excel:', error);
+        alert('❌ Error al exportar: ' + error.message);
+      }
+    }
+
+    window.exportarVentasExcel = exportarVentasExcel;
 
     // ===== NUEVAS FUNCIONES PARA REPORTES ESTILO EXCEL =====
 
