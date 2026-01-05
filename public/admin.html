@@ -2858,12 +2858,12 @@
             <div class="card-body" style="padding:16px;">
               <div class="wallets-grid">
                 <div class="wallet-card">
-                  <div class="wallet-card-icon">🍎</div>
+                  <div class="wallet-card-icon"><i class="fab fa-apple"></i></div>
                   <div class="wallet-card-value" id="wallet-apple">0</div>
                   <div class="wallet-card-label">Apple Wallet</div>
                 </div>
                 <div class="wallet-card">
-                  <div class="wallet-card-icon">🤖</div>
+                  <div class="wallet-card-icon"><i class="fab fa-google"></i></div>
                   <div class="wallet-card-value" id="wallet-google">0</div>
                   <div class="wallet-card-label">Google Wallet</div>
                 </div>
@@ -3735,42 +3735,49 @@
       </div>
 
       <!-- Filtro de Fechas Personalizado -->
-      <div class="card" style="padding:16px;margin-bottom:16px;background:linear-gradient(135deg, rgba(140,150,104,0.1) 0%, rgba(140,150,104,0.05) 100%);border:1px solid rgba(140,150,104,0.2);">
+      <div class="card"
+        style="padding:16px;margin-bottom:16px;background:linear-gradient(135deg, rgba(140,150,104,0.1) 0%, rgba(140,150,104,0.05) 100%);border:1px solid rgba(140,150,104,0.2);">
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
           <div style="display:flex;align-items:center;gap:8px;">
             <i class="fas fa-filter" style="color:var(--venus);"></i>
             <span style="font-weight:600;font-size:14px;">Filtrar por fechas:</span>
           </div>
-          
+
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
             <div style="display:flex;align-items:center;gap:6px;">
               <label style="font-size:12px;color:var(--muted);">Desde:</label>
-              <input type="date" id="report-date-from" class="form-control" style="padding:8px 12px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:13px;">
+              <input type="date" id="report-date-from" class="form-control"
+                style="padding:8px 12px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:13px;">
             </div>
-            
+
             <div style="display:flex;align-items:center;gap:6px;">
               <label style="font-size:12px;color:var(--muted);">Hasta:</label>
-              <input type="date" id="report-date-to" class="form-control" style="padding:8px 12px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:13px;">
+              <input type="date" id="report-date-to" class="form-control"
+                style="padding:8px 12px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:13px;">
             </div>
-            
+
             <button class="btn primary" onclick="filtrarReportePorFechas()" style="padding:8px 16px;font-size:13px;">
               <i class="fas fa-search"></i> Filtrar
             </button>
-            
+
             <button class="btn ghost" onclick="limpiarFiltroFechas()" style="padding:8px 12px;font-size:13px;">
               <i class="fas fa-times"></i> Limpiar
             </button>
           </div>
-          
+
           <!-- Atajos rápidos -->
           <div style="display:flex;gap:6px;margin-left:auto;">
-            <button class="btn ghost small" onclick="filtroRapido('hoy')" style="padding:6px 10px;font-size:11px;">Hoy</button>
-            <button class="btn ghost small" onclick="filtroRapido('semana')" style="padding:6px 10px;font-size:11px;">Esta semana</button>
-            <button class="btn ghost small" onclick="filtroRapido('mes')" style="padding:6px 10px;font-size:11px;">Este mes</button>
+            <button class="btn ghost small" onclick="filtroRapido('hoy')"
+              style="padding:6px 10px;font-size:11px;">Hoy</button>
+            <button class="btn ghost small" onclick="filtroRapido('semana')"
+              style="padding:6px 10px;font-size:11px;">Esta semana</button>
+            <button class="btn ghost small" onclick="filtroRapido('mes')" style="padding:6px 10px;font-size:11px;">Este
+              mes</button>
           </div>
         </div>
-        
-        <div id="filter-active-label" style="display:none;margin-top:10px;padding:8px 12px;background:rgba(140,150,104,0.15);border-radius:8px;font-size:12px;color:var(--venus);">
+
+        <div id="filter-active-label"
+          style="display:none;margin-top:10px;padding:8px 12px;background:rgba(140,150,104,0.15);border-radius:8px;font-size:12px;color:var(--venus);">
           <i class="fas fa-info-circle"></i> <span id="filter-range-text"></span>
         </div>
       </div>
@@ -7029,13 +7036,13 @@
     function startPolling() {
       // Polling inicial
       console.log('🔄 Sistema de polling iniciado (cada 30s)');
-      
+
       pollingInterval = setInterval(() => {
         const requestsTab = document.getElementById('tab-requests');
         if (requestsTab && !requestsTab.classList.contains('hidden')) {
           loadBookingRequests();
         }
-        
+
         const overviewTab = document.getElementById('tab-overview');
         if (overviewTab && !overviewTab.classList.contains('hidden')) {
           loadTodayStats();
@@ -7618,8 +7625,8 @@
       } catch (error) {
         console.error('Error cargando KPIs avanzados:', error);
         // Valores por defecto en caso de error (con verificación null)
-        const els = ['kpi-new-clients', 'kpi-active-clients', 'kpi-inactive-clients', 
-                     'kpi-avg-last-visit', 'kpi-cycles-completed', 'kpi-return-rate'];
+        const els = ['kpi-new-clients', 'kpi-active-clients', 'kpi-inactive-clients',
+          'kpi-avg-last-visit', 'kpi-cycles-completed', 'kpi-return-rate'];
         els.forEach(id => {
           const el = document.getElementById(id);
           if (el) el.textContent = '—';
@@ -7863,7 +7870,7 @@
 
       const tbody = document.getElementById('top-clients');
       if (!tbody) return; // Verificación null
-      
+
       tbody.innerHTML = clients.map(c => `
         <tr>
           <td>${c.name}</td>
@@ -7890,7 +7897,7 @@
 
         const tbody = document.getElementById('top-clients');
         if (!tbody) return; // Verificación null
-        
+
         if (!data.clients || data.clients.length === 0) {
           tbody.innerHTML = `<tr><td colspan="3" style="text-align:center;padding:12px;" class="muted">No hay datos</td></tr>`;
           return;
@@ -11360,37 +11367,37 @@ Gracias por tu preferencia ✨`;
     });
 
     // Función global para abrir modal de nueva cita (usada por quick-action y otros)
-    window.openNewAppointmentModal = function() {
+    window.openNewAppointmentModal = function () {
       loadServices();
       loadClients();
       generateHourMinuteOptions();
-      
+
       // Establecer fecha de hoy por defecto
       const today = new Date();
       const dateStr = today.toISOString().split('T')[0];
       const dateInput = document.getElementById('new-appt-date');
       if (dateInput) dateInput.value = dateStr;
-      
+
       // Limpiar campos
       const clientInput = document.getElementById('new-appt-client-select');
       const phoneInput = document.getElementById('new-appt-phone');
       const serviceInput = document.getElementById('new-appt-service');
       const priceInput = document.getElementById('new-appt-price');
-      
+
       if (clientInput) clientInput.value = '';
       if (phoneInput) phoneInput.value = '';
       if (serviceInput) serviceInput.value = '';
       if (priceInput) priceInput.value = '';
-      
+
       // Limpiar historial
       const historyPanelEl = document.getElementById('client-history-panel');
       const historyContentEl = document.getElementById('history-content');
       const historyHeaderEl = document.getElementById('toggle-history');
-      
+
       if (historyPanelEl) historyPanelEl.classList.add('hidden');
       if (historyContentEl) historyContentEl.style.display = 'none';
       if (historyHeaderEl) historyHeaderEl.classList.remove('expanded');
-      
+
       newApptDialog.showModal();
     };
 
@@ -13859,7 +13866,7 @@ Gracias por tu preferencia ✨`;
         const data = json.data;
         const canvas = document.getElementById('activity-chart');
         if (!canvas) return;
-        
+
         const ctx = canvas.getContext('2d');
 
         // Destruir TODOS los charts previos que usen este canvas
@@ -16381,23 +16388,23 @@ Gracias por tu preferencia ✨`;
     function filtrarReportePorFechas() {
       const fromInput = document.getElementById('report-date-from');
       const toInput = document.getElementById('report-date-to');
-      
+
       if (!fromInput.value || !toInput.value) {
         alert('Por favor selecciona ambas fechas');
         return;
       }
-      
+
       const from = fromInput.value;
       const to = toInput.value;
-      
+
       if (from > to) {
         alert('La fecha "Desde" no puede ser mayor que "Hasta"');
         return;
       }
-      
+
       customDateFilter = { from, to };
       cargarReportePorRango(from, to);
-      
+
       // Mostrar label de filtro activo
       const label = document.getElementById('filter-active-label');
       const text = document.getElementById('filter-range-text');
@@ -16415,7 +16422,7 @@ Gracias por tu preferencia ✨`;
       document.getElementById('report-date-to').value = '';
       document.getElementById('filter-active-label').style.display = 'none';
       customDateFilter = { from: null, to: null };
-      
+
       // Volver al mes actual
       cargarReportesMes();
       loadExpenses();
@@ -16424,7 +16431,7 @@ Gracias por tu preferencia ✨`;
     function filtroRapido(tipo) {
       const now = new Date();
       let from, to;
-      
+
       if (tipo === 'hoy') {
         from = to = now.toISOString().split('T')[0];
       } else if (tipo === 'semana') {
@@ -16437,7 +16444,7 @@ Gracias por tu preferencia ✨`;
         from = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
         to = now.toISOString().split('T')[0];
       }
-      
+
       document.getElementById('report-date-from').value = from;
       document.getElementById('report-date-to').value = to;
       filtrarReportePorFechas();
@@ -16561,7 +16568,7 @@ Gracias por tu preferencia ✨`;
       try {
         // Usar el mes seleccionado del reporte (currentReportMonth) en lugar del mes actual
         let year, month;
-        
+
         if (typeof currentReportMonth !== 'undefined' && currentReportMonth.year && currentReportMonth.month) {
           year = currentReportMonth.year;
           month = String(currentReportMonth.month).padStart(2, '0');
@@ -16571,7 +16578,7 @@ Gracias por tu preferencia ✨`;
           year = now.getFullYear();
           month = String(now.getMonth() + 1).padStart(2, '0');
         }
-        
+
         const firstDay = `${year}-${month}-01`;
         const lastDay = new Date(year, parseInt(month), 0).getDate();
         const lastDayStr = `${year}-${month}-${String(lastDay).padStart(2, '0')}`;
