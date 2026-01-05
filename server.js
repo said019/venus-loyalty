@@ -249,23 +249,37 @@ async function canStamp(cardId) {
 }
 
 async function fsDeleteCard(cardId) {
-  const ref = firestore.collection(COL_CARDS).doc(cardId);
-  const snap = await ref.get();
-  if (!snap.exists) return false;
+  try {
+    // 1. Eliminar todos los eventos asociados a la tarjeta
+    await prisma.event.deleteMany({
+      where: { cardId: cardId }
+    });
+    console.log(`[DELETE CARD] Eventos eliminados para ${cardId}`);
 
-  await ref.delete();
+    // 2. Desasociar citas (poner cardId en null en lugar de eliminar)
+    await prisma.appointment.updateMany({
+      where: { cardId: cardId },
+      data: { cardId: null }
+    });
+    console.log(`[DELETE CARD] Citas desasociadas para ${cardId}`);
 
-  const evSnap = await firestore
-    .collection(COL_EVENTS)
-    .where("cardId", "==", cardId)
-    .get();
+    // 3. Eliminar la tarjeta
+    const deleted = await prisma.card.delete({
+      where: { id: cardId }
+    });
 
-  if (!evSnap.empty) {
-    const batch = firestore.batch();
-    evSnap.forEach((doc) => batch.delete(doc.ref));
-    await batch.commit();
+    console.log(`[DELETE CARD] ✅ Tarjeta ${cardId} eliminada exitosamente`);
+    return true;
+  } catch (error) {
+    console.error(`[DELETE CARD] Error eliminando ${cardId}:`, error.message);
+
+    // Si la tarjeta no existe, retornar false
+    if (error.code === 'P2025') {
+      return false;
+    }
+
+    throw error;
   }
-  return true;
 }
 
 // ---------- LISTADO / MÉTRICAS ----------
