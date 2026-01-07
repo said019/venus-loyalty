@@ -14,7 +14,7 @@ import fs from "fs";
 // Database - Prisma con repositorios
 import { prisma } from './src/db/index.js';
 import { firestore } from './src/db/compat.js';
-import { CardsRepo, AppointmentsRepo, ServicesRepo } from './src/db/repositories.js';
+import { CardsRepo, AppointmentsRepo, ServicesRepo, ProductsRepo, SalesRepo, NotificationsRepo } from './src/db/repositories.js';
 
 // Firebase legacy (solo para migración - remover después)
 // import { firestore } from "./lib/firebase.js";
@@ -856,10 +856,10 @@ app.post('/api/appointments/:id/payment', adminAuth, async (req, res) => {
       productsSold
     } = req.body;
 
-    const appointmentRef = firestore.collection('appointments').doc(id);
-    const appointmentDoc = await appointmentRef.get();
+    // Obtener cita usando Prisma
+    const appointment = await AppointmentsRepo.findById(id);
 
-    if (!appointmentDoc.exists) {
+    if (!appointment) {
       return res.json({ success: false, error: 'Cita no encontrada' });
     }
 
@@ -874,50 +874,49 @@ app.post('/api/appointments/:id/payment', adminAuth, async (req, res) => {
       discountValue: discountValue || 0,
       discountAmount: parseFloat(discountAmount) || 0,
       totalPaid: parseFloat(totalAmount) || 0,
-      productsSold: productsSold || [],
-      paidAt: new Date().toISOString()
+      productsSold: productsSold || []
     };
 
     console.log('[PAYMENT] Guardando pago para cita', id, ':', paymentData);
 
-    await appointmentRef.update(paymentData);
+    await AppointmentsRepo.complete(id, {
+      total: parseFloat(totalAmount) || 0,
+      method: paymentMethod,
+      discount: discountAmount ? parseFloat(discountAmount) : null,
+      products: productsSold || []
+    });
 
-    // Descontar stock de productos vendidos
-    if (productsSold && productsSold.length > 0) {
-      const batch = firestore.batch();
-
-      for (const product of productsSold) {
-        const productRef = firestore.collection('products').doc(product.productId);
-        const productDoc = await productRef.get();
-
-        if (productDoc.exists) {
-          const currentStock = productDoc.data().stock || 0;
-          const newStock = Math.max(0, currentStock - product.qty);
-          batch.update(productRef, {
-            stock: newStock,
-            updatedAt: new Date().toISOString()
-          });
-        }
-      }
-
-      await batch.commit();
-    }
-
-    // Registrar en colección de ventas (para reportes)
-    await firestore.collection('sales').add({
-      appointmentId: id,
-      clientName: appointmentDoc.data().clientName,
-      serviceName: appointmentDoc.data().serviceName,
+    // Actualizar campos adicionales de pago
+    await AppointmentsRepo.update(id, {
       serviceAmount: parseFloat(serviceAmount) || 0,
       productsAmount: parseFloat(productsAmount) || 0,
       subtotal: parseFloat(subtotal) || 0,
-      discountType,
-      discountValue,
+      discountType: discountType || null,
+      discountValue: discountValue || 0
+    });
+
+    // Descontar stock de productos vendidos usando Prisma
+    if (productsSold && productsSold.length > 0) {
+      for (const product of productsSold) {
+        await ProductsRepo.updateStock(product.productId, -product.qty);
+      }
+    }
+
+    // Registrar en colección de ventas (para reportes) usando Prisma
+    await SalesRepo.create({
+      appointmentId: id,
+      clientName: appointment.clientName,
+      serviceName: appointment.serviceName,
+      serviceAmount: parseFloat(serviceAmount) || 0,
+      productsAmount: parseFloat(productsAmount) || 0,
+      subtotal: parseFloat(subtotal) || 0,
+      discountType: discountType || null,
+      discountValue: discountValue || 0,
       discountAmount: parseFloat(discountAmount) || 0,
       totalAmount: parseFloat(totalAmount) || 0,
       productsSold: productsSold || [],
       paymentMethod,
-      createdAt: new Date().toISOString()
+      date: new Date()
     });
 
     res.json({ success: true });
@@ -1015,44 +1014,22 @@ app.post('/api/appointments', adminAuth, async (req, res) => {
       });
     }
 
-    // Construir startDateTime e endDateTime
-    const startDateTime = new Date(`${date}T${time}:00`);
-    const duration = parseInt(durationMinutes) || 60;
-    const endDateTime = new Date(startDateTime.getTime() + duration * 60000);
-
     const phoneClean = phone.replace(/\D/g, '');
 
     console.log('[APPOINTMENT] Creando cita:', {
       name,
       phone: phoneClean,
       serviceName,
-      startDateTime: startDateTime.toISOString(),
-      endDateTime: endDateTime.toISOString()
+      date,
+      time
     });
 
-    // Buscar o crear tarjeta de lealtad por teléfono
-    let cardId = null;
-    let clientId = null;
+    // Buscar o crear tarjeta de lealtad por teléfono usando Prisma
+    let card = await CardsRepo.findByPhone(phoneClean);
 
-    console.log(`[APPOINTMENT] 🔍 Buscando tarjeta para teléfono: ${phoneClean}`);
-
-    const existingCard = await firestore.collection(COL_CARDS)
-      .where('phone', '==', phoneClean)
-      .limit(1)
-      .get();
-
-    if (!existingCard.empty) {
-      cardId = existingCard.docs[0].id;
-      clientId = cardId; // En este sistema, cardId = clientId
-      console.log(`[APPOINTMENT] ✅ Tarjeta existente encontrada: ${cardId}`);
-    } else {
-      // Crear nueva tarjeta
-      const newCardRef = firestore.collection(COL_CARDS).doc();
-      cardId = newCardRef.id;
-      clientId = cardId;
-
-      const cardData = {
-        id: cardId,
+    if (!card) {
+      console.log(`[APPOINTMENT] 🆕 Creando nueva tarjeta para ${phoneClean}`);
+      card = await CardsRepo.create({
         name: name,
         phone: phoneClean,
         email: null,
@@ -1061,55 +1038,34 @@ app.post('/api/appointments', adminAuth, async (req, res) => {
         max: 8,
         cycles: 0,
         status: 'active',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
         source: 'admin-appointment'
-      };
-
-      await newCardRef.set(cardData);
-      console.log(`[APPOINTMENT] 🆕 Nueva tarjeta creada: ${cardId}`);
+      });
+      console.log(`[APPOINTMENT] ✅ Tarjeta creada: ${card.id}`);
+    } else {
+      console.log(`[APPOINTMENT] ✅ Tarjeta existente encontrada: ${card.id}`);
     }
 
-    // Formatear startDateTime con timezone de México para consistencia con el scheduler
-    const formatToMexicoTZ = (date) => {
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      const hours = String(date.getHours()).padStart(2, '0');
-      const minutes = String(date.getMinutes()).padStart(2, '0');
-      const seconds = String(date.getSeconds()).padStart(2, '0');
-      return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}-06:00`;
-    };
-
-    // Crear documento de cita
+    // Crear cita usando repositorio de Prisma
     const appointmentData = {
-      clientId: clientId,
-      cardId: cardId,
+      cardId: card.id,
       clientName: name,
       clientPhone: phoneClean,
       serviceId: serviceId || null,
       serviceName,
       date,
       time,
-      startDateTime: formatToMexicoTZ(startDateTime),
-      endDateTime: formatToMexicoTZ(endDateTime),
-      durationMinutes: duration,
+      durationMinutes: parseInt(durationMinutes) || 60,
       status: 'scheduled',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      location: 'Venus Cosmetología',
       source: 'admin-panel',
-      // ⭐ Flags para recordatorios WhatsApp automáticos
+      // Flags para recordatorios WhatsApp automáticos
       sendWhatsApp24h: sendWhatsApp24h !== false, // Por defecto true
-      sendWhatsApp2h: sendWhatsApp2h !== false,   // Por defecto true
-      reminders: {
-        send24h: sendWhatsApp24h !== false,
-        send2h: sendWhatsApp2h !== false
-      }
+      sendWhatsApp2h: sendWhatsApp2h !== false    // Por defecto true
     };
 
-    const docRef = await firestore.collection('appointments').add(appointmentData);
+    const appointment = await AppointmentsRepo.create(appointmentData);
 
-    console.log('[APPOINTMENT] ✅ Cita creada y vinculada a tarjeta:', docRef.id, 'cardId:', cardId, {
+    console.log('[APPOINTMENT] ✅ Cita creada y vinculada a tarjeta:', appointment.id, 'cardId:', card.id, {
       sendWhatsApp24h: appointmentData.sendWhatsApp24h,
       sendWhatsApp2h: appointmentData.sendWhatsApp2h
     });
@@ -1118,7 +1074,6 @@ app.post('/api/appointments', adminAuth, async (req, res) => {
     if (sendWhatsAppConfirmation) {
       try {
         const { WhatsAppService } = await import('./src/services/whatsapp.js');
-        const appointment = { id: docRef.id, ...appointmentData };
         const result = await WhatsAppService.sendConfirmation(appointment);
         if (result.success) {
           console.log('[APPOINTMENT] ✅ WhatsApp confirmación enviado:', result.messageSid);
@@ -1132,7 +1087,7 @@ app.post('/api/appointments', adminAuth, async (req, res) => {
 
     res.json({
       success: true,
-      appointmentId: docRef.id
+      appointmentId: appointment.id
     });
 
   } catch (error) {
@@ -1247,14 +1202,13 @@ app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
       }
     }
 
-    // Crear notificación
-    await firestore.collection('notifications').add({
+    // Crear notificación usando Prisma
+    await NotificationsRepo.create({
       type: 'cita',
       icon: 'edit',
       title: 'Cita modificada',
       message: `${appointment.clientName} - ${serviceName || appointment.serviceName} reprogramada para ${date} a las ${time}`,
       read: false,
-      createdAt: new Date().toISOString(),
       entityId: id
     });
 
@@ -1281,22 +1235,19 @@ app.patch('/api/appointments/:id/status', adminAuth, async (req, res) => {
       return res.status(400).json({ success: false, error: 'Status inválido' });
     }
 
-    const appointmentRef = firestore.collection('appointments').doc(id);
-    const appointmentDoc = await appointmentRef.get();
+    // Obtener cita usando Prisma
+    const appointment = await AppointmentsRepo.findById(id);
 
-    if (!appointmentDoc.exists) {
+    if (!appointment) {
       return res.status(404).json({ success: false, error: 'Cita no encontrada' });
     }
 
-    const apptData = appointmentDoc.data();
-    const oldStatus = apptData.status;
+    const oldStatus = appointment.status;
 
-    await appointmentRef.update({
-      status,
-      updatedAt: new Date().toISOString()
-    });
+    // Actualizar estado usando repositorio
+    await AppointmentsRepo.update(id, { status });
 
-    // Crear notificación de cambio manual de estado
+    // Crear notificación de cambio manual de estado usando Prisma
     const statusLabels = {
       'scheduled': 'Agendada',
       'confirmed': 'Confirmada',
@@ -1313,13 +1264,12 @@ app.patch('/api/appointments/:id/status', adminAuth, async (req, res) => {
       'no_show': 'user-times'
     };
 
-    await firestore.collection('notifications').add({
+    await NotificationsRepo.create({
       type: 'cita',
       icon: statusIcons[status] || 'calendar',
       title: `Estado actualizado: ${statusLabels[status]}`,
-      message: `${apptData.clientName} - ${apptData.serviceName} (${statusLabels[oldStatus]} → ${statusLabels[status]})`,
+      message: `${appointment.clientName} - ${appointment.serviceName} (${statusLabels[oldStatus]} → ${statusLabels[status]})`,
       read: false,
-      createdAt: new Date().toISOString(),
       entityId: id
     });
 
