@@ -169,8 +169,8 @@ export const WhatsAppService = {
      * Variables: {{1}}=Nombre, {{2}}=Servicio, {{3}}=Fecha, {{4}}=Hora, {{5}}=Lugar
      */
     async sendConfirmation(appt) {
-        const fecha = formatearFechaLegible(appt.date || appt.startDateTime);
-        // Usar el campo 'time' directamente si existe, sino formatear desde startDateTime
+        // Priorizar campos date y time si existen (más confiables)
+        const fecha = appt.date ? formatearFechaLegible(appt.date) : formatearFechaLegible(appt.startDateTime);
         const hora = appt.time || formatearHora(appt.startDateTime);
 
         return await sendWhatsAppTemplate(
