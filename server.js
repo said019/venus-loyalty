@@ -1071,6 +1071,13 @@ app.post('/api/appointments', adminAuth, async (req, res) => {
     if (sendWhatsAppConfirmation) {
       try {
         const { WhatsAppService } = await import('./src/services/whatsapp.js');
+        console.log('[APPOINTMENT] Enviando WhatsApp con datos:', {
+          id: appointment.id,
+          clientName: appointment.clientName,
+          date: appointment.date,
+          time: appointment.time,
+          startDateTime: appointment.startDateTime
+        });
         const result = await WhatsAppService.sendConfirmation(appointment);
         if (result.success) {
           console.log('[APPOINTMENT] ✅ WhatsApp confirmación enviado:', result.messageSid);

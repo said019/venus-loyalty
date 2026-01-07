@@ -173,6 +173,13 @@ export const WhatsAppService = {
         const fecha = appt.date ? formatearFechaLegible(appt.date) : formatearFechaLegible(appt.startDateTime);
         const hora = appt.time || formatearHora(appt.startDateTime);
 
+        console.log('[WHATSAPP] sendConfirmation:', {
+            hasTime: !!appt.time,
+            time: appt.time,
+            startDateTime: appt.startDateTime,
+            horaCalculada: hora
+        });
+
         return await sendWhatsAppTemplate(
             appt.clientPhone,
             config.templates.CONFIRMACION_CITA,
