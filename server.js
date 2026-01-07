@@ -713,6 +713,28 @@ app.patch('/api/products/:id/stock', adminAuth, async (req, res) => {
 
 /* ========== APPOINTMENTS ========== */
 
+// GET /api/appointments - Obtener citas por fecha
+app.get('/api/appointments', adminAuth, async (req, res) => {
+  try {
+    const { date } = req.query;
+
+    if (!date) {
+      return res.json({ success: false, error: 'Fecha requerida' });
+    }
+
+    console.log(`[APPOINTMENTS] Buscando citas para ${date}`);
+
+    // Usar repositorio de Prisma
+    const data = await AppointmentsRepo.findByDate(date);
+
+    console.log(`[APPOINTMENTS] Encontradas ${data.length} citas`);
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error('[APPOINTMENTS] Error:', error);
+    res.json({ success: false, error: error.message });
+  }
+});
+
 // DEBUG: Ver todas las citas completadas con pagos
 app.get('/api/debug/completed-payments', adminAuth, async (req, res) => {
   try {
