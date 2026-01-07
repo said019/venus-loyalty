@@ -11,8 +11,20 @@ export const CardsRepo = {
   },
 
   async findByPhone(phone) {
-    const cleanPhone = phone.replace(/\D/g, '');
-    return prisma.card.findUnique({ where: { phone: cleanPhone } });
+    // Normalizar teléfono igual que en create: agregar prefijo 52 si son 10 dígitos
+    let cleanPhone = phone.replace(/\D/g, '');
+    if (cleanPhone.length === 10) cleanPhone = '52' + cleanPhone;
+
+    // Intentar buscar con el teléfono normalizado
+    let card = await prisma.card.findUnique({ where: { phone: cleanPhone } });
+
+    // Si no se encuentra y tiene prefijo 52, intentar sin él
+    if (!card && cleanPhone.startsWith('52') && cleanPhone.length === 12) {
+      const phoneWithout52 = cleanPhone.substring(2);
+      card = await prisma.card.findUnique({ where: { phone: phoneWithout52 } });
+    }
+
+    return card;
   },
 
   async findAll(options = {}) {
@@ -26,7 +38,10 @@ export const CardsRepo = {
   },
 
   async create(data) {
-    const cleanPhone = data.phone?.replace(/\D/g, '') || '';
+    // Normalizar teléfono: agregar prefijo 52 si son 10 dígitos
+    let cleanPhone = data.phone?.replace(/\D/g, '') || '';
+    if (cleanPhone.length === 10) cleanPhone = '52' + cleanPhone;
+
     return prisma.card.create({
       data: {
         ...data,
@@ -177,7 +192,8 @@ export const AppointmentsRepo = {
   },
 
   async findConflicts(date, time, duration, excludeId = null) {
-    const startDateTime = new Date(`${date}T${time}:00`);
+    // Crear fechas en timezone de México (UTC-6)
+    const startDateTime = new Date(`${date}T${time}:00-06:00`);
     const endDateTime = new Date(startDateTime.getTime() + duration * 60000);
 
     return prisma.appointment.findMany({
@@ -197,7 +213,8 @@ export const AppointmentsRepo = {
   },
 
   async create(data) {
-    const startDateTime = new Date(`${data.date}T${data.time}:00`);
+    // Crear fechas en timezone de México (UTC-6)
+    const startDateTime = new Date(`${data.date}T${data.time}:00-06:00`);
     const duration = data.durationMinutes || 60;
     const endDateTime = new Date(startDateTime.getTime() + duration * 60000);
 
@@ -214,7 +231,8 @@ export const AppointmentsRepo = {
   async update(id, data) {
     // Si se actualiza fecha/hora, recalcular startDateTime y endDateTime
     if (data.date && data.time) {
-      const startDateTime = new Date(`${data.date}T${data.time}:00`);
+      // Crear fechas en timezone de México (UTC-6)
+      const startDateTime = new Date(`${data.date}T${data.time}:00-06:00`);
       const duration = data.durationMinutes || 60;
       const endDateTime = new Date(startDateTime.getTime() + duration * 60000);
       data.startDateTime = startDateTime;
