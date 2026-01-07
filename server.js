@@ -879,20 +879,12 @@ app.post('/api/appointments/:id/payment', adminAuth, async (req, res) => {
 
     console.log('[PAYMENT] Guardando pago para cita', id, ':', paymentData);
 
+    // Actualizar cita a completada con datos de pago
     await AppointmentsRepo.complete(id, {
       total: parseFloat(totalAmount) || 0,
       method: paymentMethod,
       discount: discountAmount ? parseFloat(discountAmount) : null,
       products: productsSold || []
-    });
-
-    // Actualizar campos adicionales de pago
-    await AppointmentsRepo.update(id, {
-      serviceAmount: parseFloat(serviceAmount) || 0,
-      productsAmount: parseFloat(productsAmount) || 0,
-      subtotal: parseFloat(subtotal) || 0,
-      discountType: discountType || null,
-      discountValue: discountValue || 0
     });
 
     // Descontar stock de productos vendidos usando Prisma
