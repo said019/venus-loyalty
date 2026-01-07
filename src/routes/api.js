@@ -14,14 +14,16 @@ router.put('/services/:id', adminAuth, ServicesController.update);
 router.delete('/services/:id', adminAuth, ServicesController.delete);
 
 // Appointments
-router.post('/appointments', adminAuth, AppointmentsController.create);
-router.get('/appointments/month', adminAuth, AppointmentsController.getByMonth);
+// NOTA: Todas las rutas de appointments ahora están definidas en server.js con Prisma
+// Comentadas para evitar duplicados y conflictos con las rutas refactorizadas
+// router.post('/appointments', adminAuth, AppointmentsController.create);
+// router.get('/appointments/month', adminAuth, AppointmentsController.getByMonth);
 router.get('/appointments/client', adminAuth, AppointmentsController.getByClient);
 router.patch('/appointments/:id/cancel', adminAuth, AppointmentsController.cancel);
-router.patch('/appointments/:id', adminAuth, AppointmentsController.update);
-router.get('/appointments', adminAuth, AppointmentsController.getByDate);
-// Nota: GET /appointments/:id, POST /appointments/:id/payment y PATCH /appointments/:id/status 
-// están definidos en server.js con lógica más completa
+// router.patch('/appointments/:id', adminAuth, AppointmentsController.update);
+// router.get('/appointments', adminAuth, AppointmentsController.getByDate);
+// Nota: GET /appointments/:id, POST /appointments/:id/payment y PATCH /appointments/:id/status
+// también están definidos en server.js con lógica más completa
 
 // Debug: Ver citas pendientes de recordatorio
 router.get('/debug/pending-reminders', async (req, res) => {
