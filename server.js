@@ -1132,192 +1132,89 @@ app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
       return res.status(400).json({ success: false, error: 'Fecha y hora son requeridos' });
     }
 
-    const appointmentRef = firestore.collection('appointments').doc(id);
-    const appointmentDoc = await appointmentRef.get();
+    // Obtener cita actual
+    const appointment = await AppointmentsRepo.findById(id);
 
-    if (!appointmentDoc.exists) {
+    if (!appointment) {
       return res.status(404).json({ success: false, error: 'Cita no encontrada' });
     }
 
-    const apptData = appointmentDoc.data();
-
-    // Calcular startDateTime y endDateTime
-    const startDateTime = `${date}T${time}:00`;
-    const duration = durationMinutes || 60;
-    const endDate = new Date(startDateTime);
-    endDate.setMinutes(endDate.getMinutes() + duration);
-    const endDateTime = endDate.toISOString();
-
-    // Verificar conflictos de horario
     console.log(`[PATCH] Verificando conflictos para ${date} ${time}`);
-    console.log(`[PATCH] ID de cita actual: ${id}`);
 
-    // Buscar citas del mismo día - usar campo date si existe, o filtrar por startDateTime
-    // Primero intentar con campo date (citas nuevas)
-    let conflictDocs = [];
+    // Verificar conflictos usando repositorio
+    const conflicts = await AppointmentsRepo.findConflicts(
+      date,
+      time,
+      durationMinutes || 60,
+      id  // Excluir la cita actual
+    );
 
-    // Buscar citas que tengan el campo date igual
-    const dateQuery = await firestore.collection('appointments')
-      .where('date', '==', date)
-      .get();
-
-    conflictDocs = [...dateQuery.docs];
-    console.log(`[PATCH] Citas con campo date=${date}: ${dateQuery.docs.length}`);
-
-    // También buscar citas antiguas que solo tienen startDateTime
-    // Usar rango amplio para capturar diferentes timezones
-    const dayStart = `${date}T00:00:00`;
-    const dayEnd = `${date}T23:59:59`;
-
-    const startDateTimeQuery = await firestore.collection('appointments')
-      .where('startDateTime', '>=', dayStart)
-      .where('startDateTime', '<=', dayEnd + 'Z')
-      .get();
-
-    // Agregar solo las que no están ya en conflictDocs
-    const existingIds = new Set(conflictDocs.map(d => d.id));
-    for (const doc of startDateTimeQuery.docs) {
-      if (!existingIds.has(doc.id)) {
-        // Verificar que realmente sea del mismo día (por si el timezone causa problemas)
-        const apptData = doc.data();
-        if (apptData.startDateTime) {
-          const apptDateStr = apptData.startDateTime.split('T')[0];
-          if (apptDateStr === date) {
-            conflictDocs.push(doc);
-          }
-        }
-      }
-    }
-
-    console.log(`[PATCH] Total citas a verificar: ${conflictDocs.length}`);
-
-    const newStartMinutes = parseInt(time.split(':')[0]) * 60 + parseInt(time.split(':')[1]);
-    const newEndMinutes = newStartMinutes + (durationMinutes || 60);
-
-    console.log(`[PATCH] Nueva cita: ${time} (${newStartMinutes} - ${newEndMinutes} minutos)`);
-
-    for (const doc of conflictDocs) {
-      // Ignorar la cita actual
-      if (doc.id === id) {
-        console.log(`[PATCH] ✓ Ignorando cita actual: ${doc.id}`);
-        continue;
-      }
-
-      const existingAppt = doc.data();
-
-      // Ignorar citas canceladas, completadas o no_show
-      if (['cancelled', 'completed', 'no_show'].includes(existingAppt.status)) {
-        console.log(`[PATCH] ✓ Ignorando cita ${doc.id} (${existingAppt.clientName}) - status: ${existingAppt.status}`);
-        continue;
-      }
-
-      // Calcular minutos de la cita existente
-      let existingTime = existingAppt.time;
-
-      // Si no tiene campo time, extraerlo de startDateTime
-      if (!existingTime && existingAppt.startDateTime) {
-        // Extraer hora directamente del string para evitar problemas de timezone
-        // Formato: 2025-12-23T15:00:00-06:00
-        const timeMatch = existingAppt.startDateTime.match(/T(\d{2}):(\d{2})/);
-        if (timeMatch) {
-          existingTime = `${timeMatch[1]}:${timeMatch[2]}`;
-        } else {
-          existingTime = '00:00';
-        }
-      }
-      existingTime = existingTime || '00:00';
-
-      const existingStartMinutes = parseInt(existingTime.split(':')[0]) * 60 + parseInt(existingTime.split(':')[1]);
-      const existingDuration = existingAppt.durationMinutes || 60;
-      const existingEndMinutes = existingStartMinutes + existingDuration;
-
-      console.log(`[PATCH] Comparando con: ${existingAppt.clientName} ${existingTime} (${existingStartMinutes} - ${existingEndMinutes} min) status: ${existingAppt.status}`);
-
-      // Verificar si hay solapamiento
-      // Solapamiento: newStart < existingEnd AND newEnd > existingStart
-      const hasOverlap = newStartMinutes < existingEndMinutes && newEndMinutes > existingStartMinutes;
-
-      console.log(`[PATCH] Solapamiento check: ${newStartMinutes} < ${existingEndMinutes} = ${newStartMinutes < existingEndMinutes}, ${newEndMinutes} > ${existingStartMinutes} = ${newEndMinutes > existingStartMinutes}`);
-
-      if (hasOverlap) {
-        console.log(`[PATCH] ❌ Conflicto detectado con ${existingAppt.clientName} a las ${existingTime}`);
-        return res.status(409).json({
-          success: false,
-          error: `Conflicto: ${existingAppt.clientName} tiene cita de ${existingTime} a ${Math.floor(existingEndMinutes / 60)}:${String(existingEndMinutes % 60).padStart(2, '0')} (status: ${existingAppt.status})`,
-          debug: {
-            newTime: `${time} - ${Math.floor(newEndMinutes / 60)}:${String(newEndMinutes % 60).padStart(2, '0')}`,
-            existingTime: `${existingTime} - ${Math.floor(existingEndMinutes / 60)}:${String(existingEndMinutes % 60).padStart(2, '0')}`,
-            existingClient: existingAppt.clientName,
-            existingStatus: existingAppt.status,
-            existingId: doc.id
-          }
-        });
-      } else {
-        console.log(`[PATCH] ✓ Sin conflicto con ${existingAppt.clientName}`);
-      }
+    if (conflicts.length > 0) {
+      const conflict = conflicts[0];
+      console.log(`[PATCH] ❌ Conflicto detectado con ${conflict.clientName} a las ${conflict.time}`);
+      return res.status(409).json({
+        success: false,
+        error: `Conflicto: ${conflict.clientName} tiene cita a las ${conflict.time}`
+      });
     }
 
     console.log(`[PATCH] ✅ No hay conflictos, actualizando cita`);
 
-    // Formatear fechas con timezone de México
-    const startDateTimeMX = `${date}T${time}:00-06:00`;
-    const endDateObj = new Date(`${date}T${time}:00`);
-    endDateObj.setMinutes(endDateObj.getMinutes() + (durationMinutes || 60));
-    const endHours = String(endDateObj.getHours()).padStart(2, '0');
-    const endMinutes = String(endDateObj.getMinutes()).padStart(2, '0');
-    const endDateTimeMX = `${date}T${endHours}:${endMinutes}:00-06:00`;
-
-    // Actualizar la cita
+    // Preparar datos para actualizar
     const updateData = {
       date,
       time,
-      startDateTime: startDateTimeMX,
-      endDateTime: endDateTimeMX,
-      updatedAt: new Date().toISOString()
+      durationMinutes: durationMinutes || appointment.durationMinutes
     };
 
     if (serviceId) updateData.serviceId = serviceId;
     if (serviceName) updateData.serviceName = serviceName;
-    if (durationMinutes) updateData.durationMinutes = durationMinutes;
 
-    await appointmentRef.update(updateData);
+    // Actualizar en BD usando repositorio
+    await AppointmentsRepo.update(id, updateData);
 
     // ⭐ ACTUALIZAR GOOGLE CALENDAR si hay eventos asociados
-    if (apptData.googleCalendarEventId || apptData.googleCalendarEventId2) {
+    const startDateTimeMX = `${date}T${time}:00-06:00`;
+    const duration = durationMinutes || 60;
+    const end = new Date(startDateTimeMX);
+    end.setMinutes(end.getMinutes() + duration);
+    const endDateTimeMX = end.toISOString().replace('Z', '-06:00');
+
+    if (appointment.googleCalendarEventId || appointment.googleCalendarEventId2) {
       try {
         const { updateEvent } = await import('./src/services/googleCalendarService.js');
 
         console.log('[PATCH] 📅 Actualizando eventos en Google Calendar...');
 
         // Actualizar en calendario 1 (Said)
-        if (apptData.googleCalendarEventId) {
+        if (appointment.googleCalendarEventId) {
           try {
-            await updateEvent(apptData.googleCalendarEventId, {
+            await updateEvent(appointment.googleCalendarEventId, {
               calendarId: config.google.calendarOwner1,
-              title: `${serviceName || apptData.serviceName} - ${apptData.clientName}`,
-              description: `Cliente: ${apptData.clientName}\nTel: ${apptData.clientPhone}\nServicio: ${serviceName || apptData.serviceName}`,
+              title: `${serviceName || appointment.serviceName} - ${appointment.clientName}`,
+              description: `Cliente: ${appointment.clientName}\nTel: ${appointment.clientPhone}\nServicio: ${serviceName || appointment.serviceName}`,
               location: 'Cactus 50, San Juan del Río',
               startISO: startDateTimeMX,
               endISO: endDateTimeMX
             });
-            console.log(`[PATCH] ✅ Evento actualizado en calendar Said: ${apptData.googleCalendarEventId}`);
+            console.log(`[PATCH] ✅ Evento actualizado en calendar Said`);
           } catch (err1) {
             console.error(`[PATCH] ⚠️ Error actualizando calendar Said:`, err1.message);
           }
         }
 
         // Actualizar en calendario 2 (Alondra)
-        if (apptData.googleCalendarEventId2) {
+        if (appointment.googleCalendarEventId2) {
           try {
-            await updateEvent(apptData.googleCalendarEventId2, {
+            await updateEvent(appointment.googleCalendarEventId2, {
               calendarId: config.google.calendarOwner2,
-              title: `${serviceName || apptData.serviceName} - ${apptData.clientName}`,
-              description: `Cliente: ${apptData.clientName}\nTel: ${apptData.clientPhone}\nServicio: ${serviceName || apptData.serviceName}`,
+              title: `${serviceName || appointment.serviceName} - ${appointment.clientName}`,
+              description: `Cliente: ${appointment.clientName}\nTel: ${appointment.clientPhone}\nServicio: ${serviceName || appointment.serviceName}`,
               location: 'Cactus 50, San Juan del Río',
               startISO: startDateTimeMX,
               endISO: endDateTimeMX
             });
-            console.log(`[PATCH] ✅ Evento actualizado en calendar Alondra: ${apptData.googleCalendarEventId2}`);
+            console.log(`[PATCH] ✅ Evento actualizado en calendar Alondra`);
           } catch (err2) {
             console.error(`[PATCH] ⚠️ Error actualizando calendar Alondra:`, err2.message);
           }
@@ -1333,7 +1230,7 @@ app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
       type: 'cita',
       icon: 'edit',
       title: 'Cita modificada',
-      message: `${apptData.clientName} - ${serviceName || apptData.serviceName} reprogramada para ${date} a las ${time}`,
+      message: `${appointment.clientName} - ${serviceName || appointment.serviceName} reprogramada para ${date} a las ${time}`,
       read: false,
       createdAt: new Date().toISOString(),
       entityId: id
