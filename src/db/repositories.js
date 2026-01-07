@@ -156,7 +156,7 @@ export const AppointmentsRepo = {
   async findById(id) {
     return prisma.appointment.findUnique({
       where: { id },
-      include: { card: true, service: true }
+      include: { card: true }
     });
   },
 
