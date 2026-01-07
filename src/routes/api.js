@@ -19,11 +19,11 @@ router.delete('/services/:id', adminAuth, ServicesController.delete);
 // router.post('/appointments', adminAuth, AppointmentsController.create);
 // router.get('/appointments/month', adminAuth, AppointmentsController.getByMonth);
 router.get('/appointments/client', adminAuth, AppointmentsController.getByClient);
-router.patch('/appointments/:id/cancel', adminAuth, AppointmentsController.cancel);
+// router.patch('/appointments/:id/cancel', adminAuth, AppointmentsController.cancel);
 // router.patch('/appointments/:id', adminAuth, AppointmentsController.update);
 // router.get('/appointments', adminAuth, AppointmentsController.getByDate);
-// Nota: GET /appointments/:id, POST /appointments/:id/payment y PATCH /appointments/:id/status
-// también están definidos en server.js con lógica más completa
+// Nota: GET /appointments/:id, POST /appointments/:id/payment, PATCH /appointments/:id/status
+// y PATCH /appointments/:id/cancel están definidos en server.js con lógica más completa
 
 // Debug: Ver citas pendientes de recordatorio
 router.get('/debug/pending-reminders', async (req, res) => {

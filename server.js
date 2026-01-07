@@ -1278,6 +1278,71 @@ app.patch('/api/appointments/:id/status', adminAuth, async (req, res) => {
   }
 });
 
+// PATCH /api/appointments/:id/cancel - Cancelar cita y eliminar de Google Calendar
+app.patch('/api/appointments/:id/cancel', adminAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Obtener la cita antes de cancelarla para tener los eventIds
+    const appointment = await AppointmentsRepo.findById(id);
+
+    if (!appointment) {
+      return res.status(404).json({ success: false, error: 'Cita no encontrada' });
+    }
+
+    console.log(`[CANCEL] Cancelando cita ${id} - ${appointment.clientName}`);
+
+    // Cancelar en la base de datos usando Prisma
+    await AppointmentsRepo.cancel(id, 'Cancelada desde admin');
+
+    // Eliminar de Google Calendar si hay eventIds
+    if (appointment.googleCalendarEventId || appointment.googleCalendarEventId2) {
+      try {
+        const { deleteEvent } = await import('./src/services/googleCalendarService.js');
+
+        // Eliminar evento 1 si existe
+        if (appointment.googleCalendarEventId) {
+          try {
+            await deleteEvent(appointment.googleCalendarEventId, config.google.calendarOwner1);
+            console.log(`[CANCEL] ✅ Evento eliminado del calendar 1: ${appointment.googleCalendarEventId}`);
+          } catch (err) {
+            console.error(`[CANCEL] ❌ Error eliminando evento del calendar 1:`, err.message);
+          }
+        }
+
+        // Eliminar evento 2 si existe
+        if (appointment.googleCalendarEventId2) {
+          try {
+            await deleteEvent(appointment.googleCalendarEventId2, config.google.calendarOwner2);
+            console.log(`[CANCEL] ✅ Evento eliminado del calendar 2: ${appointment.googleCalendarEventId2}`);
+          } catch (err) {
+            console.error(`[CANCEL] ❌ Error eliminando evento del calendar 2:`, err.message);
+          }
+        }
+      } catch (calErr) {
+        console.error('[CANCEL] ⚠️ Error con Google Calendar:', calErr.message);
+        // No falla la operación si Google Calendar falla
+      }
+    }
+
+    // Crear notificación
+    await NotificationsRepo.create({
+      type: 'cita',
+      icon: 'times-circle',
+      title: 'Cita cancelada',
+      message: `${appointment.clientName} - ${appointment.serviceName} cancelada`,
+      read: false,
+      entityId: id
+    });
+
+    console.log(`[CANCEL] ✅ Cita ${id} cancelada exitosamente`);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('[CANCEL] Error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 /* ========== GIFT CARDS ========== */
 
 // Generar código único
