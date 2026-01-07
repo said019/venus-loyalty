@@ -787,32 +787,8 @@ app.get('/api/appointments/range', adminAuth, async (req, res) => {
 
     console.log('[REPORTS] Buscando citas desde', from, 'hasta', to);
 
-    // Obtener TODAS las citas y filtrar en memoria
-    // Esto es más confiable que comparar strings ISO en Firestore
-    const snapshot = await firestore.collection('appointments').get();
-
-    const fromDate = new Date(from);
-    const toDate = new Date(to);
-
-    console.log('[REPORTS] Rango de fechas:', fromDate.toISOString(), 'a', toDate.toISOString());
-    console.log('[REPORTS] Total citas en DB:', snapshot.size);
-
-    const appointments = [];
-    snapshot.forEach(doc => {
-      const data = doc.data();
-      const apptDate = new Date(data.startDateTime);
-
-      // Filtrar por rango de fechas
-      if (apptDate >= fromDate && apptDate <= toDate) {
-        appointments.push({
-          id: doc.id,
-          ...data
-        });
-      }
-    });
-
-    // Ordenar por fecha descendente
-    appointments.sort((a, b) => new Date(b.startDateTime) - new Date(a.startDateTime));
+    // Usar repositorio de Prisma
+    const appointments = await AppointmentsRepo.findByDateRange(from, to);
 
     console.log('[REPORTS] Encontradas', appointments.length, 'citas en el rango');
 
@@ -827,17 +803,15 @@ app.get('/api/appointments/range', adminAuth, async (req, res) => {
 app.get('/api/appointments/:id', adminAuth, async (req, res) => {
   try {
     const { id } = req.params;
-    const appointmentDoc = await firestore.collection('appointments').doc(id).get();
+    const appointment = await AppointmentsRepo.findById(id);
 
-    if (!appointmentDoc.exists) {
+    if (!appointment) {
       return res.json({ success: false, error: 'Cita no encontrada' });
     }
 
-    const data = { id: appointmentDoc.id, ...appointmentDoc.data() };
-    console.log('[API] Appointment data:', data);
-    console.log('[API] Price:', data.price);
+    console.log('[API] Appointment data:', appointment);
 
-    res.json({ success: true, data });
+    res.json({ success: true, data: appointment });
   } catch (error) {
     console.error('Error getting appointment:', error);
     res.json({ success: false, error: error.message });
