@@ -11,9 +11,10 @@ import { sendGoogleMessage } from "./lib/google.js"
 import nodemailer from "nodemailer";
 import fs from "fs";
 
-// Database - Prisma con capa de compatibilidad
+// Database - Prisma con repositorios
 import { prisma } from './src/db/index.js';
 import { firestore } from './src/db/compat.js';
+import { CardsRepo, AppointmentsRepo, ServicesRepo } from './src/db/repositories.js';
 
 // Firebase legacy (solo para migración - remover después)
 // import { firestore } from "./lib/firebase.js";
@@ -760,15 +761,11 @@ app.get('/api/appointments/month', adminAuth, async (req, res) => {
 
     console.log(`[APPOINTMENTS MONTH] Buscando citas de ${firstDay} a ${lastDayStr}`);
 
-    const snapshot = await firestore.collection('appointments')
-      .where('startDateTime', '>=', `${firstDay}T00:00:00`)
-      .where('startDateTime', '<=', `${lastDayStr}T23:59:59`)
-      .get();
-
-    const data = [];
-    snapshot.forEach(doc => {
-      data.push({ id: doc.id, ...doc.data() });
-    });
+    // Usar repositorio de Prisma
+    const data = await AppointmentsRepo.findByDateRange(
+      `${firstDay}T00:00:00-06:00`,
+      `${lastDayStr}T23:59:59-06:00`
+    );
 
     console.log(`[APPOINTMENTS MONTH] Encontradas ${data.length} citas`);
     res.json({ success: true, data });
