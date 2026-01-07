@@ -143,8 +143,9 @@ export const AppointmentsController = {
                 clientPhone: client.phone,
                 serviceId,
                 serviceName,
-                startDateTime,
-                endDateTime,
+                date,  // Pasar date y time directamente
+                time,  // para que repositories.js los maneje correctamente
+                durationMinutes,
                 location: 'Venus Cosmetología',
                 sendWhatsApp24h: !!sendWhatsApp24h,
                 sendWhatsApp2h: !!sendWhatsApp2h

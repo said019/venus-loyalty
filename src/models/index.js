@@ -11,14 +11,37 @@ export const ClientModel = {
         let id = data.id;
         const now = new Date().toISOString();
 
+        // Normalizar teléfono (debe coincidir con la normalización en repositories.js)
+        if (data.phone) {
+            let cleanPhone = data.phone.replace(/\D/g, '');
+            if (cleanPhone.length === 10) cleanPhone = '52' + cleanPhone;
+            data.phone = cleanPhone;
+        }
+
         if (!id && data.phone) {
-            // Buscar por teléfono
+            // Buscar por teléfono normalizado
             const snap = await firestore.collection(COL_CLIENTS)
                 .where('phone', '==', data.phone)
                 .limit(1)
                 .get();
             if (!snap.empty) {
                 id = snap.docs[0].id;
+            }
+
+            // Si no se encuentra con prefijo 52, intentar sin él (para backward compatibility)
+            if (!id && data.phone.startsWith('52') && data.phone.length === 12) {
+                const phoneWithout52 = data.phone.substring(2);
+                const snap2 = await firestore.collection(COL_CLIENTS)
+                    .where('phone', '==', phoneWithout52)
+                    .limit(1)
+                    .get();
+                if (!snap2.empty) {
+                    id = snap2.docs[0].id;
+                    // Actualizar el teléfono de la tarjeta existente con el prefijo 52
+                    await firestore.collection(COL_CLIENTS).doc(id).set({
+                        phone: data.phone
+                    }, { merge: true });
+                }
             }
         }
 

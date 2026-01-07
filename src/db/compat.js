@@ -151,12 +151,23 @@ class DocRef {
 // Procesar datos para update (convertir fechas, etc.)
 function processDataForUpdate(modelName, data) {
   const processed = { ...data };
-  
+
+  // Si es un appointment y viene con date y time, crear startDateTime y endDateTime
+  if (modelName === 'appointment' && processed.date && processed.time) {
+    // Crear fechas en timezone de México (UTC-6)
+    const startDateTime = new Date(`${processed.date}T${processed.time}:00-06:00`);
+    const duration = processed.durationMinutes || 60;
+    const endDateTime = new Date(startDateTime.getTime() + duration * 60000);
+
+    processed.startDateTime = startDateTime;
+    processed.endDateTime = endDateTime;
+  }
+
   // Campos que son DateTime en Prisma
-  const dateFields = ['createdAt', 'updatedAt', 'lastVisit', 'startDateTime', 'endDateTime', 
-                      'confirmedAt', 'cancelledAt', 'sent24hAt', 'sent2hAt', 'expiresAt', 'usedAt', 
+  const dateFields = ['createdAt', 'updatedAt', 'lastVisit', 'startDateTime', 'endDateTime',
+                      'confirmedAt', 'cancelledAt', 'sent24hAt', 'sent2hAt', 'expiresAt', 'usedAt',
                       'timestamp', 'redeemedAt', 'redeemed_at'];
-  
+
   for (const field of dateFields) {
     if (processed[field] && typeof processed[field] === 'string') {
       processed[field] = new Date(processed[field]);
