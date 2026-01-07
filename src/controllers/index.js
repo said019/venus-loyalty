@@ -36,7 +36,8 @@ export const ClientsController = {
 export const ServicesController = {
     async getAll(req, res) {
         try {
-            const services = await ServiceModel.getAll();
+            const { ServicesRepo } = await import('../db/repositories.js');
+            const services = await ServicesRepo.findAll({ isActive: true });
             res.json({ success: true, data: services });
         } catch (error) {
             console.error('Error getting services:', error);
@@ -46,7 +47,8 @@ export const ServicesController = {
 
     async create(req, res) {
         try {
-            const service = await ServiceModel.create(req.body);
+            const { ServicesRepo } = await import('../db/repositories.js');
+            const service = await ServicesRepo.create({ ...req.body, isActive: true });
             res.json({ success: true, data: service });
         } catch (error) {
             console.error('Error creating service:', error);
@@ -57,7 +59,8 @@ export const ServicesController = {
     async update(req, res) {
         try {
             const { id } = req.params;
-            const service = await ServiceModel.update(id, req.body);
+            const { ServicesRepo } = await import('../db/repositories.js');
+            const service = await ServicesRepo.update(id, req.body);
             res.json({ success: true, data: service });
         } catch (error) {
             console.error('Error updating service:', error);
@@ -68,7 +71,8 @@ export const ServicesController = {
     async delete(req, res) {
         try {
             const { id } = req.params;
-            await ServiceModel.delete(id);
+            const { ServicesRepo } = await import('../db/repositories.js');
+            await ServicesRepo.delete(id);
             res.json({ success: true });
         } catch (error) {
             console.error('Error deleting service:', error);
@@ -529,8 +533,7 @@ export const AppointmentsController = {
                 return res.json({ success: true, data: [] });
             }
 
-            const appointmentsRef = firestore.collection('appointments');
-            let appointments = [];
+            const { prisma } = await import('../db/index.js');
 
             // Normalizar teléfono (agregar prefijo 52 si es número de 10 dígitos)
             let phoneSearch = search.replace(/\D/g, '');
@@ -538,45 +541,19 @@ export const AppointmentsController = {
                 phoneSearch = '52' + phoneSearch;
             }
 
-            // Buscar por teléfono normalizado
-            let snapshot = await appointmentsRef
-                .where('clientPhone', '==', phoneSearch)
-                .orderBy('startDateTime', 'desc')
-                .limit(20)
-                .get();
-
-            snapshot.forEach(doc => {
-                appointments.push({ id: doc.id, ...doc.data() });
+            // Buscar por teléfono o nombre usando Prisma
+            let appointments = await prisma.appointment.findMany({
+                where: {
+                    OR: [
+                        { clientPhone: phoneSearch },
+                        { clientPhone: search },
+                        { clientName: { contains: search, mode: 'insensitive' } }
+                    ],
+                    status: { not: 'cancelled' }
+                },
+                orderBy: { startDateTime: 'desc' },
+                take: 20
             });
-
-            // Si no hay resultados con teléfono normalizado, buscar con el original
-            if (appointments.length === 0 && phoneSearch !== search) {
-                snapshot = await appointmentsRef
-                    .where('clientPhone', '==', search)
-                    .orderBy('startDateTime', 'desc')
-                    .limit(20)
-                    .get();
-
-                snapshot.forEach(doc => {
-                    appointments.push({ id: doc.id, ...doc.data() });
-                });
-            }
-
-            // Si aún no hay resultados, buscar por nombre
-            if (appointments.length === 0) {
-                snapshot = await appointmentsRef
-                    .where('clientName', '==', search)
-                    .orderBy('startDateTime', 'desc')
-                    .limit(20)
-                    .get();
-
-                snapshot.forEach(doc => {
-                    appointments.push({ id: doc.id, ...doc.data() });
-                });
-            }
-
-            // Filtrar citas canceladas
-            appointments = appointments.filter(a => a.status !== 'cancelled');
 
             res.json({ success: true, data: appointments });
         } catch (error) {
