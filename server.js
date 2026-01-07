@@ -723,6 +723,7 @@ app.get('/api/appointments', adminAuth, async (req, res) => {
     }
 
     console.log(`[APPOINTMENTS] Buscando citas para ${date}`);
+    console.log(`[APPOINTMENTS] AppointmentsRepo:`, typeof AppointmentsRepo);
 
     // Usar repositorio de Prisma
     const data = await AppointmentsRepo.findByDate(date);
@@ -730,8 +731,9 @@ app.get('/api/appointments', adminAuth, async (req, res) => {
     console.log(`[APPOINTMENTS] Encontradas ${data.length} citas`);
     res.json({ success: true, data });
   } catch (error) {
-    console.error('[APPOINTMENTS] Error:', error);
-    res.json({ success: false, error: error.message });
+    console.error('[APPOINTMENTS] Error completo:', error);
+    console.error('[APPOINTMENTS] Stack:', error.stack);
+    res.status(500).json({ success: false, error: error.message, stack: error.stack });
   }
 });
 
@@ -782,6 +784,8 @@ app.get('/api/appointments/month', adminAuth, async (req, res) => {
     const lastDayStr = `${y}-${String(m).padStart(2, '0')}-${lastDay}`;
 
     console.log(`[APPOINTMENTS MONTH] Buscando citas de ${firstDay} a ${lastDayStr}`);
+    console.log(`[APPOINTMENTS MONTH] AppointmentsRepo:`, typeof AppointmentsRepo);
+    console.log(`[APPOINTMENTS MONTH] findByDateRange:`, typeof AppointmentsRepo?.findByDateRange);
 
     // Usar repositorio de Prisma
     const data = await AppointmentsRepo.findByDateRange(
@@ -792,8 +796,9 @@ app.get('/api/appointments/month', adminAuth, async (req, res) => {
     console.log(`[APPOINTMENTS MONTH] Encontradas ${data.length} citas`);
     res.json({ success: true, data });
   } catch (error) {
-    console.error('[APPOINTMENTS MONTH] Error:', error);
-    res.json({ success: false, error: error.message });
+    console.error('[APPOINTMENTS MONTH] Error completo:', error);
+    console.error('[APPOINTMENTS MONTH] Stack:', error.stack);
+    res.status(500).json({ success: false, error: error.message, stack: error.stack });
   }
 });
 
