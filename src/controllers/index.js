@@ -1,26 +1,33 @@
-import { AppointmentModel, ClientModel, ServiceModel } from '../models/index.js';
+import { CardsRepo, AppointmentsRepo } from '../db/repositories.js';
 import { CalendarService } from '../services/calendar.js';
 import { WhatsAppService } from '../services/whatsapp.js';
 import { config } from '../config/config.js';
-import { firestore } from '../db/compat.js';
 import axios from 'axios';
-
-// Helper para convertir fecha a ISO con offset de México (-06:00)
-// Esto asegura comparaciones de strings correctas en Firestore
-const toMexicoOffset = (date) => {
-    const mexicoOffset = 6 * 60 * 60 * 1000;
-    const localMs = date.getTime() - mexicoOffset;
-    const localDate = new Date(localMs);
-    return localDate.toISOString().replace('Z', '-06:00');
-};
 
 export const ClientsController = {
     async createOrUpdate(req, res) {
         try {
-            const client = await ClientModel.createOrUpdate(req.body);
-            res.json({ success: true, data: client });
+            // Normalizar teléfono
+            let phone = req.body.phone?.replace(/\D/g, '') || '';
+            if (phone.length === 10) phone = '52' + phone;
+
+            // Buscar o crear tarjeta
+            let card = await CardsRepo.findByPhone(phone);
+
+            if (card && req.body.id && card.id !== req.body.id) {
+                // Si se especificó un ID diferente, actualizar ese ID
+                card = await CardsRepo.update(req.body.id, { ...req.body, phone });
+            } else if (card) {
+                // Actualizar tarjeta existente
+                card = await CardsRepo.update(card.id, { ...req.body, phone });
+            } else {
+                // Crear nueva tarjeta
+                card = await CardsRepo.create({ ...req.body, phone });
+            }
+
+            res.json({ success: true, data: card });
         } catch (error) {
-            console.error('Error creating client:', error);
+            console.error('Error creating/updating client:', error);
             res.status(500).json({ success: false, error: error.message });
         }
     }
@@ -87,77 +94,69 @@ export const AppointmentsController = {
             let cleanPhone = phone.replace(/\D/g, '');
             if (cleanPhone.length === 10) cleanPhone = '52' + cleanPhone;
 
-            // 2. Buscar o crear cliente (filtrar undefined)
-            let clientData = { name, phone: cleanPhone };
-            if (email) clientData.email = email;
-            if (notes) clientData.notes = notes;
-            if (clientId) clientData.id = clientId;
-            const client = await ClientModel.createOrUpdate(clientData);
+            // 2. Buscar o crear cliente usando repositorio
+            let card = await CardsRepo.findByPhone(cleanPhone);
 
-            // 3. Calcular fechas ISO
-            const startDateTime = `${date}T${time}:00-06:00`; // Mexico City timezone
-            const start = new Date(startDateTime);
-            const end = new Date(start.getTime() + (durationMinutes || 60) * 60000);
-            const endDateTime = toMexicoOffset(end);
+            if (card && clientId && card.id !== clientId) {
+                // Si se especificó un ID diferente, actualizar ese ID
+                let updateData = { name, phone: cleanPhone };
+                if (email) updateData.email = email;
+                card = await CardsRepo.update(clientId, updateData);
+            } else if (card) {
+                // Actualizar tarjeta existente con nueva info
+                let updateData = { name, phone: cleanPhone };
+                if (email) updateData.email = email;
+                card = await CardsRepo.update(card.id, updateData);
+            } else {
+                // Crear nueva tarjeta
+                let cardData = { name, phone: cleanPhone };
+                if (email) cardData.email = email;
+                card = await CardsRepo.create(cardData);
+            }
 
-            // 3.1 VALIDAR CONFLICTOS DE HORARIO
-            // Buscar citas activas del mismo día que puedan solaparse
-            const dayStart = `${date}T00:00:00-06:00`;
-            const dayEnd = `${date}T23:59:59-06:00`;
-            
-            const sameDayAppointments = await firestore.collection('appointments')
-                .where('startDateTime', '>=', dayStart)
-                .where('startDateTime', '<=', dayEnd)
-                .where('status', 'in', ['scheduled', 'confirmed'])
-                .get();
+            // 3. Validar conflictos de horario usando repositorio
+            const conflicts = await AppointmentsRepo.findConflicts(
+                date,
+                time,
+                durationMinutes || 60
+            );
 
-            const hasConflict = sameDayAppointments.docs.some(doc => {
-                const appt = doc.data();
-                const apptStart = new Date(appt.startDateTime).getTime();
-                const apptEnd = new Date(appt.endDateTime).getTime();
-                const newStart = start.getTime();
-                const newEnd = end.getTime();
-                
-                // Hay conflicto si los rangos se solapan
-                const overlaps = newStart < apptEnd && newEnd > apptStart;
-                
-                if (overlaps) {
-                    console.log(`[CONFLICT] Conflicto detectado con cita ${doc.id}:`);
-                    console.log(`   Existente: ${appt.startDateTime} - ${appt.endDateTime}`);
-                    console.log(`   Nueva: ${startDateTime} - ${endDateTime}`);
-                }
-                
-                return overlaps;
-            });
+            if (conflicts.length > 0) {
+                console.log(`[CONFLICT] Conflicto detectado con ${conflicts.length} cita(s):`);
+                conflicts.forEach(c => {
+                    console.log(`   Existente: ${c.date} ${c.time} - ${c.clientName}`);
+                });
 
-            if (hasConflict) {
                 return res.status(409).json({
                     success: false,
                     error: 'Ya existe una cita agendada en este horario. Por favor elige otro horario.'
                 });
             }
 
+            // 4. Preparar datos del appointment
             const appointmentData = {
-                clientId: client.id,
-                clientName: client.name,
-                clientPhone: client.phone,
+                cardId: card.id,
+                clientName: card.name,
+                clientPhone: card.phone,
                 serviceId,
                 serviceName,
-                date,  // Pasar date y time directamente
-                time,  // para que repositories.js los maneje correctamente
-                durationMinutes,
+                date,
+                time,
+                durationMinutes: durationMinutes || 60,
                 location: 'Venus Cosmetología',
                 sendWhatsApp24h: !!sendWhatsApp24h,
                 sendWhatsApp2h: !!sendWhatsApp2h
             };
 
-            // Siempre agregar cosmetologistEmail (usar default si no viene del frontend)
-            appointmentData.cosmetologistEmail = cosmetologistEmail || config.google.calendarOwner1;
+            // 5. Crear evento en AMBOS calendarios de Google (Said y Alondra)
+            const startDateTime = `${date}T${time}:00-06:00`;
+            const start = new Date(startDateTime);
+            const end = new Date(start.getTime() + (durationMinutes || 60) * 60000);
+            const endDateTime = end.toISOString().replace('Z', '-06:00');
 
-            // 4. Crear evento en AMBOS calendarios de Google (Said y Alondra)
             const eventData = {
-                title: `${serviceName} - ${client.name}`,
-                description: `Cliente: ${client.name}\nTel: ${client.phone}\nServicio: ${serviceName}`,
+                title: `${serviceName} - ${card.name}`,
+                description: `Cliente: ${card.name}\nTel: ${card.phone}\nServicio: ${serviceName}`,
                 location: 'Cactus 50, San Juan del Río',
                 startISO: startDateTime,
                 endISO: endDateTime
@@ -174,7 +173,7 @@ export const AppointmentsController = {
                 try {
                     const eventId1 = await createEvent({
                         ...eventData,
-                        calendarId: config.google.calendarOwner1 // saidromero19@gmail.com
+                        calendarId: config.google.calendarOwner1
                     });
                     appointmentData.googleCalendarEventId = eventId1;
                     console.log(`✅ Evento creado en calendar 1: ${eventId1}`);
@@ -186,7 +185,7 @@ export const AppointmentsController = {
                 try {
                     const eventId2 = await createEvent({
                         ...eventData,
-                        calendarId: config.google.calendarOwner2 // alondraosornom@gmail.com
+                        calendarId: config.google.calendarOwner2
                     });
                     appointmentData.googleCalendarEventId2 = eventId2;
                     console.log(`✅ Evento creado en calendar 2: ${eventId2}`);
@@ -199,8 +198,8 @@ export const AppointmentsController = {
                 // Continue anyway - don't block appointment creation
             }
 
-            // 5. Guardar en BD
-            const appointment = await AppointmentModel.create(appointmentData);
+            // 6. Guardar appointment en BD usando repositorio
+            const appointment = await AppointmentsRepo.create(appointmentData);
 
             // 6. Enviar WhatsApp Confirmación
             console.log('📱 sendWhatsAppConfirmation:', sendWhatsAppConfirmation);
