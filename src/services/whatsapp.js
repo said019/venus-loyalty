@@ -173,15 +173,23 @@ export const WhatsAppService = {
         // Solo usar startDateTime como fallback absoluto
         let hora;
         if (appt.time) {
+            // Si time existe, usarlo directamente (formato HH:MM)
             hora = appt.time;
+            console.log('[WHATSAPP] Usando appt.time directamente:', hora);
         } else if (appt.startDateTime) {
+            console.log('[WHATSAPP] No hay appt.time, convirtiendo startDateTime:', appt.startDateTime);
             // Si startDateTime es un Date object, extraer hora de México
             if (appt.startDateTime instanceof Date) {
-                // Convertir a hora de México manualmente
-                const mexicoTime = new Date(appt.startDateTime.toLocaleString('en-US', { timeZone: 'America/Mexico_City' }));
-                const hours = mexicoTime.getHours().toString().padStart(2, '0');
-                const minutes = mexicoTime.getMinutes().toString().padStart(2, '0');
-                hora = `${hours}:${minutes}`;
+                // Convertir manualmente UTC a México (UTC-6)
+                const utcHours = appt.startDateTime.getUTCHours();
+                const utcMinutes = appt.startDateTime.getUTCMinutes();
+                let mexicoHours = utcHours - 6;
+                if (mexicoHours < 0) mexicoHours += 24;
+
+                hora = `${mexicoHours.toString().padStart(2, '0')}:${utcMinutes.toString().padStart(2, '0')}`;
+                console.log('[WHATSAPP] Convertido de UTC a México:', {
+                    utcHours, utcMinutes, mexicoHours, hora
+                });
             } else {
                 hora = formatearHora(appt.startDateTime);
             }
@@ -191,11 +199,12 @@ export const WhatsAppService = {
 
         const fecha = appt.date ? formatearFechaLegible(appt.date) : formatearFechaLegible(appt.startDateTime);
 
-        console.log('[WHATSAPP] sendConfirmation:', {
-            hasTime: !!appt.time,
-            time: appt.time,
-            startDateTime: appt.startDateTime,
-            horaCalculada: hora
+        console.log('[WHATSAPP] sendConfirmation FINAL:', {
+            clientName: appt.clientName,
+            fecha,
+            hora,
+            apptTimeOriginal: appt.time,
+            startDateTime: appt.startDateTime
         });
 
         return await sendWhatsAppTemplate(
