@@ -526,11 +526,18 @@ app.post('/api/test/whatsapp', async (req, res) => {
       });
     }
 
+    // Calcular fecha y hora de mañana en formato México
+    const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const testDate = tomorrow.toISOString().split('T')[0]; // YYYY-MM-DD
+    const testTime = '10:00'; // Hora fija para prueba
+    
     const testAppt = {
       clientName: name,
       clientPhone: phone,
       serviceName: service || 'Servicio de prueba',
-      startDateTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // Mañana
+      date: testDate,
+      time: testTime,
+      startDateTime: new Date(`${testDate}T${testTime}:00-06:00`).toISOString(),
       location: 'Cactus 50, San Juan del Río'
     };
 
@@ -573,13 +580,15 @@ app.post('/api/whatsapp/confirmation', adminAuth, async (req, res) => {
       serviceName = services;
     }
 
-    // Construir startDateTime para el formato
-    const startDateTime = new Date(`${date}T${time}:00`).toISOString();
+    // Construir startDateTime para el formato (timezone México UTC-6)
+    const startDateTime = new Date(`${date}T${time}:00-06:00`).toISOString();
 
     const appointmentData = {
       clientName,
       clientPhone: clientPhone.replace(/\D/g, ''),
       serviceName,
+      date,      // Campo date para WhatsApp (sin conversión)
+      time,      // Campo time para WhatsApp (sin conversión)
       startDateTime
     };
 
@@ -2933,6 +2942,8 @@ app.post('/api/booking-requests/:id/booked', adminAuth, async (req, res) => {
       clientPhone: requestData.clientPhone,
       clientEmail: requestData.clientEmail || null,
       cardId: requestData.cardId || null,
+      date: requestData.date,    // Campo date para WhatsApp
+      time: requestData.time,    // Campo time para WhatsApp (sin conversión de timezone)
       startDateTime,
       endDateTime,
       location: 'Venus Cosmetología',
