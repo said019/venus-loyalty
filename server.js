@@ -1290,19 +1290,16 @@ app.patch('/api/appointments/:id/cancel', adminAuth, async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Obtener la cita antes de cancelarla para tener los eventIds
+    // Obtener la cita antes de eliminarla para tener los eventIds
     const appointment = await AppointmentsRepo.findById(id);
 
     if (!appointment) {
       return res.status(404).json({ success: false, error: 'Cita no encontrada' });
     }
 
-    console.log(`[CANCEL] Cancelando cita ${id} - ${appointment.clientName}`);
+    console.log(`[CANCEL] Eliminando cita ${id} - ${appointment.clientName}`);
 
-    // Cancelar en la base de datos usando Prisma
-    await AppointmentsRepo.cancel(id, 'Cancelada desde admin');
-
-    // Eliminar de Google Calendar si hay eventIds
+    // Eliminar de Google Calendar ANTES de eliminar de la base de datos
     if (appointment.googleCalendarEventId || appointment.googleCalendarEventId2) {
       try {
         const { deleteEvent } = await import('./src/services/googleCalendarService.js');
@@ -1332,17 +1329,20 @@ app.patch('/api/appointments/:id/cancel', adminAuth, async (req, res) => {
       }
     }
 
+    // ELIMINAR completamente de la base de datos usando Prisma (no solo marcar como cancelada)
+    await AppointmentsRepo.delete(id);
+
     // Crear notificación
     await NotificationsRepo.create({
       type: 'cita',
       icon: 'times-circle',
-      title: 'Cita cancelada',
-      message: `${appointment.clientName} - ${appointment.serviceName} cancelada`,
+      title: 'Cita eliminada',
+      message: `${appointment.clientName} - ${appointment.serviceName} eliminada`,
       read: false,
       entityId: id
     });
 
-    console.log(`[CANCEL] ✅ Cita ${id} cancelada exitosamente`);
+    console.log(`[CANCEL] ✅ Cita ${id} eliminada exitosamente`);
     res.json({ success: true });
   } catch (error) {
     console.error('[CANCEL] Error:', error);
