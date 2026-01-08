@@ -451,7 +451,26 @@ export const NotificationsRepo = {
   },
 
   async create(data) {
-    return prisma.notification.create({ data });
+    // Si viene entityId, guardarlo en el campo data como JSON para compatibilidad
+    const { entityId, ...rest } = data;
+    const notificationData = {
+      ...rest,
+      entityId: entityId || null,
+      data: entityId ? { entityId } : null
+    };
+    
+    try {
+      return await prisma.notification.create({ data: notificationData });
+    } catch (error) {
+      // Si falla por entityId (campo no existe en la BD), intentar sin él
+      if (error.message.includes('entityId')) {
+        console.warn('[NotificationsRepo] Campo entityId no existe, guardando en data JSON');
+        const { entityId: _, ...safeData } = notificationData;
+        safeData.data = entityId ? { entityId } : null;
+        return await prisma.notification.create({ data: safeData });
+      }
+      throw error;
+    }
   },
 
   async markAsRead(id) {
