@@ -765,7 +765,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      z-index: 50;
+      z-index: 9999;
     }
 
     .modal-card {
@@ -6718,8 +6718,13 @@
               <div id="cm-name" style="font-weight:600;font-size:15px;">—</div>
             </div>
             <div>
-              <div class="muted" style="font-size:11px;margin-bottom:2px;">Teléfono</div>
-              <div id="cm-phone" style="font-size:15px;">—</div>
+              <div class="muted" style="font-size:11px;margin-bottom:2px;">Teléfono <button id="cm-edit-phone-btn" style="background:none;border:none;color:var(--venus-soft);cursor:pointer;font-size:10px;padding:0;margin-left:4px;">✏️ editar</button></div>
+              <div id="cm-phone-display" style="font-size:15px;">—</div>
+              <div id="cm-phone-edit" class="hidden" style="display:flex;gap:6px;align-items:center;">
+                <input type="tel" id="cm-phone-input" style="flex:1;padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:rgba(0,0,0,0.3);color:#fff;font-size:14px;" placeholder="10 dígitos">
+                <button id="cm-phone-save" class="btn small" style="padding:6px 10px;background:#22c55e;">✓</button>
+                <button id="cm-phone-cancel" class="btn small ghost" style="padding:6px 8px;">✕</button>
+              </div>
             </div>
           </div>
 
@@ -8573,8 +8578,13 @@
       // Datos básicos
       document.getElementById('cm-id').textContent = card.id;
       document.getElementById('cm-name').textContent = card.name || '—';
-      document.getElementById('cm-phone').textContent = card.phone || '—';
+      document.getElementById('cm-phone-display').textContent = card.phone || '—';
+      document.getElementById('cm-phone-input').value = card.phone || '';
       document.getElementById('cm-stamps').textContent = `${card.stamps} / ${card.max}`;
+      
+      // Resetear estado de edición de teléfono
+      document.getElementById('cm-phone-display').classList.remove('hidden');
+      document.getElementById('cm-phone-edit').classList.add('hidden');
 
       // Barra de progreso
       const progressPercent = Math.min((card.stamps / card.max) * 100, 100);
@@ -8688,6 +8698,51 @@
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && !modalBackdrop.classList.contains('hidden')) {
         closeCardModal();
+      }
+    });
+
+    // ===== Edición de teléfono =====
+    document.getElementById('cm-edit-phone-btn').addEventListener('click', () => {
+      document.getElementById('cm-phone-display').classList.add('hidden');
+      document.getElementById('cm-phone-edit').classList.remove('hidden');
+      document.getElementById('cm-phone-edit').style.display = 'flex';
+      document.getElementById('cm-phone-input').focus();
+    });
+
+    document.getElementById('cm-phone-cancel').addEventListener('click', () => {
+      document.getElementById('cm-phone-display').classList.remove('hidden');
+      document.getElementById('cm-phone-edit').classList.add('hidden');
+    });
+
+    document.getElementById('cm-phone-save').addEventListener('click', async () => {
+      const newPhone = document.getElementById('cm-phone-input').value.replace(/\D/g, '');
+      
+      if (!newPhone || newPhone.length < 10) {
+        alert('Por favor ingresa un número de teléfono válido (10 dígitos)');
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/cards/${currentCardId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: newPhone })
+        });
+
+        const json = await res.json();
+        
+        if (json.success || res.ok) {
+          document.getElementById('cm-phone-display').textContent = newPhone;
+          document.getElementById('cm-phone-display').classList.remove('hidden');
+          document.getElementById('cm-phone-edit').classList.add('hidden');
+          alert('✅ Teléfono actualizado');
+          loadCards(); // Recargar lista de tarjetas
+        } else {
+          alert('❌ Error: ' + (json.error || 'No se pudo actualizar'));
+        }
+      } catch (error) {
+        console.error('Error actualizando teléfono:', error);
+        alert('❌ Error de conexión');
       }
     });
 

@@ -4083,6 +4083,38 @@ app.get("/api/export.csv", basicAuth, async (_req, res) => {
   }
 });
 /* =========================================================
+   ACTUALIZAR TARJETA
+   ========================================================= */
+app.patch("/api/cards/:cardId", adminAuth, async (req, res) => {
+  try {
+    const { cardId } = req.params;
+    const { phone, name, email, birthday, notes } = req.body;
+
+    if (!cardId) return res.status(400).json({ success: false, error: "Falta cardId" });
+
+    // Construir objeto de actualización solo con campos proporcionados
+    const updateData = {};
+    if (phone !== undefined) updateData.phone = phone.replace(/\D/g, '');
+    if (name !== undefined) updateData.name = name;
+    if (email !== undefined) updateData.email = email;
+    if (birthday !== undefined) updateData.birthday = birthday;
+    if (notes !== undefined) updateData.notes = notes;
+
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({ success: false, error: "No hay datos para actualizar" });
+    }
+
+    const updated = await CardsRepo.update(cardId, updateData);
+    
+    console.log(`[CARD] Tarjeta ${cardId} actualizada:`, updateData);
+    res.json({ success: true, card: updated });
+  } catch (e) {
+    console.error("[PATCH CARD ERROR]", e);
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+/* =========================================================
    ELIMINAR TARJETA
    ========================================================= */
 app.delete("/api/admin/card/:cardId", adminAuth, async (req, res) => {
