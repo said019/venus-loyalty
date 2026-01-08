@@ -1074,6 +1074,56 @@ app.post('/api/appointments', adminAuth, async (req, res) => {
       sendWhatsApp2h: sendWhatsApp2h !== false    // Por defecto true
     };
 
+    // CREAR EVENTOS EN GOOGLE CALENDAR (Said y Alondra)
+    const duration = parseInt(durationMinutes) || 60;
+    const startDateTime = `${date}T${time}:00-06:00`;
+    const startDate = new Date(startDateTime);
+    const endDate = new Date(startDate.getTime() + duration * 60000);
+    const endHours = endDate.getHours().toString().padStart(2, '0');
+    const endMinutes = endDate.getMinutes().toString().padStart(2, '0');
+    const endDateTime = `${date}T${endHours}:${endMinutes}:00-06:00`;
+
+    const eventData = {
+      title: `${serviceName} - ${name}`,
+      description: `Cliente: ${name}\nTel: ${phoneClean}\nServicio: ${serviceName}`,
+      location: 'Cactus 50, San Juan del Río',
+      startISO: startDateTime,
+      endISO: endDateTime
+    };
+
+    try {
+      const { createEvent } = await import('./src/services/googleCalendarService.js');
+      
+      console.log('[APPOINTMENT] 📅 Creando eventos en Google Calendar...');
+
+      // Crear en calendario 1 (Said)
+      try {
+        const eventId1 = await createEvent({
+          ...eventData,
+          calendarId: config.google.calendarOwner1
+        });
+        appointmentData.googleCalendarEventId = eventId1;
+        console.log(`[APPOINTMENT] ✅ Evento creado en calendar Said: ${eventId1}`);
+      } catch (err1) {
+        console.error(`[APPOINTMENT] ❌ Error en calendar Said:`, err1.message);
+      }
+
+      // Crear en calendario 2 (Alondra)
+      try {
+        const eventId2 = await createEvent({
+          ...eventData,
+          calendarId: config.google.calendarOwner2
+        });
+        appointmentData.googleCalendarEventId2 = eventId2;
+        console.log(`[APPOINTMENT] ✅ Evento creado en calendar Alondra: ${eventId2}`);
+      } catch (err2) {
+        console.error(`[APPOINTMENT] ❌ Error en calendar Alondra:`, err2.message);
+      }
+
+    } catch (calErr) {
+      console.error('[APPOINTMENT] ⚠️ Error creating calendar events:', calErr.message);
+    }
+
     const appointment = await AppointmentsRepo.create(appointmentData);
 
     console.log('[APPOINTMENT] ✅ Cita creada y vinculada a tarjeta:', appointment.id, 'cardId:', card.id, {
