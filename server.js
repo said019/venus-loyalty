@@ -1,4 +1,5 @@
 // server.js - COMPLETO CON TODAS LAS CORRECCIONES APPLICADAS
+// VERSION: 2026-01-08-TIMEZONE-FIX-V2
 import express from "express";
 import cors from "cors";
 import "dotenv/config";
@@ -500,6 +501,15 @@ app.use('/api/calendar', calendarRoutes);
 
 // ✅ WhatsApp Webhook (Twilio)
 app.use('/api/whatsapp', whatsappWebhook);
+
+// 🏥 Health Check con versión
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    version: '2026-01-08-TIMEZONE-FIX-V2',
+    timestamp: new Date().toISOString()
+  });
+});
 
 // 🧪 Test endpoint para WhatsApp
 app.post('/api/test/whatsapp', async (req, res) => {
@@ -4656,6 +4666,7 @@ app.post("/api/admin/update-client-info", adminAuth, async (req, res) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`\n🚀 Servidor activo en http://localhost:${PORT}`);
+  console.log(`   📦 VERSION: 2026-01-08-TIMEZONE-FIX-V2`);
   console.log(`   • Admin: http://localhost:${PORT}/admin`);
   console.log(`   • Staff: http://localhost:${PORT}/staff.html`);
   console.log(`   • Google Wallet: http://localhost:${PORT}/api/google/diagnostics`);
