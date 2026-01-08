@@ -208,18 +208,25 @@ model Setting {
 
 // Ventas (historial)
 model Sale {
-  id            String   @id @default(cuid())
-  appointmentId String?
-  clientName    String?
-  clientPhone   String?
-  serviceName   String?
-  products      Json?
-  subtotal      Decimal  @db.Decimal(10, 2)
-  discount      Decimal? @db.Decimal(10, 2)
-  total         Decimal  @db.Decimal(10, 2)
-  paymentMethod String
-  date          DateTime
-  createdAt     DateTime @default(now())
+  id             String   @id @default(cuid())
+  appointmentId  String?
+  clientName     String?
+  clientPhone    String?
+  serviceName    String?
+  serviceAmount  Decimal? @db.Decimal(10, 2)
+  productsAmount Decimal? @db.Decimal(10, 2)
+  products       Json?
+  productsSold   Json?
+  subtotal       Decimal  @db.Decimal(10, 2)
+  discountType   String?
+  discountValue  Decimal? @db.Decimal(10, 2)
+  discountAmount Decimal? @db.Decimal(10, 2)
+  discount       Decimal? @db.Decimal(10, 2)
+  total          Decimal  @db.Decimal(10, 2)
+  totalAmount    Decimal? @db.Decimal(10, 2)
+  paymentMethod  String
+  date           DateTime
+  createdAt      DateTime @default(now())
 
   @@map("sales")
 }
