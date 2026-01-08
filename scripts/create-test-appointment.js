@@ -3,7 +3,7 @@
  */
 
 import { AppointmentsRepo, CardsRepo } from '../src/db/repositories.js';
-import { WhatsAppService } from '../src/services/whatsapp.js';
+import { WhatsAppService } from '../src/services/whatsapp-v2.js';
 
 async function createTestAppointment() {
   console.log('📝 Creando cita de prueba para Said Romero...\n');

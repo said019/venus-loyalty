@@ -1,6 +1,6 @@
 // test-whatsapp.js - Script de prueba para WhatsApp con Twilio
 import 'dotenv/config';
-import { WhatsAppService } from './src/services/whatsapp.js';
+import { WhatsAppService } from './src/services/whatsapp-v2.js';
 
 console.log('🧪 Prueba de WhatsApp con Twilio\n');
 

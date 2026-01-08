@@ -1,6 +1,6 @@
 import { CardsRepo, AppointmentsRepo } from '../db/repositories.js';
 import { CalendarService } from '../services/calendar.js';
-import { WhatsAppService } from '../services/whatsapp.js';
+import { WhatsAppService } from '../services/whatsapp-v2.js';
 import { config } from '../config/config.js';
 import axios from 'axios';
 

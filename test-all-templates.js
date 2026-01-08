@@ -1,6 +1,6 @@
 // test-all-templates.js - Prueba todos los templates de WhatsApp
 import 'dotenv/config';
-import { WhatsAppService } from './src/services/whatsapp.js';
+import { WhatsAppService } from './src/services/whatsapp-v2.js';
 
 console.log('🧪 Prueba de TODOS los templates de WhatsApp\n');
 

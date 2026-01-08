@@ -1,7 +1,7 @@
 // src/routes/whatsappWebhook.js - Webhook para respuestas de WhatsApp (Twilio)
 import express from 'express';
 import { firestore } from '../db/compat.js';
-import { WhatsAppService } from '../services/whatsapp.js';
+import { WhatsAppService } from '../services/whatsapp-v2.js';
 
 const router = express.Router();
 

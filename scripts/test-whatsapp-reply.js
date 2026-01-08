@@ -1,4 +1,4 @@
-import { WhatsAppService } from '../src/services/whatsapp.js';
+import { WhatsAppService } from '../src/services/whatsapp-v2.js';
 import { fileURLToPath } from 'url';
 import path from 'path';
 import dotenv from 'dotenv';
