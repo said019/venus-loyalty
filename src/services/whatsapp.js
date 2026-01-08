@@ -169,8 +169,9 @@ export const WhatsAppService = {
      * Variables: {{1}}=Nombre, {{2}}=Servicio, {{3}}=Fecha, {{4}}=Hora, {{5}}=Lugar
      */
     async sendConfirmation(appt) {
+        // VERSION: TIMEZONE-FIX-FINAL
         // SIEMPRE usar appt.time si está disponible (es el campo más confiable)
-        // Solo usar startDateTime como fallback absoluto
+        console.log('[WHATSAPP] 🔥 VERSION: TIMEZONE-FIX-FINAL 🔥');
         console.log('[WHATSAPP] sendConfirmation llamado con:', {
             hasTime: !!appt.time,
             time: appt.time,
@@ -179,9 +180,9 @@ export const WhatsAppService = {
 
         let hora;
         if (appt.time) {
-            // Si time existe, usarlo directamente (formato HH:MM)
+            // Si time existe, usarlo directamente (formato HH:MM) - SIN CONVERSIÓN
             hora = appt.time;
-            console.log('[WHATSAPP] ✅ Usando appt.time directamente:', hora);
+            console.log('[WHATSAPP] ✅✅✅ Usando appt.time DIRECTAMENTE SIN CONVERSIÓN:', hora);
         } else if (appt.startDateTime) {
             console.log('[WHATSAPP] No hay appt.time, convirtiendo startDateTime:', appt.startDateTime);
             // Si startDateTime es un Date object, extraer hora de México
