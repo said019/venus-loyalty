@@ -169,9 +169,27 @@ export const WhatsAppService = {
      * Variables: {{1}}=Nombre, {{2}}=Servicio, {{3}}=Fecha, {{4}}=Hora, {{5}}=Lugar
      */
     async sendConfirmation(appt) {
-        // Priorizar campos date y time si existen (más confiables)
+        // SIEMPRE usar appt.time si está disponible (es el campo más confiable)
+        // Solo usar startDateTime como fallback absoluto
+        let hora;
+        if (appt.time) {
+            hora = appt.time;
+        } else if (appt.startDateTime) {
+            // Si startDateTime es un Date object, extraer hora de México
+            if (appt.startDateTime instanceof Date) {
+                // Convertir a hora de México manualmente
+                const mexicoTime = new Date(appt.startDateTime.toLocaleString('en-US', { timeZone: 'America/Mexico_City' }));
+                const hours = mexicoTime.getHours().toString().padStart(2, '0');
+                const minutes = mexicoTime.getMinutes().toString().padStart(2, '0');
+                hora = `${hours}:${minutes}`;
+            } else {
+                hora = formatearHora(appt.startDateTime);
+            }
+        } else {
+            hora = '00:00'; // Fallback de emergencia
+        }
+
         const fecha = appt.date ? formatearFechaLegible(appt.date) : formatearFechaLegible(appt.startDateTime);
-        const hora = appt.time || formatearHora(appt.startDateTime);
 
         console.log('[WHATSAPP] sendConfirmation:', {
             hasTime: !!appt.time,
