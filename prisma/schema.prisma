@@ -173,6 +173,7 @@ model Notification {
   message   String
   read      Boolean  @default(false)
   data      Json?
+  entityId  String?  // ID de la entidad relacionada (cita, tarjeta, etc.)
   createdAt DateTime @default(now())
 
   @@map("notifications")
