@@ -17,8 +17,8 @@ import { prisma } from './src/db/index.js';
 import { firestore } from './src/db/compat.js';
 import { CardsRepo, AppointmentsRepo, ServicesRepo, ProductsRepo, SalesRepo, NotificationsRepo } from './src/db/repositories.js';
 
-// WhatsApp Service
-import { WhatsAppService } from './src/services/whatsapp.js';
+// WhatsApp Service - USANDO V2 PARA FORZAR RECARGA
+import { WhatsAppService } from './src/services/whatsapp-v2.js';
 
 // Firebase legacy (solo para migración - remover después)
 // import { firestore } from "./lib/firebase.js";
