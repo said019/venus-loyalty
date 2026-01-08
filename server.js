@@ -1077,10 +1077,12 @@ app.post('/api/appointments', adminAuth, async (req, res) => {
     // CREAR EVENTOS EN GOOGLE CALENDAR (Said y Alondra)
     const duration = parseInt(durationMinutes) || 60;
     const startDateTime = `${date}T${time}:00-06:00`;
-    const startDate = new Date(startDateTime);
-    const endDate = new Date(startDate.getTime() + duration * 60000);
-    const endHours = endDate.getHours().toString().padStart(2, '0');
-    const endMinutes = endDate.getMinutes().toString().padStart(2, '0');
+    
+    // Calcular hora de fin sumando duración a la hora de inicio (en minutos locales)
+    const [startHour, startMin] = time.split(':').map(Number);
+    const totalMinutes = startHour * 60 + startMin + duration;
+    const endHours = Math.floor(totalMinutes / 60).toString().padStart(2, '0');
+    const endMinutes = (totalMinutes % 60).toString().padStart(2, '0');
     const endDateTime = `${date}T${endHours}:${endMinutes}:00-06:00`;
 
     const eventData = {
@@ -2974,11 +2976,11 @@ app.post('/api/booking-requests/:id/booked', adminAuth, async (req, res) => {
     const startDateTime = `${requestData.date}T${requestData.time}:00-06:00`;
     const duration = requestData.serviceDuration || 60;
 
-    // Calcular endDateTime
-    const startDate = new Date(startDateTime);
-    const endDate = new Date(startDate.getTime() + duration * 60000);
-    const endHours = endDate.getHours().toString().padStart(2, '0');
-    const endMinutes = endDate.getMinutes().toString().padStart(2, '0');
+    // Calcular endDateTime sumando duración a la hora de inicio (en minutos locales)
+    const [startHour, startMin] = requestData.time.split(':').map(Number);
+    const totalMinutes = startHour * 60 + startMin + duration;
+    const endHours = Math.floor(totalMinutes / 60).toString().padStart(2, '0');
+    const endMinutes = (totalMinutes % 60).toString().padStart(2, '0');
     const endDateTime = `${requestData.date}T${endHours}:${endMinutes}:00-06:00`;
 
     // Crear la cita en appointments
