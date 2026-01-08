@@ -1,6 +1,6 @@
 import cron from 'node-cron';
 import { AppointmentModel } from '../models/index.js';
-import { WhatsAppService } from '../services/whatsapp.js';
+import { WhatsAppService } from '../services/whatsapp-v2.js';
 import { firestore } from '../db/compat.js';
 
 export function startScheduler() {
