@@ -17,6 +17,9 @@ import { prisma } from './src/db/index.js';
 import { firestore } from './src/db/compat.js';
 import { CardsRepo, AppointmentsRepo, ServicesRepo, ProductsRepo, SalesRepo, NotificationsRepo } from './src/db/repositories.js';
 
+// WhatsApp Service
+import { WhatsAppService } from './src/services/whatsapp.js';
+
 // Firebase legacy (solo para migración - remover después)
 // import { firestore } from "./lib/firebase.js";
 
@@ -531,7 +534,6 @@ app.post('/api/test/whatsapp', async (req, res) => {
       location: 'Cactus 50, San Juan del Río'
     };
 
-    const { WhatsAppService } = await import('./src/services/whatsapp.js');
     const result = await WhatsAppService.sendConfirmation(testAppt);
 
     res.json({
@@ -583,7 +585,6 @@ app.post('/api/whatsapp/confirmation', adminAuth, async (req, res) => {
 
     console.log('[WHATSAPP] Enviando confirmación:', appointmentData);
 
-    const { WhatsAppService } = await import('./src/services/whatsapp.js');
     const result = await WhatsAppService.sendConfirmation(appointmentData);
 
     console.log('[WHATSAPP] Resultado:', result);
@@ -1080,7 +1081,6 @@ app.post('/api/appointments', adminAuth, async (req, res) => {
     // Enviar confirmación WhatsApp si está activado
     if (sendWhatsAppConfirmation) {
       try {
-        const { WhatsAppService } = await import('./src/services/whatsapp.js');
         console.log('[APPOINTMENT] Enviando WhatsApp con datos:', {
           id: appointment.id,
           clientName: appointment.clientName,
@@ -3000,7 +3000,6 @@ app.post('/api/booking-requests/:id/booked', adminAuth, async (req, res) => {
 
     // 3. ENVIAR WHATSAPP DE CONFIRMACIÓN
     try {
-      const { WhatsAppService } = await import('./src/services/whatsapp.js');
       const appointment = { id: appointmentRef.id, ...appointmentData };
       const whatsappResult = await WhatsAppService.sendConfirmation(appointment);
 
