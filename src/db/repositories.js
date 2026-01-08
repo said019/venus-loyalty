@@ -561,7 +561,39 @@ export const SalesRepo = {
   },
 
   async create(data) {
-    return prisma.sale.create({ data });
+    // Normalizar datos para compatibilidad con diferentes versiones del schema
+    const saleData = {
+      appointmentId: data.appointmentId || null,
+      clientName: data.clientName || null,
+      clientPhone: data.clientPhone || null,
+      serviceName: data.serviceName || null,
+      products: data.productsSold || data.products || null,
+      subtotal: data.subtotal || 0,
+      discount: data.discountAmount || data.discount || 0,
+      total: data.totalAmount || data.total || 0,
+      paymentMethod: data.paymentMethod,
+      date: data.date || new Date()
+    };
+
+    try {
+      // Intentar con todos los campos nuevos
+      return await prisma.sale.create({
+        data: {
+          ...saleData,
+          serviceAmount: data.serviceAmount || null,
+          productsAmount: data.productsAmount || null,
+          productsSold: data.productsSold || null,
+          discountType: data.discountType || null,
+          discountValue: data.discountValue || null,
+          discountAmount: data.discountAmount || null,
+          totalAmount: data.totalAmount || null
+        }
+      });
+    } catch (error) {
+      // Si falla por campos desconocidos, usar solo los campos básicos
+      console.warn('[SalesRepo] Usando schema básico:', error.message);
+      return await prisma.sale.create({ data: saleData });
+    }
   }
 };
 
