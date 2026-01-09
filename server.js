@@ -3308,37 +3308,20 @@ app.get("/api/admin/events-firebase", adminAuth, async (req, res) => {
   }
 });
 
-// ⭐ NUEVO: Endpoint para estadísticas del dashboard (HOY)
+// ⭐ Endpoint para estadísticas del dashboard (HOY)
 app.get("/api/dashboard/today", adminAuth, async (req, res) => {
   try {
+    // Obtener fecha de hoy en formato YYYY-MM-DD (zona horaria de México)
     const now = new Date();
-    // Inicio del día en zona horaria local (aproximación simple o usar librería)
-    // Para simplificar, usaremos ISO string del inicio del día UTC o ajustado
-    // Mejor: usar toMexicoCityISO si estuviera disponible aquí, o simple Date manipulation
+    // Ajustar a zona horaria de México (UTC-6)
+    const mexicoTime = new Date(now.getTime() - (6 * 60 * 60 * 1000));
+    const todayStr = mexicoTime.toISOString().split('T')[0];
 
-    // Ajuste manual a zona horaria de México (-6) para "HOY"
-    const mexicoOffset = 6 * 60 * 60 * 1000;
-    const todayStart = new Date(now.getTime() - mexicoOffset);
-    todayStart.setUTCHours(0, 0, 0, 0);
-    const todayStartIso = todayStart.toISOString(); // Esto es inicio del día en UTC, cuidado
+    console.log(`[DASHBOARD TODAY] Buscando citas para fecha: ${todayStr}`);
 
-    // Mejor enfoque: Buscar por rango de fecha string "YYYY-MM-DD" si guardamos así,
-    // pero guardamos ISO.
-    // Vamos a traer todas las citas del día.
-
-    // Definir rango del día en UTC que cubra el día en México
-    // Día en México: 00:00 a 23:59.
-    // UTC: 06:00 (día actual) a 06:00 (día siguiente)
-
-    const startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0); // Local del servidor
-    const endOfDay = new Date();
-    endOfDay.setHours(23, 59, 59, 999);
-
-    // Consultar citas
+    // Consultar citas por el campo 'date' que está en formato YYYY-MM-DD
     const snapshot = await firestore.collection('appointments')
-      .where('startDateTime', '>=', startOfDay.toISOString())
-      .where('startDateTime', '<=', endOfDay.toISOString())
+      .where('date', '==', todayStr)
       .get();
 
     let appointmentsCount = 0;
