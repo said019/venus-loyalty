@@ -2264,14 +2264,21 @@
       padding: 8px;
       position: relative;
       cursor: pointer;
-      transition: background-color 0.2s;
+      transition: background-color 0.15s;
       display: flex;
       flex-direction: column;
       background: rgba(255, 255, 255, 0.03);
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: rgba(140, 150, 104, 0.3);
+      user-select: none;
     }
 
     .calendar-day:hover {
       background-color: rgba(255, 255, 255, 0.08);
+    }
+
+    .calendar-day:active {
+      background-color: rgba(140, 150, 104, 0.3);
     }
 
     .calendar-day.selected {
@@ -2324,16 +2331,23 @@
       font-size: 11px;
       font-weight: 500;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: background-color 0.15s, box-shadow 0.15s;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: rgba(140, 150, 104, 0.3);
+      user-select: none;
     }
 
     .calendar-event:hover {
       filter: brightness(1.1);
-      transform: translateY(-1px);
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .calendar-event:active {
+      transform: scale(0.97);
+      filter: brightness(0.95);
     }
 
     .calendar-event.confirmed {
@@ -6718,10 +6732,14 @@
               <div id="cm-name" style="font-weight:600;font-size:15px;">—</div>
             </div>
             <div>
-              <div class="muted" style="font-size:11px;margin-bottom:2px;">Teléfono <button id="cm-edit-phone-btn" style="background:none;border:none;color:var(--venus-soft);cursor:pointer;font-size:10px;padding:0;margin-left:4px;">✏️ editar</button></div>
+              <div class="muted" style="font-size:11px;margin-bottom:2px;">Teléfono <button id="cm-edit-phone-btn"
+                  style="background:none;border:none;color:var(--venus-soft);cursor:pointer;font-size:10px;padding:0;margin-left:4px;">✏️
+                  editar</button></div>
               <div id="cm-phone-display" style="font-size:15px;">—</div>
               <div id="cm-phone-edit" class="hidden" style="display:flex;gap:6px;align-items:center;">
-                <input type="tel" id="cm-phone-input" style="flex:1;padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:rgba(0,0,0,0.3);color:#fff;font-size:14px;" placeholder="10 dígitos">
+                <input type="tel" id="cm-phone-input"
+                  style="flex:1;padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:rgba(0,0,0,0.3);color:#fff;font-size:14px;"
+                  placeholder="10 dígitos">
                 <button id="cm-phone-save" class="btn small" style="padding:6px 10px;background:#22c55e;">✓</button>
                 <button id="cm-phone-cancel" class="btn small ghost" style="padding:6px 8px;">✕</button>
               </div>
@@ -8581,7 +8599,7 @@
       document.getElementById('cm-phone-display').textContent = card.phone || '—';
       document.getElementById('cm-phone-input').value = card.phone || '';
       document.getElementById('cm-stamps').textContent = `${card.stamps} / ${card.max}`;
-      
+
       // Resetear estado de edición de teléfono
       document.getElementById('cm-phone-display').classList.remove('hidden');
       document.getElementById('cm-phone-edit').classList.add('hidden');
@@ -8716,7 +8734,7 @@
 
     document.getElementById('cm-phone-save').addEventListener('click', async () => {
       const newPhone = document.getElementById('cm-phone-input').value.replace(/\D/g, '');
-      
+
       if (!newPhone || newPhone.length < 10) {
         alert('Por favor ingresa un número de teléfono válido (10 dígitos)');
         return;
@@ -8730,7 +8748,7 @@
         });
 
         const json = await res.json();
-        
+
         if (json.success || res.ok) {
           document.getElementById('cm-phone-display').textContent = newPhone;
           document.getElementById('cm-phone-display').classList.remove('hidden');
@@ -10358,7 +10376,10 @@
             appointmentsSection.classList.remove('hidden');
           }
 
-          renderMonthlyCalendar();
+
+          // Update visual selection without full re-render
+          document.querySelectorAll('.calendar-day.selected').forEach(el => el.classList.remove('selected'));
+
           loadAppointments();
           updateSelectedDateLabel();
         });
@@ -10431,12 +10452,89 @@
             }
           });
 
-          // Re-renderizar con los datos
-          renderCalendar();
+          // Update calendar days with appointments data (without full re-render to avoid flickering)
+          updateCalendarDaysWithAppointments();
         }
       } catch (error) {
         console.error('Error loading month appointments:', error);
       }
+    }
+
+    // Update calendar days with appointment events without full re-render (prevents flickering)
+    function updateCalendarDaysWithAppointments() {
+      const calendarDays = document.querySelectorAll('.calendar-day:not(.other-month)');
+
+      calendarDays.forEach(dayEl => {
+        // Get the date from the day element
+        const dayNumber = dayEl.querySelector('.day-number');
+        if (!dayNumber) return;
+
+        const dayNum = parseInt(dayNumber.textContent);
+        const year = currentMonth.getFullYear();
+        const month = currentMonth.getMonth();
+        const date = new Date(year, month, dayNum);
+        date.setHours(0, 0, 0, 0);
+
+        // Clear existing events container
+        let eventsContainer = dayEl.querySelector('.day-events');
+        if (eventsContainer) {
+          eventsContainer.innerHTML = '';
+        } else {
+          eventsContainer = document.createElement('div');
+          eventsContainer.className = 'day-events';
+          dayEl.appendChild(eventsContainer);
+        }
+
+        // Find appointments for this day
+        const dayAppointments = (allAppointments || []).filter(apt => {
+          const aptDate = new Date(apt.date + 'T00:00:00');
+          aptDate.setHours(0, 0, 0, 0);
+          return aptDate.getTime() === date.getTime();
+        });
+
+        // Add appointment events
+        const maxEvents = 3;
+        dayAppointments.slice(0, maxEvents).forEach(apt => {
+          const eventEl = document.createElement('div');
+          eventEl.className = 'calendar-event';
+
+          if (apt.status === 'confirmed') eventEl.classList.add('confirmed');
+          else if (apt.status === 'cancelled') eventEl.classList.add('cancelled');
+          else eventEl.classList.add('pending');
+
+          eventEl.textContent = `${apt.time} ${apt.clientName}`;
+          eventEl.title = `${apt.time} - ${apt.clientName}\n${apt.serviceName}`;
+
+          // Click handler for event
+          eventEl.addEventListener('click', (e) => {
+            e.stopPropagation();
+            editAppointment(apt.id);
+          });
+
+          eventsContainer.appendChild(eventEl);
+        });
+
+        // Show "+X más" if more events
+        if (dayAppointments.length > maxEvents) {
+          const moreEl = document.createElement('div');
+          moreEl.className = 'event-more';
+          moreEl.textContent = `+${dayAppointments.length - maxEvents} más`;
+          moreEl.addEventListener('click', (e) => {
+            e.stopPropagation();
+            selectedDate = new Date(date);
+            loadAppointments();
+            updateSelectedDateLabel();
+          });
+          eventsContainer.appendChild(moreEl);
+        }
+
+        // Add has-appointments class if needed
+        if (dayAppointments.length > 0) {
+          dayEl.classList.add('has-appointments');
+        } else {
+          dayEl.classList.remove('has-appointments');
+        }
+      });
     }
 
     function updateSelectedDateLabel() {
