@@ -1,0 +1,1356 @@
+@import "tailwindcss";
+
+/* ========================================
+   VENUS ADMIN - TAILWIND COMPONENTS
+   Migración gradual de estilos
+   ======================================== */
+
+/* Custom utilities para Venus */
+@layer utilities {
+  .text-venus-gold {
+    color: #d4af37;
+  }
+  
+  .bg-venus-dark {
+    background-color: #0f0f0f;
+  }
+  
+  .bg-venus-card {
+    background-color: #1a1a1a;
+  }
+  
+  .border-venus {
+    border-color: #2a2a2a;
+  }
+  
+  /* Gradientes Venus */
+  .bg-venus-gradient {
+    background: linear-gradient(135deg, #2d2e28 0%, #3f4037 50%, #4a4b42 100%);
+  }
+  
+  .bg-venus-card-gradient {
+    background: linear-gradient(145deg, #8c9668 0%, #7a8559 50%, #6b7550 100%);
+  }
+}
+
+/* ========================================
+   CLIENT CARD - Componentes para index.html
+   ======================================== */
+@layer components {
+  /* Container principal */
+  .tw-client-container {
+    width: 100%;
+    max-width: 420px;
+  }
+
+  /* Card principal del cliente */
+  .tw-client-card {
+    background: linear-gradient(145deg, #8c9668 0%, #7a8559 50%, #6b7550 100%);
+    border-radius: 28px;
+    padding: 0;
+    box-shadow:
+      0 25px 50px rgba(0, 0, 0, 0.4),
+      0 10px 20px rgba(0, 0, 0, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .tw-client-card::before {
+    content: "";
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.08) 0%, transparent 50%),
+      radial-gradient(circle at 70% 80%, rgba(255, 255, 255, 0.05) 0%, transparent 40%);
+    pointer-events: none;
+  }
+
+  /* Header de la tarjeta */
+  .tw-client-header {
+    padding: 32px 28px 20px;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Logo container */
+  .tw-client-logo {
+    width: 90px;
+    height: 90px;
+    margin: 0 auto 16px;
+    background: white;
+    border-radius: 50%;
+    padding: 8px;
+    box-shadow:
+      0 8px 24px rgba(0, 0, 0, 0.2),
+      0 2px 8px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .tw-client-logo img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+
+  /* Brand name */
+  .tw-client-brand {
+    font-size: 28px;
+    font-weight: 700;
+    color: white;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    margin-bottom: 4px;
+  }
+
+  /* Brand tagline */
+  .tw-client-tagline {
+    font-size: 15px;
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 400;
+    letter-spacing: 0.5px;
+  }
+
+  /* Client info section */
+  .tw-client-info {
+    background: rgba(255, 255, 255, 0.95);
+    padding: 24px 28px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Client name */
+  .tw-client-name {
+    font-size: 22px;
+    font-weight: 600;
+    color: #2d2d1f;
+    margin-bottom: 8px;
+    text-align: center;
+  }
+
+  /* Client phone */
+  .tw-client-phone {
+    font-size: 14px;
+    color: #7a7a6a;
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
+  /* Stamps section */
+  .tw-stamps-section {
+    margin-bottom: 24px;
+  }
+
+  .tw-stamps-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+
+  .tw-stamps-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #2d2d1f;
+  }
+
+  .tw-stamps-count {
+    font-size: 14px;
+    color: #8c9668;
+    font-weight: 500;
+  }
+
+  /* Stamps grid */
+  .tw-stamps-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .tw-stamp {
+    aspect-ratio: 1;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    transition: all 0.3s ease;
+  }
+
+  .tw-stamp.filled {
+    background: linear-gradient(135deg, #8c9668, #a0b070);
+    color: white;
+    box-shadow: 0 4px 12px rgba(140, 150, 104, 0.3);
+  }
+
+  .tw-stamp.empty {
+    background: #f5f5f5;
+    border: 2px dashed #d1d5db;
+    color: #9ca3af;
+  }
+
+  /* Progress bar */
+  .tw-progress-container {
+    background: #e5e7eb;
+    border-radius: 8px;
+    height: 8px;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+
+  .tw-progress-bar {
+    background: linear-gradient(90deg, #8c9668, #a0b070);
+    height: 100%;
+    border-radius: 8px;
+    transition: width 0.5s ease;
+  }
+
+  .tw-progress-text {
+    font-size: 12px;
+    color: #6b7280;
+    text-align: center;
+  }
+
+  /* Action buttons */
+  .tw-client-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+  }
+
+  .tw-client-btn {
+    flex: 1;
+    padding: 14px 20px;
+    border-radius: 16px;
+    font-weight: 600;
+    font-size: 15px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .tw-client-btn-primary {
+    background: linear-gradient(135deg, #8c9668, #a0b070);
+    color: white;
+    box-shadow: 0 4px 16px rgba(140, 150, 104, 0.3);
+  }
+
+  .tw-client-btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(140, 150, 104, 0.4);
+  }
+
+  .tw-client-btn-secondary {
+    background: white;
+    color: #8c9668;
+    border: 2px solid #8c9668;
+  }
+
+  .tw-client-btn-secondary:hover {
+    background: #8c9668;
+    color: white;
+    transform: translateY(-2px);
+  }
+
+  /* Footer */
+  .tw-client-footer {
+    text-align: center;
+    margin-top: 24px;
+    padding: 16px;
+  }
+
+  .tw-client-footer-text {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  .tw-client-footer-link {
+    color: rgba(255, 255, 255, 0.9);
+    text-decoration: none;
+  }
+
+  .tw-client-footer-link:hover {
+    text-decoration: underline;
+  }
+
+  /* QR Section */
+  .tw-qr-section {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    margin-top: 20px;
+    overflow: hidden;
+  }
+
+  .tw-qr-toggle {
+    width: 100%;
+    padding: 16px 20px;
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 15px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: background 0.3s ease;
+  }
+
+  .tw-qr-toggle:hover {
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .tw-qr-toggle-icon {
+    transition: transform 0.3s ease;
+  }
+
+  .tw-qr-content {
+    padding: 0 20px 20px;
+    text-align: center;
+    display: none;
+  }
+
+  .tw-qr-content.open {
+    display: block;
+  }
+
+  .tw-qr-image {
+    width: 160px;
+    height: 160px;
+    background: white;
+    border-radius: 12px;
+    padding: 10px;
+    margin: 0 auto 16px;
+  }
+
+  .tw-qr-image img {
+    width: 100%;
+    height: 100%;
+  }
+
+  .tw-qr-hint {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 12px;
+    line-height: 1.5;
+  }
+
+  .tw-card-id-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    justify-content: center;
+  }
+
+  .tw-card-id {
+    font-family: 'SF Mono', 'Monaco', monospace;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.8);
+    background: rgba(0, 0, 0, 0.2);
+    padding: 8px 12px;
+    border-radius: 8px;
+  }
+
+  .tw-btn-copy {
+    padding: 8px 14px;
+    font-size: 13px;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s ease;
+  }
+
+  .tw-btn-copy:hover {
+    background: rgba(255, 255, 255, 0.3);
+  }
+
+  /* Error message */
+  .tw-error-message {
+    background: rgba(255, 107, 107, 0.2);
+    border: 1px solid rgba(255, 107, 107, 0.4);
+    color: #ffcdd2;
+    padding: 12px 16px;
+    border-radius: 12px;
+    font-size: 14px;
+    margin-bottom: 16px;
+    display: none;
+  }
+
+/* ========================================
+   BOOKING SYSTEM - Componentes para agendar.html
+   ======================================== */
+  /* Header */
+  .tw-booking-header {
+    background: linear-gradient(135deg, #3a3a2a 0%, #2d2d1f 100%);
+    padding: 30px 20px;
+    text-align: center;
+    color: white;
+  }
+
+  .tw-booking-logo {
+    width: 60px;
+    height: 60px;
+    border-radius: 16px;
+    margin: 0 auto 16px;
+  }
+
+  .tw-booking-title {
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+
+  .tw-booking-subtitle {
+    font-size: 14px;
+    opacity: 0.8;
+  }
+
+  /* Container */
+  .tw-booking-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 24px 20px 40px;
+  }
+
+  /* Progress indicator */
+  .tw-progress {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: 32px;
+  }
+
+  .tw-progress-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.08);
+  }
+
+  .tw-progress-dot.active {
+    background: #8c9668;
+  }
+
+  .tw-progress-dot.completed {
+    background: #22c55e;
+  }
+
+  /* Business info card */
+  .tw-business-info {
+    background: white;
+    border-radius: 20px;
+    padding: 24px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+  }
+
+  .tw-business-row {
+    display: flex;
+    align-items: start;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .tw-business-row:last-child {
+    margin-bottom: 0;
+  }
+
+  .tw-business-icon {
+    color: #8c9668;
+    margin-top: 2px;
+    font-size: 16px;
+  }
+
+  .tw-business-content {
+    flex: 1;
+  }
+
+  .tw-business-label {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+
+  .tw-business-text {
+    font-size: 13px;
+    color: #7a7a6a;
+  }
+
+  /* Category tabs */
+  .tw-category-tabs {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding-bottom: 12px;
+    margin-bottom: 20px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .tw-category-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tw-category-tab {
+    padding: 8px 16px;
+    border-radius: 20px;
+    background: #f3f4f6;
+    color: #7a7a6a;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid transparent;
+  }
+
+  .tw-category-tab.active {
+    background: #8c9668;
+    color: white;
+    box-shadow: 0 4px 12px rgba(140, 150, 104, 0.4);
+  }
+
+  .tw-category-tab:hover:not(.active) {
+    background: #e5e7eb;
+  }
+
+  /* Services grid */
+  .tw-services-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+  }
+
+  .tw-service-item {
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 16px;
+    padding: 16px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    background: white;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 100px;
+  }
+
+  .tw-service-item:hover {
+    border-color: #8c9668;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+  }
+
+  .tw-service-item.selected {
+    border-color: #8c9668;
+    background: #f7f9f2;
+    box-shadow: 0 0 0 2px #8c9668;
+  }
+
+  .tw-service-item.selected::after {
+    content: '✓';
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: #8c9668;
+    color: white;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+  }
+
+  .tw-service-name {
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 8px;
+    line-height: 1.4;
+  }
+
+  .tw-service-meta-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-top: auto;
+  }
+
+  .tw-service-duration {
+    font-size: 11px;
+    color: #7a7a6a;
+    background: #f3f4f6;
+    padding: 2px 6px;
+    border-radius: 6px;
+  }
+
+  .tw-service-price {
+    color: #8c9668;
+    font-weight: 700;
+    font-size: 15px;
+  }
+
+  .tw-service-info-btn {
+    background: none;
+    border: none;
+    color: #8c9668;
+    cursor: pointer;
+    padding: 4px;
+    font-size: 14px;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+  }
+
+  .tw-service-info-btn:hover {
+    opacity: 1;
+  }
+
+  .tw-service-description {
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease, margin 0.3s ease;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .tw-service-item.show-desc .tw-service-description,
+  .tw-service-item.selected .tw-service-description {
+    max-height: 200px;
+    opacity: 1;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+    pointer-events: auto;
+  }
+
+  /* Calendar */
+  .tw-calendar-wrapper {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  @media (max-width: 600px) {
+    .tw-calendar-wrapper {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .tw-calendar {
+    background: #faf9f6;
+    border-radius: 12px;
+    padding: 14px;
+  }
+
+  .tw-calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+
+  .tw-calendar-title {
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .tw-calendar-nav {
+    display: flex;
+    gap: 6px;
+  }
+
+  .tw-calendar-nav-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    background: white;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  .tw-calendar-nav-btn:hover {
+    background: #e8ebe0;
+  }
+
+  .tw-calendar-nav-btn:active {
+    background: #a8b485;
+  }
+
+  .tw-calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 3px;
+    text-align: center;
+  }
+
+  .tw-day-name {
+    font-size: 10px;
+    color: #7a7a6a;
+    padding: 6px 0;
+  }
+
+  .tw-day {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    font-size: 12px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    user-select: none;
+  }
+
+  .tw-day:hover:not(.disabled):not(.empty) {
+    background: #e8ebe0;
+  }
+
+  .tw-day:active:not(.disabled):not(.empty) {
+    background: #a8b485;
+  }
+
+  .tw-day.selected {
+    background: #8c9668;
+    color: white;
+    font-weight: 600;
+  }
+
+  .tw-day.today {
+    border: 2px solid #8c9668;
+  }
+
+  .tw-day.disabled {
+    color: #ccc;
+    cursor: not-allowed;
+  }
+
+  /* Time slots */
+  .tw-time-slots {
+    background: #faf9f6;
+    border-radius: 12px;
+    padding: 14px;
+  }
+
+  .tw-time-slots-title {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+
+  .tw-time-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+
+  .tw-time-slot {
+    padding: 10px 6px;
+    border: 2px solid rgba(0, 0, 0, 0.08);
+    border-radius: 8px;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    user-select: none;
+  }
+
+  .tw-time-slot:hover:not(.disabled) {
+    border-color: #a8b485;
+  }
+
+  .tw-time-slot:active:not(.disabled) {
+    background: #e8ebe0;
+  }
+
+  .tw-time-slot.selected {
+    border-color: #8c9668;
+    background: #8c9668;
+    color: white;
+  }
+
+  .tw-time-slot.disabled {
+    background: #f5f5f5;
+    color: #ccc;
+    cursor: not-allowed;
+    text-decoration: line-through;
+  }
+
+  /* Summary */
+  .tw-summary {
+    background: #e8ebe0;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  .tw-summary-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    font-size: 13px;
+  }
+
+  .tw-summary-row:not(:last-child) {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  }
+
+  .tw-summary-label {
+    color: #7a7a6a;
+  }
+
+  .tw-summary-value {
+    font-weight: 600;
+  }
+
+  .tw-summary-total {
+    font-size: 16px;
+    color: #8c9668;
+  }
+
+  /* Confirmation */
+  .tw-confirmation {
+    text-align: center;
+    padding: 30px 20px;
+  }
+
+  .tw-confirmation-icon {
+    width: 70px;
+    height: 70px;
+    background: rgba(34, 197, 94, 0.15);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    color: #22c55e;
+    font-size: 32px;
+  }
+
+  .tw-confirmation-title {
+    font-size: 22px;
+    margin-bottom: 8px;
+  }
+
+  .tw-confirmation-subtitle {
+    color: #7a7a6a;
+    font-size: 14px;
+    margin-bottom: 20px;
+  }
+
+  .tw-confirmation-box {
+    background: #faf9f6;
+    border-radius: 12px;
+    padding: 16px;
+    text-align: left;
+    margin-bottom: 20px;
+  }
+
+  .tw-confirmation-row {
+    display: flex;
+    gap: 10px;
+    padding: 8px 0;
+    font-size: 13px;
+  }
+
+  .tw-confirmation-row i {
+    color: #8c9668;
+    width: 18px;
+  }
+
+  /* Steps */
+  .tw-step {
+    display: none;
+  }
+
+  .tw-step.active {
+    display: block;
+  }
+
+  /* Loading */
+  .tw-booking-loading {
+    text-align: center;
+    padding: 30px;
+    color: #7a7a6a;
+  }
+
+  .tw-spinner {
+    width: 30px;
+    height: 30px;
+    border: 3px solid rgba(0, 0, 0, 0.08);
+    border-top-color: #8c9668;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 12px;
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  /* Buttons row */
+  .tw-buttons-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+  }
+
+  .tw-buttons-row .tw-btn {
+    flex: 1;
+  }
+
+  /* Form row */
+  .tw-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  @media (max-width: 500px) {
+    .tw-form-row {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* Maps button */
+  .tw-maps-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #8c9668;
+    color: white;
+    text-decoration: none;
+    padding: 10px 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.2s;
+  }
+
+  .tw-maps-btn:hover {
+    background: #9aa066;
+  }
+
+/* ========================================
+   FORMS - Componentes de formulario
+   ======================================== */
+  /* Form label */
+  .tw-form-label {
+    display: block;
+    font-size: 12px;
+    margin-bottom: 6px;
+    color: #dfe6c1;
+    font-weight: 500;
+  }
+
+  /* Form input */
+  .tw-form-input {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(0, 0, 0, 0.3);
+    color: #fff;
+    font-size: 14px;
+    transition: all 0.2s;
+  }
+
+  .tw-form-input:focus {
+    outline: none;
+    border-color: #8c9668;
+    background: rgba(0, 0, 0, 0.4);
+    box-shadow: 0 0 0 3px rgba(140, 150, 104, 0.1);
+  }
+
+  .tw-form-input:disabled,
+  .tw-form-input:read-only {
+    background: rgba(0, 0, 0, 0.15);
+    color: #9ca3af;
+    cursor: not-allowed;
+  }
+
+  .tw-form-input.readonly {
+    background: rgba(0, 0, 0, 0.2);
+    cursor: not-allowed;
+  }
+
+  /* Form group */
+  .tw-form-group {
+    margin-bottom: 16px;
+  }
+
+  /* Form select */
+  .tw-form-select {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(0, 0, 0, 0.3);
+    color: #fff;
+    font-size: 14px;
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+
+  .tw-form-select:focus {
+    outline: none;
+    border-color: #8c9668;
+    background: rgba(0, 0, 0, 0.4);
+  }
+
+  /* Form textarea */
+  .tw-form-textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(0, 0, 0, 0.3);
+    color: #fff;
+    font-size: 14px;
+    transition: all 0.2s;
+    resize: vertical;
+    min-height: 80px;
+  }
+
+  .tw-form-textarea:focus {
+    outline: none;
+    border-color: #8c9668;
+    background: rgba(0, 0, 0, 0.4);
+  }
+
+  /* Form checkbox */
+  .tw-form-checkbox {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+  }
+
+  .tw-form-checkbox:checked {
+    background: #8c9668;
+    border-color: #8c9668;
+  }
+
+  /* Form radio */
+  .tw-form-radio {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+  }
+
+  .tw-form-radio:checked {
+    background: #8c9668;
+    border-color: #8c9668;
+  }
+
+/* ========================================
+   BUTTONS - Componentes de botón
+   ======================================== */
+  /* Botón base Venus */
+  .tw-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.1);
+    padding: 7px 13px;
+    font-size: 13px;
+    cursor: pointer;
+    text-decoration: none;
+    color: #f9fafb;
+    white-space: nowrap;
+    backdrop-filter: blur(3px);
+    transition: all 0.2s ease;
+  }
+
+  .tw-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  }
+
+  /* Botón primario Venus */
+  .tw-btn-primary {
+    background: linear-gradient(135deg, #8c9668 0%, #9aa066 100%);
+    color: #fff;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(140, 150, 104, 0.3);
+    border: none;
+  }
+
+  .tw-btn-primary:hover {
+    background: linear-gradient(135deg, #9aa066 0%, #8c9668 100%);
+    box-shadow: 0 6px 16px rgba(140, 150, 104, 0.4);
+    transform: translateY(-1px);
+  }
+
+  /* Botón ghost */
+  .tw-btn-ghost {
+    background: transparent;
+    border-color: rgba(255, 255, 255, 0.25);
+  }
+
+  .tw-btn-ghost:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.3);
+  }
+
+  /* Botón pequeño */
+  .tw-btn-small {
+    padding: 5px 10px;
+    font-size: 12px;
+  }
+
+  /* Botón success */
+  .tw-btn-success {
+    background: #22c55e;
+    color: white;
+    border: none;
+    box-shadow: 0 2px 8px rgba(37, 211, 102, 0.3);
+  }
+
+  .tw-btn-success:hover {
+    background: #16a34a;
+    box-shadow: 0 4px 12px rgba(37, 211, 102, 0.4);
+  }
+
+  /* Botón danger */
+  .tw-btn-danger {
+    background: #ef4444;
+    color: white;
+    border: none;
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+  }
+
+  .tw-btn-danger:hover {
+    background: #dc2626;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+  }
+
+  /* Botón warning */
+  .tw-btn-warning {
+    background: #f59e0b;
+    color: white;
+    border: none;
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+  }
+
+  .tw-btn-warning:hover {
+    background: #d97706;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+  }
+
+  /* Botón solo icono */
+  .tw-btn-icon {
+    padding: 8px;
+    border-radius: 12px;
+  }
+
+  .tw-btn-icon i {
+    margin: 0;
+  }
+
+  /* Variantes de modal */
+  .tw-btn-modal {
+    border-radius: 12px;
+    font-weight: 500;
+  }
+
+  .tw-btn-modal:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  }
+
+  /* Botón con gradiente personalizado */
+  .tw-btn-gradient-red {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+    border: none;
+  }
+
+  .tw-btn-gradient-red:hover {
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  }
+
+/* ========================================
+   CARDS - Componentes de tarjeta
+   ======================================== */
+  /* Card base - estilo Venus dark */
+  .tw-card {
+    background: #2c2d26;
+    border-radius: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    padding: 16px 16px 14px;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.2);
+    margin-bottom: 14px;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  /* Efecto de brillo sutil */
+  .tw-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.05), transparent 60%),
+      radial-gradient(circle at 80% 70%, rgba(255, 255, 255, 0.03), transparent 60%);
+    opacity: 0.9;
+    pointer-events: none;
+  }
+  
+  .tw-card > * {
+    position: relative;
+    z-index: 1;
+  }
+  
+  /* Card header */
+  .tw-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  /* Card title */
+  .tw-card-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #f9fafb;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .tw-card-title i {
+    color: #8c9668;
+  }
+  
+  /* Card body */
+  .tw-card-body {
+    padding: 0;
+  }
+  
+  /* Card link en header */
+  .tw-card-link {
+    color: #dfe6c1;
+    font-size: 12px;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.2s;
+  }
+  
+  .tw-card-link:hover {
+    text-decoration: underline;
+    color: #8c9668;
+  }
+  
+  /* Variantes de card */
+  .tw-card-compact {
+    padding: 12px;
+  }
+  
+  .tw-card-flush {
+    padding: 0;
+  }
+  
+  .tw-card-gradient {
+    background: linear-gradient(135deg, #2F3E2B 0%, #4A5D3F 100%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .tw-card-danger {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.05) 0%, rgba(220, 38, 38, 0.05) 100%);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+  }
+  
+  .tw-card-accent {
+    background: linear-gradient(135deg, rgba(140, 150, 104, 0.1) 0%, rgba(140, 150, 104, 0.05) 100%);
+    border: 1px solid rgba(140, 150, 104, 0.2);
+  }
+  
+  /* Stats card */
+  .tw-stat-card {
+    background: #2c2d26;
+    border-radius: 12px;
+    padding: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .tw-stat-label {
+    font-size: 12px;
+    color: #9ca3af;
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  
+  .tw-stat-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: #f9fafb;
+  }
+  
+  .tw-stat-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+  }
+}
+
+/* ========================================
+   BOOKING UTILITIES
+   ======================================== */
+@layer utilities {
+  .text-venus {
+    color: #8c9668;
+  }
+  
+  .text-muted {
+    color: #7a7a6a;
+  }
+  
+  .bg-venus-bg {
+    background-color: #faf9f6;
+  }
+  
+  .border-venus-line {
+    border-color: rgba(0, 0, 0, 0.08);
+  }
+}

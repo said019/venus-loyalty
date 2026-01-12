@@ -6,717 +6,52 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Agendar Cita - Venus Cosmetología</title>
   <link rel="icon" href="/assets/logo.png">
+  <link rel="stylesheet" href="/css/tailwind.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <style>
-    :root {
-      --bg: #faf9f6;
-      --card: #ffffff;
-      --venus: #8C9668;
-      --venus-soft: #a8b485;
-      --venus-light: #e8ebe0;
-      --ink: #2d2d1f;
-      --muted: #7a7a6a;
-      --line: rgba(0, 0, 0, 0.08);
-      --success: #22c55e;
+    /* Navigation styles - keep for now */
+    nav {
+      position: fixed;
+      top: 0;
+      width: 100%;
+      background: rgba(255,255,255,0.98);
+      backdrop-filter: blur(10px);
+      padding: 0.8rem 1.5rem;
+      z-index: 1000;
+      box-shadow: 0 2px 20px rgba(0,0,0,0.05);
     }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: var(--bg);
-      color: var(--ink);
-      min-height: 100vh;
-    }
-
-    .header {
-      background: linear-gradient(135deg, #3a3a2a 0%, #2d2d1f 100%);
-      padding: 30px 20px;
-      text-align: center;
-      color: white;
-    }
-
-    .logo {
-      width: 60px;
-      height: 60px;
-      border-radius: 16px;
-      margin: 0 auto 16px;
-    }
-
-    .header h1 {
-      font-size: 24px;
-      font-weight: 600;
-      margin-bottom: 6px;
-    }
-
-    .header p {
-      font-size: 14px;
-      opacity: 0.8;
-    }
-
-    .container {
-      max-width: 800px;
+    
+    nav > div {
+      max-width: 1200px;
       margin: 0 auto;
-      padding: 24px 20px 40px;
-    }
-
-    .progress {
-      display: flex;
-      justify-content: center;
-      gap: 6px;
-      margin-bottom: 32px;
-    }
-
-    .progress-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: var(--line);
-    }
-
-    .progress-dot.active {
-      background: var(--venus);
-    }
-
-    .progress-dot.completed {
-      background: var(--success);
-    }
-
-    .card {
-      background: var(--card);
-      border-radius: 20px;
-      padding: 24px;
-      margin-bottom: 20px;
-      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-      border: 1px solid var(--line);
-    }
-
-    .card-title {
-      font-size: 16px;
-      font-weight: 600;
-      margin-bottom: 16px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .card-title i {
-      color: var(--venus);
-    }
-
-    .category-section {
-      margin-bottom: 20px;
-    }
-
-    .category-title {
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--venus);
-      margin-bottom: 10px;
-      padding-bottom: 6px;
-      border-bottom: 1px solid var(--line);
-    }
-
-    .services-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-      gap: 8px;
-    }
-
-    .service-item {
-      border: 2px solid var(--line);
-      border-radius: 12px;
-      padding: 14px;
-      cursor: pointer;
-      transition: all 0.2s;
-      position: relative;
-      -webkit-tap-highlight-color: transparent;
-      touch-action: manipulation;
-      user-select: none;
-    }
-
-    .service-item:hover {
-      border-color: var(--venus-soft);
-    }
-
-    .service-item:active {
-      transform: scale(0.98);
-    }
-
-    .service-item.selected {
-      border-color: var(--venus);
-      background: var(--venus-light);
-    }
-
-    .service-item.selected::after {
-      content: '✓';
-      position: absolute;
-      top: 8px;
-      right: 8px;
-      background: var(--venus);
-      color: white;
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 11px;
-    }
-
-    .service-name {
-      font-weight: 600;
-      font-size: 13px;
-      margin-bottom: 4px;
-    }
-
-    .service-meta {
-      font-size: 11px;
-      color: var(--muted);
-    }
-
-    .service-description {
-      overflow: hidden;
-      max-height: 0;
-      transition: max-height 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease, margin 0.3s ease;
-      opacity: 0;
-      pointer-events: none;
-    }
-
-    .service-item.show-desc .service-description,
-    .service-item.selected .service-description {
-      max-height: 200px;
-      opacity: 1;
-      margin-top: 10px;
-      padding-top: 10px;
-      border-top: 1px solid var(--line);
-      pointer-events: auto;
-    }
-
-    .service-info-btn {
-      background: none;
-      border: none;
-      color: var(--venus);
-      cursor: pointer;
-      padding: 4px;
-      font-size: 16px;
-      display: flex;
-      align-items: center;
-      transition: transform 0.2s;
-    }
-
-    .service-info-btn:hover {
-      transform: scale(1.2);
-    }
-
-    .calendar-wrapper {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-    }
-
-    @media (max-width: 600px) {
-      .calendar-wrapper {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    .calendar {
-      background: var(--bg);
-      border-radius: 12px;
-      padding: 14px;
-    }
-
-    .calendar-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 12px;
     }
-
-    .calendar-header h3 {
-      font-size: 14px;
-      font-weight: 600;
-    }
-
-    .calendar-nav {
-      display: flex;
-      gap: 6px;
-    }
-
-    .calendar-nav button {
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
-      border: 1px solid var(--line);
-      background: white;
-      cursor: pointer;
-      -webkit-tap-highlight-color: transparent;
-      touch-action: manipulation;
-    }
-
-    .calendar-nav button:hover {
-      background: var(--venus-light);
-    }
-
-    .calendar-nav button:active {
-      background: var(--venus-soft);
-    }
-
-    .calendar-grid {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 3px;
-      text-align: center;
-    }
-
-    .day-name {
-      font-size: 10px;
-      color: var(--muted);
-      padding: 6px 0;
-    }
-
-    .day {
-      aspect-ratio: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 8px;
-      font-size: 12px;
-      cursor: pointer;
-      -webkit-tap-highlight-color: transparent;
-      touch-action: manipulation;
-      user-select: none;
-    }
-
-    .day:hover:not(.disabled):not(.empty) {
-      background: var(--venus-light);
-    }
-
-    .day:active:not(.disabled):not(.empty) {
-      background: var(--venus-soft);
-    }
-
-    .day.selected {
-      background: var(--venus);
-      color: white;
-      font-weight: 600;
-    }
-
-    .day.today {
-      border: 2px solid var(--venus);
-    }
-
-    .day.disabled {
-      color: #ccc;
-      cursor: not-allowed;
-    }
-
-    .time-slots {
-      background: var(--bg);
-      border-radius: 12px;
-      padding: 14px;
-    }
-
-    .time-slots h3 {
-      font-size: 14px;
-      font-weight: 600;
-      margin-bottom: 12px;
-    }
-
-    .time-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 6px;
-    }
-
-    .time-slot {
-      padding: 10px 6px;
-      border: 2px solid var(--line);
-      border-radius: 8px;
-      text-align: center;
-      font-size: 12px;
+    
+    nav a {
+      text-decoration: none;
+      color: #2d2d1f;
+      font-size: 0.9rem;
       font-weight: 500;
-      cursor: pointer;
-      -webkit-tap-highlight-color: transparent;
-      touch-action: manipulation;
-      user-select: none;
     }
-
-    .time-slot:hover:not(.disabled) {
-      border-color: var(--venus-soft);
+    
+    nav a:first-child {
+      font-size: 1.5rem;
+      font-weight: 300;
+      color: #8c9668;
+      font-style: italic;
     }
-
-    .time-slot:active:not(.disabled) {
-      background: var(--venus-light);
-    }
-
-    .time-slot.selected {
-      border-color: var(--venus);
-      background: var(--venus);
-      color: white;
-    }
-
-    .time-slot.disabled {
-      background: #f5f5f5;
-      color: #ccc;
-      cursor: not-allowed;
-      text-decoration: line-through;
-    }
-
-    .form-group {
-      margin-bottom: 14px;
-    }
-
-    .form-label {
-      display: block;
-      font-size: 12px;
-      font-weight: 500;
-      margin-bottom: 5px;
-    }
-
-    .form-label .required {
-      color: #ef4444;
-    }
-
-    .form-input {
-      width: 100%;
-      padding: 12px 14px;
-      border: 2px solid var(--line);
-      border-radius: 10px;
-      font-size: 15px;
-    }
-
-    .form-input:focus {
-      outline: none;
-      border-color: var(--venus);
-    }
-
-    .form-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-
-    @media (max-width: 500px) {
-      .form-row {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    .summary {
-      background: var(--venus-light);
-      border-radius: 12px;
-      padding: 16px;
-      margin-bottom: 16px;
-    }
-
-    .summary-row {
+    
+    nav > div > div {
       display: flex;
-      justify-content: space-between;
-      padding: 8px 0;
-      font-size: 13px;
-    }
-
-    .summary-row:not(:last-child) {
-      border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-    }
-
-    .summary-label {
-      color: var(--muted);
-    }
-
-    .summary-value {
-      font-weight: 600;
-    }
-
-    .summary-total {
-      font-size: 16px;
-      color: var(--venus);
-    }
-
-    .btn {
-      padding: 14px 24px;
-      border-radius: 12px;
-      font-size: 15px;
-      font-weight: 600;
-      cursor: pointer;
-      display: inline-flex;
+      gap: 1.5rem;
       align-items: center;
-      justify-content: center;
-      gap: 8px;
-      border: none;
-      transition: all 0.2s;
-      width: 100%;
-    }
-
-    .btn-primary {
-      background: var(--venus);
-      color: white;
-    }
-
-    .btn-primary:hover {
-      background: var(--venus-soft);
-    }
-
-    .btn-primary:disabled {
-      background: #ccc;
-      cursor: not-allowed;
-    }
-
-    .btn-outline {
-      background: transparent;
-      border: 2px solid var(--line);
-      color: var(--ink);
-    }
-
-    .btn-whatsapp {
-      background: #25D366;
-      color: white;
-    }
-
-    .btn-whatsapp:hover {
-      background: #20bd5a;
-    }
-
-    .buttons-row {
-      display: flex;
-      gap: 10px;
-      margin-top: 20px;
-    }
-
-    .buttons-row .btn {
-      flex: 1;
-    }
-
-    .confirmation {
-      text-align: center;
-      padding: 30px 20px;
-    }
-
-    .confirmation-icon {
-      width: 70px;
-      height: 70px;
-      background: rgba(34, 197, 94, 0.15);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 20px;
-      color: var(--success);
-      font-size: 32px;
-    }
-
-    .confirmation h2 {
-      font-size: 22px;
-      margin-bottom: 8px;
-    }
-
-    .confirmation p {
-      color: var(--muted);
-      font-size: 14px;
-      margin-bottom: 20px;
-    }
-
-    .confirmation-box {
-      background: var(--bg);
-      border-radius: 12px;
-      padding: 16px;
-      text-align: left;
-      margin-bottom: 20px;
-    }
-
-    .confirmation-row {
-      display: flex;
-      gap: 10px;
-      padding: 8px 0;
-      font-size: 13px;
-    }
-
-    .confirmation-row i {
-      color: var(--venus);
-      width: 18px;
-    }
-
-    .step {
-      display: none;
-    }
-
-    .step.active {
-      display: block;
-    }
-
-    .loading {
-      text-align: center;
-      padding: 30px;
-      color: var(--muted);
-    }
-
-    .spinner {
-      width: 30px;
-      height: 30px;
-      border: 3px solid var(--line);
-      border-top-color: var(--venus);
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin: 0 auto 12px;
-    }
-
-    @keyframes spin {
-      to {
-        transform: rotate(360deg);
-      }
-    }
-
-    .footer {
-      text-align: center;
-      padding: 20px;
-      color: var(--muted);
-      font-size: 11px;
-    }
-
-    /* Tabs de categorías */
-    .category-tabs {
-      display: flex;
-      gap: 10px;
-      overflow-x: auto;
-      padding-bottom: 12px;
-      margin-bottom: 20px;
-      -webkit-overflow-scrolling: touch;
-      scrollbar-width: none;
-      /* Hide scrollbar Firefox */
-    }
-
-    .category-tabs::-webkit-scrollbar {
-      display: none;
-    }
-
-    /* Hide scrollbar Chrome */
-
-    .category-tab {
-      padding: 8px 16px;
-      border-radius: 20px;
-      background: #f3f4f6;
-      color: var(--muted);
-      font-size: 13px;
-      font-weight: 500;
-      white-space: nowrap;
-      cursor: pointer;
-      transition: all 0.2s;
-      border: 1px solid transparent;
-    }
-
-    .category-tab.active {
-      background: var(--venus);
-      color: white;
-      box-shadow: 0 4px 12px rgba(140, 150, 104, 0.4);
-    }
-
-    .category-tab:hover:not(.active) {
-      background: #e5e7eb;
-    }
-
-    /* Grid mejorado */
-    .services-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-      /* Más ancho */
-      gap: 12px;
-    }
-
-    .service-item {
-      border: 1px solid var(--line);
-      border-radius: 16px;
-      padding: 16px;
-      cursor: pointer;
-      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-      position: relative;
-      background: white;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      min-height: 100px;
-    }
-
-    .service-item:hover {
-      border-color: var(--venus);
-      transform: translateY(-2px);
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
-    }
-
-    .service-item.selected {
-      border-color: var(--venus);
-      background: #f7f9f2;
-      /* Venus light tint */
-      box-shadow: 0 0 0 2px var(--venus);
-    }
-
-    .service-name {
-      font-weight: 600;
-      font-size: 14px;
-      margin-bottom: 8px;
-      line-height: 1.4;
-    }
-
-    .service-meta-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-end;
-      margin-top: auto;
-    }
-
-    .service-duration {
-      font-size: 11px;
-      color: var(--muted);
-      background: #f3f4f6;
-      padding: 2px 6px;
-      border-radius: 6px;
-    }
-
-    .service-price {
-      color: var(--venus);
-      font-weight: 700;
-      font-size: 15px;
-    }
-
-    .service-info-btn {
-      background: none;
-      border: none;
-      color: var(--venus);
-      cursor: pointer;
-      padding: 4px;
-      font-size: 14px;
-      opacity: 0.7;
-      transition: opacity 0.2s;
-    }
-
-    .service-info-btn:hover {
-      opacity: 1;
-    }
-
-    .service-description {
-      animation: slideDown 0.3s ease;
-    }
-
-    @keyframes slideDown {
-      from {
-        opacity: 0;
-        transform: translateY(-10px);
-      }
-
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
     }
   </style>
 </head>
 
-<body>
+<body class="bg-venus-bg">
   <!-- Navigation -->
   <nav
     style="position:fixed;top:0;width:100%;background:rgba(255,255,255,0.98);backdrop-filter:blur(10px);padding:0.8rem 1.5rem;z-index:1000;box-shadow:0 2px 20px rgba(0,0,0,0.05);">
@@ -736,153 +71,177 @@
     </div>
   </nav>
 
-  <div class="header" style="margin-top:60px;"><img src="/assets/logo.png" alt="Venus" class="logo">
-    <h1 id="business-name">Venus Cosmetología</h1>
-    <p>Solicita tu cita</p>
+  <div class="tw-booking-header" style="margin-top:60px;">
+    <img src="/assets/logo.png" alt="Venus" class="tw-booking-logo">
+    <h1 id="business-name" class="tw-booking-title">Venus Cosmetología</h1>
+    <p class="tw-booking-subtitle">Solicita tu cita</p>
   </div>
-  <div class="container">
+  <div class="tw-booking-container">
     <!-- Información del negocio -->
-    <div class="card" style="margin-bottom: 24px;">
-      <div style="display: flex; flex-direction: column; gap: 12px;">
-        <div style="display: flex; align-items: start; gap: 12px;"><i class="fas fa-map-marker-alt"
-            style="color: var(--venus); margin-top: 2px; font-size: 16px;"></i>
-          <div style="flex: 1;">
-            <div style="font-size: 13px; font-weight: 600; margin-bottom: 2px;">Ubicación</div>
-            <div id="business-address" style="font-size: 13px; color: var(--muted);">Cargando...</div>
-          </div>
+    <div class="tw-business-info">
+      <div class="tw-business-row">
+        <i class="fas fa-map-marker-alt tw-business-icon"></i>
+        <div class="tw-business-content">
+          <div class="tw-business-label">Ubicación</div>
+          <div id="business-address" class="tw-business-text">Cargando...</div>
         </div>
-        <div style="display: flex; align-items: start; gap: 12px;"><i class="fas fa-clock"
-            style="color: var(--venus); margin-top: 2px; font-size: 16px;"></i>
-          <div style="flex: 1;">
-            <div style="font-size: 13px; font-weight: 600; margin-bottom: 2px;">Horario de atención</div>
-            <div id="business-hours" style="font-size: 13px; color: var(--muted);">Cargando...</div>
-          </div>
+      </div>
+      <div class="tw-business-row">
+        <i class="fas fa-clock tw-business-icon"></i>
+        <div class="tw-business-content">
+          <div class="tw-business-label">Horario de atención</div>
+          <div id="business-hours" class="tw-business-text">Cargando...</div>
         </div>
-        <div id="maps-button-container" style="display: none; margin-top: 8px;"><a id="maps-button" href="#"
-            target="_blank" class="btn" style="
- display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    background: var(--venus);
-    color: white;
-    text-decoration: none;
-    padding: 10px 16px;
-    border-radius: 10px;
-    font-size: 13px;
-    font-weight: 500;
-    transition: all 0.2s;
-    ">
-            <i class="fas fa-map-marked-alt"></i>Ver en Google Maps </a></div>
+      </div>
+      <div id="maps-button-container" style="display: none; margin-top: 8px;">
+        <a id="maps-button" href="#" target="_blank" class="tw-maps-btn">
+          <i class="fas fa-map-marked-alt"></i>Ver en Google Maps
+        </a>
       </div>
     </div>
-    <div class="progress">
-      <div class="progress-dot active" id="dot-1"></div>
-      <div class="progress-dot" id="dot-2"></div>
-      <div class="progress-dot" id="dot-3"></div>
-      <div class="progress-dot" id="dot-4"></div>
+    <div class="tw-progress">
+      <div class="tw-progress-dot active" id="dot-1"></div>
+      <div class="tw-progress-dot" id="dot-2"></div>
+      <div class="tw-progress-dot" id="dot-3"></div>
+      <div class="tw-progress-dot" id="dot-4"></div>
     </div>
     <!-- PASO 1: Servicio -->
-    <div class="step active" id="step-1">
-      <div class="card">
-        <div class="card-title"><i class="fas fa-sparkles"></i>¿Qué servicio te gustaría? </div>
-        <!-- Tabs Container -->
-        <div class="category-tabs" id="category-tabs">
-          <!-- Rendered by JS -->
+    <div class="tw-step active" id="step-1">
+      <div class="tw-card">
+        <div class="tw-card-header">
+          <div class="tw-card-title"><i class="fas fa-sparkles"></i>¿Qué servicio te gustaría?</div>
         </div>
-        <div class="services-grid" id="services-list">
-          <div class="loading">
-            <div class="spinner"></div>
-            <p>Cargando servicios...</p>
+        <div class="tw-card-body">
+          <!-- Tabs Container -->
+          <div class="tw-category-tabs" id="category-tabs">
+            <!-- Rendered by JS -->
+          </div>
+          <div class="tw-services-grid" id="services-list">
+            <div class="tw-booking-loading">
+              <div class="tw-spinner"></div>
+              <p>Cargando servicios...</p>
+            </div>
+          </div>
+          <div class="tw-buttons-row">
+            <button class="tw-btn tw-btn-primary" id="btn-step1" disabled>Continuar <i class="fas fa-arrow-right"></i></button>
           </div>
         </div>
-        <div class="buttons-row"><button class="btn btn-primary" id="btn-step1" disabled>Continuar <i
-              class="fas fa-arrow-right"></i></button></div>
       </div>
     </div>
     <!-- PASO 2: Fecha y Hora -->
-    <div class="step" id="step-2">
-      <div class="card">
-        <div class="card-title"><i class="fas fa-calendar"></i>¿Cuándo te gustaría venir? </div>
-        <div class="calendar-wrapper">
-          <div class="calendar">
-            <div class="calendar-header">
-              <div class="calendar-nav"><button id="btn-prev-month"><i class="fas fa-chevron-left"></i></button>
+    <div class="tw-step" id="step-2">
+      <div class="tw-card">
+        <div class="tw-card-header">
+          <div class="tw-card-title"><i class="fas fa-calendar"></i>¿Cuándo te gustaría venir?</div>
+        </div>
+        <div class="tw-card-body">
+          <div class="tw-calendar-wrapper">
+            <div class="tw-calendar">
+              <div class="tw-calendar-header">
+                <div class="tw-calendar-nav">
+                  <button class="tw-calendar-nav-btn" id="btn-prev-month"><i class="fas fa-chevron-left"></i></button>
+                </div>
+                <h3 class="tw-calendar-title" id="calendar-month">Diciembre 2025</h3>
+                <div class="tw-calendar-nav">
+                  <button class="tw-calendar-nav-btn" id="btn-next-month"><i class="fas fa-chevron-right"></i></button>
+                </div>
               </div>
-              <h3 id="calendar-month">Diciembre 2025</h3>
-              <div class="calendar-nav"><button id="btn-next-month"><i class="fas fa-chevron-right"></i></button>
+              <div class="tw-calendar-grid" id="calendar-grid"></div>
+            </div>
+            <div class="tw-time-slots">
+              <h3 class="tw-time-slots-title" id="time-title">Selecciona un día</h3>
+              <div class="tw-time-grid" id="time-grid">
+                <p style="grid-column:span 3;text-align:center;color:#7a7a6a;padding:16px;font-size:12px;">
+                  Primero elige una fecha
+                </p>
               </div>
             </div>
-            <div class="calendar-grid" id="calendar-grid"></div>
           </div>
-          <div class="time-slots">
-            <h3 id="time-title">Selecciona un día</h3>
-            <div class="time-grid" id="time-grid">
-              <p style="grid-column:span 3;text-align:center;color:var(--muted);padding:16px;font-size:12px;">
-                Primero elige una fecha </p>
-            </div>
+          <div class="tw-buttons-row">
+            <button class="tw-btn tw-btn-ghost" id="btn-back-to-1"><i class="fas fa-arrow-left"></i>Atrás</button>
+            <button class="tw-btn tw-btn-primary" id="btn-step2" disabled>Continuar <i class="fas fa-arrow-right"></i></button>
           </div>
         </div>
-        <div class="buttons-row"><button class="btn btn-outline" id="btn-back-to-1"><i
-              class="fas fa-arrow-left"></i>Atrás </button><button class="btn btn-primary" id="btn-step2"
-            disabled>Continuar <i class="fas fa-arrow-right"></i></button></div>
       </div>
     </div>
     <!-- PASO 3: Datos -->
-    <div class="step" id="step-3">
-      <div class="card">
-        <div class="card-title"><i class="fas fa-user"></i>Tus datos </div>
-        <div class="form-group"><label class="form-label">Nombre completo <span class="required">*</span></label><input
-            type="text" class="form-input" id="input-name" placeholder="Tu nombre completo"></div>
-        <div class="form-group"><label class="form-label">WhatsApp <span class="required">*</span></label><input
-            type="tel" class="form-input" id="input-phone" placeholder="10 dígitos" maxlength="15"></div>
-        <div class="form-row">
-          <div class="form-group"><label class="form-label">Email</label><input type="email" class="form-input"
-              id="input-email" placeholder="tu@email.com"></div>
-          <div class="form-group"><label class="form-label">Cumpleaños</label><input type="date" class="form-input"
-              id="input-birthday"></div>
+    <div class="tw-step" id="step-3">
+      <div class="tw-card">
+        <div class="tw-card-header">
+          <div class="tw-card-title"><i class="fas fa-user"></i>Tus datos</div>
+        </div>
+        <div class="tw-card-body">
+          <div class="tw-form-group">
+            <label class="tw-form-label">Nombre completo <span class="required" style="color:#ef4444;">*</span></label>
+            <input type="text" class="tw-form-input" id="input-name" placeholder="Tu nombre completo">
+          </div>
+          <div class="tw-form-group">
+            <label class="tw-form-label">WhatsApp <span class="required" style="color:#ef4444;">*</span></label>
+            <input type="tel" class="tw-form-input" id="input-phone" placeholder="10 dígitos" maxlength="15">
+          </div>
+          <div class="tw-form-row">
+            <div class="tw-form-group">
+              <label class="tw-form-label">Email</label>
+              <input type="email" class="tw-form-input" id="input-email" placeholder="tu@email.com">
+            </div>
+            <div class="tw-form-group">
+              <label class="tw-form-label">Cumpleaños</label>
+              <input type="date" class="tw-form-input" id="input-birthday">
+            </div>
+          </div>
         </div>
       </div>
-      <div class="card">
-        <div class="card-title"><i class="fas fa-clipboard-list"></i>Tu solicitud </div>
-        <div class="summary">
-          <div class="summary-row"><span class="summary-label">Servicio</span><span class="summary-value"
-              id="sum-service">-</span></div>
-          <div class="summary-row"><span class="summary-label">Fecha</span><span class="summary-value"
-              id="sum-date">-</span></div>
-          <div class="summary-row"><span class="summary-label">Hora</span><span class="summary-value"
-              id="sum-time">-</span></div>
-          <div class="summary-row"><span class="summary-label">Precio</span><span class="summary-value summary-total"
-              id="sum-price">-</span></div>
+      <div class="tw-card">
+        <div class="tw-card-header">
+          <div class="tw-card-title"><i class="fas fa-clipboard-list"></i>Tu solicitud</div>
         </div>
-        <div class="buttons-row"><button class="btn btn-outline" id="btn-back-to-2"><i
-              class="fas fa-arrow-left"></i>Atrás </button><button class="btn btn-primary" id="btn-submit">Solicitar <i
-              class="fas fa-paper-plane"></i></button></div>
+        <div class="tw-card-body">
+          <div class="tw-summary">
+            <div class="tw-summary-row">
+              <span class="tw-summary-label">Servicio</span>
+              <span class="tw-summary-value" id="sum-service">-</span>
+            </div>
+            <div class="tw-summary-row">
+              <span class="tw-summary-label">Fecha</span>
+              <span class="tw-summary-value" id="sum-date">-</span>
+            </div>
+            <div class="tw-summary-row">
+              <span class="tw-summary-label">Hora</span>
+              <span class="tw-summary-value" id="sum-time">-</span>
+            </div>
+            <div class="tw-summary-row">
+              <span class="tw-summary-label">Precio</span>
+              <span class="tw-summary-value tw-summary-total" id="sum-price">-</span>
+            </div>
+          </div>
+          <div class="tw-buttons-row">
+            <button class="tw-btn tw-btn-ghost" id="btn-back-to-2"><i class="fas fa-arrow-left"></i>Atrás</button>
+            <button class="tw-btn tw-btn-primary" id="btn-submit">Solicitar <i class="fas fa-paper-plane"></i></button>
+          </div>
+        </div>
       </div>
     </div>
     <!-- PASO 4: Confirmación -->
-    <div class="step" id="step-4">
-      <div class="card">
-        <div class="confirmation">
-          <div class="confirmation-icon"><i class="fas fa-check-circle"></i></div>
-          <h2>¡Solicitud Enviada !</h2>
-          <p>Envíanos un WhatsApp para confirmar tu cita</p>
-          <div class="confirmation-box">
-            <div class="confirmation-row"><i class="fas fa-sparkles"></i><span id="conf-service">-</span>
-            </div>
-            <div class="confirmation-row"><i class="fas fa-calendar"></i><span id="conf-datetime">-</span>
-            </div>
-            <div class="confirmation-row"><i class="fas fa-dollar-sign"></i><span id="conf-price">-</span>
-            </div>
-          </div><button class="btn btn-whatsapp" id="btn-whatsapp"><i class="fab fa-whatsapp"></i>Enviar
-            WhatsApp para confirmar </button>
-          <p style="margin-top:16px;font-size:12px;color:var(--muted);">Te contactaremos para confirmar
-            disponibilidad </p>
+    <div class="tw-step" id="step-4">
+      <div class="tw-card">
+        <div class="tw-confirmation">
+          <div class="tw-confirmation-icon"><i class="fas fa-check-circle"></i></div>
+          <h2 class="tw-confirmation-title">¡Solicitud Enviada!</h2>
+          <p class="tw-confirmation-subtitle">Envíanos un WhatsApp para confirmar tu cita</p>
+          <div class="tw-confirmation-box">
+            <div class="tw-confirmation-row"><i class="fas fa-sparkles"></i><span id="conf-service">-</span></div>
+            <div class="tw-confirmation-row"><i class="fas fa-calendar"></i><span id="conf-datetime">-</span></div>
+            <div class="tw-confirmation-row"><i class="fas fa-dollar-sign"></i><span id="conf-price">-</span></div>
+          </div>
+          <button class="tw-btn tw-btn-success" id="btn-whatsapp" style="background:#25D366;">
+            <i class="fab fa-whatsapp"></i>Enviar WhatsApp para confirmar
+          </button>
+          <p style="margin-top:16px;font-size:12px;color:#7a7a6a;">Te contactaremos para confirmar disponibilidad</p>
         </div>
       </div>
     </div>
   </div>
-  <div class="footer" id="business-footer">Venus Cosmetología · San Juan del Río,
-    Qro. </div>
+  <div class="tw-client-footer" id="business-footer">Venus Cosmetología · San Juan del Río, Qro.</div>
   <script>
     let services = [];
     let businessHours = { start: '09:00', end: '20:00', interval: 60, closedDays: [0] };
@@ -1052,7 +411,7 @@
 
     function toggleServiceDesc(e, id) {
       e.stopPropagation();
-      const item = document.querySelector(`.service-item[data-id="${id}"]`);
+      const item = document.querySelector(`.tw-service-item[data-id="${id}"]`);
       if (item) {
         item.classList.toggle('show-desc');
       }
@@ -1060,7 +419,7 @@
 
 
     function selectService(el, id) {
-      document.querySelectorAll('.service-item').forEach(e => e.classList.remove('selected'));
+      document.querySelectorAll('.tw-service-item').forEach(e => e.classList.remove('selected'));
       el.classList.add('selected');
       selectedService = services.find(s => s.id === id);
       document.getElementById('btn-step1').disabled = false;
@@ -1076,9 +435,9 @@
       const daysInMonth = new Date(year, month + 1, 0).getDate();
       const today = new Date(); today.setHours(0, 0, 0, 0);
 
-      let html = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'].map(d => `<div class="day-name">${d}</div>`).join('');
+      let html = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'].map(d => `<div class="tw-day-name">${d}</div>`).join('');
 
-      for (let i = 0; i < firstDay; i++) html += '<div class="day empty"></div>';
+      for (let i = 0; i < firstDay; i++) html += '<div class="tw-day empty"></div>';
 
       for (let d = 1; d <= daysInMonth; d++) {
         const date = new Date(year, month, d);
@@ -1088,7 +447,7 @@
         const isToday = date.toDateString() === today.toDateString();
         const isSelected = selectedDate === dateStr;
 
-        let cls = 'day';
+        let cls = 'tw-day';
         if (isToday) cls += ' today';
         if (isSelected) cls += ' selected';
         if (isPast || isClosed) cls += ' disabled';
@@ -1098,7 +457,7 @@
 
       document.getElementById('calendar-grid').innerHTML = html;
 
-      document.querySelectorAll('.day:not(.disabled):not(.empty)').forEach(day => {
+      document.querySelectorAll('.tw-day:not(.disabled):not(.empty)').forEach(day => {
         day.addEventListener('click', function () {
           const dateStr = this.dataset.date;
           if (dateStr) selectDate(dateStr);
@@ -1150,12 +509,12 @@
         const display = h === 12 ? '12:00 PM' : h > 12 ? `${h - 12}:00 PM` : `${h}:00 AM`;
         const isBusy = busy.includes(time);
 
-        html += `<div class="time-slot ${isBusy ? 'disabled' : ''}" data-time="${time}">${display}</div>`;
+        html += `<div class="tw-time-slot ${isBusy ? 'disabled' : ''}" data-time="${time}">${display}</div>`;
       }
 
       document.getElementById('time-grid').innerHTML = html;
 
-      document.querySelectorAll('.time-slot:not(.disabled)').forEach(slot => {
+      document.querySelectorAll('.tw-time-slot:not(.disabled)').forEach(slot => {
         slot.addEventListener('click', function () {
           selectTime(this.dataset.time, this);
         });
@@ -1163,7 +522,7 @@
     }
 
     function selectTime(time, el) {
-      document.querySelectorAll('.time-slot').forEach(e => e.classList.remove('selected'));
+      document.querySelectorAll('.tw-time-slot').forEach(e => e.classList.remove('selected'));
       el.classList.add('selected');
       selectedTime = time;
       document.getElementById('btn-step2').disabled = false;
@@ -1276,12 +635,12 @@
     }
 
     function goToStep(n) {
-      document.querySelectorAll('.step').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.tw-step').forEach(el => el.classList.remove('active'));
       document.getElementById(`step-${n}`).classList.add('active');
 
       for (let i = 1; i <= 4; i++) {
         const dot = document.getElementById(`dot-${i}`);
-        dot.className = 'progress-dot';
+        dot.className = 'tw-progress-dot';
         if (i < n) dot.classList.add('completed');
         else if (i === n) dot.classList.add('active');
       }

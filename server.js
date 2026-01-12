@@ -99,35 +99,51 @@ async function fsCountAdmins() {
 }
 
 async function fsGetAdminByEmail(email) {
-  const snap = await firestore
-    .collection(COL_ADMINS)
-    .where("email", "==", email)
-    .limit(1)
-    .get();
-  if (snap.empty) return null;
-  return { id: snap.docs[0].id, ...snap.docs[0].data() };
+  try {
+    const admin = await db.admin.findFirst({
+      where: { email: email }
+    });
+    return admin;
+  } catch (error) {
+    console.error('[DB] Error getting admin by email:', error);
+    return null;
+  }
 }
 
 async function fsInsertAdmin({ id, email, pass_hash }) {
-  const now = new Date().toISOString();
-  await firestore.collection(COL_ADMINS).doc(id).set({
-    id,
-    email,
-    pass_hash,
-    createdAt: now,
-    updatedAt: now,
-  });
+  try {
+    const now = new Date();
+    const admin = await db.admin.create({
+      data: {
+        id,
+        email,
+        pass_hash: pass_hash,
+        createdAt: now,
+        updatedAt: now,
+      }
+    });
+    return admin;
+  } catch (error) {
+    console.error('[DB] Error inserting admin:', error);
+    throw error;
+  }
 }
 
 async function fsUpdateAdminPassword(adminId, pass_hash) {
-  const now = new Date().toISOString();
-  await firestore.collection(COL_ADMINS).doc(adminId).set(
-    {
-      pass_hash,
-      updatedAt: now,
-    },
-    { merge: true }
-  );
+  try {
+    const now = new Date();
+    const admin = await db.admin.update({
+      where: { id: adminId },
+      data: {
+        pass_hash: pass_hash,
+        updatedAt: now,
+      }
+    });
+    return admin;
+  } catch (error) {
+    console.error('[DB] Error updating admin password:', error);
+    throw error;
+  }
 }
 
 // ---------- HELPERS RESET PASSWORD ----------
@@ -1081,9 +1097,18 @@ app.post('/api/appointments', adminAuth, async (req, res) => {
     // Calcular hora de fin sumando duración a la hora de inicio (en minutos locales)
     const [startHour, startMin] = time.split(':').map(Number);
     const totalMinutes = startHour * 60 + startMin + duration;
-    const endHours = Math.floor(totalMinutes / 60).toString().padStart(2, '0');
+    const endHoursRaw = Math.floor(totalMinutes / 60);
+    const endHours = (endHoursRaw % 24).toString().padStart(2, '0');
     const endMinutes = (totalMinutes % 60).toString().padStart(2, '0');
-    const endDateTime = `${date}T${endHours}:${endMinutes}:00-06:00`;
+    
+    // Si pasa de medianoche, ajustar la fecha de fin
+    let endDate = date;
+    if (endHoursRaw >= 24) {
+      const dateObj = new Date(date + 'T12:00:00');
+      dateObj.setDate(dateObj.getDate() + 1);
+      endDate = dateObj.toISOString().split('T')[0];
+    }
+    const endDateTime = `${endDate}T${endHours}:${endMinutes}:00-06:00`;
 
     const eventData = {
       title: `${serviceName} - ${name}`,
@@ -1221,10 +1246,23 @@ app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
 
     // ⭐ ACTUALIZAR GOOGLE CALENDAR si hay eventos asociados
     const startDateTimeMX = `${date}T${time}:00-06:00`;
-    const duration = durationMinutes || 60;
-    const end = new Date(startDateTimeMX);
-    end.setMinutes(end.getMinutes() + duration);
-    const endDateTimeMX = end.toISOString().replace('Z', '-06:00');
+    const duration = durationMinutes || appointment.durationMinutes || 60;
+    
+    // Calcular hora de fin correctamente (sin conversión UTC)
+    const [startHour, startMin] = time.split(':').map(Number);
+    const totalMinutes = startHour * 60 + startMin + duration;
+    const endHours = Math.floor(totalMinutes / 60) % 24; // Manejar overflow de medianoche
+    const endMinutes = totalMinutes % 60;
+    
+    // Si pasa de medianoche, ajustar la fecha
+    let endDate = date;
+    if (totalMinutes >= 24 * 60) {
+      const dateObj = new Date(date + 'T12:00:00');
+      dateObj.setDate(dateObj.getDate() + 1);
+      endDate = dateObj.toISOString().split('T')[0];
+    }
+    
+    const endDateTimeMX = `${endDate}T${String(endHours).padStart(2, '0')}:${String(endMinutes).padStart(2, '0')}:00-06:00`;
 
     if (appointment.googleCalendarEventId || appointment.googleCalendarEventId2) {
       try {
@@ -2979,9 +3017,18 @@ app.post('/api/booking-requests/:id/booked', adminAuth, async (req, res) => {
     // Calcular endDateTime sumando duración a la hora de inicio (en minutos locales)
     const [startHour, startMin] = requestData.time.split(':').map(Number);
     const totalMinutes = startHour * 60 + startMin + duration;
-    const endHours = Math.floor(totalMinutes / 60).toString().padStart(2, '0');
+    const endHoursRaw = Math.floor(totalMinutes / 60);
+    const endHours = (endHoursRaw % 24).toString().padStart(2, '0');
     const endMinutes = (totalMinutes % 60).toString().padStart(2, '0');
-    const endDateTime = `${requestData.date}T${endHours}:${endMinutes}:00-06:00`;
+    
+    // Si pasa de medianoche, ajustar la fecha de fin
+    let endDate = requestData.date;
+    if (endHoursRaw >= 24) {
+      const dateObj = new Date(requestData.date + 'T12:00:00');
+      dateObj.setDate(dateObj.getDate() + 1);
+      endDate = dateObj.toISOString().split('T')[0];
+    }
+    const endDateTime = `${endDate}T${endHours}:${endMinutes}:00-06:00`;
 
     // Crear la cita en appointments
     const appointmentData = {

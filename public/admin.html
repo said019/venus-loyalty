@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Panel Admin — Venus Lealtad</title>
   <link rel="icon" href="/assets/logo.png">
+  <link rel="stylesheet" href="/css/tailwind.css">
   <style>
     /* [TODOS LOS ESTILOS EXISTENTES SE MANTIENEN IGUAL] */
     body.checking-auth {
@@ -2645,8 +2646,8 @@
           </div>
         </div>
 
-        <a class="btn" href="/" target="_blank" rel="noopener">Página clientes</a>
-        <button id="logout" class="btn">Cerrar sesión</button>
+        <a class="tw-btn" href="/" target="_blank" rel="noopener">Página clientes</a>
+        <button id="logout" class="tw-btn">Cerrar sesión</button>
       </div>
     </header>
 
@@ -2693,10 +2694,10 @@
       <div class="header-actions" style="margin-bottom:20px;">
         <h2 id="dash-greeting">Buenos días</h2>
         <div style="display:flex;gap:10px;">
-          <button class="btn small ghost" onclick="loadTodayStats(); loadGiftCardStats();" title="Actualizar">
+          <button class="tw-btn tw-btn-small tw-btn-ghost" onclick="loadTodayStats(); loadGiftCardStats();" title="Actualizar">
             <i class="fas fa-sync"></i>
           </button>
-          <button class="btn primary" onclick="newApptDialog.showModal()">
+          <button class="tw-btn tw-btn-primary" onclick="newApptDialog.showModal()">
             <i class="fas fa-plus"></i> Nueva Cita
           </button>
         </div>
@@ -2769,13 +2770,13 @@
       <div class="dash-grid">
         <!-- Columna principal (vacía por ahora, se llenará en Fase 3) -->
         <div class="dash-main">
-          <div class="card">
-            <div class="card-header">
-              <span class="card-title">
+          <div class="tw-card">
+            <div class="tw-card-header">
+              <span class="tw-card-title">
                 <i class="fas fa-chart-line"></i> Actividad reciente
               </span>
             </div>
-            <div class="card-body">
+            <div class="tw-card-body">
               <div style="position: relative; height: 250px; width: 100%;">
                 <canvas id="activity-chart"></canvas>
               </div>
@@ -2786,16 +2787,16 @@
         <!-- Sidebar derecho -->
         <div class="dash-sidebar">
           <!-- Gift Cards -->
-          <div class="card">
-            <div class="card-header">
-              <span class="card-title">
+          <div class="tw-card">
+            <div class="tw-card-header">
+              <span class="tw-card-title">
                 <i class="fas fa-gift"></i> Gift Cards
               </span>
-              <a href="#" class="card-header-link" onclick="switchTab('tab-events');return false;">
+              <a href="#" class="tw-card-link" onclick="switchTab('tab-events');return false;">
                 Ver todas <i class="fas fa-chevron-right"></i>
               </a>
             </div>
-            <div class="card-body" style="padding:16px;">
+            <div class="tw-card-body p-4">
               <div class="gc-summary">
                 <div class="gc-summary-row">
                   <span class="gc-dot pending"></span>
@@ -2817,13 +2818,13 @@
           </div>
 
           <!-- Cumpleaños -->
-          <div class="card" id="card-birthdays">
-            <div class="card-header">
-              <span class="card-title">
+          <div class="tw-card" id="card-birthdays">
+            <div class="tw-card-header">
+              <span class="tw-card-title">
                 <i class="fas fa-birthday-cake"></i> Cumpleaños
               </span>
             </div>
-            <div class="card-body" style="padding:16px;">
+            <div class="tw-card-body p-4">
               <div class="birthday-list" id="birthday-list">
                 <div class="dash-empty">
                   <p>Sin cumpleaños próximos</p>
@@ -2833,13 +2834,13 @@
           </div>
 
           <!-- Top Clientes -->
-          <div class="card">
-            <div class="card-header">
-              <span class="card-title">
+          <div class="tw-card">
+            <div class="tw-card-header">
+              <span class="tw-card-title">
                 <i class="fas fa-trophy"></i> Top Clientes
               </span>
             </div>
-            <div class="card-body" style="padding:12px 16px;">
+            <div class="tw-card-body px-4 py-3">
               <div id="top-clients-sidebar">
                 <div class="dash-empty">
                   <p>Sin datos aún</p>
@@ -2849,13 +2850,13 @@
           </div>
 
           <!-- Wallets -->
-          <div class="card">
-            <div class="card-header">
-              <span class="card-title">
+          <div class="tw-card">
+            <div class="tw-card-header">
+              <span class="tw-card-title">
                 <i class="fas fa-wallet"></i> Wallets
               </span>
             </div>
-            <div class="card-body" style="padding:16px;">
+            <div class="tw-card-body p-4">
               <div class="wallets-grid">
                 <div class="wallet-card">
                   <div class="wallet-card-icon"><i class="fab fa-apple"></i></div>
@@ -2876,7 +2877,7 @@
     </section>
 
     <!-- TAB: Cards -->
-    <section id="tab-cards" class="card hidden">
+    <section id="tab-cards" class="tw-card hidden">
       <h2>Tarjetas de lealtad</h2>
       <p class="muted">Gestiona todas las tarjetas de tus clientes.</p>
 
@@ -2915,9 +2916,9 @@
           <option value="last_visit:desc">Última visita</option>
         </select>
 
-        <button id="btn-search-cards" class="btn primary"><i class="fas fa-search"></i> Buscar</button>
-        <button id="btn-reload-cards" class="btn"><i class="fas fa-sync-alt"></i> Recargar</button>
-        <button id="btn-scan-card" class="btn ghost"><i class="fas fa-qrcode"></i> Escanear QR</button>
+        <button id="btn-search-cards" class="tw-btn tw-btn-primary"><i class="fas fa-search"></i> Buscar</button>
+        <button id="btn-reload-cards" class="tw-btn"><i class="fas fa-sync-alt"></i> Recargar</button>
+        <button id="btn-scan-card" class="tw-btn tw-btn-ghost"><i class="fas fa-qrcode"></i> Escanear QR</button>
       </div>
 
       <div class="table-wrap" style="margin-top:12px;">
@@ -2940,9 +2941,9 @@
       </div>
 
       <div class="row" style="justify-content:space-between;margin-top:12px;">
-        <button id="btn-prev-page" class="btn small ghost">← Anterior</button>
+        <button id="btn-prev-page" class="tw-btn tw-btn-small tw-btn-ghost">← Anterior</button>
         <span id="page-info" class="muted">Página 1</span>
-        <button id="btn-next-page" class="btn small ghost">Siguiente →</button>
+        <button id="btn-next-page" class="tw-btn tw-btn-small tw-btn-ghost">Siguiente →</button>
       </div>
     </section>
 
@@ -2950,7 +2951,7 @@
     <section id="tab-events" class="tab-content hidden">
       <div class="header-actions">
         <h2><i class="fas fa-gift"></i> Gift Cards</h2>
-        <button class="btn ghost" id="btn-scan-gift-card">
+        <button class="tw-btn tw-btn-ghost" id="btn-scan-gift-card">
           <i class="fas fa-qrcode"></i> Escanear QR
         </button>
       </div>
@@ -2979,7 +2980,7 @@
       <div class="gc-layout">
 
         <!-- Columna izquierda: Crear -->
-        <div class="card">
+        <div class="tw-card">
           <h3 style="font-size:15px;margin-bottom:16px;display:flex;align-items:center;gap:8px;">
             <i class="fas fa-plus-circle"></i> Crear Gift Card
           </h3>
@@ -3012,7 +3013,7 @@
               </select>
             </div>
 
-            <button type="submit" class="btn primary" style="width:100%;">
+            <button type="submit" class="tw-btn tw-btn-primary" style="width:100%;">
               <i class="fas fa-sparkles"></i> Generar Gift Card
             </button>
           </form>
@@ -3030,7 +3031,7 @@
         </div>
 
         <!-- Columna derecha: Lista -->
-        <div class="card">
+        <div class="tw-card">
           <div
             style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
             <h3 style="font-size:15px;display:flex;align-items:center;gap:8px;">
@@ -3073,19 +3074,19 @@
       <div class="modal-card" style="max-width:420px;">
         <div class="modal-header">
           <h3><i class="fas fa-gift"></i> Gift Card</h3>
-          <button class="btn small ghost" onclick="closeGiftCardModal()"><i class="fas fa-times"></i></button>
+          <button class="tw-btn tw-btn-small tw-btn-ghost" onclick="closeGiftCardModal()"><i class="fas fa-times"></i></button>
         </div>
         <div id="modal-giftcard-content" style="padding:0;">
           <!-- Contenido dinámico con diseño personalizado -->
         </div>
         <div class="modal-footer" style="justify-content:center;gap:8px;flex-wrap:wrap;">
-          <button class="btn ghost" onclick="downloadGiftCardImage()">
+          <button class="tw-btn tw-btn-ghost tw-btn-modal" onclick="downloadGiftCardImage()">
             <i class="fas fa-download"></i> Descargar
           </button>
-          <button class="btn ghost" onclick="copyGiftCardLink()">
+          <button class="tw-btn tw-btn-ghost tw-btn-modal" onclick="copyGiftCardLink()">
             <i class="fas fa-link"></i> Copiar link
           </button>
-          <button class="btn primary" onclick="sendGiftCardWhatsAppImage()">
+          <button class="tw-btn tw-btn-primary tw-btn-modal" onclick="sendGiftCardWhatsAppImage()">
             <i class="fab fa-whatsapp"></i> WhatsApp
           </button>
         </div>
@@ -3093,7 +3094,7 @@
     </div>
 
     <!-- TAB: Settings - MEJORADO CON DEBUGGING -->
-    <section id="tab-settings" class="card hidden">
+    <section id="tab-settings" class="tw-card hidden">
       <h2>Configuración</h2>
 
       <!-- Configuración del Negocio -->
@@ -3278,7 +3279,7 @@
           </div>
 
           <div style="margin-top:14px;">
-            <button type="submit" class="btn primary"><i class="fas fa-save"></i> Guardar configuración</button>
+            <button type="submit" class="tw-btn tw-btn-primary"><i class="fas fa-save"></i> Guardar configuración</button>
           </div>
         </form>
 
@@ -3323,8 +3324,8 @@
           </div>
 
           <div class="row" style="margin-top:14px;gap:10px;">
-            <button type="button" id="btn-mass-push" class="btn primary">Enviar a todos</button>
-            <button type="button" id="test-push" class="btn ghost">Enviar prueba</button>
+            <button type="button" id="btn-mass-push" class="tw-btn tw-btn-primary">Enviar a todos</button>
+            <button type="button" id="test-push" class="tw-btn tw-btn-ghost">Enviar prueba</button>
           </div>
         </form>
 
@@ -3342,9 +3343,9 @@
         <div class="row" style="justify-content:space-between;margin-bottom:8px;">
           <h3 style="margin:0;"><i class="fas fa-list"></i> Historial</h3>
           <div style="display:flex;gap:8px;">
-            <button id="refresh-history" class="btn small ghost" title="Refrescar"><i
+            <button id="refresh-history" class="tw-btn tw-btn-small tw-btn-ghost" title="Refrescar"><i
                 class="fas fa-sync-alt"></i></button>
-            <button id="clear-notif-history" class="btn small ghost" style="color:#ef4444;" title="Borrar historial"><i
+            <button id="clear-notif-history" class="tw-btn tw-btn-small tw-btn-ghost" style="color:#ef4444;" title="Borrar historial"><i
                 class="fas fa-trash"></i></button>
           </div>
         </div>
@@ -3373,22 +3374,22 @@
         <h3 style="margin:0 0 12px;font-size:15px;color:var(--ink);"><i class="fas fa-bug"></i> Debugging Avanzado</h3>
 
         <div class="row" style="gap:8px;flex-wrap:wrap;margin-bottom:12px;">
-          <button id="btn-test-apple-push" class="btn small"><i class="fas fa-flask"></i> Test Apple Push</button>
-          <button id="btn-test-google-push" class="btn small"><i class="fas fa-flask"></i> Test Google Push</button>
-          <button id="btn-fix-google-wallet" class="btn small"><i class="fas fa-wrench"></i> Reparar Google
+          <button id="btn-test-apple-push" class="tw-btn tw-btn-small"><i class="fas fa-flask"></i> Test Apple Push</button>
+          <button id="btn-test-google-push" class="tw-btn tw-btn-small"><i class="fas fa-flask"></i> Test Google Push</button>
+          <button id="btn-fix-google-wallet" class="tw-btn tw-btn-small"><i class="fas fa-wrench"></i> Reparar Google
             Wallet</button>
-          <button id="btn-check-devices" class="btn small"><i class="fas fa-mobile-alt"></i> Ver Dispositivos</button>
-          <button id="btn-check-apns" class="btn small"><i class="fab fa-apple"></i> Ver Config APNs</button>
+          <button id="btn-check-devices" class="tw-btn tw-btn-small"><i class="fas fa-mobile-alt"></i> Ver Dispositivos</button>
+          <button id="btn-check-apns" class="tw-btn tw-btn-small"><i class="fab fa-apple"></i> Ver Config APNs</button>
         </div>
 
         <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--line);">
           <h4 style="margin:0 0 10px;font-size:13px;color:var(--venus-soft);">Simular Webhook WhatsApp (Local)</h4>
           <div class="row" style="gap:8px;flex-wrap:wrap;">
-            <button class="btn small ghost" onclick="simulateWebhook('confirmar')"><i class="fas fa-check"></i> Simular
+            <button class="tw-btn tw-btn-small tw-btn-ghost" onclick="simulateWebhook('confirmar')"><i class="fas fa-check"></i> Simular
               Confirmar</button>
-            <button class="btn small ghost" onclick="simulateWebhook('reprogramar')"><i class="fas fa-clock"></i>
+            <button class="tw-btn tw-btn-small tw-btn-ghost" onclick="simulateWebhook('reprogramar')"><i class="fas fa-clock"></i>
               Simular Reprogramar</button>
-            <button class="btn small ghost" onclick="simulateWebhook('cancelar')"><i class="fas fa-times"></i> Simular
+            <button class="tw-btn tw-btn-small tw-btn-ghost" onclick="simulateWebhook('cancelar')"><i class="fas fa-times"></i> Simular
               Cancelar</button>
           </div>
         </div>
@@ -3399,7 +3400,7 @@
     </section>
 
     <!-- TAB: Notificaciones -->
-    <section id="tab-notifications" class="card hidden">
+    <section id="tab-notifications" class="tw-card hidden">
       <h2><i class="fas fa-bell"></i> Notificaciones</h2>
       <p class="muted" style="margin:0 0 20px;font-size:13px;">
         Configura notificaciones automáticas para diferentes eventos del programa de lealtad.
@@ -3407,7 +3408,7 @@
 
       <!-- Botón ejecutar todas -->
       <div style="margin-bottom:24px;">
-        <button id="btn-run-all-automations" class="btn primary">
+        <button id="btn-run-all-automations" class="tw-btn tw-btn-primary">
           <i class="fas fa-play"></i> Ejecutar Automatizaciones Activas
         </button>
         <span class="muted" style="font-size:12px;margin-left:10px;">Procesa todas las reglas activas ahora</span>
@@ -3458,7 +3459,7 @@
           <textarea id="auto-inactivity-message" class="automation-textarea"
             rows="2">¡Te extrañamos! 😊 Hace tiempo que no te vemos. Ven y disfruta nuestros servicios.</textarea>
 
-          <button class="btn small ghost automation-test-btn" data-type="inactivity"><i class="fas fa-flask"></i>
+          <button class="tw-btn tw-btn-small tw-btn-ghost automation-test-btn" data-type="inactivity"><i class="fas fa-flask"></i>
             Probar</button>
         </div>
       </div>
@@ -3483,7 +3484,7 @@
           <textarea id="auto-completed-message" class="automation-textarea"
             rows="2">¡Felicidades! 🎁 Has completado tu tarjeta. Ven a canjear tu premio.</textarea>
 
-          <button class="btn small ghost automation-test-btn" data-type="completed"><i class="fas fa-flask"></i>
+          <button class="tw-btn tw-btn-small tw-btn-ghost automation-test-btn" data-type="completed"><i class="fas fa-flask"></i>
             Probar</button>
         </div>
       </div>
@@ -3508,7 +3509,7 @@
           <textarea id="auto-almost-message" class="automation-textarea"
             rows="2">¡Ya casi! ⚡ Solo te faltan [X] sellos para tu premio. ¡No esperes más!</textarea>
 
-          <button class="btn small ghost automation-test-btn" data-type="almost">🧪 Probar</button>
+          <button class="tw-btn tw-btn-small tw-btn-ghost automation-test-btn" data-type="almost">🧪 Probar</button>
         </div>
       </div>
 
@@ -3527,11 +3528,11 @@
       <div class="header-actions">
         <h2><i class="fas fa-inbox"></i> Solicitudes</h2>
         <div style="display:flex;gap:8px;">
-          <button class="btn small ghost" onclick="deleteAllRequests()" title="Borrar todas las solicitudes"
+          <button class="tw-btn tw-btn-small tw-btn-ghost" onclick="deleteAllRequests()" title="Borrar todas las solicitudes"
             style="color:#ef4444;border-color:#ef4444;">
             <i class="fas fa-trash"></i> Borrar Todo
           </button>
-          <button class="btn small ghost" onclick="loadBookingRequests()"><i class="fas fa-sync"></i></button>
+          <button class="tw-btn tw-btn-small tw-btn-ghost" onclick="loadBookingRequests()"><i class="fas fa-sync"></i></button>
         </div>
       </div>
 
@@ -3569,8 +3570,8 @@
             <code id="agendar-url" style="font-size:11px;word-break:break-all;"></code>
           </div>
           <div style="display:flex;gap:6px;">
-            <button class="btn small" onclick="copyAgendarUrl()" title="Copiar URL"><i class="fas fa-copy"></i></button>
-            <a href="/agendar.html" target="_blank" class="btn small ghost" title="Abrir"><i
+            <button class="tw-btn tw-btn-small" onclick="copyAgendarUrl()" title="Copiar URL"><i class="fas fa-copy"></i></button>
+            <a href="/agendar.html" target="_blank" class="tw-btn tw-btn-small tw-btn-ghost" title="Abrir"><i
                 class="fas fa-external-link-alt"></i></a>
           </div>
         </div>
@@ -3582,11 +3583,11 @@
       <div class="header-actions">
         <h2><i class="fas fa-calendar"></i> Agenda de Citas</h2>
         <div style="display:flex;gap:8px;">
-          <button class="btn small ghost" onclick="loadAppointments(); renderMonthlyCalendar(); loadMonthStats();"
+          <button class="tw-btn tw-btn-small tw-btn-ghost" onclick="loadAppointments(); renderMonthlyCalendar(); loadMonthStats();"
             title="Actualizar">
             <i class="fas fa-sync"></i>
           </button>
-          <button class="btn primary" id="btn-new-appointment">Nueva Cita</button>
+          <button class="tw-btn tw-btn-primary" id="btn-new-appointment">Nueva Cita</button>
         </div>
       </div>
 
@@ -3608,7 +3609,7 @@
           </div>
 
           <div class="calendar-actions">
-            <button class="btn small ghost" onclick="loadAppointments(); renderMonthlyCalendar(); loadMonthStats();"
+            <button class="tw-btn tw-btn-small tw-btn-ghost" onclick="loadAppointments(); renderMonthlyCalendar(); loadMonthStats();"
               title="Actualizar">
               <i class="fas fa-sync"></i>
             </button>
@@ -3641,10 +3642,10 @@
       </div>
 
       <!-- Citas del Día Seleccionado -->
-      <div class="card">
+      <div class="tw-card">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
           <h3 style="margin:0;">Citas del <span id="selected-date-label">Hoy</span></h3>
-          <button class="btn small" id="btn-refresh-appts"><i class="fas fa-sync-alt"></i> Actualizar</button>
+          <button class="tw-btn tw-btn-small" id="btn-refresh-appts"><i class="fas fa-sync-alt"></i> Actualizar</button>
         </div>
 
         <table class="data-table">
@@ -3666,7 +3667,7 @@
       </div>
 
       <!-- Historial del Mes -->
-      <div class="card" style="margin-top:20px;">
+      <div class="tw-card" style="margin-top:20px;">
         <h3 style="margin-top:0;">Historial del Mes</h3>
         <div id="month-stats"
           style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px;">
@@ -3690,7 +3691,7 @@
       </div>
 
       <!-- Resumen de Ventas del Mes -->
-      <div class="card" style="margin-top:20px;">
+      <div class="tw-card" style="margin-top:20px;">
         <h3 style="margin-top:0;"><i class="fas fa-dollar-sign"></i> Ventas del Mes</h3>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;">
           <div class="stat-card">
@@ -3718,25 +3719,24 @@
       <div class="header-actions">
         <h2><i class="fas fa-chart-line"></i> Reportes de Ventas</h2>
         <div style="display:flex;gap:8px;">
-          <button class="btn ghost" onclick="cargarReportesMes()">
+          <button class="tw-btn tw-btn-ghost" onclick="cargarReportesMes()">
             <i class="fas fa-sync"></i> Actualizar
           </button>
-          <button class="btn primary" onclick="exportarVentasExcel()">
+          <button class="tw-btn tw-btn-primary" onclick="exportarVentasExcel()">
             <i class="fas fa-file-excel"></i> Exportar Excel
           </button>
         </div>
       </div>
 
       <!-- Selector de Mes (estilo Excel tabs) -->
-      <div class="card" style="padding:12px;margin-bottom:16px;">
+      <div class="tw-card tw-card-compact" style="margin-bottom:16px;">
         <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;" id="report-month-tabs">
           <!-- Se generan dinámicamente -->
         </div>
       </div>
 
       <!-- Filtro de Fechas Personalizado -->
-      <div class="card"
-        style="padding:16px;margin-bottom:16px;background:linear-gradient(135deg, rgba(140,150,104,0.1) 0%, rgba(140,150,104,0.05) 100%);border:1px solid rgba(140,150,104,0.2);">
+      <div class="tw-card tw-card-accent" style="margin-bottom:16px;">
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
           <div style="display:flex;align-items:center;gap:8px;">
             <i class="fas fa-filter" style="color:var(--venus);"></i>
@@ -3756,22 +3756,22 @@
                 style="padding:8px 12px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:13px;">
             </div>
 
-            <button class="btn primary" onclick="filtrarReportePorFechas()" style="padding:8px 16px;font-size:13px;">
+            <button class="tw-btn tw-btn-primary" onclick="filtrarReportePorFechas()" style="padding:8px 16px;font-size:13px;">
               <i class="fas fa-search"></i> Filtrar
             </button>
 
-            <button class="btn ghost" onclick="limpiarFiltroFechas()" style="padding:8px 12px;font-size:13px;">
+            <button class="tw-btn tw-btn-ghost" onclick="limpiarFiltroFechas()" style="padding:8px 12px;font-size:13px;">
               <i class="fas fa-times"></i> Limpiar
             </button>
           </div>
 
           <!-- Atajos rápidos -->
           <div style="display:flex;gap:6px;margin-left:auto;">
-            <button class="btn ghost small" onclick="filtroRapido('hoy')"
+            <button class="tw-btn tw-btn-ghost tw-btn-small" onclick="filtroRapido('hoy')"
               style="padding:6px 10px;font-size:11px;">Hoy</button>
-            <button class="btn ghost small" onclick="filtroRapido('semana')"
+            <button class="tw-btn tw-btn-ghost tw-btn-small" onclick="filtroRapido('semana')"
               style="padding:6px 10px;font-size:11px;">Esta semana</button>
-            <button class="btn ghost small" onclick="filtroRapido('mes')" style="padding:6px 10px;font-size:11px;">Este
+            <button class="tw-btn tw-btn-ghost tw-btn-small" onclick="filtroRapido('mes')" style="padding:6px 10px;font-size:11px;">Este
               mes</button>
           </div>
         </div>
@@ -3786,8 +3786,7 @@
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
 
         <!-- Lado Izquierdo: Resumen Financiero -->
-        <div class="card"
-          style="background:linear-gradient(135deg, #2F3E2B 0%, #4A5D3F 100%);border:1px solid rgba(255,255,255,0.1);">
+        <div class="tw-card tw-card-gradient">
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
             <img src="/assets/logo.png" alt="Venus" style="width:40px;height:40px;border-radius:8px;">
             <div>
@@ -3827,7 +3826,7 @@
         </div>
 
         <!-- Lado Derecho: Gráfica de Pastel -->
-        <div class="card">
+        <div class="tw-card">
           <h3 style="margin:0 0 16px;font-size:14px;color:var(--venus-soft);">
             <i class="fas fa-chart-pie"></i> Distribución de Ingresos
           </h3>
@@ -3848,7 +3847,7 @@
       </div>
 
       <!-- Ingresos por Tipo de Servicio (gráfica de pastel detallada) -->
-      <div class="card" style="margin-bottom:20px;">
+      <div class="tw-card" style="margin-bottom:20px;">
         <h3 style="margin:0 0 16px;font-size:14px;color:var(--venus-soft);">
           <i class="fas fa-spa"></i> Ingresos por Tipo de Servicio
         </h3>
@@ -3863,7 +3862,7 @@
       </div>
 
       <!-- Tabla de Ingresos Detallada -->
-      <div class="card">
+      <div class="tw-card">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
           <h3 style="margin:0;font-size:14px;color:var(--venus-soft);">
             <i class="fas fa-list"></i> INGRESOS
@@ -3885,55 +3884,51 @@
 
         <!-- Estadísticas -->
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:20px;">
-          <div class="card">
+          <div class="tw-stat-card">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-              <span style="font-size:12px;color:var(--muted);text-transform:uppercase;font-weight:600;">Total
-                Ventas</span>
+              <span class="tw-stat-label">Total Ventas</span>
               <i class="fas fa-dollar-sign" style="color:var(--venus);font-size:20px;"></i>
             </div>
-            <div id="report-total-sales" style="font-size:28px;font-weight:700;color:var(--venus);">$0.00</div>
+            <div id="report-total-sales" class="tw-stat-value" style="color:var(--venus);">$0.00</div>
             <div id="report-sales-count" style="font-size:12px;color:var(--muted);margin-top:4px;">0 ventas</div>
           </div>
 
-          <div class="card">
+          <div class="tw-stat-card">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-              <span style="font-size:12px;color:var(--muted);text-transform:uppercase;font-weight:600;">Efectivo</span>
+              <span class="tw-stat-label">Efectivo</span>
               <i class="fas fa-money-bill-wave" style="color:#22c55e;font-size:20px;"></i>
             </div>
             <div id="report-cash-total" style="font-size:28px;font-weight:700;color:#22c55e;">$0.00</div>
             <div id="report-cash-count" style="font-size:12px;color:var(--muted);margin-top:4px;">0 ventas</div>
           </div>
 
-          <div class="card">
+          <div class="tw-stat-card">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-              <span style="font-size:12px;color:var(--muted);text-transform:uppercase;font-weight:600;">Tarjeta</span>
+              <span class="tw-stat-label">Tarjeta</span>
               <i class="fas fa-credit-card" style="color:#3b82f6;font-size:20px;"></i>
             </div>
-            <div id="report-card-total" style="font-size:28px;font-weight:700;color:#3b82f6;">$0.00</div>
+            <div id="report-card-total" class="tw-stat-value" style="color:#3b82f6;">$0.00</div>
             <div id="report-card-count" style="font-size:12px;color:var(--muted);margin-top:4px;">0 ventas</div>
           </div>
 
-          <div class="card">
+          <div class="tw-stat-card">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-              <span
-                style="font-size:12px;color:var(--muted);text-transform:uppercase;font-weight:600;">Transferencia</span>
+              <span class="tw-stat-label">Transferencia</span>
               <i class="fas fa-exchange-alt" style="color:#8b5cf6;font-size:20px;"></i>
             </div>
-            <div id="report-transfer-total" style="font-size:28px;font-weight:700;color:#8b5cf6;">$0.00</div>
+            <div id="report-transfer-total" class="tw-stat-value" style="color:#8b5cf6;">$0.00</div>
             <div id="report-transfer-count" style="font-size:12px;color:var(--muted);margin-top:4px;">0 ventas</div>
           </div>
         </div>
 
         <!-- Panel de Gastos del Mes -->
-        <div class="card"
-          style="margin-bottom:20px;background:linear-gradient(135deg, rgba(239,68,68,0.05) 0%, rgba(220,38,38,0.05) 100%);border:1px solid rgba(239,68,68,0.2);">
+        <div class="tw-card tw-card-danger" style="margin-bottom:20px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
             <h3 style="margin:0;font-size:18px;display:flex;align-items:center;gap:10px;">
               <i class="fas fa-receipt" style="color:#ef4444;"></i>
               <span>Gastos del Mes</span>
             </h3>
-            <button class="btn primary" onclick="openExpenseModal()"
-              style="background:linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">
+            <button class="tw-btn tw-btn-primary tw-btn-gradient-red" onclick="openExpenseModal()">
               <i class="fas fa-plus"></i> Nuevo Gasto
             </button>
           </div>
@@ -4007,7 +4002,7 @@
         </div>
 
         <!-- Tabla de ventas -->
-        <div class="card">
+        <div class="tw-card">
           <h3 style="margin-bottom:16px;font-size:15px;"><i class="fas fa-list"></i> Detalle de Ventas</h3>
           <div class="table-wrap">
             <table class="data-table">
@@ -4059,17 +4054,17 @@
         </button>
       </div>
 
-      <div class="card" style="border-radius:0 0 12px 12px;margin-top:0;">
+      <div class="tw-card" style="border-radius:0 0 12px 12px;margin-top:0;">
 
         <!-- Panel: Servicios -->
         <div id="panel-services" class="tab-panel active">
           <div class="row" style="gap:12px;margin-bottom:16px;flex-wrap:wrap;">
             <input type="text" id="search-services" class="form-input" placeholder="Buscar servicio..."
               style="flex:1;min-width:200px;">
-            <button class="btn ghost" onclick="autoCategorizarServicios()" style="white-space:nowrap;">
+            <button class="tw-btn tw-btn-ghost" onclick="autoCategorizarServicios()" style="white-space:nowrap;">
               <i class="fas fa-magic"></i> Auto-organizar
             </button>
-            <button class="btn primary" id="btn-new-service"><i class="fas fa-plus"></i> Nuevo Servicio</button>
+            <button class="tw-btn tw-btn-primary" id="btn-new-service"><i class="fas fa-plus"></i> Nuevo Servicio</button>
           </div>
 
           <div class="table-wrap">
@@ -4119,7 +4114,7 @@
               <span class="chip" data-category="maquillaje" onclick="filterProducts('maquillaje')">Maquillaje</span>
               <span class="chip" data-category="corporal" onclick="filterProducts('corporal')">Corporal</span>
             </div>
-            <button class="btn primary" id="btn-new-product"><i class="fas fa-plus"></i> Nuevo Producto</button>
+            <button class="tw-btn tw-btn-primary" id="btn-new-product"><i class="fas fa-plus"></i> Nuevo Producto</button>
           </div>
 
           <div class="table-wrap">
@@ -4310,7 +4305,7 @@
             </div>
 
             <!-- Botón para agregar servicio -->
-            <button type="button" id="btn-add-service" class="btn small ghost" style="width:100%;">
+            <button type="button" id="btn-add-service" class="tw-btn tw-btn-small tw-btn-ghost" style="width:100%;">
               <i class="fas fa-plus"></i> Agregar otro servicio
             </button>
 
@@ -4711,7 +4706,7 @@
             <i class="fas fa-receipt" style="color:#ef4444;"></i>
             <span id="expense-modal-title">Nuevo Gasto</span>
           </h3>
-          <button type="button" class="btn ghost" onclick="closeExpenseModal()" style="min-width:auto;padding:8px 12px;"
+          <button type="button" class="tw-btn tw-btn-ghost" onclick="closeExpenseModal()" style="min-width:auto;padding:8px 12px;"
             title="Cerrar">
             <i class="fas fa-times"></i>
           </button>
@@ -6704,7 +6699,7 @@
           <div style="display:flex;gap:6px;">
             <button id="cm-stamp" class="btn small" style="background:#FFD166;color:#1b1b1b;font-weight:600;">⭐ +1
               sello</button>
-            <button id="cm-close" class="btn small ghost" onclick="closeCardModal()">✕</button>
+            <button id="cm-close" class="tw-btn tw-btn-small tw-btn-ghost" onclick="closeCardModal()">✕</button>
           </div>
         </div>
 
@@ -6992,8 +6987,8 @@
         </div>
 
         <div class="modal-footer">
-          <button type="button" class="btn ghost" id="cancel-service">Cancelar</button>
-          <button type="submit" class="btn primary">Guardar</button>
+          <button type="button" class="tw-btn tw-btn-ghost tw-btn-modal" id="cancel-service">Cancelar</button>
+          <button type="submit" class="tw-btn tw-btn-primary tw-btn-modal">Guardar</button>
         </div>
       </form>
     </div>
@@ -10876,10 +10871,30 @@ Gracias por tu preferencia ✨`;
           editDurationInput.value = service.durationMinutes;
         }
 
-        // Extract date and time from startDateTime
-        const startDate = new Date(appt.startDateTime);
-        const isoDate = appt.startDateTime.split('T')[0];
-        editDateInput.value = isoDate;
+        // Extract date and time - usar campo 'date' directamente si existe (más confiable)
+        // porque startDateTime puede estar en UTC y causar problemas de timezone
+        let isoDate;
+        if (appt.date) {
+          // Usar el campo date directamente (formato YYYY-MM-DD)
+          isoDate = appt.date;
+        } else {
+          // Fallback: convertir startDateTime a fecha local
+          const startDate = new Date(appt.startDateTime);
+          const year = startDate.getFullYear();
+          const month = String(startDate.getMonth() + 1).padStart(2, '0');
+          const day = String(startDate.getDate()).padStart(2, '0');
+          isoDate = `${year}-${month}-${day}`;
+        }
+        
+        // Extraer hora - usar campo 'time' si existe, sino de startDateTime
+        let hour, minute;
+        if (appt.time) {
+          [hour, minute] = appt.time.split(':');
+        } else {
+          const startDate = new Date(appt.startDateTime);
+          hour = String(startDate.getHours()).padStart(2, '0');
+          minute = String(startDate.getMinutes()).padStart(2, '0');
+        }
 
         // Initialize calendar with existing date
         editApptCalendar.selectedDate = isoDate;
@@ -10890,8 +10905,8 @@ Gracias por tu preferencia ✨`;
         editDateInput.value = `${day}/${month}/${year}`;
         editDateInput.dataset.isoDate = isoDate;
 
-        editHourSelect.value = String(startDate.getHours()).padStart(2, '0');
-        editMinuteSelect.value = String(startDate.getMinutes()).padStart(2, '0');
+        editHourSelect.value = hour;
+        editMinuteSelect.value = minute;
 
         // Calculate end time
         calculateEditEndTime();
@@ -12042,10 +12057,10 @@ Gracias por tu preferencia ✨`;
           <td data-label="Precio">$${s.price}</td>
           <td data-label="Acciones">
             <div class="actions">
-              <button class="btn small ghost" onclick="editService('${s.id}')" title="Editar">
+              <button class="tw-btn tw-btn-small tw-btn-ghost" onclick="editService('${s.id}')" title="Editar">
                 <i class="fas fa-edit"></i>
               </button>
-              <button class="btn small ghost" style="color:#ef4444;border-color:#ef4444;" onclick="deleteService('${s.id}')" title="Eliminar">
+              <button class="tw-btn tw-btn-small tw-btn-ghost" style="color:#ef4444;border-color:#ef4444;" onclick="deleteService('${s.id}')" title="Eliminar">
                 <i class="fas fa-trash"></i>
               </button>
             </div>
@@ -12363,8 +12378,8 @@ Gracias por tu preferencia ✨`;
             <td><span class="stock ${stockClass}">${p.stock} uds${stockWarning}</span></td>
             <td>
               <div class="actions" style="display:flex;gap:6px;">
-                <button class="btn small ghost" onclick="editProduct('${p.id}')">Editar</button>
-                <button class="btn small ghost" style="color:#ef4444;" onclick="deleteProduct('${p.id}')">Eliminar</button>
+                <button class="tw-btn tw-btn-small tw-btn-ghost" onclick="editProduct('${p.id}')">Editar</button>
+                <button class="tw-btn tw-btn-small tw-btn-ghost" style="color:#ef4444;" onclick="deleteProduct('${p.id}')">Eliminar</button>
               </div>
             </td>
           </tr>
@@ -12700,20 +12715,20 @@ Gracias por tu preferencia ✨`;
         let actionsHtml = '';
         if (gc.displayStatus === 'pending') {
           actionsHtml = `
-            <button class="btn small ghost" onclick="viewGiftCard('${gc.id}')" title="Ver QR"><i class="fas fa-qrcode"></i></button>
-            <button class="btn small ghost" onclick="copyGiftCardLinkById('${gc.id}')" title="Copiar link"><i class="fas fa-link"></i></button>
-            <button class="btn small ghost" onclick="sendGiftCardWhatsAppById('${gc.id}')" title="WhatsApp"><i class="fab fa-whatsapp"></i></button>
-            <button class="btn small ghost" onclick="deleteGiftCard('${gc.id}')" title="Eliminar" style="color:#ef4444;"><i class="fas fa-trash"></i></button>
+            <button class="tw-btn tw-btn-small tw-btn-ghost" onclick="viewGiftCard('${gc.id}')" title="Ver QR"><i class="fas fa-qrcode"></i></button>
+            <button class="tw-btn tw-btn-small tw-btn-ghost" onclick="copyGiftCardLinkById('${gc.id}')" title="Copiar link"><i class="fas fa-link"></i></button>
+            <button class="tw-btn tw-btn-small tw-btn-ghost" onclick="sendGiftCardWhatsAppById('${gc.id}')" title="WhatsApp"><i class="fab fa-whatsapp"></i></button>
+            <button class="tw-btn tw-btn-small tw-btn-ghost" onclick="deleteGiftCard('${gc.id}')" title="Eliminar" style="color:#ef4444;"><i class="fas fa-trash"></i></button>
           `;
         } else if (gc.displayStatus === 'redeemed') {
           actionsHtml = `
-            <button class="btn small ghost" onclick="viewGiftCard('${gc.id}')" title="Ver"><i class="fas fa-eye"></i></button>
-            <button class="btn small ghost" onclick="deleteGiftCard('${gc.id}')" title="Eliminar" style="color:#ef4444;"><i class="fas fa-trash"></i></button>
+            <button class="tw-btn tw-btn-small tw-btn-ghost" onclick="viewGiftCard('${gc.id}')" title="Ver"><i class="fas fa-eye"></i></button>
+            <button class="tw-btn tw-btn-small tw-btn-ghost" onclick="deleteGiftCard('${gc.id}')" title="Eliminar" style="color:#ef4444;"><i class="fas fa-trash"></i></button>
           `;
         } else {
           actionsHtml = `
-            <button class="btn small ghost" onclick="renewGiftCard('${gc.id}')" title="Renovar" style="color:var(--venus-soft);"><i class="fas fa-sync-alt"></i></button>
-            <button class="btn small ghost" onclick="deleteGiftCard('${gc.id}')" title="Eliminar" style="color:#ef4444;"><i class="fas fa-trash"></i></button>
+            <button class="tw-btn tw-btn-small tw-btn-ghost" onclick="renewGiftCard('${gc.id}')" title="Renovar" style="color:var(--venus-soft);"><i class="fas fa-sync-alt"></i></button>
+            <button class="tw-btn tw-btn-small tw-btn-ghost" onclick="deleteGiftCard('${gc.id}')" title="Eliminar" style="color:#ef4444;"><i class="fas fa-trash"></i></button>
           `;
         }
 
@@ -14663,7 +14678,7 @@ Gracias por tu preferencia ✨`;
           <button class="btn small" onclick="contactRequest('${req.id}')" title="Marcar como contactada" style="background:#3b82f6;border-color:#3b82f6;color:white;">
             <i class="fas fa-check"></i> Marcar contactada
           </button>
-          <button class="btn small ghost" onclick="rejectRequest('${req.id}')" title="Rechazar solicitud" style="color:#ef4444;border-color:#ef4444;">
+          <button class="tw-btn tw-btn-small tw-btn-ghost" onclick="rejectRequest('${req.id}')" title="Rechazar solicitud" style="color:#ef4444;border-color:#ef4444;">
             <i class="fas fa-times"></i>
           </button>
         ` : req.status === 'contacted' ? `
@@ -14673,7 +14688,7 @@ Gracias por tu preferencia ✨`;
           <button class="btn small primary" onclick="markAsBooked('${req.id}')" title="Marcar como agendada">
             <i class="fas fa-calendar-check"></i> Agendada
           </button>
-          <button class="btn small ghost" onclick="rejectRequest('${req.id}')" title="Rechazar" style="color:#ef4444;border-color:#ef4444;">
+          <button class="tw-btn tw-btn-small tw-btn-ghost" onclick="rejectRequest('${req.id}')" title="Rechazar" style="color:#ef4444;border-color:#ef4444;">
             <i class="fas fa-times"></i>
           </button>
         ` : req.status === 'rejected' ? `

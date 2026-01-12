@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Venus Lealtad</title>
   <link rel="icon" href="/assets/logo.png">
+  <link rel="stylesheet" href="/css/tailwind.css">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
     * {
@@ -16,7 +17,6 @@
 
     body {
       font-family: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
-      background: linear-gradient(135deg, #2d2e28 0%, #3f4037 50%, #4a4b42 100%);
       min-height: 100vh;
       display: flex;
       flex-direction: column;
@@ -30,425 +30,25 @@
       max-width: 420px;
     }
 
-    /* ===== CARD PRINCIPAL ===== */
-    .card {
-      background: linear-gradient(145deg, #8c9668 0%, #7a8559 50%, #6b7550 100%);
-      border-radius: 28px;
-      padding: 0;
-      box-shadow:
-        0 25px 50px rgba(0, 0, 0, 0.4),
-        0 10px 20px rgba(0, 0, 0, 0.2),
-        inset 0 1px 0 rgba(255, 255, 255, 0.15);
-      position: relative;
-      overflow: hidden;
-    }
+    /* ===== CARD PRINCIPAL - MIGRATED TO TAILWIND ===== */
 
-    .card::before {
-      content: "";
-      position: absolute;
-      top: -50%;
-      left: -50%;
-      width: 200%;
-      height: 200%;
-      background: radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.08) 0%, transparent 50%),
-        radial-gradient(circle at 70% 80%, rgba(255, 255, 255, 0.05) 0%, transparent 40%);
-      pointer-events: none;
-    }
+    /* ===== CONTENIDO - MIGRATED TO TAILWIND ===== */
 
-    /* ===== HEADER DE LA TARJETA ===== */
-    .card-header {
-      padding: 32px 28px 20px;
-      text-align: center;
-      position: relative;
-      z-index: 1;
-    }
+    /* ===== FORMULARIO - MIGRATED TO TAILWIND ===== */
 
-    .logo-container {
-      width: 90px;
-      height: 90px;
-      margin: 0 auto 16px;
-      background: white;
-      border-radius: 50%;
-      padding: 8px;
-      box-shadow:
-        0 8px 24px rgba(0, 0, 0, 0.2),
-        0 2px 8px rgba(0, 0, 0, 0.1);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
+    /* ===== BOTONES - MIGRATED TO TAILWIND ===== */
 
-    .logo-container img {
-      width: 100%;
-      height: 100%;
-      border-radius: 50%;
-      object-fit: cover;
-    }
+    /* ===== VISTA DE TARJETA - MIGRATED TO TAILWIND ===== */
 
-    .brand-name {
-      font-size: 28px;
-      font-weight: 700;
-      color: white;
-      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-      margin-bottom: 4px;
-    }
+    /* ===== GRID DE SELLOS - MIGRATED TO TAILWIND ===== */
 
-    .brand-tagline {
-      font-size: 15px;
-      color: rgba(255, 255, 255, 0.9);
-      font-weight: 400;
-    }
+    /* ===== QR SECTION - MIGRATED TO TAILWIND ===== */
 
-    /* ===== CONTENIDO ===== */
-    .card-content {
-      padding: 0 28px 32px;
-      position: relative;
-      z-index: 1;
-    }
+    /* ===== ERROR MESSAGE - MIGRATED TO TAILWIND ===== */
 
-    .section-title {
-      font-size: 20px;
-      font-weight: 600;
-      color: white;
-      margin-bottom: 8px;
-      text-align: center;
-    }
+    /* ===== FOOTER - MIGRATED TO TAILWIND ===== */
 
-    .section-desc {
-      font-size: 14px;
-      color: rgba(255, 255, 255, 0.85);
-      text-align: center;
-      margin-bottom: 24px;
-      line-height: 1.5;
-    }
-
-    /* ===== FORMULARIO ===== */
-    .form-group {
-      margin-bottom: 18px;
-    }
-
-    .form-label {
-      display: block;
-      font-size: 13px;
-      font-weight: 600;
-      color: rgba(255, 255, 255, 0.95);
-      margin-bottom: 8px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .form-input {
-      width: 100%;
-      padding: 14px 16px;
-      border: 2px solid rgba(255, 255, 255, 0.2);
-      border-radius: 14px;
-      background: rgba(255, 255, 255, 0.95);
-      color: #333;
-      font-size: 16px;
-      font-family: inherit;
-      transition: all 0.3s ease;
-      -webkit-appearance: none;
-    }
-
-    .form-input:focus {
-      outline: none;
-      border-color: rgba(255, 255, 255, 0.6);
-      background: white;
-      box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.15);
-    }
-
-    .form-input::placeholder {
-      color: #999;
-    }
-
-    /* ===== BOTONES ===== */
-    .btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      width: 100%;
-      padding: 16px 24px;
-      border: none;
-      border-radius: 14px;
-      font-size: 16px;
-      font-weight: 600;
-      font-family: inherit;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      text-decoration: none;
-    }
-
-    .btn:active {
-      transform: scale(0.98);
-    }
-
-    .btn-primary {
-      background: linear-gradient(135deg, #fff 0%, #f0f0f0 100%);
-      color: #3f4037;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-    }
-
-    .btn-primary:hover {
-      background: linear-gradient(135deg, #fff 0%, #fff 100%);
-      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
-    }
-
-    .btn-google {
-      background: linear-gradient(135deg, #fff 0%, #f5f5f5 100%);
-      color: #333;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    }
-
-    .btn-google:hover {
-      background: white;
-      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
-    }
-
-    .btn-apple {
-      background: linear-gradient(135deg, #1a1a1a 0%, #000 100%);
-      color: white;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    }
-
-    .btn-apple:hover {
-      background: linear-gradient(135deg, #333 0%, #1a1a1a 100%);
-    }
-
-    .btn-share {
-      background: rgba(255, 255, 255, 0.15);
-      color: white;
-      border: 2px solid rgba(255, 255, 255, 0.3);
-    }
-
-    .btn-share:hover {
-      background: rgba(255, 255, 255, 0.25);
-      border-color: rgba(255, 255, 255, 0.5);
-    }
-
-    .btn-icon {
-      font-size: 20px;
-    }
-
-    .btn-group {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      margin-top: 24px;
-    }
-
-    /* ===== VISTA DE TARJETA ===== */
-    .client-info {
-      text-align: center;
-      margin-bottom: 24px;
-    }
-
-    .client-name {
-      font-size: 26px;
-      font-weight: 700;
-      color: white;
-      margin-bottom: 4px;
-      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    }
-
-    .client-progress {
-      font-size: 15px;
-      color: rgba(255, 255, 255, 0.9);
-    }
-
-    /* ===== GRID DE SELLOS ===== */
-    .stamps-container {
-      background: rgba(0, 0, 0, 0.15);
-      border-radius: 20px;
-      padding: 20px;
-      margin-bottom: 24px;
-    }
-
-    .stamps-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 12px;
-    }
-
-    .stamp {
-      aspect-ratio: 1;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.3s ease;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .stamp.active {
-      background: linear-gradient(135deg, #fff 0%, #f0f0f0 100%);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-      padding: 6px;
-    }
-
-    .stamp.active img {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-      border-radius: 50%;
-    }
-
-    .stamp.active::after {
-      content: "✓";
-      position: absolute;
-      top: -2px;
-      right: -2px;
-      width: 18px;
-      height: 18px;
-      background: #4CAF50;
-      border-radius: 50%;
-      font-size: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-    }
-
-    .stamp.inactive {
-      background: rgba(255, 255, 255, 0.1);
-      border: 2px dashed rgba(255, 255, 255, 0.3);
-    }
-
-    .stamp.inactive img {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-      border-radius: 50%;
-      opacity: 0.25;
-      filter: grayscale(100%);
-    }
-
-    /* ===== QR SECTION ===== */
-    .qr-section {
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 16px;
-      margin-top: 20px;
-      overflow: hidden;
-    }
-
-    .qr-toggle {
-      width: 100%;
-      padding: 16px 20px;
-      background: transparent;
-      border: none;
-      color: white;
-      font-size: 15px;
-      font-weight: 600;
-      font-family: inherit;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      transition: background 0.3s ease;
-    }
-
-    .qr-toggle:hover {
-      background: rgba(255, 255, 255, 0.05);
-    }
-
-    .qr-toggle-icon {
-      transition: transform 0.3s ease;
-    }
-
-    .qr-content {
-      padding: 0 20px 20px;
-      text-align: center;
-      display: none;
-    }
-
-    .qr-content.open {
-      display: block;
-    }
-
-    .qr-image {
-      width: 160px;
-      height: 160px;
-      background: white;
-      border-radius: 12px;
-      padding: 10px;
-      margin: 0 auto 16px;
-    }
-
-    .qr-image img {
-      width: 100%;
-      height: 100%;
-    }
-
-    .qr-hint {
-      font-size: 13px;
-      color: rgba(255, 255, 255, 0.7);
-      margin-bottom: 12px;
-      line-height: 1.5;
-    }
-
-    .card-id-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      justify-content: center;
-    }
-
-    .card-id {
-      font-family: 'SF Mono', 'Monaco', monospace;
-      font-size: 12px;
-      color: rgba(255, 255, 255, 0.8);
-      background: rgba(0, 0, 0, 0.2);
-      padding: 8px 12px;
-      border-radius: 8px;
-    }
-
-    .btn-copy {
-      padding: 8px 14px;
-      font-size: 13px;
-      background: rgba(255, 255, 255, 0.2);
-      color: white;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: 500;
-      transition: all 0.2s ease;
-    }
-
-    .btn-copy:hover {
-      background: rgba(255, 255, 255, 0.3);
-    }
-
-    /* ===== ERROR MESSAGE ===== */
-    .error-message {
-      background: rgba(255, 107, 107, 0.2);
-      border: 1px solid rgba(255, 107, 107, 0.4);
-      color: #ffcdd2;
-      padding: 12px 16px;
-      border-radius: 12px;
-      font-size: 14px;
-      margin-bottom: 16px;
-      display: none;
-    }
-
-    /* ===== FOOTER ===== */
-    .footer {
-      text-align: center;
-      color: rgba(255, 255, 255, 0.5);
-      font-size: 13px;
-      margin-top: 24px;
-    }
-
-    /* ===== LOADING STATE ===== */
-    .loading {
-      opacity: 0.7;
-      pointer-events: none;
-    }
-
-    .hidden {
-      display: none !important;
-    }
+    /* ===== LOADING STATE - MIGRATED TO TAILWIND ===== */
 
     /* ===== RESPONSIVE ===== */
     @media (max-width: 480px) {
@@ -488,70 +88,72 @@
   </style>
 </head>
 
-<body>
-  <main class="container">
+<body class="bg-venus-gradient">
+  <main class="tw-client-container">
     <!-- VISTA: CREAR TARJETA -->
-    <section id="view-create" class="card">
-      <div class="card-header">
-        <div class="logo-container">
+    <section id="view-create" class="tw-client-card">
+      <div class="tw-client-header">
+        <div class="tw-client-logo">
           <img src="/assets/logo.png" alt="Venus">
         </div>
-        <h1 class="brand-name">Venus Lealtad</h1>
-        <p class="brand-tagline">Gana sellos y canjea tu facial 🌿</p>
+        <h1 class="tw-client-brand">Venus Lealtad</h1>
+        <p class="tw-client-tagline">Gana sellos y canjea tu facial 🌿</p>
       </div>
 
-      <div class="card-content">
-        <h2 class="section-title">Crea tu tarjeta</h2>
-        <p class="section-desc">Ingresa tus datos para generar tu tarjeta digital de lealtad.</p>
+      <div class="tw-client-info">
+        <h2 class="tw-client-name">Crea tu tarjeta</h2>
+        <p class="tw-client-phone">Ingresa tus datos para generar tu tarjeta digital de lealtad.</p>
 
         <form id="create-form">
-          <div class="form-group">
-            <label class="form-label" for="name">Nombre</label>
-            <input class="form-input" id="name" name="name" placeholder="Tu nombre completo" required>
+          <div class="tw-form-group">
+            <label class="tw-form-label" for="name">Nombre</label>
+            <input class="tw-form-input" id="name" name="name" placeholder="Tu nombre completo" required>
           </div>
 
-          <div class="form-group">
-            <label class="form-label" for="phone">Teléfono</label>
-            <input class="form-input" id="phone" name="phone" type="tel" placeholder="10 dígitos" pattern="[0-9]{10}"
+          <div class="tw-form-group">
+            <label class="tw-form-label" for="phone">Teléfono</label>
+            <input class="tw-form-input" id="phone" name="phone" type="tel" placeholder="10 dígitos" pattern="[0-9]{10}"
               required>
           </div>
 
-          <div class="form-group">
-            <label class="form-label" for="birthdate">Fecha de nacimiento</label>
-            <input class="form-input" id="birthdate" name="birthdate" type="date" required>
+          <div class="tw-form-group">
+            <label class="tw-form-label" for="birthdate">Fecha de nacimiento</label>
+            <input class="tw-form-input" id="birthdate" name="birthdate" type="date" required>
           </div>
 
           <input id="max" name="max" type="hidden" value="8">
 
-          <div id="error-message" class="error-message"></div>
+          <div id="error-message" class="tw-error-message"></div>
 
-          <button class="btn btn-primary" type="submit" id="submit-btn">
-            <span>✨</span>
-            <span>Crear mi tarjeta</span>
-          </button>
+          <div class="tw-client-actions">
+            <button class="tw-client-btn tw-client-btn-primary" type="submit" id="submit-btn">
+              <span>✨</span>
+              <span>Crear mi tarjeta</span>
+            </button>
+          </div>
         </form>
       </div>
     </section>
 
     <!-- VISTA: TARJETA -->
-    <section id="view-card" class="card hidden">
-      <div class="card-header">
-        <div class="logo-container">
+    <section id="view-card" class="tw-client-card hidden">
+      <div class="tw-client-header">
+        <div class="tw-client-logo">
           <img src="/assets/logo.png" alt="Venus">
         </div>
-        <div class="client-info">
-          <h2 class="client-name" id="c_name">Cliente</h2>
-          <p class="client-progress" id="c_info">Progreso: 0/8</p>
+        <div class="tw-client-info">
+          <h2 class="tw-client-name" id="c_name">Cliente</h2>
+          <p class="tw-client-phone" id="c_info">Progreso: 0/8</p>
         </div>
       </div>
 
-      <div class="card-content">
-        <div class="stamps-container">
-          <div class="stamps-grid" id="grid"></div>
+      <div class="tw-client-info">
+        <div class="tw-stamps-section">
+          <div class="tw-stamps-grid" id="grid"></div>
         </div>
 
-        <div class="btn-group">
-          <a id="gwallet" class="btn btn-google" href="#">
+        <div class="tw-client-actions">
+          <a id="gwallet" class="tw-client-btn tw-client-btn-secondary" href="#">
             <svg class="btn-icon" viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
               <path
                 d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -566,16 +168,18 @@
                 d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                 fill="#EA4335" />
             </svg>
-            <span>Guardar en Google Wallet</span>
+            <span>Google Wallet</span>
           </a>
-          <a id="applewallet" class="btn btn-apple" href="#">
-            <svg class="btn-icon" viewBox="0 0 24 24" width="20" height="20" fill="white">
+          <a id="applewallet" class="tw-client-btn tw-client-btn-secondary" href="#">
+            <svg class="btn-icon" viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
               <path
                 d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z" />
             </svg>
-            <span>Agregar a Apple Wallet</span>
+            <span>Apple Wallet</span>
           </a>
-          <button id="share" class="btn btn-share">
+        </div>
+        <div class="tw-client-actions">
+          <button id="share" class="tw-client-btn tw-client-btn-secondary">
             <svg class="btn-icon" viewBox="0 0 24 24" width="20" height="20" fill="white">
               <path
                 d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z" />
@@ -584,30 +188,32 @@
           </button>
         </div>
 
-        <div class="qr-section">
-          <button class="qr-toggle" id="qr-toggle">
+        <div class="tw-qr-section">
+          <button class="tw-qr-toggle" id="qr-toggle">
             <span><svg style="vertical-align:middle;margin-right:6px" viewBox="0 0 24 24" width="18" height="18"
                 fill="white">
                 <path
                   d="M3 11h8V3H3v8zm2-6h4v4H5V5zm8-2v8h8V3h-8zm6 6h-4V5h4v4zM3 21h8v-8H3v8zm2-6h4v4H5v-4zm13 2h-2v4h2v-4zm2-2h2v2h-2v-2zm-2-2h2v2h-2v-2zm2 4h2v4h-4v-2h2v-2zm-4-4h2v2h-2v-2zm-2 2h2v2h-2v-2z" />
               </svg>Mostrar QR de mi tarjeta</span>
-            <span class="qr-toggle-icon">▼</span>
+            <span class="tw-qr-toggle-icon">▼</span>
           </button>
-          <div class="qr-content" id="qr-content">
-            <div class="qr-image">
+          <div class="tw-qr-content" id="qr-content">
+            <div class="tw-qr-image">
               <img id="qr" alt="QR Code" />
             </div>
-            <p class="qr-hint">Muestra este código en recepción para sumar sellos a tu tarjeta.</p>
-            <div class="card-id-row">
-              <code class="card-id" id="cid"></code>
-              <button id="copy" class="btn-copy">Copiar</button>
+            <p class="tw-qr-hint">Muestra este código en recepción para sumar sellos a tu tarjeta.</p>
+            <div class="tw-card-id-row">
+              <code class="tw-card-id" id="cid"></code>
+              <button id="copy" class="tw-btn-copy">Copiar</button>
             </div>
           </div>
         </div>
       </div>
     </section>
 
-    <footer class="footer">© Venus Cosmetología — Programa de Lealtad</footer>
+    <footer class="tw-client-footer">
+      <p class="tw-client-footer-text">© Venus Cosmetología — Programa de Lealtad</p>
+    </footer>
   </main>
 
   <script>
@@ -624,7 +230,7 @@
     // Toggle QR section
     qrToggle.addEventListener("click", () => {
       qrContent.classList.toggle("open");
-      const icon = qrToggle.querySelector(".qr-toggle-icon");
+      const icon = qrToggle.querySelector(".tw-qr-toggle-icon");
       icon.textContent = qrContent.classList.contains("open") ? "▲" : "▼";
     });
 
@@ -639,19 +245,19 @@
 
     function setLoading(loading) {
       if (loading) {
-        submitBtn.classList.add("loading");
+        submitBtn.classList.add("tw-loading");
         submitBtn.innerHTML = "<span>⏳</span><span>Creando...</span>";
         submitBtn.disabled = true;
       } else {
-        submitBtn.classList.remove("loading");
+        submitBtn.classList.remove("tw-loading");
         submitBtn.innerHTML = "<span>✨</span><span>Crear mi tarjeta</span>";
         submitBtn.disabled = false;
       }
     }
 
     function showCardView(data) {
-      createView.classList.add("hidden");
-      cardView.classList.remove("hidden");
+      createView.classList.add("tw-hidden");
+      cardView.classList.remove("tw-hidden");
 
       const cardId = data.cardId || data.id;
       const max = data.max || 8;
