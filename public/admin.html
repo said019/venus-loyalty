@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Panel Admin — Venus Lealtad</title>
   <link rel="icon" href="/assets/logo.png">
-  <link rel="stylesheet" href="/css/tailwind.css">
+  <link rel="stylesheet" href="/css/tailwind.css?v=2">
   <style>
     /* [TODOS LOS ESTILOS EXISTENTES SE MANTIENEN IGUAL] */
     body.checking-auth {
@@ -2608,9 +2608,9 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
-<body class="checking-auth">
+<body class="checking-auth" style="margin: 0; padding: 0; width: 100%; min-height: 100vh;">
 
-  <main class="wrap">
+  <main class="wrap tw-admin-container">
     <header class="topbar">
       <div class="brand">
         <img src="/assets/logo.png" alt="Venus">
@@ -2932,7 +2932,7 @@
 
         <button id="btn-search-cards" class="tw-btn tw-btn-primary"><i class="fas fa-search"></i> Buscar</button>
         <button id="btn-reload-cards" class="tw-btn"><i class="fas fa-sync-alt"></i> Recargar</button>
-        <button id="btn-scan-card" class="tw-btn tw-btn-ghost"><i class="fas fa-qrcode"></i> Escanear QR</button>
+        <button id="btn-scan-card" class="tw-btn tw-btn-ghost" onclick="openScanner()"><i class="fas fa-qrcode"></i> Escanear QR</button>
       </div>
 
       <div class="table-wrap" style="margin-top:12px;">
@@ -2965,7 +2965,7 @@
     <section id="tab-events" class="tab-content hidden">
       <div class="header-actions">
         <h2><i class="fas fa-gift"></i> Gift Cards</h2>
-        <button class="tw-btn tw-btn-ghost" id="btn-scan-gift-card">
+        <button class="tw-btn tw-btn-ghost" id="btn-scan-gift-card" onclick="openScanner()">
           <i class="fas fa-qrcode"></i> Escanear QR
         </button>
       </div>
@@ -3601,7 +3601,9 @@
             title="Actualizar">
             <i class="fas fa-sync"></i>
           </button>
-          <button class="tw-btn tw-btn-primary" id="btn-new-appointment">Nueva Cita</button>
+          <button class="tw-btn tw-btn-primary" id="btn-new-appointment" onclick="openNewAppointmentModal()">
+            <i class="fas fa-plus"></i> Nueva Cita
+          </button>
         </div>
       </div>
 
