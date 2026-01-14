@@ -1,210 +1,263 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
-
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Venus Lealtad</title>
   <link rel="icon" href="/assets/logo.png">
-  <link rel="stylesheet" href="/css/tailwind.css?v=4">
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/tailwind.css?v=5">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
+    .font-playfair { font-family: 'Playfair Display', serif; }
+    .font-inter { font-family: 'Inter', sans-serif; }
+    
+    /* Custom date input styling */
+    input[type="date"]::-webkit-calendar-picker-indicator {
+      filter: invert(1);
+      opacity: 0.6;
+      cursor: pointer;
+    }
+    
+    /* Subtle gradient animation */
+    @keyframes shimmer {
+      0% { background-position: -200% center; }
+      100% { background-position: 200% center; }
+    }
+    
+    .btn-shimmer {
+      background: linear-gradient(90deg, #4a5a4a 0%, #5a6b5a 50%, #4a5a4a 100%);
+      background-size: 200% auto;
+    }
+    
+    .btn-shimmer:hover {
+      animation: shimmer 2s ease-in-out infinite;
     }
 
-    body {
-      font-family: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
-      min-height: 100vh;
+    /* Stamps grid */
+    .stamps-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    .stamp {
+      aspect-ratio: 1;
+      border-radius: 16px;
       display: flex;
-      flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 20px;
+      transition: all 0.3s ease;
+      overflow: hidden;
     }
 
-    .container {
+    .stamp img {
       width: 100%;
-      max-width: 420px;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 12px;
     }
 
-    /* ===== CARD PRINCIPAL - MIGRATED TO TAILWIND ===== */
+    .stamp.active {
+      background: rgba(255, 255, 255, 0.95);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+      padding: 6px;
+    }
 
-    /* ===== CONTENIDO - MIGRATED TO TAILWIND ===== */
+    .stamp.inactive {
+      background: rgba(255, 255, 255, 0.1);
+      border: 2px dashed rgba(255, 255, 255, 0.3);
+      padding: 6px;
+    }
 
-    /* ===== FORMULARIO - MIGRATED TO TAILWIND ===== */
+    .stamp.inactive img {
+      opacity: 0.3;
+      filter: grayscale(100%);
+    }
 
-    /* ===== BOTONES - MIGRATED TO TAILWIND ===== */
+    /* QR Section */
+    .qr-content {
+      display: none;
+    }
+    .qr-content.open {
+      display: block;
+    }
 
-    /* ===== VISTA DE TARJETA - MIGRATED TO TAILWIND ===== */
-
-    /* ===== GRID DE SELLOS - MIGRATED TO TAILWIND ===== */
-
-    /* ===== QR SECTION - MIGRATED TO TAILWIND ===== */
-
-    /* ===== ERROR MESSAGE - MIGRATED TO TAILWIND ===== */
-
-    /* ===== FOOTER - MIGRATED TO TAILWIND ===== */
-
-    /* ===== LOADING STATE - MIGRATED TO TAILWIND ===== */
-
-    /* ===== RESPONSIVE ===== */
-    @media (max-width: 480px) {
-      body {
-        padding: 16px;
-      }
-
-      .card-header {
-        padding: 24px 20px 16px;
-      }
-
-      .card-content {
-        padding: 0 20px 24px;
-      }
-
-      .logo-container {
-        width: 80px;
-        height: 80px;
-      }
-
-      .brand-name {
-        font-size: 24px;
-      }
-
-      .stamps-container {
-        padding: 16px;
-      }
-
-      .stamps-grid {
-        gap: 10px;
-      }
-
-      .stamp {
-        font-size: 14px;
-      }
+    /* Hidden utility */
+    .hidden {
+      display: none !important;
     }
   </style>
 </head>
-
-<body class="bg-venus-gradient" style="margin: 0; padding: 0; width: 100%; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px;">
-  <main class="tw-client-container">
+<body class="font-inter">
+  <div class="min-h-screen bg-gradient-to-br from-[#4a5a4a] via-[#5a6b5a] to-[#4a5a4a] flex items-center justify-center p-4">
+    
     <!-- VISTA: CREAR TARJETA -->
-    <section id="view-create" class="tw-client-card">
-      <div class="tw-client-header">
-        <div class="tw-client-logo">
-          <img src="/assets/logo.png" alt="Venus">
+    <div id="view-create" class="w-full max-w-md">
+      <div class="bg-gradient-to-b from-[#6b7c6b]/95 to-[#5a6b5a]/95 backdrop-blur-md rounded-3xl p-8 shadow-2xl border border-white/10">
+        <!-- Logo -->
+        <div class="w-24 h-24 bg-white/95 rounded-2xl mx-auto mb-6 flex items-center justify-center shadow-lg">
+          <img src="/assets/logo.png" alt="Venus" class="w-16 h-16 object-contain">
         </div>
-        <h1 class="tw-client-brand">Venus Lealtad</h1>
-        <p class="tw-client-tagline">Gana sellos y canjea tu facial 🌿</p>
-      </div>
 
-      <div class="tw-client-info">
-        <h2 class="tw-client-name">Crea tu tarjeta</h2>
-        <p class="tw-client-phone" style="margin-bottom: 24px;">Ingresa tus datos para generar tu tarjeta digital de lealtad.</p>
+        <!-- Header -->
+        <h1 class="font-playfair text-white text-3xl font-bold text-center tracking-wide">Venus Lealtad</h1>
+        <p class="text-white/80 text-center mt-2 mb-8 text-sm">Gana sellos y canjea tu facial 🌿</p>
 
-        <form id="create-form">
-          <div style="margin-bottom: 24px;">
-            <label for="name" style="display: block; font-size: 12px; font-weight: 600; color: #5a5a4a; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px;">Nombre</label>
-            <input id="name" name="name" placeholder="Tu nombre completo" required
-              style="width: 100%; padding: 16px 18px; border: none; border-bottom: 2px solid rgba(140, 150, 104, 0.4); background: transparent; color: #2d2d1f; font-size: 16px; font-family: inherit; box-sizing: border-box; outline: none; transition: border-color 0.3s;">
-          </div>
+        <div class="bg-white/5 rounded-2xl p-6 border border-white/10">
+          <h2 class="text-white text-xl font-semibold text-center mb-1">Crea tu tarjeta</h2>
+          <p class="text-white/60 text-sm text-center mb-6">Ingresa tus datos para generar tu tarjeta digital</p>
 
-          <div style="margin-bottom: 24px;">
-            <label for="phone" style="display: block; font-size: 12px; font-weight: 600; color: #5a5a4a; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px;">Teléfono</label>
-            <input id="phone" name="phone" type="tel" placeholder="10 dígitos" pattern="[0-9]{10}" required
-              style="width: 100%; padding: 16px 18px; border: none; border-bottom: 2px solid rgba(140, 150, 104, 0.4); background: transparent; color: #2d2d1f; font-size: 16px; font-family: inherit; box-sizing: border-box; outline: none; transition: border-color 0.3s;">
-          </div>
+          <!-- Form -->
+          <form id="create-form" class="space-y-5">
+            <!-- Nombre -->
+            <div class="space-y-2">
+              <label class="text-white/80 text-xs font-semibold tracking-wider block">NOMBRE</label>
+              <input
+                type="text"
+                id="name"
+                name="name"
+                placeholder="Tu nombre completo"
+                required
+                class="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3.5 text-white placeholder:text-white/40
+                       focus:outline-none focus:ring-2 focus:ring-white/30 focus:bg-white/15 focus:border-transparent
+                       transition-all duration-300 ease-out"
+              />
+            </div>
 
-          <div style="margin-bottom: 28px;">
-            <label for="birthdate" style="display: block; font-size: 12px; font-weight: 600; color: #5a5a4a; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px;">Fecha de nacimiento</label>
-            <input id="birthdate" name="birthdate" type="date" required
-              style="width: 100%; padding: 16px 18px; border: none; border-bottom: 2px solid rgba(140, 150, 104, 0.4); background: transparent; color: #2d2d1f; font-size: 16px; font-family: inherit; box-sizing: border-box; outline: none; transition: border-color 0.3s;">
-          </div>
+            <!-- Teléfono -->
+            <div class="space-y-2">
+              <label class="text-white/80 text-xs font-semibold tracking-wider block">TELÉFONO</label>
+              <input
+                type="tel"
+                id="phone"
+                name="phone"
+                placeholder="10 dígitos"
+                maxlength="10"
+                pattern="[0-9]{10}"
+                required
+                class="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3.5 text-white placeholder:text-white/40
+                       focus:outline-none focus:ring-2 focus:ring-white/30 focus:bg-white/15 focus:border-transparent
+                       transition-all duration-300 ease-out"
+              />
+            </div>
 
-          <input id="max" name="max" type="hidden" value="8">
+            <!-- Fecha de Nacimiento -->
+            <div class="space-y-2">
+              <label class="text-white/80 text-xs font-semibold tracking-wider block">FECHA DE NACIMIENTO</label>
+              <input
+                type="date"
+                id="birthdate"
+                name="birthdate"
+                required
+                class="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3.5 text-white/70
+                       focus:outline-none focus:ring-2 focus:ring-white/30 focus:bg-white/15 focus:border-transparent
+                       transition-all duration-300 ease-out cursor-pointer"
+              />
+            </div>
 
-          <div id="error-message" style="background: rgba(255, 107, 107, 0.15); border: 1px solid rgba(255, 107, 107, 0.3); color: #dc2626; padding: 12px 16px; border-radius: 12px; font-size: 14px; margin-bottom: 20px; display: none;"></div>
+            <!-- Error Message -->
+            <div id="error-message" class="bg-red-500/20 border border-red-500/40 text-red-200 px-4 py-3 rounded-xl text-sm hidden"></div>
 
-          <div style="margin-top: 32px;">
-            <button type="submit" id="submit-btn"
-              style="width: 100%; padding: 18px 24px; background: linear-gradient(135deg, #8c9668, #7a8559); color: white; border: none; border-radius: 16px; font-weight: 600; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 6px 20px rgba(140, 150, 104, 0.4); transition: all 0.3s;">
-              <span>✨</span>
+            <!-- Submit Button -->
+            <button
+              type="submit"
+              id="submit-btn"
+              class="w-full btn-shimmer text-white font-semibold py-4 rounded-xl mt-6
+                     flex items-center justify-center gap-2
+                     transition-all duration-300 ease-out hover:shadow-lg hover:shadow-black/20
+                     active:scale-[0.98] border border-white/10"
+            >
+              <span class="text-lg">✨</span>
               <span>Crear mi tarjeta</span>
             </button>
-          </div>
-        </form>
+          </form>
+        </div>
+
+        <!-- Footer -->
+        <p class="text-white/40 text-xs text-center mt-6">© Venus Cosmetología — Programa de Lealtad</p>
       </div>
-    </section>
+    </div>
 
     <!-- VISTA: TARJETA -->
-    <section id="view-card" class="tw-client-card hidden">
-      <div class="tw-client-header">
-        <div class="tw-client-logo">
-          <img src="/assets/logo.png" alt="Venus">
-        </div>
-        <h1 class="tw-client-brand">Venus Lealtad</h1>
-      </div>
-
-      <div class="tw-card-body-section">
-        <h2 class="tw-card-client-name" id="c_name">Cliente</h2>
-        <p class="tw-card-progress" id="c_info">Progreso: 0/8 sellos</p>
-
-        <div class="tw-stamps-container">
-          <div class="tw-stamps-grid" id="grid"></div>
+    <div id="view-card" class="w-full max-w-md hidden">
+      <div class="bg-gradient-to-b from-[#6b7c6b]/95 to-[#5a6b5a]/95 backdrop-blur-md rounded-3xl p-8 shadow-2xl border border-white/10">
+        <!-- Logo -->
+        <div class="w-20 h-20 bg-white/95 rounded-2xl mx-auto mb-4 flex items-center justify-center shadow-lg">
+          <img src="/assets/logo.png" alt="Venus" class="w-14 h-14 object-contain">
         </div>
 
-        <div class="tw-wallet-buttons">
-          <a id="gwallet" class="tw-wallet-btn" href="#">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
-              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
-              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-            </svg>
-            <span>Google Wallet</span>
-          </a>
-          <a id="applewallet" class="tw-wallet-btn" href="#">
+        <!-- Header -->
+        <h1 class="font-playfair text-white text-2xl font-bold text-center tracking-wide">Venus Lealtad</h1>
+        
+        <!-- Client Info -->
+        <div class="bg-white/5 rounded-2xl p-6 border border-white/10 mt-6">
+          <h2 id="c_name" class="text-white text-xl font-semibold text-center mb-1">Cliente</h2>
+          <p id="c_info" class="text-white/70 text-sm text-center mb-6">Progreso: 0/8 sellos</p>
+
+          <!-- Stamps Grid -->
+          <div class="bg-white/5 rounded-xl p-4 border border-white/10 mb-6">
+            <div id="grid" class="stamps-grid"></div>
+          </div>
+
+          <!-- Wallet Buttons -->
+          <div class="flex gap-3 mb-3">
+            <a id="gwallet" href="#" class="flex-1 bg-white/95 text-gray-800 font-semibold py-3 px-4 rounded-xl flex items-center justify-center gap-2 hover:bg-white transition-all shadow-lg text-sm">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+              </svg>
+              <span>Google</span>
+            </a>
+            <a id="applewallet" href="#" class="flex-1 bg-white/95 text-gray-800 font-semibold py-3 px-4 rounded-xl flex items-center justify-center gap-2 hover:bg-white transition-all shadow-lg text-sm">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+              </svg>
+              <span>Apple</span>
+            </a>
+          </div>
+
+          <!-- Share Button -->
+          <button id="share" class="w-full bg-white/10 border border-white/20 text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-white/20 transition-all">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-              <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z" />
+              <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/>
             </svg>
-            <span>Apple Wallet</span>
-          </a>
+            <span>Compartir mi tarjeta</span>
+          </button>
         </div>
 
-        <button id="share" class="tw-share-btn">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-            <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z" />
-          </svg>
-          <span>Compartir mi tarjeta</span>
-        </button>
-      </div>
-
-      <div class="tw-qr-section">
-        <button class="tw-qr-toggle" id="qr-toggle">
-          <span><svg style="vertical-align:middle;margin-right:6px" viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-              <path d="M3 11h8V3H3v8zm2-6h4v4H5V5zm8-2v8h8V3h-8zm6 6h-4V5h4v4zM3 21h8v-8H3v8zm2-6h4v4H5v-4zm13 2h-2v4h2v-4zm2-2h2v2h-2v-2zm-2-2h2v2h-2v-2zm2 4h2v4h-4v-2h2v-2zm-4-4h2v2h-2v-2zm-2 2h2v2h-2v-2z" />
-            </svg>Mostrar QR de mi tarjeta</span>
-          <span class="tw-qr-toggle-icon">▼</span>
-        </button>
-        <div class="tw-qr-content" id="qr-content">
-          <div class="tw-qr-image">
-            <img id="qr" alt="QR Code" />
-          </div>
-          <p class="tw-qr-hint">Muestra este código en recepción para sumar sellos a tu tarjeta.</p>
-          <div class="tw-card-id-row">
-            <code class="tw-card-id" id="cid"></code>
-            <button id="copy" class="tw-btn-copy">Copiar</button>
+        <!-- QR Section -->
+        <div class="bg-white/5 rounded-2xl border border-white/10 mt-4 overflow-hidden">
+          <button id="qr-toggle" class="w-full px-6 py-4 text-white font-semibold flex items-center justify-between hover:bg-white/5 transition-all">
+            <span class="flex items-center gap-2">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                <path d="M3 11h8V3H3v8zm2-6h4v4H5V5zm8-2v8h8V3h-8zm6 6h-4V5h4v4zM3 21h8v-8H3v8zm2-6h4v4H5v-4zm13 2h-2v4h2v-4zm2-2h2v2h-2v-2zm-2-2h2v2h-2v-2zm2 4h2v4h-4v-2h2v-2zm-4-4h2v2h-2v-2zm-2 2h2v2h-2v-2z"/>
+              </svg>
+              Mostrar QR de mi tarjeta
+            </span>
+            <span id="qr-icon" class="text-white/60">▼</span>
+          </button>
+          <div id="qr-content" class="qr-content px-6 pb-6 text-center">
+            <div class="w-40 h-40 bg-white rounded-xl p-3 mx-auto mb-4 shadow-lg">
+              <img id="qr" alt="QR Code" class="w-full h-full">
+            </div>
+            <p class="text-white/60 text-sm mb-4">Muestra este código en recepción para sumar sellos.</p>
+            <div class="flex items-center justify-center gap-3">
+              <code id="cid" class="bg-black/20 text-white/80 px-3 py-2 rounded-lg text-xs font-mono"></code>
+              <button id="copy" class="bg-white/20 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-white/30 transition-all">Copiar</button>
+            </div>
           </div>
         </div>
-      </div>
-    </section>
 
-    <footer class="tw-client-footer">
-      <p class="tw-client-footer-text">© Venus Cosmetología — Programa de Lealtad</p>
-    </footer>
-  </main>
+        <!-- Footer -->
+        <p class="text-white/40 text-xs text-center mt-6">© Venus Cosmetología — Programa de Lealtad</p>
+      </div>
+    </div>
+
+  </div>
 
   <script>
     const createView = document.getElementById("view-create");
@@ -214,34 +267,37 @@
     const submitBtn = document.getElementById("submit-btn");
     const qrToggle = document.getElementById("qr-toggle");
     const qrContent = document.getElementById("qr-content");
+    const qrIcon = document.getElementById("qr-icon");
     const params = new URLSearchParams(window.location.search);
     const urlCardId = params.get("cardId");
+
+    // Phone formatting
+    document.getElementById('phone').addEventListener('input', function(e) {
+      this.value = this.value.replace(/\D/g, '').slice(0, 10);
+    });
 
     // Toggle QR section
     qrToggle.addEventListener("click", () => {
       qrContent.classList.toggle("open");
-      const icon = qrToggle.querySelector(".tw-qr-toggle-icon");
-      icon.textContent = qrContent.classList.contains("open") ? "▲" : "▼";
+      qrIcon.textContent = qrContent.classList.contains("open") ? "▲" : "▼";
     });
 
     function showError(message) {
       errorMessage.textContent = message;
-      errorMessage.style.display = "block";
+      errorMessage.classList.remove("hidden");
     }
 
     function hideError() {
-      errorMessage.style.display = "none";
+      errorMessage.classList.add("hidden");
     }
 
     function setLoading(loading) {
       if (loading) {
-        submitBtn.classList.add("tw-loading");
-        submitBtn.innerHTML = "<span>⏳</span><span>Creando...</span>";
         submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span>⏳</span><span>Creando...</span>';
       } else {
-        submitBtn.classList.remove("tw-loading");
-        submitBtn.innerHTML = "<span>✨</span><span>Crear mi tarjeta</span>";
         submitBtn.disabled = false;
+        submitBtn.innerHTML = '<span class="text-lg">✨</span><span>Crear mi tarjeta</span>';
       }
     }
 
@@ -262,49 +318,40 @@
       for (let i = 1; i <= max; i++) {
         const div = document.createElement("div");
         div.className = i <= stamps ? "stamp active" : "stamp inactive";
-
-        // Usar imagen del logo para cada sello
         const img = document.createElement("img");
         img.src = "/assets/logo.png";
         img.alt = `Sello ${i}`;
         div.appendChild(img);
-
         grid.appendChild(div);
       }
 
       if (!cardId) return;
 
       // QR Code
-      const qr = document.getElementById("qr");
-      qr.src = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=" + encodeURIComponent(cardId);
+      document.getElementById("qr").src = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=" + encodeURIComponent(cardId);
       document.getElementById("cid").textContent = cardId;
 
-      // Google Wallet button
-      const gwallet = document.getElementById("gwallet");
-      gwallet.onclick = async (ev) => {
+      // Google Wallet
+      document.getElementById("gwallet").onclick = async (ev) => {
         ev.preventDefault();
         try {
           let saveUrl = data.gwallet;
           if (!saveUrl) {
             const resp = await fetch(`/api/save-card?cardId=${encodeURIComponent(cardId)}&name=${encodeURIComponent(name)}&stamps=${stamps}&max=${max}`);
             const j = await resp.json();
-            if (!resp.ok) throw new Error(j.error || "Error al generar pase");
+            if (!resp.ok) throw new Error(j.error || "Error");
             saveUrl = j.saveUrl || j.addToGoogleUrl;
           }
-          if (saveUrl) {
-            window.location.href = saveUrl;
-          } else {
-            alert("No se pudo obtener la URL de Google Wallet.");
-          }
+          if (saveUrl) window.location.href = saveUrl;
+          else alert("No se pudo obtener la URL de Google Wallet.");
         } catch (err) {
           console.error(err);
           alert("No se pudo generar el pase de Google Wallet.");
         }
       };
 
-      // Apple Wallet button
-      const applewallet = document.getElementById("applewallet");
-      applewallet.onclick = async (ev) => {
+      // Apple Wallet
+      document.getElementById("applewallet").onclick = async (ev) => {
         ev.preventDefault();
         const passUrl = data.applewallet || `/api/apple/pass?cardId=${encodeURIComponent(cardId)}`;
         const tempLink = document.createElement('a');
@@ -313,56 +360,36 @@
         document.body.appendChild(tempLink);
         tempLink.click();
         document.body.removeChild(tempLink);
-
-        setTimeout(() => {
-          if (confirm('El pase se ha descargado. ¿Necesitas ayuda para instalarlo?')) {
-            alert('Pasos para instalar:\n\n1. Abre la app "Archivos" en tu iPhone\n2. Ve a "Descargas"\n3. Toca el archivo .pkpass\n4. Toca "Agregar" en la esquina superior\n5. ¡Listo! Tu pase estará en Wallet');
-          }
-        }, 1500);
       };
 
-      // Share button
-      const shareBtn = document.getElementById("share");
-      shareBtn.onclick = () => {
+      // Share
+      document.getElementById("share").onclick = () => {
         const shareUrl = `${window.location.origin}?cardId=${cardId}`;
         if (navigator.share) {
-          navigator.share({
-            title: "Mi tarjeta de lealtad Venus",
-            text: "Únete a mi programa de lealtad",
-            url: shareUrl,
-          });
+          navigator.share({ title: "Mi tarjeta Venus", text: "Mi tarjeta de lealtad", url: shareUrl });
         } else {
           navigator.clipboard.writeText(shareUrl);
-          alert("Enlace copiado al portapapeles");
+          alert("Enlace copiado");
         }
       };
 
-      // Copy button
-      const copyBtn = document.getElementById("copy");
-      copyBtn.onclick = () => {
+      // Copy
+      document.getElementById("copy").onclick = () => {
         navigator.clipboard.writeText(cardId);
-        copyBtn.textContent = "¡Copiado!";
-        setTimeout(() => copyBtn.textContent = "Copiar", 2000);
+        document.getElementById("copy").textContent = "¡Copiado!";
+        setTimeout(() => document.getElementById("copy").textContent = "Copiar", 2000);
       };
     }
 
-    // Load card from URL if cardId present
+    // Load card from URL
     if (urlCardId) {
       fetch(`/api/card/${encodeURIComponent(urlCardId)}`)
-        .then((res) => {
-          if (!res.ok) throw new Error("Tarjeta no encontrada");
-          return res.json();
-        })
-        .then((response) => {
-          const cardData = response.success ? response.data : response;
-          showCardView(cardData);
-        })
-        .catch(() => {
-          showError("No se pudo cargar la tarjeta. Verifica el enlace o crea una nueva.");
-        });
+        .then(res => res.ok ? res.json() : Promise.reject())
+        .then(response => showCardView(response.success ? response.data : response))
+        .catch(() => showError("No se pudo cargar la tarjeta."));
     }
 
-    // Handle form submission
+    // Form submit
     document.getElementById("create-form").addEventListener("submit", async (e) => {
       e.preventDefault();
       hideError();
@@ -372,51 +399,24 @@
       const phone = document.getElementById("phone").value.trim();
       const birthdate = document.getElementById("birthdate").value;
 
-      if (!name) {
-        showError("Por favor ingresa tu nombre");
-        setLoading(false);
-        return;
-      }
-
-      if (!phone.match(/^[0-9]{10}$/)) {
-        showError("Por favor ingresa un teléfono válido de 10 dígitos");
-        setLoading(false);
-        return;
-      }
-
-      if (!birthdate) {
-        showError("Por favor ingresa tu fecha de nacimiento");
+      if (!name || !phone.match(/^[0-9]{10}$/) || !birthdate) {
+        showError("Por favor completa todos los campos correctamente");
         setLoading(false);
         return;
       }
 
       try {
         const res = await fetch(`/api/create-card?name=${encodeURIComponent(name)}&phone=${encodeURIComponent(phone)}&birthdate=${encodeURIComponent(birthdate)}&max=8`);
-        const contentType = res.headers.get("content-type");
-
-        if (!contentType || !contentType.includes("application/json")) {
-          throw new Error("El servidor no respondió con JSON.");
-        }
-
         const data = await res.json();
-
-        if (!res.ok) {
-          throw new Error(data.error || "Error al crear la tarjeta");
-        }
-
-        if (data.url) {
-          window.location.href = data.url;
-        } else {
-          showCardView(data);
-        }
+        if (!res.ok) throw new Error(data.error || "Error al crear");
+        if (data.url) window.location.href = data.url;
+        else showCardView(data);
       } catch (error) {
-        console.error("Error:", error);
-        showError(error.message || "Ocurrió un error al crear la tarjeta.");
+        showError(error.message || "Error al crear la tarjeta");
       } finally {
         setLoading(false);
       }
     });
   </script>
 </body>
-
 </html>
