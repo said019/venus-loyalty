@@ -5487,7 +5487,7 @@
         }
       }
 
-      /* Custom Calendar Dropdown */
+      /* Custom Calendar Dropdown - Modern Design */
       .calendar-dropdown {
         position: absolute;
         top: 100%;
@@ -5495,13 +5495,108 @@
         z-index: 1000;
         margin-top: 8px;
         background: #1a1a1a;
-        /* Solid background */
-        border: 1px solid var(--line);
-        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
         padding: 16px;
         width: 300px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-        min-width: 280px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+      }
+
+      .calendar-dropdown .calendar-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+        padding-bottom: 0;
+        border-bottom: none;
+      }
+
+      .calendar-dropdown .calendar-nav-btn {
+        width: 32px;
+        height: 32px;
+        background: rgba(255, 255, 255, 0.08);
+        border: none;
+        color: rgba(255, 255, 255, 0.6);
+        padding: 0;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .calendar-dropdown .calendar-nav-btn:hover {
+        background: rgba(255, 255, 255, 0.15);
+        color: #fff;
+      }
+
+      .calendar-dropdown .calendar-month-year {
+        font-weight: 600;
+        color: #fff;
+        font-size: 15px;
+      }
+
+      .calendar-dropdown .calendar-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 4px;
+      }
+
+      .calendar-dropdown .calendar-day-header {
+        text-align: center;
+        font-size: 11px;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.4);
+        text-transform: uppercase;
+        padding: 8px 0;
+      }
+
+      .calendar-dropdown .calendar-day {
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 500;
+        color: rgba(255, 255, 255, 0.8);
+        cursor: pointer;
+        transition: all 0.15s;
+        background: transparent;
+        border: none;
+        min-height: auto;
+        padding: 0;
+      }
+
+      .calendar-dropdown .calendar-day:hover:not(.empty) {
+        background: rgba(255, 255, 255, 0.1);
+      }
+
+      .calendar-dropdown .calendar-day.empty {
+        cursor: default;
+        opacity: 0;
+      }
+
+      .calendar-dropdown .calendar-day.today {
+        color: var(--venus-soft);
+        box-shadow: inset 0 0 0 1px var(--venus-soft);
+        background: transparent;
+      }
+
+      .calendar-dropdown .calendar-day.selected {
+        background: var(--venus-soft) !important;
+        color: #fff !important;
+        font-weight: 600;
+        box-shadow: 0 4px 12px rgba(140, 150, 104, 0.4);
+      }
+
+      .calendar-dropdown .calendar-day.other-month {
+        color: rgba(255, 255, 255, 0.2);
+        background: transparent;
+        opacity: 1;
       }
 
       /* Custom Searchable Dropdown */
@@ -5561,7 +5656,8 @@
         margin-top: 2px;
       }
 
-      .calendar-header {
+      /* Legacy calendar header - for main calendar view */
+      .calendar-header-legacy {
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -5569,7 +5665,7 @@
         gap: 8px;
       }
 
-      .calendar-nav-btn {
+      .calendar-nav-btn-legacy {
         background: rgba(255, 255, 255, 0.1);
         border: 1px solid var(--line);
         color: #fff;
@@ -5580,12 +5676,12 @@
         font-size: 14px;
       }
 
-      .calendar-nav-btn:hover {
+      .calendar-nav-btn-legacy:hover {
         background: var(--venus-green);
         border-color: var(--venus-green);
       }
 
-      .calendar-month-year {
+      .calendar-month-year-legacy {
         font-weight: 600;
         color: #fff;
         font-size: 14px;
