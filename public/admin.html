@@ -2810,7 +2810,7 @@
                 Ver todas <i class="fas fa-chevron-right"></i>
               </a>
             </div>
-            <div class="tw-card-body p-4">
+            <div class="tw-card-body">
               <div class="gc-summary">
                 <div class="gc-summary-row">
                   <span class="gc-dot pending"></span>
@@ -2838,7 +2838,7 @@
                 <i class="fas fa-birthday-cake"></i> Cumpleaños
               </span>
             </div>
-            <div class="tw-card-body p-4">
+            <div class="tw-card-body">
               <div class="birthday-list" id="birthday-list">
                 <div class="dash-empty">
                   <p>Sin cumpleaños próximos</p>
@@ -2854,7 +2854,7 @@
                 <i class="fas fa-trophy"></i> Top Clientes
               </span>
             </div>
-            <div class="tw-card-body px-4 py-3">
+            <div class="tw-card-body">
               <div id="top-clients-sidebar">
                 <div class="dash-empty">
                   <p>Sin datos aún</p>
@@ -2870,7 +2870,7 @@
                 <i class="fas fa-wallet"></i> Wallets
               </span>
             </div>
-            <div class="tw-card-body p-4">
+            <div class="tw-card-body">
               <div class="wallets-grid">
                 <div class="wallet-card">
                   <div class="wallet-card-icon"><i class="fab fa-apple"></i></div>
@@ -6123,7 +6123,7 @@
       /* Sidebar y layout */
       .dash-grid {
         display: grid;
-        grid-template-columns: 1fr 340px;
+        grid-template-columns: 1fr 380px;
         gap: 24px;
       }
 
@@ -6136,20 +6136,41 @@
       .dash-sidebar {
         display: flex;
         flex-direction: column;
-        gap: 20px;
+        gap: 24px;
+      }
+
+      .dash-sidebar .tw-card {
+        min-height: 180px;
+        padding: 0;
+      }
+
+      .dash-sidebar .tw-card-header {
+        padding: 20px 24px 16px;
+        margin-bottom: 0;
+      }
+
+      .dash-sidebar .tw-card-body {
+        padding: 20px 24px 24px;
       }
 
       /* Gift Cards summary */
       .gc-summary {
         display: flex;
         flex-direction: column;
-        gap: 10px;
+        gap: 16px;
       }
 
       .gc-summary-row {
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 12px;
+        padding: 12px 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      }
+
+      .gc-summary-row:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
       }
 
       .gc-dot {
@@ -6189,27 +6210,28 @@
       .birthday-list {
         display: flex;
         flex-direction: column;
-        gap: 10px;
+        gap: 16px;
       }
 
       .birthday-item {
         display: flex;
         align-items: center;
-        gap: 12px;
-        padding: 12px;
-        background: rgba(0, 0, 0, 0.2);
-        border-radius: 10px;
+        gap: 14px;
+        padding: 14px 16px;
+        background: rgba(0, 0, 0, 0.25);
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
       }
 
       .birthday-avatar {
-        width: 40px;
-        height: 40px;
+        width: 44px;
+        height: 44px;
         border-radius: 50%;
         background: linear-gradient(135deg, #ff6b6b, #feca57);
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 16px;
+        font-size: 18px;
       }
 
       .birthday-info {
@@ -6217,19 +6239,20 @@
       }
 
       .birthday-info h4 {
-        font-size: 13px;
-        font-weight: 500;
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 2px;
       }
 
       .birthday-info p {
-        font-size: 11px;
+        font-size: 12px;
         color: var(--muted);
       }
 
       .birthday-badge {
-        padding: 4px 10px;
+        padding: 6px 12px;
         border-radius: 20px;
-        font-size: 10px;
+        font-size: 11px;
         font-weight: 600;
       }
 
@@ -6247,25 +6270,26 @@
       .top-client-item {
         display: flex;
         align-items: center;
-        gap: 12px;
-        padding: 12px 0;
-        border-bottom: 1px solid var(--line);
+        gap: 14px;
+        padding: 14px 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
       }
 
       .top-client-item:last-child {
         border-bottom: none;
+        padding-bottom: 0;
       }
 
       .top-client-rank {
-        width: 24px;
-        height: 24px;
-        border-radius: 6px;
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
         background: rgba(140, 150, 104, 0.15);
         color: var(--venus-soft);
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 11px;
+        font-size: 12px;
         font-weight: 700;
       }
 
@@ -6279,12 +6303,13 @@
       }
 
       .top-client-info h4 {
-        font-size: 13px;
-        font-weight: 500;
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 2px;
       }
 
       .top-client-info p {
-        font-size: 11px;
+        font-size: 12px;
         color: var(--muted);
       }
 
@@ -6293,13 +6318,13 @@
       }
 
       .top-client-stamps .count {
-        font-size: 14px;
+        font-size: 15px;
         font-weight: 700;
         color: var(--venus-soft);
       }
 
       .top-client-stamps .label {
-        font-size: 10px;
+        font-size: 11px;
         color: var(--muted);
       }
 
