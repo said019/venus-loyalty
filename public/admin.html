@@ -4236,181 +4236,155 @@
     <!-- DIALOG: Nueva Cita -->
     <dialog id="newApptDialog">
       <div class="dialog-content">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-          <h3 style="margin:0;"><i class="fas fa-calendar"></i> Agendar Cita</h3>
-          <button type="button" class="btn ghost" onclick="newApptDialog.close()"
-            style="min-width:auto;padding:8px 12px;" title="Cerrar">
+        <!-- Header sticky -->
+        <div class="dialog-header-sticky">
+          <h3><i class="fas fa-calendar-plus"></i> Agendar Cita</h3>
+          <button type="button" class="dialog-close-btn" onclick="newApptDialog.close()" title="Cerrar">
             <i class="fas fa-times"></i>
           </button>
         </div>
+
+        <!-- Body -->
         <form id="form-new-appt">
-          <div style="display:grid;gap:16px;">
-            <!-- Cliente con búsqueda editable -->
-            <div>
-              <label class="form-label">Cliente</label>
-              <div class="custom-select-wrapper">
-                <input type="text" id="new-appt-client-select" class="form-input"
-                  placeholder="Buscar o escribir nombre..." autocomplete="off">
-                <span class="dropdown-toggle-icon">▼</span>
-                <div id="clients-dropdown-list" class="custom-dropdown-list" style="display:none;"></div>
+          <div class="dialog-body">
+            <div class="form-compact">
+              <!-- Cliente -->
+              <div class="form-group-compact">
+                <label class="form-label">Cliente</label>
+                <div class="custom-select-wrapper">
+                  <input type="text" id="new-appt-client-select" class="form-input"
+                    placeholder="Buscar o escribir nombre..." autocomplete="off">
+                  <span class="dropdown-toggle-icon">▼</span>
+                  <div id="clients-dropdown-list" class="custom-dropdown-list" style="display:none;"></div>
+                </div>
+                <button type="button" id="btn-toggle-new-client" class="btn small ghost" style="margin-top:6px;font-size:12px;">
+                  + Nuevo cliente
+                </button>
+
+                <!-- Panel Historial -->
+                <div id="client-history-panel" class="client-history-panel hidden">
+                  <div class="history-header" id="toggle-history">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                      <span class="history-toggle-icon">▼</span>
+                      <span><i class="fas fa-calendar"></i> Citas anteriores</span>
+                      <span class="history-count" id="history-count">(0)</span>
+                    </div>
+                    <span class="history-hint" id="history-hint">Clic para repetir</span>
+                  </div>
+                  <div class="history-content" id="history-content" style="display:none;">
+                    <div id="history-list" class="history-list"></div>
+                  </div>
+                </div>
               </div>
-              <button type="button" id="btn-toggle-new-client" class="btn small ghost" style="margin-top:8px;">
-                + Registrar nuevo cliente
+
+              <!-- Nuevo Cliente (oculto) -->
+              <div id="new-client-form" style="display:none;background:rgba(140,150,104,0.1);border:1px solid rgba(140,150,104,0.3);border-radius:12px;padding:14px;">
+                <h4 style="margin:0 0 10px 0;color:var(--venus-soft);font-size:13px;">Nuevo Cliente</h4>
+                <div style="display:grid;gap:10px;">
+                  <input type="text" id="new-client-name" class="form-input" placeholder="Nombre completo" style="padding:10px 14px;">
+                  <input type="tel" id="new-client-phone" class="form-input" placeholder="Teléfono" style="padding:10px 14px;">
+                  <button type="button" id="btn-save-new-client" class="btn small primary">Guardar</button>
+                </div>
+              </div>
+
+              <!-- Teléfono -->
+              <div class="form-group-compact">
+                <label class="form-label">Teléfono</label>
+                <input type="tel" id="new-appt-phone" class="form-input" placeholder="4421234567" required>
+              </div>
+
+              <!-- Servicio + Precio (2 columnas) -->
+              <div class="form-row-2">
+                <div class="form-group-compact">
+                  <label class="form-label">Servicio</label>
+                  <div class="custom-select-wrapper">
+                    <input type="text" id="new-appt-service" class="form-input"
+                      placeholder="Buscar servicio..." autocomplete="off">
+                    <span class="dropdown-toggle-icon">▼</span>
+                    <div id="services-dropdown-list" class="custom-dropdown-list" style="display:none;"></div>
+                  </div>
+                </div>
+                <div class="form-group-compact">
+                  <label class="form-label">Precio</label>
+                  <div style="position:relative;">
+                    <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--venus-soft);font-size:13px;">$</span>
+                    <input type="number" id="new-appt-price" class="form-input" placeholder="0" min="0" step="any" style="padding-left:26px;">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Agregar servicio -->
+              <button type="button" id="btn-add-service" class="tw-btn tw-btn-small tw-btn-ghost" style="width:100%;padding:8px;">
+                <i class="fas fa-plus"></i> Agregar otro servicio
               </button>
 
-              <!-- Panel Historial de Citas - Clic para seleccionar servicio -->
-              <div id="client-history-panel" class="client-history-panel hidden">
-                <div class="history-header" id="toggle-history">
-                  <div style="display:flex;align-items:center;gap:8px;">
-                    <span class="history-toggle-icon">▼</span>
-                    <span><i class="fas fa-calendar"></i> Citas anteriores</span>
-                    <span class="history-count" id="history-count">(0)</span>
-                  </div>
-                  <span class="history-hint" id="history-hint">Clic para repetir servicio</span>
-                </div>
-                <div class="history-content" id="history-content" style="display:none;">
-                  <div id="history-list" class="history-list">
-                  </div>
-                </div>
+              <!-- Lista servicios seleccionados -->
+              <div id="selected-services-list" style="display:none;background:rgba(140,150,104,0.1);border:1px solid rgba(140,150,104,0.3);border-radius:12px;padding:14px;">
+                <h4 style="margin:0 0 10px 0;color:var(--venus-soft);font-size:12px;"><i class="fas fa-list"></i> Servicios</h4>
+                <div id="services-list-container"></div>
               </div>
-            </div>
 
-            <!-- Formulario Nuevo Cliente (oculto por defecto) -->
-            <div id="new-client-form"
-              style="display:none;background:rgba(140,150,104,0.1);border:1px solid rgba(140,150,104,0.3);border-radius:12px;padding:16px;">
-              <h4 style="margin:0 0 12px 0;color:var(--venus-soft);">Nuevo Cliente</h4>
-              <div style="display:grid;gap:12px;">
-                <div>
-                  <label class="form-label">Nombre completo</label>
-                  <input type="text" id="new-client-name" class="form-input" placeholder="Ej: María González">
+              <!-- Fecha + Hora + Min + Fin (4 columnas) -->
+              <div class="form-row-4">
+                <div class="form-group-compact" style="position:relative;">
+                  <label class="form-label">Fecha</label>
+                  <input type="text" id="new-appt-date" class="form-input date-picker-input" readonly required
+                    placeholder="Seleccionar" style="cursor:pointer;">
+                  <div id="new-appt-calendar" class="calendar-dropdown" style="display:none;"></div>
                 </div>
-                <div>
-                  <label class="form-label">Teléfono</label>
-                  <input type="tel" id="new-client-phone" class="form-input" placeholder="52...">
+                <div class="form-group-compact">
+                  <label class="form-label">Hora</label>
+                  <select id="new-appt-hour" class="form-input" required>
+                    <option value="">--</option>
+                  </select>
                 </div>
-                <button type="button" id="btn-save-new-client" class="btn small primary">Guardar Cliente</button>
-              </div>
-            </div>
-
-            <!-- Teléfono -->
-            <div>
-              <label class="form-label">Teléfono</label>
-              <input type="tel" id="new-appt-phone" class="form-input" placeholder="4421234567" required>
-            </div>
-
-            <!-- Servicio y Precio -->
-            <div class="grid-service-price">
-              <div>
-                <label class="form-label">Servicio</label>
-                <div class="custom-select-wrapper">
-                  <input type="text" id="new-appt-service" class="form-input"
-                    placeholder="Buscar o escribir servicio..." autocomplete="off">
-                  <span class="dropdown-toggle-icon">▼</span>
-                  <div id="services-dropdown-list" class="custom-dropdown-list" style="display:none;"></div>
+                <div class="form-group-compact">
+                  <label class="form-label">Min</label>
+                  <select id="new-appt-minute" class="form-input" required>
+                    <option value="">--</option>
+                  </select>
+                </div>
+                <div class="form-group-compact">
+                  <label class="form-label">Fin</label>
+                  <input type="text" id="new-appt-end-time" class="form-input" readonly
+                    style="background:rgba(0,0,0,0.2);color:var(--muted);text-align:center;">
                 </div>
               </div>
-              <div>
-                <label class="form-label">Precio</label>
-                <div style="position:relative;">
-                  <span
-                    style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--venus-soft);font-size:14px;">$</span>
-                  <input type="number" id="new-appt-price" class="form-input" placeholder="0" min="0" step="any"
-                    style="padding-left:28px;">
+
+              <!-- Recordatorios compactos -->
+              <div class="reminders-compact">
+                <div class="reminders-compact-header">
+                  <i class="fab fa-whatsapp"></i>
+                  <span>Recordatorios WhatsApp</span>
+                </div>
+                <div class="reminders-compact-grid">
+                  <label class="reminder-chip">
+                    <input type="checkbox" id="check-whatsapp-confirm" checked>
+                    <span>Confirmar</span>
+                  </label>
+                  <label class="reminder-chip">
+                    <input type="checkbox" id="check-whatsapp-24h" checked>
+                    <span>24h antes</span>
+                  </label>
+                  <label class="reminder-chip">
+                    <input type="checkbox" id="check-whatsapp-2h" checked>
+                    <span>2h antes</span>
+                  </label>
                 </div>
               </div>
-            </div>
 
-            <!-- Botón para agregar servicio -->
-            <button type="button" id="btn-add-service" class="tw-btn tw-btn-small tw-btn-ghost" style="width:100%;">
-              <i class="fas fa-plus"></i> Agregar otro servicio
-            </button>
-
-            <!-- Lista de servicios seleccionados -->
-            <div id="selected-services-list"
-              style="display:none;background:rgba(140,150,104,0.1);border:1px solid rgba(140,150,104,0.3);border-radius:12px;padding:16px;">
-              <h4 style="margin:0 0 12px 0;color:var(--venus-soft);"><i class="fas fa-list"></i> Servicios seleccionados
-              </h4>
-              <div id="services-list-container"></div>
-            </div>
-
-            <!-- Fecha y Hora -->
-            <div class="grid-date-time">
-              <div style="position:relative;">
-                <label class="form-label"><i class="fas fa-calendar"></i> Fecha</label>
-                <input type="text" id="new-appt-date" class="form-input date-picker-input" readonly required
-                  placeholder="Seleccionar fecha" style="cursor:pointer;">
-                <div id="new-appt-calendar" class="calendar-dropdown" style="display:none;"></div>
-              </div>
-              <div>
-                <label class="form-label">Hora</label>
-                <select id="new-appt-hour" class="form-input" required>
-                  <option value="">--</option>
-                </select>
-              </div>
-              <div>
-                <label class="form-label">Min</label>
-                <select id="new-appt-minute" class="form-input" required>
-                  <option value="">--</option>
-                </select>
-              </div>
-              <div>
-                <label class="form-label">Hora fin</label>
-                <input type="text" id="new-appt-end-time" class="form-input" readonly
-                  style="background:rgba(0,0,0,0.15);color:var(--muted);">
+              <!-- Gift Card compacto -->
+              <div class="giftcard-compact">
+                <i class="fas fa-gift"></i>
+                <input type="text" id="new-appt-giftcard" placeholder="Código Gift Card (opcional)">
               </div>
             </div>
+          </div>
 
-            <!-- Recordatorios -->
-            <div class="reminders-section">
-              <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
-                <svg width="18" height="18" fill="none" stroke="var(--venus-soft)" stroke-width="2" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round"
-                    d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9">
-                  </path>
-                </svg>
-                <span style="font-size:13px;font-weight:600;color:var(--venus-soft);">Recordatorios por
-                  WhatsApp</span>
-              </div>
-              <div style="display:grid;gap:10px;">
-                <label class="reminder-option">
-                  <input type="checkbox" id="check-whatsapp-confirm" checked>
-                  <span class="reminder-text">
-                    <strong>Confirmación inmediata</strong>
-                    <small>Se envía al crear la cita</small>
-                  </span>
-                </label>
-                <label class="reminder-option">
-                  <input type="checkbox" id="check-whatsapp-24h" checked>
-                  <span class="reminder-text">
-                    <strong>24 horas antes</strong>
-                    <small>Recordatorio automático</small>
-                  </span>
-                </label>
-                <label class="reminder-option">
-                  <input type="checkbox" id="check-whatsapp-2h" checked>
-                  <span class="reminder-text">
-                    <strong>2 horas antes</strong>
-                    <small>Recordatorio final</small>
-                  </span>
-                </label>
-              </div>
-            </div>
-
-            <!-- Gift Card -->
-            <div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(140,150,104,0.15);">
-              <label class="form-label" style="display:flex;align-items:center;gap:6px;color:var(--venus-soft);">
-                <i class="fas fa-gift"></i> Canjear Gift Card
-              </label>
-              <input type="text" id="new-appt-giftcard" class="form-input"
-                placeholder="Ingresa el código de la tarjeta (Opcional)"
-                style="background:rgba(140,150,104,0.05);border-color:rgba(140,150,104,0.3);">
-            </div>
-
-            <!-- Botones -->
-            <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px;">
-              <button type="button" class="btn ghost" id="btn-cancel-appt">Cancelar</button>
-              <button type="submit" class="btn primary">Agendar</button>
-            </div>
+          <!-- Footer sticky -->
+          <div class="dialog-footer-sticky">
+            <button type="button" class="btn ghost" id="btn-cancel-appt">Cancelar</button>
+            <button type="submit" class="btn primary"><i class="fas fa-check"></i> Agendar</button>
           </div>
         </form>
       </div>
@@ -4791,7 +4765,7 @@
       #paymentDialog::backdrop,
       #paymentDetailDialog::backdrop,
       #directSaleDialog::backdrop {
-        background: rgba(0, 0, 0, 0.9);
+        background: rgba(0, 0, 0, 0.75);
         backdrop-filter: blur(8px);
         -webkit-backdrop-filter: blur(8px);
       }
@@ -4801,20 +4775,264 @@
         border: none;
         border-radius: 20px;
         padding: 0;
-        max-width: 650px;
-        width: 92%;
-        background: #1a1b18;
+        max-width: 520px;
+        width: 95%;
+        max-height: 90vh;
+        background: #1a1a1a;
         box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.6),
-          0 0 0 1px rgba(255, 255, 255, 0.1),
-          inset 0 1px 0 rgba(255, 255, 255, 0.05);
+          0 0 0 1px rgba(255, 255, 255, 0.1);
+        overflow: hidden;
+        margin: auto;
+      }
+
+      #newApptDialog::backdrop {
+        animation: fadeIn 0.2s ease;
+      }
+
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
       }
 
       .dialog-content {
-        background: #1a1b18;
+        background: #1a1a1a;
         border: none;
         border-radius: 20px;
-        padding: 28px;
+        padding: 0;
         color: #fff;
+        max-height: 90vh;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* Header sticky */
+      .dialog-header-sticky {
+        position: sticky;
+        top: 0;
+        background: #1a1a1a;
+        padding: 20px 24px 16px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        z-index: 10;
+      }
+
+      .dialog-header-sticky h3 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .dialog-header-sticky h3 i {
+        color: var(--venus-soft);
+      }
+
+      .dialog-close-btn {
+        background: rgba(255, 255, 255, 0.1);
+        border: none;
+        border-radius: 10px;
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        color: #fff;
+        transition: all 0.2s;
+      }
+
+      .dialog-close-btn:hover {
+        background: rgba(255, 255, 255, 0.15);
+      }
+
+      /* Body scrollable */
+      .dialog-body {
+        padding: 20px 24px;
+        overflow-y: auto;
+        flex: 1;
+      }
+
+      /* Footer sticky */
+      .dialog-footer-sticky {
+        position: sticky;
+        bottom: 0;
+        background: #1a1a1a;
+        padding: 16px 24px 20px;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        display: flex;
+        gap: 12px;
+        justify-content: flex-end;
+      }
+
+      /* Compact form styles */
+      .form-compact {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .form-row-2 {
+        display: grid;
+        grid-template-columns: 1fr 120px;
+        gap: 12px;
+      }
+
+      .form-row-3 {
+        display: grid;
+        grid-template-columns: 1fr 80px 80px;
+        gap: 12px;
+      }
+
+      .form-row-4 {
+        display: grid;
+        grid-template-columns: 1.2fr 70px 70px 90px;
+        gap: 10px;
+      }
+
+      .form-group-compact {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .form-group-compact .form-label {
+        font-size: 11px;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.6);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin: 0;
+      }
+
+      .form-group-compact .form-input {
+        padding: 10px 14px;
+        font-size: 14px;
+      }
+
+      .form-group-compact select.form-input {
+        padding: 10px 12px;
+      }
+
+      /* Reminders compact */
+      .reminders-compact {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 12px;
+        padding: 14px 16px;
+      }
+
+      .reminders-compact-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 12px;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--venus-soft);
+      }
+
+      .reminders-compact-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+      }
+
+      .reminder-chip {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 10px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 11px;
+      }
+
+      .reminder-chip:has(input:checked) {
+        background: rgba(140, 150, 104, 0.15);
+        border-color: rgba(140, 150, 104, 0.4);
+      }
+
+      .reminder-chip input {
+        width: 14px;
+        height: 14px;
+        accent-color: var(--venus-soft);
+      }
+
+      .reminder-chip span {
+        color: rgba(255, 255, 255, 0.8);
+        font-weight: 500;
+      }
+
+      /* Gift card compact */
+      .giftcard-compact {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 14px;
+        background: rgba(140, 150, 104, 0.05);
+        border: 1px solid rgba(140, 150, 104, 0.15);
+        border-radius: 10px;
+      }
+
+      .giftcard-compact i {
+        color: var(--venus-soft);
+        font-size: 14px;
+      }
+
+      .giftcard-compact input {
+        flex: 1;
+        background: transparent;
+        border: none;
+        color: #fff;
+        font-size: 13px;
+        outline: none;
+      }
+
+      .giftcard-compact input::placeholder {
+        color: rgba(255, 255, 255, 0.4);
+      }
+
+      /* Mobile responsive */
+      @media (max-width: 640px) {
+        #newApptDialog,
+        #editApptDialog {
+          max-width: 100%;
+          width: 100%;
+          max-height: 100vh;
+          border-radius: 0;
+          margin: 0;
+        }
+
+        .dialog-content {
+          border-radius: 0;
+          max-height: 100vh;
+        }
+
+        .form-row-2,
+        .form-row-3,
+        .form-row-4 {
+          grid-template-columns: 1fr;
+        }
+
+        .reminders-compact-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .dialog-footer-sticky {
+          flex-direction: column;
+        }
+
+        .dialog-footer-sticky button {
+          width: 100%;
+        }
       }
 
       .dialog-header {
