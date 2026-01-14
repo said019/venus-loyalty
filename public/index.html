@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Venus Lealtad</title>
   <link rel="icon" href="/assets/logo.png">
-  <link rel="stylesheet" href="/css/tailwind.css?v=2">
+  <link rel="stylesheet" href="/css/tailwind.css?v=3">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
     * {
@@ -102,34 +102,34 @@
 
       <div class="tw-client-info">
         <h2 class="tw-client-name">Crea tu tarjeta</h2>
-        <p class="tw-client-phone">Ingresa tus datos para generar tu tarjeta digital de lealtad.</p>
+        <p class="tw-client-phone" style="margin-bottom: 24px;">Ingresa tus datos para generar tu tarjeta digital de lealtad.</p>
 
-        <form id="create-form" style="margin-top: 20px;">
-          <div style="margin-bottom: 20px;">
-            <label for="name" style="display: block; font-size: 13px; font-weight: 600; color: #2d2d1f; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">Nombre</label>
+        <form id="create-form">
+          <div style="margin-bottom: 24px;">
+            <label for="name" style="display: block; font-size: 12px; font-weight: 600; color: #5a5a4a; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px;">Nombre</label>
             <input id="name" name="name" placeholder="Tu nombre completo" required
-              style="width: 100%; padding: 14px 16px; border: 2px solid #8c9668; border-radius: 14px; background: white; color: #333; font-size: 16px; font-family: inherit; box-sizing: border-box; outline: none;">
+              style="width: 100%; padding: 16px 18px; border: none; border-bottom: 2px solid rgba(140, 150, 104, 0.4); background: transparent; color: #2d2d1f; font-size: 16px; font-family: inherit; box-sizing: border-box; outline: none; transition: border-color 0.3s;">
           </div>
 
-          <div style="margin-bottom: 20px;">
-            <label for="phone" style="display: block; font-size: 13px; font-weight: 600; color: #2d2d1f; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">Teléfono</label>
+          <div style="margin-bottom: 24px;">
+            <label for="phone" style="display: block; font-size: 12px; font-weight: 600; color: #5a5a4a; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px;">Teléfono</label>
             <input id="phone" name="phone" type="tel" placeholder="10 dígitos" pattern="[0-9]{10}" required
-              style="width: 100%; padding: 14px 16px; border: 2px solid #8c9668; border-radius: 14px; background: white; color: #333; font-size: 16px; font-family: inherit; box-sizing: border-box; outline: none;">
+              style="width: 100%; padding: 16px 18px; border: none; border-bottom: 2px solid rgba(140, 150, 104, 0.4); background: transparent; color: #2d2d1f; font-size: 16px; font-family: inherit; box-sizing: border-box; outline: none; transition: border-color 0.3s;">
           </div>
 
-          <div style="margin-bottom: 20px;">
-            <label for="birthdate" style="display: block; font-size: 13px; font-weight: 600; color: #2d2d1f; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">Fecha de nacimiento</label>
+          <div style="margin-bottom: 28px;">
+            <label for="birthdate" style="display: block; font-size: 12px; font-weight: 600; color: #5a5a4a; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px;">Fecha de nacimiento</label>
             <input id="birthdate" name="birthdate" type="date" required
-              style="width: 100%; padding: 14px 16px; border: 2px solid #8c9668; border-radius: 14px; background: white; color: #333; font-size: 16px; font-family: inherit; box-sizing: border-box; outline: none;">
+              style="width: 100%; padding: 16px 18px; border: none; border-bottom: 2px solid rgba(140, 150, 104, 0.4); background: transparent; color: #2d2d1f; font-size: 16px; font-family: inherit; box-sizing: border-box; outline: none; transition: border-color 0.3s;">
           </div>
 
           <input id="max" name="max" type="hidden" value="8">
 
-          <div id="error-message" style="background: rgba(255, 107, 107, 0.2); border: 1px solid rgba(255, 107, 107, 0.4); color: #dc2626; padding: 12px 16px; border-radius: 12px; font-size: 14px; margin-bottom: 16px; display: none;"></div>
+          <div id="error-message" style="background: rgba(255, 107, 107, 0.15); border: 1px solid rgba(255, 107, 107, 0.3); color: #dc2626; padding: 12px 16px; border-radius: 12px; font-size: 14px; margin-bottom: 20px; display: none;"></div>
 
-          <div style="margin-top: 24px;">
+          <div style="margin-top: 32px;">
             <button type="submit" id="submit-btn"
-              style="width: 100%; padding: 16px 24px; background: linear-gradient(135deg, #8c9668, #a0b070); color: white; border: none; border-radius: 16px; font-weight: 600; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 4px 16px rgba(140, 150, 104, 0.3);">
+              style="width: 100%; padding: 18px 24px; background: linear-gradient(135deg, #8c9668, #7a8559); color: white; border: none; border-radius: 16px; font-weight: 600; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 6px 20px rgba(140, 150, 104, 0.4); transition: all 0.3s;">
               <span>✨</span>
               <span>Crear mi tarjeta</span>
             </button>
@@ -144,71 +144,58 @@
         <div class="tw-client-logo">
           <img src="/assets/logo.png" alt="Venus">
         </div>
-        <div class="tw-client-info">
-          <h2 class="tw-client-name" id="c_name">Cliente</h2>
-          <p class="tw-client-phone" id="c_info">Progreso: 0/8</p>
-        </div>
+        <h1 class="tw-client-brand">Venus Lealtad</h1>
       </div>
 
-      <div class="tw-client-info">
-        <div class="tw-stamps-section">
+      <div class="tw-card-body-section">
+        <h2 class="tw-card-client-name" id="c_name">Cliente</h2>
+        <p class="tw-card-progress" id="c_info">Progreso: 0/8 sellos</p>
+
+        <div class="tw-stamps-container">
           <div class="tw-stamps-grid" id="grid"></div>
         </div>
 
-        <div class="tw-client-actions">
-          <a id="gwallet" class="tw-client-btn tw-client-btn-secondary" href="#">
-            <svg class="btn-icon" viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
-              <path
-                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                fill="#4285F4" />
-              <path
-                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                fill="#34A853" />
-              <path
-                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                fill="#FBBC05" />
-              <path
-                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                fill="#EA4335" />
+        <div class="tw-wallet-buttons">
+          <a id="gwallet" class="tw-wallet-btn" href="#">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
+              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
             </svg>
             <span>Google Wallet</span>
           </a>
-          <a id="applewallet" class="tw-client-btn tw-client-btn-secondary" href="#">
-            <svg class="btn-icon" viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-              <path
-                d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z" />
+          <a id="applewallet" class="tw-wallet-btn" href="#">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+              <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z" />
             </svg>
             <span>Apple Wallet</span>
           </a>
         </div>
-        <div class="tw-client-actions">
-          <button id="share" class="tw-client-btn tw-client-btn-secondary">
-            <svg class="btn-icon" viewBox="0 0 24 24" width="20" height="20" fill="white">
-              <path
-                d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z" />
-            </svg>
-            <span>Compartir mi tarjeta</span>
-          </button>
-        </div>
 
-        <div class="tw-qr-section">
-          <button class="tw-qr-toggle" id="qr-toggle">
-            <span><svg style="vertical-align:middle;margin-right:6px" viewBox="0 0 24 24" width="18" height="18"
-                fill="white">
-                <path
-                  d="M3 11h8V3H3v8zm2-6h4v4H5V5zm8-2v8h8V3h-8zm6 6h-4V5h4v4zM3 21h8v-8H3v8zm2-6h4v4H5v-4zm13 2h-2v4h2v-4zm2-2h2v2h-2v-2zm-2-2h2v2h-2v-2zm2 4h2v4h-4v-2h2v-2zm-4-4h2v2h-2v-2zm-2 2h2v2h-2v-2z" />
-              </svg>Mostrar QR de mi tarjeta</span>
-            <span class="tw-qr-toggle-icon">▼</span>
-          </button>
-          <div class="tw-qr-content" id="qr-content">
-            <div class="tw-qr-image">
-              <img id="qr" alt="QR Code" />
-            </div>
-            <p class="tw-qr-hint">Muestra este código en recepción para sumar sellos a tu tarjeta.</p>
-            <div class="tw-card-id-row">
-              <code class="tw-card-id" id="cid"></code>
-              <button id="copy" class="tw-btn-copy">Copiar</button>
-            </div>
+        <button id="share" class="tw-share-btn">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+            <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z" />
+          </svg>
+          <span>Compartir mi tarjeta</span>
+        </button>
+      </div>
+
+      <div class="tw-qr-section">
+        <button class="tw-qr-toggle" id="qr-toggle">
+          <span><svg style="vertical-align:middle;margin-right:6px" viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+              <path d="M3 11h8V3H3v8zm2-6h4v4H5V5zm8-2v8h8V3h-8zm6 6h-4V5h4v4zM3 21h8v-8H3v8zm2-6h4v4H5v-4zm13 2h-2v4h2v-4zm2-2h2v2h-2v-2zm-2-2h2v2h-2v-2zm2 4h2v4h-4v-2h2v-2zm-4-4h2v2h-2v-2zm-2 2h2v2h-2v-2z" />
+            </svg>Mostrar QR de mi tarjeta</span>
+          <span class="tw-qr-toggle-icon">▼</span>
+        </button>
+        <div class="tw-qr-content" id="qr-content">
+          <div class="tw-qr-image">
+            <img id="qr" alt="QR Code" />
+          </div>
+          <p class="tw-qr-hint">Muestra este código en recepción para sumar sellos a tu tarjeta.</p>
+          <div class="tw-card-id-row">
+            <code class="tw-card-id" id="cid"></code>
+            <button id="copy" class="tw-btn-copy">Copiar</button>
           </div>
         </div>
       </div>
