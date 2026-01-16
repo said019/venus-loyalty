@@ -91,79 +91,66 @@ const COL_GOOGLE_DEVICES = "google_devices";
 // ⭐ NUEVO: Constante para gift cards
 const COL_GIFT_HISTORY = "gift_card_redeems";
 
-// ---------- HELPERS ADMIN ----------
+// ---------- HELPERS ADMIN (PostgreSQL/Prisma) ----------
 
 async function fsCountAdmins() {
-  const snap = await firestore.collection(COL_ADMINS).get();
-  return snap.size;
+  return await prisma.admins.count();
 }
 
 async function fsGetAdminByEmail(email) {
-  try {
-    const admin = await db.admin.findFirst({
-      where: { email: email }
-    });
-    return admin;
-  } catch (error) {
-    console.error('[DB] Error getting admin by email:', error);
-    return null;
-  }
+  const admin = await prisma.admins.findUnique({
+    where: { email }
+  });
+  return admin;
 }
 
 async function fsInsertAdmin({ id, email, pass_hash }) {
-  try {
-    const now = new Date();
-    const admin = await db.admin.create({
-      data: {
-        id,
-        email,
-        pass_hash: pass_hash,
-        createdAt: now,
-        updatedAt: now,
-      }
-    });
-    return admin;
-  } catch (error) {
-    console.error('[DB] Error inserting admin:', error);
-    throw error;
-  }
+  const now = new Date();
+  await prisma.admins.create({
+    data: {
+      id,
+      email,
+      pass_hash,
+      createdAt: now,
+      updatedAt: now,
+    }
+  });
 }
 
 async function fsUpdateAdminPassword(adminId, pass_hash) {
-  try {
-    const now = new Date();
-    const admin = await db.admin.update({
-      where: { id: adminId },
-      data: {
-        pass_hash: pass_hash,
-        updatedAt: now,
-      }
-    });
-    return admin;
-  } catch (error) {
-    console.error('[DB] Error updating admin password:', error);
-    throw error;
-  }
+  await prisma.admins.update({
+    where: { id: adminId },
+    data: {
+      pass_hash,
+      updatedAt: new Date(),
+    }
+  });
 }
 
-// ---------- HELPERS RESET PASSWORD ----------
+// ---------- HELPERS RESET PASSWORD (PostgreSQL/Prisma) ----------
 
 async function fsCreateResetToken({ token, adminId, email, expiresAt }) {
-  await firestore.collection(COL_RESETS).doc(token).set({
-    token,
-    adminId,
-    email,
-    expiresAt,
+  await prisma.admin_resets.create({
+    data: {
+      id: `rst_${Date.now()}`,
+      token,
+      adminId,
+      expiresAt: new Date(expiresAt),
+    }
   });
 }
 
 async function fsGetResetToken(token) {
-  const snap = await firestore.collection(COL_RESETS).doc(token).get();
-  return snap.exists ? snap.data() : null;
+  const reset = await prisma.admin_resets.findUnique({
+    where: { token }
+  });
+  return reset;
 }
 
 async function fsDeleteResetToken(token) {
-  await firestore.collection(COL_RESETS).doc(token).delete();
+  await prisma.admin_resets.delete({
+    where: { token }
+  }).catch(() => { }); // Ignorar si no existe
 }
 
 // ---------- HELPERS CARDS + EVENTS ----------
@@ -546,7 +533,7 @@ app.post('/api/test/whatsapp', async (req, res) => {
     const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000);
     const testDate = tomorrow.toISOString().split('T')[0]; // YYYY-MM-DD
     const testTime = '10:00'; // Hora fija para prueba
-    
+
     const testAppt = {
       clientName: name,
       clientPhone: phone,
@@ -1093,14 +1080,14 @@ app.post('/api/appointments', adminAuth, async (req, res) => {
     // CREAR EVENTOS EN GOOGLE CALENDAR (Said y Alondra)
     const duration = parseInt(durationMinutes) || 60;
     const startDateTime = `${date}T${time}:00-06:00`;
-    
+
     // Calcular hora de fin sumando duración a la hora de inicio (en minutos locales)
     const [startHour, startMin] = time.split(':').map(Number);
     const totalMinutes = startHour * 60 + startMin + duration;
     const endHoursRaw = Math.floor(totalMinutes / 60);
     const endHours = (endHoursRaw % 24).toString().padStart(2, '0');
     const endMinutes = (totalMinutes % 60).toString().padStart(2, '0');
-    
+
     // Si pasa de medianoche, ajustar la fecha de fin
     let endDate = date;
     if (endHoursRaw >= 24) {
@@ -1120,7 +1107,7 @@ app.post('/api/appointments', adminAuth, async (req, res) => {
 
     try {
       const { createEvent } = await import('./src/services/googleCalendarService.js');
-      
+
       console.log('[APPOINTMENT] 📅 Creando eventos en Google Calendar...');
 
       // Crear en calendario 1 (Said)
@@ -1247,13 +1234,13 @@ app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
     // ⭐ ACTUALIZAR GOOGLE CALENDAR si hay eventos asociados
     const startDateTimeMX = `${date}T${time}:00-06:00`;
     const duration = durationMinutes || appointment.durationMinutes || 60;
-    
+
     // Calcular hora de fin correctamente (sin conversión UTC)
     const [startHour, startMin] = time.split(':').map(Number);
     const totalMinutes = startHour * 60 + startMin + duration;
     const endHours = Math.floor(totalMinutes / 60) % 24; // Manejar overflow de medianoche
     const endMinutes = totalMinutes % 60;
-    
+
     // Si pasa de medianoche, ajustar la fecha
     let endDate = date;
     if (totalMinutes >= 24 * 60) {
@@ -1261,7 +1248,7 @@ app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
       dateObj.setDate(dateObj.getDate() + 1);
       endDate = dateObj.toISOString().split('T')[0];
     }
-    
+
     const endDateTimeMX = `${endDate}T${String(endHours).padStart(2, '0')}:${String(endMinutes).padStart(2, '0')}:00-06:00`;
 
     if (appointment.googleCalendarEventId || appointment.googleCalendarEventId2) {
@@ -3020,7 +3007,7 @@ app.post('/api/booking-requests/:id/booked', adminAuth, async (req, res) => {
     const endHoursRaw = Math.floor(totalMinutes / 60);
     const endHours = (endHoursRaw % 24).toString().padStart(2, '0');
     const endMinutes = (totalMinutes % 60).toString().padStart(2, '0');
-    
+
     // Si pasa de medianoche, ajustar la fecha de fin
     let endDate = requestData.date;
     if (endHoursRaw >= 24) {
@@ -4135,7 +4122,7 @@ app.patch("/api/cards/:cardId", adminAuth, async (req, res) => {
     }
 
     const updated = await CardsRepo.update(cardId, updateData);
-    
+
     console.log(`[CARD] Tarjeta ${cardId} actualizada:`, updateData);
     res.json({ success: true, card: updated });
   } catch (e) {
