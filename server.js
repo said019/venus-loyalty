@@ -94,11 +94,11 @@ const COL_GIFT_HISTORY = "gift_card_redeems";
 // ---------- HELPERS ADMIN (PostgreSQL/Prisma) ----------
 
 async function fsCountAdmins() {
-  return await prisma.admins.count();
+  return await prisma.admin.count();
 }
 
 async function fsGetAdminByEmail(email) {
-  const admin = await prisma.admins.findUnique({
+  const admin = await prisma.admin.findUnique({
     where: { email }
   });
   return admin;
@@ -106,7 +106,7 @@ async function fsGetAdminByEmail(email) {
 
 async function fsInsertAdmin({ id, email, pass_hash }) {
   const now = new Date();
-  await prisma.admins.create({
+  await prisma.admin.create({
     data: {
       id,
       email,
@@ -118,7 +118,7 @@ async function fsInsertAdmin({ id, email, pass_hash }) {
 }
 
 async function fsUpdateAdminPassword(adminId, pass_hash) {
-  await prisma.admins.update({
+  await prisma.admin.update({
     where: { id: adminId },
     data: {
       pass_hash,
@@ -130,7 +130,7 @@ async function fsUpdateAdminPassword(adminId, pass_hash) {
 // ---------- HELPERS RESET PASSWORD (PostgreSQL/Prisma) ----------
 
 async function fsCreateResetToken({ token, adminId, email, expiresAt }) {
-  await prisma.admin_resets.create({
+  await prisma.adminReset.create({
     data: {
       id: `rst_${Date.now()}`,
       token,
@@ -141,14 +141,14 @@ async function fsCreateResetToken({ token, adminId, email, expiresAt }) {
 }
 
 async function fsGetResetToken(token) {
-  const reset = await prisma.admin_resets.findUnique({
+  const reset = await prisma.adminReset.findUnique({
     where: { token }
   });
   return reset;
 }
 
 async function fsDeleteResetToken(token) {
-  await prisma.admin_resets.delete({
+  await prisma.adminReset.delete({
     where: { token }
   }).catch(() => { }); // Ignorar si no existe
 }
