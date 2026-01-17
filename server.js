@@ -615,6 +615,42 @@ app.post('/api/whatsapp/confirmation', adminAuth, async (req, res) => {
   }
 });
 
+/* ========== CARDS / TARJETAS - ADMIN API ========== */
+
+// GET /api/admin/cards-firebase - Listar tarjetas con paginación y búsqueda
+app.get('/api/admin/cards-firebase', adminAuth, async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const q = req.query.q || '';
+    const sort = req.query.sort || 'created_at';
+    const order = req.query.order || 'desc';
+
+    // Mapear sort fields de frontend a backend
+    const sortMapping = {
+      'created_at': 'createdAt',
+      'name': 'name',
+      'stamps': 'stamps',
+      'last_visit': 'lastVisit'
+    };
+
+    const sortBy = sortMapping[sort] || 'createdAt';
+    const sortOrder = order === 'asc' ? 'asc' : 'desc';
+
+    const result = await fsListCardsPage({
+      page,
+      limit: 12,
+      q,
+      sortBy,
+      sortOrder
+    });
+
+    res.json(result);
+  } catch (error) {
+    console.error('Error fetching cards:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 /* ========== PRODUCTOS ========== */
 
 // GET /api/products - Listar todos los productos
