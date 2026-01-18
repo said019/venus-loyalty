@@ -13597,7 +13597,7 @@ Gracias por tu preferencia ✨`;
               date: isoDate,
               time: currentTime,
               durationMinutes: service.durationMinutes,
-              sendWhatsAppConfirmation: false, // No enviar WhatsApp individual, lo enviamos después con todos los servicios
+              sendWhatsAppConfirmation: (i === 0 && sendWhatsAppConfirmation), // Solo enviar en la primera cita
               sendWhatsApp24h: sendWhatsApp24h,
               sendWhatsApp2h: sendWhatsApp2h,
               giftCardCode: i === 0 ? giftCardCode : null, // Solo aplicar gift card a la primera
@@ -13618,10 +13618,11 @@ Gracias por tu preferencia ✨`;
 
             if (!json.success) {
               if (res.status === 409) {
-                alert(`⚠️ Error en ${service.name}: ${json.error}`);
+                alert(`Error en ${service.name}: ${json.error}`);
               } else {
-                alert(`❌ Error en ${service.name}: ${json.error}`);
+                alert(`Error en ${service.name}: ${json.error}`);
               }
+              // Si falla una cita, detener el proceso
               btn.disabled = false;
               btn.textContent = originalText;
               return;
@@ -13632,6 +13633,8 @@ Gracias por tu preferencia ✨`;
               serviceName: service.name
             });
 
+            console.log(`Cita ${i + 1}/${servicesToBook.length} creada:`, json.appointmentId);
+
             // Calcular siguiente hora (sumar duración del servicio actual)
             const [h, m] = currentTime.split(':').map(Number);
             const totalMinutes = h * 60 + m + service.durationMinutes;
@@ -13640,36 +13643,9 @@ Gracias por tu preferencia ✨`;
             currentTime = `${String(nextHour).padStart(2, '0')}:${String(nextMinute).padStart(2, '0')}`;
           }
 
-          // Enviar UN solo WhatsApp con todos los servicios
-          if (sendWhatsAppConfirmation && createdAppointments.length > 0) {
-            const serviceNames = servicesToBook.map(s => s.name);
-            console.log('📱 [APPOINTMENT] Enviando WhatsApp con servicios:', serviceNames);
+          console.log('Citas creadas exitosamente:', createdAppointments.length);
 
-            try {
-              const whatsappRes = await fetch('/api/whatsapp/confirmation', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  clientName,
-                  clientPhone,
-                  services: serviceNames,
-                  date: isoDate,
-                  time: time
-                })
-              });
-
-              const whatsappJson = await whatsappRes.json();
-              if (whatsappJson.success) {
-                console.log('✅ [APPOINTMENT] WhatsApp enviado:', whatsappJson.messageSid);
-              } else {
-                console.error('❌ [APPOINTMENT] Error WhatsApp:', whatsappJson.error);
-              }
-            } catch (whatsappError) {
-              console.error('❌ [APPOINTMENT] Error enviando WhatsApp:', whatsappError);
-            }
-          }
-
-          alert(`✅ ${servicesToBook.length === 1 ? 'Cita agendada' : servicesToBook.length + ' citas agendadas'}`);
+          alert(`${servicesToBook.length === 1 ? 'Cita agendada' : servicesToBook.length + ' citas agendadas'} correctamente`);
           newApptDialog.close();
           formNewAppt.reset();
           selectedServices = [];
@@ -13677,7 +13653,8 @@ Gracias por tu preferencia ✨`;
           loadAppointments();
           renderMonthlyCalendar();
         } catch (e) {
-          alert('Error de conexión');
+          console.error('Error al agendar:', e);
+          alert('Error de conexión: ' + (e.message || 'Intenta de nuevo'));
         } finally {
           btn.disabled = false;
           btn.textContent = originalText;
