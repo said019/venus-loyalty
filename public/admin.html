@@ -41,6 +41,7 @@
       --line: rgba(255, 255, 255, 0.1);
       --line-subtle: rgba(255, 255, 255, 0.06);
       --shadow: rgba(0, 0, 0, 0.3);
+      --progress-bg: rgba(255, 255, 255, 0.1);
     }
 
     /* Tema claro */
@@ -58,6 +59,7 @@
       --line: rgba(0, 0, 0, 0.1);
       --line-subtle: rgba(0, 0, 0, 0.06);
       --shadow: rgba(0, 0, 0, 0.1);
+      --progress-bg: rgba(0, 0, 0, 0.1);
     }
 
     * {
@@ -8730,17 +8732,17 @@
           return `
           <tr data-card-id="${card.id}" class="card-row" style="cursor:pointer;">
             <td>
-              <div style="font-weight:500;">${card.name || '—'}</div>
+              <div style="font-weight:500;color:var(--ink);">${card.name || '—'}</div>
               ${card.birthdate ? `<div class="muted" style="font-size:11px;">🎂 ${formatBirthday(card.birthdate)}</div>` : ''}
             </td>
-            <td style="font-size:13px;">${card.phone || '—'}</td>
-            <td style="font-size:12px;">${lastVisitStr}</td>
+            <td style="font-size:13px;color:var(--ink);">${card.phone || '—'}</td>
+            <td style="font-size:12px;color:var(--muted);">${lastVisitStr}</td>
             <td>
               <div style="display:flex;align-items:center;gap:6px;">
-                <div style="background:rgba(255,255,255,0.1);border-radius:4px;height:6px;width:60px;overflow:hidden;">
+                <div style="background:var(--progress-bg);border-radius:4px;height:6px;width:60px;overflow:hidden;">
                   <div style="background:linear-gradient(90deg,#FFD166,#8c9668);height:100%;width:${(card.stamps / card.max) * 100}%;"></div>
                 </div>
-                <span style="font-size:12px;font-weight:500;">${card.stamps}/${card.max}</span>
+                <span style="font-size:12px;font-weight:500;color:var(--ink);">${card.stamps}/${card.max}</span>
               </div>
             </td>
             <td>
