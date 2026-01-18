@@ -60,11 +60,10 @@
 
     /* Apple Wallet Pass Card Effect */
     .wallet-card {
-      background: linear-gradient(135deg, #f5f0e8 0%, #e8e0d4 100%);
-      border-radius: 24px;
-      padding: 24px;
-      position: relative;
+      background: #f5f0e8;
+      border-radius: 20px;
       overflow: hidden;
+      position: relative;
       box-shadow: 
         0 2px 8px rgba(0, 0, 0, 0.1),
         0 8px 24px rgba(0, 0, 0, 0.15),
@@ -80,46 +79,135 @@
         0 20px 60px rgba(0, 0, 0, 0.2);
     }
 
-    /* Subtle shine effect like Apple Wallet */
-    .wallet-card::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: -100%;
+    /* Wallet card header (green bar) */
+    .wallet-header {
+      background: linear-gradient(135deg, #8c9668 0%, #7a8558 100%);
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .wallet-header img {
+      width: 48px;
+      height: 48px;
+      border-radius: 8px;
+      background: white;
+      padding: 4px;
+    }
+
+    .wallet-header h3 {
+      font-family: 'Playfair Display', serif;
+      font-size: 22px;
+      font-weight: 700;
+      color: white;
+      margin: 0;
+    }
+
+    /* Wallet card body */
+    .wallet-body {
+      padding: 32px 24px 24px;
+      background: #f5f0e8;
+    }
+
+    /* Wallet card footer (green bar with info) */
+    .wallet-footer {
+      background: linear-gradient(135deg, #8c9668 0%, #7a8558 100%);
+      padding: 20px 24px;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
+      color: white;
+    }
+
+    .wallet-footer-item {
+      text-align: left;
+    }
+
+    .wallet-footer-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      opacity: 0.8;
+      margin-bottom: 4px;
+    }
+
+    .wallet-footer-value {
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 1.2;
+    }
+
+    /* Stamps grid - 4x2 layout like Apple Wallet */
+    .stamps-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .stamp {
+      aspect-ratio: 1;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+    }
+
+    .stamp.active {
+      background: linear-gradient(135deg, #8c9668 0%, #a8b892 100%);
+      box-shadow: 0 4px 12px rgba(140, 150, 104, 0.3);
+      padding: 18%;
+    }
+
+    .stamp.active img {
       width: 100%;
       height: 100%;
-      background: linear-gradient(
-        90deg,
-        transparent,
-        rgba(255, 255, 255, 0.3),
-        transparent
-      );
-      transition: left 0.5s ease;
+      object-fit: contain;
+      filter: brightness(0) invert(1);
     }
 
-    .wallet-card:hover::before {
-      left: 100%;
+    .stamp.inactive {
+      background: transparent;
+      border: 3px solid rgba(140, 150, 104, 0.25);
     }
 
-    /* Barcode/strip effect at bottom like Apple Wallet */
-    .wallet-card-strip {
+    .stamp.inactive::after {
+      content: '';
       position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 4px;
-      background: linear-gradient(90deg, 
-        #8c9668 0%, 
-        #a8b892 25%, 
-        #8c9668 50%, 
-        #a8b892 75%, 
-        #8c9668 100%
-      );
-      opacity: 0.5;
+      width: 50%;
+      height: 50%;
+      background-image: url('/assets/logo.png');
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+      opacity: 0.15;
     }
 
-    /* Stamps grid - 5 columns like MyCard.tsx */
-    .stamps-grid {
+    /* QR Code section */
+    .qr-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .qr-code-box {
+      background: white;
+      padding: 16px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .qr-code-box img {
+      width: 200px;
+      height: 200px;
+      display: block;
+    }
       display: grid;
       grid-template-columns: repeat(5, 1fr);
       gap: 12px;
@@ -456,64 +544,73 @@
           <!-- Loyalty Card Principal -->
           <div class="animate-fade-in-up" style="animation-delay: 0.1s;">
             <div class="wallet-card">
-              <!-- Strip decoration at bottom -->
-              <div class="wallet-card-strip"></div>
-              
-              <!-- Card Header -->
-              <div class="flex items-center justify-between mb-6">
-                <div class="flex items-center gap-3">
-                  <img src="/assets/logo.png" alt="Venus" class="w-14 h-14 rounded-xl shadow-md">
-                  <div>
-                    <h3 class="font-playfair text-xl font-semibold text-venus-forest">Venus Lealtad</h3>
-                    <p id="c_name" class="text-sm text-venus-olive-dark">Cliente</p>
-                  </div>
+              <!-- Header verde con logo -->
+              <div class="wallet-header">
+                <img src="/assets/logo.png" alt="Venus">
+                <h3>Venus Cosmetología</h3>
+              </div>
+
+              <!-- Body con stamps -->
+              <div class="wallet-body">
+                <div id="stamps-view">
+                  <div id="grid" class="stamps-grid"></div>
                 </div>
-                <button id="qr-toggle" class="p-3 rounded-xl bg-venus-forest/10 hover:bg-venus-forest/20 transition-colors">
-                  <svg id="qr-icon-open" class="w-6 h-6 text-venus-forest" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/>
-                  </svg>
-                  <svg id="qr-icon-close" class="w-6 h-6 text-venus-forest hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                  </svg>
-                </button>
-              </div>
 
-              <!-- Stamps Grid (default view) -->
-              <div id="stamps-view">
-                <div id="grid" class="stamps-grid mb-6"></div>
-              </div>
-
-              <!-- QR View (toggle) -->
-              <div id="qr-view" class="hidden">
-                <div class="flex flex-col items-center justify-center py-8 mb-6">
-                  <div class="w-48 h-48 bg-venus-forest rounded-2xl flex items-center justify-center mb-4 p-4">
-                    <img id="qr" alt="QR Code" class="w-full h-full rounded-xl bg-white p-2">
-                  </div>
-                  <p class="text-sm text-venus-forest/70 text-center">Muestra este código en tu próxima visita</p>
-                  <div class="flex items-center gap-3 mt-4">
-                    <code id="cid" class="bg-venus-forest/10 text-venus-forest/80 px-3 py-2 rounded-lg text-xs font-mono"></code>
-                    <button id="copy" class="bg-venus-olive text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-venus-olive-dark transition-all">Copiar</button>
+                <!-- QR View (toggle) -->
+                <div id="qr-view" class="hidden">
+                  <div class="qr-section">
+                    <div class="qr-code-box">
+                      <img id="qr" alt="QR Code">
+                    </div>
+                    <div class="flex items-center gap-3">
+                      <code id="cid" class="bg-venus-forest/10 text-venus-forest/80 px-3 py-2 rounded-lg text-xs font-mono"></code>
+                      <button id="copy" class="bg-venus-olive text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-venus-olive-dark transition-all">Copiar</button>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <!-- Progress Bar -->
-              <div class="mb-4">
-                <div class="flex justify-between text-sm mb-2">
-                  <span class="text-venus-forest/70">Tu progreso</span>
-                  <span id="c_info" class="font-semibold text-venus-forest">0/8 sellos</span>
+              <!-- Footer verde con info -->
+              <div class="wallet-footer">
+                <div class="wallet-footer-item">
+                  <div class="wallet-footer-label">Cliente</div>
+                  <div class="wallet-footer-value" id="footer-name">Cliente</div>
                 </div>
-                <div class="progress-bar">
-                  <div id="progress-fill" class="progress-bar-fill" style="width: 0%"></div>
+                <div class="wallet-footer-item">
+                  <div class="wallet-footer-label">Sellos</div>
+                  <div class="wallet-footer-value" id="footer-stamps">0 de 8</div>
+                </div>
+                <div class="wallet-footer-item">
+                  <div class="wallet-footer-label">Programa</div>
+                  <div class="wallet-footer-value">Lealtad Venus</div>
                 </div>
               </div>
 
-              <!-- Reward Info -->
-              <div id="reward-info" class="p-4 bg-venus-forest/5 rounded-xl">
-                <p class="text-sm text-venus-forest text-center">
-                  Te faltan <span id="stamps-remaining" class="font-semibold">8 sellos</span> para tu servicio gratis
-                </p>
-              </div>
+              <!-- Toggle QR button -->
+              <button id="qr-toggle" class="absolute top-4 right-4 p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors z-10">
+                <svg id="qr-icon-open" class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/>
+                </svg>
+                <svg id="qr-icon-close" class="w-5 h-5 text-white hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Progress Bar Info (ahora fuera de la tarjeta) -->
+          <div class="animate-fade-in-up mt-4 bg-white/5 rounded-xl p-4" style="animation-delay: 0.15s;">
+            <div class="flex justify-between items-center mb-2">
+              <span class="text-venus-cream/70 text-sm">Tu progreso</span>
+              <span id="c_info" class="font-semibold text-venus-cream text-sm">0/8 sellos</span>
+            </div>
+            <div class="progress-bar">
+              <div id="progress-fill" class="progress-bar-fill" style="width: 0%"></div>
+            </div>
+            <div id="reward-info" class="mt-3 text-center">
+              <p class="text-venus-cream/60 text-sm">
+                Te faltan <span id="stamps-remaining" class="font-semibold text-venus-cream">8 sellos</span> para tu servicio gratis
+              </p>
             </div>
           </div>
 
@@ -846,8 +943,9 @@
       document.getElementById("header-name").textContent = `Hola, ${name.split(' ')[0]}`;
       document.getElementById("member-info").textContent = `Miembro desde ${memberSince} • ${totalVisits} visitas`;
 
-      // Update card
-      document.getElementById("c_name").textContent = name;
+      // Update footer de la tarjeta
+      document.getElementById("footer-name").textContent = name;
+      document.getElementById("footer-stamps").textContent = `${stamps} de ${max}`;
       document.getElementById("c_info").textContent = `${stamps}/${max} sellos`;
 
       // Update progress bar
@@ -857,7 +955,7 @@
       // Update reward info
       const rewardInfo = document.getElementById("reward-info");
       if (stamps >= max) {
-        rewardInfo.innerHTML = `<p class="text-sm text-venus-forest text-center font-semibold">🎉 ¡Felicidades! Tu próximo servicio es gratis</p>`;
+        rewardInfo.innerHTML = `<p class="text-venus-cream text-sm text-center font-semibold">🎉 ¡Felicidades! Tu próximo servicio es gratis</p>`;
       } else {
         document.getElementById("stamps-remaining").textContent = `${max - stamps} sellos`;
       }
@@ -872,7 +970,7 @@
         loadAppointments(phone);
       }
 
-      // Render stamps with logo.png images
+      // Render stamps with logo.png images (4x2 grid = 8 stamps)
       grid.innerHTML = "";
       for (let i = 1; i <= max; i++) {
         const div = document.createElement("div");
