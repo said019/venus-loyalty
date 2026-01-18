@@ -37,6 +37,8 @@
             --accent-gold-light: #a8b892;
             --accent-rose: #7a8a5a;
             --accent-sage: #a0c9b0;
+            --form-accent: #22c55e;
+            --form-accent-glow: rgba(34, 197, 94, 0.18);
             --status-confirmed: #2dd4bf;
             --status-pending: #fbbf24;
             --status-cancelled: #f87171;
@@ -91,6 +93,8 @@
             --accent-gold-light: #8c9668;
             --accent-rose: #5a6a3a;
             --accent-sage: #70a080;
+            --form-accent: #16a34a;
+            --form-accent-glow: rgba(22, 163, 74, 0.18);
             --status-confirmed: #14b8a6;
             --status-pending: #f59e0b;
             --status-cancelled: #ef4444;
@@ -158,6 +162,10 @@
             display: flex;
             flex-direction: row;
             position: relative;
+        }
+
+        body.modal-open {
+            overflow: hidden;
         }
 
         /* Gradient mesh background */
@@ -604,6 +612,83 @@
       .main-content {
         margin-left: 0;
         width: 100%;
+      }
+    }
+
+    @media (max-width: 640px) {
+      :root {
+        --topbar-height: 92px;
+      }
+
+      .topbar-new {
+        padding: 8px 16px;
+      }
+
+      .topbar-left {
+        gap: 12px;
+        min-width: 0;
+      }
+
+      .topbar-greeting {
+        min-width: 0;
+      }
+
+      .topbar-greeting h2 {
+        font-size: 22px;
+        line-height: 1.15;
+      }
+
+      .topbar-greeting p {
+        font-size: 12px;
+        line-height: 1.2;
+        margin-top: 2px;
+        overflow-wrap: anywhere;
+      }
+
+      .topbar-right {
+        gap: 8px;
+      }
+
+      .topbar-btn {
+        width: 38px;
+        height: 38px;
+        padding: 8px;
+      }
+
+      .topbar-logout {
+        padding: 8px 10px;
+      }
+
+      .main-content {
+        padding: 20px 16px;
+      }
+
+      .card {
+        padding: 20px;
+      }
+
+      .birthday-item {
+        flex-wrap: wrap;
+        align-items: flex-start;
+      }
+
+      .birthday-badge {
+        margin-left: auto;
+      }
+
+      .birthday-info h4 {
+        white-space: normal;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .card {
+        padding: 16px;
+      }
+
+      .birthday-badge {
+        font-size: 10px;
+        padding: 4px 8px;
       }
     }
 
@@ -1396,8 +1481,10 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      padding: 24px 16px;
       z-index: 9999;
       animation: fadeIn 0.2s ease;
+      overscroll-behavior: contain;
     }
 
     @keyframes fadeIn {
@@ -1416,6 +1503,8 @@
       width: 90%;
       max-height: 90vh;
       overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
       box-shadow: var(--shadow-lg);
       color: var(--ink);
       animation: modalSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
@@ -1628,29 +1717,28 @@
 
     .notify-input {
       width: 100%;
-      background: rgba(0, 0, 0, 0.3);
-      border: 1px solid rgba(140, 150, 104, 0.2);
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
       border-radius: 12px;
       padding: 12px 14px 12px 42px;
-      color: #fff;
+      color: var(--text-primary);
       font-size: 14px;
       transition: all 0.2s;
     }
 
     .notify-input:focus {
-      border-color: var(--venus-soft);
+      border-color: var(--form-accent);
       outline: none;
-      background: rgba(0, 0, 0, 0.4);
-      box-shadow: 0 0 0 3px rgba(140, 150, 104, 0.15);
+      box-shadow: 0 0 0 3px var(--form-accent-glow);
     }
 
     .notify-textarea {
       width: 100%;
-      background: rgba(0, 0, 0, 0.3);
-      border: 1px solid rgba(140, 150, 104, 0.2);
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
       border-radius: 12px;
       padding: 12px 14px 12px 42px;
-      color: #fff;
+      color: var(--text-primary);
       font-size: 14px;
       min-height: 90px;
       resize: vertical;
@@ -1659,18 +1747,17 @@
     }
 
     .notify-textarea:focus {
-      border-color: var(--venus-soft);
+      border-color: var(--form-accent);
       outline: none;
-      background: rgba(0, 0, 0, 0.4);
-      box-shadow: 0 0 0 3px rgba(140, 150, 104, 0.15);
+      box-shadow: 0 0 0 3px var(--form-accent-glow);
     }
 
 
 
     .automation-textarea:focus {
       outline: none;
-      border-color: var(--venus-green);
-      box-shadow: 0 0 0 3px rgba(140, 150, 104, 0.1);
+      border-color: var(--form-accent);
+      box-shadow: 0 0 0 3px var(--form-accent-glow);
     }
 
     .stat-money {
@@ -1707,7 +1794,7 @@
     }
 
     .form-input.readonly {
-      background: rgba(0, 0, 0, 0.2);
+      background: var(--bg-tertiary);
       cursor: not-allowed;
       opacity: 0.7;
     }
@@ -1731,8 +1818,8 @@
 
     .modal-textarea:focus {
       outline: none;
-      border-color: var(--venus-green);
-      box-shadow: 0 0 0 3px rgba(140, 150, 104, 0.1);
+      border-color: var(--form-accent);
+      box-shadow: 0 0 0 3px var(--form-accent-glow);
     }
 
     /* ===== HISTORIAL DE CITAS SELECCIONABLE ===== */
@@ -6328,9 +6415,9 @@
       .form-input {
         width: 100%;
         padding: 12px 14px;
-        border-radius: 10px;
+        border-radius: 12px;
         border: 1px solid var(--border-color);
-        background: rgba(0, 0, 0, 0.2);
+        background: var(--bg-secondary);
         color: var(--text-primary);
         font-size: 14px;
         transition: all 0.25s;
@@ -6338,14 +6425,13 @@
 
       .form-input:focus {
         outline: none;
-        border-color: var(--accent-gold);
-        background: rgba(0, 0, 0, 0.3);
-        box-shadow: 0 0 0 3px rgba(140, 150, 104, 0.1);
+        border-color: var(--form-accent);
+        box-shadow: 0 0 0 3px var(--form-accent-glow);
       }
 
       .form-input:disabled,
       .form-input:read-only {
-        background: rgba(0, 0, 0, 0.15);
+        background: var(--bg-tertiary);
         color: var(--text-muted);
         cursor: not-allowed;
       }
@@ -6357,7 +6443,7 @@
       select.form-input {
         cursor: pointer;
         appearance: none;
-        background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%238c9668' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+        background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%2322c55e' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
         background-repeat: no-repeat;
         background-position: right 14px center;
         padding-right: 36px;
@@ -8659,6 +8745,24 @@
       }
     }
 
+    function updateModalScrollLock() {
+      const modals = document.querySelectorAll('.modal-backdrop');
+      const hasOpenModal = Array.from(modals).some(modal => !modal.classList.contains('hidden'));
+      document.body.classList.toggle('modal-open', hasOpenModal);
+    }
+
+    function initModalScrollLock() {
+      const modals = document.querySelectorAll('.modal-backdrop');
+      if (!modals.length) return;
+
+      const observer = new MutationObserver(updateModalScrollLock);
+      modals.forEach(modal => {
+        observer.observe(modal, { attributes: true, attributeFilter: ['class'] });
+      });
+
+      updateModalScrollLock();
+    }
+
     // ===== FIREBASE REAL-TIME LISTENERS =====
     // Sistema de polling para actualización de datos (reemplaza Firebase realtime)
     let pollingInterval = null;
@@ -8919,6 +9023,16 @@
     document.querySelectorAll('[data-tab]').forEach(tab => {
       tab.addEventListener('click', function (e) {
         e.preventDefault();
+
+        const sidebar = document.getElementById('sidebar');
+        if (sidebar && sidebar.classList.contains('open')) {
+          closeSidebar();
+        }
+
+        const mobileMenu = document.getElementById('mobile-menu');
+        if (mobileMenu && !mobileMenu.classList.contains('hidden')) {
+          closeMobileMenu();
+        }
 
         document.querySelectorAll('.nav a').forEach(a => a.classList.remove('is-active'));
         this.classList.add('is-active');
@@ -17017,6 +17131,9 @@ Gracias por tu preferencia ✨`;
 
       // Inicializar menú móvil
       initMobileMenu();
+
+      // Bloquear scroll de fondo cuando haya modales activos
+      initModalScrollLock();
 
       // Inicializar botones de notificaciones
       initNotificationButtons();
