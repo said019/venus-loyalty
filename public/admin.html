@@ -6,7 +6,6 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Panel Admin — Venus Lealtad</title>
   <link rel="icon" href="/assets/logo.png">
-  <link rel="stylesheet" href="/css/tailwind.css?v=2">
   <style>
     /* [TODOS LOS ESTILOS EXISTENTES SE MANTIENEN IGUAL] */
     body.checking-auth {
@@ -19,47 +18,55 @@
       transition: opacity 0.3s ease;
     }
 
-    /* ===== SISTEMA DE TEMAS ===== */
     :root {
-      /* Colores base Venus */
+      /* === NUEVA PALETA - TEMA OSCURO MODERNO === */
       --venus: #8c9668;
       --venus-soft: #dfe6c1;
       --venus-green: #8c9668;
-      --radius: 18px;
-
-      /* Tema oscuro (default) */
-      --bg-gradient: linear-gradient(135deg, #1a2f1a 0%, #0d1f0d 50%, #0a1a0a 100%);
-      --bg-solid: #0a1a0a;
+      --primary: #8c9668;
+      --primary-foreground: #ffffff;
+      
+      /* Fondos */
+      --bg: #121212;
       --bg-card: #1a1a1a;
-      --bg-card-hover: #1f1f1f;
-      --bg-input: rgba(0, 0, 0, 0.3);
+      --bg-sidebar: linear-gradient(to bottom, #1a2f1a, #0d1f0d);
       --bg-topbar: rgba(10, 26, 10, 0.95);
-      --bg-nav: rgba(10, 26, 10, 0.8);
-      --ink: #f9fafb;
-      --ink-secondary: rgba(255, 255, 255, 0.7);
-      --muted: rgba(255, 255, 255, 0.5);
-      --line: rgba(255, 255, 255, 0.1);
-      --line-subtle: rgba(255, 255, 255, 0.06);
-      --shadow: rgba(0, 0, 0, 0.3);
-      --progress-bg: rgba(255, 255, 255, 0.1);
-    }
-
-    /* Tema claro */
-    [data-theme="light"] {
-      --bg-gradient: linear-gradient(135deg, #f0f4e8 0%, #e8ede0 50%, #dfe6d4 100%);
-      --bg-solid: #f5f7f0;
-      --bg-card: #ffffff;
-      --bg-card-hover: #f8faf5;
-      --bg-input: rgba(0, 0, 0, 0.05);
-      --bg-topbar: rgba(255, 255, 255, 0.95);
-      --bg-nav: rgba(255, 255, 255, 0.9);
-      --ink: #1a1a1a;
-      --ink-secondary: rgba(0, 0, 0, 0.7);
-      --muted: rgba(0, 0, 0, 0.5);
-      --line: rgba(0, 0, 0, 0.1);
-      --line-subtle: rgba(0, 0, 0, 0.06);
-      --shadow: rgba(0, 0, 0, 0.1);
-      --progress-bg: rgba(0, 0, 0, 0.1);
+      --bg-hover: rgba(255, 255, 255, 0.05);
+      --bg-active: rgba(255, 255, 255, 0.10);
+      
+      /* Texto */
+      --ink: #ffffff;
+      --muted: rgba(255, 255, 255, 0.6);
+      --text-dim: rgba(255, 255, 255, 0.4);
+      
+      /* Bordes */
+      --line: rgba(255, 255, 255, 0.10);
+      --line-hover: rgba(255, 255, 255, 0.20);
+      
+      /* Radio y espaciado */
+      --radius: 16px;
+      --radius-sm: 12px;
+      --radius-lg: 24px;
+      --radius-xl: 28px;
+      
+      /* Sombras */
+      --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+      --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.3);
+      --shadow-lg: 0 10px 40px rgba(0, 0, 0, 0.4);
+      
+      /* Colores de estado */
+      --success: #22c55e;
+      --success-bg: rgba(34, 197, 94, 0.15);
+      --warning: #f59e0b;
+      --warning-bg: rgba(245, 158, 11, 0.15);
+      --error: #ef4444;
+      --error-bg: rgba(239, 68, 68, 0.15);
+      --info: #3b82f6;
+      --info-bg: rgba(59, 130, 246, 0.15);
+      
+      /* Sidebar */
+      --sidebar-width: 260px;
+      --topbar-height: 64px;
     }
 
     * {
@@ -70,20 +77,305 @@
     body {
       margin: 0;
       padding: 0;
-      background: var(--bg-gradient);
+      background: var(--bg);
       color: var(--ink);
       font-family: system-ui, -apple-system, Segoe UI, Inter, Roboto, Arial, sans-serif;
       overflow-x: hidden;
       max-width: 100vw;
-      transition: background 0.3s ease, color 0.3s ease;
     }
 
     body {
       min-height: 100vh;
       display: flex;
-      flex-direction: column;
+      flex-direction: row;
       position: relative;
-      background-color: var(--bg-solid);
+    }
+
+    /* ===== SIDEBAR - NUEVO DISEÑO ===== */
+    .sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: var(--sidebar-width);
+      height: 100vh;
+      background: var(--bg-sidebar);
+      border-right: 1px solid var(--line);
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.3s ease;
+    }
+
+    .sidebar-brand {
+      padding: 24px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .sidebar-brand img {
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    .sidebar-brand-text h1 {
+      font-size: 18px;
+      font-weight: 600;
+      margin: 0;
+      color: var(--ink);
+    }
+
+    .sidebar-brand-text span {
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+
+    .sidebar-nav {
+      flex: 1;
+      padding: 16px 12px;
+      overflow-y: auto;
+    }
+
+    .sidebar-nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      border-radius: var(--radius-sm);
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-bottom: 4px;
+      border: none;
+      background: transparent;
+      width: 100%;
+      text-align: left;
+      position: relative;
+    }
+
+    .sidebar-nav-item:hover {
+      background: var(--bg-hover);
+      color: var(--ink);
+    }
+
+    .sidebar-nav-item.is-active {
+      background: rgba(140, 150, 104, 0.2);
+      color: var(--venus-soft);
+    }
+
+    .sidebar-nav-item.is-active::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 4px;
+      height: 24px;
+      background: var(--venus);
+      border-radius: 0 4px 4px 0;
+    }
+
+    .sidebar-nav-item i {
+      width: 20px;
+      text-align: center;
+      font-size: 16px;
+    }
+
+    .sidebar-nav-item .nav-badge {
+      margin-left: auto;
+      background: var(--error);
+      color: white;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 10px;
+      min-width: 18px;
+      text-align: center;
+    }
+
+    .sidebar-footer {
+      padding: 16px;
+      border-top: 1px solid var(--line);
+    }
+
+    .sidebar-user {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      border-radius: var(--radius-sm);
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .sidebar-user-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: rgba(140, 150, 104, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--venus-soft);
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .sidebar-user-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .sidebar-user-name {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--ink);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .sidebar-user-role {
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+
+    /* ===== TOPBAR - NUEVO DISEÑO ===== */
+    .topbar-new {
+      position: fixed;
+      top: 0;
+      left: var(--sidebar-width);
+      right: 0;
+      height: var(--topbar-height);
+      background: var(--bg-topbar);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--line);
+      z-index: 90;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+    }
+
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .topbar-menu-btn {
+      display: none;
+      background: none;
+      border: none;
+      color: var(--muted);
+      padding: 8px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .topbar-menu-btn:hover {
+      background: var(--bg-hover);
+      color: var(--ink);
+    }
+
+    .topbar-greeting h2 {
+      font-size: 18px;
+      font-weight: 600;
+      margin: 0;
+      color: var(--ink);
+    }
+
+    .topbar-greeting p {
+      font-size: 12px;
+      color: var(--text-dim);
+      margin: 2px 0 0;
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .topbar-btn {
+      background: none;
+      border: none;
+      color: var(--muted);
+      padding: 10px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .topbar-btn:hover {
+      background: var(--bg-hover);
+      color: var(--ink);
+    }
+
+    .topbar-btn i {
+      font-size: 18px;
+    }
+
+    .topbar-btn .badge {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      min-width: 16px;
+      height: 16px;
+      background: var(--error);
+      color: white;
+      font-size: 10px;
+      font-weight: 700;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 4px;
+      animation: pulse-badge 2s infinite;
+    }
+
+    .topbar-logout {
+      background: none;
+      border: none;
+      color: var(--error);
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .topbar-logout:hover {
+      background: var(--error-bg);
+    }
+
+    /* ===== MAIN CONTENT AREA ===== */
+    .main-content {
+      margin-left: var(--sidebar-width);
+      margin-top: var(--topbar-height);
+      min-height: calc(100vh - var(--topbar-height));
+      padding: 24px;
+      width: calc(100% - var(--sidebar-width));
+    }
+
+    /* Ocultar elementos antiguos */
+    .topbar, .nav.desktop-only {
+      display: none !important;
     }
 
     .wrap {
@@ -91,103 +383,53 @@
       margin: 0 auto;
       padding: 0;
       width: 100%;
-      min-height: 100vh;
     }
 
-    /* Theme Toggle Button */
-    .theme-toggle {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 40px;
-      height: 40px;
-      border-radius: 12px;
-      border: 1px solid var(--line);
-      background: var(--bg-input);
-      cursor: pointer;
-      transition: all 0.3s ease;
-      color: var(--ink);
-      font-size: 16px;
+    /* ===== RESPONSIVE SIDEBAR ===== */
+    @media (max-width: 1024px) {
+      .sidebar {
+        transform: translateX(-100%);
+      }
+
+      .sidebar.open {
+        transform: translateX(0);
+      }
+
+      .sidebar-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(4px);
+        z-index: 99;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+      }
+
+      .sidebar-overlay.show {
+        opacity: 1;
+        visibility: visible;
+      }
+
+      .topbar-new {
+        left: 0;
+      }
+
+      .topbar-menu-btn {
+        display: flex;
+      }
+
+      .main-content {
+        margin-left: 0;
+        width: 100%;
+      }
     }
 
-    .theme-toggle:hover {
-      background: var(--line);
-      transform: scale(1.05);
-    }
+    /* ===== FIN NUEVO LAYOUT ===== */
 
-    .theme-toggle .icon-sun,
-    .theme-toggle .icon-moon {
-      transition: opacity 0.3s ease, transform 0.3s ease;
-    }
-
-    .theme-toggle .icon-sun {
-      display: none;
-    }
-
-    .theme-toggle .icon-moon {
-      display: block;
-    }
-
-    [data-theme="light"] .theme-toggle .icon-sun {
-      display: block;
-    }
-
-    [data-theme="light"] .theme-toggle .icon-moon {
-      display: none;
-    }
-
-    /* Tab Content Container */
-    .tab-content {
-      padding: 24px;
-      max-width: 1400px;
-      margin: 0 auto;
-    }
-
-    .tab-content.hidden {
-      display: none;
-    }
-
-    .topbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 16px;
-      padding: 0 24px;
-      height: 64px;
-      background: var(--bg-topbar);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--line);
-      margin-bottom: 0;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-    }
-
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .brand img {
-      width: 36px;
-      height: 36px;
-      border-radius: 10px;
-      box-shadow: 0 0 0 2px rgba(255, 255, 255, .08);
-    }
-
-    .brand-text h1 {
-      font-size: 15px;
-      margin: 0;
-      color: var(--ink);
-      font-weight: 600;
-    }
-
-    .brand-text .muted {
-      font-size: 11px;
+    .muted {
       color: var(--muted);
-      margin: 0;
+      font-size: 13px;
     }
 
     h1 {
@@ -196,67 +438,47 @@
       color: var(--ink);
     }
 
-    .muted {
-      color: var(--muted);
-      font-size: 13px;
-    }
-
     .actions {
       display: flex;
-      gap: 12px;
-      align-items: center;
-    }
-
-    .actions .tw-btn {
-      font-size: 13px;
-      padding: 8px 14px;
-    }
-
-    .actions #logout {
-      color: #f87171;
-      border-color: rgba(248, 113, 113, 0.3);
-    }
-
-    .actions #logout:hover {
-      background: rgba(248, 113, 113, 0.1);
-      color: #fca5a5;
+      gap: 8px;
+      flex-wrap: wrap;
     }
 
     .btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 6px;
-      border-radius: 999px;
+      gap: 8px;
+      border-radius: var(--radius-sm);
       border: 1px solid var(--line);
-      background: rgba(255, 255, 255, .1);
-      padding: 7px 13px;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 10px 16px;
       font-size: 13px;
+      font-weight: 500;
       cursor: pointer;
       text-decoration: none;
       color: var(--ink);
       white-space: nowrap;
-      backdrop-filter: blur(3px);
       transition: all 0.2s ease;
     }
 
     .btn:hover {
+      background: rgba(255, 255, 255, 0.10);
+      border-color: var(--line-hover);
       transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     }
 
     .btn.primary {
-      background: linear-gradient(135deg, var(--venus-green) 0%, #9aa066 100%);
+      background: var(--venus);
+      border-color: var(--venus);
       color: #fff;
       font-weight: 600;
       box-shadow: 0 4px 12px rgba(140, 150, 104, 0.3);
-      transition: all 0.2s ease;
     }
 
     .btn.primary:hover {
-      background: linear-gradient(135deg, #9aa066 0%, var(--venus-green) 100%);
-      box-shadow: 0 6px 16px rgba(140, 150, 104, 0.4);
-      transform: translateY(-1px);
+      background: #9aa066;
+      box-shadow: 0 6px 20px rgba(140, 150, 104, 0.4);
     }
 
     .btn.ghost {
@@ -264,9 +486,34 @@
       border-color: var(--line);
     }
 
+    .btn.ghost:hover {
+      background: var(--bg-hover);
+      border-color: var(--line-hover);
+    }
+
     .btn.small {
-      padding: 5px 10px;
+      padding: 6px 12px;
       font-size: 12px;
+      border-radius: 8px;
+    }
+
+    .btn.danger {
+      color: var(--error);
+      border-color: rgba(239, 68, 68, 0.3);
+    }
+
+    .btn.danger:hover {
+      background: var(--error-bg);
+    }
+
+    .btn.success {
+      background: var(--success);
+      border-color: var(--success);
+      color: white;
+    }
+
+    .btn.success:hover {
+      background: #16a34a;
     }
 
     /* Estilo para días de trabajo */
@@ -310,31 +557,19 @@
       display: inline-block;
     }
 
-    /* Modern Tab Navigation */
     .nav {
       display: flex;
-      gap: 4px;
-      padding: 16px 24px;
-      background: var(--bg-nav);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      border-bottom: 1px solid var(--line-subtle);
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-      scrollbar-width: none;
-    }
-
-    .nav::-webkit-scrollbar {
-      display: none;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin: 8px 0 14px;
+      position: relative;
+      z-index: 100;
     }
 
     .nav a {
-      display: flex;
-      align-items: center;
-      gap: 8px;
       padding: 10px 16px;
-      border-radius: 10px;
-      border: none;
+      border-radius: var(--radius-sm);
+      border: 1px solid transparent;
       text-decoration: none;
       font-size: 13px;
       font-weight: 500;
@@ -342,76 +577,59 @@
       background: transparent;
       transition: all 0.2s ease;
       cursor: pointer;
-      white-space: nowrap;
-    }
-
-    .nav a:hover {
-      color: var(--ink-secondary);
-      background: var(--line-subtle);
-    }
-
-    .nav a i {
-      font-size: 14px;
-      width: 16px;
-      text-align: center;
     }
 
     .nav a.is-active {
-      background: var(--line);
-      color: var(--ink);
-      font-weight: 600;
+      background: rgba(140, 150, 104, 0.15);
+      border-color: rgba(140, 150, 104, 0.3);
+      color: var(--venus-soft);
     }
 
     .card {
       background: var(--bg-card);
       border-radius: var(--radius);
       border: 1px solid var(--line);
-      padding: 16px 16px 14px;
-      box-shadow: 0 10px 28px var(--shadow);
-      margin-bottom: 14px;
+      padding: 20px;
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 16px;
       position: relative;
       overflow: hidden;
-      z-index: 1;
+      transition: border-color 0.2s ease;
+    }
+
+    .card:hover {
+      border-color: var(--line-hover);
     }
 
     .card::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background:
-        radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.05), transparent 60%),
-        radial-gradient(circle at 80% 70%, rgba(255, 255, 255, 0.03), transparent 60%);
-      opacity: .9;
-      pointer-events: none;
-    }
-
-    .card>* {
-      position: relative;
-      z-index: 1;
+      content: none;
     }
 
     .card h2 {
-      margin: 0 0 6px;
-      font-size: 18px;
+      margin: 0 0 8px;
+      font-size: 20px;
+      font-weight: 600;
       color: var(--ink);
     }
 
     .card h3 {
-      margin: 0 0 6px;
-      font-size: 15px;
+      margin: 0 0 8px;
+      font-size: 16px;
+      font-weight: 600;
       color: var(--ink);
     }
 
     .header-actions {
       display: flex;
-      gap: 10px;
+      gap: 12px;
       align-items: center;
       flex-wrap: wrap;
+      justify-content: space-between;
     }
 
     select.filter-select {
-      background: var(--bg-input);
-      color: var(--ink);
+      background: rgba(0, 0, 0, 0.3);
+      color: #fff;
       border: 1px solid var(--line);
       padding: 6px 12px;
       border-radius: 8px;
@@ -440,25 +658,32 @@
     }
 
     .kpi {
-      padding: 10px 12px;
-      border-radius: 12px;
+      padding: 16px;
+      border-radius: var(--radius-sm);
       background: var(--bg-card);
       border: 1px solid var(--line);
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 6px;
       font-size: 13px;
-      backdrop-filter: blur(3px);
+      transition: border-color 0.2s ease;
+    }
+
+    .kpi:hover {
+      border-color: var(--line-hover);
     }
 
     .kpi span.value {
-      font-size: 20px;
-      font-weight: 600;
+      font-size: 28px;
+      font-weight: 700;
       color: var(--ink);
     }
 
     .kpi span {
       color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
 
     .row {
@@ -480,16 +705,26 @@
     select,
     textarea {
       width: 100%;
-      padding: 9px 10px;
-      border-radius: 10px;
+      padding: 12px 14px;
+      border-radius: var(--radius-sm);
       border: 1px solid var(--line);
-      background: var(--bg-input);
-      font-size: 13px;
+      background: rgba(255, 255, 255, 0.05);
+      font-size: 14px;
       color: var(--ink);
+      transition: all 0.2s ease;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      outline: none;
+      border-color: var(--venus);
+      background: rgba(255, 255, 255, 0.08);
+      box-shadow: 0 0 0 3px rgba(140, 150, 104, 0.15);
     }
 
     input::placeholder {
-      color: var(--muted);
+      color: var(--text-dim);
     }
 
     /* Estilos para el componente web de Google Places */
@@ -503,7 +738,7 @@
       padding: 9px 10px !important;
       border-radius: 10px !important;
       border: 1px solid var(--line) !important;
-      background: var(--bg-input) !important;
+      background: rgba(255, 255, 255, .1) !important;
       font-size: 13px !important;
       color: var(--ink) !important;
       backdrop-filter: blur(3px) !important;
@@ -562,14 +797,14 @@
     table {
       border-collapse: collapse;
       width: 100%;
-      font-size: 13px;
+      font-size: 14px;
       table-layout: auto;
       visibility: visible !important;
       opacity: 1 !important;
     }
 
     thead {
-      background: var(--line);
+      background: rgba(255, 255, 255, 0.05);
       visibility: visible !important;
     }
 
@@ -580,12 +815,28 @@
 
     th,
     td {
-      padding: 6px 8px;
+      padding: 14px 12px;
       border-bottom: 1px solid var(--line);
       text-align: left;
       white-space: nowrap;
       color: var(--ink);
       visibility: visible !important;
+    }
+
+    th {
+      font-weight: 600;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--muted);
+    }
+
+    tr {
+      transition: background-color 0.2s ease;
+    }
+
+    tbody tr:hover {
+      background: rgba(255, 255, 255, 0.03);
     }
 
     tr:last-child td {
@@ -594,7 +845,7 @@
 
     code {
       font-size: 12px;
-      background: var(--line);
+      background: rgba(255, 255, 255, .15);
       padding: 2px 4px;
       border-radius: 4px;
       color: var(--ink);
@@ -603,11 +854,27 @@
     .tag {
       display: inline-flex;
       align-items: center;
-      padding: 2px 6px;
-      border-radius: 999px;
-      background: #bbf7d0;
-      color: #166534;
-      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 8px;
+      background: var(--success-bg);
+      color: var(--success);
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .tag.warning {
+      background: var(--warning-bg);
+      color: var(--warning);
+    }
+
+    .tag.error {
+      background: var(--error-bg);
+      color: var(--error);
+    }
+
+    .tag.info {
+      background: var(--info-bg);
+      color: var(--info);
     }
 
     /* Estilos adaptados de index.html para la Gift Card */
@@ -732,14 +999,14 @@
     }
 
     dialog {
-      border-radius: 20px;
+      border-radius: var(--radius-lg);
       border: 1px solid var(--line);
       background: var(--bg-card);
       color: var(--ink);
       padding: 24px;
       max-width: 480px;
       width: 92%;
-      box-shadow: 0 25px 50px -12px var(--shadow);
+      box-shadow: var(--shadow-lg);
       animation: dialogSlideIn 0.3s ease-out;
     }
 
@@ -778,11 +1045,11 @@
       right: -400px;
       width: 380px;
       height: 100vh;
-      background: var(--bg-card);
+      background: linear-gradient(135deg, rgba(27, 28, 26, 0.98), rgba(140, 150, 104, 0.1));
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
-      border-left: 1px solid var(--line);
-      box-shadow: -4px 0 24px var(--shadow);
+      border-left: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: -4px 0 24px rgba(0, 0, 0, 0.5);
       z-index: 1000;
       transition: right 0.3s cubic-bezier(0.16, 1, 0.3, 1);
       overflow-y: auto;
@@ -909,30 +1176,34 @@
     .modal-backdrop {
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.85);
+      background: rgba(0, 0, 0, 0.80);
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
       display: flex;
       align-items: center;
       justify-content: center;
       z-index: 9999;
+      animation: fadeIn 0.2s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
     }
 
     .modal-card {
-      background: #1b1c1a;
+      background: var(--bg-card);
       backdrop-filter: blur(20px) saturate(180%);
       -webkit-backdrop-filter: blur(20px) saturate(180%);
-      border-radius: 24px;
-      border: 1px solid rgba(255, 255, 255, .15);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--line);
       padding: 24px;
-      max-width: 480px;
+      max-width: 500px;
       width: 90%;
       max-height: 90vh;
       overflow-y: auto;
-      box-shadow:
-        0 8px 32px rgba(0, 0, 0, .4),
-        0 0 0 1px rgba(255, 255, 255, .05) inset;
-      color: #f9fafb;
+      box-shadow: var(--shadow-lg);
+      color: var(--ink);
       animation: modalSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
@@ -954,37 +1225,46 @@
       align-items: center;
       margin-bottom: 20px;
       padding-bottom: 16px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      border-bottom: 1px solid var(--line);
     }
 
     .modal-header h3 {
       margin: 0;
-      font-size: 20px;
+      font-size: 18px;
       font-weight: 600;
+      color: var(--ink);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .modal-header h3 i {
       color: var(--venus-soft);
     }
 
     .modal-body p {
-      margin: 12px 0;
+      margin: 14px 0;
       font-size: 14px;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
+      color: var(--muted);
     }
 
     .modal-body strong {
       font-weight: 600;
-      min-width: 80px;
-      color: var(--venus-soft);
+      min-width: 90px;
+      color: var(--ink);
     }
 
     .modal-footer {
-      margin-top: 20px;
+      margin-top: 24px;
       padding-top: 16px;
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      border-top: 1px solid var(--line);
       display: flex;
       flex-wrap: wrap;
-      gap: 8px;
+      gap: 10px;
+      justify-content: flex-end;
     }
 
     /* Mejorar botones del modal */
@@ -1903,7 +2183,7 @@
     .mobile-menu {
       position: fixed;
       inset: 0;
-      background: var(--bg-solid);
+      background: var(--bg);
       z-index: 3000;
       display: flex;
       flex-direction: column;
@@ -2054,14 +2334,14 @@
 
     .notification-dropdown {
       position: absolute;
-      top: calc(100% + 8px);
+      top: calc(100% + 12px);
       right: 0;
-      width: 380px;
+      width: 400px;
       max-width: calc(100vw - 40px);
-      background: var(--bg);
+      background: var(--bg-card);
       border: 1px solid var(--line);
-      border-radius: 16px;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-lg);
       z-index: 1000;
       display: none;
       overflow: hidden;
@@ -2090,19 +2370,22 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      background: rgba(255, 255, 255, 0.02);
     }
 
     .notification-header h3 {
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 600;
       display: flex;
       align-items: center;
       gap: 8px;
       margin: 0;
+      color: var(--ink);
     }
 
     .notification-header h3 i {
       font-size: 16px;
+      color: var(--venus-soft);
     }
 
     .btn-mark-read {
@@ -2132,10 +2415,10 @@
     }
 
     .notification-item {
-      padding: 14px 20px;
+      padding: 16px 20px;
       border-bottom: 1px solid var(--line);
       display: flex;
-      gap: 12px;
+      gap: 14px;
       cursor: pointer;
       transition: background 0.2s;
       position: relative;
@@ -2146,7 +2429,7 @@
     }
 
     .notification-item:hover {
-      background: rgba(255, 255, 255, 0.03);
+      background: rgba(255, 255, 255, 0.04);
     }
 
     .notification-item.unread {
@@ -2166,9 +2449,9 @@
     }
 
     .notification-icon {
-      width: 40px;
-      height: 40px;
-      border-radius: 10px;
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-sm);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -2271,11 +2554,11 @@
 
     /* ===== GOOGLE CALENDAR STYLES ===== */
     .google-calendar-container {
-      background: var(--card);
+      background: var(--bg-card);
       border-radius: var(--radius);
       padding: 0;
       margin-bottom: 20px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      box-shadow: var(--shadow-sm);
       border: 1px solid var(--line);
     }
 
@@ -2414,21 +2697,14 @@
       padding: 8px;
       position: relative;
       cursor: pointer;
-      transition: background-color 0.15s;
+      transition: background-color 0.2s;
       display: flex;
       flex-direction: column;
       background: rgba(255, 255, 255, 0.03);
-      touch-action: manipulation;
-      -webkit-tap-highlight-color: rgba(140, 150, 104, 0.3);
-      user-select: none;
     }
 
     .calendar-day:hover {
       background-color: rgba(255, 255, 255, 0.08);
-    }
-
-    .calendar-day:active {
-      background-color: rgba(140, 150, 104, 0.3);
     }
 
     .calendar-day.selected {
@@ -2481,23 +2757,16 @@
       font-size: 11px;
       font-weight: 500;
       cursor: pointer;
-      transition: background-color 0.15s, box-shadow 0.15s;
+      transition: all 0.2s;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-      touch-action: manipulation;
-      -webkit-tap-highlight-color: rgba(140, 150, 104, 0.3);
-      user-select: none;
     }
 
     .calendar-event:hover {
       filter: brightness(1.1);
+      transform: translateY(-1px);
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    }
-
-    .calendar-event:active {
-      transform: scale(0.97);
-      filter: brightness(0.95);
     }
 
     .calendar-event.confirmed {
@@ -2741,12 +3010,210 @@
       color: var(--muted);
       font-size: 12px;
       cursor: pointer;
+      transition: color 0.2s;
     }
 
     .notification-footer button:hover {
       color: var(--venus-soft);
-      text-decoration: underline;
     }
+
+    /* ===== ESTILOS GLOBALES ADICIONALES - NUEVO DISEÑO ===== */
+    
+    /* Transiciones suaves globales */
+    *, *::before, *::after {
+      transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform;
+      transition-duration: 0.15s;
+      transition-timing-function: ease;
+    }
+
+    /* Tab content estilos */
+    .tab-content {
+      animation: fadeInUp 0.3s ease;
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Scrollbar personalizado */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.25);
+    }
+
+    /* Focus states accesibles */
+    button:focus-visible,
+    a:focus-visible,
+    input:focus-visible,
+    select:focus-visible,
+    textarea:focus-visible {
+      outline: 2px solid var(--venus);
+      outline-offset: 2px;
+    }
+
+    /* Texto para solo desktop */
+    .desktop-only-text {
+      display: inline;
+    }
+
+    @media (max-width: 768px) {
+      .desktop-only-text {
+        display: none;
+      }
+    }
+
+    /* Loading skeleton animation */
+    .skeleton {
+      background: linear-gradient(90deg, 
+        rgba(255,255,255,0.05) 25%, 
+        rgba(255,255,255,0.1) 50%, 
+        rgba(255,255,255,0.05) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: var(--radius-sm);
+    }
+
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    /* Empty states mejorados */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-dim);
+    }
+
+    .empty-state i {
+      font-size: 48px;
+      margin-bottom: 16px;
+      opacity: 0.3;
+    }
+
+    .empty-state h3 {
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--muted);
+      margin: 0 0 8px;
+    }
+
+    .empty-state p {
+      font-size: 14px;
+      margin: 0;
+    }
+
+    /* Badges animados */
+    .badge.pulse {
+      animation: pulse-badge 2s infinite;
+    }
+
+    /* Indicador de carga */
+    .loading-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(18, 18, 18, 0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      border-radius: inherit;
+    }
+
+    .loading-spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid var(--line);
+      border-top-color: var(--venus);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    /* Status badges */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .status-badge.success {
+      background: var(--success-bg);
+      color: var(--success);
+    }
+
+    .status-badge.warning {
+      background: var(--warning-bg);
+      color: var(--warning);
+    }
+
+    .status-badge.error {
+      background: var(--error-bg);
+      color: var(--error);
+    }
+
+    .status-badge.info {
+      background: var(--info-bg);
+      color: var(--info);
+    }
+
+    /* Action buttons en tablas */
+    .action-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .action-btn:hover {
+      background: var(--bg-hover);
+      color: var(--ink);
+      border-color: var(--line-hover);
+    }
+
+    .action-btn.primary:hover {
+      background: var(--venus);
+      border-color: var(--venus);
+      color: white;
+    }
+
+    .action-btn.danger:hover {
+      background: var(--error-bg);
+      border-color: var(--error);
+      color: var(--error);
+    }
+
   </style>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -2759,68 +3226,129 @@
 
 <body class="checking-auth">
 
-  <main class="wrap tw-admin-container" style="padding: 0; max-width: 100%;">
-    <header class="topbar">
-      <div class="brand">
-        <img src="/assets/logo.png" alt="Venus">
-        <div class="brand-text">
-          <h1>Venus Lealtad</h1>
-          <p class="muted" id="me-line">admin@venus.com</p>
+  <!-- Overlay para sidebar móvil -->
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+  <!-- NUEVO SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <img src="/assets/logo.png" alt="Venus">
+      <div class="sidebar-brand-text">
+        <h1>Venus</h1>
+        <span>Panel Admin</span>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <button class="sidebar-nav-item is-active" data-tab="overview">
+        <i class="fas fa-th-large"></i>
+        <span>Dashboard</span>
+      </button>
+      <button class="sidebar-nav-item" data-tab="requests">
+        <i class="fas fa-inbox"></i>
+        <span>Solicitudes</span>
+        <span class="nav-badge" id="requests-badge" style="display:none;">0</span>
+      </button>
+      <button class="sidebar-nav-item" data-tab="appointments">
+        <i class="fas fa-calendar-alt"></i>
+        <span>Citas</span>
+      </button>
+      <button class="sidebar-nav-item" data-tab="cards">
+        <i class="fas fa-credit-card"></i>
+        <span>Tarjetas</span>
+      </button>
+      <button class="sidebar-nav-item" data-tab="notifications">
+        <i class="fas fa-paper-plane"></i>
+        <span>Notificaciones</span>
+      </button>
+      <button class="sidebar-nav-item" data-tab="events">
+        <i class="fas fa-gift"></i>
+        <span>Gift Cards</span>
+      </button>
+      <button class="sidebar-nav-item" data-tab="services">
+        <i class="fas fa-sparkles"></i>
+        <span>Catálogo</span>
+      </button>
+      <button class="sidebar-nav-item" data-tab="reports">
+        <i class="fas fa-chart-line"></i>
+        <span>Reportes</span>
+      </button>
+      <button class="sidebar-nav-item" data-tab="settings">
+        <i class="fas fa-cog"></i>
+        <span>Configuración</span>
+      </button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="sidebar-user-avatar">A</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name" id="sidebar-user-name">Admin</div>
+          <div class="sidebar-user-role">Administrador</div>
         </div>
       </div>
+    </div>
+  </aside>
+
+  <!-- NUEVO TOPBAR -->
+  <header class="topbar-new">
+    <div class="topbar-left">
+      <button class="topbar-menu-btn" id="topbar-menu-btn" onclick="toggleSidebar()">
+        <i class="fas fa-bars"></i>
+      </button>
+      <div class="topbar-greeting">
+        <h2 id="topbar-greeting">¡Hola! 👋</h2>
+        <p id="me-line">Bienvenido al panel de administración</p>
       </div>
-      <!-- Campana y menú móvil -->
-      <div class="mobile-actions">
-        <button class="notification-bell mobile-bell" id="notif-btn-mobile" title="Notificaciones"
-          onclick="toggleNotifications(event)"></button>
-        <i class="fas fa-bell"></i>
-        <span class="notification-badge hidden" id="notif-badge-mobile">0</span>
-        </button>
-        <button class="mobile-menu-btn" id="mobile-menu-toggle" onclick="openMobileMenu()"><i
-            class="fas fa-bars"></i></button>
-      </div>
+    </div>
 
-      <!-- Acciones desktop -->
-      <div class="actions desktop-only">
-        <!-- Toggle Tema -->
-        <button class="theme-toggle" id="theme-toggle" title="Cambiar tema">
-          <i class="fas fa-sun icon-sun"></i>
-          <i class="fas fa-moon icon-moon"></i>
+    <div class="topbar-right">
+      <!-- Notificaciones -->
+      <div class="notification-wrapper">
+        <button class="topbar-btn" id="notif-btn-desktop" title="Notificaciones">
+          <i class="fas fa-bell"></i>
+          <span class="badge hidden" id="notif-badge">0</span>
         </button>
 
-        <!-- Campana de Notificaciones -->
-        <div class="notification-wrapper">
-          <button class="notification-bell" id="notif-btn-desktop" title="Notificaciones">
-            <i class="fas fa-bell"></i>
-            <span class="notification-badge hidden" id="notif-badge">0</span>
-          </button>
+        <div class="notification-dropdown" id="notif-dropdown">
+          <div class="notification-header">
+            <h3><i class="fas fa-bell"></i> Notificaciones</h3>
+            <button class="btn-mark-read" id="btn-mark-all-read">
+              <i class="fas fa-check-double"></i> Marcar leídas
+            </button>
+          </div>
 
-          <div class="notification-dropdown" id="notif-dropdown">
-            <div class="notification-header">
-              <h3><i class="fas fa-bell"></i> Notificaciones</h3>
-              <button class="btn-mark-read" id="btn-mark-all-read">
-                <i class="fas fa-check-double"></i> Marcar leídas
-              </button>
-            </div>
-
-            <div class="notification-list" id="notif-list">
-              <div class="notification-empty">
-                <i class="fas fa-bell-slash"></i>
-                <p>No hay notificaciones</p>
-              </div>
-            </div>
-
-            <div class="notification-footer">
-              <button id="btn-clear-all-notif">Limpiar todas</button>
+          <div class="notification-list" id="notif-list">
+            <div class="notification-empty">
+              <i class="fas fa-bell-slash"></i>
+              <p>No hay notificaciones</p>
             </div>
           </div>
+
+          <div class="notification-footer">
+            <button id="btn-clear-all-notif">Limpiar todas</button>
+          </div>
         </div>
-
-        <a class="tw-btn" href="/" target="_blank" rel="noopener">Página clientes</a>
-        <button id="logout" class="tw-btn">Cerrar sesión</button>
       </div>
-    </header>
 
+      <!-- Página clientes -->
+      <a href="/" target="_blank" rel="noopener" class="topbar-btn" title="Ver página de clientes">
+        <i class="fas fa-external-link-alt"></i>
+      </a>
+
+      <!-- Cerrar sesión -->
+      <button id="logout" class="topbar-logout">
+        <i class="fas fa-sign-out-alt"></i>
+        <span class="desktop-only-text">Salir</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- CONTENIDO PRINCIPAL -->
+  <div class="main-content">
+    <main class="wrap">
+
+    <!-- Mobile menu (mantenido para compatibilidad) -->
     <div class="mobile-menu hidden" id="mobile-menu">
       <div class="mobile-menu-header">
         <span>Menú</span>
@@ -2847,28 +3375,15 @@
       </div>
     </div>
 
-    <nav class="nav desktop-only">
-      <a href="#overview" data-tab="overview" class="is-active"><i class="fas fa-th-large"></i> Resumen</a>
-      <a href="#cards" data-tab="cards"><i class="fas fa-credit-card"></i> Tarjetas</a>
-      <a href="#events" data-tab="events"><i class="fas fa-gift"></i> Gift Cards</a>
-      <a href="#notifications" data-tab="notifications"><i class="fas fa-bell"></i> Notificaciones</a>
-      <a href="#requests" data-tab="requests"><i class="fas fa-inbox"></i> Solicitudes</a>
-      <a href="#appointments" data-tab="appointments"><i class="fas fa-calendar"></i> Citas</a>
-      <a href="#reports" data-tab="reports"><i class="fas fa-chart-line"></i> Reportes</a>
-      <a href="#services" data-tab="services"><i class="fas fa-sparkles"></i> Servicios</a>
-      <a href="#settings" data-tab="settings"><i class="fas fa-cog"></i> Configuración</a>
-    </nav>
-
     <!-- TAB: Overview - MODIFICADO CON FILTROS Y REPORTES -->
     <section id="tab-overview" class="tab-content">
       <div class="header-actions" style="margin-bottom:20px;">
         <h2 id="dash-greeting">Buenos días</h2>
         <div style="display:flex;gap:10px;">
-          <button class="tw-btn tw-btn-small tw-btn-ghost" onclick="loadTodayStats(); loadGiftCardStats();"
-            title="Actualizar">
+          <button class="btn small ghost" onclick="loadTodayStats(); loadGiftCardStats();" title="Actualizar">
             <i class="fas fa-sync"></i>
           </button>
-          <button class="tw-btn tw-btn-primary" onclick="newApptDialog.showModal()">
+          <button class="btn primary" onclick="newApptDialog.showModal()">
             <i class="fas fa-plus"></i> Nueva Cita
           </button>
         </div>
@@ -2941,13 +3456,13 @@
       <div class="dash-grid">
         <!-- Columna principal (vacía por ahora, se llenará en Fase 3) -->
         <div class="dash-main">
-          <div class="tw-card">
-            <div class="tw-card-header">
-              <span class="tw-card-title">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">
                 <i class="fas fa-chart-line"></i> Actividad reciente
               </span>
             </div>
-            <div class="tw-card-body">
+            <div class="card-body">
               <div style="position: relative; height: 250px; width: 100%;">
                 <canvas id="activity-chart"></canvas>
               </div>
@@ -2958,16 +3473,16 @@
         <!-- Sidebar derecho -->
         <div class="dash-sidebar">
           <!-- Gift Cards -->
-          <div class="tw-card">
-            <div class="tw-card-header">
-              <span class="tw-card-title">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">
                 <i class="fas fa-gift"></i> Gift Cards
               </span>
-              <a href="#" class="tw-card-link" onclick="switchTab('tab-events');return false;">
+              <a href="#" class="card-header-link" onclick="switchTab('tab-events');return false;">
                 Ver todas <i class="fas fa-chevron-right"></i>
               </a>
             </div>
-            <div class="tw-card-body">
+            <div class="card-body" style="padding:16px;">
               <div class="gc-summary">
                 <div class="gc-summary-row">
                   <span class="gc-dot pending"></span>
@@ -2989,13 +3504,13 @@
           </div>
 
           <!-- Cumpleaños -->
-          <div class="tw-card" id="card-birthdays">
-            <div class="tw-card-header">
-              <span class="tw-card-title">
+          <div class="card" id="card-birthdays">
+            <div class="card-header">
+              <span class="card-title">
                 <i class="fas fa-birthday-cake"></i> Cumpleaños
               </span>
             </div>
-            <div class="tw-card-body">
+            <div class="card-body" style="padding:16px;">
               <div class="birthday-list" id="birthday-list">
                 <div class="dash-empty">
                   <p>Sin cumpleaños próximos</p>
@@ -3005,13 +3520,13 @@
           </div>
 
           <!-- Top Clientes -->
-          <div class="tw-card">
-            <div class="tw-card-header">
-              <span class="tw-card-title">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">
                 <i class="fas fa-trophy"></i> Top Clientes
               </span>
             </div>
-            <div class="tw-card-body">
+            <div class="card-body" style="padding:12px 16px;">
               <div id="top-clients-sidebar">
                 <div class="dash-empty">
                   <p>Sin datos aún</p>
@@ -3021,13 +3536,13 @@
           </div>
 
           <!-- Wallets -->
-          <div class="tw-card">
-            <div class="tw-card-header">
-              <span class="tw-card-title">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">
                 <i class="fas fa-wallet"></i> Wallets
               </span>
             </div>
-            <div class="tw-card-body">
+            <div class="card-body" style="padding:16px;">
               <div class="wallets-grid">
                 <div class="wallet-card">
                   <div class="wallet-card-icon"><i class="fab fa-apple"></i></div>
@@ -3048,18 +3563,26 @@
     </section>
 
     <!-- TAB: Cards -->
-    <section id="tab-cards" class="tw-card hidden">
-      <h2>Tarjetas de lealtad</h2>
-      <p class="muted">Gestiona todas las tarjetas de tus clientes.</p>
+    <section id="tab-cards" class="tab-content hidden">
+      <div class="header-actions" style="margin-bottom:20px;">
+        <div>
+          <h2 style="margin:0;font-size:24px;font-weight:600;"><i class="fas fa-credit-card" style="color:var(--venus-soft);margin-right:10px;"></i>Tarjetas de lealtad</h2>
+          <p class="muted" style="margin:4px 0 0;">Gestiona todas las tarjetas de tus clientes.</p>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button id="btn-reload-cards" class="btn ghost"><i class="fas fa-sync-alt"></i></button>
+          <button id="btn-scan-card" class="btn primary"><i class="fas fa-qrcode"></i> Escanear</button>
+        </div>
+      </div>
 
       <!-- KPI CUMPLEAÑOS -->
       <div id="birthday-section" class="hidden"
-        style="margin: 15px 0; padding: 15px; background: rgba(255, 209, 102, 0.1); border: 1px solid rgba(255, 209, 102, 0.3); border-radius: 12px;">
+        style="margin: 0 0 20px; padding: 16px; background: var(--warning-bg); border: 1px solid rgba(251, 191, 36, 0.3); border-radius: var(--radius);">
         <div class="row" style="justify-content: space-between; align-items: center;">
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <span style="font-size: 24px;"><i class="fas fa-birthday-cake"></i></span>
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <span style="font-size: 24px;">🎂</span>
             <div>
-              <h3 style="margin: 0; color: #ffd166;">Cumpleaños Cercanos</h3>
+              <h3 style="margin: 0; color: #fbbf24; font-size: 15px;">Cumpleaños Cercanos</h3>
               <p class="muted" style="margin: 2px 0 0; font-size: 13px;">Clientes que cumplen años en los próximos 7
                 días.</p>
             </div>
@@ -3068,62 +3591,75 @@
             <!-- Se llenará dinámicamente -->
           </div>
         </div>
-        <div id="birthday-list" style="margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap;">
+        <div id="birthday-list" style="margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap;">
           <!-- Lista de cumpleañeros -->
         </div>
       </div>
 
-      <div class="row" style="margin-top:12px; align-items: center;">
-        <input id="search-cards" placeholder="Buscar por nombre o teléfono..." style="flex:1;min-width:200px;">
+      <!-- Filtros y búsqueda -->
+      <div class="card" style="padding:16px;margin-bottom:16px;">
+        <div class="row" style="gap:12px;flex-wrap:wrap;">
+          <div style="flex:1;min-width:200px;position:relative;">
+            <i class="fas fa-search" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-dim);"></i>
+            <input id="search-cards" placeholder="Buscar por nombre o teléfono..." style="padding-left:40px;">
+          </div>
 
-        <!-- SORTING CONTROLS -->
-        <select id="sort-cards" class="filter-select">
-          <option value="created_at:desc">Recientes</option>
-          <option value="created_at:asc">Antiguos</option>
-          <option value="name:asc">Nombre (A-Z)</option>
-          <option value="name:desc">Nombre (Z-A)</option>
-          <option value="stamps:desc">Más sellos</option>
-          <option value="stamps:asc">Menos sellos</option>
-          <option value="last_visit:desc">Última visita</option>
-        </select>
+          <!-- SORTING CONTROLS -->
+          <select id="sort-cards" class="filter-select" style="min-width:160px;">
+            <option value="created_at:desc">Recientes</option>
+            <option value="created_at:asc">Antiguos</option>
+            <option value="name:asc">Nombre (A-Z)</option>
+            <option value="name:desc">Nombre (Z-A)</option>
+            <option value="stamps:desc">Más sellos</option>
+            <option value="stamps:asc">Menos sellos</option>
+            <option value="last_visit:desc">Última visita</option>
+          </select>
 
-        <button id="btn-search-cards" class="tw-btn tw-btn-primary"><i class="fas fa-search"></i> Buscar</button>
-        <button id="btn-reload-cards" class="tw-btn"><i class="fas fa-sync-alt"></i> Recargar</button>
-        <button id="btn-scan-card" class="tw-btn tw-btn-ghost" onclick="openScanner()"><i class="fas fa-qrcode"></i>
-          Escanear QR</button>
+          <button id="btn-search-cards" class="btn primary"><i class="fas fa-search"></i> Buscar</button>
+        </div>
       </div>
 
-      <div class="table-wrap" style="margin-top:12px;">
-        <table>
-          <thead>
-            <tr>
-              <th>Cliente</th>
-              <th>Teléfono</th>
-              <th>Última Visita</th>
-              <th>Sellos</th>
-              <th style="width:120px;">Acciones</th>
-            </tr>
-          </thead>
-          <tbody id="cards-tbody">
-            <tr>
-              <td colspan="5" style="text-align:center;padding:12px;" class="muted">Cargando tarjetas...</td>
-            </tr>
-          </tbody>
-        </table>
+      <!-- Tabla de tarjetas -->
+      <div class="card" style="padding:0;overflow:hidden;">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Cliente</th>
+                <th>Teléfono</th>
+                <th>Última Visita</th>
+                <th>Sellos</th>
+                <th style="width:140px;text-align:center;">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="cards-tbody">
+              <tr>
+                <td colspan="5" style="text-align:center;padding:40px;" class="muted">
+                  <i class="fas fa-spinner fa-spin" style="font-size:24px;margin-bottom:10px;display:block;opacity:0.5;"></i>
+                  Cargando tarjetas...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      <div class="row" style="justify-content:space-between;margin-top:12px;">
-        <button id="btn-prev-page" class="tw-btn tw-btn-small tw-btn-ghost">← Anterior</button>
-        <span id="page-info" class="muted">Página 1</span>
-        <button id="btn-next-page" class="tw-btn tw-btn-small tw-btn-ghost">Siguiente →</button>
+      <!-- Paginación -->
+      <div class="row" style="justify-content:space-between;margin-top:16px;align-items:center;">
+        <button id="btn-prev-page" class="btn small ghost"><i class="fas fa-chevron-left"></i> Anterior</button>
+        <span id="page-info" class="muted" style="font-size:13px;">Página 1</span>
+        <button id="btn-next-page" class="btn small ghost">Siguiente <i class="fas fa-chevron-right"></i></button>
       </div>
     </section>
 
     <!-- TAB: Gift Cards -->
     <section id="tab-events" class="tab-content hidden">
-      <div class="header-actions">
-        <h2><i class="fas fa-gift"></i> Gift Cards</h2>
-        <button class="tw-btn tw-btn-ghost" id="btn-scan-gift-card" onclick="openScanner()">
+      <div class="header-actions" style="margin-bottom:20px;">
+        <div>
+          <h2 style="margin:0;font-size:24px;font-weight:600;"><i class="fas fa-gift" style="color:var(--venus-soft);margin-right:10px;"></i>Gift Cards</h2>
+          <p class="muted" style="margin:4px 0 0;">Crea y gestiona tarjetas de regalo.</p>
+        </div>
+        <button class="btn primary" id="btn-scan-gift-card">
           <i class="fas fa-qrcode"></i> Escanear QR
         </button>
       </div>
@@ -3152,7 +3688,7 @@
       <div class="gc-layout">
 
         <!-- Columna izquierda: Crear -->
-        <div class="tw-card">
+        <div class="card">
           <h3 style="font-size:15px;margin-bottom:16px;display:flex;align-items:center;gap:8px;">
             <i class="fas fa-plus-circle"></i> Crear Gift Card
           </h3>
@@ -3185,7 +3721,7 @@
               </select>
             </div>
 
-            <button type="submit" class="tw-btn tw-btn-primary" style="width:100%;">
+            <button type="submit" class="btn primary" style="width:100%;">
               <i class="fas fa-sparkles"></i> Generar Gift Card
             </button>
           </form>
@@ -3203,7 +3739,7 @@
         </div>
 
         <!-- Columna derecha: Lista -->
-        <div class="tw-card">
+        <div class="card">
           <div
             style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
             <h3 style="font-size:15px;display:flex;align-items:center;gap:8px;">
@@ -3246,20 +3782,19 @@
       <div class="modal-card" style="max-width:420px;">
         <div class="modal-header">
           <h3><i class="fas fa-gift"></i> Gift Card</h3>
-          <button class="tw-btn tw-btn-small tw-btn-ghost" onclick="closeGiftCardModal()"><i
-              class="fas fa-times"></i></button>
+          <button class="btn small ghost" onclick="closeGiftCardModal()"><i class="fas fa-times"></i></button>
         </div>
         <div id="modal-giftcard-content" style="padding:0;">
           <!-- Contenido dinámico con diseño personalizado -->
         </div>
         <div class="modal-footer" style="justify-content:center;gap:8px;flex-wrap:wrap;">
-          <button class="tw-btn tw-btn-ghost tw-btn-modal" onclick="downloadGiftCardImage()">
+          <button class="btn ghost" onclick="downloadGiftCardImage()">
             <i class="fas fa-download"></i> Descargar
           </button>
-          <button class="tw-btn tw-btn-ghost tw-btn-modal" onclick="copyGiftCardLink()">
+          <button class="btn ghost" onclick="copyGiftCardLink()">
             <i class="fas fa-link"></i> Copiar link
           </button>
-          <button class="tw-btn tw-btn-primary tw-btn-modal" onclick="sendGiftCardWhatsAppImage()">
+          <button class="btn primary" onclick="sendGiftCardWhatsAppImage()">
             <i class="fab fa-whatsapp"></i> WhatsApp
           </button>
         </div>
@@ -3267,7 +3802,7 @@
     </div>
 
     <!-- TAB: Settings - MEJORADO CON DEBUGGING -->
-    <section id="tab-settings" class="tw-card hidden">
+    <section id="tab-settings" class="card hidden">
       <h2>Configuración</h2>
 
       <!-- Configuración del Negocio -->
@@ -3452,8 +3987,7 @@
           </div>
 
           <div style="margin-top:14px;">
-            <button type="submit" class="tw-btn tw-btn-primary"><i class="fas fa-save"></i> Guardar
-              configuración</button>
+            <button type="submit" class="btn primary"><i class="fas fa-save"></i> Guardar configuración</button>
           </div>
         </form>
 
@@ -3498,8 +4032,8 @@
           </div>
 
           <div class="row" style="margin-top:14px;gap:10px;">
-            <button type="button" id="btn-mass-push" class="tw-btn tw-btn-primary">Enviar a todos</button>
-            <button type="button" id="test-push" class="tw-btn tw-btn-ghost">Enviar prueba</button>
+            <button type="button" id="btn-mass-push" class="btn primary">Enviar a todos</button>
+            <button type="button" id="test-push" class="btn ghost">Enviar prueba</button>
           </div>
         </form>
 
@@ -3517,10 +4051,10 @@
         <div class="row" style="justify-content:space-between;margin-bottom:8px;">
           <h3 style="margin:0;"><i class="fas fa-list"></i> Historial</h3>
           <div style="display:flex;gap:8px;">
-            <button id="refresh-history" class="tw-btn tw-btn-small tw-btn-ghost" title="Refrescar"><i
+            <button id="refresh-history" class="btn small ghost" title="Refrescar"><i
                 class="fas fa-sync-alt"></i></button>
-            <button id="clear-notif-history" class="tw-btn tw-btn-small tw-btn-ghost" style="color:#ef4444;"
-              title="Borrar historial"><i class="fas fa-trash"></i></button>
+            <button id="clear-notif-history" class="btn small ghost" style="color:#ef4444;" title="Borrar historial"><i
+                class="fas fa-trash"></i></button>
           </div>
         </div>
         <div class="table-wrap">
@@ -3548,28 +4082,22 @@
         <h3 style="margin:0 0 12px;font-size:15px;color:var(--ink);"><i class="fas fa-bug"></i> Debugging Avanzado</h3>
 
         <div class="row" style="gap:8px;flex-wrap:wrap;margin-bottom:12px;">
-          <button id="btn-test-apple-push" class="tw-btn tw-btn-small"><i class="fas fa-flask"></i> Test Apple
-            Push</button>
-          <button id="btn-test-google-push" class="tw-btn tw-btn-small"><i class="fas fa-flask"></i> Test Google
-            Push</button>
-          <button id="btn-fix-google-wallet" class="tw-btn tw-btn-small"><i class="fas fa-wrench"></i> Reparar Google
+          <button id="btn-test-apple-push" class="btn small"><i class="fas fa-flask"></i> Test Apple Push</button>
+          <button id="btn-test-google-push" class="btn small"><i class="fas fa-flask"></i> Test Google Push</button>
+          <button id="btn-fix-google-wallet" class="btn small"><i class="fas fa-wrench"></i> Reparar Google
             Wallet</button>
-          <button id="btn-check-devices" class="tw-btn tw-btn-small"><i class="fas fa-mobile-alt"></i> Ver
-            Dispositivos</button>
-          <button id="btn-check-apns" class="tw-btn tw-btn-small"><i class="fab fa-apple"></i> Ver Config APNs</button>
+          <button id="btn-check-devices" class="btn small"><i class="fas fa-mobile-alt"></i> Ver Dispositivos</button>
+          <button id="btn-check-apns" class="btn small"><i class="fab fa-apple"></i> Ver Config APNs</button>
         </div>
 
         <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--line);">
           <h4 style="margin:0 0 10px;font-size:13px;color:var(--venus-soft);">Simular Webhook WhatsApp (Local)</h4>
           <div class="row" style="gap:8px;flex-wrap:wrap;">
-            <button class="tw-btn tw-btn-small tw-btn-ghost" onclick="simulateWebhook('confirmar')"><i
-                class="fas fa-check"></i> Simular
+            <button class="btn small ghost" onclick="simulateWebhook('confirmar')"><i class="fas fa-check"></i> Simular
               Confirmar</button>
-            <button class="tw-btn tw-btn-small tw-btn-ghost" onclick="simulateWebhook('reprogramar')"><i
-                class="fas fa-clock"></i>
+            <button class="btn small ghost" onclick="simulateWebhook('reprogramar')"><i class="fas fa-clock"></i>
               Simular Reprogramar</button>
-            <button class="tw-btn tw-btn-small tw-btn-ghost" onclick="simulateWebhook('cancelar')"><i
-                class="fas fa-times"></i> Simular
+            <button class="btn small ghost" onclick="simulateWebhook('cancelar')"><i class="fas fa-times"></i> Simular
               Cancelar</button>
           </div>
         </div>
@@ -3580,7 +4108,7 @@
     </section>
 
     <!-- TAB: Notificaciones -->
-    <section id="tab-notifications" class="tw-card hidden">
+    <section id="tab-notifications" class="card hidden">
       <h2><i class="fas fa-bell"></i> Notificaciones</h2>
       <p class="muted" style="margin:0 0 20px;font-size:13px;">
         Configura notificaciones automáticas para diferentes eventos del programa de lealtad.
@@ -3588,7 +4116,7 @@
 
       <!-- Botón ejecutar todas -->
       <div style="margin-bottom:24px;">
-        <button id="btn-run-all-automations" class="tw-btn tw-btn-primary">
+        <button id="btn-run-all-automations" class="btn primary">
           <i class="fas fa-play"></i> Ejecutar Automatizaciones Activas
         </button>
         <span class="muted" style="font-size:12px;margin-left:10px;">Procesa todas las reglas activas ahora</span>
@@ -3639,8 +4167,7 @@
           <textarea id="auto-inactivity-message" class="automation-textarea"
             rows="2">¡Te extrañamos! 😊 Hace tiempo que no te vemos. Ven y disfruta nuestros servicios.</textarea>
 
-          <button class="tw-btn tw-btn-small tw-btn-ghost automation-test-btn" data-type="inactivity"><i
-              class="fas fa-flask"></i>
+          <button class="btn small ghost automation-test-btn" data-type="inactivity"><i class="fas fa-flask"></i>
             Probar</button>
         </div>
       </div>
@@ -3665,8 +4192,7 @@
           <textarea id="auto-completed-message" class="automation-textarea"
             rows="2">¡Felicidades! 🎁 Has completado tu tarjeta. Ven a canjear tu premio.</textarea>
 
-          <button class="tw-btn tw-btn-small tw-btn-ghost automation-test-btn" data-type="completed"><i
-              class="fas fa-flask"></i>
+          <button class="btn small ghost automation-test-btn" data-type="completed"><i class="fas fa-flask"></i>
             Probar</button>
         </div>
       </div>
@@ -3691,7 +4217,7 @@
           <textarea id="auto-almost-message" class="automation-textarea"
             rows="2">¡Ya casi! ⚡ Solo te faltan [X] sellos para tu premio. ¡No esperes más!</textarea>
 
-          <button class="tw-btn tw-btn-small tw-btn-ghost automation-test-btn" data-type="almost">🧪 Probar</button>
+          <button class="btn small ghost automation-test-btn" data-type="almost">🧪 Probar</button>
         </div>
       </div>
 
@@ -3710,12 +4236,11 @@
       <div class="header-actions">
         <h2><i class="fas fa-inbox"></i> Solicitudes</h2>
         <div style="display:flex;gap:8px;">
-          <button class="tw-btn tw-btn-small tw-btn-ghost" onclick="deleteAllRequests()"
-            title="Borrar todas las solicitudes" style="color:#ef4444;border-color:#ef4444;">
+          <button class="btn small ghost" onclick="deleteAllRequests()" title="Borrar todas las solicitudes"
+            style="color:#ef4444;border-color:#ef4444;">
             <i class="fas fa-trash"></i> Borrar Todo
           </button>
-          <button class="tw-btn tw-btn-small tw-btn-ghost" onclick="loadBookingRequests()"><i
-              class="fas fa-sync"></i></button>
+          <button class="btn small ghost" onclick="loadBookingRequests()"><i class="fas fa-sync"></i></button>
         </div>
       </div>
 
@@ -3753,9 +4278,8 @@
             <code id="agendar-url" style="font-size:11px;word-break:break-all;"></code>
           </div>
           <div style="display:flex;gap:6px;">
-            <button class="tw-btn tw-btn-small" onclick="copyAgendarUrl()" title="Copiar URL"><i
-                class="fas fa-copy"></i></button>
-            <a href="/agendar.html" target="_blank" class="tw-btn tw-btn-small tw-btn-ghost" title="Abrir"><i
+            <button class="btn small" onclick="copyAgendarUrl()" title="Copiar URL"><i class="fas fa-copy"></i></button>
+            <a href="/agendar.html" target="_blank" class="btn small ghost" title="Abrir"><i
                 class="fas fa-external-link-alt"></i></a>
           </div>
         </div>
@@ -3767,13 +4291,11 @@
       <div class="header-actions">
         <h2><i class="fas fa-calendar"></i> Agenda de Citas</h2>
         <div style="display:flex;gap:8px;">
-          <button class="tw-btn tw-btn-small tw-btn-ghost"
-            onclick="loadAppointments(); renderMonthlyCalendar(); loadMonthStats();" title="Actualizar">
+          <button class="btn small ghost" onclick="loadAppointments(); renderMonthlyCalendar(); loadMonthStats();"
+            title="Actualizar">
             <i class="fas fa-sync"></i>
           </button>
-          <button class="tw-btn tw-btn-primary" id="btn-new-appointment" onclick="openNewAppointmentModal()">
-            <i class="fas fa-plus"></i> Nueva Cita
-          </button>
+          <button class="btn primary" id="btn-new-appointment">Nueva Cita</button>
         </div>
       </div>
 
@@ -3795,8 +4317,8 @@
           </div>
 
           <div class="calendar-actions">
-            <button class="tw-btn tw-btn-small tw-btn-ghost"
-              onclick="loadAppointments(); renderMonthlyCalendar(); loadMonthStats();" title="Actualizar">
+            <button class="btn small ghost" onclick="loadAppointments(); renderMonthlyCalendar(); loadMonthStats();"
+              title="Actualizar">
               <i class="fas fa-sync"></i>
             </button>
             <div class="view-selector">
@@ -3828,10 +4350,10 @@
       </div>
 
       <!-- Citas del Día Seleccionado -->
-      <div class="tw-card">
+      <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
           <h3 style="margin:0;">Citas del <span id="selected-date-label">Hoy</span></h3>
-          <button class="tw-btn tw-btn-small" id="btn-refresh-appts"><i class="fas fa-sync-alt"></i> Actualizar</button>
+          <button class="btn small" id="btn-refresh-appts"><i class="fas fa-sync-alt"></i> Actualizar</button>
         </div>
 
         <table class="data-table">
@@ -3853,7 +4375,7 @@
       </div>
 
       <!-- Historial del Mes -->
-      <div class="tw-card" style="margin-top:20px;">
+      <div class="card" style="margin-top:20px;">
         <h3 style="margin-top:0;">Historial del Mes</h3>
         <div id="month-stats"
           style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px;">
@@ -3877,7 +4399,7 @@
       </div>
 
       <!-- Resumen de Ventas del Mes -->
-      <div class="tw-card" style="margin-top:20px;">
+      <div class="card" style="margin-top:20px;">
         <h3 style="margin-top:0;"><i class="fas fa-dollar-sign"></i> Ventas del Mes</h3>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;">
           <div class="stat-card">
@@ -3905,24 +4427,25 @@
       <div class="header-actions">
         <h2><i class="fas fa-chart-line"></i> Reportes de Ventas</h2>
         <div style="display:flex;gap:8px;">
-          <button class="tw-btn tw-btn-ghost" onclick="cargarReportesMes()">
+          <button class="btn ghost" onclick="cargarReportesMes()">
             <i class="fas fa-sync"></i> Actualizar
           </button>
-          <button class="tw-btn tw-btn-primary" onclick="exportarVentasExcel()">
+          <button class="btn primary" onclick="exportarVentasExcel()">
             <i class="fas fa-file-excel"></i> Exportar Excel
           </button>
         </div>
       </div>
 
       <!-- Selector de Mes (estilo Excel tabs) -->
-      <div class="tw-card tw-card-compact" style="margin-bottom:16px;">
+      <div class="card" style="padding:12px;margin-bottom:16px;">
         <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;" id="report-month-tabs">
           <!-- Se generan dinámicamente -->
         </div>
       </div>
 
       <!-- Filtro de Fechas Personalizado -->
-      <div class="tw-card tw-card-accent" style="margin-bottom:16px;">
+      <div class="card"
+        style="padding:16px;margin-bottom:16px;background:linear-gradient(135deg, rgba(140,150,104,0.1) 0%, rgba(140,150,104,0.05) 100%);border:1px solid rgba(140,150,104,0.2);">
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
           <div style="display:flex;align-items:center;gap:8px;">
             <i class="fas fa-filter" style="color:var(--venus);"></i>
@@ -3933,34 +4456,31 @@
             <div style="display:flex;align-items:center;gap:6px;">
               <label style="font-size:12px;color:var(--muted);">Desde:</label>
               <input type="date" id="report-date-from" class="form-control"
-                style="padding:8px 12px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:13px;">
+                style="padding:8px 12px;border-radius:8px;border:1px solid var(--line);background:var(--bg-card);color:var(--ink);font-size:13px;">
             </div>
 
             <div style="display:flex;align-items:center;gap:6px;">
               <label style="font-size:12px;color:var(--muted);">Hasta:</label>
               <input type="date" id="report-date-to" class="form-control"
-                style="padding:8px 12px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:13px;">
+                style="padding:8px 12px;border-radius:8px;border:1px solid var(--line);background:var(--bg-card);color:var(--ink);font-size:13px;">
             </div>
 
-            <button class="tw-btn tw-btn-primary" onclick="filtrarReportePorFechas()"
-              style="padding:8px 16px;font-size:13px;">
+            <button class="btn primary" onclick="filtrarReportePorFechas()" style="padding:8px 16px;font-size:13px;">
               <i class="fas fa-search"></i> Filtrar
             </button>
 
-            <button class="tw-btn tw-btn-ghost" onclick="limpiarFiltroFechas()"
-              style="padding:8px 12px;font-size:13px;">
+            <button class="btn ghost" onclick="limpiarFiltroFechas()" style="padding:8px 12px;font-size:13px;">
               <i class="fas fa-times"></i> Limpiar
             </button>
           </div>
 
           <!-- Atajos rápidos -->
           <div style="display:flex;gap:6px;margin-left:auto;">
-            <button class="tw-btn tw-btn-ghost tw-btn-small" onclick="filtroRapido('hoy')"
+            <button class="btn ghost small" onclick="filtroRapido('hoy')"
               style="padding:6px 10px;font-size:11px;">Hoy</button>
-            <button class="tw-btn tw-btn-ghost tw-btn-small" onclick="filtroRapido('semana')"
+            <button class="btn ghost small" onclick="filtroRapido('semana')"
               style="padding:6px 10px;font-size:11px;">Esta semana</button>
-            <button class="tw-btn tw-btn-ghost tw-btn-small" onclick="filtroRapido('mes')"
-              style="padding:6px 10px;font-size:11px;">Este
+            <button class="btn ghost small" onclick="filtroRapido('mes')" style="padding:6px 10px;font-size:11px;">Este
               mes</button>
           </div>
         </div>
@@ -3975,7 +4495,8 @@
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
 
         <!-- Lado Izquierdo: Resumen Financiero -->
-        <div class="tw-card tw-card-gradient">
+        <div class="card"
+          style="background:linear-gradient(135deg, #2F3E2B 0%, #4A5D3F 100%);border:1px solid rgba(255,255,255,0.1);">
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
             <img src="/assets/logo.png" alt="Venus" style="width:40px;height:40px;border-radius:8px;">
             <div>
@@ -4015,7 +4536,7 @@
         </div>
 
         <!-- Lado Derecho: Gráfica de Pastel -->
-        <div class="tw-card">
+        <div class="card">
           <h3 style="margin:0 0 16px;font-size:14px;color:var(--venus-soft);">
             <i class="fas fa-chart-pie"></i> Distribución de Ingresos
           </h3>
@@ -4036,7 +4557,7 @@
       </div>
 
       <!-- Ingresos por Tipo de Servicio (gráfica de pastel detallada) -->
-      <div class="tw-card" style="margin-bottom:20px;">
+      <div class="card" style="margin-bottom:20px;">
         <h3 style="margin:0 0 16px;font-size:14px;color:var(--venus-soft);">
           <i class="fas fa-spa"></i> Ingresos por Tipo de Servicio
         </h3>
@@ -4051,7 +4572,7 @@
       </div>
 
       <!-- Tabla de Ingresos Detallada -->
-      <div class="tw-card">
+      <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
           <h3 style="margin:0;font-size:14px;color:var(--venus-soft);">
             <i class="fas fa-list"></i> INGRESOS
@@ -4073,51 +4594,55 @@
 
         <!-- Estadísticas -->
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:20px;">
-          <div class="tw-stat-card">
+          <div class="card">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-              <span class="tw-stat-label">Total Ventas</span>
+              <span style="font-size:12px;color:var(--muted);text-transform:uppercase;font-weight:600;">Total
+                Ventas</span>
               <i class="fas fa-dollar-sign" style="color:var(--venus);font-size:20px;"></i>
             </div>
-            <div id="report-total-sales" class="tw-stat-value" style="color:var(--venus);">$0.00</div>
+            <div id="report-total-sales" style="font-size:28px;font-weight:700;color:var(--venus);">$0.00</div>
             <div id="report-sales-count" style="font-size:12px;color:var(--muted);margin-top:4px;">0 ventas</div>
           </div>
 
-          <div class="tw-stat-card">
+          <div class="card">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-              <span class="tw-stat-label">Efectivo</span>
+              <span style="font-size:12px;color:var(--muted);text-transform:uppercase;font-weight:600;">Efectivo</span>
               <i class="fas fa-money-bill-wave" style="color:#22c55e;font-size:20px;"></i>
             </div>
             <div id="report-cash-total" style="font-size:28px;font-weight:700;color:#22c55e;">$0.00</div>
             <div id="report-cash-count" style="font-size:12px;color:var(--muted);margin-top:4px;">0 ventas</div>
           </div>
 
-          <div class="tw-stat-card">
+          <div class="card">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-              <span class="tw-stat-label">Tarjeta</span>
+              <span style="font-size:12px;color:var(--muted);text-transform:uppercase;font-weight:600;">Tarjeta</span>
               <i class="fas fa-credit-card" style="color:#3b82f6;font-size:20px;"></i>
             </div>
-            <div id="report-card-total" class="tw-stat-value" style="color:#3b82f6;">$0.00</div>
+            <div id="report-card-total" style="font-size:28px;font-weight:700;color:#3b82f6;">$0.00</div>
             <div id="report-card-count" style="font-size:12px;color:var(--muted);margin-top:4px;">0 ventas</div>
           </div>
 
-          <div class="tw-stat-card">
+          <div class="card">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-              <span class="tw-stat-label">Transferencia</span>
+              <span
+                style="font-size:12px;color:var(--muted);text-transform:uppercase;font-weight:600;">Transferencia</span>
               <i class="fas fa-exchange-alt" style="color:#8b5cf6;font-size:20px;"></i>
             </div>
-            <div id="report-transfer-total" class="tw-stat-value" style="color:#8b5cf6;">$0.00</div>
+            <div id="report-transfer-total" style="font-size:28px;font-weight:700;color:#8b5cf6;">$0.00</div>
             <div id="report-transfer-count" style="font-size:12px;color:var(--muted);margin-top:4px;">0 ventas</div>
           </div>
         </div>
 
         <!-- Panel de Gastos del Mes -->
-        <div class="tw-card tw-card-danger" style="margin-bottom:20px;">
+        <div class="card"
+          style="margin-bottom:20px;background:linear-gradient(135deg, rgba(239,68,68,0.05) 0%, rgba(220,38,38,0.05) 100%);border:1px solid rgba(239,68,68,0.2);">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
             <h3 style="margin:0;font-size:18px;display:flex;align-items:center;gap:10px;">
               <i class="fas fa-receipt" style="color:#ef4444;"></i>
               <span>Gastos del Mes</span>
             </h3>
-            <button class="tw-btn tw-btn-primary tw-btn-gradient-red" onclick="openExpenseModal()">
+            <button class="btn primary" onclick="openExpenseModal()"
+              style="background:linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">
               <i class="fas fa-plus"></i> Nuevo Gasto
             </button>
           </div>
@@ -4191,7 +4716,7 @@
         </div>
 
         <!-- Tabla de ventas -->
-        <div class="tw-card">
+        <div class="card">
           <h3 style="margin-bottom:16px;font-size:15px;"><i class="fas fa-list"></i> Detalle de Ventas</h3>
           <div class="table-wrap">
             <table class="data-table">
@@ -4243,18 +4768,17 @@
         </button>
       </div>
 
-      <div class="tw-card" style="border-radius:0 0 12px 12px;margin-top:0;">
+      <div class="card" style="border-radius:0 0 12px 12px;margin-top:0;">
 
         <!-- Panel: Servicios -->
         <div id="panel-services" class="tab-panel active">
           <div class="row" style="gap:12px;margin-bottom:16px;flex-wrap:wrap;">
             <input type="text" id="search-services" class="form-input" placeholder="Buscar servicio..."
               style="flex:1;min-width:200px;">
-            <button class="tw-btn tw-btn-ghost" onclick="autoCategorizarServicios()" style="white-space:nowrap;">
+            <button class="btn ghost" onclick="autoCategorizarServicios()" style="white-space:nowrap;">
               <i class="fas fa-magic"></i> Auto-organizar
             </button>
-            <button class="tw-btn tw-btn-primary" id="btn-new-service"><i class="fas fa-plus"></i> Nuevo
-              Servicio</button>
+            <button class="btn primary" id="btn-new-service"><i class="fas fa-plus"></i> Nuevo Servicio</button>
           </div>
 
           <div class="table-wrap">
@@ -4304,8 +4828,7 @@
               <span class="chip" data-category="maquillaje" onclick="filterProducts('maquillaje')">Maquillaje</span>
               <span class="chip" data-category="corporal" onclick="filterProducts('corporal')">Corporal</span>
             </div>
-            <button class="tw-btn tw-btn-primary" id="btn-new-product"><i class="fas fa-plus"></i> Nuevo
-              Producto</button>
+            <button class="btn primary" id="btn-new-product"><i class="fas fa-plus"></i> Nuevo Producto</button>
           </div>
 
           <div class="table-wrap">
@@ -4411,164 +4934,181 @@
     <!-- DIALOG: Nueva Cita -->
     <dialog id="newApptDialog">
       <div class="dialog-content">
-        <!-- Header sticky -->
-        <div class="dialog-header-sticky">
-          <h3><i class="fas fa-calendar-plus"></i> Agendar Cita</h3>
-          <button type="button" class="dialog-close-btn" onclick="newApptDialog.close()" title="Cerrar">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+          <h3 style="margin:0;"><i class="fas fa-calendar"></i> Agendar Cita</h3>
+          <button type="button" class="btn ghost" onclick="newApptDialog.close()"
+            style="min-width:auto;padding:8px 12px;" title="Cerrar">
             <i class="fas fa-times"></i>
           </button>
         </div>
-
-        <!-- Body -->
         <form id="form-new-appt">
-          <div class="dialog-body">
-            <div class="form-compact">
-              <!-- Cliente -->
-              <div class="form-group-compact">
-                <label class="form-label">Cliente</label>
-                <div class="custom-select-wrapper">
-                  <input type="text" id="new-appt-client-select" class="form-input"
-                    placeholder="Buscar o escribir nombre..." autocomplete="off">
-                  <span class="dropdown-toggle-icon">▼</span>
-                  <div id="clients-dropdown-list" class="custom-dropdown-list" style="display:none;"></div>
-                </div>
-                <button type="button" id="btn-toggle-new-client" class="btn small ghost"
-                  style="margin-top:6px;font-size:12px;">
-                  + Nuevo cliente
-                </button>
-
-                <!-- Panel Historial -->
-                <div id="client-history-panel" class="client-history-panel hidden">
-                  <div class="history-header" id="toggle-history">
-                    <div style="display:flex;align-items:center;gap:8px;">
-                      <span class="history-toggle-icon">▼</span>
-                      <span><i class="fas fa-calendar"></i> Citas anteriores</span>
-                      <span class="history-count" id="history-count">(0)</span>
-                    </div>
-                    <span class="history-hint" id="history-hint">Clic para repetir</span>
-                  </div>
-                  <div class="history-content" id="history-content" style="display:none;">
-                    <div id="history-list" class="history-list"></div>
-                  </div>
-                </div>
+          <div style="display:grid;gap:16px;">
+            <!-- Cliente con búsqueda editable -->
+            <div>
+              <label class="form-label">Cliente</label>
+              <div class="custom-select-wrapper">
+                <input type="text" id="new-appt-client-select" class="form-input"
+                  placeholder="Buscar o escribir nombre..." autocomplete="off">
+                <span class="dropdown-toggle-icon">▼</span>
+                <div id="clients-dropdown-list" class="custom-dropdown-list" style="display:none;"></div>
               </div>
-
-              <!-- Nuevo Cliente (oculto) -->
-              <div id="new-client-form"
-                style="display:none;background:rgba(140,150,104,0.1);border:1px solid rgba(140,150,104,0.3);border-radius:12px;padding:14px;">
-                <h4 style="margin:0 0 10px 0;color:var(--venus-soft);font-size:13px;">Nuevo Cliente</h4>
-                <div style="display:grid;gap:10px;">
-                  <input type="text" id="new-client-name" class="form-input" placeholder="Nombre completo"
-                    style="padding:10px 14px;">
-                  <input type="tel" id="new-client-phone" class="form-input" placeholder="Teléfono"
-                    style="padding:10px 14px;">
-                  <button type="button" id="btn-save-new-client" class="btn small primary">Guardar</button>
-                </div>
-              </div>
-
-              <!-- Teléfono -->
-              <div class="form-group-compact">
-                <label class="form-label">Teléfono</label>
-                <input type="tel" id="new-appt-phone" class="form-input" placeholder="4421234567" required>
-              </div>
-
-              <!-- Servicio + Precio (2 columnas) -->
-              <div class="form-row-2">
-                <div class="form-group-compact">
-                  <label class="form-label">Servicio</label>
-                  <div class="custom-select-wrapper">
-                    <input type="text" id="new-appt-service" class="form-input" placeholder="Buscar servicio..."
-                      autocomplete="off">
-                    <span class="dropdown-toggle-icon">▼</span>
-                    <div id="services-dropdown-list" class="custom-dropdown-list" style="display:none;"></div>
-                  </div>
-                </div>
-                <div class="form-group-compact">
-                  <label class="form-label">Precio</label>
-                  <div style="position:relative;">
-                    <span
-                      style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--venus-soft);font-size:13px;">$</span>
-                    <input type="number" id="new-appt-price" class="form-input" placeholder="0" min="0" step="any"
-                      style="padding-left:26px;">
-                  </div>
-                </div>
-              </div>
-
-              <!-- Agregar servicio -->
-              <button type="button" id="btn-add-service" class="tw-btn tw-btn-small tw-btn-ghost"
-                style="width:100%;padding:8px;">
-                <i class="fas fa-plus"></i> Agregar otro servicio
+              <button type="button" id="btn-toggle-new-client" class="btn small ghost" style="margin-top:8px;">
+                + Registrar nuevo cliente
               </button>
 
-              <!-- Lista servicios seleccionados -->
-              <div id="selected-services-list"
-                style="display:none;background:rgba(140,150,104,0.1);border:1px solid rgba(140,150,104,0.3);border-radius:12px;padding:14px;">
-                <h4 style="margin:0 0 10px 0;color:var(--venus-soft);font-size:12px;"><i class="fas fa-list"></i>
-                  Servicios</h4>
-                <div id="services-list-container"></div>
-              </div>
-
-              <!-- Fecha + Hora + Min + Fin (4 columnas) -->
-              <div class="form-row-4">
-                <div class="form-group-compact" style="position:relative;">
-                  <label class="form-label">Fecha</label>
-                  <input type="text" id="new-appt-date" class="form-input date-picker-input" readonly required
-                    placeholder="Seleccionar" style="cursor:pointer;">
-                  <div id="new-appt-calendar" class="calendar-dropdown" style="display:none;"></div>
+              <!-- Panel Historial de Citas - Clic para seleccionar servicio -->
+              <div id="client-history-panel" class="client-history-panel hidden">
+                <div class="history-header" id="toggle-history">
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <span class="history-toggle-icon">▼</span>
+                    <span><i class="fas fa-calendar"></i> Citas anteriores</span>
+                    <span class="history-count" id="history-count">(0)</span>
+                  </div>
+                  <span class="history-hint" id="history-hint">Clic para repetir servicio</span>
                 </div>
-                <div class="form-group-compact">
-                  <label class="form-label">Hora</label>
-                  <select id="new-appt-hour" class="form-input" required>
-                    <option value="">--</option>
-                  </select>
+                <div class="history-content" id="history-content" style="display:none;">
+                  <div id="history-list" class="history-list">
+                  </div>
                 </div>
-                <div class="form-group-compact">
-                  <label class="form-label">Min</label>
-                  <select id="new-appt-minute" class="form-input" required>
-                    <option value="">--</option>
-                  </select>
-                </div>
-                <div class="form-group-compact">
-                  <label class="form-label">Fin</label>
-                  <input type="text" id="new-appt-end-time" class="form-input" readonly
-                    style="background:rgba(0,0,0,0.2);color:var(--muted);text-align:center;">
-                </div>
-              </div>
-
-              <!-- Recordatorios compactos -->
-              <div class="reminders-compact">
-                <div class="reminders-compact-header">
-                  <i class="fab fa-whatsapp"></i>
-                  <span>Recordatorios WhatsApp</span>
-                </div>
-                <div class="reminders-compact-grid">
-                  <label class="reminder-chip">
-                    <input type="checkbox" id="check-whatsapp-confirm" checked>
-                    <span>Confirmar</span>
-                  </label>
-                  <label class="reminder-chip">
-                    <input type="checkbox" id="check-whatsapp-24h" checked>
-                    <span>24h antes</span>
-                  </label>
-                  <label class="reminder-chip">
-                    <input type="checkbox" id="check-whatsapp-2h" checked>
-                    <span>2h antes</span>
-                  </label>
-                </div>
-              </div>
-
-              <!-- Gift Card compacto -->
-              <div class="giftcard-compact">
-                <i class="fas fa-gift"></i>
-                <input type="text" id="new-appt-giftcard" placeholder="Código Gift Card (opcional)">
               </div>
             </div>
-          </div>
 
-          <!-- Footer sticky -->
-          <div class="dialog-footer-sticky">
-            <button type="button" class="btn ghost" id="btn-cancel-appt">Cancelar</button>
-            <button type="submit" class="btn primary"><i class="fas fa-check"></i> Agendar</button>
+            <!-- Formulario Nuevo Cliente (oculto por defecto) -->
+            <div id="new-client-form"
+              style="display:none;background:rgba(140,150,104,0.1);border:1px solid rgba(140,150,104,0.3);border-radius:12px;padding:16px;">
+              <h4 style="margin:0 0 12px 0;color:var(--venus-soft);">Nuevo Cliente</h4>
+              <div style="display:grid;gap:12px;">
+                <div>
+                  <label class="form-label">Nombre completo</label>
+                  <input type="text" id="new-client-name" class="form-input" placeholder="Ej: María González">
+                </div>
+                <div>
+                  <label class="form-label">Teléfono</label>
+                  <input type="tel" id="new-client-phone" class="form-input" placeholder="52...">
+                </div>
+                <button type="button" id="btn-save-new-client" class="btn small primary">Guardar Cliente</button>
+              </div>
+            </div>
+
+            <!-- Teléfono -->
+            <div>
+              <label class="form-label">Teléfono</label>
+              <input type="tel" id="new-appt-phone" class="form-input" placeholder="4421234567" required>
+            </div>
+
+            <!-- Servicio y Precio -->
+            <div class="grid-service-price">
+              <div>
+                <label class="form-label">Servicio</label>
+                <div class="custom-select-wrapper">
+                  <input type="text" id="new-appt-service" class="form-input"
+                    placeholder="Buscar o escribir servicio..." autocomplete="off">
+                  <span class="dropdown-toggle-icon">▼</span>
+                  <div id="services-dropdown-list" class="custom-dropdown-list" style="display:none;"></div>
+                </div>
+              </div>
+              <div>
+                <label class="form-label">Precio</label>
+                <div style="position:relative;">
+                  <span
+                    style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--venus-soft);font-size:14px;">$</span>
+                  <input type="number" id="new-appt-price" class="form-input" placeholder="0" min="0" step="any"
+                    style="padding-left:28px;">
+                </div>
+              </div>
+            </div>
+
+            <!-- Botón para agregar servicio -->
+            <button type="button" id="btn-add-service" class="btn small ghost" style="width:100%;">
+              <i class="fas fa-plus"></i> Agregar otro servicio
+            </button>
+
+            <!-- Lista de servicios seleccionados -->
+            <div id="selected-services-list"
+              style="display:none;background:rgba(140,150,104,0.1);border:1px solid rgba(140,150,104,0.3);border-radius:12px;padding:16px;">
+              <h4 style="margin:0 0 12px 0;color:var(--venus-soft);"><i class="fas fa-list"></i> Servicios seleccionados
+              </h4>
+              <div id="services-list-container"></div>
+            </div>
+
+            <!-- Fecha y Hora -->
+            <div class="grid-date-time">
+              <div style="position:relative;">
+                <label class="form-label"><i class="fas fa-calendar"></i> Fecha</label>
+                <input type="text" id="new-appt-date" class="form-input date-picker-input" readonly required
+                  placeholder="Seleccionar fecha" style="cursor:pointer;">
+                <div id="new-appt-calendar" class="calendar-dropdown" style="display:none;"></div>
+              </div>
+              <div>
+                <label class="form-label">Hora</label>
+                <select id="new-appt-hour" class="form-input" required>
+                  <option value="">--</option>
+                </select>
+              </div>
+              <div>
+                <label class="form-label">Min</label>
+                <select id="new-appt-minute" class="form-input" required>
+                  <option value="">--</option>
+                </select>
+              </div>
+              <div>
+                <label class="form-label">Hora fin</label>
+                <input type="text" id="new-appt-end-time" class="form-input" readonly
+                  style="background:rgba(0,0,0,0.15);color:var(--muted);">
+              </div>
+            </div>
+
+            <!-- Recordatorios -->
+            <div class="reminders-section">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+                <svg width="18" height="18" fill="none" stroke="var(--venus-soft)" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9">
+                  </path>
+                </svg>
+                <span style="font-size:13px;font-weight:600;color:var(--venus-soft);">Recordatorios por
+                  WhatsApp</span>
+              </div>
+              <div style="display:grid;gap:10px;">
+                <label class="reminder-option">
+                  <input type="checkbox" id="check-whatsapp-confirm" checked>
+                  <span class="reminder-text">
+                    <strong>Confirmación inmediata</strong>
+                    <small>Se envía al crear la cita</small>
+                  </span>
+                </label>
+                <label class="reminder-option">
+                  <input type="checkbox" id="check-whatsapp-24h" checked>
+                  <span class="reminder-text">
+                    <strong>24 horas antes</strong>
+                    <small>Recordatorio automático</small>
+                  </span>
+                </label>
+                <label class="reminder-option">
+                  <input type="checkbox" id="check-whatsapp-2h" checked>
+                  <span class="reminder-text">
+                    <strong>2 horas antes</strong>
+                    <small>Recordatorio final</small>
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Gift Card -->
+            <div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(140,150,104,0.15);">
+              <label class="form-label" style="display:flex;align-items:center;gap:6px;color:var(--venus-soft);">
+                <i class="fas fa-gift"></i> Canjear Gift Card
+              </label>
+              <input type="text" id="new-appt-giftcard" class="form-input"
+                placeholder="Ingresa el código de la tarjeta (Opcional)"
+                style="background:rgba(140,150,104,0.05);border-color:rgba(140,150,104,0.3);">
+            </div>
+
+            <!-- Botones -->
+            <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px;">
+              <button type="button" class="btn ghost" id="btn-cancel-appt">Cancelar</button>
+              <button type="submit" class="btn primary">Agendar</button>
+            </div>
           </div>
         </form>
       </div>
@@ -4880,8 +5420,8 @@
             <i class="fas fa-receipt" style="color:#ef4444;"></i>
             <span id="expense-modal-title">Nuevo Gasto</span>
           </h3>
-          <button type="button" class="tw-btn tw-btn-ghost" onclick="closeExpenseModal()"
-            style="min-width:auto;padding:8px 12px;" title="Cerrar">
+          <button type="button" class="btn ghost" onclick="closeExpenseModal()" style="min-width:auto;padding:8px 12px;"
+            title="Cerrar">
             <i class="fas fa-times"></i>
           </button>
         </div>
@@ -4949,7 +5489,7 @@
       #paymentDialog::backdrop,
       #paymentDetailDialog::backdrop,
       #directSaleDialog::backdrop {
-        background: rgba(0, 0, 0, 0.75);
+        background: rgba(0, 0, 0, 0.9);
         backdrop-filter: blur(8px);
         -webkit-backdrop-filter: blur(8px);
       }
@@ -4959,270 +5499,20 @@
         border: none;
         border-radius: 20px;
         padding: 0;
-        max-width: 520px;
-        width: 95%;
-        max-height: 90vh;
-        background: #1a1a1a;
+        max-width: 650px;
+        width: 92%;
+        background: #1a1b18;
         box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.6),
-          0 0 0 1px rgba(255, 255, 255, 0.1);
-        overflow: hidden;
-        margin: auto;
-      }
-
-      #newApptDialog::backdrop {
-        animation: fadeIn 0.2s ease;
-      }
-
-      @keyframes fadeIn {
-        from {
-          opacity: 0;
-        }
-
-        to {
-          opacity: 1;
-        }
+          0 0 0 1px rgba(255, 255, 255, 0.1),
+          inset 0 1px 0 rgba(255, 255, 255, 0.05);
       }
 
       .dialog-content {
-        background: #1a1a1a;
+        background: #1a1b18;
         border: none;
         border-radius: 20px;
-        padding: 0;
+        padding: 28px;
         color: #fff;
-        max-height: 90vh;
-        overflow-y: auto;
-        display: flex;
-        flex-direction: column;
-      }
-
-      /* Header sticky */
-      .dialog-header-sticky {
-        position: sticky;
-        top: 0;
-        background: #1a1a1a;
-        padding: 20px 24px 16px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        z-index: 10;
-      }
-
-      .dialog-header-sticky h3 {
-        margin: 0;
-        font-size: 18px;
-        font-weight: 600;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-      }
-
-      .dialog-header-sticky h3 i {
-        color: var(--venus-soft);
-      }
-
-      .dialog-close-btn {
-        background: rgba(255, 255, 255, 0.1);
-        border: none;
-        border-radius: 10px;
-        width: 36px;
-        height: 36px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        color: #fff;
-        transition: all 0.2s;
-      }
-
-      .dialog-close-btn:hover {
-        background: rgba(255, 255, 255, 0.15);
-      }
-
-      /* Body scrollable */
-      .dialog-body {
-        padding: 20px 24px;
-        overflow-y: auto;
-        flex: 1;
-      }
-
-      /* Footer sticky */
-      .dialog-footer-sticky {
-        position: sticky;
-        bottom: 0;
-        background: #1a1a1a;
-        padding: 16px 24px 20px;
-        border-top: 1px solid rgba(255, 255, 255, 0.08);
-        display: flex;
-        gap: 12px;
-        justify-content: flex-end;
-      }
-
-      /* Compact form styles */
-      .form-compact {
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
-      }
-
-      .form-row-2 {
-        display: grid;
-        grid-template-columns: 1fr 120px;
-        gap: 12px;
-      }
-
-      .form-row-3 {
-        display: grid;
-        grid-template-columns: 1fr 80px 80px;
-        gap: 12px;
-      }
-
-      .form-row-4 {
-        display: grid;
-        grid-template-columns: 1.2fr 70px 70px 90px;
-        gap: 10px;
-      }
-
-      .form-group-compact {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-      }
-
-      .form-group-compact .form-label {
-        font-size: 11px;
-        font-weight: 600;
-        color: rgba(255, 255, 255, 0.6);
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin: 0;
-      }
-
-      .form-group-compact .form-input {
-        padding: 10px 14px;
-        font-size: 14px;
-      }
-
-      .form-group-compact select.form-input {
-        padding: 10px 12px;
-      }
-
-      /* Reminders compact */
-      .reminders-compact {
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(255, 255, 255, 0.06);
-        border-radius: 12px;
-        padding: 14px 16px;
-      }
-
-      .reminders-compact-header {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin-bottom: 12px;
-        font-size: 12px;
-        font-weight: 600;
-        color: var(--venus-soft);
-      }
-
-      .reminders-compact-grid {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 8px;
-      }
-
-      .reminder-chip {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        padding: 8px 10px;
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 8px;
-        cursor: pointer;
-        transition: all 0.2s;
-        font-size: 11px;
-      }
-
-      .reminder-chip:has(input:checked) {
-        background: rgba(140, 150, 104, 0.15);
-        border-color: rgba(140, 150, 104, 0.4);
-      }
-
-      .reminder-chip input {
-        width: 14px;
-        height: 14px;
-        accent-color: var(--venus-soft);
-      }
-
-      .reminder-chip span {
-        color: rgba(255, 255, 255, 0.8);
-        font-weight: 500;
-      }
-
-      /* Gift card compact */
-      .giftcard-compact {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 12px 14px;
-        background: rgba(140, 150, 104, 0.05);
-        border: 1px solid rgba(140, 150, 104, 0.15);
-        border-radius: 10px;
-      }
-
-      .giftcard-compact i {
-        color: var(--venus-soft);
-        font-size: 14px;
-      }
-
-      .giftcard-compact input {
-        flex: 1;
-        background: transparent;
-        border: none;
-        color: #fff;
-        font-size: 13px;
-        outline: none;
-      }
-
-      .giftcard-compact input::placeholder {
-        color: rgba(255, 255, 255, 0.4);
-      }
-
-      /* Mobile responsive */
-      @media (max-width: 640px) {
-
-        #newApptDialog,
-        #editApptDialog {
-          max-width: 100%;
-          width: 100%;
-          max-height: 100vh;
-          border-radius: 0;
-          margin: 0;
-        }
-
-        .dialog-content {
-          border-radius: 0;
-          max-height: 100vh;
-        }
-
-        .form-row-2,
-        .form-row-3,
-        .form-row-4 {
-          grid-template-columns: 1fr;
-        }
-
-        .reminders-compact-grid {
-          grid-template-columns: 1fr;
-        }
-
-        .dialog-footer-sticky {
-          flex-direction: column;
-        }
-
-        .dialog-footer-sticky button {
-          width: 100%;
-        }
       }
 
       .dialog-header {
@@ -5677,7 +5967,7 @@
         }
       }
 
-      /* Custom Calendar Dropdown - Modern Design */
+      /* Custom Calendar Dropdown */
       .calendar-dropdown {
         position: absolute;
         top: 100%;
@@ -5685,108 +5975,13 @@
         z-index: 1000;
         margin-top: 8px;
         background: #1a1a1a;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 16px;
+        /* Solid background */
+        border: 1px solid var(--line);
+        border-radius: 12px;
         padding: 16px;
         width: 300px;
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
-      }
-
-      .calendar-dropdown .calendar-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 16px;
-        padding-bottom: 0;
-        border-bottom: none;
-      }
-
-      .calendar-dropdown .calendar-nav-btn {
-        width: 32px;
-        height: 32px;
-        background: rgba(255, 255, 255, 0.08);
-        border: none;
-        color: rgba(255, 255, 255, 0.6);
-        padding: 0;
-        border-radius: 10px;
-        cursor: pointer;
-        transition: all 0.2s;
-        font-size: 12px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-
-      .calendar-dropdown .calendar-nav-btn:hover {
-        background: rgba(255, 255, 255, 0.15);
-        color: #fff;
-      }
-
-      .calendar-dropdown .calendar-month-year {
-        font-weight: 600;
-        color: #fff;
-        font-size: 15px;
-      }
-
-      .calendar-dropdown .calendar-grid {
-        display: grid;
-        grid-template-columns: repeat(7, 1fr);
-        gap: 4px;
-      }
-
-      .calendar-dropdown .calendar-day-header {
-        text-align: center;
-        font-size: 11px;
-        font-weight: 600;
-        color: rgba(255, 255, 255, 0.4);
-        text-transform: uppercase;
-        padding: 8px 0;
-      }
-
-      .calendar-dropdown .calendar-day {
-        width: 36px;
-        height: 36px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 10px;
-        font-size: 13px;
-        font-weight: 500;
-        color: rgba(255, 255, 255, 0.8);
-        cursor: pointer;
-        transition: all 0.15s;
-        background: transparent;
-        border: none;
-        min-height: auto;
-        padding: 0;
-      }
-
-      .calendar-dropdown .calendar-day:hover:not(.empty) {
-        background: rgba(255, 255, 255, 0.1);
-      }
-
-      .calendar-dropdown .calendar-day.empty {
-        cursor: default;
-        opacity: 0;
-      }
-
-      .calendar-dropdown .calendar-day.today {
-        color: var(--venus-soft);
-        box-shadow: inset 0 0 0 1px var(--venus-soft);
-        background: transparent;
-      }
-
-      .calendar-dropdown .calendar-day.selected {
-        background: var(--venus-soft) !important;
-        color: #fff !important;
-        font-weight: 600;
-        box-shadow: 0 4px 12px rgba(140, 150, 104, 0.4);
-      }
-
-      .calendar-dropdown .calendar-day.other-month {
-        color: rgba(255, 255, 255, 0.2);
-        background: transparent;
-        opacity: 1;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        min-width: 280px;
       }
 
       /* Custom Searchable Dropdown */
@@ -5846,8 +6041,7 @@
         margin-top: 2px;
       }
 
-      /* Legacy calendar header - for main calendar view */
-      .calendar-header-legacy {
+      .calendar-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -5855,7 +6049,7 @@
         gap: 8px;
       }
 
-      .calendar-nav-btn-legacy {
+      .calendar-nav-btn {
         background: rgba(255, 255, 255, 0.1);
         border: 1px solid var(--line);
         color: #fff;
@@ -5866,12 +6060,12 @@
         font-size: 14px;
       }
 
-      .calendar-nav-btn-legacy:hover {
+      .calendar-nav-btn:hover {
         background: var(--venus-green);
         border-color: var(--venus-green);
       }
 
-      .calendar-month-year-legacy {
+      .calendar-month-year {
         font-weight: 600;
         color: #fff;
         font-size: 14px;
@@ -6469,46 +6663,74 @@
         border-radius: 12px;
       }
 
-      /* ===== DASHBOARD MEJORADO ===== */
+      /* ===== DASHBOARD MEJORADO - NUEVO DISEÑO ===== */
       .hero-stats {
         display: grid;
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(4, 1fr);
         gap: 16px;
         margin-bottom: 24px;
-        background: var(--bg-card);
-        border-radius: 20px;
-        padding: 24px;
-        border: 1px solid var(--line);
-        transition: background 0.3s ease, border-color 0.3s ease;
       }
 
-      @media (min-width: 1024px) {
+      @media (max-width: 1100px) {
         .hero-stats {
-          grid-template-columns: repeat(4, 1fr);
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+
+      @media (max-width: 500px) {
+        .hero-stats {
+          grid-template-columns: 1fr;
         }
       }
 
       .hero-stat {
-        background: transparent;
-        border-radius: 16px;
-        padding: 0;
-        border: none;
+        background: var(--bg-card);
+        border-radius: var(--radius);
+        padding: 20px;
+        border: 1px solid var(--line);
         position: relative;
         overflow: hidden;
+        transition: all 0.2s ease;
+      }
+
+      .hero-stat:hover {
+        border-color: var(--line-hover);
+        transform: translateY(-2px);
+      }
+
+      .hero-stat::before {
+        content: none;
       }
 
       .hero-stat-icon {
-        width: 44px;
-        height: 44px;
-        border-radius: 12px;
+        width: 48px;
+        height: 48px;
+        border-radius: var(--radius-sm);
         display: flex;
         align-items: center;
         justify-content: center;
-        margin-bottom: 14px;
-        background: var(--line);
-        color: var(--muted);
-        font-size: 16px;
-        transition: background 0.3s ease;
+        margin-bottom: 16px;
+        font-size: 20px;
+      }
+
+      .hero-stat:nth-child(1) .hero-stat-icon {
+        background: rgba(168, 85, 247, 0.15);
+        color: #a855f7;
+      }
+
+      .hero-stat:nth-child(2) .hero-stat-icon {
+        background: rgba(59, 130, 246, 0.15);
+        color: #3b82f6;
+      }
+
+      .hero-stat:nth-child(3) .hero-stat-icon {
+        background: rgba(34, 197, 94, 0.15);
+        color: #22c55e;
+      }
+
+      .hero-stat:nth-child(4) .hero-stat-icon {
+        background: rgba(245, 158, 11, 0.15);
+        color: #f59e0b;
       }
 
       .hero-stat-value {
@@ -6516,35 +6738,40 @@
         font-weight: 700;
         color: var(--ink);
         line-height: 1;
-        margin-bottom: 6px;
-        transition: color 0.3s ease;
+        margin-bottom: 8px;
       }
 
       .hero-stat-label {
-        font-size: 13px;
+        font-size: 12px;
         color: var(--muted);
-        transition: color 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 500;
       }
 
       .hero-stat-trend {
         position: absolute;
-        top: 0;
-        right: 0;
-        font-size: 11px;
-        padding: 5px 10px;
+        top: 20px;
+        right: 20px;
+        font-size: 12px;
+        padding: 4px 10px;
         border-radius: 8px;
         display: flex;
         align-items: center;
         gap: 4px;
-        font-weight: 600;
+        font-weight: 500;
       }
 
       .hero-stat-trend.up {
-        background: rgba(34, 197, 94, 0.15);
-        color: #22c55e;
+        background: var(--success-bg);
+        color: var(--success);
       }
 
-      /* Today Stats Grid */
+      .hero-stat-trend.down {
+        background: var(--error-bg);
+        color: var(--error);
+      }
+
       .today-grid {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
@@ -6552,7 +6779,13 @@
         margin-bottom: 24px;
       }
 
-      @media (max-width: 700px) {
+      @media (max-width: 800px) {
+        .today-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+
+      @media (max-width: 500px) {
         .today-grid {
           grid-template-columns: 1fr;
         }
@@ -6560,41 +6793,40 @@
 
       .today-card {
         background: var(--bg-card);
-        border-radius: 16px;
+        border-radius: var(--radius);
         padding: 20px;
         border: 1px solid var(--line);
         display: flex;
         align-items: center;
         gap: 16px;
         cursor: pointer;
-        transition: all 0.2s;
+        transition: all 0.2s ease;
       }
 
       .today-card:hover {
-        background: var(--bg-card-hover);
-        border-color: var(--line);
+        border-color: var(--line-hover);
         transform: translateY(-2px);
       }
 
       .today-card-icon {
-        width: 48px;
-        height: 48px;
-        border-radius: 12px;
+        width: 52px;
+        height: 52px;
+        border-radius: var(--radius-sm);
         display: flex;
         align-items: center;
         justify-content: center;
         flex-shrink: 0;
-        font-size: 18px;
+        font-size: 22px;
       }
 
       .today-card-icon.citas {
         background: rgba(59, 130, 246, 0.15);
-        color: #60a5fa;
+        color: #3b82f6;
       }
 
       .today-card-icon.pendientes {
         background: rgba(251, 191, 36, 0.15);
-        color: #fbbf24;
+        color: #f59e0b;
       }
 
       .today-card-icon.ingresos {
@@ -6603,46 +6835,52 @@
       }
 
       .today-card-info h4 {
-        font-size: 24px;
+        font-size: 28px;
         font-weight: 700;
-        margin-bottom: 2px;
-        transition: all 0.3s ease;
+        margin-bottom: 4px;
         color: var(--ink);
       }
 
       .today-card-info p {
-        font-size: 12px;
+        font-size: 13px;
         color: var(--muted);
         margin: 0;
       }
 
       .dash-empty {
         text-align: center;
-        padding: 24px 16px;
-        color: var(--muted);
+        padding: 40px 20px;
+        color: var(--text-dim);
+      }
+
+      .dash-empty i {
+        font-size: 40px;
+        margin-bottom: 12px;
+        opacity: 0.4;
       }
 
       .dash-empty p {
-        font-size: 13px;
+        font-size: 14px;
         margin: 0;
       }
 
-      /* Sidebar y layout */
+      /* Dashboard Grid Layout */
       .dash-grid {
         display: grid;
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr 360px;
         gap: 24px;
       }
 
-      @media (min-width: 1200px) {
+      @media (max-width: 1100px) {
         .dash-grid {
-          grid-template-columns: 1fr 380px;
+          grid-template-columns: 1fr;
         }
       }
 
-      .dash-main .tw-card {
-        background: var(--bg-card);
-        border: 1px solid var(--line);
+      .dash-main {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
       }
 
       .dash-sidebar {
@@ -6651,58 +6889,64 @@
         gap: 20px;
       }
 
-      .dash-sidebar .tw-card {
-        background: var(--bg-card);
-        border: 1px solid var(--line);
-        min-height: 180px;
-        padding: 0;
-        margin-bottom: 0;
-        transition: background 0.3s ease, border-color 0.3s ease;
+      /* Card Header Style */
+      .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--line);
       }
 
-      .dash-sidebar .tw-card-header {
-        padding: 20px 24px 16px;
-        margin-bottom: 0;
-        border-bottom: 1px solid var(--line-subtle);
+      .card-title {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--ink);
+        display: flex;
+        align-items: center;
+        gap: 8px;
       }
 
-      .dash-sidebar .tw-card-body {
-        padding: 20px 24px 24px;
+      .card-title i {
+        color: var(--venus-soft);
+      }
+
+      .card-header-link {
+        font-size: 12px;
+        color: var(--venus-soft);
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        transition: color 0.2s;
+      }
+
+      .card-header-link:hover {
+        color: var(--venus);
       }
 
       /* Gift Cards summary */
       .gc-summary {
         display: flex;
         flex-direction: column;
-        gap: 0;
+        gap: 10px;
       }
 
       .gc-summary-row {
         display: flex;
         align-items: center;
-        gap: 12px;
-        padding: 14px 0;
-        border-bottom: 1px solid var(--line-subtle);
-      }
-
-      .gc-summary-row:last-child {
-        border-bottom: none;
-        padding-bottom: 0;
-      }
-
-      .gc-summary-row:first-child {
-        padding-top: 0;
+        gap: 10px;
       }
 
       .gc-dot {
         width: 8px;
         height: 8px;
         border-radius: 50%;
-        flex-shrink: 0;
       }
 
       .gc-dot.pending {
-        background: #8c9668;
+        background: var(--venus);
       }
 
       .gc-dot.expiring {
@@ -6720,9 +6964,8 @@
       }
 
       .gc-value {
-        font-size: 15px;
+        font-size: 14px;
         font-weight: 600;
-        color: var(--ink);
       }
 
       .gc-value.warning {
@@ -6733,35 +6976,32 @@
       .birthday-list {
         display: flex;
         flex-direction: column;
-        gap: 12px;
+        gap: 10px;
       }
 
       .birthday-item {
         display: flex;
         align-items: center;
-        gap: 14px;
-        padding: 14px 16px;
-        background: var(--bg-input);
-        border-radius: 12px;
-        border: 1px solid var(--line-subtle);
-        transition: all 0.2s;
+        gap: 12px;
+        padding: 12px;
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: var(--radius-sm);
+        transition: background-color 0.2s;
       }
 
       .birthday-item:hover {
-        background: var(--line);
-        border-color: var(--line);
+        background: rgba(255, 255, 255, 0.06);
       }
 
       .birthday-avatar {
         width: 42px;
         height: 42px;
         border-radius: 50%;
-        background: linear-gradient(135deg, #ff6b6b, #feca57);
+        background: linear-gradient(135deg, #ec4899, #f43f5e);
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 16px;
-        flex-shrink: 0;
+        font-size: 18px;
       }
 
       .birthday-info {
@@ -6771,8 +7011,7 @@
 
       .birthday-info h4 {
         font-size: 14px;
-        font-weight: 600;
-        margin-bottom: 2px;
+        font-weight: 500;
         color: var(--ink);
         white-space: nowrap;
         overflow: hidden;
@@ -6782,51 +7021,51 @@
       .birthday-info p {
         font-size: 12px;
         color: var(--muted);
-        margin: 0;
+        margin: 2px 0 0;
       }
 
       .birthday-badge {
-        padding: 6px 12px;
-        border-radius: 20px;
+        padding: 4px 10px;
+        border-radius: 8px;
         font-size: 11px;
         font-weight: 600;
         flex-shrink: 0;
       }
 
       .birthday-badge.soon {
-        background: rgba(251, 191, 36, 0.15);
-        color: #fbbf24;
+        background: var(--warning-bg);
+        color: var(--warning);
       }
 
       .birthday-badge.today {
-        background: rgba(239, 68, 68, 0.15);
-        color: #ef4444;
+        background: var(--error-bg);
+        color: var(--error);
       }
 
       /* Top clientes */
       .top-client-item {
         display: flex;
         align-items: center;
-        gap: 14px;
-        padding: 14px 0;
-        border-bottom: 1px solid var(--line-subtle);
-      }
-
-      .top-client-item:first-child {
-        padding-top: 0;
+        gap: 12px;
+        padding: 12px;
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: var(--radius-sm);
+        margin-bottom: 8px;
+        transition: background-color 0.2s;
       }
 
       .top-client-item:last-child {
-        border-bottom: none;
-        padding-bottom: 0;
+        margin-bottom: 0;
+      }
+
+      .top-client-item:hover {
+        background: rgba(255, 255, 255, 0.06);
       }
 
       .top-client-rank {
         width: 28px;
         height: 28px;
         border-radius: 8px;
-        background: var(--line);
-        color: var(--muted);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -6835,9 +7074,29 @@
         flex-shrink: 0;
       }
 
+      .top-client-rank:nth-child(1) {
+        background: linear-gradient(135deg, #fbbf24, #f59e0b);
+        color: #1a1a1a;
+      }
+
       .top-client-rank.gold {
         background: linear-gradient(135deg, #fbbf24, #f59e0b);
         color: #1a1a1a;
+      }
+
+      .top-client-rank.silver {
+        background: linear-gradient(135deg, #9ca3af, #6b7280);
+        color: white;
+      }
+
+      .top-client-rank.bronze {
+        background: linear-gradient(135deg, #d97706, #b45309);
+        color: white;
+      }
+
+      .top-client-rank.default {
+        background: rgba(255, 255, 255, 0.1);
+        color: var(--muted);
       }
 
       .top-client-info {
@@ -6847,8 +7106,7 @@
 
       .top-client-info h4 {
         font-size: 14px;
-        font-weight: 600;
-        margin-bottom: 2px;
+        font-weight: 500;
         color: var(--ink);
         white-space: nowrap;
         overflow: hidden;
@@ -6858,10 +7116,26 @@
       .top-client-info p {
         font-size: 12px;
         color: var(--muted);
-        margin: 0;
+        margin: 2px 0 0;
       }
 
-      /* Wallets Grid */
+      .top-client-stamps {
+        text-align: right;
+        flex-shrink: 0;
+      }
+
+      .top-client-stamps .count {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--venus-soft);
+      }
+
+      .top-client-stamps .label {
+        font-size: 10px;
+        color: var(--muted);
+      }
+
+      /* Wallets */
       .wallets-grid {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
@@ -6869,16 +7143,14 @@
       }
 
       .wallet-card {
-        background: var(--bg-input);
+        background: rgba(0, 0, 0, 0.2);
         border-radius: 12px;
         padding: 16px;
         text-align: center;
-        border: 1px solid var(--line-subtle);
       }
 
       .wallet-card-icon {
-        font-size: 20px;
-        color: var(--muted);
+        font-size: 24px;
         margin-bottom: 8px;
       }
 
@@ -6886,25 +7158,9 @@
         font-size: 24px;
         font-weight: 700;
         color: var(--ink);
-        margin-bottom: 4px;
       }
 
       .wallet-card-label {
-        font-size: 11px;
-        color: var(--muted);
-      }
-
-      .top-client-stamps {
-        text-align: right;
-      }
-
-      .top-client-stamps .count {
-        font-size: 15px;
-        font-weight: 700;
-        color: var(--venus-soft);
-      }
-
-      .top-client-stamps .label {
         font-size: 11px;
         color: var(--muted);
       }
@@ -7291,7 +7547,7 @@
           <div style="display:flex;gap:6px;">
             <button id="cm-stamp" class="btn small" style="background:#FFD166;color:#1b1b1b;font-weight:600;">⭐ +1
               sello</button>
-            <button id="cm-close" class="tw-btn tw-btn-small tw-btn-ghost" onclick="closeCardModal()">✕</button>
+            <button id="cm-close" class="btn small ghost" onclick="closeCardModal()">✕</button>
           </div>
         </div>
 
@@ -7305,14 +7561,10 @@
               <div id="cm-name" style="font-weight:600;font-size:15px;">—</div>
             </div>
             <div>
-              <div class="muted" style="font-size:11px;margin-bottom:2px;">Teléfono <button id="cm-edit-phone-btn"
-                  style="background:none;border:none;color:var(--venus-soft);cursor:pointer;font-size:10px;padding:0;margin-left:4px;">✏️
-                  editar</button></div>
+              <div class="muted" style="font-size:11px;margin-bottom:2px;">Teléfono <button id="cm-edit-phone-btn" style="background:none;border:none;color:var(--venus-soft);cursor:pointer;font-size:10px;padding:0;margin-left:4px;">✏️ editar</button></div>
               <div id="cm-phone-display" style="font-size:15px;">—</div>
               <div id="cm-phone-edit" class="hidden" style="display:flex;gap:6px;align-items:center;">
-                <input type="tel" id="cm-phone-input"
-                  style="flex:1;padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:rgba(0,0,0,0.3);color:#fff;font-size:14px;"
-                  placeholder="10 dígitos">
+                <input type="tel" id="cm-phone-input" style="flex:1;padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:rgba(0,0,0,0.3);color:#fff;font-size:14px;" placeholder="10 dígitos">
                 <button id="cm-phone-save" class="btn small" style="padding:6px 10px;background:#22c55e;">✓</button>
                 <button id="cm-phone-cancel" class="btn small ghost" style="padding:6px 8px;">✕</button>
               </div>
@@ -7433,7 +7685,8 @@
 
       </div>
     </div>
-  </main>
+    </main>
+  </div><!-- Cierre de main-content -->
 
   <!-- Off-Canvas Menu for Module Selection -->
   <div class="offcanvas-backdrop" id="offcanvas-backdrop"></div>
@@ -7583,8 +7836,8 @@
         </div>
 
         <div class="modal-footer">
-          <button type="button" class="tw-btn tw-btn-ghost tw-btn-modal" id="cancel-service">Cancelar</button>
-          <button type="submit" class="tw-btn tw-btn-primary tw-btn-modal">Guardar</button>
+          <button type="button" class="btn ghost" id="cancel-service">Cancelar</button>
+          <button type="submit" class="btn primary">Guardar</button>
         </div>
       </form>
     </div>
@@ -8732,17 +8985,17 @@
           return `
           <tr data-card-id="${card.id}" class="card-row" style="cursor:pointer;">
             <td>
-              <div style="font-weight:500;color:var(--ink);">${card.name || '—'}</div>
+              <div style="font-weight:500;">${card.name || '—'}</div>
               ${card.birthdate ? `<div class="muted" style="font-size:11px;">🎂 ${formatBirthday(card.birthdate)}</div>` : ''}
             </td>
-            <td style="font-size:13px;color:var(--ink);">${card.phone || '—'}</td>
-            <td style="font-size:12px;color:var(--muted);">${lastVisitStr}</td>
+            <td style="font-size:13px;">${card.phone || '—'}</td>
+            <td style="font-size:12px;">${lastVisitStr}</td>
             <td>
               <div style="display:flex;align-items:center;gap:6px;">
-                <div style="background:var(--progress-bg);border-radius:4px;height:6px;width:60px;overflow:hidden;">
+                <div style="background:rgba(255,255,255,0.1);border-radius:4px;height:6px;width:60px;overflow:hidden;">
                   <div style="background:linear-gradient(90deg,#FFD166,#8c9668);height:100%;width:${(card.stamps / card.max) * 100}%;"></div>
                 </div>
-                <span style="font-size:12px;font-weight:500;color:var(--ink);">${card.stamps}/${card.max}</span>
+                <span style="font-size:12px;font-weight:500;">${card.stamps}/${card.max}</span>
               </div>
             </td>
             <td>
@@ -9172,7 +9425,7 @@
       document.getElementById('cm-phone-display').textContent = card.phone || '—';
       document.getElementById('cm-phone-input').value = card.phone || '';
       document.getElementById('cm-stamps').textContent = `${card.stamps} / ${card.max}`;
-
+      
       // Resetear estado de edición de teléfono
       document.getElementById('cm-phone-display').classList.remove('hidden');
       document.getElementById('cm-phone-edit').classList.add('hidden');
@@ -9307,7 +9560,7 @@
 
     document.getElementById('cm-phone-save').addEventListener('click', async () => {
       const newPhone = document.getElementById('cm-phone-input').value.replace(/\D/g, '');
-
+      
       if (!newPhone || newPhone.length < 10) {
         alert('Por favor ingresa un número de teléfono válido (10 dígitos)');
         return;
@@ -9321,7 +9574,7 @@
         });
 
         const json = await res.json();
-
+        
         if (json.success || res.ok) {
           document.getElementById('cm-phone-display').textContent = newPhone;
           document.getElementById('cm-phone-display').classList.remove('hidden');
@@ -10949,10 +11202,7 @@
             appointmentsSection.classList.remove('hidden');
           }
 
-
-          // Update visual selection without full re-render
-          document.querySelectorAll('.calendar-day.selected').forEach(el => el.classList.remove('selected'));
-
+          renderMonthlyCalendar();
           loadAppointments();
           updateSelectedDateLabel();
         });
@@ -11025,89 +11275,12 @@
             }
           });
 
-          // Update calendar days with appointments data (without full re-render to avoid flickering)
-          updateCalendarDaysWithAppointments();
+          // Re-renderizar con los datos
+          renderCalendar();
         }
       } catch (error) {
         console.error('Error loading month appointments:', error);
       }
-    }
-
-    // Update calendar days with appointment events without full re-render (prevents flickering)
-    function updateCalendarDaysWithAppointments() {
-      const calendarDays = document.querySelectorAll('.calendar-day:not(.other-month)');
-
-      calendarDays.forEach(dayEl => {
-        // Get the date from the day element
-        const dayNumber = dayEl.querySelector('.day-number');
-        if (!dayNumber) return;
-
-        const dayNum = parseInt(dayNumber.textContent);
-        const year = currentMonth.getFullYear();
-        const month = currentMonth.getMonth();
-        const date = new Date(year, month, dayNum);
-        date.setHours(0, 0, 0, 0);
-
-        // Clear existing events container
-        let eventsContainer = dayEl.querySelector('.day-events');
-        if (eventsContainer) {
-          eventsContainer.innerHTML = '';
-        } else {
-          eventsContainer = document.createElement('div');
-          eventsContainer.className = 'day-events';
-          dayEl.appendChild(eventsContainer);
-        }
-
-        // Find appointments for this day
-        const dayAppointments = (allAppointments || []).filter(apt => {
-          const aptDate = new Date(apt.date + 'T00:00:00');
-          aptDate.setHours(0, 0, 0, 0);
-          return aptDate.getTime() === date.getTime();
-        });
-
-        // Add appointment events
-        const maxEvents = 3;
-        dayAppointments.slice(0, maxEvents).forEach(apt => {
-          const eventEl = document.createElement('div');
-          eventEl.className = 'calendar-event';
-
-          if (apt.status === 'confirmed') eventEl.classList.add('confirmed');
-          else if (apt.status === 'cancelled') eventEl.classList.add('cancelled');
-          else eventEl.classList.add('pending');
-
-          eventEl.textContent = `${apt.time} ${apt.clientName}`;
-          eventEl.title = `${apt.time} - ${apt.clientName}\n${apt.serviceName}`;
-
-          // Click handler for event
-          eventEl.addEventListener('click', (e) => {
-            e.stopPropagation();
-            editAppointment(apt.id);
-          });
-
-          eventsContainer.appendChild(eventEl);
-        });
-
-        // Show "+X más" if more events
-        if (dayAppointments.length > maxEvents) {
-          const moreEl = document.createElement('div');
-          moreEl.className = 'event-more';
-          moreEl.textContent = `+${dayAppointments.length - maxEvents} más`;
-          moreEl.addEventListener('click', (e) => {
-            e.stopPropagation();
-            selectedDate = new Date(date);
-            loadAppointments();
-            updateSelectedDateLabel();
-          });
-          eventsContainer.appendChild(moreEl);
-        }
-
-        // Add has-appointments class if needed
-        if (dayAppointments.length > 0) {
-          dayEl.classList.add('has-appointments');
-        } else {
-          dayEl.classList.remove('has-appointments');
-        }
-      });
     }
 
     function updateSelectedDateLabel() {
@@ -11547,30 +11720,10 @@ Gracias por tu preferencia ✨`;
           editDurationInput.value = service.durationMinutes;
         }
 
-        // Extract date and time - usar campo 'date' directamente si existe (más confiable)
-        // porque startDateTime puede estar en UTC y causar problemas de timezone
-        let isoDate;
-        if (appt.date) {
-          // Usar el campo date directamente (formato YYYY-MM-DD)
-          isoDate = appt.date;
-        } else {
-          // Fallback: convertir startDateTime a fecha local
-          const startDate = new Date(appt.startDateTime);
-          const year = startDate.getFullYear();
-          const month = String(startDate.getMonth() + 1).padStart(2, '0');
-          const day = String(startDate.getDate()).padStart(2, '0');
-          isoDate = `${year}-${month}-${day}`;
-        }
-
-        // Extraer hora - usar campo 'time' si existe, sino de startDateTime
-        let hour, minute;
-        if (appt.time) {
-          [hour, minute] = appt.time.split(':');
-        } else {
-          const startDate = new Date(appt.startDateTime);
-          hour = String(startDate.getHours()).padStart(2, '0');
-          minute = String(startDate.getMinutes()).padStart(2, '0');
-        }
+        // Extract date and time from startDateTime
+        const startDate = new Date(appt.startDateTime);
+        const isoDate = appt.startDateTime.split('T')[0];
+        editDateInput.value = isoDate;
 
         // Initialize calendar with existing date
         editApptCalendar.selectedDate = isoDate;
@@ -11581,8 +11734,8 @@ Gracias por tu preferencia ✨`;
         editDateInput.value = `${day}/${month}/${year}`;
         editDateInput.dataset.isoDate = isoDate;
 
-        editHourSelect.value = hour;
-        editMinuteSelect.value = minute;
+        editHourSelect.value = String(startDate.getHours()).padStart(2, '0');
+        editMinuteSelect.value = String(startDate.getMinutes()).padStart(2, '0');
 
         // Calculate end time
         calculateEditEndTime();
@@ -12733,10 +12886,10 @@ Gracias por tu preferencia ✨`;
           <td data-label="Precio">$${s.price}</td>
           <td data-label="Acciones">
             <div class="actions">
-              <button class="tw-btn tw-btn-small tw-btn-ghost" onclick="editService('${s.id}')" title="Editar">
+              <button class="btn small ghost" onclick="editService('${s.id}')" title="Editar">
                 <i class="fas fa-edit"></i>
               </button>
-              <button class="tw-btn tw-btn-small tw-btn-ghost" style="color:#ef4444;border-color:#ef4444;" onclick="deleteService('${s.id}')" title="Eliminar">
+              <button class="btn small ghost" style="color:#ef4444;border-color:#ef4444;" onclick="deleteService('${s.id}')" title="Eliminar">
                 <i class="fas fa-trash"></i>
               </button>
             </div>
@@ -12877,7 +13030,8 @@ Gracias por tu preferencia ✨`;
           durationMinutes: parseInt(document.getElementById('service-duration').value),
           price: parseFloat(document.getElementById('service-price').value),
           category: document.getElementById('service-category').value || 'Otros',
-          description: document.getElementById('service-description').value.trim() || null
+          description: document.getElementById('service-description').value.split('\n').map(l => l.trim()).filter(l => l.length > 0),
+          discount: document.getElementById('service-discount').value
         };
 
         try {
@@ -13053,8 +13207,8 @@ Gracias por tu preferencia ✨`;
             <td><span class="stock ${stockClass}">${p.stock} uds${stockWarning}</span></td>
             <td>
               <div class="actions" style="display:flex;gap:6px;">
-                <button class="tw-btn tw-btn-small tw-btn-ghost" onclick="editProduct('${p.id}')">Editar</button>
-                <button class="tw-btn tw-btn-small tw-btn-ghost" style="color:#ef4444;" onclick="deleteProduct('${p.id}')">Eliminar</button>
+                <button class="btn small ghost" onclick="editProduct('${p.id}')">Editar</button>
+                <button class="btn small ghost" style="color:#ef4444;" onclick="deleteProduct('${p.id}')">Eliminar</button>
               </div>
             </td>
           </tr>
@@ -13390,20 +13544,20 @@ Gracias por tu preferencia ✨`;
         let actionsHtml = '';
         if (gc.displayStatus === 'pending') {
           actionsHtml = `
-            <button class="tw-btn tw-btn-small tw-btn-ghost" onclick="viewGiftCard('${gc.id}')" title="Ver QR"><i class="fas fa-qrcode"></i></button>
-            <button class="tw-btn tw-btn-small tw-btn-ghost" onclick="copyGiftCardLinkById('${gc.id}')" title="Copiar link"><i class="fas fa-link"></i></button>
-            <button class="tw-btn tw-btn-small tw-btn-ghost" onclick="sendGiftCardWhatsAppById('${gc.id}')" title="WhatsApp"><i class="fab fa-whatsapp"></i></button>
-            <button class="tw-btn tw-btn-small tw-btn-ghost" onclick="deleteGiftCard('${gc.id}')" title="Eliminar" style="color:#ef4444;"><i class="fas fa-trash"></i></button>
+            <button class="btn small ghost" onclick="viewGiftCard('${gc.id}')" title="Ver QR"><i class="fas fa-qrcode"></i></button>
+            <button class="btn small ghost" onclick="copyGiftCardLinkById('${gc.id}')" title="Copiar link"><i class="fas fa-link"></i></button>
+            <button class="btn small ghost" onclick="sendGiftCardWhatsAppById('${gc.id}')" title="WhatsApp"><i class="fab fa-whatsapp"></i></button>
+            <button class="btn small ghost" onclick="deleteGiftCard('${gc.id}')" title="Eliminar" style="color:#ef4444;"><i class="fas fa-trash"></i></button>
           `;
         } else if (gc.displayStatus === 'redeemed') {
           actionsHtml = `
-            <button class="tw-btn tw-btn-small tw-btn-ghost" onclick="viewGiftCard('${gc.id}')" title="Ver"><i class="fas fa-eye"></i></button>
-            <button class="tw-btn tw-btn-small tw-btn-ghost" onclick="deleteGiftCard('${gc.id}')" title="Eliminar" style="color:#ef4444;"><i class="fas fa-trash"></i></button>
+            <button class="btn small ghost" onclick="viewGiftCard('${gc.id}')" title="Ver"><i class="fas fa-eye"></i></button>
+            <button class="btn small ghost" onclick="deleteGiftCard('${gc.id}')" title="Eliminar" style="color:#ef4444;"><i class="fas fa-trash"></i></button>
           `;
         } else {
           actionsHtml = `
-            <button class="tw-btn tw-btn-small tw-btn-ghost" onclick="renewGiftCard('${gc.id}')" title="Renovar" style="color:var(--venus-soft);"><i class="fas fa-sync-alt"></i></button>
-            <button class="tw-btn tw-btn-small tw-btn-ghost" onclick="deleteGiftCard('${gc.id}')" title="Eliminar" style="color:#ef4444;"><i class="fas fa-trash"></i></button>
+            <button class="btn small ghost" onclick="renewGiftCard('${gc.id}')" title="Renovar" style="color:var(--venus-soft);"><i class="fas fa-sync-alt"></i></button>
+            <button class="btn small ghost" onclick="deleteGiftCard('${gc.id}')" title="Eliminar" style="color:#ef4444;"><i class="fas fa-trash"></i></button>
           `;
         }
 
@@ -15353,7 +15507,7 @@ Gracias por tu preferencia ✨`;
           <button class="btn small" onclick="contactRequest('${req.id}')" title="Marcar como contactada" style="background:#3b82f6;border-color:#3b82f6;color:white;">
             <i class="fas fa-check"></i> Marcar contactada
           </button>
-          <button class="tw-btn tw-btn-small tw-btn-ghost" onclick="rejectRequest('${req.id}')" title="Rechazar solicitud" style="color:#ef4444;border-color:#ef4444;">
+          <button class="btn small ghost" onclick="rejectRequest('${req.id}')" title="Rechazar solicitud" style="color:#ef4444;border-color:#ef4444;">
             <i class="fas fa-times"></i>
           </button>
         ` : req.status === 'contacted' ? `
@@ -15363,7 +15517,7 @@ Gracias por tu preferencia ✨`;
           <button class="btn small primary" onclick="markAsBooked('${req.id}')" title="Marcar como agendada">
             <i class="fas fa-calendar-check"></i> Agendada
           </button>
-          <button class="tw-btn tw-btn-small tw-btn-ghost" onclick="rejectRequest('${req.id}')" title="Rechazar" style="color:#ef4444;border-color:#ef4444;">
+          <button class="btn small ghost" onclick="rejectRequest('${req.id}')" title="Rechazar" style="color:#ef4444;border-color:#ef4444;">
             <i class="fas fa-times"></i>
           </button>
         ` : req.status === 'rejected' ? `
@@ -17550,36 +17704,89 @@ Gracias por tu preferencia ✨`;
       });
     });
 
-    // ===== SISTEMA DE TEMAS DÍA/NOCHE =====
-    (function initTheme() {
-      const toggle = document.getElementById('theme-toggle');
-      const html = document.documentElement;
+    // ===== NUEVO SIDEBAR - FUNCIONALIDAD =====
+    function toggleSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      const overlay = document.getElementById('sidebar-overlay');
+      sidebar.classList.toggle('open');
+      overlay.classList.toggle('show');
+    }
 
-      // Cargar tema guardado o usar preferencia del sistema
-      const savedTheme = localStorage.getItem('venus-theme');
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      const theme = savedTheme || (prefersDark ? 'dark' : 'light');
+    function closeSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      const overlay = document.getElementById('sidebar-overlay');
+      sidebar.classList.remove('open');
+      overlay.classList.remove('show');
+    }
 
-      if (theme === 'light') {
-        html.setAttribute('data-theme', 'light');
+    // Navegación del sidebar
+    document.querySelectorAll('.sidebar-nav-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const tabId = item.getAttribute('data-tab');
+        if (tabId) {
+          // Actualizar clases activas en sidebar
+          document.querySelectorAll('.sidebar-nav-item').forEach(i => i.classList.remove('is-active'));
+          item.classList.add('is-active');
+          
+          // Cambiar tab usando la función existente
+          switchTab('tab-' + tabId);
+          
+          // Cerrar sidebar en móvil
+          closeSidebar();
+        }
+      });
+    });
+
+    // Actualizar saludo del topbar según hora del día
+    function updateTopbarGreeting() {
+      const hour = new Date().getHours();
+      const greetingEl = document.getElementById('topbar-greeting');
+      if (greetingEl) {
+        if (hour < 12) greetingEl.textContent = '¡Buenos días! 🌅';
+        else if (hour < 18) greetingEl.textContent = '¡Buenas tardes! ☀️';
+        else greetingEl.textContent = '¡Buenas noches! 🌙';
       }
+    }
 
-      // Toggle click
-      if (toggle) {
-        toggle.addEventListener('click', () => {
-          const current = html.getAttribute('data-theme');
-          const newTheme = current === 'light' ? 'dark' : 'light';
-
-          if (newTheme === 'light') {
-            html.setAttribute('data-theme', 'light');
-          } else {
-            html.removeAttribute('data-theme');
+    // Actualizar nombre de usuario en sidebar
+    function updateSidebarUser() {
+      const meLineEl = document.getElementById('me-line');
+      const sidebarNameEl = document.getElementById('sidebar-user-name');
+      const avatarEl = document.querySelector('.sidebar-user-avatar');
+      
+      if (meLineEl && sidebarNameEl) {
+        const email = meLineEl.textContent;
+        if (email && email !== 'Bienvenido al panel de administración') {
+          const name = email.split('@')[0];
+          sidebarNameEl.textContent = name.charAt(0).toUpperCase() + name.slice(1);
+          if (avatarEl) {
+            avatarEl.textContent = name.charAt(0).toUpperCase();
           }
+        }
+      }
+    }
 
-          localStorage.setItem('venus-theme', newTheme);
+    // Inicializar al cargar
+    updateTopbarGreeting();
+    
+    // Observer para detectar cuando cambia el email del usuario
+    const meLineObserver = new MutationObserver(updateSidebarUser);
+    const meLineTarget = document.getElementById('me-line');
+    if (meLineTarget) {
+      meLineObserver.observe(meLineTarget, { childList: true, subtree: true, characterData: true });
+    }
+
+    // Sincronizar tabs cuando se usan los links originales
+    document.querySelectorAll('[data-tab]').forEach(el => {
+      if (!el.classList.contains('sidebar-nav-item')) {
+        el.addEventListener('click', () => {
+          const tabId = el.getAttribute('data-tab');
+          document.querySelectorAll('.sidebar-nav-item').forEach(item => {
+            item.classList.toggle('is-active', item.getAttribute('data-tab') === tabId);
+          });
         });
       }
-    })();
+    });
   </script>
 
 </body>
