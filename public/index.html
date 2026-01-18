@@ -58,93 +58,83 @@
       animation: shimmer 2s ease-in-out infinite;
     }
 
-    /* Apple Wallet Pass Card Effect */
+    /* Apple Wallet Pass Card Effect - Diseño Premium */
     .wallet-card {
-      background: #f5f0e8;
-      border-radius: 20px;
+      background: linear-gradient(145deg, #f8f5f0 0%, #f0ebe3 50%, #e8e0d4 100%);
+      border-radius: 16px;
       overflow: hidden;
       position: relative;
       box-shadow: 
-        0 2px 8px rgba(0, 0, 0, 0.1),
-        0 8px 24px rgba(0, 0, 0, 0.15),
-        0 16px 48px rgba(0, 0, 0, 0.15);
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
+        0 1px 3px rgba(0, 0, 0, 0.08),
+        0 4px 12px rgba(0, 0, 0, 0.12),
+        0 12px 40px rgba(0, 0, 0, 0.18),
+        inset 0 1px 0 rgba(255, 255, 255, 0.8);
+      transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.4s ease;
+      max-width: 400px;
+      margin: 0 auto;
+      aspect-ratio: auto;
     }
 
     .wallet-card:hover {
-      transform: translateY(-4px);
+      transform: translateY(-6px) scale(1.01);
       box-shadow: 
-        0 4px 12px rgba(0, 0, 0, 0.12),
-        0 12px 32px rgba(0, 0, 0, 0.18),
-        0 20px 60px rgba(0, 0, 0, 0.2);
+        0 2px 6px rgba(0, 0, 0, 0.1),
+        0 8px 20px rgba(0, 0, 0, 0.15),
+        0 20px 60px rgba(0, 0, 0, 0.22),
+        inset 0 1px 0 rgba(255, 255, 255, 0.8);
     }
 
-    /* Wallet card header (green bar) */
+    /* Wallet card header - Barra verde superior estilo Apple */
     .wallet-header {
-      background: linear-gradient(135deg, #8c9668 0%, #7a8558 100%);
-      padding: 20px 24px;
+      background: linear-gradient(135deg, #7a8a5a 0%, #8c9668 50%, #9ca87a 100%);
+      padding: 16px 20px;
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 14px;
+      position: relative;
+    }
+
+    .wallet-header::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
     }
 
     .wallet-header img {
-      width: 48px;
-      height: 48px;
-      border-radius: 8px;
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
       background: white;
-      padding: 4px;
+      padding: 3px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     }
 
     .wallet-header h3 {
       font-family: 'Playfair Display', serif;
-      font-size: 22px;
+      font-size: 20px;
       font-weight: 700;
       color: white;
       margin: 0;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+      letter-spacing: 0.3px;
     }
 
-    /* Wallet card body */
+    /* Wallet card body - Area de stamps */
     .wallet-body {
-      padding: 32px 24px 24px;
-      background: #f5f0e8;
+      padding: 24px 20px 20px;
+      background: transparent;
     }
 
-    /* Wallet card footer (green bar with info) */
-    .wallet-footer {
-      background: linear-gradient(135deg, #8c9668 0%, #7a8558 100%);
-      padding: 20px 24px;
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 16px;
-      color: white;
-    }
-
-    .wallet-footer-item {
-      text-align: left;
-    }
-
-    .wallet-footer-label {
-      font-size: 10px;
-      font-weight: 600;
-      letter-spacing: 0.5px;
-      text-transform: uppercase;
-      opacity: 0.8;
-      margin-bottom: 4px;
-    }
-
-    .wallet-footer-value {
-      font-size: 16px;
-      font-weight: 600;
-      line-height: 1.2;
-    }
-
-    /* Stamps grid - 4x2 layout like Apple Wallet */
+    /* Stamps grid - Layout 4x2 estilo Apple Wallet */
     .stamps-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 16px;
-      margin-bottom: 24px;
+      gap: 12px;
+      margin-bottom: 0;
     }
 
     .stamp {
@@ -153,14 +143,19 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
       position: relative;
+      background: rgba(140, 150, 104, 0.08);
+      border: 2px dashed rgba(140, 150, 104, 0.25);
     }
 
     .stamp.active {
-      background: linear-gradient(135deg, #8c9668 0%, #a8b892 100%);
-      box-shadow: 0 4px 12px rgba(140, 150, 104, 0.3);
-      padding: 18%;
+      background: linear-gradient(145deg, #8c9668 0%, #7a8558 100%);
+      border: none;
+      box-shadow: 
+        0 3px 10px rgba(140, 150, 104, 0.35),
+        inset 0 1px 0 rgba(255,255,255,0.2);
+      padding: 20%;
     }
 
     .stamp.active img {
@@ -171,20 +166,61 @@
     }
 
     .stamp.inactive {
-      background: transparent;
-      border: 3px solid rgba(140, 150, 104, 0.25);
+      background: rgba(140, 150, 104, 0.06);
+      border: 2px dashed rgba(140, 150, 104, 0.2);
     }
 
     .stamp.inactive::after {
       content: '';
       position: absolute;
-      width: 50%;
-      height: 50%;
+      width: 45%;
+      height: 45%;
       background-image: url('/assets/logo.png');
       background-size: contain;
       background-repeat: no-repeat;
       background-position: center;
-      opacity: 0.15;
+      opacity: 0.12;
+    }
+
+    /* Wallet card footer - Barra verde inferior */
+    .wallet-footer {
+      background: linear-gradient(135deg, #7a8a5a 0%, #8c9668 50%, #9ca87a 100%);
+      padding: 16px 20px;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+      color: white;
+      position: relative;
+    }
+
+    .wallet-footer::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    }
+
+    .wallet-footer-item {
+      text-align: left;
+    }
+
+    .wallet-footer-label {
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      opacity: 0.75;
+      margin-bottom: 3px;
+    }
+
+    .wallet-footer-value {
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 1.3;
+      text-shadow: 0 1px 1px rgba(0,0,0,0.1);
     }
 
     /* QR Code section */
@@ -192,58 +228,279 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 12px;
-      margin-top: 24px;
+      gap: 16px;
+      padding: 10px 0;
     }
 
     .qr-code-box {
       background: white;
-      padding: 16px;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      padding: 14px;
+      border-radius: 14px;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
     }
 
     .qr-code-box img {
-      width: 200px;
-      height: 200px;
+      width: 180px;
+      height: 180px;
       display: block;
     }
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 12px;
-    }
 
-    .stamp {
-      aspect-ratio: 1;
-      border-radius: 16px;
+    /* QR Toggle Button */
+    #qr-toggle {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.2);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.3);
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
+      transition: all 0.25s;
+      z-index: 10;
     }
 
-    .stamp.active {
-      background: rgba(255, 255, 255, 0.95);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-      padding: 6px;
+    #qr-toggle:hover {
+      background: rgba(255,255,255,0.35);
+      transform: scale(1.05);
     }
 
-    .stamp.active img {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-      border-radius: 8px;
+    /* ===== RESPONSIVE WALLET CARD ===== */
+    
+    /* Tablets y pantallas medianas */
+    @media (max-width: 768px) {
+      .wallet-card {
+        max-width: 100%;
+        border-radius: 14px;
+      }
+
+      .wallet-header {
+        padding: 14px 16px;
+        gap: 12px;
+      }
+
+      .wallet-header img {
+        width: 40px;
+        height: 40px;
+      }
+
+      .wallet-header h3 {
+        font-size: 18px;
+      }
+
+      .wallet-body {
+        padding: 20px 16px 16px;
+      }
+
+      .stamps-grid {
+        gap: 10px;
+      }
+
+      .stamp.active {
+        padding: 18%;
+      }
+
+      .wallet-footer {
+        padding: 14px 16px;
+        gap: 10px;
+      }
+
+      .wallet-footer-label {
+        font-size: 8px;
+      }
+
+      .wallet-footer-value {
+        font-size: 13px;
+      }
+
+      .qr-code-box img {
+        width: 160px;
+        height: 160px;
+      }
     }
 
-    .stamp.inactive {
-      background: rgba(45, 58, 45, 0.1);
-      border: 2px dashed rgba(45, 58, 45, 0.3);
+    /* Móviles grandes (iPhone Plus, Android grandes) */
+    @media (max-width: 480px) {
+      .wallet-card {
+        border-radius: 12px;
+      }
+
+      .wallet-header {
+        padding: 12px 14px;
+        gap: 10px;
+      }
+
+      .wallet-header img {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+      }
+
+      .wallet-header h3 {
+        font-size: 16px;
+      }
+
+      .wallet-body {
+        padding: 16px 14px 14px;
+      }
+
+      .stamps-grid {
+        gap: 8px;
+      }
+
+      .stamp {
+        border-width: 1.5px;
+      }
+
+      .stamp.active {
+        padding: 16%;
+        box-shadow: 0 2px 8px rgba(140, 150, 104, 0.3);
+      }
+
+      .stamp.inactive::after {
+        width: 40%;
+        height: 40%;
+      }
+
+      .wallet-footer {
+        padding: 12px 14px;
+        gap: 8px;
+      }
+
+      .wallet-footer-label {
+        font-size: 7px;
+        letter-spacing: 0.6px;
+      }
+
+      .wallet-footer-value {
+        font-size: 12px;
+      }
+
+      #qr-toggle {
+        width: 32px;
+        height: 32px;
+        top: 10px;
+        right: 10px;
+        border-radius: 8px;
+      }
+
+      .qr-code-box {
+        padding: 12px;
+        border-radius: 12px;
+      }
+
+      .qr-code-box img {
+        width: 140px;
+        height: 140px;
+      }
     }
 
-    .stamp.inactive span {
-      font-size: 12px;
-      font-weight: 600;
-      color: rgba(45, 58, 45, 0.4);
+    /* Móviles pequeños (iPhone SE, Android compactos) */
+    @media (max-width: 375px) {
+      .wallet-card {
+        border-radius: 10px;
+      }
+
+      .wallet-header {
+        padding: 10px 12px;
+        gap: 8px;
+      }
+
+      .wallet-header img {
+        width: 32px;
+        height: 32px;
+        padding: 2px;
+      }
+
+      .wallet-header h3 {
+        font-size: 14px;
+      }
+
+      .wallet-body {
+        padding: 14px 12px 12px;
+      }
+
+      .stamps-grid {
+        gap: 6px;
+      }
+
+      .stamp.active {
+        padding: 14%;
+      }
+
+      .wallet-footer {
+        padding: 10px 12px;
+        gap: 6px;
+      }
+
+      .wallet-footer-label {
+        font-size: 6px;
+        letter-spacing: 0.4px;
+      }
+
+      .wallet-footer-value {
+        font-size: 11px;
+      }
+
+      #qr-toggle {
+        width: 28px;
+        height: 28px;
+        top: 8px;
+        right: 8px;
+      }
+
+      .qr-code-box img {
+        width: 120px;
+        height: 120px;
+      }
+    }
+
+    /* Móviles muy pequeños (320px) */
+    @media (max-width: 320px) {
+      .wallet-header {
+        padding: 8px 10px;
+      }
+
+      .wallet-header img {
+        width: 28px;
+        height: 28px;
+      }
+
+      .wallet-header h3 {
+        font-size: 13px;
+      }
+
+      .wallet-body {
+        padding: 12px 10px 10px;
+      }
+
+      .stamps-grid {
+        gap: 5px;
+      }
+
+      .wallet-footer {
+        padding: 8px 10px;
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .wallet-footer-item:last-child {
+        grid-column: span 2;
+        text-align: center;
+      }
+
+      .wallet-footer-value {
+        font-size: 10px;
+      }
+
+      .qr-code-box img {
+        width: 100px;
+        height: 100px;
+      }
     }
 
     /* Appointment history items */
@@ -970,19 +1227,19 @@
         loadAppointments(phone);
       }
 
-      // Render stamps with logo.png images (4x2 grid = 8 stamps)
+      // Render stamps with stamp.png images (4x2 grid = 8 stamps)
       grid.innerHTML = "";
       for (let i = 1; i <= max; i++) {
         const div = document.createElement("div");
         if (i <= stamps) {
           div.className = "stamp active";
           const img = document.createElement("img");
-          img.src = "/assets/logo.png";
+          img.src = "/assets/stamp.png";
           img.alt = `Sello ${i}`;
           div.appendChild(img);
         } else {
           div.className = "stamp inactive";
-          div.innerHTML = `<span>${i}</span>`;
+          // No number, just empty with subtle logo watermark via CSS
         }
         grid.appendChild(div);
       }
