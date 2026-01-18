@@ -485,6 +485,62 @@
       border-color: var(--status-cancelled);
     }
 
+    /* Theme toggle */
+    .theme-toggle {
+      position: relative;
+      width: 72px;
+      height: 36px;
+      background: var(--bg-tertiary);
+      border-radius: 20px;
+      cursor: pointer;
+      border: 1px solid var(--border-color);
+      transition: all 0.4s ease;
+      overflow: hidden;
+    }
+
+    .theme-toggle::before {
+      content: '';
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 30px;
+      height: 30px;
+      background: linear-gradient(135deg, var(--accent-gold) 0%, var(--accent-gold-light) 100%);
+      border-radius: 50%;
+      transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+      box-shadow: 0 4px 12px rgba(212, 175, 135, 0.4);
+    }
+
+    [data-theme="light"] .theme-toggle::before {
+      transform: translateX(36px);
+    }
+
+    .theme-toggle-icons {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+      pointer-events: none;
+    }
+
+    .theme-icon {
+      font-size: 14px;
+      transition: opacity 0.3s;
+    }
+
+    [data-theme="dark"] .theme-icon.sun {
+      opacity: 0.3;
+    }
+
+    [data-theme="light"] .theme-icon.moon {
+      opacity: 0.3;
+    }
+
     /* ===== MAIN CONTENT AREA ===== */
     .main-content {
       margin-left: var(--sidebar-width);
@@ -3489,6 +3545,14 @@
       <a href="/" target="_blank" rel="noopener" class="topbar-btn" title="Ver página de clientes">
         <i class="fas fa-external-link-alt"></i>
       </a>
+
+      <!-- Theme Toggle -->
+      <div class="theme-toggle" onclick="toggleTheme()" title="Cambiar tema">
+        <div class="theme-toggle-icons">
+          <span class="theme-icon moon">🌙</span>
+          <span class="theme-icon sun">☀️</span>
+        </div>
+      </div>
 
       <!-- Cerrar sesión -->
       <button id="logout" class="topbar-logout">
@@ -17939,6 +18003,36 @@ Gracias por tu preferencia ✨`;
             item.classList.toggle('is-active', item.getAttribute('data-tab') === tabId);
           });
         });
+      }
+    });
+
+    // Theme toggle functionality
+    function toggleTheme() {
+      const html = document.documentElement;
+      const currentTheme = html.getAttribute('data-theme');
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-theme', newTheme);
+      
+      // Update greeting icon based on theme and time
+      updateTopbarGreeting();
+      
+      // Store preference
+      localStorage.setItem('admin-theme', newTheme);
+    }
+
+    // Load saved theme on page load
+    document.addEventListener('DOMContentLoaded', function() {
+      const savedTheme = localStorage.getItem('admin-theme');
+      if (savedTheme) {
+        document.documentElement.setAttribute('data-theme', savedTheme);
+      }
+    });
+
+    // Keyboard shortcut for theme toggle (Ctrl/Cmd + Shift + T)
+    document.addEventListener('keydown', function(e) {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'T') {
+        e.preventDefault();
+        toggleTheme();
       }
     });
   </script>
