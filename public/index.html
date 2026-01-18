@@ -58,6 +58,66 @@
       animation: shimmer 2s ease-in-out infinite;
     }
 
+    /* Apple Wallet Pass Card Effect */
+    .wallet-card {
+      background: linear-gradient(135deg, #f5f0e8 0%, #e8e0d4 100%);
+      border-radius: 24px;
+      padding: 24px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 
+        0 2px 8px rgba(0, 0, 0, 0.1),
+        0 8px 24px rgba(0, 0, 0, 0.15),
+        0 16px 48px rgba(0, 0, 0, 0.15);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .wallet-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 
+        0 4px 12px rgba(0, 0, 0, 0.12),
+        0 12px 32px rgba(0, 0, 0, 0.18),
+        0 20px 60px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Subtle shine effect like Apple Wallet */
+    .wallet-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.3),
+        transparent
+      );
+      transition: left 0.5s ease;
+    }
+
+    .wallet-card:hover::before {
+      left: 100%;
+    }
+
+    /* Barcode/strip effect at bottom like Apple Wallet */
+    .wallet-card-strip {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, 
+        #8c9668 0%, 
+        #a8b892 25%, 
+        #8c9668 50%, 
+        #a8b892 75%, 
+        #8c9668 100%
+      );
+      opacity: 0.5;
+    }
+
     /* Stamps grid - 5 columns like MyCard.tsx */
     .stamps-grid {
       display: grid;
@@ -395,11 +455,14 @@
           
           <!-- Loyalty Card Principal -->
           <div class="animate-fade-in-up" style="animation-delay: 0.1s;">
-            <div class="bg-gradient-to-br from-venus-cream to-venus-cream-dark rounded-3xl p-6 shadow-elevated">
+            <div class="wallet-card">
+              <!-- Strip decoration at bottom -->
+              <div class="wallet-card-strip"></div>
+              
               <!-- Card Header -->
               <div class="flex items-center justify-between mb-6">
                 <div class="flex items-center gap-3">
-                  <img src="/assets/logo.png" alt="Venus" class="w-14 h-14 rounded-xl">
+                  <img src="/assets/logo.png" alt="Venus" class="w-14 h-14 rounded-xl shadow-md">
                   <div>
                     <h3 class="font-playfair text-xl font-semibold text-venus-forest">Venus Lealtad</h3>
                     <p id="c_name" class="text-sm text-venus-olive-dark">Cliente</p>
