@@ -75,8 +75,16 @@
     }
 
     .stamp.active {
-      background: #8c9668;
-      box-shadow: 0 4px 12px rgba(140, 150, 104, 0.4);
+      background: rgba(255, 255, 255, 0.95);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      padding: 6px;
+    }
+
+    .stamp.active img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      border-radius: 8px;
     }
 
     .stamp.inactive {
@@ -84,17 +92,47 @@
       border: 2px dashed rgba(45, 58, 45, 0.3);
     }
 
-    /* Checkmark SVG */
-    .stamp.active svg {
-      width: 28px;
-      height: 28px;
-      color: #f5f0e8;
-    }
-
     .stamp.inactive span {
       font-size: 12px;
       font-weight: 600;
       color: rgba(45, 58, 45, 0.4);
+    }
+
+    /* Appointment history items */
+    .appointment-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      transition: all 0.2s ease;
+    }
+
+    .appointment-item:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .appointment-badge {
+      padding: 4px 12px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .badge-completed {
+      background: rgba(34, 197, 94, 0.2);
+      color: #4ade80;
+    }
+
+    .badge-pending {
+      background: rgba(251, 191, 36, 0.2);
+      color: #fbbf24;
+    }
+
+    .badge-cancelled {
+      background: rgba(239, 68, 68, 0.2);
+      color: #f87171;
     }
 
     /* Progress bar */
@@ -195,8 +233,18 @@
           </span>
         </div>
 
-        <!-- Form Card -->
-        <div class="bg-venus-forest/5 rounded-2xl p-6">
+        <!-- Tabs -->
+        <div class="flex bg-venus-forest/10 rounded-xl p-1 mb-6">
+          <button id="tab-create" onclick="showTab('create')" class="flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all bg-white text-venus-forest shadow-sm">
+            Nueva Tarjeta
+          </button>
+          <button id="tab-login" onclick="showTab('login')" class="flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all text-venus-forest/60 hover:text-venus-forest">
+            Ya tengo tarjeta
+          </button>
+        </div>
+
+        <!-- Form Card: CREAR -->
+        <div id="form-create" class="bg-venus-forest/5 rounded-2xl p-6">
           <h2 class="text-venus-forest text-xl font-semibold text-center mb-1">Crea tu tarjeta</h2>
           <p class="text-venus-olive-dark text-sm text-center mb-6">Ingresa tus datos para comenzar</p>
 
@@ -263,6 +311,46 @@
             >
               <span class="text-lg">✨</span>
               <span>Crear mi tarjeta</span>
+            </button>
+          </form>
+        </div>
+
+        <!-- Form Card: LOGIN -->
+        <div id="form-login" class="bg-venus-forest/5 rounded-2xl p-6 hidden">
+          <h2 class="text-venus-forest text-xl font-semibold text-center mb-1">Accede a tu tarjeta</h2>
+          <p class="text-venus-olive-dark text-sm text-center mb-6">Ingresa tu número de teléfono</p>
+
+          <form id="login-form" class="space-y-5">
+            <div class="space-y-2">
+              <label class="text-venus-forest/70 text-xs font-semibold tracking-wider block">TELÉFONO</label>
+              <input
+                type="tel"
+                id="login-phone"
+                name="phone"
+                placeholder="10 dígitos"
+                maxlength="10"
+                pattern="[0-9]{10}"
+                required
+                class="w-full bg-white/80 border border-venus-forest/20 rounded-xl px-4 py-3.5 text-venus-forest placeholder:text-venus-forest/40
+                       focus:outline-none focus:ring-2 focus:ring-venus-olive/50 focus:bg-white focus:border-transparent
+                       transition-all duration-300"
+              />
+            </div>
+
+            <div id="login-error" class="bg-red-100 border border-red-300 text-red-700 px-4 py-3 rounded-xl text-sm hidden"></div>
+
+            <button
+              type="submit"
+              id="login-btn"
+              class="w-full btn-shimmer text-white font-semibold py-4 rounded-xl
+                     flex items-center justify-center gap-2
+                     transition-all duration-300 hover:shadow-lg hover:shadow-venus-olive/30
+                     active:scale-[0.98]"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+              </svg>
+              <span>Ver mi tarjeta</span>
             </button>
           </form>
         </div>
@@ -366,6 +454,21 @@
             </div>
           </div>
 
+          <!-- Historial de Citas -->
+          <div class="animate-fade-in-up" style="animation-delay: 0.15s;">
+            <div class="info-card">
+              <h3 class="text-venus-cream font-playfair text-lg font-semibold mb-4 flex items-center gap-2">
+                <svg class="w-5 h-5 text-venus-olive" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                Historial de Citas
+              </h3>
+              <div id="appointments-list" class="space-y-3">
+                <div class="text-venus-cream/50 text-sm text-center py-4">Cargando historial...</div>
+              </div>
+            </div>
+          </div>
+
           <!-- Wallet Buttons -->
           <div class="animate-fade-in-up space-y-3" style="animation-delay: 0.2s;">
             <a id="gwallet" href="#" class="w-full flex items-center justify-center gap-3 px-4 py-3.5 bg-white hover:bg-gray-50 text-gray-900 rounded-xl font-medium transition-colors border border-gray-200 shadow-sm">
@@ -394,7 +497,7 @@
           <div class="animate-fade-in-up info-card" style="animation-delay: 0.25s;">
             <h3 class="text-venus-cream font-playfair text-lg font-semibold mb-4">Acciones Rápidas</h3>
             <div class="space-y-3">
-              <a href="/agendar.html" class="w-full flex items-center gap-3 px-4 py-3 border border-white/10 text-venus-cream hover:bg-white/5 rounded-xl transition-colors">
+              <a href="/landing.html#servicios" class="w-full flex items-center gap-3 px-4 py-3 border border-white/10 text-venus-cream hover:bg-white/5 rounded-xl transition-colors">
                 <svg class="w-5 h-5 text-venus-olive" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                 </svg>
@@ -483,9 +586,69 @@
     const params = new URLSearchParams(window.location.search);
     const urlCardId = params.get("cardId");
 
-    // Phone formatting
+    // Tab switching
+    function showTab(tab) {
+      const tabCreate = document.getElementById('tab-create');
+      const tabLogin = document.getElementById('tab-login');
+      const formCreate = document.getElementById('form-create');
+      const formLogin = document.getElementById('form-login');
+      
+      if (tab === 'create') {
+        tabCreate.className = 'flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all bg-white text-venus-forest shadow-sm';
+        tabLogin.className = 'flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all text-venus-forest/60 hover:text-venus-forest';
+        formCreate.classList.remove('hidden');
+        formLogin.classList.add('hidden');
+      } else {
+        tabLogin.className = 'flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all bg-white text-venus-forest shadow-sm';
+        tabCreate.className = 'flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all text-venus-forest/60 hover:text-venus-forest';
+        formLogin.classList.remove('hidden');
+        formCreate.classList.add('hidden');
+      }
+    }
+
+    // Phone formatting for both forms
     document.getElementById('phone').addEventListener('input', function(e) {
       this.value = this.value.replace(/\D/g, '').slice(0, 10);
+    });
+    document.getElementById('login-phone').addEventListener('input', function(e) {
+      this.value = this.value.replace(/\D/g, '').slice(0, 10);
+    });
+
+    // Login form
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const phone = document.getElementById('login-phone').value.trim();
+      const loginBtn = document.getElementById('login-btn');
+      const loginError = document.getElementById('login-error');
+      
+      loginError.classList.add('hidden');
+      
+      if (!phone.match(/^[0-9]{10}$/)) {
+        loginError.textContent = 'Ingresa un teléfono válido de 10 dígitos';
+        loginError.classList.remove('hidden');
+        return;
+      }
+
+      loginBtn.disabled = true;
+      loginBtn.innerHTML = '<div class="spinner w-5 h-5"></div><span>Buscando...</span>';
+
+      try {
+        const res = await fetch(`/api/card/by-phone/${encodeURIComponent(phone)}`);
+        const data = await res.json();
+        
+        if (!res.ok || !data.success) {
+          throw new Error(data.error || 'No se encontró ninguna tarjeta con ese teléfono');
+        }
+        
+        // Redirect to card view
+        window.location.href = `/?cardId=${data.data.id || data.data.cardId}`;
+      } catch (error) {
+        loginError.textContent = error.message || 'No se encontró ninguna tarjeta';
+        loginError.classList.remove('hidden');
+      } finally {
+        loginBtn.disabled = false;
+        loginBtn.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg><span>Ver mi tarjeta</span>`;
+      }
     });
 
     // Date input fix for light theme
@@ -530,8 +693,78 @@
       }
     }
 
-    // SVG Check icon
-    const checkSVG = `<svg class="w-7 h-7 text-venus-cream" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>`;
+    // Load appointments history
+    async function loadAppointments(phone) {
+      const appointmentsList = document.getElementById('appointments-list');
+      
+      try {
+        const res = await fetch(`/api/appointments/by-phone/${encodeURIComponent(phone)}`);
+        const data = await res.json();
+        
+        if (!res.ok || !data.success || !data.appointments || data.appointments.length === 0) {
+          appointmentsList.innerHTML = `
+            <div class="text-center py-6">
+              <svg class="w-12 h-12 mx-auto text-venus-cream/30 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+              </svg>
+              <p class="text-venus-cream/50 text-sm">No tienes citas registradas</p>
+              <a href="/landing.html#servicios" class="inline-block mt-3 text-venus-olive text-sm hover:underline">Agendar mi primera cita →</a>
+            </div>
+          `;
+          return;
+        }
+
+        // Sort by date descending and take last 5
+        const appointments = data.appointments
+          .sort((a, b) => new Date(b.date || b.createdAt) - new Date(a.date || a.createdAt))
+          .slice(0, 5);
+
+        appointmentsList.innerHTML = appointments.map(apt => {
+          const date = new Date(apt.date || apt.createdAt);
+          const formattedDate = date.toLocaleDateString('es-MX', { 
+            weekday: 'short', 
+            day: 'numeric', 
+            month: 'short' 
+          });
+          const time = apt.time || date.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+          
+          let badgeClass = 'badge-pending';
+          let badgeText = 'Pendiente';
+          if (apt.status === 'completed' || apt.status === 'completada') {
+            badgeClass = 'badge-completed';
+            badgeText = 'Completada';
+          } else if (apt.status === 'cancelled' || apt.status === 'cancelada') {
+            badgeClass = 'badge-cancelled';
+            badgeText = 'Cancelada';
+          }
+
+          return `
+            <div class="appointment-item">
+              <div class="flex items-center gap-4">
+                <div class="w-10 h-10 rounded-full bg-venus-olive/20 flex items-center justify-center">
+                  <svg class="w-5 h-5 text-venus-olive" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+                  </svg>
+                </div>
+                <div>
+                  <p class="text-venus-cream font-medium text-sm">${apt.serviceName || apt.service || 'Servicio'}</p>
+                  <p class="text-venus-cream/60 text-xs">${formattedDate} • ${time}</p>
+                </div>
+              </div>
+              <span class="appointment-badge ${badgeClass}">${badgeText}</span>
+            </div>
+          `;
+        }).join('');
+
+      } catch (error) {
+        console.error('Error loading appointments:', error);
+        appointmentsList.innerHTML = `
+          <div class="text-center py-4">
+            <p class="text-venus-cream/50 text-sm">No se pudo cargar el historial</p>
+          </div>
+        `;
+      }
+    }
 
     function showCardView(data) {
       createView.classList.add("hidden");
@@ -571,13 +804,21 @@
       document.getElementById("profile-phone").textContent = phone || '-';
       document.getElementById("profile-since").textContent = memberSince;
 
-      // Render stamps with checkmarks (5 columns)
+      // Load appointments history
+      if (phone) {
+        loadAppointments(phone);
+      }
+
+      // Render stamps with icon.png images
       grid.innerHTML = "";
       for (let i = 1; i <= max; i++) {
         const div = document.createElement("div");
         if (i <= stamps) {
           div.className = "stamp active";
-          div.innerHTML = checkSVG;
+          const img = document.createElement("img");
+          img.src = "/assets/icon.png";
+          img.alt = `Sello ${i}`;
+          div.appendChild(img);
         } else {
           div.className = "stamp inactive";
           div.innerHTML = `<span>${i}</span>`;

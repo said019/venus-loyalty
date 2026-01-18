@@ -91,66 +91,63 @@ const COL_GOOGLE_DEVICES = "google_devices";
 // ⭐ NUEVO: Constante para gift cards
 const COL_GIFT_HISTORY = "gift_card_redeems";
 
-// ---------- HELPERS ADMIN (PostgreSQL/Prisma) ----------
+// ---------- HELPERS ADMIN ----------
 
 async function fsCountAdmins() {
-  return await prisma.admin.count();
+  const snap = await firestore.collection(COL_ADMINS).get();
+  return snap.size;
 }
 
 async function fsGetAdminByEmail(email) {
-  const admin = await prisma.admin.findUnique({
-    where: { email }
-  });
-  return admin;
+  const snap = await firestore
+    .collection(COL_ADMINS)
+    .where("email", "==", email)
+    .limit(1)
+    .get();
+  if (snap.empty) return null;
+  return { id: snap.docs[0].id, ...snap.docs[0].data() };
 }
 
 async function fsInsertAdmin({ id, email, pass_hash }) {
-  const now = new Date();
-  await prisma.admin.create({
-    data: {
-      id,
-      email,
-      pass_hash,
-      createdAt: now,
-      updatedAt: now,
-    }
+  const now = new Date().toISOString();
+  await firestore.collection(COL_ADMINS).doc(id).set({
+    id,
+    email,
+    pass_hash,
+    createdAt: now,
+    updatedAt: now,
   });
 }
 
 async function fsUpdateAdminPassword(adminId, pass_hash) {
-  await prisma.admin.update({
-    where: { id: adminId },
-    data: {
+  const now = new Date().toISOString();
+  await firestore.collection(COL_ADMINS).doc(adminId).set(
+    {
       pass_hash,
-      updatedAt: new Date(),
-    }
-  });
+      updatedAt: now,
+    },
+    { merge: true }
+  );
 }
 
-// ---------- HELPERS RESET PASSWORD (PostgreSQL/Prisma) ----------
+// ---------- HELPERS RESET PASSWORD ----------
 
 async function fsCreateResetToken({ token, adminId, email, expiresAt }) {
-  await prisma.adminReset.create({
-    data: {
-      id: `rst_${Date.now()}`,
-      token,
-      adminId,
-      expiresAt: new Date(expiresAt),
-    }
+  await firestore.collection(COL_RESETS).doc(token).set({
+    token,
+    adminId,
+    email,
+    expiresAt,
   });
 }
 
 async function fsGetResetToken(token) {
-  const reset = await prisma.adminReset.findUnique({
-    where: { token }
-  });
-  return reset;
+  const snap = await firestore.collection(COL_RESETS).doc(token).get();
+  return snap.exists ? snap.data() : null;
 }
 
 async function fsDeleteResetToken(token) {
-  await prisma.adminReset.delete({
-    where: { token }
-  }).catch(() => { }); // Ignorar si no existe
+  await firestore.collection(COL_RESETS).doc(token).delete();
 }
 
 // ---------- HELPERS CARDS + EVENTS ----------
@@ -533,7 +530,7 @@ app.post('/api/test/whatsapp', async (req, res) => {
     const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000);
     const testDate = tomorrow.toISOString().split('T')[0]; // YYYY-MM-DD
     const testTime = '10:00'; // Hora fija para prueba
-
+    
     const testAppt = {
       clientName: name,
       clientPhone: phone,
@@ -612,42 +609,6 @@ app.post('/api/whatsapp/confirmation', adminAuth, async (req, res) => {
       success: false,
       error: error.message
     });
-  }
-});
-
-/* ========== CARDS / TARJETAS - ADMIN API ========== */
-
-// GET /api/admin/cards-firebase - Listar tarjetas con paginación y búsqueda
-app.get('/api/admin/cards-firebase', adminAuth, async (req, res) => {
-  try {
-    const page = parseInt(req.query.page) || 1;
-    const q = req.query.q || '';
-    const sort = req.query.sort || 'created_at';
-    const order = req.query.order || 'desc';
-
-    // Mapear sort fields de frontend a backend
-    const sortMapping = {
-      'created_at': 'createdAt',
-      'name': 'name',
-      'stamps': 'stamps',
-      'last_visit': 'lastVisit'
-    };
-
-    const sortBy = sortMapping[sort] || 'createdAt';
-    const sortOrder = order === 'asc' ? 'asc' : 'desc';
-
-    const result = await fsListCardsPage({
-      page,
-      limit: 12,
-      q,
-      sortBy,
-      sortOrder
-    });
-
-    res.json(result);
-  } catch (error) {
-    console.error('Error fetching cards:', error);
-    res.status(500).json({ error: error.message });
   }
 });
 
@@ -1116,22 +1077,13 @@ app.post('/api/appointments', adminAuth, async (req, res) => {
     // CREAR EVENTOS EN GOOGLE CALENDAR (Said y Alondra)
     const duration = parseInt(durationMinutes) || 60;
     const startDateTime = `${date}T${time}:00-06:00`;
-
+    
     // Calcular hora de fin sumando duración a la hora de inicio (en minutos locales)
     const [startHour, startMin] = time.split(':').map(Number);
     const totalMinutes = startHour * 60 + startMin + duration;
-    const endHoursRaw = Math.floor(totalMinutes / 60);
-    const endHours = (endHoursRaw % 24).toString().padStart(2, '0');
+    const endHours = Math.floor(totalMinutes / 60).toString().padStart(2, '0');
     const endMinutes = (totalMinutes % 60).toString().padStart(2, '0');
-
-    // Si pasa de medianoche, ajustar la fecha de fin
-    let endDate = date;
-    if (endHoursRaw >= 24) {
-      const dateObj = new Date(date + 'T12:00:00');
-      dateObj.setDate(dateObj.getDate() + 1);
-      endDate = dateObj.toISOString().split('T')[0];
-    }
-    const endDateTime = `${endDate}T${endHours}:${endMinutes}:00-06:00`;
+    const endDateTime = `${date}T${endHours}:${endMinutes}:00-06:00`;
 
     const eventData = {
       title: `${serviceName} - ${name}`,
@@ -1143,7 +1095,7 @@ app.post('/api/appointments', adminAuth, async (req, res) => {
 
     try {
       const { createEvent } = await import('./src/services/googleCalendarService.js');
-
+      
       console.log('[APPOINTMENT] 📅 Creando eventos en Google Calendar...');
 
       // Crear en calendario 1 (Said)
@@ -1269,23 +1221,10 @@ app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
 
     // ⭐ ACTUALIZAR GOOGLE CALENDAR si hay eventos asociados
     const startDateTimeMX = `${date}T${time}:00-06:00`;
-    const duration = durationMinutes || appointment.durationMinutes || 60;
-
-    // Calcular hora de fin correctamente (sin conversión UTC)
-    const [startHour, startMin] = time.split(':').map(Number);
-    const totalMinutes = startHour * 60 + startMin + duration;
-    const endHours = Math.floor(totalMinutes / 60) % 24; // Manejar overflow de medianoche
-    const endMinutes = totalMinutes % 60;
-
-    // Si pasa de medianoche, ajustar la fecha
-    let endDate = date;
-    if (totalMinutes >= 24 * 60) {
-      const dateObj = new Date(date + 'T12:00:00');
-      dateObj.setDate(dateObj.getDate() + 1);
-      endDate = dateObj.toISOString().split('T')[0];
-    }
-
-    const endDateTimeMX = `${endDate}T${String(endHours).padStart(2, '0')}:${String(endMinutes).padStart(2, '0')}:00-06:00`;
+    const duration = durationMinutes || 60;
+    const end = new Date(startDateTimeMX);
+    end.setMinutes(end.getMinutes() + duration);
+    const endDateTimeMX = end.toISOString().replace('Z', '-06:00');
 
     if (appointment.googleCalendarEventId || appointment.googleCalendarEventId2) {
       try {
@@ -2071,6 +2010,48 @@ app.get("/api/card/:cardId", async (req, res) => {
   } catch (e) {
     console.error("[GET /api/card]", e);
     res.json({ success: false, error: e.message });
+  }
+});
+
+/* =========================================================
+   BUSCAR TARJETA POR TELÉFONO
+   ========================================================= */
+app.get("/api/card/by-phone/:phone", async (req, res) => {
+  try {
+    const phone = req.params.phone.replace(/\D/g, '');
+    if (!phone || phone.length < 10) {
+      return res.status(400).json({ success: false, error: "Teléfono inválido" });
+    }
+    
+    const card = await CardsRepo.findByPhone(phone);
+    if (!card) {
+      return res.status(404).json({ success: false, error: "No se encontró ninguna tarjeta con ese teléfono" });
+    }
+    
+    res.json({ success: true, data: card });
+  } catch (e) {
+    console.error("[GET /api/card/by-phone]", e);
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+/* =========================================================
+   OBTENER CITAS POR TELÉFONO
+   ========================================================= */
+app.get("/api/appointments/by-phone/:phone", async (req, res) => {
+  try {
+    const phone = req.params.phone.replace(/\D/g, '');
+    if (!phone || phone.length < 10) {
+      return res.status(400).json({ success: false, error: "Teléfono inválido" });
+    }
+    
+    // Buscar citas por teléfono
+    const appointments = await AppointmentsRepo.findByPhone(phone);
+    
+    res.json({ success: true, appointments: appointments || [] });
+  } catch (e) {
+    console.error("[GET /api/appointments/by-phone]", e);
+    res.status(500).json({ success: false, error: e.message });
   }
 });
 
@@ -3040,18 +3021,9 @@ app.post('/api/booking-requests/:id/booked', adminAuth, async (req, res) => {
     // Calcular endDateTime sumando duración a la hora de inicio (en minutos locales)
     const [startHour, startMin] = requestData.time.split(':').map(Number);
     const totalMinutes = startHour * 60 + startMin + duration;
-    const endHoursRaw = Math.floor(totalMinutes / 60);
-    const endHours = (endHoursRaw % 24).toString().padStart(2, '0');
+    const endHours = Math.floor(totalMinutes / 60).toString().padStart(2, '0');
     const endMinutes = (totalMinutes % 60).toString().padStart(2, '0');
-
-    // Si pasa de medianoche, ajustar la fecha de fin
-    let endDate = requestData.date;
-    if (endHoursRaw >= 24) {
-      const dateObj = new Date(requestData.date + 'T12:00:00');
-      dateObj.setDate(dateObj.getDate() + 1);
-      endDate = dateObj.toISOString().split('T')[0];
-    }
-    const endDateTime = `${endDate}T${endHours}:${endMinutes}:00-06:00`;
+    const endDateTime = `${requestData.date}T${endHours}:${endMinutes}:00-06:00`;
 
     // Crear la cita en appointments
     const appointmentData = {
@@ -3378,20 +3350,37 @@ app.get("/api/admin/events-firebase", adminAuth, async (req, res) => {
   }
 });
 
-// ⭐ Endpoint para estadísticas del dashboard (HOY)
+// ⭐ NUEVO: Endpoint para estadísticas del dashboard (HOY)
 app.get("/api/dashboard/today", adminAuth, async (req, res) => {
   try {
-    // Obtener fecha de hoy en formato YYYY-MM-DD (zona horaria de México)
     const now = new Date();
-    // Ajustar a zona horaria de México (UTC-6)
-    const mexicoTime = new Date(now.getTime() - (6 * 60 * 60 * 1000));
-    const todayStr = mexicoTime.toISOString().split('T')[0];
+    // Inicio del día en zona horaria local (aproximación simple o usar librería)
+    // Para simplificar, usaremos ISO string del inicio del día UTC o ajustado
+    // Mejor: usar toMexicoCityISO si estuviera disponible aquí, o simple Date manipulation
 
-    console.log(`[DASHBOARD TODAY] Buscando citas para fecha: ${todayStr}`);
+    // Ajuste manual a zona horaria de México (-6) para "HOY"
+    const mexicoOffset = 6 * 60 * 60 * 1000;
+    const todayStart = new Date(now.getTime() - mexicoOffset);
+    todayStart.setUTCHours(0, 0, 0, 0);
+    const todayStartIso = todayStart.toISOString(); // Esto es inicio del día en UTC, cuidado
 
-    // Consultar citas por el campo 'date' que está en formato YYYY-MM-DD
+    // Mejor enfoque: Buscar por rango de fecha string "YYYY-MM-DD" si guardamos así,
+    // pero guardamos ISO.
+    // Vamos a traer todas las citas del día.
+
+    // Definir rango del día en UTC que cubra el día en México
+    // Día en México: 00:00 a 23:59.
+    // UTC: 06:00 (día actual) a 06:00 (día siguiente)
+
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0); // Local del servidor
+    const endOfDay = new Date();
+    endOfDay.setHours(23, 59, 59, 999);
+
+    // Consultar citas
     const snapshot = await firestore.collection('appointments')
-      .where('date', '==', todayStr)
+      .where('startDateTime', '>=', startOfDay.toISOString())
+      .where('startDateTime', '<=', endOfDay.toISOString())
       .get();
 
     let appointmentsCount = 0;
@@ -4158,7 +4147,7 @@ app.patch("/api/cards/:cardId", adminAuth, async (req, res) => {
     }
 
     const updated = await CardsRepo.update(cardId, updateData);
-
+    
     console.log(`[CARD] Tarjeta ${cardId} actualizada:`, updateData);
     res.json({ success: true, card: updated });
   } catch (e) {
