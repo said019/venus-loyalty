@@ -11477,12 +11477,15 @@
     const apptsTbody = document.getElementById('appts-tbody');
     const serviceSelect = document.getElementById('new-appt-service');
     const clientSelect = document.getElementById('new-appt-client-select');
-    const phoneInput = document.getElementById('new-appt-phone');
+    const phoneInput = document.getElementById('new-client-phone'); // Campo de teléfono en formulario de nuevo cliente
     const hourSelect = document.getElementById('new-appt-hour');
     const minuteSelect = document.getElementById('new-appt-minute');
     const priceInput = document.getElementById('new-appt-price');
     const endTimeInput = document.getElementById('new-appt-end-time');
     const btnRefreshAppts = document.getElementById('btn-refresh-appts');
+    
+    // Variable para almacenar el teléfono del cliente seleccionado
+    let selectedClientPhone = '';
 
     // Navegación semanal
     const btnPrevMonth = document.getElementById('btn-prev-month');
@@ -13227,14 +13230,12 @@ Gracias por tu preferencia ✨`;
       clientSelect.addEventListener('input', function () {
         const clientName = this.value.trim();
         const client = allClients.find(c => c.name === clientName);
-        if (client && phoneInput) {
-          phoneInput.value = client.phone || '';
-          phoneInput.readOnly = true;
+        if (client) {
+          // Guardar el teléfono del cliente seleccionado
+          selectedClientPhone = client.phone || '';
+          console.log('Cliente seleccionado:', clientName, 'Teléfono:', selectedClientPhone);
         } else {
-          if (!phoneInput.value || phoneInput.readOnly) {
-            phoneInput.value = '';
-          }
-          phoneInput.readOnly = false;
+          selectedClientPhone = '';
         }
       });
     }
@@ -13358,17 +13359,17 @@ Gracias por tu preferencia ✨`;
             json = JSON.parse(text);
           } catch (e) {
             console.error('Respuesta no JSON:', text);
-            alert(`⚠️ Error del Servidor (${res.status}): ${text.substring(0, 100)}`);
+            alert(`Error del Servidor (${res.status}): ${text.substring(0, 100)}`);
             return;
           }
 
           if (!res.ok) {
-            alert(`❌ Error (${res.status}): ${json.error || json.message || 'Error desconocido'}`);
+            alert(`Error (${res.status}): ${json.error || json.message || 'Error desconocido'}`);
             return;
           }
 
           if (json.success) {
-            alert('✅ Cliente guardado exitosamente');
+            alert('Cliente guardado exitosamente');
             await loadClients();
 
             // Seleccionar el nuevo cliente en el dropdown de búsqueda
@@ -13377,8 +13378,9 @@ Gracias por tu preferencia ✨`;
             if (newClientInput) {
               newClientInput.value = name;  // Usar el nombre ingresado
             }
-            phoneInput.value = phone;
-            phoneInput.readOnly = true;
+            
+            // Guardar el teléfono del nuevo cliente
+            selectedClientPhone = phone;
 
             // Ocultar form
             newClientForm.style.display = 'none';
@@ -13388,11 +13390,11 @@ Gracias por tu preferencia ✨`;
             document.getElementById('new-client-name').value = '';
             document.getElementById('new-client-phone').value = '';
           } else {
-            alert('❌ Error: ' + (json.error || 'No se pudo guardar'));
+            alert('Error: ' + (json.error || 'No se pudo guardar'));
           }
         } catch (e) {
           console.error(e);
-          alert('⚠️ Error Inesperado: ' + e.message);
+          alert('Error Inesperado: ' + e.message);
         }
       });
     }
@@ -13540,7 +13542,31 @@ Gracias por tu preferencia ✨`;
           }
 
           const clientName = clientSelect.value.trim();
-          const clientPhone = phoneInput.value.trim();
+          let clientPhone = selectedClientPhone; // Usar el teléfono guardado del cliente seleccionado
+          
+          // Si no hay teléfono guardado, verificar si estamos creando un nuevo cliente
+          if (!clientPhone) {
+            const newClientPhoneInput = document.getElementById('new-client-phone');
+            if (newClientPhoneInput && newClientPhoneInput.value.trim()) {
+              clientPhone = newClientPhoneInput.value.trim();
+            }
+          }
+          
+          // Validar que tengamos nombre y teléfono
+          if (!clientName) {
+            alert('Por favor ingresa el nombre del cliente');
+            btn.disabled = false;
+            btn.textContent = originalText;
+            return;
+          }
+          
+          if (!clientPhone) {
+            alert('Por favor selecciona un cliente existente o registra uno nuevo con teléfono');
+            btn.disabled = false;
+            btn.textContent = originalText;
+            return;
+          }
+          
           const sendWhatsAppConfirmation = document.getElementById('check-whatsapp-confirm').checked;
           const sendWhatsApp24h = document.getElementById('check-whatsapp-24h').checked;
           const sendWhatsApp2h = document.getElementById('check-whatsapp-2h').checked;
