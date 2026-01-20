@@ -8790,7 +8790,10 @@
         return;
       }
       
-      // Primero cambiar a la pestaña de Agenda
+      // Cerrar el modal del cliente primero
+      if (typeof closeCardModal === 'function') closeCardModal();
+      
+      // Cambiar a la pestaña de Agenda
       const agendaTab = document.querySelector('[data-tab="appointments"]');
       if (agendaTab) {
         agendaTab.click();
@@ -8800,18 +8803,20 @@
       setTimeout(() => {
         const newApptDialog = document.getElementById('newApptDialog');
         const clientSelectInput = document.getElementById('new-appt-client-select');
-        const phoneInput = document.getElementById('new-appt-phone');
         const dateInput = document.getElementById('new-appt-date');
         
-        if (newApptDialog && clientSelectInput && phoneInput) {
+        if (newApptDialog && clientSelectInput) {
           // Cargar datos necesarios
           if (typeof loadServices === 'function') loadServices();
           if (typeof loadClients === 'function') loadClients();
           if (typeof generateHourMinuteOptions === 'function') generateHourMinuteOptions();
           
-          // Prellenar nombre y teléfono
+          // Prellenar nombre del cliente
           clientSelectInput.value = client.name || '';
-          phoneInput.value = client.phone || '';
+          
+          // Guardar teléfono en un atributo data para usarlo después
+          clientSelectInput.dataset.phone = client.phone || '';
+          clientSelectInput.dataset.clientId = currentCardId;
           
           // Prellenar fecha con hoy si está vacía
           if (dateInput && !dateInput.value) {
@@ -8822,19 +8827,12 @@
             dateInput.value = `${year}-${month}-${day}`;
           }
           
-          // Deshabilitar campos de nombre y teléfono
-          clientSelectInput.disabled = true;
-          phoneInput.disabled = true;
-          
           // Mostrar el modal
           newApptDialog.showModal();
-          
-          // Cerrar el modal del cliente
-          if (typeof closeCardModal === 'function') closeCardModal();
         } else {
-          alert('⚠️ No se pudo abrir el formulario de cita');
+          alert('⚠️ No se pudo abrir el formulario de cita. Intenta desde la pestaña Citas.');
         }
-      }, 100);
+      }, 200);
     }
 
     async function handleRedeemClick() {
@@ -10995,56 +10993,8 @@
     // ===== Botón Agendar =====
     if (btnSchedule) {
       btnSchedule.addEventListener('click', () => {
-        console.log('[Agendar Click] currentCardId:', currentCardId, 'cardsCache:', cardsCache[currentCardId]);
-        if (!currentCardId) return;
-
-        const client = cardsCache[currentCardId];
-        if (!client) return;
-
-        // Primero cambiar a la pestaña de Agenda
-        const agendaTab = document.querySelector('[data-tab="appointments"]');
-        if (agendaTab) {
-          agendaTab.click();
-        }
-
-        // Esperar un momento para que la pestaña se active
-        setTimeout(() => {
-          // Abrir el modal de nueva cita
-          const newApptDialog = document.getElementById('newApptDialog');
-          const clientSelectInput = document.getElementById('new-appt-client-select');
-          const phoneInput = document.getElementById('new-appt-phone');
-          const dateInput = document.getElementById('new-appt-date');
-
-          if (newApptDialog && clientSelectInput && phoneInput) {
-            // Cargar datos necesarios
-            loadServices();
-            loadClients();
-            generateHourMinuteOptions();
-
-            // Prellenar nombre y teléfono
-            clientSelectInput.value = client.name || '';
-            phoneInput.value = client.phone || '';
-
-            // Prellenar fecha con hoy si está vacía
-            if (dateInput && !dateInput.value) {
-              const today = new Date();
-              const year = today.getFullYear();
-              const month = String(today.getMonth() + 1).padStart(2, '0');
-              const day = String(today.getDate()).padStart(2, '0');
-              dateInput.value = `${year}-${month}-${day}`;
-            }
-
-            // Deshabilitar campos de nombre y teléfono (están bloqueados)
-            clientSelectInput.disabled = true;
-            phoneInput.disabled = true;
-
-            // Mostrar el modal
-            newApptDialog.showModal();
-
-            // Cerrar el modal del cliente
-            closeCardModal();
-          }
-        }, 100);
+        // Usa la función global handleScheduleClick
+        handleScheduleClick();
       });
     }
 
