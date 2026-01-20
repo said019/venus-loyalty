@@ -8745,6 +8745,26 @@
       }
     }
 
+    // ===== FUNCIÓN GLOBAL PARA CAMBIAR DE PESTAÑA =====
+    function switchTab(tabId) {
+      // Normalizar el ID (puede venir como 'tab-appointments' o solo 'appointments')
+      const normalizedId = tabId.startsWith('tab-') ? tabId : 'tab-' + tabId;
+      const tabName = normalizedId.replace('tab-', '');
+      
+      // Buscar el link de navegación correspondiente y hacer clic
+      const tabLink = document.querySelector(`[data-tab="${tabName}"]`);
+      if (tabLink) {
+        tabLink.click();
+      } else {
+        // Fallback: cambiar manualmente
+        document.querySelectorAll('[id^="tab-"]').forEach(s => s.classList.add('hidden'));
+        const targetSection = document.getElementById(normalizedId);
+        if (targetSection) {
+          targetSection.classList.remove('hidden');
+        }
+      }
+    }
+
     // ===== FUNCIONES GLOBALES PARA BOTONES DEL MODAL DE CLIENTE =====
     function handleWhatsAppClick() {
       console.log('[WhatsApp Click] window.currentCardId:', window.currentCardId);
