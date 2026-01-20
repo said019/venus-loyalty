@@ -4374,7 +4374,12 @@
     @media (max-width: 600px) {
       #expediente-modal {
         padding: 0;
-        padding-top: env(safe-area-inset-top);
+        background: var(--bg);
+      }
+
+      #expediente-modal.modal-backdrop {
+        background: var(--bg);
+        backdrop-filter: none;
       }
 
       .expediente-container {
@@ -4382,6 +4387,8 @@
         height: 100%;
         max-height: 100%;
         border-radius: 0;
+        border: none;
+        background: var(--bg);
       }
 
       .expediente-header {
@@ -4390,25 +4397,64 @@
         position: sticky;
         top: 0;
         z-index: 10;
+        background: var(--bg-card);
+      }
+
+      .expediente-header h2 {
+        font-size: 16px;
       }
 
       .expediente-tabs {
         padding: 8px 12px;
         position: sticky;
-        top: 52px;
+        top: 48px;
         z-index: 9;
+        background: var(--bg-card);
+        gap: 6px;
       }
 
       .exp-tab {
-        padding: 6px 12px;
-        font-size: 12px;
+        padding: 6px 10px;
+        font-size: 11px;
       }
 
       .expediente-content {
-        padding: 16px;
-        padding-bottom: calc(80px + env(safe-area-inset-bottom));
+        padding: 12px;
+        padding-bottom: calc(100px + env(safe-area-inset-bottom));
         flex: 1;
         overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .exp-form-group label {
+        font-size: 12px;
+      }
+
+      .exp-form-group textarea,
+      .exp-form-group input,
+      .exp-form-group select {
+        font-size: 14px;
+      }
+
+      .expediente-summary {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        border-radius: 0;
+        padding: 12px;
+        padding-bottom: calc(12px + env(safe-area-inset-bottom));
+        background: var(--bg-card);
+        border-top: 1px solid var(--line);
+        z-index: 10;
+      }
+
+      .exp-stat span {
+        font-size: 16px;
+      }
+
+      .exp-stat small {
+        font-size: 10px;
       }
 
       .exp-form-grid {
