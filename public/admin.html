@@ -8513,13 +8513,13 @@
         <!-- Footer con acciones -->
         <div class="modal-footer"
           style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.1);">
-          <button id="cm-whatsapp" class="btn small" style="background:#25D366;color:white;">
+          <button id="cm-whatsapp" class="btn small" style="background:#25D366;color:white;" onclick="handleWhatsAppClick()">
             <i class="fab fa-whatsapp"></i> WhatsApp
           </button>
-          <button id="cm-schedule" class="btn small" style="background:#8c9668;color:white;">
+          <button id="cm-schedule" class="btn small" style="background:#8c9668;color:white;" onclick="handleScheduleClick()">
             <i class="fas fa-calendar-plus"></i> Agendar
           </button>
-          <button id="cm-redeem" class="btn small">
+          <button id="cm-redeem" class="btn small" onclick="handleRedeemClick()">
             <i class="fas fa-gift"></i> Canjear
           </button>
         </div>
@@ -8742,6 +8742,112 @@
       if (mobileMenu) {
         mobileMenu.classList.add('hidden');
         document.body.style.overflow = '';
+      }
+    }
+
+    // ===== FUNCIONES GLOBALES PARA BOTONES DEL MODAL DE CLIENTE =====
+    function handleWhatsAppClick() {
+      console.log('[WhatsApp Click] currentCardId:', typeof currentCardId !== 'undefined' ? currentCardId : 'no definido');
+      if (typeof currentCardId === 'undefined' || !currentCardId) {
+        alert('⚠️ No hay tarjeta seleccionada');
+        return;
+      }
+      
+      const card = typeof cardsCache !== 'undefined' ? cardsCache[currentCardId] : null;
+      if (!card) {
+        alert('⚠️ No se encontró información del cliente');
+        return;
+      }
+      
+      const phone = card.phone;
+      const name = card.name || 'Cliente';
+      
+      if (!phone) {
+        alert('⚠️ Este cliente no tiene teléfono registrado');
+        return;
+      }
+      
+      // Limpiar el número y agregar código de país si es necesario
+      let cleanPhone = phone.replace(/\D/g, '');
+      if (cleanPhone.length === 10) {
+        cleanPhone = '52' + cleanPhone; // Agregar código de México
+      }
+      
+      const message = encodeURIComponent(`Hola ${name}, te contacto de Venus Cosmetología`);
+      window.open(`https://wa.me/${cleanPhone}?text=${message}`, '_blank');
+    }
+
+    function handleScheduleClick() {
+      console.log('[Agendar Click] currentCardId:', typeof currentCardId !== 'undefined' ? currentCardId : 'no definido');
+      if (typeof currentCardId === 'undefined' || !currentCardId) {
+        alert('⚠️ No hay tarjeta seleccionada');
+        return;
+      }
+      
+      const client = typeof cardsCache !== 'undefined' ? cardsCache[currentCardId] : null;
+      if (!client) {
+        alert('⚠️ No se encontró información del cliente');
+        return;
+      }
+      
+      // Primero cambiar a la pestaña de Agenda
+      const agendaTab = document.querySelector('[data-tab="appointments"]');
+      if (agendaTab) {
+        agendaTab.click();
+      }
+      
+      // Esperar un momento para que la pestaña se active
+      setTimeout(() => {
+        const newApptDialog = document.getElementById('newApptDialog');
+        const clientSelectInput = document.getElementById('new-appt-client-select');
+        const phoneInput = document.getElementById('new-appt-phone');
+        const dateInput = document.getElementById('new-appt-date');
+        
+        if (newApptDialog && clientSelectInput && phoneInput) {
+          // Cargar datos necesarios
+          if (typeof loadServices === 'function') loadServices();
+          if (typeof loadClients === 'function') loadClients();
+          if (typeof generateHourMinuteOptions === 'function') generateHourMinuteOptions();
+          
+          // Prellenar nombre y teléfono
+          clientSelectInput.value = client.name || '';
+          phoneInput.value = client.phone || '';
+          
+          // Prellenar fecha con hoy si está vacía
+          if (dateInput && !dateInput.value) {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            dateInput.value = `${year}-${month}-${day}`;
+          }
+          
+          // Deshabilitar campos de nombre y teléfono
+          clientSelectInput.disabled = true;
+          phoneInput.disabled = true;
+          
+          // Mostrar el modal
+          newApptDialog.showModal();
+          
+          // Cerrar el modal del cliente
+          if (typeof closeCardModal === 'function') closeCardModal();
+        } else {
+          alert('⚠️ No se pudo abrir el formulario de cita');
+        }
+      }, 100);
+    }
+
+    async function handleRedeemClick() {
+      console.log('[Canjear Click] currentCardId:', typeof currentCardId !== 'undefined' ? currentCardId : 'no definido');
+      if (typeof currentCardId === 'undefined' || !currentCardId) {
+        alert('⚠️ No hay tarjeta seleccionada');
+        return;
+      }
+      
+      if (typeof redeemCard === 'function') {
+        await redeemCard(currentCardId);
+      } else {
+        alert('⚠️ Función de canje no disponible');
       }
     }
 
@@ -10853,6 +10959,8 @@
     const btnWhatsApp = document.getElementById('cm-whatsapp');
     const btnSchedule = document.getElementById('cm-schedule');
 
+    console.log('[Modal Buttons Debug] btnWhatsApp:', !!btnWhatsApp, 'btnSchedule:', !!btnSchedule, 'btnRedeem:', !!btnRedeem);
+
     if (btnStamp) {
       btnStamp.addEventListener('click', async () => {
         if (currentCardId) await stampCard(currentCardId);
@@ -10861,6 +10969,7 @@
 
     if (btnRedeem) {
       btnRedeem.addEventListener('click', async () => {
+        console.log('[Canjear Click] currentCardId:', currentCardId, 'cardsCache:', cardsCache[currentCardId]);
         if (currentCardId) await redeemCard(currentCardId);
       });
     }
@@ -10886,6 +10995,7 @@
     // ===== Botón Agendar =====
     if (btnSchedule) {
       btnSchedule.addEventListener('click', () => {
+        console.log('[Agendar Click] currentCardId:', currentCardId, 'cardsCache:', cardsCache[currentCardId]);
         if (!currentCardId) return;
 
         const client = cardsCache[currentCardId];
@@ -10941,6 +11051,7 @@
     // ===== Botón WhatsApp =====
     if (btnWhatsApp) {
       btnWhatsApp.addEventListener('click', () => {
+        console.log('[WhatsApp Click] currentCardId:', currentCardId, 'cardsCache:', cardsCache[currentCardId]);
         if (!currentCardId) return;
 
         const phone = cardsCache[currentCardId]?.phone;

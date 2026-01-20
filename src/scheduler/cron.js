@@ -44,9 +44,9 @@ export function startScheduler() {
             }
 
             // --- RECORDATORIO 2 HORAS ---
-            // Buscamos citas que ocurran entre 1h y 3h desde ahora (ventana de 2 horas)
-            const date2hStart = new Date(now.getTime() + 1 * 60 * 60 * 1000);
-            const date2hEnd = new Date(now.getTime() + 3 * 60 * 60 * 1000);
+            // Buscamos citas que ocurran entre 1h 50min y 2h 10min desde ahora (ventana de 20 minutos)
+            const date2hStart = new Date(now.getTime() + 1 * 60 * 60 * 1000 + 50 * 60 * 1000);
+            const date2hEnd = new Date(now.getTime() + 2 * 60 * 60 * 1000 + 10 * 60 * 1000);
 
             const start2h = toMexicoCityISO(date2hStart);
             const end2h = toMexicoCityISO(date2hEnd);
