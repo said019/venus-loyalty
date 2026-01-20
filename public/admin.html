@@ -8766,19 +8766,36 @@
     }
 
     // ===== FUNCIONES GLOBALES PARA BOTONES DEL MODAL DE CLIENTE =====
+    // Helper para obtener el cardId actual desde múltiples fuentes
+    function getCurrentCardId() {
+      // Primero intentar la variable global
+      if (window.currentCardId) {
+        return window.currentCardId;
+      }
+      // Fallback: obtener del elemento cm-id visible en el modal
+      const cmIdEl = document.getElementById('cm-id');
+      if (cmIdEl && cmIdEl.textContent) {
+        const cardId = cmIdEl.textContent.trim();
+        console.log('[getCurrentCardId] Usando fallback desde cm-id:', cardId);
+        return cardId;
+      }
+      return null;
+    }
+
     function handleWhatsAppClick() {
-      console.log('[WhatsApp Click] window.currentCardId:', window.currentCardId);
-      if (!window.currentCardId) {
+      const cardId = getCurrentCardId();
+      console.log('[WhatsApp Click] cardId:', cardId);
+      if (!cardId) {
         alert('⚠️ No hay tarjeta seleccionada');
         return;
       }
-      
-      const card = window.cardsCache ? window.cardsCache[window.currentCardId] : null;
+
+      const card = window.cardsCache ? window.cardsCache[cardId] : null;
       if (!card) {
         alert('⚠️ No se encontró información del cliente');
         return;
       }
-      
+
       const phone = card.phone;
       const name = card.name || 'Cliente';
       
@@ -8798,13 +8815,15 @@
     }
 
     function handleScheduleClick() {
-      console.log('[Agendar Click] window.currentCardId:', window.currentCardId);
-      if (!window.currentCardId) {
+      const cardId = getCurrentCardId();
+      console.log('[Agendar Click] cardId:', cardId);
+
+      if (!cardId) {
         alert('⚠️ No hay tarjeta seleccionada');
         return;
       }
-      
-      const client = window.cardsCache ? window.cardsCache[window.currentCardId] : null;
+
+      const client = window.cardsCache ? window.cardsCache[cardId] : null;
       if (!client) {
         alert('⚠️ No se encontró información del cliente');
         return;
@@ -8813,7 +8832,7 @@
       // Guardar referencia al cliente antes de cerrar
       const clientName = client.name || '';
       const clientPhone = client.phone || '';
-      const clientCardId = window.currentCardId;
+      const clientCardId = cardId;
       
       // Cerrar el modal del cliente primero
       if (typeof closeCardModal === 'function') closeCardModal();
@@ -8864,14 +8883,15 @@
     }
 
     async function handleRedeemClick() {
-      console.log('[Canjear Click] window.currentCardId:', window.currentCardId);
-      if (!window.currentCardId) {
+      const cardId = getCurrentCardId();
+      console.log('[Canjear Click] cardId:', cardId);
+      if (!cardId) {
         alert('⚠️ No hay tarjeta seleccionada');
         return;
       }
-      
+
       if (typeof redeemCard === 'function') {
-        await redeemCard(window.currentCardId);
+        await redeemCard(cardId);
       } else {
         alert('⚠️ Función de canje no disponible');
       }
