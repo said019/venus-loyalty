@@ -8819,9 +8819,12 @@
           // Prellenar nombre del cliente
           clientSelectInput.value = clientName;
           
-          // Guardar teléfono en un atributo data para usarlo después
+          // Guardar teléfono globalmente y en data attribute
+          window.selectedClientPhone = clientPhone;
           clientSelectInput.dataset.phone = clientPhone;
           clientSelectInput.dataset.clientId = clientCardId;
+          
+          console.log('[Agendar] Cliente prellenado:', clientName, 'Teléfono:', clientPhone);
           
           // Prellenar fecha con hoy si está vacía
           if (dateInput && !dateInput.value) {
@@ -11560,7 +11563,8 @@
     const btnRefreshAppts = document.getElementById('btn-refresh-appts');
     
     // Variable para almacenar el teléfono del cliente seleccionado
-    let selectedClientPhone = '';
+    window.selectedClientPhone = '';
+    let selectedClientPhone = window.selectedClientPhone;
 
     // Navegación semanal
     const btnPrevMonth = document.getElementById('btn-prev-month');
@@ -13308,9 +13312,11 @@ Gracias por tu preferencia ✨`;
         if (client) {
           // Guardar el teléfono del cliente seleccionado
           selectedClientPhone = client.phone || '';
+          window.selectedClientPhone = selectedClientPhone;
           console.log('Cliente seleccionado:', clientName, 'Teléfono:', selectedClientPhone);
         } else {
           selectedClientPhone = '';
+          window.selectedClientPhone = '';
         }
       });
     }
@@ -13456,6 +13462,7 @@ Gracias por tu preferencia ✨`;
             
             // Guardar el teléfono del nuevo cliente
             selectedClientPhone = phone;
+            window.selectedClientPhone = phone;
 
             // Ocultar form
             newClientForm.style.display = 'none';
@@ -13617,7 +13624,7 @@ Gracias por tu preferencia ✨`;
           }
 
           const clientName = clientSelect.value.trim();
-          let clientPhone = selectedClientPhone; // Usar el teléfono guardado del cliente seleccionado
+          let clientPhone = selectedClientPhone || window.selectedClientPhone || ''; // Usar el teléfono guardado del cliente seleccionado
           
           // Si no hay teléfono guardado, verificar si estamos creando un nuevo cliente
           if (!clientPhone) {
@@ -13625,6 +13632,11 @@ Gracias por tu preferencia ✨`;
             if (newClientPhoneInput && newClientPhoneInput.value.trim()) {
               clientPhone = newClientPhoneInput.value.trim();
             }
+          }
+          
+          // Si aún no hay teléfono, verificar data-phone del input
+          if (!clientPhone && clientSelect.dataset && clientSelect.dataset.phone) {
+            clientPhone = clientSelect.dataset.phone;
           }
           
           // Validar que tengamos nombre y teléfono
