@@ -4372,18 +4372,31 @@
 
     /* Responsive para expediente */
     @media (max-width: 600px) {
+      #expediente-modal {
+        padding: 0;
+        padding-top: env(safe-area-inset-top);
+      }
+
       .expediente-container {
         width: 100%;
-        max-height: 100vh;
+        height: 100%;
+        max-height: 100%;
         border-radius: 0;
       }
 
       .expediente-header {
         border-radius: 0;
+        padding: 12px 16px;
+        position: sticky;
+        top: 0;
+        z-index: 10;
       }
 
       .expediente-tabs {
         padding: 8px 12px;
+        position: sticky;
+        top: 52px;
+        z-index: 9;
       }
 
       .exp-tab {
@@ -4393,6 +4406,9 @@
 
       .expediente-content {
         padding: 16px;
+        padding-bottom: calc(80px + env(safe-area-inset-bottom));
+        flex: 1;
+        overflow-y: auto;
       }
 
       .exp-form-grid {
@@ -9193,7 +9209,7 @@
     </div>
 
     <!-- ========== MODAL EXPEDIENTE DE CLIENTA ========== -->
-    <div id="expediente-modal" class="modal-backdrop hidden">
+    <div id="expediente-modal" class="modal-backdrop hidden" style="z-index:10001;">
       <div class="expediente-container">
         <!-- Header -->
         <div class="expediente-header">
@@ -9814,7 +9830,13 @@
         document.getElementById('exp-client-phone').textContent = card.phone || '';
       }
       
-      // Mostrar modal
+      // Cerrar modal de cliente primero
+      const clientModal = document.getElementById('client-modal');
+      if (clientModal) {
+        clientModal.classList.add('hidden');
+      }
+      
+      // Mostrar modal de expediente
       document.getElementById('expediente-modal').classList.remove('hidden');
       document.body.classList.add('modal-open');
       
