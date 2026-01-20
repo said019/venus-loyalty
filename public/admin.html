@@ -8747,13 +8747,13 @@
 
     // ===== FUNCIONES GLOBALES PARA BOTONES DEL MODAL DE CLIENTE =====
     function handleWhatsAppClick() {
-      console.log('[WhatsApp Click] currentCardId:', typeof currentCardId !== 'undefined' ? currentCardId : 'no definido');
-      if (typeof currentCardId === 'undefined' || !currentCardId) {
+      console.log('[WhatsApp Click] window.currentCardId:', window.currentCardId);
+      if (!window.currentCardId) {
         alert('⚠️ No hay tarjeta seleccionada');
         return;
       }
       
-      const card = typeof cardsCache !== 'undefined' ? cardsCache[currentCardId] : null;
+      const card = window.cardsCache ? window.cardsCache[window.currentCardId] : null;
       if (!card) {
         alert('⚠️ No se encontró información del cliente');
         return;
@@ -8778,17 +8778,22 @@
     }
 
     function handleScheduleClick() {
-      console.log('[Agendar Click] currentCardId:', typeof currentCardId !== 'undefined' ? currentCardId : 'no definido');
-      if (typeof currentCardId === 'undefined' || !currentCardId) {
+      console.log('[Agendar Click] window.currentCardId:', window.currentCardId);
+      if (!window.currentCardId) {
         alert('⚠️ No hay tarjeta seleccionada');
         return;
       }
       
-      const client = typeof cardsCache !== 'undefined' ? cardsCache[currentCardId] : null;
+      const client = window.cardsCache ? window.cardsCache[window.currentCardId] : null;
       if (!client) {
         alert('⚠️ No se encontró información del cliente');
         return;
       }
+      
+      // Guardar referencia al cliente antes de cerrar
+      const clientName = client.name || '';
+      const clientPhone = client.phone || '';
+      const clientCardId = window.currentCardId;
       
       // Cerrar el modal del cliente primero
       if (typeof closeCardModal === 'function') closeCardModal();
@@ -8812,11 +8817,11 @@
           if (typeof generateHourMinuteOptions === 'function') generateHourMinuteOptions();
           
           // Prellenar nombre del cliente
-          clientSelectInput.value = client.name || '';
+          clientSelectInput.value = clientName;
           
           // Guardar teléfono en un atributo data para usarlo después
-          clientSelectInput.dataset.phone = client.phone || '';
-          clientSelectInput.dataset.clientId = currentCardId;
+          clientSelectInput.dataset.phone = clientPhone;
+          clientSelectInput.dataset.clientId = clientCardId;
           
           // Prellenar fecha con hoy si está vacía
           if (dateInput && !dateInput.value) {
@@ -8836,14 +8841,14 @@
     }
 
     async function handleRedeemClick() {
-      console.log('[Canjear Click] currentCardId:', typeof currentCardId !== 'undefined' ? currentCardId : 'no definido');
-      if (typeof currentCardId === 'undefined' || !currentCardId) {
+      console.log('[Canjear Click] window.currentCardId:', window.currentCardId);
+      if (!window.currentCardId) {
         alert('⚠️ No hay tarjeta seleccionada');
         return;
       }
       
       if (typeof redeemCard === 'function') {
-        await redeemCard(currentCardId);
+        await redeemCard(window.currentCardId);
       } else {
         alert('⚠️ Función de canje no disponible');
       }
@@ -9933,8 +9938,11 @@
 
     /* ===== CARDS (Firestore + menú de acciones) ===== */
     let currentPage = 1;
-    let cardsCache = {};
-    let currentCardId = null;
+    window.cardsCache = {};
+    window.currentCardId = null;
+    // Aliases locales para compatibilidad
+    let cardsCache = window.cardsCache;
+    let currentCardId = window.currentCardId;
 
     // Helper para formatear cumpleaños
     function formatBirthday(birthdate) {
@@ -9967,7 +9975,11 @@
         }
 
         cardsCache = {};
-        data.items.forEach(c => { cardsCache[c.id] = c; });
+        window.cardsCache = {};
+        data.items.forEach(c => { 
+          cardsCache[c.id] = c; 
+          window.cardsCache[c.id] = c;
+        });
 
         // Check birthdays
         checkBirthdays(data.items);
@@ -10423,6 +10435,7 @@
     const modalQrCanvas = document.getElementById('card-qr');
 
     async function openCardModal(card) {
+      window.currentCardId = card.id;
       currentCardId = card.id;
 
       // Datos básicos
@@ -10538,6 +10551,7 @@
 
     function closeCardModal() {
       modalBackdrop.classList.add('hidden');
+      window.currentCardId = null;
       currentCardId = null;
     }
 
