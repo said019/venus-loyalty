@@ -3794,6 +3794,618 @@
       color: var(--error);
     }
 
+    /* ========== ESTILOS EXPEDIENTE DE CLIENTA ========== */
+    .expediente-container {
+      background: var(--bg-card);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--line);
+      max-width: 800px;
+      width: 95%;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: var(--shadow-lg);
+      animation: modalSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .expediente-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--line);
+      background: var(--bg-elevated);
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    }
+
+    .expediente-client-info h2 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    .expediente-client-info .muted {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .expediente-tabs {
+      display: flex;
+      gap: 4px;
+      padding: 12px 16px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--line);
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .exp-tab {
+      padding: 8px 16px;
+      border: none;
+      background: transparent;
+      border-radius: var(--radius);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--muted);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+
+    .exp-tab:hover {
+      background: var(--bg-hover);
+      color: var(--ink);
+    }
+
+    .exp-tab.active {
+      background: var(--venus);
+      color: white;
+    }
+
+    .expediente-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .exp-tab-content {
+      display: none;
+    }
+
+    .exp-tab-content.active {
+      display: block;
+      animation: fadeIn 0.2s ease;
+    }
+
+    /* Formularios del expediente */
+    .exp-form {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .exp-form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+    }
+
+    .exp-form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .exp-form-group label {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--muted);
+    }
+
+    .exp-form-section {
+      background: var(--bg-elevated);
+      border-radius: var(--radius);
+      padding: 16px;
+      border: 1px solid var(--line);
+    }
+
+    .exp-form-section h4 {
+      margin: 0 0 12px 0;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--venus);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Lista de sesiones */
+    .exp-sessions-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .exp-sessions-header h3 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    .exp-sessions-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .exp-session-card {
+      background: var(--bg-elevated);
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      padding: 16px;
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+
+    .exp-session-card:hover {
+      border-color: var(--venus);
+      box-shadow: 0 2px 8px rgba(189, 77, 113, 0.1);
+    }
+
+    .exp-session-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 8px;
+    }
+
+    .exp-session-date {
+      font-weight: 600;
+      color: var(--ink);
+      font-size: 14px;
+    }
+
+    .exp-session-type {
+      font-size: 12px;
+      padding: 4px 8px;
+      background: var(--venus-soft);
+      color: var(--venus);
+      border-radius: 12px;
+      font-weight: 500;
+    }
+
+    .exp-session-device {
+      color: var(--muted);
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .exp-session-areas {
+      margin-top: 8px;
+      font-size: 13px;
+      color: var(--ink);
+    }
+
+    /* Galería de fotos */
+    .exp-photos-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .exp-photos-header h3 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    .exp-photos-filters {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .form-input.small {
+      padding: 6px 12px;
+      font-size: 13px;
+    }
+
+    .exp-photos-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 12px;
+    }
+
+    .exp-photo-item {
+      position: relative;
+      aspect-ratio: 1;
+      border-radius: var(--radius);
+      overflow: hidden;
+      cursor: pointer;
+      border: 2px solid var(--line);
+      transition: all 0.2s;
+    }
+
+    .exp-photo-item:hover {
+      border-color: var(--venus);
+      transform: scale(1.02);
+    }
+
+    .exp-photo-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .exp-photo-badge {
+      position: absolute;
+      bottom: 4px;
+      left: 4px;
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 8px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .exp-photo-badge.before {
+      background: #f97316;
+      color: white;
+    }
+
+    .exp-photo-badge.after {
+      background: #22c55e;
+      color: white;
+    }
+
+    .exp-photo-badge.progress {
+      background: #3b82f6;
+      color: white;
+    }
+
+    .exp-photo-delete {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: rgba(0,0,0,0.7);
+      color: white;
+      border: none;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+    }
+
+    .exp-photo-item:hover .exp-photo-delete {
+      opacity: 1;
+    }
+
+    /* Comparación antes/después */
+    .exp-compare-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .exp-compare-header h3 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    .exp-compare-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .exp-compare-side {
+      text-align: center;
+    }
+
+    .exp-compare-side h4 {
+      margin: 0 0 12px 0;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    .exp-compare-photo {
+      aspect-ratio: 3/4;
+      background: var(--bg-elevated);
+      border: 2px dashed var(--line);
+      border-radius: var(--radius);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      overflow: hidden;
+    }
+
+    .exp-compare-photo i {
+      font-size: 32px;
+      margin-bottom: 8px;
+    }
+
+    .exp-compare-photo img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* Resumen del expediente */
+    .expediente-summary {
+      display: flex;
+      justify-content: space-around;
+      padding: 16px;
+      background: var(--bg-elevated);
+      border-top: 1px solid var(--line);
+      border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+    }
+
+    .exp-stat {
+      text-align: center;
+    }
+
+    .exp-stat span {
+      display: block;
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--venus);
+    }
+
+    .exp-stat small {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    /* Empty state */
+    .exp-empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--muted);
+    }
+
+    .exp-empty-state i {
+      font-size: 48px;
+      margin-bottom: 12px;
+      opacity: 0.5;
+    }
+
+    .exp-empty-state p {
+      margin: 0;
+      font-size: 14px;
+    }
+
+    /* Dialog para nueva sesión */
+    .exp-dialog {
+      border: none;
+      border-radius: var(--radius-lg);
+      padding: 0;
+      max-width: 600px;
+      width: 95%;
+      max-height: 90vh;
+      background: var(--bg-card);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .exp-dialog::backdrop {
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+    }
+
+    .exp-dialog-content {
+      display: flex;
+      flex-direction: column;
+      max-height: 90vh;
+    }
+
+    .exp-dialog-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--line);
+      background: var(--bg-elevated);
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    }
+
+    .exp-dialog-header h3 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--ink);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .exp-dialog-header h3 i {
+      color: var(--venus);
+    }
+
+    .exp-dialog form {
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .exp-dialog-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      padding-top: 16px;
+      margin-top: 8px;
+      border-top: 1px solid var(--line);
+    }
+
+    /* Botón de subir fotos */
+    .exp-photo-upload-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px;
+      border: 2px dashed var(--line);
+      border-radius: var(--radius);
+      cursor: pointer;
+      color: var(--muted);
+      transition: all 0.2s;
+    }
+
+    .exp-photo-upload-btn:hover {
+      border-color: var(--venus);
+      color: var(--venus);
+      background: var(--venus-soft);
+    }
+
+    .exp-photos-preview {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .exp-photo-preview-item {
+      width: 60px;
+      height: 60px;
+      border-radius: var(--radius);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .exp-photo-preview-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* Lightbox para ver fotos */
+    .photo-lightbox {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.95);
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      padding: 20px;
+    }
+
+    .photo-lightbox.hidden {
+      display: none;
+    }
+
+    .lightbox-close {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.1);
+      border: none;
+      color: white;
+      font-size: 20px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .lightbox-close:hover {
+      background: rgba(255,255,255,0.2);
+    }
+
+    #lightbox-img {
+      max-width: 90%;
+      max-height: 80vh;
+      object-fit: contain;
+      border-radius: var(--radius);
+    }
+
+    .lightbox-info {
+      margin-top: 16px;
+      color: white;
+      display: flex;
+      gap: 16px;
+      font-size: 14px;
+    }
+
+    /* Responsive para expediente */
+    @media (max-width: 600px) {
+      .expediente-container {
+        width: 100%;
+        max-height: 100vh;
+        border-radius: 0;
+      }
+
+      .expediente-header {
+        border-radius: 0;
+      }
+
+      .expediente-tabs {
+        padding: 8px 12px;
+      }
+
+      .exp-tab {
+        padding: 6px 12px;
+        font-size: 12px;
+      }
+
+      .expediente-content {
+        padding: 16px;
+      }
+
+      .exp-form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .exp-compare-container {
+        grid-template-columns: 1fr;
+      }
+
+      .exp-photos-grid {
+        grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+        gap: 8px;
+      }
+
+      .expediente-summary {
+        border-radius: 0;
+      }
+
+      .exp-dialog {
+        width: 100%;
+        max-width: 100%;
+        max-height: 100vh;
+        border-radius: 0;
+      }
+
+      .exp-dialog-header {
+        border-radius: 0;
+      }
+    }
+
   </style>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -8527,6 +9139,8 @@
         <!-- Acciones secundarias -->
         <div
           style="display:flex;justify-content:center;gap:12px;margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.05);flex-wrap:wrap;">
+          <button id="cm-expediente" class="btn-link"
+            style="background:none;border:none;color:#22c55e;font-size:11px;cursor:pointer;font-weight:600;" onclick="openClientRecord()">📋 Expediente</button>
           <button id="cm-copy" class="btn-link"
             style="background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;">Copiar ID</button>
           <button id="cm-open-url" class="btn-link"
@@ -8559,6 +9173,266 @@
 
       </div>
     </div>
+
+    <!-- ========== MODAL EXPEDIENTE DE CLIENTA ========== -->
+    <div id="expediente-modal" class="modal-backdrop hidden">
+      <div class="expediente-container">
+        <!-- Header -->
+        <div class="expediente-header">
+          <div class="expediente-client-info">
+            <h2 id="exp-client-name">📋 Expediente</h2>
+            <span id="exp-client-phone" class="muted"></span>
+          </div>
+          <button class="btn small ghost" onclick="closeExpedienteModal()">✕</button>
+        </div>
+
+        <!-- Tabs de navegación -->
+        <div class="expediente-tabs">
+          <button class="exp-tab active" data-exp-tab="info">👤 Datos</button>
+          <button class="exp-tab" data-exp-tab="sessions">💆 Sesiones</button>
+          <button class="exp-tab" data-exp-tab="photos">📸 Fotos</button>
+          <button class="exp-tab" data-exp-tab="compare">🔄 Comparar</button>
+        </div>
+
+        <!-- Contenido -->
+        <div class="expediente-content">
+          <!-- Tab: Datos del cliente -->
+          <div id="exp-tab-info" class="exp-tab-content active">
+            <form id="exp-info-form" class="exp-form">
+              <div class="exp-form-grid">
+                <div class="exp-form-group">
+                  <label>Edad</label>
+                  <input type="number" id="exp-age" class="form-input" placeholder="Ej: 35">
+                </div>
+                <div class="exp-form-group">
+                  <label>Tipo de piel</label>
+                  <select id="exp-skin-type" class="form-input">
+                    <option value="">Seleccionar...</option>
+                    <option value="normal">Normal</option>
+                    <option value="grasa">Grasa</option>
+                    <option value="seca">Seca</option>
+                    <option value="mixta">Mixta</option>
+                    <option value="sensible">Sensible</option>
+                  </select>
+                </div>
+              </div>
+              <div class="exp-form-group">
+                <label>Alergias conocidas</label>
+                <textarea id="exp-allergies" class="form-input" rows="2" placeholder="Ej: Alérgica al látex, sensibilidad a ciertos ácidos..."></textarea>
+              </div>
+              <div class="exp-form-group">
+                <label>Antecedentes médicos</label>
+                <textarea id="exp-medical" class="form-input" rows="2" placeholder="Ej: Diabetes, tratamientos hormonales, cirugías previas..."></textarea>
+              </div>
+              <div class="exp-form-group">
+                <label>Objetivos del tratamiento</label>
+                <textarea id="exp-objectives" class="form-input" rows="2" placeholder="Ej: Reducir manchas, rejuvenecimiento, contorno corporal..."></textarea>
+              </div>
+              <div class="exp-form-group">
+                <label>Observaciones generales</label>
+                <textarea id="exp-observations" class="form-input" rows="3" placeholder="Notas adicionales..."></textarea>
+              </div>
+              <button type="submit" class="btn primary" style="width:100%;margin-top:12px;">
+                <i class="fas fa-save"></i> Guardar cambios
+              </button>
+            </form>
+          </div>
+
+          <!-- Tab: Sesiones de tratamiento -->
+          <div id="exp-tab-sessions" class="exp-tab-content">
+            <div class="exp-sessions-header">
+              <h3>Historial de sesiones</h3>
+              <button class="btn small primary" onclick="openNewSessionModal()">
+                <i class="fas fa-plus"></i> Nueva sesión
+              </button>
+            </div>
+            <div id="exp-sessions-list" class="exp-sessions-list">
+              <!-- Las sesiones se cargan dinámicamente -->
+              <div class="exp-empty-state">
+                <i class="fas fa-spa"></i>
+                <p>No hay sesiones registradas</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab: Galería de fotos -->
+          <div id="exp-tab-photos" class="exp-tab-content">
+            <div class="exp-photos-header">
+              <h3>Galería de seguimiento</h3>
+              <label class="btn small primary" style="cursor:pointer;">
+                <i class="fas fa-camera"></i> Subir fotos
+                <input type="file" id="exp-photo-upload" multiple accept="image/*" style="display:none;" onchange="uploadExpPhotos(this.files)">
+              </label>
+            </div>
+            <div class="exp-photos-filters">
+              <select id="exp-photo-filter-type" class="form-input small" onchange="filterExpPhotos()">
+                <option value="">Todos los tipos</option>
+                <option value="before">Antes</option>
+                <option value="after">Después</option>
+                <option value="progress">Progreso</option>
+              </select>
+              <select id="exp-photo-filter-category" class="form-input small" onchange="filterExpPhotos()">
+                <option value="">Todas las categorías</option>
+                <option value="facial">Facial</option>
+                <option value="corporal">Corporal</option>
+                <option value="depilacion">Depilación</option>
+              </select>
+            </div>
+            <div id="exp-photos-grid" class="exp-photos-grid">
+              <!-- Las fotos se cargan dinámicamente -->
+              <div class="exp-empty-state">
+                <i class="fas fa-images"></i>
+                <p>No hay fotos en el expediente</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab: Comparación antes/después -->
+          <div id="exp-tab-compare" class="exp-tab-content">
+            <div class="exp-compare-header">
+              <h3>Comparación de progreso</h3>
+              <select id="exp-compare-area" class="form-input small" onchange="loadComparePhotos()">
+                <option value="">Seleccionar área...</option>
+              </select>
+            </div>
+            <div id="exp-compare-container" class="exp-compare-container">
+              <div class="exp-compare-side">
+                <h4>Antes</h4>
+                <div id="exp-compare-before" class="exp-compare-photo">
+                  <i class="fas fa-image"></i>
+                  <p>Sin foto</p>
+                </div>
+              </div>
+              <div class="exp-compare-side">
+                <h4>Después</h4>
+                <div id="exp-compare-after" class="exp-compare-photo">
+                  <i class="fas fa-image"></i>
+                  <p>Sin foto</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Resumen rápido -->
+        <div class="expediente-summary">
+          <div class="exp-stat">
+            <span id="exp-total-sessions">0</span>
+            <small>Sesiones</small>
+          </div>
+          <div class="exp-stat">
+            <span id="exp-total-photos">0</span>
+            <small>Fotos</small>
+          </div>
+          <div class="exp-stat">
+            <span id="exp-last-session">—</span>
+            <small>Última sesión</small>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Nueva Sesión de Tratamiento -->
+    <dialog id="newSessionDialog" class="exp-dialog">
+      <div class="exp-dialog-content">
+        <div class="exp-dialog-header">
+          <h3><i class="fas fa-spa"></i> Nueva Sesión de Tratamiento</h3>
+          <button type="button" class="btn small ghost" onclick="document.getElementById('newSessionDialog').close()">✕</button>
+        </div>
+        <form id="form-new-session">
+          <div class="exp-form-grid">
+            <div class="exp-form-group">
+              <label>Tipo de tratamiento *</label>
+              <select id="session-treatment-type" class="form-input" required>
+                <option value="">Seleccionar...</option>
+                <option value="facial">Facial</option>
+                <option value="corporal">Corporal</option>
+                <option value="depilacion">Depilación láser</option>
+                <option value="masaje">Masaje</option>
+                <option value="limpieza">Limpieza profunda</option>
+                <option value="otro">Otro</option>
+              </select>
+            </div>
+            <div class="exp-form-group">
+              <label>Servicio realizado</label>
+              <input type="text" id="session-service" class="form-input" placeholder="Ej: Hydrafacial">
+            </div>
+          </div>
+          
+          <div class="exp-form-section">
+            <h4><i class="fas fa-cog"></i> Parámetros del aparato</h4>
+            <div class="exp-form-grid">
+              <div class="exp-form-group">
+                <label>Aparato utilizado</label>
+                <input type="text" id="session-device" class="form-input" placeholder="Ej: Cavitación, Radiofrecuencia">
+              </div>
+              <div class="exp-form-group">
+                <label>Potencia/Intensidad</label>
+                <input type="text" id="session-power" class="form-input" placeholder="Ej: 70%">
+              </div>
+              <div class="exp-form-group">
+                <label>Frecuencia</label>
+                <input type="text" id="session-frequency" class="form-input" placeholder="Ej: 1MHz">
+              </div>
+              <div class="exp-form-group">
+                <label>Tiempo de aplicación</label>
+                <input type="text" id="session-time" class="form-input" placeholder="Ej: 30 min">
+              </div>
+            </div>
+          </div>
+
+          <div class="exp-form-group">
+            <label>Zonas tratadas</label>
+            <input type="text" id="session-areas" class="form-input" placeholder="Ej: Abdomen, flancos, muslos">
+          </div>
+
+          <div class="exp-form-group">
+            <label>Productos utilizados</label>
+            <textarea id="session-products" class="form-input" rows="2" placeholder="Ej: Gel conductor, crema reafirmante..."></textarea>
+          </div>
+
+          <div class="exp-form-group">
+            <label>Observaciones de la sesión</label>
+            <textarea id="session-observations" class="form-input" rows="2" placeholder="Cómo respondió la piel, sensaciones..."></textarea>
+          </div>
+
+          <div class="exp-form-group">
+            <label>Resultados observados</label>
+            <textarea id="session-results" class="form-input" rows="2" placeholder="Cambios visibles, medidas..."></textarea>
+          </div>
+
+          <div class="exp-form-group">
+            <label>Recomendaciones para próxima sesión</label>
+            <textarea id="session-recommendations" class="form-input" rows="2" placeholder="Ajustes sugeridos..."></textarea>
+          </div>
+
+          <div class="exp-form-group">
+            <label>Fotos de la sesión</label>
+            <label class="exp-photo-upload-btn">
+              <i class="fas fa-camera"></i> Seleccionar fotos
+              <input type="file" id="session-photos" multiple accept="image/*" style="display:none;">
+            </label>
+            <div id="session-photos-preview" class="exp-photos-preview"></div>
+          </div>
+
+          <div class="exp-dialog-footer">
+            <button type="button" class="btn ghost" onclick="document.getElementById('newSessionDialog').close()">Cancelar</button>
+            <button type="submit" class="btn primary"><i class="fas fa-save"></i> Guardar sesión</button>
+          </div>
+        </form>
+      </div>
+    </dialog>
+
+    <!-- Modal: Ver foto ampliada -->
+    <div id="photo-lightbox" class="photo-lightbox hidden" onclick="closeLightbox()">
+      <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+      <img id="lightbox-img" src="" alt="Foto ampliada">
+      <div class="lightbox-info">
+        <span id="lightbox-date"></span>
+        <span id="lightbox-type"></span>
+      </div>
+    </div>
+
     </main>
   </div><!-- Cierre de main-content -->
 
@@ -8896,6 +9770,525 @@
         alert('⚠️ Función de canje no disponible');
       }
     }
+
+    // ===== SISTEMA DE EXPEDIENTE DE CLIENTA =====
+    let currentExpedienteCardId = null;
+    let currentExpedienteRecordId = null;
+    let expedientePhotosCache = [];
+    let expedienteSessionsCache = [];
+
+    // Abrir modal de expediente
+    async function openClientRecord() {
+      const cardId = getCurrentCardId();
+      console.log('[Expediente] Abriendo para cardId:', cardId);
+      
+      if (!cardId) {
+        alert('⚠️ No hay tarjeta seleccionada');
+        return;
+      }
+      
+      currentExpedienteCardId = cardId;
+      
+      // Obtener datos del cliente del cache
+      const card = window.cardsCache ? window.cardsCache[cardId] : null;
+      if (card) {
+        document.getElementById('exp-client-name').textContent = '📋 ' + (card.name || 'Sin nombre');
+        document.getElementById('exp-client-phone').textContent = card.phone || '';
+      }
+      
+      // Mostrar modal
+      document.getElementById('expediente-modal').classList.remove('hidden');
+      document.body.classList.add('modal-open');
+      
+      // Cargar datos del expediente
+      await loadExpedienteData(cardId);
+    }
+
+    // Cerrar modal de expediente
+    function closeExpedienteModal() {
+      document.getElementById('expediente-modal').classList.add('hidden');
+      document.body.classList.remove('modal-open');
+      currentExpedienteCardId = null;
+      currentExpedienteRecordId = null;
+    }
+
+    // Cargar todos los datos del expediente
+    async function loadExpedienteData(cardId) {
+      try {
+        showExpedienteLoading(true);
+        
+        const response = await fetch(`/api/client-records/card/${cardId}`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+          }
+        });
+        
+        if (!response.ok) throw new Error('Error al cargar expediente');
+        
+        const result = await response.json();
+        const record = result.data || result; // Manejar ambos formatos
+        currentExpedienteRecordId = record.id;
+        
+        // Llenar formulario de datos
+        document.getElementById('exp-age').value = record.age || '';
+        document.getElementById('exp-skin-type').value = record.skinType || '';
+        document.getElementById('exp-allergies').value = record.allergies || '';
+        document.getElementById('exp-medical').value = record.medicalHistory || '';
+        document.getElementById('exp-objectives').value = record.objectives || '';
+        document.getElementById('exp-observations').value = record.observations || '';
+        
+        // Cargar sesiones y fotos
+        expedienteSessionsCache = record.sessions || [];
+        expedientePhotosCache = record.photos || [];
+        
+        renderExpedienteSessions();
+        renderExpedientePhotos();
+        updateExpedienteSummary(record);
+        updateCompareAreas();
+        
+        showExpedienteLoading(false);
+      } catch (error) {
+        console.error('[Expediente] Error al cargar:', error);
+        showExpedienteLoading(false);
+        alert('❌ Error al cargar el expediente');
+      }
+    }
+
+    // Mostrar/ocultar loading
+    function showExpedienteLoading(show) {
+      const content = document.querySelector('.expediente-content');
+      if (show) {
+        content.style.opacity = '0.5';
+        content.style.pointerEvents = 'none';
+      } else {
+        content.style.opacity = '1';
+        content.style.pointerEvents = 'auto';
+      }
+    }
+
+    // Renderizar lista de sesiones
+    function renderExpedienteSessions() {
+      const container = document.getElementById('exp-sessions-list');
+      
+      if (!expedienteSessionsCache || expedienteSessionsCache.length === 0) {
+        container.innerHTML = `
+          <div class="exp-empty-state">
+            <i class="fas fa-spa"></i>
+            <p>No hay sesiones registradas</p>
+          </div>
+        `;
+        return;
+      }
+      
+      const sessionsHtml = expedienteSessionsCache.map(session => {
+        const date = new Date(session.date || session.createdAt);
+        const dateStr = date.toLocaleDateString('es-MX', { 
+          day: 'numeric', 
+          month: 'short', 
+          year: 'numeric' 
+        });
+        
+        const deviceSettings = session.deviceSettings || {};
+        const deviceInfo = session.deviceName ? 
+          `<i class="fas fa-cog"></i> ${session.deviceName}` + 
+          (deviceSettings.power ? ` - ${deviceSettings.power}` : '') : '';
+        
+        return `
+          <div class="exp-session-card" onclick="viewSessionDetail('${session.id}')">
+            <div class="exp-session-header">
+              <span class="exp-session-date">${dateStr}</span>
+              <span class="exp-session-type">${session.treatmentType || 'General'}</span>
+            </div>
+            ${deviceInfo ? `<div class="exp-session-device">${deviceInfo}</div>` : ''}
+            ${session.treatedAreas ? `<div class="exp-session-areas"><strong>Zonas:</strong> ${session.treatedAreas}</div>` : ''}
+          </div>
+        `;
+      }).join('');
+      
+      container.innerHTML = sessionsHtml;
+    }
+
+    // Renderizar galería de fotos
+    function renderExpedientePhotos(filterType = '', filterCategory = '') {
+      const container = document.getElementById('exp-photos-grid');
+      
+      let photos = expedientePhotosCache || [];
+      
+      // Aplicar filtros
+      if (filterType) {
+        photos = photos.filter(p => p.type === filterType);
+      }
+      if (filterCategory) {
+        photos = photos.filter(p => p.category === filterCategory);
+      }
+      
+      if (photos.length === 0) {
+        container.innerHTML = `
+          <div class="exp-empty-state" style="grid-column: 1/-1;">
+            <i class="fas fa-images"></i>
+            <p>No hay fotos${filterType || filterCategory ? ' con estos filtros' : ' en el expediente'}</p>
+          </div>
+        `;
+        return;
+      }
+      
+      const photosHtml = photos.map(photo => {
+        const typeClass = photo.type || 'progress';
+        const typeLabel = { before: 'Antes', after: 'Después', progress: 'Progreso' }[typeClass] || 'Foto';
+        
+        return `
+          <div class="exp-photo-item" onclick="openPhotoLightbox('${photo.url}', '${photo.type || ''}', '${photo.createdAt || ''}')">
+            <img src="${photo.url}" alt="Foto de tratamiento" loading="lazy">
+            <span class="exp-photo-badge ${typeClass}">${typeLabel}</span>
+            <button class="exp-photo-delete" onclick="event.stopPropagation(); deleteExpPhoto('${photo.id}')">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        `;
+      }).join('');
+      
+      container.innerHTML = photosHtml;
+    }
+
+    // Filtrar fotos
+    function filterExpPhotos() {
+      const typeFilter = document.getElementById('exp-photo-filter-type').value;
+      const categoryFilter = document.getElementById('exp-photo-filter-category').value;
+      renderExpedientePhotos(typeFilter, categoryFilter);
+    }
+
+    // Actualizar resumen del expediente
+    function updateExpedienteSummary(record) {
+      document.getElementById('exp-total-sessions').textContent = 
+        expedienteSessionsCache ? expedienteSessionsCache.length : 0;
+      document.getElementById('exp-total-photos').textContent = 
+        expedientePhotosCache ? expedientePhotosCache.length : 0;
+      
+      // Última sesión
+      if (expedienteSessionsCache && expedienteSessionsCache.length > 0) {
+        const lastSession = expedienteSessionsCache[0];
+        const date = new Date(lastSession.date || lastSession.createdAt);
+        document.getElementById('exp-last-session').textContent = 
+          date.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' });
+      } else {
+        document.getElementById('exp-last-session').textContent = '—';
+      }
+    }
+
+    // Actualizar áreas para comparación
+    function updateCompareAreas() {
+      const select = document.getElementById('exp-compare-area');
+      const areas = [...new Set(expedientePhotosCache.filter(p => p.area).map(p => p.area))];
+      
+      select.innerHTML = '<option value="">Seleccionar área...</option>';
+      areas.forEach(area => {
+        select.innerHTML += `<option value="${area}">${area}</option>`;
+      });
+    }
+
+    // Cargar fotos para comparación
+    function loadComparePhotos() {
+      const area = document.getElementById('exp-compare-area').value;
+      if (!area) return;
+      
+      const beforePhoto = expedientePhotosCache.find(p => p.type === 'before' && p.area === area);
+      const afterPhoto = expedientePhotosCache.find(p => p.type === 'after' && p.area === area);
+      
+      const beforeContainer = document.getElementById('exp-compare-before');
+      const afterContainer = document.getElementById('exp-compare-after');
+      
+      beforeContainer.innerHTML = beforePhoto ? 
+        `<img src="${beforePhoto.url}" alt="Antes">` :
+        `<i class="fas fa-image"></i><p>Sin foto "Antes"</p>`;
+      
+      afterContainer.innerHTML = afterPhoto ?
+        `<img src="${afterPhoto.url}" alt="Después">` :
+        `<i class="fas fa-image"></i><p>Sin foto "Después"</p>`;
+    }
+
+    // Navegación de tabs del expediente
+    document.addEventListener('click', function(e) {
+      if (e.target.classList.contains('exp-tab')) {
+        const tabName = e.target.dataset.expTab;
+        
+        // Actualizar tabs activos
+        document.querySelectorAll('.exp-tab').forEach(t => t.classList.remove('active'));
+        e.target.classList.add('active');
+        
+        // Mostrar contenido correspondiente
+        document.querySelectorAll('.exp-tab-content').forEach(c => c.classList.remove('active'));
+        document.getElementById('exp-tab-' + tabName).classList.add('active');
+      }
+    });
+
+    // Guardar datos del formulario de info
+    document.getElementById('exp-info-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      if (!currentExpedienteRecordId) {
+        alert('❌ No hay expediente cargado');
+        return;
+      }
+      
+      const data = {
+        age: parseInt(document.getElementById('exp-age').value) || null,
+        skinType: document.getElementById('exp-skin-type').value || null,
+        allergies: document.getElementById('exp-allergies').value || null,
+        medicalHistory: document.getElementById('exp-medical').value || null,
+        objectives: document.getElementById('exp-objectives').value || null,
+        observations: document.getElementById('exp-observations').value || null
+      };
+      
+      try {
+        const response = await fetch(`/api/client-records/${currentExpedienteRecordId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+          },
+          body: JSON.stringify(data)
+        });
+        
+        if (!response.ok) throw new Error('Error al guardar');
+        
+        alert('✅ Datos guardados correctamente');
+      } catch (error) {
+        console.error('[Expediente] Error al guardar:', error);
+        alert('❌ Error al guardar los datos');
+      }
+    });
+
+    // Abrir modal de nueva sesión
+    function openNewSessionModal() {
+      document.getElementById('form-new-session').reset();
+      document.getElementById('session-photos-preview').innerHTML = '';
+      document.getElementById('newSessionDialog').showModal();
+    }
+
+    // Guardar nueva sesión
+    document.getElementById('form-new-session').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      if (!currentExpedienteRecordId) {
+        alert('❌ No hay expediente cargado');
+        return;
+      }
+      
+      const data = {
+        treatmentType: document.getElementById('session-treatment-type').value,
+        serviceName: document.getElementById('session-service').value || null,
+        deviceName: document.getElementById('session-device').value || null,
+        deviceSettings: {
+          power: document.getElementById('session-power').value || null,
+          frequency: document.getElementById('session-frequency').value || null,
+          time: document.getElementById('session-time').value || null
+        },
+        treatedAreas: document.getElementById('session-areas').value || null,
+        productsUsed: document.getElementById('session-products').value || null,
+        observations: document.getElementById('session-observations').value || null,
+        results: document.getElementById('session-results').value || null,
+        recommendations: document.getElementById('session-recommendations').value || null
+      };
+      
+      try {
+        const response = await fetch(`/api/client-records/${currentExpedienteRecordId}/sessions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+          },
+          body: JSON.stringify(data)
+        });
+        
+        if (!response.ok) throw new Error('Error al guardar sesión');
+        
+        const newSession = await response.json();
+        
+        // Subir fotos si hay
+        const photosInput = document.getElementById('session-photos');
+        if (photosInput.files.length > 0) {
+          await uploadSessionPhotos(newSession.id, photosInput.files);
+        }
+        
+        // Cerrar dialog y recargar datos
+        document.getElementById('newSessionDialog').close();
+        await loadExpedienteData(currentExpedienteCardId);
+        
+        alert('✅ Sesión guardada correctamente');
+      } catch (error) {
+        console.error('[Expediente] Error al guardar sesión:', error);
+        alert('❌ Error al guardar la sesión');
+      }
+    });
+
+    // Subir fotos de sesión
+    async function uploadSessionPhotos(sessionId, files) {
+      const formData = new FormData();
+      for (let file of files) {
+        formData.append('photos', file);
+      }
+      formData.append('type', 'progress');
+      formData.append('sessionId', sessionId);
+      
+      await fetch(`/api/client-records/${currentExpedienteRecordId}/photos/bulk`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+        },
+        body: formData
+      });
+    }
+
+    // Subir fotos desde la galería
+    async function uploadExpPhotos(files) {
+      if (!files.length || !currentExpedienteRecordId) return;
+      
+      // Pedir tipo de foto
+      const type = prompt('¿Qué tipo de foto es?\n\n1 = Antes\n2 = Después\n3 = Progreso', '3');
+      const typeMap = { '1': 'before', '2': 'after', '3': 'progress' };
+      const photoType = typeMap[type] || 'progress';
+      
+      // Pedir categoría
+      const category = prompt('¿Categoría?\n\n1 = Facial\n2 = Corporal\n3 = Depilación', '1');
+      const catMap = { '1': 'facial', '2': 'corporal', '3': 'depilacion' };
+      const photoCategory = catMap[category] || 'facial';
+      
+      // Pedir área si es antes/después
+      let area = '';
+      if (photoType === 'before' || photoType === 'after') {
+        area = prompt('¿Qué área se fotografió? (ej: rostro, abdomen, piernas)') || '';
+      }
+      
+      try {
+        const formData = new FormData();
+        for (let file of files) {
+          formData.append('photos', file);
+        }
+        formData.append('type', photoType);
+        formData.append('category', photoCategory);
+        if (area) formData.append('area', area);
+        
+        const response = await fetch(`/api/client-records/${currentExpedienteRecordId}/photos/bulk`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+          },
+          body: formData
+        });
+        
+        if (!response.ok) throw new Error('Error al subir fotos');
+        
+        // Recargar datos
+        await loadExpedienteData(currentExpedienteCardId);
+        
+        alert('✅ Fotos subidas correctamente');
+      } catch (error) {
+        console.error('[Expediente] Error al subir fotos:', error);
+        alert('❌ Error al subir las fotos');
+      }
+    }
+
+    // Eliminar foto
+    async function deleteExpPhoto(photoId) {
+      if (!confirm('¿Eliminar esta foto?')) return;
+      
+      try {
+        const response = await fetch(`/api/client-records/photos/${photoId}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+          }
+        });
+        
+        if (!response.ok) throw new Error('Error al eliminar');
+        
+        // Actualizar cache y re-renderizar
+        expedientePhotosCache = expedientePhotosCache.filter(p => p.id !== photoId);
+        renderExpedientePhotos();
+        updateExpedienteSummary({});
+        
+        alert('✅ Foto eliminada');
+      } catch (error) {
+        console.error('[Expediente] Error al eliminar foto:', error);
+        alert('❌ Error al eliminar la foto');
+      }
+    }
+
+    // Ver detalle de sesión
+    function viewSessionDetail(sessionId) {
+      const session = expedienteSessionsCache.find(s => s.id === sessionId);
+      if (!session) return;
+      
+      const deviceSettings = session.deviceSettings || {};
+      const date = new Date(session.date || session.createdAt);
+      
+      let detailHtml = `
+        <strong>Fecha:</strong> ${date.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}\n
+        <strong>Tipo:</strong> ${session.treatmentType || 'General'}\n
+        ${session.serviceName ? `<strong>Servicio:</strong> ${session.serviceName}\n` : ''}
+        ${session.deviceName ? `<strong>Aparato:</strong> ${session.deviceName}\n` : ''}
+        ${deviceSettings.power ? `<strong>Potencia:</strong> ${deviceSettings.power}\n` : ''}
+        ${deviceSettings.frequency ? `<strong>Frecuencia:</strong> ${deviceSettings.frequency}\n` : ''}
+        ${deviceSettings.time ? `<strong>Tiempo:</strong> ${deviceSettings.time}\n` : ''}
+        ${session.treatedAreas ? `<strong>Zonas:</strong> ${session.treatedAreas}\n` : ''}
+        ${session.productsUsed ? `<strong>Productos:</strong> ${session.productsUsed}\n` : ''}
+        ${session.observations ? `<strong>Observaciones:</strong> ${session.observations}\n` : ''}
+        ${session.results ? `<strong>Resultados:</strong> ${session.results}\n` : ''}
+        ${session.recommendations ? `<strong>Recomendaciones:</strong> ${session.recommendations}` : ''}
+      `;
+      
+      alert(detailHtml.trim());
+    }
+
+    // Lightbox para fotos
+    function openPhotoLightbox(url, type, date) {
+      document.getElementById('lightbox-img').src = url;
+      document.getElementById('lightbox-type').textContent = 
+        { before: 'Antes', after: 'Después', progress: 'Progreso' }[type] || '';
+      
+      if (date) {
+        const d = new Date(date);
+        document.getElementById('lightbox-date').textContent = 
+          d.toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
+      } else {
+        document.getElementById('lightbox-date').textContent = '';
+      }
+      
+      document.getElementById('photo-lightbox').classList.remove('hidden');
+    }
+
+    function closeLightbox() {
+      document.getElementById('photo-lightbox').classList.add('hidden');
+    }
+
+    // Preview de fotos al seleccionar en el formulario de sesión
+    document.getElementById('session-photos').addEventListener('change', function(e) {
+      const preview = document.getElementById('session-photos-preview');
+      preview.innerHTML = '';
+      
+      for (let file of e.target.files) {
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+          const div = document.createElement('div');
+          div.className = 'exp-photo-preview-item';
+          div.innerHTML = `<img src="${ev.target.result}" alt="Preview">`;
+          preview.appendChild(div);
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    // Hacer funciones globales para onclick en HTML
+    window.openClientRecord = openClientRecord;
+    window.closeExpedienteModal = closeExpedienteModal;
+    window.openNewSessionModal = openNewSessionModal;
+    window.uploadExpPhotos = uploadExpPhotos;
+    window.deleteExpPhoto = deleteExpPhoto;
+    window.viewSessionDetail = viewSessionDetail;
+    window.openPhotoLightbox = openPhotoLightbox;
+    window.closeLightbox = closeLightbox;
+    window.filterExpPhotos = filterExpPhotos;
+    window.loadComparePhotos = loadComparePhotos;
 
     function updateModalScrollLock() {
       const modals = document.querySelectorAll('.modal-backdrop');

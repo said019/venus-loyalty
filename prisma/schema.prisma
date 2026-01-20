@@ -286,6 +286,90 @@ model GoogleDevice {
   @@map("google_devices")
 }
 
+// ========== EXPEDIENTES DE CLIENTAS ==========
+
+// Expediente principal de la clienta
+model ClientRecord {
+  id              String   @id @default(cuid())
+  cardId          String   @unique
+  
+  // Datos personales adicionales
+  age             Int?
+  skinType        String?   // normal, grasa, seca, mixta, sensible
+  allergies       String?   // Alergias conocidas
+  medicalHistory  String?   // Antecedentes médicos relevantes
+  objectives      String?   // Objetivos del tratamiento
+  observations    String?   // Observaciones generales
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relaciones
+  sessions        TreatmentSession[]
+  photos          ClientPhoto[]
+  
+  @@map("client_records")
+}
+
+// Sesiones de tratamiento
+model TreatmentSession {
+  id              String   @id @default(cuid())
+  recordId        String
+  record          ClientRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  
+  // Datos de la sesión
+  date            DateTime @default(now())
+  treatmentType   String   // facial, corporal, depilación, etc.
+  serviceName     String?
+  staffName       String?
+  
+  // Parámetros del aparato
+  deviceName      String?  // Nombre del aparato usado
+  deviceSettings  Json?    // Configuración: potencia, frecuencia, tiempo, etc.
+  
+  // Zonas tratadas
+  treatedAreas    String?  // Zonas del cuerpo/cara tratadas
+  
+  // Productos utilizados
+  productsUsed    String?
+  
+  // Observaciones de la sesión
+  observations    String?
+  results         String?
+  recommendations String?  // Recomendaciones para próxima sesión
+  
+  // Fotos de la sesión
+  photos          ClientPhoto[]
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@map("treatment_sessions")
+}
+
+// Fotos del expediente
+model ClientPhoto {
+  id              String   @id @default(cuid())
+  recordId        String
+  record          ClientRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  
+  sessionId       String?
+  session         TreatmentSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  
+  // Datos de la foto
+  url             String   // URL de la imagen
+  publicId        String?  // ID para Cloudinary/storage
+  type            String   @default("progress") // before, after, progress
+  category        String?  // facial, corporal, etc.
+  area            String?  // Zona específica
+  description     String?
+  
+  takenAt         DateTime @default(now())
+  createdAt       DateTime @default(now())
+  
+  @@map("client_photos")
+}
+
 // Historial de canjes de Gift Cards
 model GiftCardRedeem {
   id          String   @id @default(cuid())

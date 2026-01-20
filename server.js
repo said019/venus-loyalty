@@ -65,6 +65,9 @@ import { config } from './src/config/config.js';
 // 📱 WhatsApp Webhook (Twilio)
 import whatsappWebhook from './src/routes/whatsappWebhook.js';
 
+// 📋 Expedientes de Clientas
+import clientRecordsRouter from './src/routes/clientRecords.js';
+
 
 // __dirname para ESModules
 const __filename = fileURLToPath(import.meta.url);
@@ -504,6 +507,9 @@ app.use('/api/calendar', calendarRoutes);
 
 // ✅ WhatsApp Webhook (Twilio)
 app.use('/api/whatsapp', whatsappWebhook);
+
+// ✅ Expedientes de Clientas
+app.use('/api/client-records', clientRecordsRouter);
 
 // 🏥 Health Check con versión
 app.get('/api/health', (req, res) => {
