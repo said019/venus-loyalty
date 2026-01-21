@@ -1178,6 +1178,56 @@ app.post('/api/appointments', adminAuth, async (req, res) => {
 app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
   try {
     const { id } = req.params;
+
+    // Manejar completado/pago si viene status='completed' (Fix para completar cita desde admin)
+    if (req.body.status === 'completed' && req.body.totalPaid !== undefined) {
+      const { totalPaid, paymentMethod, discount, productsSold } = req.body;
+      
+      console.log(`[PATCH] Completando cita ${id} (Cobro desde Admin)`);
+      
+      const appointment = await AppointmentsRepo.findById(id);
+      if (!appointment) return res.status(404).json({ success: false, error: 'Cita no encontrada' });
+
+      // Actualizar cita a completada
+      await AppointmentsRepo.complete(id, {
+        total: parseFloat(totalPaid) || 0,
+        method: paymentMethod,
+        discount: discount ? parseFloat(discount) : null,
+        products: productsSold || [] // productsSold tiene quantity, name, etc.
+      });
+
+      // Calcular montos para reporte de ventas
+      const productsTotal = (productsSold || []).reduce((sum, p) => sum + (p.subtotal || 0), 0);
+      const totalP = parseFloat(totalPaid) || 0;
+      const discountP = discount ? parseFloat(discount) : 0;
+      // Estimación del precio servicio base
+      const serviceAmount = Math.max(0, (totalP + discountP) - productsTotal);
+
+      // Registrar venta
+      try {
+        await SalesRepo.create({
+          appointmentId: id,
+          clientName: appointment.clientName,
+          serviceName: appointment.serviceName,
+          serviceAmount: serviceAmount,
+          productsAmount: productsTotal,
+          subtotal: totalP + discountP,
+          discountType: null,
+          discountValue: 0,
+          discountAmount: discountP,
+          totalAmount: totalP,
+          productsSold: productsSold || [],
+          paymentMethod,
+          date: new Date()
+        });
+      } catch (saleErr) {
+        console.error('[PATCH] Error creando registro de venta:', saleErr);
+        // No fallamos el request si falla el registro de venta auxiliar
+      }
+
+      return res.json({ success: true });
+    }
+
     const { serviceId, serviceName, date, time, durationMinutes } = req.body;
 
     if (!date || !time) {

@@ -19874,8 +19874,8 @@ Gracias por tu preferencia ✨`;
       
       const totalFinal = Math.max(0, subtotal - descuentoValor);
 
-      if (totalFinal <= 0) {
-        showNotification('El monto a cobrar debe ser mayor a 0', 'warning');
+      if (totalFinal < 0) {
+        showNotification('El monto a cobrar no puede ser negativo', 'warning');
         return;
       }
 
