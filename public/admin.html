@@ -19416,12 +19416,16 @@ Gracias por tu preferencia ✨`;
         const servicios = jsonServicios.success ? jsonServicios.data : [];
         productosEnCobro = [];
         
+        console.log('[Cobrar] Servicios cargados:', servicios.length, servicios.map(s => ({id: s.id, name: s.name, price: s.price})));
+        console.log('[Cobrar] Cita:', cita.id, 'serviceId:', cita.serviceId, 'serviceName:', cita.serviceName);
+        
         // Buscar el precio del servicio
         precioServicioGlobal = 0;
         
         // Primero intentar por serviceId
         if (cita.serviceId) {
           const servicio = servicios.find(s => s.id === cita.serviceId);
+          console.log('[Cobrar] Búsqueda por serviceId:', cita.serviceId, '-> Encontrado:', servicio);
           if (servicio) {
             precioServicioGlobal = parseFloat(servicio.price) || 0;
           }
@@ -19429,16 +19433,26 @@ Gracias por tu preferencia ✨`;
         
         // Si no tiene serviceId o no encontró, buscar por nombre del servicio
         if (precioServicioGlobal === 0 && cita.serviceName) {
-          const servicio = servicios.find(s => 
-            s.name.toLowerCase().trim() === cita.serviceName.toLowerCase().trim() ||
-            cita.serviceName.toLowerCase().includes(s.name.toLowerCase())
-          );
+          // Limpiar el nombre para comparación (quitar paréntesis y contenido entre ellos)
+          const nombreLimpio = cita.serviceName.replace(/\s*\([^)]*\)\s*/g, '').toLowerCase().trim();
+          console.log('[Cobrar] Búsqueda por nombre. Original:', cita.serviceName, '-> Limpio:', nombreLimpio);
+          
+          const servicio = servicios.find(s => {
+            const sNombre = s.name.toLowerCase().trim();
+            const sNombreLimpio = s.name.replace(/\s*\([^)]*\)\s*/g, '').toLowerCase().trim();
+            return sNombre === cita.serviceName.toLowerCase().trim() ||
+                   sNombreLimpio === nombreLimpio ||
+                   cita.serviceName.toLowerCase().includes(sNombre) ||
+                   sNombre.includes(nombreLimpio);
+          });
+          
+          console.log('[Cobrar] Servicio encontrado por nombre:', servicio);
           if (servicio) {
             precioServicioGlobal = parseFloat(servicio.price) || 0;
           }
         }
         
-        console.log('[Cobrar] Cita:', cita.id, 'serviceId:', cita.serviceId, 'serviceName:', cita.serviceName, 'Precio encontrado:', precioServicioGlobal);
+        console.log('[Cobrar] Precio final:', precioServicioGlobal);
 
         // Mostrar modal de cobro con diseño profesional
         const html = `
