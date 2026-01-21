@@ -19387,26 +19387,38 @@ Gracias por tu preferencia ✨`;
     }
 
     // Función para abrir modal de cobro de cita pendiente
+    // Variables globales para productos en cobro
+    let productosEnCobro = [];
+    let productosDisponibles = [];
+
     async function abrirCobrarCita(citaId) {
       try {
-        const res = await fetch(`/api/appointments/${citaId}`, { credentials: 'include' });
-        const json = await res.json();
+        // Cargar cita y productos en paralelo
+        const [resCita, resProductos] = await Promise.all([
+          fetch(`/api/appointments/${citaId}`, { credentials: 'include' }),
+          fetch('/api/products', { credentials: 'include' })
+        ]);
         
-        if (!json.success) {
+        const jsonCita = await resCita.json();
+        const jsonProductos = await resProductos.json();
+        
+        if (!jsonCita.success) {
           showNotification('No se pudo cargar la cita', 'error');
           return;
         }
 
-        const cita = json.data;
+        const cita = jsonCita.data;
+        productosDisponibles = jsonProductos.success ? jsonProductos.data : [];
+        productosEnCobro = [];
         
         // Buscar el servicio para obtener el precio
-        let precioSugerido = 0;
+        let precioServicio = 0;
         if (cita.serviceId) {
           try {
             const resServ = await fetch(`/api/services/${cita.serviceId}`, { credentials: 'include' });
             const jsonServ = await resServ.json();
             if (jsonServ.success && jsonServ.data) {
-              precioSugerido = jsonServ.data.price || 0;
+              precioServicio = parseFloat(jsonServ.data.price) || 0;
             }
           } catch (e) {}
         }
@@ -19414,105 +19426,183 @@ Gracias por tu preferencia ✨`;
         // Formatear fecha bonita
         const fechaCita = cita.date ? new Date(cita.date + 'T12:00:00').toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' }) : '';
 
-        // Mostrar modal de cobro mejorado
+        // Mostrar modal de cobro mejorado y responsive
         const html = `
+          <style>
+            #modal-cobrar-cita .modal-cobro-box {
+              max-width: 500px;
+              width: 95%;
+              max-height: 95vh;
+              border-radius: 20px;
+              overflow: hidden;
+              box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+              display: flex;
+              flex-direction: column;
+            }
+            #modal-cobrar-cita .modal-cobro-scroll {
+              flex: 1;
+              overflow-y: auto;
+              max-height: calc(95vh - 180px);
+            }
+            @media (max-width: 480px) {
+              #modal-cobrar-cita .modal-cobro-box {
+                width: 100%;
+                max-height: 100vh;
+                border-radius: 0;
+              }
+              #modal-cobrar-cita .modal-cobro-scroll {
+                max-height: calc(100vh - 160px);
+              }
+              #modal-cobrar-cita .cobro-header {
+                padding: 16px !important;
+              }
+              #modal-cobrar-cita .cobro-body {
+                padding: 16px !important;
+              }
+              #modal-cobrar-cita .cobro-footer {
+                padding: 12px 16px 16px !important;
+              }
+              #modal-cobrar-cita .metodo-grid {
+                grid-template-columns: repeat(3, 1fr) !important;
+                gap: 6px !important;
+              }
+              #modal-cobrar-cita .metodo-btn {
+                padding: 10px 4px !important;
+              }
+              #modal-cobrar-cita .metodo-btn .emoji {
+                font-size: 20px !important;
+              }
+              #modal-cobrar-cita .monto-input {
+                font-size: 24px !important;
+                padding: 12px 12px 12px 36px !important;
+              }
+            }
+          </style>
           <div class="modal" id="modal-cobrar-cita" style="display:flex;z-index:99999;">
-            <div class="modal-box" style="max-width:420px;border-radius:20px;overflow:hidden;box-shadow:0 25px 50px rgba(0,0,0,0.5);">
+            <div class="modal-box modal-cobro-box">
               <!-- Header con gradiente -->
-              <div style="background:linear-gradient(135deg, #8C9668 0%, #6B7A4F 100%);padding:24px;position:relative;">
+              <div class="cobro-header" style="background:linear-gradient(135deg, #8C9668 0%, #6B7A4F 100%);padding:20px;position:relative;flex-shrink:0;">
                 <button onclick="document.getElementById('modal-cobrar-cita').remove()" 
-                  style="position:absolute;top:16px;right:16px;background:rgba(255,255,255,0.2);border:none;width:32px;height:32px;border-radius:50%;color:#fff;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;">
+                  style="position:absolute;top:12px;right:12px;background:rgba(255,255,255,0.2);border:none;width:32px;height:32px;border-radius:50%;color:#fff;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;">
                   <i class="fas fa-times"></i>
                 </button>
-                <div style="display:flex;align-items:center;gap:16px;">
-                  <div style="width:56px;height:56px;background:rgba(255,255,255,0.2);border-radius:16px;display:flex;align-items:center;justify-content:center;">
-                    <i class="fas fa-cash-register" style="font-size:24px;color:#fff;"></i>
+                <div style="display:flex;align-items:center;gap:14px;">
+                  <div style="width:50px;height:50px;background:rgba(255,255,255,0.2);border-radius:14px;display:flex;align-items:center;justify-content:center;">
+                    <i class="fas fa-cash-register" style="font-size:22px;color:#fff;"></i>
                   </div>
                   <div>
-                    <h3 style="margin:0;color:#fff;font-size:20px;font-weight:700;">Cobrar Cita</h3>
-                    <p style="margin:4px 0 0;color:rgba(255,255,255,0.8);font-size:13px;">Registrar pago del servicio</p>
+                    <h3 style="margin:0;color:#fff;font-size:18px;font-weight:700;">Cobrar Cita</h3>
+                    <p style="margin:4px 0 0;color:rgba(255,255,255,0.8);font-size:12px;">Registrar pago del servicio</p>
                   </div>
                 </div>
               </div>
 
-              <!-- Info del cliente -->
-              <div style="padding:20px;background:var(--bg-card);">
-                <div style="background:linear-gradient(135deg, rgba(140,150,104,0.15) 0%, rgba(140,150,104,0.05) 100%);padding:16px;border-radius:12px;border:1px solid rgba(140,150,104,0.2);margin-bottom:20px;">
-                  <div style="display:flex;align-items:center;gap:12px;">
-                    <div style="width:44px;height:44px;background:var(--venus);border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:16px;">
+              <!-- Contenido scrolleable -->
+              <div class="modal-cobro-scroll cobro-body" style="padding:20px;background:var(--bg-card);">
+                <!-- Info del cliente -->
+                <div style="background:linear-gradient(135deg, rgba(140,150,104,0.15) 0%, rgba(140,150,104,0.05) 100%);padding:14px;border-radius:12px;border:1px solid rgba(140,150,104,0.2);margin-bottom:16px;">
+                  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                    <div style="width:40px;height:40px;background:var(--venus);border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:15px;flex-shrink:0;">
                       ${(cita.clientName || 'C')[0].toUpperCase()}
                     </div>
-                    <div style="flex:1;">
-                      <div style="font-weight:600;font-size:15px;color:var(--ink);">${cita.clientName || 'Cliente'}</div>
-                      <div style="font-size:12px;color:var(--muted);margin-top:2px;">${cita.serviceName || 'Servicio'}</div>
+                    <div style="flex:1;min-width:120px;">
+                      <div style="font-weight:600;font-size:14px;color:var(--ink);">${cita.clientName || 'Cliente'}</div>
+                      <div style="font-size:11px;color:var(--muted);margin-top:2px;">${cita.serviceName || 'Servicio'}</div>
                     </div>
                     <div style="text-align:right;">
-                      <div style="font-size:12px;color:var(--venus);font-weight:600;">${fechaCita}</div>
-                      <div style="font-size:11px;color:var(--muted);">${cita.time || '--:--'}</div>
+                      <div style="font-size:11px;color:var(--venus);font-weight:600;">${fechaCita}</div>
+                      <div style="font-size:10px;color:var(--muted);">${cita.time || '--:--'}</div>
                     </div>
                   </div>
                 </div>
 
-                <!-- Monto con estilo grande -->
-                <div style="margin-bottom:16px;">
-                  <label style="display:block;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;margin-bottom:8px;">
-                    <i class="fas fa-coins" style="margin-right:6px;"></i>Monto a cobrar
-                  </label>
-                  <div style="position:relative;">
-                    <span style="position:absolute;left:16px;top:50%;transform:translateY(-50%);font-size:24px;font-weight:700;color:var(--venus);">$</span>
-                    <input type="number" id="cobrar-monto" value="${precioSugerido}" step="0.01" min="0"
-                      style="width:100%;padding:16px 16px 16px 40px;font-size:28px;font-weight:700;border:2px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink);text-align:left;">
+                <!-- Resumen de cobro -->
+                <div id="resumen-cobro" style="background:var(--bg);padding:14px;border-radius:12px;border:1px solid var(--line);margin-bottom:16px;">
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                    <span style="font-size:13px;color:var(--muted);">💆 Servicio</span>
+                    <span style="font-size:14px;font-weight:600;color:var(--ink);">$${precioServicio.toFixed(2)}</span>
                   </div>
+                  <div id="productos-resumen"></div>
+                  <div style="border-top:2px dashed var(--line);margin-top:10px;padding-top:10px;display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:14px;font-weight:700;color:var(--ink);">TOTAL</span>
+                    <span id="total-cobro" style="font-size:22px;font-weight:800;color:var(--venus);">$${precioServicio.toFixed(2)}</span>
+                  </div>
+                  <input type="hidden" id="precio-servicio" value="${precioServicio}">
                 </div>
+
+                <!-- Agregar productos -->
+                <details id="detalles-productos" style="margin-bottom:16px;background:var(--bg);border-radius:12px;border:1px solid var(--line);overflow:hidden;">
+                  <summary style="cursor:pointer;font-size:13px;font-weight:600;color:var(--ink);padding:14px;display:flex;align-items:center;gap:8px;user-select:none;">
+                    <i class="fas fa-shopping-bag" style="color:var(--venus);"></i>
+                    ¿Llevó productos? 
+                    <span id="badge-productos" style="display:none;background:var(--venus);color:#fff;font-size:10px;padding:2px 8px;border-radius:10px;margin-left:auto;">0</span>
+                    <i class="fas fa-chevron-down" style="margin-left:auto;font-size:11px;color:var(--muted);transition:transform 0.2s;"></i>
+                  </summary>
+                  <div style="padding:0 14px 14px;">
+                    <div style="display:flex;gap:8px;margin-bottom:12px;">
+                      <select id="select-producto" style="flex:1;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg-card);color:var(--ink);font-size:13px;">
+                        <option value="">Seleccionar producto...</option>
+                        ${productosDisponibles.map(p => `<option value="${p.id}" data-precio="${p.price}" data-nombre="${p.name}">
+                          ${p.name} - $${parseFloat(p.price).toFixed(2)}
+                        </option>`).join('')}
+                      </select>
+                      <button onclick="agregarProductoCobro()" style="padding:10px 14px;background:var(--venus);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;white-space:nowrap;">
+                        <i class="fas fa-plus"></i>
+                      </button>
+                    </div>
+                    <div id="lista-productos-cobro" style="max-height:150px;overflow-y:auto;"></div>
+                  </div>
+                </details>
 
                 <!-- Método de pago con botones visuales -->
                 <div style="margin-bottom:16px;">
-                  <label style="display:block;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;margin-bottom:8px;">
-                    <i class="fas fa-wallet" style="margin-right:6px;"></i>Método de pago
+                  <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;margin-bottom:8px;">
+                    <i class="fas fa-wallet" style="margin-right:4px;"></i>Método de pago
                   </label>
-                  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
-                    <button type="button" class="metodo-pago-btn active" data-metodo="efectivo" onclick="seleccionarMetodoPago('efectivo')"
+                  <div class="metodo-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+                    <button type="button" class="metodo-pago-btn metodo-btn active" data-metodo="efectivo" onclick="seleccionarMetodoPago('efectivo')"
                       style="padding:12px 8px;border:2px solid var(--venus);border-radius:10px;background:rgba(140,150,104,0.15);cursor:pointer;transition:all 0.2s;">
-                      <div style="font-size:24px;margin-bottom:4px;">💵</div>
+                      <div class="emoji" style="font-size:24px;margin-bottom:4px;">💵</div>
                       <div style="font-size:11px;font-weight:600;color:var(--ink);">Efectivo</div>
                     </button>
-                    <button type="button" class="metodo-pago-btn" data-metodo="tarjeta" onclick="seleccionarMetodoPago('tarjeta')"
+                    <button type="button" class="metodo-pago-btn metodo-btn" data-metodo="tarjeta" onclick="seleccionarMetodoPago('tarjeta')"
                       style="padding:12px 8px;border:2px solid var(--line);border-radius:10px;background:var(--bg);cursor:pointer;transition:all 0.2s;">
-                      <div style="font-size:24px;margin-bottom:4px;">💳</div>
+                      <div class="emoji" style="font-size:24px;margin-bottom:4px;">💳</div>
                       <div style="font-size:11px;font-weight:600;color:var(--ink);">Tarjeta</div>
                     </button>
-                    <button type="button" class="metodo-pago-btn" data-metodo="transferencia" onclick="seleccionarMetodoPago('transferencia')"
+                    <button type="button" class="metodo-pago-btn metodo-btn" data-metodo="transferencia" onclick="seleccionarMetodoPago('transferencia')"
                       style="padding:12px 8px;border:2px solid var(--line);border-radius:10px;background:var(--bg);cursor:pointer;transition:all 0.2s;">
-                      <div style="font-size:24px;margin-bottom:4px;">📱</div>
+                      <div class="emoji" style="font-size:24px;margin-bottom:4px;">📱</div>
                       <div style="font-size:11px;font-weight:600;color:var(--ink);">Transfer</div>
                     </button>
                   </div>
                   <input type="hidden" id="cobrar-metodo" value="efectivo">
                 </div>
 
-                <!-- Descuento colapsable -->
+                <!-- Descuento y propina colapsables -->
                 <details style="margin-bottom:8px;">
-                  <summary style="cursor:pointer;font-size:12px;color:var(--muted);padding:8px 0;">
-                    <i class="fas fa-tag" style="margin-right:6px;"></i>Aplicar descuento (opcional)
+                  <summary style="cursor:pointer;font-size:12px;color:var(--muted);padding:8px 0;display:flex;align-items:center;gap:6px;">
+                    <i class="fas fa-percent"></i>Descuento / Ajuste (opcional)
+                    <i class="fas fa-chevron-down" style="margin-left:auto;font-size:10px;"></i>
                   </summary>
                   <div style="padding-top:8px;">
                     <div style="position:relative;">
-                      <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--muted);">$</span>
-                      <input type="number" id="cobrar-descuento" value="0" step="0.01" min="0"
-                        style="width:100%;padding:10px 10px 10px 28px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font-size:14px;">
+                      <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:13px;color:var(--muted);">- $</span>
+                      <input type="number" id="cobrar-descuento" value="0" step="0.01" min="0" onchange="actualizarTotalCobro()"
+                        style="width:100%;padding:10px 10px 10px 36px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font-size:14px;">
                     </div>
                   </div>
                 </details>
               </div>
 
               <!-- Footer con botones -->
-              <div style="padding:16px 20px 20px;background:var(--bg-card);border-top:1px solid var(--line);display:flex;gap:12px;">
+              <div class="cobro-footer" style="padding:14px 20px 20px;background:var(--bg-card);border-top:1px solid var(--line);display:flex;gap:10px;flex-shrink:0;">
                 <button onclick="document.getElementById('modal-cobrar-cita').remove()" 
-                  style="flex:1;padding:14px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font-size:14px;font-weight:600;cursor:pointer;">
+                  style="flex:1;padding:14px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font-size:13px;font-weight:600;cursor:pointer;">
                   Cancelar
                 </button>
                 <button onclick="procesarCobroCita('${citaId}')" 
-                  style="flex:2;padding:14px;border:none;border-radius:10px;background:linear-gradient(135deg, #8C9668 0%, #6B7A4F 100%);color:#fff;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+                  style="flex:2;padding:14px;border:none;border-radius:10px;background:linear-gradient(135deg, #8C9668 0%, #6B7A4F 100%);color:#fff;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">
                   <i class="fas fa-check-circle"></i> Confirmar Cobro
                 </button>
               </div>
@@ -19521,12 +19611,117 @@ Gracias por tu preferencia ✨`;
         `;
 
         document.body.insertAdjacentHTML('beforeend', html);
+        renderizarProductosCobro();
 
       } catch (err) {
         console.error('[Cobrar Cita] Error:', err);
         showNotification('Error al cargar datos de la cita', 'error');
       }
     }
+
+    // Agregar producto al cobro
+    function agregarProductoCobro() {
+      const select = document.getElementById('select-producto');
+      const opt = select.options[select.selectedIndex];
+      
+      if (!opt || !opt.value) {
+        showNotification('Selecciona un producto', 'warning');
+        return;
+      }
+      
+      const productoId = opt.value;
+      const nombre = opt.dataset.nombre;
+      const precio = parseFloat(opt.dataset.precio) || 0;
+      
+      // Verificar si ya está agregado
+      const existe = productosEnCobro.find(p => p.id === productoId);
+      if (existe) {
+        existe.cantidad++;
+      } else {
+        productosEnCobro.push({ id: productoId, nombre, precio, cantidad: 1 });
+      }
+      
+      select.value = '';
+      renderizarProductosCobro();
+      
+      // Abrir la sección si no está abierta
+      document.getElementById('detalles-productos').open = true;
+    }
+    window.agregarProductoCobro = agregarProductoCobro;
+
+    // Cambiar cantidad de producto
+    function cambiarCantidadProducto(productoId, delta) {
+      const producto = productosEnCobro.find(p => p.id === productoId);
+      if (producto) {
+        producto.cantidad += delta;
+        if (producto.cantidad <= 0) {
+          productosEnCobro = productosEnCobro.filter(p => p.id !== productoId);
+        }
+      }
+      renderizarProductosCobro();
+    }
+    window.cambiarCantidadProducto = cambiarCantidadProducto;
+
+    // Renderizar lista de productos y actualizar total
+    function renderizarProductosCobro() {
+      const container = document.getElementById('lista-productos-cobro');
+      const resumen = document.getElementById('productos-resumen');
+      const badge = document.getElementById('badge-productos');
+      
+      if (!container) return;
+      
+      // Lista de productos agregados
+      if (productosEnCobro.length === 0) {
+        container.innerHTML = '<p style="font-size:12px;color:var(--muted);text-align:center;padding:10px;">No hay productos agregados</p>';
+      } else {
+        container.innerHTML = productosEnCobro.map(p => `
+          <div style="display:flex;align-items:center;gap:8px;padding:8px;background:var(--bg-card);border-radius:8px;margin-bottom:6px;border:1px solid var(--line);">
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:12px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.nombre}</div>
+              <div style="font-size:11px;color:var(--muted);">$${p.precio.toFixed(2)} c/u</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:4px;">
+              <button onclick="cambiarCantidadProducto('${p.id}', -1)" style="width:26px;height:26px;border:1px solid var(--line);border-radius:6px;background:var(--bg);cursor:pointer;font-size:14px;color:var(--ink);">−</button>
+              <span style="width:24px;text-align:center;font-size:13px;font-weight:600;">${p.cantidad}</span>
+              <button onclick="cambiarCantidadProducto('${p.id}', 1)" style="width:26px;height:26px;border:1px solid var(--line);border-radius:6px;background:var(--bg);cursor:pointer;font-size:14px;color:var(--ink);">+</button>
+            </div>
+            <span style="font-weight:700;color:var(--venus);font-size:13px;min-width:60px;text-align:right;">$${(p.precio * p.cantidad).toFixed(2)}</span>
+          </div>
+        `).join('');
+      }
+      
+      // Resumen en el ticket
+      if (productosEnCobro.length > 0) {
+        resumen.innerHTML = productosEnCobro.map(p => `
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <span style="font-size:12px;color:var(--muted);">📦 ${p.nombre} x${p.cantidad}</span>
+            <span style="font-size:13px;color:var(--ink);">$${(p.precio * p.cantidad).toFixed(2)}</span>
+          </div>
+        `).join('');
+        badge.style.display = 'inline';
+        badge.textContent = productosEnCobro.length;
+      } else {
+        resumen.innerHTML = '';
+        badge.style.display = 'none';
+      }
+      
+      actualizarTotalCobro();
+    }
+
+    // Actualizar total del cobro
+    function actualizarTotalCobro() {
+      const precioServicio = parseFloat(document.getElementById('precio-servicio')?.value) || 0;
+      const descuento = parseFloat(document.getElementById('cobrar-descuento')?.value) || 0;
+      
+      const totalProductos = productosEnCobro.reduce((sum, p) => sum + (p.precio * p.cantidad), 0);
+      const total = Math.max(0, precioServicio + totalProductos - descuento);
+      
+      const elTotal = document.getElementById('total-cobro');
+      if (elTotal) {
+        elTotal.textContent = `$${total.toFixed(2)}`;
+      }
+    }
+    window.actualizarTotalCobro = actualizarTotalCobro;
 
     // Función para seleccionar método de pago
     function seleccionarMetodoPago(metodo) {
@@ -19544,33 +19739,62 @@ Gracias por tu preferencia ✨`;
     window.seleccionarMetodoPago = seleccionarMetodoPago;
 
     async function procesarCobroCita(citaId) {
-      const monto = parseFloat(document.getElementById('cobrar-monto').value) || 0;
+      const precioServicio = parseFloat(document.getElementById('precio-servicio')?.value) || 0;
       const metodo = document.getElementById('cobrar-metodo').value;
       const descuento = parseFloat(document.getElementById('cobrar-descuento').value) || 0;
 
-      if (monto <= 0) {
-        showNotification('Ingresa un monto válido', 'warning');
+      // Calcular total con productos
+      const totalProductos = productosEnCobro.reduce((sum, p) => sum + (p.precio * p.cantidad), 0);
+      const totalFinal = Math.max(0, precioServicio + totalProductos - descuento);
+
+      if (totalFinal <= 0) {
+        showNotification('El monto a cobrar debe ser mayor a 0', 'warning');
         return;
       }
 
       try {
+        // Preparar productos para enviar
+        const productosData = productosEnCobro.length > 0 ? productosEnCobro.map(p => ({
+          productId: p.id,
+          name: p.nombre,
+          price: p.precio,
+          quantity: p.cantidad,
+          subtotal: p.precio * p.cantidad
+        })) : null;
+
         const res = await fetch(`/api/appointments/${citaId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
           body: JSON.stringify({
             status: 'completed',  // Marcar como completada al cobrar
-            totalPaid: monto,
+            totalPaid: totalFinal,
             paymentMethod: metodo,
-            discount: descuento > 0 ? descuento : null
+            discount: descuento > 0 ? descuento : null,
+            productsSold: productosData
           })
         });
 
         const json = await res.json();
         
         if (json.success) {
+          // Actualizar stock de productos vendidos
+          for (const prod of productosEnCobro) {
+            try {
+              await fetch(`/api/products/${prod.id}/stock`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ change: -prod.cantidad })
+              });
+            } catch (e) {
+              console.warn('Error actualizando stock:', e);
+            }
+          }
+          
           showNotification('¡Pago registrado correctamente!', 'success');
           document.getElementById('modal-cobrar-cita').remove();
+          productosEnCobro = []; // Limpiar
           cargarCaja(); // Recargar la caja
         } else {
           showNotification(json.message || 'Error al registrar pago', 'error');
