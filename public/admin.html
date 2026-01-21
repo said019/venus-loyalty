@@ -19158,9 +19158,10 @@ Gracias por tu preferencia ✨`;
           citas = jsonCitas.data || [];
         }
 
-        // Filtrar citas completadas
-        const citasCompletadas = citas.filter(c => c.status === 'completed');
-        const citasPendientesCobro = citas.filter(c => c.status === 'completed' && !c.totalPaid && c.totalPaid !== 0);
+        // Filtrar citas completadas (ya cobradas) y pendientes de cobro
+        const citasCompletadas = citas.filter(c => c.status === 'completed' && c.totalPaid > 0);
+        // Pendientes de cobro: citas del día que NO están completadas ni canceladas
+        const citasPendientesCobro = citas.filter(c => c.status !== 'completed' && c.status !== 'cancelled');
 
         // Calcular totales por método de pago
         let totalEfectivo = 0, countEfectivo = 0;
@@ -19253,17 +19254,22 @@ Gracias por tu preferencia ✨`;
         return;
       }
 
-      container.innerHTML = citas.map(cita => `
+      container.innerHTML = citas.map(cita => {
+        const statusBadge = getStatusBadgeCaja(cita.status);
+        return `
         <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;border-bottom:1px solid var(--line);gap:12px;">
           <div style="flex:1;">
-            <div style="font-weight:600;font-size:14px;color:var(--ink);">${cita.clientName || 'Cliente'}</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+              <span style="font-weight:600;font-size:14px;color:var(--ink);">${cita.clientName || 'Cliente'}</span>
+              ${statusBadge}
+            </div>
             <div style="font-size:12px;color:var(--muted);">${cita.serviceName || 'Servicio'} • ${cita.time || '--:--'}</div>
           </div>
           <button class="btn primary small" onclick="abrirCobrarCita('${cita.id}')" style="white-space:nowrap;">
             <i class="fas fa-dollar-sign"></i> Cobrar
           </button>
         </div>
-      `).join('');
+      `}).join('');
     }
 
     function renderHistorialCaja(transacciones) {
@@ -19331,6 +19337,18 @@ Gracias por tu preferencia ✨`;
         return '<span style="background:#f3e5f5;color:#7b1fa2;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:500;"><i class="fas fa-exchange-alt"></i> Transf.</span>';
       }
       return '<span style="background:#f5f5f5;color:#666;padding:3px 8px;border-radius:6px;font-size:11px;">' + metodo + '</span>';
+    }
+
+    function getStatusBadgeCaja(status) {
+      const s = (status || '').toLowerCase();
+      if (s === 'scheduled') {
+        return '<span style="background:#fff3e0;color:#e65100;padding:2px 6px;border-radius:4px;font-size:10px;">Agendada</span>';
+      } else if (s === 'confirmed') {
+        return '<span style="background:#e3f2fd;color:#1565c0;padding:2px 6px;border-radius:4px;font-size:10px;">Confirmada</span>';
+      } else if (s === 'in_progress') {
+        return '<span style="background:#e8f5e9;color:#2e7d32;padding:2px 6px;border-radius:4px;font-size:10px;">En curso</span>';
+      }
+      return '<span style="background:#f5f5f5;color:#666;padding:2px 6px;border-radius:4px;font-size:10px;">' + status + '</span>';
     }
 
     function filtrarCaja(filtro) {
@@ -19436,6 +19454,7 @@ Gracias por tu preferencia ✨`;
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
           body: JSON.stringify({
+            status: 'completed',  // Marcar como completada al cobrar
             totalPaid: monto,
             paymentMethod: metodo,
             discount: descuento > 0 ? descuento : null
