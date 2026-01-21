@@ -181,16 +181,24 @@ model Notification {
 
 // Solicitudes de reserva (desde página pública)
 model BookingRequest {
-  id          String   @id @default(cuid())
-  name        String
-  phone       String
-  serviceId   String?
-  serviceName String
-  date        String
-  time        String
-  status      String   @default("pending") // pending, approved, rejected
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id              String   @id @default(cuid())
+  name            String?
+  phone           String?
+  serviceId       String?
+  serviceName     String
+  servicePrice    Decimal? @db.Decimal(10, 2)
+  serviceDuration Int?
+  date            String
+  time            String
+  clientName      String?
+  clientPhone     String?
+  clientEmail     String?
+  clientBirthday  String?
+  cardId          String?
+  isNewClient     Boolean  @default(false)
+  status          String   @default("pending") // pending, approved, rejected
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   @@map("booking_requests")
 }
