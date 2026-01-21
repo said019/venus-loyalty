@@ -19395,14 +19395,16 @@ Gracias por tu preferencia ✨`;
 
     async function abrirCobrarCita(citaId) {
       try {
-        // Cargar cita y productos en paralelo
-        const [resCita, resProductos] = await Promise.all([
+        // Cargar cita, productos y servicios en paralelo
+        const [resCita, resProductos, resServicios] = await Promise.all([
           fetch(`/api/appointments/${citaId}`, { credentials: 'include' }),
-          fetch('/api/products', { credentials: 'include' })
+          fetch('/api/products', { credentials: 'include' }),
+          fetch('/api/services', { credentials: 'include' })
         ]);
         
         const jsonCita = await resCita.json();
         const jsonProductos = await resProductos.json();
+        const jsonServicios = await resServicios.json();
         
         if (!jsonCita.success) {
           showNotification('No se pudo cargar la cita', 'error');
@@ -19411,19 +19413,32 @@ Gracias por tu preferencia ✨`;
 
         const cita = jsonCita.data;
         productosDisponibles = jsonProductos.success ? jsonProductos.data : [];
+        const servicios = jsonServicios.success ? jsonServicios.data : [];
         productosEnCobro = [];
         
-        // Buscar el servicio para obtener el precio
+        // Buscar el precio del servicio
         precioServicioGlobal = 0;
+        
+        // Primero intentar por serviceId
         if (cita.serviceId) {
-          try {
-            const resServ = await fetch(`/api/services/${cita.serviceId}`, { credentials: 'include' });
-            const jsonServ = await resServ.json();
-            if (jsonServ.success && jsonServ.data) {
-              precioServicioGlobal = parseFloat(jsonServ.data.price) || 0;
-            }
-          } catch (e) {}
+          const servicio = servicios.find(s => s.id === cita.serviceId);
+          if (servicio) {
+            precioServicioGlobal = parseFloat(servicio.price) || 0;
+          }
         }
+        
+        // Si no tiene serviceId o no encontró, buscar por nombre del servicio
+        if (precioServicioGlobal === 0 && cita.serviceName) {
+          const servicio = servicios.find(s => 
+            s.name.toLowerCase().trim() === cita.serviceName.toLowerCase().trim() ||
+            cita.serviceName.toLowerCase().includes(s.name.toLowerCase())
+          );
+          if (servicio) {
+            precioServicioGlobal = parseFloat(servicio.price) || 0;
+          }
+        }
+        
+        console.log('[Cobrar] Cita:', cita.id, 'serviceId:', cita.serviceId, 'serviceName:', cita.serviceName, 'Precio encontrado:', precioServicioGlobal);
 
         // Mostrar modal de cobro con diseño profesional
         const html = `
