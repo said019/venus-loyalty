@@ -16881,8 +16881,13 @@ Gracias por tu preferencia ✨`;
     }
 
     async function savePayment() {
+      console.log('🔵 savePayment() ejecutándose...');
+      
       const appointmentId = document.getElementById('payment-appointment-id').value;
       const paymentMethod = document.getElementById('payment-method').value;
+
+      console.log('🔵 Appointment ID:', appointmentId);
+      console.log('🔵 Payment Method:', paymentMethod);
 
       const servicePrice = paymentServicePrice;
       const productsTotal = paymentProducts.reduce((sum, p) => sum + (p.price * p.qty), 0);
@@ -16898,14 +16903,19 @@ Gracias por tu preferencia ✨`;
 
       const grandTotal = Math.max(0, subtotal - discountAmount);
 
+      console.log('🔵 Total a cobrar:', grandTotal);
+
       if (!appointmentId) {
         alert('Error: No se encontró la cita');
+        console.error('❌ No appointment ID');
         return;
       }
 
       const btn = document.getElementById('btn-save-payment');
       btn.disabled = true;
       btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+
+      console.log('🔵 Enviando request al servidor...');
 
       try {
         const productsSold = paymentProducts.map(p => ({
@@ -16961,6 +16971,19 @@ Gracias por tu preferencia ✨`;
     window.removeProductFromPayment = removeProductFromPayment;
     window.calculateTotals = calculateTotals;
     window.savePayment = savePayment;
+
+    // Agregar event listener adicional al botón de pago por si onclick falla
+    document.addEventListener('DOMContentLoaded', () => {
+      const btnSavePayment = document.getElementById('btn-save-payment');
+      if (btnSavePayment) {
+        btnSavePayment.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          console.log('🔵 Click en botón de pago detectado');
+          savePayment();
+        });
+      }
+    });
 
     // ========== VER DETALLE DE PAGO ==========
     async function viewPaymentDetails(appointmentId) {
