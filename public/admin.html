@@ -4399,24 +4399,32 @@
 
       .expediente-header {
         border-radius: 0;
-        padding: 12px 16px;
+        padding: 16px;
+        padding-top: calc(16px + env(safe-area-inset-top));
         position: sticky;
         top: 0;
         z-index: 10;
         background: var(--bg-card);
+        border-bottom: 1px solid var(--line);
       }
 
       .expediente-header h2 {
         font-size: 16px;
+        margin-bottom: 4px;
+      }
+
+      .expediente-client-info .muted {
+        font-size: 12px;
       }
 
       .expediente-tabs {
-        padding: 8px 12px;
+        padding: 10px 12px;
         position: sticky;
-        top: 48px;
+        top: 70px;
         z-index: 9;
         background: var(--bg-card);
         gap: 6px;
+        border-bottom: 1px solid var(--line);
       }
 
       .exp-tab {
@@ -9086,6 +9094,14 @@
         z-index: 100;
       }
 
+      /* Ocultar elementos cuando el expediente está abierto */
+      body.expediente-open .quick-actions,
+      body.expediente-open .admin-header,
+      body.expediente-open .sidebar,
+      body.expediente-open .topbar {
+        display: none !important;
+      }
+
       .quick-action-btn {
         width: 56px;
         height: 56px;
@@ -9922,9 +9938,10 @@
         clientModal.classList.add('hidden');
       }
       
-      // Mostrar modal de expediente
+      // Mostrar modal de expediente y ocultar elementos de fondo
       document.getElementById('expediente-modal').classList.remove('hidden');
       document.body.classList.add('modal-open');
+      document.body.classList.add('expediente-open');
       
       // Cargar datos del expediente
       await loadExpedienteData(cardId);
@@ -9934,6 +9951,7 @@
     function closeExpedienteModal() {
       document.getElementById('expediente-modal').classList.add('hidden');
       document.body.classList.remove('modal-open');
+      document.body.classList.remove('expediente-open');
       currentExpedienteCardId = null;
       currentExpedienteRecordId = null;
     }
