@@ -5,12 +5,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Política de Privacidad - Venus Cosmetología</title>
+    <link rel="icon" type="image/png" href="/assets/venus-logo.png">
     <style>
         :root {
             --venus: #8c9668;
             --venus-soft: #dfe6c1;
             --bg: #1b1c1a;
-            --bg-card: rgba(45, 47, 40, 0.8);
+            --bg-card: rgba(45, 47, 40, 0.95);
             --ink: #f9fafb;
             --muted: #9ca3af;
             --line: rgba(255, 255, 255, 0.1);
@@ -26,192 +27,367 @@
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, #1b1c1a 0%, #2d2f28 100%);
             color: var(--ink);
-            line-height: 1.6;
-            padding: 20px;
+            line-height: 1.7;
             min-height: 100vh;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #8C9668 0%, #6B7A4F 100%);
+            padding: 40px 20px;
+            text-align: center;
+        }
+
+        .header img {
+            width: 80px;
+            height: 80px;
+            border-radius: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            color: rgba(255,255,255,0.8);
+            font-size: 14px;
         }
 
         .container {
             max-width: 800px;
-            margin: 0 auto;
+            margin: -30px auto 40px;
             background: var(--bg-card);
             backdrop-filter: blur(20px);
             border: 1px solid var(--line);
             border-radius: 24px;
             padding: 40px;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
-        }
-
-        .logo {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        .logo img {
-            height: 60px;
-            filter: drop-shadow(0 0 20px rgba(140, 150, 104, 0.3));
-        }
-
-        h1 {
-            color: var(--venus-soft);
-            font-size: 32px;
-            margin-bottom: 10px;
-            text-align: center;
-        }
-
-        .last-updated {
-            text-align: center;
-            color: var(--muted);
-            font-size: 14px;
-            margin-bottom: 40px;
-        }
-
-        .intro {
-            background: rgba(140, 150, 104, 0.1);
-            border-left: 4px solid var(--venus);
-            padding: 20px;
-            border-radius: 12px;
-            margin-bottom: 30px;
-        }
-
-        h2 {
-            color: var(--venus-soft);
-            font-size: 20px;
-            margin-top: 30px;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid var(--line);
-        }
-
-        ul {
-            list-style: none;
-            padding-left: 0;
-        }
-
-        li {
-            padding: 8px 0 8px 30px;
             position: relative;
         }
 
-        li:before {
-            content: "•";
+        .update-date {
+            background: var(--venus);
+            color: #fff;
+            font-size: 12px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            display: inline-block;
+            margin-bottom: 24px;
+        }
+
+        h2 {
             color: var(--venus);
-            font-weight: bold;
-            position: absolute;
-            left: 10px;
+            font-size: 20px;
+            font-weight: 700;
+            margin: 32px 0 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        h2:first-of-type {
+            margin-top: 0;
+        }
+
+        h2 .icon {
+            width: 32px;
+            height: 32px;
+            background: rgba(140, 150, 104, 0.2);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
         }
 
         p {
-            margin-bottom: 15px;
+            color: var(--muted);
+            margin-bottom: 16px;
+            font-size: 15px;
+        }
+
+        ul, ol {
+            color: var(--muted);
+            margin: 0 0 16px 24px;
+            font-size: 15px;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        .highlight-box {
+            background: rgba(140, 150, 104, 0.15);
+            border-left: 4px solid var(--venus);
+            padding: 16px 20px;
+            border-radius: 0 12px 12px 0;
+            margin: 20px 0;
+        }
+
+        .highlight-box p {
+            margin: 0;
             color: var(--ink);
         }
 
-        .contact {
-            background: rgba(140, 150, 104, 0.15);
-            padding: 15px 20px;
-            border-radius: 12px;
-            margin-top: 10px;
-            display: inline-block;
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+            font-size: 14px;
         }
 
-        .contact a {
-            color: var(--venus-soft);
+        .data-table th,
+        .data-table td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .data-table th {
+            background: rgba(140, 150, 104, 0.2);
+            color: var(--ink);
+            font-weight: 600;
+        }
+
+        .data-table td {
+            color: var(--muted);
+        }
+
+        .contact-card {
+            background: linear-gradient(135deg, rgba(140, 150, 104, 0.2) 0%, rgba(140, 150, 104, 0.1) 100%);
+            border: 1px solid rgba(140, 150, 104, 0.3);
+            border-radius: 16px;
+            padding: 24px;
+            margin-top: 32px;
+            text-align: center;
+        }
+
+        .contact-card h3 {
+            color: var(--ink);
+            font-size: 18px;
+            margin-bottom: 12px;
+        }
+
+        .contact-card a {
+            color: var(--venus);
             text-decoration: none;
             font-weight: 600;
         }
 
-        .contact a:hover {
+        .contact-card a:hover {
             text-decoration: underline;
         }
 
         .footer {
             text-align: center;
-            margin-top: 40px;
-            padding-top: 20px;
-            border-top: 1px solid var(--line);
+            padding: 30px 20px;
             color: var(--muted);
-            font-size: 14px;
+            font-size: 13px;
         }
 
-        @media (max-width: 768px) {
+        .footer a {
+            color: var(--venus);
+            text-decoration: none;
+            margin: 0 10px;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--venus);
+            text-decoration: none;
+            font-size: 14px;
+            margin-bottom: 20px;
+            transition: opacity 0.2s;
+        }
+
+        .back-link:hover {
+            opacity: 0.8;
+        }
+
+        @media (max-width: 600px) {
             .container {
-                padding: 25px;
+                margin: -20px 16px 30px;
+                padding: 24px;
+                border-radius: 20px;
             }
 
-            h1 {
-                font-size: 24px;
+            .header {
+                padding: 30px 16px;
+            }
+
+            .header h1 {
+                font-size: 22px;
             }
 
             h2 {
                 font-size: 18px;
+            }
+
+            .data-table {
+                font-size: 12px;
+            }
+
+            .data-table th,
+            .data-table td {
+                padding: 8px 10px;
             }
         }
     </style>
 </head>
 
 <body>
-    <div class="container">
-        <div class="logo">
-            <img src="/assets/logo.png" alt="Venus Cosmetología">
-        </div>
-
+    <div class="header">
+        <img src="/assets/venus-logo.png" alt="Venus Logo" onerror="this.style.display='none'">
         <h1>Política de Privacidad</h1>
-        <p class="last-updated">Última actualización: 24/11/2025</p>
+        <p>Venus Cosmetología Avanzada</p>
+    </div>
 
-        <div class="intro">
-            <p>En <strong>Venus Cosmetología</strong> respetamos tu privacidad y nos comprometemos a proteger la
-                información personal que manejamos. Esta política explica cómo recopilamos, utilizamos y protegemos los
-                datos que recibimos a través de nuestros sistemas de reserva, comunicación y gestión de citas.</p>
-        </div>
+    <div class="container">
+        <a href="/" class="back-link">← Volver al inicio</a>
+        
+        <span class="update-date">📅 Última actualización: Enero 2026</span>
 
-        <h2>1. Información que recopilamos</h2>
+        <p>En Venus Cosmetología Avanzada nos tomamos muy en serio la privacidad de nuestros clientes. Esta política describe cómo recopilamos, usamos y protegemos su información personal.</p>
+
+        <h2><span class="icon">📊</span> 1. Información que Recopilamos</h2>
+        <p>Recopilamos la siguiente información cuando utiliza nuestros servicios:</p>
+        
+        <table class="data-table">
+            <tr>
+                <th>Tipo de Dato</th>
+                <th>Propósito</th>
+            </tr>
+            <tr>
+                <td>Nombre completo</td>
+                <td>Identificación y personalización del servicio</td>
+            </tr>
+            <tr>
+                <td>Número de teléfono</td>
+                <td>Contacto, confirmaciones y recordatorios vía WhatsApp</td>
+            </tr>
+            <tr>
+                <td>Correo electrónico</td>
+                <td>Comunicaciones y envío de wallet digital</td>
+            </tr>
+            <tr>
+                <td>Fecha de cumpleaños</td>
+                <td>Promociones especiales de cumpleaños</td>
+            </tr>
+            <tr>
+                <td>Historial de citas</td>
+                <td>Gestión de servicios y programa de lealtad</td>
+            </tr>
+        </table>
+
+        <h2><span class="icon">🎯</span> 2. Uso de la Información</h2>
+        <p>Utilizamos su información personal para:</p>
         <ul>
-            <li>Nombre</li>
-            <li>Teléfono</li>
-            <li>Correo electrónico</li>
-            <li>Servicio solicitado</li>
-            <li>Fecha y hora de citas</li>
-            <li>Mensajes enviados por nuestros canales oficiales</li>
+            <li>Gestionar y confirmar sus citas</li>
+            <li>Enviar recordatorios por WhatsApp (24h y 2h antes)</li>
+            <li>Administrar su programa de lealtad y sellos</li>
+            <li>Procesar tarjetas de regalo</li>
+            <li>Enviar promociones y ofertas especiales (con su consentimiento)</li>
+            <li>Mejorar nuestros servicios</li>
+            <li>Cumplir con obligaciones legales</li>
         </ul>
 
-        <h2>2. Uso de la información</h2>
-        <p>Utilizamos la información para:</p>
-        <ul>
-            <li>Agendar y gestionar citas</li>
-            <li>Enviar recordatorios por WhatsApp</li>
-            <li>Confirmar o reprogramar citas</li>
-            <li>Registrar historial de atención</li>
-            <li>Mejorar la experiencia del cliente</li>
-        </ul>
-
-        <h2>3. Con quién compartimos la información</h2>
-        <p>La información no se comparte con terceros, excepto:</p>
-        <ul>
-            <li><strong>Google Calendar</strong> (para sincronización de citas)</li>
-            <li><strong>Meta</strong> (WhatsApp Business API para recordatorios)</li>
-        </ul>
-        <p>Ambos proveedores cumplen con estándares de seguridad internacionales.</p>
-
-        <h2>4. Seguridad</h2>
-        <p>Protegemos la información mediante sistemas cifrados y accesos restringidos. Solo personal autorizado puede
-            visualizar datos de clientes.</p>
-
-        <h2>5. Derechos del usuario</h2>
-        <p>Puedes solicitar acceso, rectificación o eliminación de tus datos escribiendo a:</p>
-        <div class="contact">
-            📧 <a href="mailto:saidromero19@gmail.com">saidromero19@gmail.com</a>
+        <div class="highlight-box">
+            <p>🔒 <strong>Importante:</strong> Nunca vendemos ni compartimos su información personal con terceros para fines de marketing.</p>
         </div>
 
-        <h2>6. Conservación de datos</h2>
-        <p>Los datos se conservan solo para fines operativos y se eliminan cuando ya no son necesarios.</p>
+        <h2><span class="icon">📱</span> 3. Wallet Digital (Apple/Google)</h2>
+        <p>Nuestra tarjeta de lealtad digital utiliza Apple Wallet y Google Wallet. Al agregar su tarjeta:</p>
+        <ul>
+            <li>Su información se almacena de forma segura en su dispositivo</li>
+            <li>Recibe actualizaciones automáticas de sus sellos</li>
+            <li>Puede recibir notificaciones push sobre su tarjeta</li>
+            <li>La información enviada está encriptada</li>
+        </ul>
 
-        <h2>7. Cambios a esta política</h2>
-        <p>Podemos actualizar esta política en cualquier momento. Los cambios se publicarán en esta página.</p>
+        <h2><span class="icon">💬</span> 4. Comunicaciones por WhatsApp</h2>
+        <p>Usamos WhatsApp Business API para:</p>
+        <ul>
+            <li><strong>Recordatorios de citas:</strong> 24 horas y 2 horas antes</li>
+            <li><strong>Confirmaciones:</strong> Cuando agenda o modifica una cita</li>
+            <li><strong>Notificaciones:</strong> Sobre su programa de lealtad</li>
+        </ul>
+        <p>Puede desactivar estos mensajes contactándonos directamente.</p>
 
-        <div class="footer">
-            <p>Para más información, contáctanos.</p>
-            <p>&copy; 2025 Venus Cosmetología. Todos los derechos reservados.</p>
+        <h2><span class="icon">🔐</span> 5. Seguridad de los Datos</h2>
+        <p>Protegemos su información mediante:</p>
+        <ul>
+            <li>Encriptación SSL/TLS en todas las comunicaciones</li>
+            <li>Almacenamiento seguro en servidores protegidos</li>
+            <li>Acceso restringido solo a personal autorizado</li>
+            <li>Copias de seguridad regulares</li>
+            <li>Monitoreo continuo de seguridad</li>
+        </ul>
+
+        <h2><span class="icon">⏱️</span> 6. Retención de Datos</h2>
+        <p>Conservamos su información mientras:</p>
+        <ul>
+            <li>Tenga una cuenta activa con nosotros</li>
+            <li>Sea necesario para proporcionarle servicios</li>
+            <li>Sea requerido por ley</li>
+        </ul>
+        <p>Puede solicitar la eliminación de sus datos en cualquier momento.</p>
+
+        <h2><span class="icon">✅</span> 7. Sus Derechos (ARCO)</h2>
+        <p>De acuerdo con la Ley Federal de Protección de Datos Personales, usted tiene derecho a:</p>
+        <ul>
+            <li><strong>Acceso:</strong> Conocer qué datos tenemos sobre usted</li>
+            <li><strong>Rectificación:</strong> Corregir datos inexactos o incompletos</li>
+            <li><strong>Cancelación:</strong> Solicitar la eliminación de sus datos</li>
+            <li><strong>Oposición:</strong> Oponerse al uso de sus datos para ciertos fines</li>
+        </ul>
+
+        <div class="highlight-box">
+            <p>📧 Para ejercer sus derechos ARCO, envíe un correo a: <strong>privacidad@venuscosmeto.com</strong></p>
         </div>
+
+        <h2><span class="icon">🍪</span> 8. Cookies y Tecnologías</h2>
+        <p>Nuestro sitio web puede utilizar cookies para:</p>
+        <ul>
+            <li>Mantener su sesión iniciada</li>
+            <li>Recordar sus preferencias</li>
+            <li>Analizar el uso del sitio (Google Analytics)</li>
+        </ul>
+        <p>Puede configurar su navegador para rechazar cookies, aunque esto puede afectar algunas funcionalidades.</p>
+
+        <h2><span class="icon">👶</span> 9. Menores de Edad</h2>
+        <p>Nuestros servicios no están dirigidos a menores de 18 años. No recopilamos conscientemente información de menores sin el consentimiento de sus padres o tutores.</p>
+
+        <h2><span class="icon">📝</span> 10. Cambios a esta Política</h2>
+        <p>Podemos actualizar esta política ocasionalmente. Los cambios serán publicados en esta página con la fecha de actualización. Le recomendamos revisarla periódicamente.</p>
+
+        <h2><span class="icon">🏛️</span> 11. Autoridad Reguladora</h2>
+        <p>Si considera que sus derechos de protección de datos han sido vulnerados, puede presentar una queja ante el Instituto Nacional de Transparencia, Acceso a la Información y Protección de Datos Personales (INAI).</p>
+        <p>Sitio web: <a href="https://home.inai.org.mx" target="_blank" style="color: var(--venus);">www.inai.org.mx</a></p>
+
+        <div class="contact-card">
+            <h3>🛡️ Responsable del Tratamiento de Datos</h3>
+            <p style="margin-bottom: 16px;">Venus Cosmetología Avanzada</p>
+            <p style="margin: 0; font-size: 14px;">
+                📧 Privacidad: <a href="mailto:privacidad@venuscosmeto.com">privacidad@venuscosmeto.com</a><br>
+                📱 WhatsApp: <a href="https://wa.me/5215512345678">+52 55 1234 5678</a><br>
+                📍 CDMX, México
+            </p>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>© 2026 Venus Cosmetología Avanzada. Todos los derechos reservados.</p>
+        <p>
+            <a href="/terms.html">Términos y Condiciones</a> |
+            <a href="/privacy.html">Política de Privacidad</a> |
+            <a href="/">Inicio</a>
+        </p>
     </div>
 </body>
 
