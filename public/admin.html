@@ -763,6 +763,13 @@
       border-radius: 10px;
     }
 
+    .btn.small.is-active,
+    .caja-filter-btn.is-active {
+      background: var(--venus) !important;
+      color: #fff !important;
+      border-color: var(--venus) !important;
+    }
+
     .btn.danger {
       color: var(--status-cancelled);
       border-color: rgba(248, 113, 113, 0.3);
@@ -4605,6 +4612,10 @@
         <i class="fas fa-sparkles"></i>
         <span>Catálogo</span>
       </button>
+      <button class="sidebar-nav-item" data-tab="caja">
+        <i class="fas fa-cash-register"></i>
+        <span>Caja</span>
+      </button>
       <button class="sidebar-nav-item" data-tab="reports">
         <i class="fas fa-chart-line"></i>
         <span>Reportes</span>
@@ -4708,6 +4719,7 @@
         <a href="#requests" class="mobile-nav-link" data-tab="requests"><i class="fas fa-inbox"></i> Solicitudes</a>
         <a href="#appointments" class="mobile-nav-link" data-tab="appointments"><i class="fas fa-calendar"></i>
           Citas</a>
+        <a href="#caja" class="mobile-nav-link" data-tab="caja"><i class="fas fa-cash-register"></i> Caja</a>
         <a href="#reports" class="mobile-nav-link" data-tab="reports"><i class="fas fa-chart-line"></i> Reportes</a>
         <a href="#services" class="mobile-nav-link" data-tab="services"><i class="fas fa-sparkles"></i> Servicios</a>
         <a href="#settings" class="mobile-nav-link" data-tab="settings"><i class="fas fa-cog"></i> Configuración</a>
@@ -6094,7 +6106,150 @@
         </div>
     </section>
 
-    <!-- TAB: Servicios y Productos -->
+    <!-- TAB: Caja -->
+    <section id="tab-caja" class="tab-content hidden">
+      <div class="header-actions">
+        <h2><i class="fas fa-cash-register"></i> Caja del Día</h2>
+        <div style="display:flex;gap:8px;">
+          <button class="btn ghost" onclick="cargarCaja()">
+            <i class="fas fa-sync"></i> Actualizar
+          </button>
+          <button class="btn primary" onclick="abrirVentaRapida()">
+            <i class="fas fa-plus"></i> Venta Rápida
+          </button>
+        </div>
+      </div>
+
+      <!-- Fecha actual -->
+      <div class="card" style="padding:12px 16px;margin-bottom:16px;background:linear-gradient(135deg, rgba(140,150,104,0.15) 0%, rgba(140,150,104,0.05) 100%);border:1px solid rgba(140,150,104,0.3);">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <i class="fas fa-calendar-day" style="color:var(--venus);font-size:18px;"></i>
+            <span id="caja-fecha-hoy" style="font-size:16px;font-weight:600;color:var(--ink);"></span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <label style="font-size:12px;color:var(--muted);">Ver fecha:</label>
+            <input type="date" id="caja-fecha-select" class="form-control" onchange="cargarCajaPorFecha(this.value)" 
+              style="padding:6px 10px;border-radius:8px;font-size:13px;">
+          </div>
+        </div>
+      </div>
+
+      <!-- Totales del día -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:24px;">
+        <!-- Efectivo -->
+        <div class="card" style="background:linear-gradient(135deg, #2F3E2B 0%, #4A5D3F 100%);border:none;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+            <div style="width:40px;height:40px;border-radius:10px;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;">
+              <i class="fas fa-money-bill-wave" style="color:#C1D7AE;font-size:18px;"></i>
+            </div>
+            <span style="font-size:12px;color:rgba(255,255,255,0.7);text-transform:uppercase;font-weight:600;">Efectivo</span>
+          </div>
+          <div id="caja-total-efectivo" style="font-size:28px;font-weight:700;color:#fff;">$0.00</div>
+          <div id="caja-count-efectivo" style="font-size:11px;color:rgba(255,255,255,0.6);margin-top:4px;">0 transacciones</div>
+        </div>
+
+        <!-- Tarjeta -->
+        <div class="card" style="background:linear-gradient(135deg, #3a4a5e 0%, #4a5a6e 100%);border:none;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+            <div style="width:40px;height:40px;border-radius:10px;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;">
+              <i class="fas fa-credit-card" style="color:#A8C4E0;font-size:18px;"></i>
+            </div>
+            <span style="font-size:12px;color:rgba(255,255,255,0.7);text-transform:uppercase;font-weight:600;">Tarjeta</span>
+          </div>
+          <div id="caja-total-tarjeta" style="font-size:28px;font-weight:700;color:#fff;">$0.00</div>
+          <div id="caja-count-tarjeta" style="font-size:11px;color:rgba(255,255,255,0.6);margin-top:4px;">0 transacciones</div>
+        </div>
+
+        <!-- Transferencia -->
+        <div class="card" style="background:linear-gradient(135deg, #4a3a5e 0%, #5a4a6e 100%);border:none;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+            <div style="width:40px;height:40px;border-radius:10px;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;">
+              <i class="fas fa-exchange-alt" style="color:#D4B8E8;font-size:18px;"></i>
+            </div>
+            <span style="font-size:12px;color:rgba(255,255,255,0.7);text-transform:uppercase;font-weight:600;">Transferencia</span>
+          </div>
+          <div id="caja-total-transferencia" style="font-size:28px;font-weight:700;color:#fff;">$0.00</div>
+          <div id="caja-count-transferencia" style="font-size:11px;color:rgba(255,255,255,0.6);margin-top:4px;">0 transacciones</div>
+        </div>
+
+        <!-- Total General -->
+        <div class="card" style="background:linear-gradient(135deg, #C1A66D 0%, #D4B896 100%);border:none;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+            <div style="width:40px;height:40px;border-radius:10px;background:rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;">
+              <i class="fas fa-coins" style="color:#fff;font-size:18px;"></i>
+            </div>
+            <span style="font-size:12px;color:rgba(255,255,255,0.9);text-transform:uppercase;font-weight:700;">Total</span>
+          </div>
+          <div id="caja-total-general" style="font-size:32px;font-weight:800;color:#fff;">$0.00</div>
+          <div id="caja-count-general" style="font-size:11px;color:rgba(255,255,255,0.8);margin-top:4px;">0 transacciones</div>
+        </div>
+      </div>
+
+      <!-- Citas pendientes de cobro -->
+      <div class="card" style="margin-bottom:20px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+          <h3 style="margin:0;font-size:14px;color:var(--venus-soft);display:flex;align-items:center;gap:8px;">
+            <i class="fas fa-exclamation-triangle" style="color:#f0ad4e;"></i>
+            Citas Completadas sin Cobrar
+          </h3>
+          <span id="caja-pendientes-count" class="badge" style="background:#f0ad4e;color:#333;">0</span>
+        </div>
+        <div id="caja-pendientes-list" style="max-height:300px;overflow-y:auto;">
+          <div style="text-align:center;padding:40px;color:var(--muted);">
+            <i class="fas fa-check-circle" style="font-size:32px;margin-bottom:12px;opacity:0.5;"></i>
+            <p style="margin:0;">No hay citas pendientes de cobro</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Historial de transacciones del día -->
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:12px;">
+          <h3 style="margin:0;font-size:14px;color:var(--venus-soft);">
+            <i class="fas fa-list-alt"></i> Historial de Transacciones
+          </h3>
+          <div style="display:flex;gap:8px;">
+            <button class="btn ghost small caja-filter-btn is-active" data-filter="todos" onclick="filtrarCaja('todos')">Todos</button>
+            <button class="btn ghost small caja-filter-btn" data-filter="citas" onclick="filtrarCaja('citas')">Citas</button>
+            <button class="btn ghost small caja-filter-btn" data-filter="productos" onclick="filtrarCaja('productos')">Productos</button>
+          </div>
+        </div>
+        
+        <div class="table-wrap" style="max-height:400px;overflow-y:auto;">
+          <table class="data-table" style="font-size:12px;">
+            <thead style="position:sticky;top:0;background:var(--bg-card);z-index:1;">
+              <tr>
+                <th style="text-align:left;padding:10px;">Hora</th>
+                <th style="text-align:left;padding:10px;">Tipo</th>
+                <th style="text-align:left;padding:10px;">Cliente</th>
+                <th style="text-align:left;padding:10px;">Concepto</th>
+                <th style="text-align:right;padding:10px;">Monto</th>
+                <th style="text-align:center;padding:10px;">Método</th>
+                <th style="text-align:center;padding:10px;"></th>
+              </tr>
+            </thead>
+            <tbody id="caja-historial-body">
+              <tr>
+                <td colspan="7" style="text-align:center;padding:40px;color:var(--muted);">
+                  <i class="fas fa-inbox" style="font-size:32px;margin-bottom:12px;opacity:0.5;display:block;"></i>
+                  No hay transacciones registradas hoy
+                </td>
+              </tr>
+            </tbody>
+            <tfoot style="background:var(--bg-card);border-top:2px solid var(--venus);">
+              <tr>
+                <td colspan="4" style="padding:12px;font-weight:700;">TOTAL DEL DÍA</td>
+                <td id="caja-historial-total" style="text-align:right;padding:12px;font-weight:700;font-size:16px;color:var(--venus);">$0.00</td>
+                <td colspan="2"></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB: Reportes -->
     <section id="tab-services" class="tab-content hidden">
       <div class="header-actions">
         <h2><i class="fas fa-sparkles"></i> Catálogo</h2>
@@ -18965,6 +19120,473 @@ Gracias por tu preferencia ✨`;
     } else {
       loadGoogleMapsAPI();
     }
+
+    // ========== SECCIÓN DE CAJA ==========
+    let cajaData = [];
+    let cajaFechaActual = new Date().toISOString().split('T')[0];
+    let cajaFiltroActual = 'todos';
+
+    // Inicializar caja cuando se abra la pestaña
+    document.addEventListener('DOMContentLoaded', () => {
+      const cajaLink = document.querySelector('[data-tab="caja"]');
+      if (cajaLink) {
+        cajaLink.addEventListener('click', () => {
+          cargarCaja();
+        });
+      }
+    });
+
+    // Cargar datos de la caja
+    async function cargarCaja() {
+      const fecha = cajaFechaActual;
+      const fechaInput = document.getElementById('caja-fecha-select');
+      const fechaLabel = document.getElementById('caja-fecha-hoy');
+      
+      if (fechaInput) fechaInput.value = fecha;
+      if (fechaLabel) {
+        const d = new Date(fecha + 'T12:00:00');
+        fechaLabel.textContent = d.toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      }
+
+      try {
+        // Cargar citas completadas del día
+        const resCitas = await fetch(`/api/appointments?date=${fecha}`, { credentials: 'include' });
+        const jsonCitas = await resCitas.json();
+        
+        let citas = [];
+        if (jsonCitas.success) {
+          citas = jsonCitas.data || [];
+        }
+
+        // Filtrar citas completadas
+        const citasCompletadas = citas.filter(c => c.status === 'completed');
+        const citasPendientesCobro = citas.filter(c => c.status === 'completed' && !c.totalPaid && c.totalPaid !== 0);
+
+        // Calcular totales por método de pago
+        let totalEfectivo = 0, countEfectivo = 0;
+        let totalTarjeta = 0, countTarjeta = 0;
+        let totalTransferencia = 0, countTransferencia = 0;
+
+        const transacciones = [];
+
+        citasCompletadas.forEach(cita => {
+          if (cita.totalPaid > 0) {
+            const metodo = (cita.paymentMethod || 'efectivo').toLowerCase();
+            const monto = parseFloat(cita.totalPaid) || 0;
+            
+            if (metodo.includes('efectivo') || metodo === 'cash') {
+              totalEfectivo += monto;
+              countEfectivo++;
+            } else if (metodo.includes('tarjeta') || metodo === 'card') {
+              totalTarjeta += monto;
+              countTarjeta++;
+            } else if (metodo.includes('transfer')) {
+              totalTransferencia += monto;
+              countTransferencia++;
+            } else {
+              totalEfectivo += monto;
+              countEfectivo++;
+            }
+
+            transacciones.push({
+              tipo: 'cita',
+              hora: cita.time || '--:--',
+              cliente: cita.clientName || 'Cliente',
+              concepto: cita.serviceName || 'Servicio',
+              monto: monto,
+              metodo: metodo,
+              id: cita.id
+            });
+          }
+        });
+
+        // También cargar productos vendidos (si hay)
+        // TODO: Integrar con sistema de ventas de productos cuando exista
+
+        cajaData = transacciones;
+        
+        // Actualizar UI - Totales
+        document.getElementById('caja-total-efectivo').textContent = '$' + totalEfectivo.toFixed(2);
+        document.getElementById('caja-count-efectivo').textContent = countEfectivo + ' transacciones';
+        
+        document.getElementById('caja-total-tarjeta').textContent = '$' + totalTarjeta.toFixed(2);
+        document.getElementById('caja-count-tarjeta').textContent = countTarjeta + ' transacciones';
+        
+        document.getElementById('caja-total-transferencia').textContent = '$' + totalTransferencia.toFixed(2);
+        document.getElementById('caja-count-transferencia').textContent = countTransferencia + ' transacciones';
+
+        const totalGeneral = totalEfectivo + totalTarjeta + totalTransferencia;
+        const countGeneral = countEfectivo + countTarjeta + countTransferencia;
+        document.getElementById('caja-total-general').textContent = '$' + totalGeneral.toFixed(2);
+        document.getElementById('caja-count-general').textContent = countGeneral + ' transacciones';
+
+        // Actualizar citas pendientes de cobro
+        renderCitasPendientesCobro(citasPendientesCobro);
+
+        // Actualizar historial
+        renderHistorialCaja(transacciones);
+
+      } catch (err) {
+        console.error('[Caja] Error:', err);
+        showNotification('Error al cargar la caja', 'error');
+      }
+    }
+
+    function cargarCajaPorFecha(fecha) {
+      cajaFechaActual = fecha;
+      cargarCaja();
+    }
+
+    function renderCitasPendientesCobro(citas) {
+      const container = document.getElementById('caja-pendientes-list');
+      const badge = document.getElementById('caja-pendientes-count');
+      
+      if (badge) badge.textContent = citas.length;
+
+      if (!citas || citas.length === 0) {
+        container.innerHTML = `
+          <div style="text-align:center;padding:40px;color:var(--muted);">
+            <i class="fas fa-check-circle" style="font-size:32px;margin-bottom:12px;opacity:0.5;color:#5cb85c;"></i>
+            <p style="margin:0;">¡Todas las citas están cobradas!</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = citas.map(cita => `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;border-bottom:1px solid var(--line);gap:12px;">
+          <div style="flex:1;">
+            <div style="font-weight:600;font-size:14px;color:var(--ink);">${cita.clientName || 'Cliente'}</div>
+            <div style="font-size:12px;color:var(--muted);">${cita.serviceName || 'Servicio'} • ${cita.time || '--:--'}</div>
+          </div>
+          <button class="btn primary small" onclick="abrirCobrarCita('${cita.id}')" style="white-space:nowrap;">
+            <i class="fas fa-dollar-sign"></i> Cobrar
+          </button>
+        </div>
+      `).join('');
+    }
+
+    function renderHistorialCaja(transacciones) {
+      const tbody = document.getElementById('caja-historial-body');
+      const totalEl = document.getElementById('caja-historial-total');
+
+      // Aplicar filtro
+      let filtered = transacciones;
+      if (cajaFiltroActual === 'citas') {
+        filtered = transacciones.filter(t => t.tipo === 'cita');
+      } else if (cajaFiltroActual === 'productos') {
+        filtered = transacciones.filter(t => t.tipo === 'producto');
+      }
+
+      if (!filtered || filtered.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" style="text-align:center;padding:40px;color:var(--muted);">
+              <i class="fas fa-inbox" style="font-size:32px;margin-bottom:12px;opacity:0.5;display:block;"></i>
+              No hay transacciones ${cajaFiltroActual !== 'todos' ? 'de ' + cajaFiltroActual : ''} registradas
+            </td>
+          </tr>
+        `;
+        totalEl.textContent = '$0.00';
+        return;
+      }
+
+      // Ordenar por hora
+      filtered.sort((a, b) => (b.hora || '').localeCompare(a.hora || ''));
+
+      const total = filtered.reduce((sum, t) => sum + (t.monto || 0), 0);
+      totalEl.textContent = '$' + total.toFixed(2);
+
+      tbody.innerHTML = filtered.map(t => {
+        const metodoBadge = getMetodoPagoBadge(t.metodo);
+        const tipoBadge = t.tipo === 'cita' 
+          ? '<span style="background:#e8f5e9;color:#2e7d32;padding:2px 8px;border-radius:4px;font-size:10px;">Cita</span>'
+          : '<span style="background:#fff3e0;color:#e65100;padding:2px 8px;border-radius:4px;font-size:10px;">Producto</span>';
+        
+        return `
+          <tr>
+            <td style="padding:10px;font-weight:500;">${t.hora}</td>
+            <td style="padding:10px;">${tipoBadge}</td>
+            <td style="padding:10px;">${t.cliente}</td>
+            <td style="padding:10px;">${t.concepto}</td>
+            <td style="padding:10px;text-align:right;font-weight:600;color:var(--venus);">$${(t.monto || 0).toFixed(2)}</td>
+            <td style="padding:10px;text-align:center;">${metodoBadge}</td>
+            <td style="padding:10px;text-align:center;">
+              <button class="btn ghost small" onclick="verDetalleCaja('${t.id}')" title="Ver detalle">
+                <i class="fas fa-eye"></i>
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function getMetodoPagoBadge(metodo) {
+      const m = (metodo || 'efectivo').toLowerCase();
+      if (m.includes('efectivo') || m === 'cash') {
+        return '<span style="background:#e8f5e9;color:#2e7d32;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:500;"><i class="fas fa-money-bill-wave"></i> Efectivo</span>';
+      } else if (m.includes('tarjeta') || m === 'card') {
+        return '<span style="background:#e3f2fd;color:#1565c0;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:500;"><i class="fas fa-credit-card"></i> Tarjeta</span>';
+      } else if (m.includes('transfer')) {
+        return '<span style="background:#f3e5f5;color:#7b1fa2;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:500;"><i class="fas fa-exchange-alt"></i> Transf.</span>';
+      }
+      return '<span style="background:#f5f5f5;color:#666;padding:3px 8px;border-radius:6px;font-size:11px;">' + metodo + '</span>';
+    }
+
+    function filtrarCaja(filtro) {
+      cajaFiltroActual = filtro;
+      
+      // Actualizar botones activos
+      document.querySelectorAll('.caja-filter-btn').forEach(btn => {
+        btn.classList.toggle('is-active', btn.dataset.filter === filtro);
+      });
+
+      renderHistorialCaja(cajaData);
+    }
+
+    // Función para abrir modal de cobro de cita pendiente
+    async function abrirCobrarCita(citaId) {
+      try {
+        const res = await fetch(`/api/appointments/${citaId}`, { credentials: 'include' });
+        const json = await res.json();
+        
+        if (!json.success) {
+          showNotification('No se pudo cargar la cita', 'error');
+          return;
+        }
+
+        const cita = json.data;
+        
+        // Buscar el servicio para obtener el precio
+        let precioSugerido = 0;
+        if (cita.serviceId) {
+          try {
+            const resServ = await fetch(`/api/services/${cita.serviceId}`, { credentials: 'include' });
+            const jsonServ = await resServ.json();
+            if (jsonServ.success && jsonServ.data) {
+              precioSugerido = jsonServ.data.price || 0;
+            }
+          } catch (e) {}
+        }
+
+        // Mostrar modal de cobro
+        const html = `
+          <div class="modal" id="modal-cobrar-cita" style="display:flex;">
+            <div class="modal-box" style="max-width:400px;">
+              <div class="modal-header">
+                <h3><i class="fas fa-dollar-sign"></i> Cobrar Cita</h3>
+                <button class="modal-close" onclick="document.getElementById('modal-cobrar-cita').remove()">×</button>
+              </div>
+              <div class="modal-body">
+                <div style="background:var(--bg);padding:12px;border-radius:8px;margin-bottom:16px;">
+                  <div style="font-weight:600;margin-bottom:4px;">${cita.clientName || 'Cliente'}</div>
+                  <div style="font-size:13px;color:var(--muted);">${cita.serviceName || 'Servicio'} • ${cita.date} ${cita.time}</div>
+                </div>
+                
+                <div class="form-group">
+                  <label>Monto a cobrar</label>
+                  <input type="number" id="cobrar-monto" class="form-input" value="${precioSugerido}" step="0.01" min="0">
+                </div>
+                
+                <div class="form-group">
+                  <label>Método de pago</label>
+                  <select id="cobrar-metodo" class="form-input">
+                    <option value="efectivo">💵 Efectivo</option>
+                    <option value="tarjeta">💳 Tarjeta</option>
+                    <option value="transferencia">📱 Transferencia</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label>Descuento (opcional)</label>
+                  <input type="number" id="cobrar-descuento" class="form-input" value="0" step="0.01" min="0">
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button class="btn ghost" onclick="document.getElementById('modal-cobrar-cita').remove()">Cancelar</button>
+                <button class="btn primary" onclick="procesarCobroCita('${citaId}')">
+                  <i class="fas fa-check"></i> Cobrar
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', html);
+
+      } catch (err) {
+        console.error('[Cobrar Cita] Error:', err);
+        showNotification('Error al cargar datos de la cita', 'error');
+      }
+    }
+
+    async function procesarCobroCita(citaId) {
+      const monto = parseFloat(document.getElementById('cobrar-monto').value) || 0;
+      const metodo = document.getElementById('cobrar-metodo').value;
+      const descuento = parseFloat(document.getElementById('cobrar-descuento').value) || 0;
+
+      if (monto <= 0) {
+        showNotification('Ingresa un monto válido', 'warning');
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/appointments/${citaId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            totalPaid: monto,
+            paymentMethod: metodo,
+            discount: descuento > 0 ? descuento : null
+          })
+        });
+
+        const json = await res.json();
+        
+        if (json.success) {
+          showNotification('¡Pago registrado correctamente!', 'success');
+          document.getElementById('modal-cobrar-cita').remove();
+          cargarCaja(); // Recargar la caja
+        } else {
+          showNotification(json.message || 'Error al registrar pago', 'error');
+        }
+
+      } catch (err) {
+        console.error('[Procesar Cobro] Error:', err);
+        showNotification('Error de conexión', 'error');
+      }
+    }
+
+    // Modal de venta rápida (para productos sin cita)
+    function abrirVentaRapida() {
+      const html = `
+        <div class="modal" id="modal-venta-rapida" style="display:flex;">
+          <div class="modal-box" style="max-width:450px;">
+            <div class="modal-header">
+              <h3><i class="fas fa-shopping-cart"></i> Venta Rápida</h3>
+              <button class="modal-close" onclick="document.getElementById('modal-venta-rapida').remove()">×</button>
+            </div>
+            <div class="modal-body">
+              <div class="form-group">
+                <label>Concepto / Producto</label>
+                <input type="text" id="venta-concepto" class="form-input" placeholder="Ej: Crema hidratante, Serum...">
+              </div>
+              
+              <div class="form-group">
+                <label>Cliente (opcional)</label>
+                <input type="text" id="venta-cliente" class="form-input" placeholder="Nombre del cliente">
+              </div>
+              
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div class="form-group">
+                  <label>Monto</label>
+                  <input type="number" id="venta-monto" class="form-input" step="0.01" min="0" placeholder="0.00">
+                </div>
+                
+                <div class="form-group">
+                  <label>Método de pago</label>
+                  <select id="venta-metodo" class="form-input">
+                    <option value="efectivo">💵 Efectivo</option>
+                    <option value="tarjeta">💳 Tarjeta</option>
+                    <option value="transferencia">📱 Transferencia</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label>Notas (opcional)</label>
+                <textarea id="venta-notas" class="form-input" rows="2" placeholder="Notas adicionales..."></textarea>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button class="btn ghost" onclick="document.getElementById('modal-venta-rapida').remove()">Cancelar</button>
+              <button class="btn primary" onclick="procesarVentaRapida()">
+                <i class="fas fa-check"></i> Registrar Venta
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.body.insertAdjacentHTML('beforeend', html);
+    }
+
+    async function procesarVentaRapida() {
+      const concepto = document.getElementById('venta-concepto').value.trim();
+      const cliente = document.getElementById('venta-cliente').value.trim() || 'Venta directa';
+      const monto = parseFloat(document.getElementById('venta-monto').value) || 0;
+      const metodo = document.getElementById('venta-metodo').value;
+      const notas = document.getElementById('venta-notas').value.trim();
+
+      if (!concepto) {
+        showNotification('Ingresa el concepto de la venta', 'warning');
+        return;
+      }
+
+      if (monto <= 0) {
+        showNotification('Ingresa un monto válido', 'warning');
+        return;
+      }
+
+      try {
+        // Crear una cita "rápida" para registrar la venta
+        const hoy = new Date().toISOString().split('T')[0];
+        const ahora = new Date().toTimeString().slice(0, 5);
+
+        const res = await fetch('/api/appointments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            clientName: cliente,
+            clientPhone: '',
+            serviceName: concepto,
+            date: hoy,
+            time: ahora,
+            durationMinutes: 0,
+            status: 'completed',
+            totalPaid: monto,
+            paymentMethod: metodo,
+            source: 'venta_rapida',
+            productsSold: notas ? [{ note: notas }] : null
+          })
+        });
+
+        const json = await res.json();
+        
+        if (json.success) {
+          showNotification('¡Venta registrada correctamente!', 'success');
+          document.getElementById('modal-venta-rapida').remove();
+          cargarCaja();
+        } else {
+          showNotification(json.message || 'Error al registrar venta', 'error');
+        }
+
+      } catch (err) {
+        console.error('[Venta Rápida] Error:', err);
+        showNotification('Error de conexión', 'error');
+      }
+    }
+
+    function verDetalleCaja(id) {
+      // Por ahora, simplemente abrir el detalle de la cita
+      if (typeof openAppointmentDetailModal === 'function') {
+        openAppointmentDetailModal(id);
+      } else {
+        showNotification('Función no disponible', 'info');
+      }
+    }
+
+    // Exponer funciones globalmente
+    window.cargarCaja = cargarCaja;
+    window.cargarCajaPorFecha = cargarCajaPorFecha;
+    window.filtrarCaja = filtrarCaja;
+    window.abrirCobrarCita = abrirCobrarCita;
+    window.procesarCobroCita = procesarCobroCita;
+    window.abrirVentaRapida = abrirVentaRapida;
+    window.procesarVentaRapida = procesarVentaRapida;
+    window.verDetalleCaja = verDetalleCaja;
 
     // ========== SECCIÓN DE REPORTES DE VENTAS ==========
 
