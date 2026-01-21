@@ -997,6 +997,25 @@ app.post('/api/direct-sales', adminAuth, async (req, res) => {
       paymentMethod,
       createdAt: new Date().toISOString()
     });
+    
+    // También en Prisma
+    try {
+        await SalesRepo.create({
+          appointmentId: null,
+          clientName: clientName || 'Venta Pasajero',
+          serviceName: null,
+          serviceAmount: 0,
+          productsAmount: parseFloat(productsAmount) || 0,
+          subtotal: parseFloat(productsAmount) || 0,
+          discountType,
+          discountValue: discountValue || 0,
+          discountAmount: parseFloat(discountAmount) || 0,
+          totalAmount: parseFloat(totalAmount) || 0,
+          productsSold,
+          paymentMethod,
+          date: new Date()
+        });
+    } catch (e) { console.error('Error registrando venta directa en prisma:', e); }
 
     console.log('[DIRECT SALE] ✅ Venta registrada:', saleRef.id);
 
@@ -1004,6 +1023,45 @@ app.post('/api/direct-sales', adminAuth, async (req, res) => {
   } catch (error) {
     console.error('[DIRECT SALE] Error:', error);
     res.json({ success: false, error: error.message });
+  }
+});
+
+// GET /api/transactions - Obtener historial de ventas (directas y mixtas)
+app.get('/api/transactions', adminAuth, async (req, res) => {
+  try {
+    const { date } = req.query;
+    if (!date) return res.json({ success: false, error: 'Fecha requerida' });
+
+    const startDate = new Date(date + 'T00:00:00');
+    const endDate = new Date(date + 'T23:59:59');
+
+    // Buscar en SalesRepo (Prisma)
+    // Asumiendo que Prisma maneja fechas ISO
+    try {
+        const sales = await prisma.sale.findMany({
+          where: {
+            createdAt: {
+              gte: startDate,
+              lte: endDate
+            }
+          }
+        });
+        
+        if (sales && sales.length > 0) return res.json({ success: true, data: sales });
+    } catch(e) { console.warn('Error fetching prismas sales:', e); }
+
+    // Fallback a Firestore para ventas directas
+    const snapshot = await firestore.collection('sales')
+         .where('createdAt', '>=', startDate.toISOString())
+         .where('createdAt', '<=', endDate.toISOString())
+         .get();
+         
+    const fsSales = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+    return res.json({ success: true, data: fsSales });
+
+  } catch (e) {
+    console.error('Error obteniendo transacciones:', e);
+    res.json({ success: false, error: e.message });
   }
 });
 

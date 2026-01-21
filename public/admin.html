@@ -19220,7 +19220,8 @@ Gracias por tu preferencia ✨`;
         let citasMes = jsonCitasMes.success ? (jsonCitasMes.data || []) : [];
 
         // Filtrar citas completadas del día (ya cobradas) - para historial
-        const citasCompletadas = citasDia.filter(c => c.status === 'completed' && c.totalPaid > 0);
+        // MODIFICADO: Incluir citas con totalPaid 0 o mayor (para que aparezcan las cobradas en 0)
+        const citasCompletadas = citasDia.filter(c => c.status === 'completed' && c.totalPaid !== undefined && c.totalPaid !== null);
         // Pendientes de cobro: citas hasta HOY que NO están completadas ni canceladas
         const citasPendientesCobro = citasMes.filter(c => c.status !== 'completed' && c.status !== 'cancelled');
 
@@ -19232,7 +19233,8 @@ Gracias por tu preferencia ✨`;
         const transacciones = [];
 
         citasCompletadas.forEach(cita => {
-          if (cita.totalPaid > 0) {
+          // MODIFICADO: Permitir registrar transacciones de monto 0
+          if (cita.totalPaid >= 0) {
             const metodo = (cita.paymentMethod || 'efectivo').toLowerCase();
             const monto = parseFloat(cita.totalPaid) || 0;
             
@@ -19262,8 +19264,39 @@ Gracias por tu preferencia ✨`;
           }
         });
 
-        // También cargar productos vendidos (si hay)
-        // TODO: Integrar con sistema de ventas de productos cuando exista
+        // Cargar ventas directas (productos sin cita)
+        try {
+          const resVentas = await fetch(`/api/transactions?date=${fecha}`, { credentials: 'include' });
+          if (resVentas.ok) {
+            const jsonVentas = await resVentas.json();
+            if (jsonVentas.success && jsonVentas.data) {
+              jsonVentas.data.forEach(venta => {
+                if (venta.type === 'direct') {
+                   const monto = parseFloat(venta.totalAmount) || 0;
+                   const metodo = (venta.paymentMethod || 'efectivo').toLowerCase();
+                   
+                   // Sumar a totales
+                   if (metodo.includes('efectivo')) { totalEfectivo += monto; countEfectivo++; }
+                   else if (metodo.includes('tarjeta')) { totalTarjeta += monto; countTarjeta++; }
+                   else if (metodo.includes('transfer')) { totalTransferencia += monto; countTransferencia++; }
+                   else { totalEfectivo += monto; countEfectivo++; }
+
+                   transacciones.push({
+                     tipo: 'producto',
+                     hora: new Date(venta.createdAt).toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'}),
+                     cliente: venta.clientName || 'Venta Mostrador',
+                     concepto: (venta.productsSold || []).map(p => p.name).join(', ') || 'Venta Directa',
+                     monto: monto,
+                     metodo: metodo,
+                     id: venta.id
+                   });
+                }
+              });
+            }
+          }
+        } catch (e) {
+          console.warn('Error cargando ventas directas:', e);
+        }
 
         cajaData = transacciones;
         
