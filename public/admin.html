@@ -16618,6 +16618,9 @@ Gracias por tu preferencia ✨`;
       paymentProducts = [];
       discountType = 'percent';
       isPriceEditing = false;
+      
+      // Asegurar que paymentServicePrice se inicializa correctamente
+      paymentServicePrice = parseFloat(servicePrice) || 0;
 
       document.getElementById('payment-appointment-id').value = appointmentId;
       document.getElementById('payment-client-name').textContent = clientName || '-';
@@ -16883,41 +16886,42 @@ Gracias por tu preferencia ✨`;
     async function savePayment() {
       console.log('🔵 savePayment() ejecutándose...');
       
-      const appointmentId = document.getElementById('payment-appointment-id').value;
-      const paymentMethod = document.getElementById('payment-method').value;
-
-      console.log('🔵 Appointment ID:', appointmentId);
-      console.log('🔵 Payment Method:', paymentMethod);
-
-      const servicePrice = paymentServicePrice;
-      const productsTotal = paymentProducts.reduce((sum, p) => sum + (p.price * p.qty), 0);
-      const subtotal = servicePrice + productsTotal;
-
-      const discountValue = parseFloat(document.getElementById('payment-discount-value').value) || 0;
-      let discountAmount = 0;
-      if (discountType === 'percent') {
-        discountAmount = Math.round(subtotal * (discountValue / 100));
-      } else {
-        discountAmount = Math.min(discountValue, subtotal);
-      }
-
-      const grandTotal = Math.max(0, subtotal - discountAmount);
-
-      console.log('🔵 Total a cobrar:', grandTotal);
-
-      if (!appointmentId) {
-        alert('Error: No se encontró la cita');
-        console.error('❌ No appointment ID');
-        return;
-      }
-
-      const btn = document.getElementById('btn-save-payment');
-      btn.disabled = true;
-      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
-
-      console.log('🔵 Enviando request al servidor...');
-
       try {
+        const appointmentId = document.getElementById('payment-appointment-id').value;
+        const paymentMethodSelect = document.getElementById('payment-method');
+        const paymentMethod = paymentMethodSelect ? paymentMethodSelect.value : 'efectivo';
+
+        console.log('🔵 Appointment ID:', appointmentId);
+        console.log('🔵 Payment Method:', paymentMethod);
+
+        if (!appointmentId) {
+          if (window.showNotification) showNotification('Error: ID de cita perdido. Cierra y abre de nuevo.', 'error');
+          else alert('Error: ID de cita perdido. Cierra y abre de nuevo.');
+          return;
+        }
+
+        const servicePrice = paymentServicePrice || 0;
+        const productsTotal = paymentProducts.reduce((sum, p) => sum + (p.price * p.qty), 0);
+        const subtotal = servicePrice + productsTotal;
+
+        const discountValue = parseFloat(document.getElementById('payment-discount-value')?.value) || 0;
+        let discountAmount = 0;
+        if (discountType === 'percent') {
+          discountAmount = Math.round(subtotal * (discountValue / 100));
+        } else {
+          discountAmount = Math.min(discountValue, subtotal);
+        }
+
+        const grandTotal = Math.max(0, subtotal - discountAmount);
+
+        console.log('🔵 Total a cobrar:', grandTotal);
+
+        const btn = document.getElementById('btn-save-payment');
+        if (btn) {
+          btn.disabled = true;
+          btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+        }
+
         const productsSold = paymentProducts.map(p => ({
           productId: p.id,
           name: p.name,
@@ -16926,6 +16930,7 @@ Gracias por tu preferencia ✨`;
           subtotal: p.price * p.qty
         }));
 
+        console.log('🔵 Enviando request al servidor...');
         const res = await fetch(`/api/appointments/${appointmentId}/payment`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -16944,22 +16949,40 @@ Gracias por tu preferencia ✨`;
         });
 
         const json = await res.json();
+        console.log('🔵 Respuesta:', json);
 
         if (json.success) {
           closePaymentModal();
+          // Actualizar UI
           if (typeof loadAppointments === 'function') loadAppointments();
           if (typeof loadTodayAppointments === 'function') loadTodayAppointments();
           if (typeof loadMonthStats === 'function') loadMonthStats();
-          alert('✓ Pago registrado: $' + grandTotal.toLocaleString());
+          if (typeof cargarCaja === 'function') cargarCaja();
+          
+          if (window.showNotification) 
+            showNotification('¡Pago registrado correctamente!', 'success');
+          else 
+            alert('¡Pago registrado correctamente!');
         } else {
-          alert('Error: ' + json.error);
+          if (window.showNotification)
+            showNotification('Error: ' + json.error, 'error');
+          else
+            alert('Error: ' + json.error);
         }
       } catch (error) {
-        console.error('Error saving payment:', error);
-        alert('Error de conexión');
+        console.error('🔴 Error saving payment:', error);
+        if (window.showNotification)
+          showNotification('Error de conexión o datos inválidos', 'error');
+        else
+          alert('Error de conexión: ' + error.message);
       } finally {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-check-circle"></i> Cobrar <span id="btn-payment-total">$' + grandTotal.toLocaleString() + '</span>';
+        const btn = document.getElementById('btn-save-payment');
+        if (btn) {
+          btn.disabled = false;
+          // Restaurar texto original (aproximado)
+          const totalVal = document.getElementById('total-grand')?.textContent || '$0';
+          btn.innerHTML = '<i class="fas fa-check-circle"></i> Cobrar <span id="btn-payment-total">' + totalVal + '</span>';
+        }
       }
     }
 
@@ -21513,6 +21536,85 @@ Gracias por tu preferencia ✨`;
         toggleTheme();
       }
     });
+
+    /**
+     * Sistema de Notificaciones (Toast)
+     * Requerido para que funcionen los mensajes de error/éxito
+     */
+    window.showNotification = function(message, type = 'info') {
+      // Crear contenedor si no existe
+      let container = document.getElementById('toast-container');
+      if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        container.style.cssText = `
+          position: fixed;
+          bottom: 24px;
+          right: 24px;
+          z-index: 100000;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          pointer-events: none;
+        `;
+        document.body.appendChild(container);
+      }
+
+      // Colores por tipo
+      const colors = {
+        success: { bg: 'rgba(20, 184, 166, 0.95)', icon: 'check-circle' },
+        error: { bg: 'rgba(239, 68, 68, 0.95)', icon: 'times-circle' },
+        warning: { bg: 'rgba(245, 158, 11, 0.95)', icon: 'exclamation-triangle' },
+        info: { bg: 'rgba(59, 130, 246, 0.95)', icon: 'info-circle' }
+      };
+      const theme = colors[type] || colors.info;
+
+      // Crear toast
+      const toast = document.createElement('div');
+      toast.style.cssText = `
+        background: ${theme.bg};
+        color: white;
+        padding: 14px 20px;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 14px;
+        font-weight: 500;
+        transform: translateX(100%);
+        opacity: 0;
+        transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        backdrop-filter: blur(8px);
+        border: 1px solid rgba(255,255,255,0.1);
+        pointer-events: auto;
+        min-width: 300px;
+        max-width: 400px;
+      `;
+      
+      toast.innerHTML = `
+        <i class="fas fa-${theme.icon}" style="font-size: 18px;"></i>
+        <span style="flex:1;line-height:1.4;">${message}</span>
+        <button onclick="this.parentElement.remove()" style="background:none;border:none;color:white;cursor:pointer;opacity:0.7;padding:4px;">
+          <i class="fas fa-times"></i>
+        </button>
+      `;
+
+      container.appendChild(toast);
+
+      // Animar entrada
+      requestAnimationFrame(() => {
+        toast.style.transform = 'translateX(0)';
+        toast.style.opacity = '1';
+      });
+
+      // Auto eliminar
+      setTimeout(() => {
+        toast.style.transform = 'translateX(100%)';
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 400);
+      }, 4000);
+    };
   </script>
 
 </body>
