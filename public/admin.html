@@ -19392,8 +19392,10 @@ Gracias por tu preferencia ✨`;
     let productosDisponibles = [];
     let precioServicioGlobal = 0;
     let tipoDescuento = 'porcentaje'; // 'porcentaje' o 'fijo'
+    let citaActualId = null; // ID de la cita que se está cobrando
 
     async function abrirCobrarCita(citaId) {
+      citaActualId = citaId; // Guardar el ID globalmente
       try {
         // Cargar cita, productos y servicios en paralelo
         const [resCita, resProductos, resServicios] = await Promise.all([
@@ -19642,7 +19644,7 @@ Gracias por tu preferencia ✨`;
 
               <!-- Footer -->
               <div style="padding:16px 20px 20px;border-top:1px solid #333;display:flex;gap:12px;">
-                <button onclick="procesarCobroCita('${citaId}')" id="btn-completar-cita"
+                <button onclick="procesarCobroCitaActual()" id="btn-completar-cita"
                   style="flex:2;padding:16px;background:#8C9668;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
                   <i class="fas fa-check"></i> Completar Cita <span id="btn-total">$${precioServicioGlobal.toFixed(0)}</span>
                 </button>
@@ -19824,6 +19826,13 @@ Gracias por tu preferencia ✨`;
     window.actualizarTotalCobro = actualizarTotalCobro;
 
     async function procesarCobroCita(citaId) {
+      console.log('[Procesar Cobro] Iniciando cobro para cita:', citaId);
+      
+      if (!citaId) {
+        showNotification('Error: ID de cita no válido', 'error');
+        return;
+      }
+      
       const precioServicio = parseFloat(document.getElementById('precio-servicio')?.value) || precioServicioGlobal || 0;
       const metodo = document.getElementById('cobrar-metodo').value;
       const descuentoInput = parseFloat(document.getElementById('cobrar-descuento').value) || 0;
@@ -19900,6 +19909,17 @@ Gracias por tu preferencia ✨`;
         showNotification('Error de conexión', 'error');
       }
     }
+
+    // Función wrapper para llamar procesarCobroCita con el ID global
+    function procesarCobroCitaActual() {
+      console.log('[Cobro] Procesando cita actual:', citaActualId);
+      if (!citaActualId) {
+        showNotification('Error: No hay cita seleccionada', 'error');
+        return;
+      }
+      procesarCobroCita(citaActualId);
+    }
+    window.procesarCobroCitaActual = procesarCobroCitaActual;
 
     // Modal de venta rápida (para productos sin cita)
     function abrirVentaRapida() {
