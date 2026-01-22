@@ -3467,34 +3467,12 @@ app.get("/api/admin/events-firebase", adminAuth, async (req, res) => {
 // ⭐ NUEVO: Endpoint para estadísticas del dashboard (HOY)
 app.get("/api/dashboard/today", adminAuth, async (req, res) => {
   try {
-    const now = new Date();
-    // Inicio del día en zona horaria local (aproximación simple o usar librería)
-    // Para simplificar, usaremos ISO string del inicio del día UTC o ajustado
-    // Mejor: usar toMexicoCityISO si estuviera disponible aquí, o simple Date manipulation
+    // Obtener fecha de hoy en formato "YYYY-MM-DD"
+    const today = new Date().toISOString().slice(0, 10);
 
-    // Ajuste manual a zona horaria de México (-6) para "HOY"
-    const mexicoOffset = 6 * 60 * 60 * 1000;
-    const todayStart = new Date(now.getTime() - mexicoOffset);
-    todayStart.setUTCHours(0, 0, 0, 0);
-    const todayStartIso = todayStart.toISOString(); // Esto es inicio del día en UTC, cuidado
-
-    // Mejor enfoque: Buscar por rango de fecha string "YYYY-MM-DD" si guardamos así,
-    // pero guardamos ISO.
-    // Vamos a traer todas las citas del día.
-
-    // Definir rango del día en UTC que cubra el día en México
-    // Día en México: 00:00 a 23:59.
-    // UTC: 06:00 (día actual) a 06:00 (día siguiente)
-
-    const startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0); // Local del servidor
-    const endOfDay = new Date();
-    endOfDay.setHours(23, 59, 59, 999);
-
-    // Consultar citas
+    // Consultar citas del día actual usando el campo 'date'
     const snapshot = await firestore.collection('appointments')
-      .where('startDateTime', '>=', startOfDay.toISOString())
-      .where('startDateTime', '<=', endOfDay.toISOString())
+      .where('date', '==', today)
       .get();
 
     let appointmentsCount = 0;
@@ -3503,7 +3481,11 @@ app.get("/api/dashboard/today", adminAuth, async (req, res) => {
 
     snapshot.forEach(doc => {
       const data = doc.data();
-      appointmentsCount++;
+      
+      // Contar solo citas que no estén canceladas
+      if (data.status !== 'cancelled') {
+        appointmentsCount++;
+      }
 
       if (data.status === 'scheduled' || data.status === 'confirmed') {
         pendingCount++;
@@ -3514,7 +3496,7 @@ app.get("/api/dashboard/today", adminAuth, async (req, res) => {
       }
     });
 
-    console.log(`[DASHBOARD TODAY] Citas: ${appointmentsCount}, Pendientes: ${pendingCount}, Ingresos: $${income}`);
+    console.log(`[DASHBOARD TODAY] ${today} - Citas: ${appointmentsCount}, Pendientes: ${pendingCount}, Ingresos: $${income}`);
 
     res.json({
       success: true,
