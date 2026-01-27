@@ -13691,11 +13691,19 @@
             'clients-dropdown-list',
             (item) => {
               console.log('[CLIENTS] ✅ Cliente seleccionado:', item);
-              // Auto-fill phone when client selected
-              document.getElementById('new-appt-phone').value = item.data.phone || '';
+              
+              // Guardar teléfono seleccionado en variable global y dataset
+              const phone = item.data.phone || '';
+              window.selectedClientPhone = phone;
+              
+              const clientSelectInput = document.getElementById('new-appt-client-select');
+              if (clientSelectInput) {
+                clientSelectInput.dataset.phone = phone;
+                clientSelectInput.dataset.clientId = item.data.id;
+              }
 
               // Cargar historial de citas del cliente
-              loadClientHistory(item.data.phone, item.label);
+              loadClientHistory(phone, item.label);
             }
           );
         }
