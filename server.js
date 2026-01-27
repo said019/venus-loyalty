@@ -10,6 +10,7 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { sendGoogleMessage } from "./lib/google.js"
 import nodemailer from "nodemailer";
+import { EmailService } from './src/services/emailService.js';
 import fs from "fs";
 
 // Database - Prisma con repositorios
@@ -536,7 +537,7 @@ app.post('/api/test/whatsapp', async (req, res) => {
     const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000);
     const testDate = tomorrow.toISOString().split('T')[0]; // YYYY-MM-DD
     const testTime = '10:00'; // Hora fija para prueba
-    
+
     const testAppt = {
       clientName: name,
       clientPhone: phone,
@@ -997,24 +998,24 @@ app.post('/api/direct-sales', adminAuth, async (req, res) => {
       paymentMethod,
       createdAt: new Date().toISOString()
     });
-    
+
     // También en Prisma
     try {
-        await SalesRepo.create({
-          appointmentId: null,
-          clientName: clientName || 'Venta Pasajero',
-          serviceName: null,
-          serviceAmount: 0,
-          productsAmount: parseFloat(productsAmount) || 0,
-          subtotal: parseFloat(productsAmount) || 0,
-          discountType,
-          discountValue: discountValue || 0,
-          discountAmount: parseFloat(discountAmount) || 0,
-          totalAmount: parseFloat(totalAmount) || 0,
-          productsSold,
-          paymentMethod,
-          date: new Date()
-        });
+      await SalesRepo.create({
+        appointmentId: null,
+        clientName: clientName || 'Venta Pasajero',
+        serviceName: null,
+        serviceAmount: 0,
+        productsAmount: parseFloat(productsAmount) || 0,
+        subtotal: parseFloat(productsAmount) || 0,
+        discountType,
+        discountValue: discountValue || 0,
+        discountAmount: parseFloat(discountAmount) || 0,
+        totalAmount: parseFloat(totalAmount) || 0,
+        productsSold,
+        paymentMethod,
+        date: new Date()
+      });
     } catch (e) { console.error('Error registrando venta directa en prisma:', e); }
 
     console.log('[DIRECT SALE] ✅ Venta registrada:', saleRef.id);
@@ -1038,24 +1039,24 @@ app.get('/api/transactions', adminAuth, async (req, res) => {
     // Buscar en SalesRepo (Prisma)
     // Asumiendo que Prisma maneja fechas ISO
     try {
-        const sales = await prisma.sale.findMany({
-          where: {
-            createdAt: {
-              gte: startDate,
-              lte: endDate
-            }
+      const sales = await prisma.sale.findMany({
+        where: {
+          createdAt: {
+            gte: startDate,
+            lte: endDate
           }
-        });
-        
-        if (sales && sales.length > 0) return res.json({ success: true, data: sales });
-    } catch(e) { console.warn('Error fetching prismas sales:', e); }
+        }
+      });
+
+      if (sales && sales.length > 0) return res.json({ success: true, data: sales });
+    } catch (e) { console.warn('Error fetching prismas sales:', e); }
 
     // Fallback a Firestore para ventas directas
     const snapshot = await firestore.collection('sales')
-         .where('createdAt', '>=', startDate.toISOString())
-         .where('createdAt', '<=', endDate.toISOString())
-         .get();
-         
+      .where('createdAt', '>=', startDate.toISOString())
+      .where('createdAt', '<=', endDate.toISOString())
+      .get();
+
     const fsSales = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
     return res.json({ success: true, data: fsSales });
 
@@ -1141,7 +1142,7 @@ app.post('/api/appointments', adminAuth, async (req, res) => {
     // CREAR EVENTOS EN GOOGLE CALENDAR (Said y Alondra)
     const duration = parseInt(durationMinutes) || 60;
     const startDateTime = `${date}T${time}:00-06:00`;
-    
+
     // Calcular hora de fin sumando duración a la hora de inicio (en minutos locales)
     const [startHour, startMin] = time.split(':').map(Number);
     const totalMinutes = startHour * 60 + startMin + duration;
@@ -1159,7 +1160,7 @@ app.post('/api/appointments', adminAuth, async (req, res) => {
 
     try {
       const { createEvent } = await import('./src/services/googleCalendarService.js');
-      
+
       console.log('[APPOINTMENT] 📅 Creando eventos en Google Calendar...');
 
       // Crear en calendario 1 (Said)
@@ -1218,6 +1219,14 @@ app.post('/api/appointments', adminAuth, async (req, res) => {
       }
     }
 
+    // Enviar confirmación Email si el cliente tiene correo
+    if (card && card.email) {
+      EmailService.sendConfirmation({
+        ...appointment,
+        clientEmail: card.email
+      }).catch(err => console.error('[APPOINTMENT] ❌ Error enviando Email:', err.message));
+    }
+
     res.json({
       success: true,
       appointmentId: appointment.id
@@ -1240,9 +1249,9 @@ app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
     // Manejar completado/pago si viene status='completed' (Fix para completar cita desde admin)
     if (req.body.status === 'completed' && req.body.totalPaid !== undefined) {
       const { totalPaid, paymentMethod, discount, productsSold } = req.body;
-      
+
       console.log(`[PATCH] Completando cita ${id} (Cobro desde Admin)`);
-      
+
       const appointment = await AppointmentsRepo.findById(id);
       if (!appointment) return res.status(404).json({ success: false, error: 'Cita no encontrada' });
 
@@ -2136,12 +2145,12 @@ app.get("/api/card/by-phone/:phone", async (req, res) => {
     if (!phone || phone.length < 10) {
       return res.status(400).json({ success: false, error: "Teléfono inválido" });
     }
-    
+
     const card = await CardsRepo.findByPhone(phone);
     if (!card) {
       return res.status(404).json({ success: false, error: "No se encontró ninguna tarjeta con ese teléfono" });
     }
-    
+
     res.json({ success: true, data: card });
   } catch (e) {
     console.error("[GET /api/card/by-phone]", e);
@@ -2158,10 +2167,10 @@ app.get("/api/appointments/by-phone/:phone", async (req, res) => {
     if (!phone || phone.length < 10) {
       return res.status(400).json({ success: false, error: "Teléfono inválido" });
     }
-    
+
     // Buscar citas por teléfono
     const appointments = await AppointmentsRepo.findByPhone(phone);
-    
+
     res.json({ success: true, appointments: appointments || [] });
   } catch (e) {
     console.error("[GET /api/appointments/by-phone]", e);
@@ -3029,6 +3038,25 @@ app.post('/api/public/request', async (req, res) => {
     const requestRef = await firestore.collection('booking_requests').add(requestData);
     console.log(`[BOOKING REQUEST] ✅ Solicitud guardada con ID: ${requestRef.id}`);
 
+    // 2.1 ENVIAR NOTIFICACIONES POR EMAIL
+    // Notificar al Admin
+    EmailService.sendNewRequestNotification(requestData).catch(err =>
+      console.error('[BOOKING REQUEST] ❌ Error enviando email al admin:', err.message)
+    );
+
+    // Notificar al Cliente (Confirmación de recibida)
+    if (clientEmail) {
+      EmailService.sendConfirmation({
+        clientName,
+        clientEmail,
+        serviceName,
+        date,
+        time
+      }).catch(err =>
+        console.error('[BOOKING REQUEST] ❌ Error enviando email al cliente:', err.message)
+      );
+    }
+
     // 3. CREAR MENSAJE PARA WHATSAPP
     const settingsDoc = await firestore.collection('settings').doc('business').get();
     const businessWhatsapp = settingsDoc.exists ? settingsDoc.data().whatsappBusiness : '524271657595';
@@ -3481,7 +3509,7 @@ app.get("/api/dashboard/today", adminAuth, async (req, res) => {
 
     snapshot.forEach(doc => {
       const data = doc.data();
-      
+
       // Contar solo citas que no estén canceladas
       if (data.status !== 'cancelled') {
         appointmentsCount++;
@@ -4243,7 +4271,7 @@ app.patch("/api/cards/:cardId", adminAuth, async (req, res) => {
     }
 
     const updated = await CardsRepo.update(cardId, updateData);
-    
+
     console.log(`[CARD] Tarjeta ${cardId} actualizada:`, updateData);
     res.json({ success: true, card: updated });
   } catch (e) {
