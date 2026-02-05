@@ -82,6 +82,23 @@ function formatearFechaLegible(fecha) {
  * Formatea hora para mostrar
  * Maneja objetos Date de Prisma (UTC) y strings ISO
  */
+/**
+ * Sanitiza texto para evitar error 63021 de WhatsApp
+ * Reemplaza caracteres especiales que causan problemas en templates
+ */
+function sanitizeForWhatsApp(text) {
+    if (!text) return '';
+    return text
+        .replace(/\+/g, 'y')           // + -> y
+        .replace(/&/g, 'y')            // & -> y
+        .replace(/</g, '')             // Eliminar <
+        .replace(/>/g, '')             // Eliminar >
+        .replace(/\n/g, ' ')           // Saltos de línea -> espacio
+        .replace(/\r/g, '')            // Eliminar retorno de carro
+        .replace(/[\u0000-\u001F]/g, '') // Eliminar caracteres de control
+        .trim();
+}
+
 function formatearHora(dateTimeStr) {
     // Si viene el campo 'time' directamente (HH:MM), usarlo
     if (typeof dateTimeStr === 'string' && /^\d{2}:\d{2}$/.test(dateTimeStr)) {
@@ -218,8 +235,8 @@ export const WhatsAppService = {
             appt.clientPhone,
             config.templates.CONFIRMACION_CITA,
             {
-                '1': appt.clientName,
-                '2': appt.serviceName,
+                '1': sanitizeForWhatsApp(appt.clientName),
+                '2': sanitizeForWhatsApp(appt.serviceName),
                 '3': fecha,
                 '4': hora,
                 '5': config.venus.location
@@ -240,8 +257,8 @@ export const WhatsAppService = {
             appt.clientPhone,
             config.templates.RECORDATORIO_24H,
             {
-                '1': appt.clientName,
-                '2': appt.serviceName,
+                '1': sanitizeForWhatsApp(appt.clientName),
+                '2': sanitizeForWhatsApp(appt.serviceName),
                 '3': fecha,
                 '4': hora
             }
@@ -260,8 +277,8 @@ export const WhatsAppService = {
             appt.clientPhone,
             config.templates.RECORDATORIO_2H,
             {
-                '1': appt.clientName,
-                '2': appt.serviceName,
+                '1': sanitizeForWhatsApp(appt.clientName),
+                '2': sanitizeForWhatsApp(appt.serviceName),
                 '3': hora
             }
         );
