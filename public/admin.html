@@ -8723,6 +8723,12 @@
       }
 
       /* Estilos adicionales para modal mejorado */
+      #paymentDialog,
+      #directSaleDialog,
+      #paymentDetailDialog {
+        position: relative;
+      }
+
       #paymentDialog {
         max-width: 440px !important;
       }
@@ -8731,24 +8737,28 @@
         position: absolute;
         top: 16px;
         right: 16px;
-        background: rgba(255, 255, 255, 0.05);
+        background: rgba(255, 255, 255, 0.08);
         border: 1px solid var(--line);
         color: var(--muted);
-        width: 36px;
-        height: 36px;
-        border-radius: 10px;
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
         cursor: pointer;
         display: flex;
         align-items: center;
         justify-content: center;
         transition: all 0.2s;
-        z-index: 10;
+        z-index: 100;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
       }
 
-      .btn-close-payment:hover {
-        background: rgba(239, 68, 68, 0.1);
-        border-color: rgba(239, 68, 68, 0.3);
+      .btn-close-payment:hover,
+      .btn-close-payment:active {
+        background: rgba(239, 68, 68, 0.15);
+        border-color: rgba(239, 68, 68, 0.4);
         color: #ef4444;
+        transform: scale(1.05);
       }
 
       .payment-price-row {
@@ -17150,6 +17160,12 @@ Gracias por tu preferencia`;
     }
 
     async function openPaymentModal(appointmentId, clientName, serviceName, servicePrice, isEdit = false) {
+      // Cerrar otros modales de pago si están abiertos
+      const dsDialog = document.getElementById('directSaleDialog');
+      const pdDialog = document.getElementById('paymentDetailDialog');
+      if (dsDialog.open) dsDialog.close();
+      if (pdDialog.open) pdDialog.close();
+
       paymentProducts = [];
       discountType = 'percent';
       isPriceEditing = false;
@@ -17643,6 +17659,12 @@ Gracias por tu preferencia`;
     let dsDiscountType = 'percent';
 
     async function openDirectSaleModal() {
+      // Cerrar otros modales de pago si están abiertos
+      const pyDialog = document.getElementById('paymentDialog');
+      const pdDialog = document.getElementById('paymentDetailDialog');
+      if (pyDialog.open) pyDialog.close();
+      if (pdDialog.open) pdDialog.close();
+
       directSaleProducts = [];
       dsDiscountType = 'percent';
       document.getElementById('direct-sale-client').value = '';
