@@ -795,44 +795,110 @@
       }
     }
 
-    /* Fix payment dialog responsive */
+    /* ===== BOTTOM SHEET — Modales de cobro en móvil/tablet ===== */
+
+    /* Tablet: centrado pero más compacto */
+    @media (min-width: 769px) and (max-width: 1024px) {
+      #paymentDialog,
+      #directSaleDialog,
+      #paymentDetailDialog {
+        max-width: 90% !important;
+        width: 480px !important;
+      }
+    }
+
+    /* Móvil: bottom sheet */
     @media (max-width: 768px) {
-      #paymentDialog {
+      #paymentDialog,
+      #directSaleDialog,
+      #paymentDetailDialog {
         max-width: 100% !important;
         width: 100% !important;
-        height: 100vh !important;
-        max-height: 100vh !important;
-        border-radius: 0 !important;
+        max-height: 92vh !important;
+        height: auto !important;
+        border-radius: 20px 20px 0 0 !important;
         margin: 0 !important;
-        top: 0 !important;
+        position: fixed !important;
+        top: auto !important;
+        bottom: 0 !important;
         left: 0 !important;
+        right: 0 !important;
         transform: none !important;
+        animation: bottomSheetSlideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
       }
 
-      #paymentDialog[open] {
+      #paymentDialog[open],
+      #directSaleDialog[open],
+      #paymentDetailDialog[open] {
         display: flex;
         flex-direction: column;
       }
 
-      #paymentDialog .dialog-footer {
+      /* Handle visual para arrastrar */
+      #paymentDialog .dialog-header::before,
+      #directSaleDialog .dialog-header::before,
+      #paymentDetailDialog .dialog-header::before {
+        content: '';
+        display: block;
+        width: 36px;
+        height: 4px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 4px;
+        margin: 0 auto 12px;
+      }
+
+      #paymentDialog .dialog-header,
+      #directSaleDialog .dialog-header,
+      #paymentDetailDialog .dialog-header {
+        padding: 12px 20px 16px !important;
+        border-radius: 20px 20px 0 0;
+      }
+
+      /* Contenido scrollable */
+      #paymentDialog > div:not(.dialog-header):not(.dialog-footer),
+      #directSaleDialog > div:not(.dialog-header):not(.dialog-footer) {
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+        flex: 1;
+        max-height: calc(92vh - 140px);
+      }
+
+      /* Footer fijo abajo */
+      #paymentDialog .dialog-footer,
+      #directSaleDialog .dialog-footer,
+      #paymentDetailDialog .dialog-footer {
         flex-direction: column;
-        padding: 16px;
+        padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px)) !important;
+        gap: 8px;
+        border-top: 1px solid var(--line);
+        background: var(--bg-card);
       }
 
-      #paymentDialog .btn-cobrar {
+      #paymentDialog .btn-cobrar,
+      #directSaleDialog .btn-cobrar {
         width: 100%;
+        padding: 16px 24px;
+        font-size: 16px;
+        border-radius: 14px;
       }
 
-      #directSaleDialog {
-        max-width: 100% !important;
-        width: 100% !important;
-        height: 100vh !important;
-        max-height: 100vh !important;
-        border-radius: 0 !important;
-        margin: 0 !important;
-        top: 0 !important;
-        left: 0 !important;
-        transform: none !important;
+      #paymentDialog .dialog-footer .btn.ghost,
+      #directSaleDialog .dialog-footer .btn.ghost,
+      #paymentDetailDialog .dialog-footer .btn.ghost {
+        width: 100%;
+        padding: 12px;
+        border-radius: 12px;
+      }
+
+      /* Cerrar botón reubicado */
+      #paymentDialog .btn-close-payment,
+      #directSaleDialog .btn-close-payment,
+      #paymentDetailDialog .btn-close-payment {
+        top: 12px;
+        right: 16px;
+        width: 32px;
+        height: 32px;
       }
 
       .payment-info-row {
@@ -851,17 +917,154 @@
       .discount-row {
         flex-wrap: wrap;
       }
-    }
 
-    @media (min-width: 769px) and (max-width: 1024px) {
-      #paymentDialog {
-        max-width: 90% !important;
-        width: 460px !important;
+      /* Secciones más compactas en móvil */
+      .payment-section {
+        padding: 12px !important;
+        margin-bottom: 12px !important;
       }
 
-      #directSaleDialog {
-        max-width: 90% !important;
-        width: 460px !important;
+      .payment-totals {
+        padding: 12px !important;
+        margin-bottom: 12px !important;
+      }
+    }
+
+    @keyframes bottomSheetSlideUp {
+      from {
+        opacity: 0;
+        transform: translateY(100%);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Venta Rápida - modal inyectado dinámicamente */
+    .modal#modal-venta-rapida {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      padding: 16px;
+    }
+
+    .modal#modal-venta-rapida .modal-box {
+      background: var(--bg-card);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      width: 100%;
+      max-width: 450px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+      animation: dialogSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .modal#modal-venta-rapida .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .modal#modal-venta-rapida .modal-header h3 {
+      margin: 0;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .modal#modal-venta-rapida .modal-close {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--line);
+      color: var(--muted);
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      transition: all 0.2s;
+    }
+
+    .modal#modal-venta-rapida .modal-close:hover {
+      background: rgba(239, 68, 68, 0.1);
+      color: #ef4444;
+    }
+
+    .modal#modal-venta-rapida .modal-body {
+      padding: 20px 24px;
+    }
+
+    .modal#modal-venta-rapida .modal-body .form-group {
+      margin-bottom: 16px;
+    }
+
+    .modal#modal-venta-rapida .modal-body label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+
+    .modal#modal-venta-rapida .modal-footer {
+      display: flex;
+      gap: 10px;
+      padding: 16px 24px;
+      border-top: 1px solid var(--line);
+    }
+
+    @media (max-width: 768px) {
+      .modal#modal-venta-rapida {
+        align-items: flex-end;
+        padding: 0;
+      }
+
+      .modal#modal-venta-rapida .modal-box {
+        max-width: 100%;
+        border-radius: 20px 20px 0 0;
+        max-height: 92vh;
+        animation: bottomSheetSlideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+
+      .modal#modal-venta-rapida .modal-header::before {
+        content: '';
+        display: block;
+        width: 36px;
+        height: 4px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 4px;
+        margin: 0 auto 12px;
+        padding-top: 4px;
+      }
+
+      .modal#modal-venta-rapida .modal-header {
+        padding-top: 12px;
+      }
+
+      .modal#modal-venta-rapida .modal-footer {
+        flex-direction: column;
+        padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+      }
+
+      .modal#modal-venta-rapida .modal-footer .btn {
+        width: 100%;
+        justify-content: center;
+        padding: 14px;
       }
     }
 
@@ -21811,6 +22014,68 @@ Gracias por tu preferencia`;
         toggleTheme();
       }
     });
+
+    // ===== BOTTOM SHEET SWIPE-TO-CLOSE =====
+    // Permite cerrar los modales de cobro deslizando hacia abajo en móvil
+    (function initBottomSheetSwipe() {
+      if (window.innerWidth > 768) return;
+
+      const dialogs = ['paymentDialog', 'directSaleDialog', 'paymentDetailDialog'];
+
+      dialogs.forEach(id => {
+        const dialog = document.getElementById(id);
+        if (!dialog) return;
+
+        let startY = 0;
+        let currentY = 0;
+        let isDragging = false;
+
+        dialog.addEventListener('touchstart', (e) => {
+          // Solo permitir drag desde la parte superior (header / handle)
+          const header = dialog.querySelector('.dialog-header');
+          if (!header) return;
+          const rect = header.getBoundingClientRect();
+          const touch = e.touches[0];
+          if (touch.clientY > rect.bottom + 20) return;
+
+          startY = touch.clientY;
+          isDragging = true;
+          dialog.style.transition = 'none';
+        }, { passive: true });
+
+        dialog.addEventListener('touchmove', (e) => {
+          if (!isDragging) return;
+          currentY = e.touches[0].clientY;
+          const diff = currentY - startY;
+          if (diff > 0) {
+            dialog.style.transform = `translateY(${diff}px)`;
+            dialog.style.opacity = Math.max(0.5, 1 - diff / 400);
+          }
+        }, { passive: true });
+
+        dialog.addEventListener('touchend', () => {
+          if (!isDragging) return;
+          isDragging = false;
+          dialog.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
+          const diff = currentY - startY;
+
+          if (diff > 120) {
+            // Cerrar
+            dialog.style.transform = 'translateY(100%)';
+            dialog.style.opacity = '0';
+            setTimeout(() => {
+              dialog.close();
+              dialog.style.transform = '';
+              dialog.style.opacity = '';
+            }, 300);
+          } else {
+            // Regresar
+            dialog.style.transform = '';
+            dialog.style.opacity = '';
+          }
+        }, { passive: true });
+      });
+    })();
 
     /**
      * Sistema de Notificaciones (Toast)
