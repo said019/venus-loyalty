@@ -10132,18 +10132,64 @@
       const normalizedId = tabId.startsWith('tab-') ? tabId : 'tab-' + tabId;
       const tabName = normalizedId.replace('tab-', '');
       
-      // Buscar el link de navegación correspondiente y hacer clic
-      const tabLink = document.querySelector(`[data-tab="${tabName}"]`);
-      if (tabLink) {
-        tabLink.click();
-      } else {
-        // Fallback: cambiar manualmente
-        document.querySelectorAll('[id^="tab-"]').forEach(s => s.classList.add('hidden'));
-        const targetSection = document.getElementById(normalizedId);
-        if (targetSection) {
-          targetSection.classList.remove('hidden');
-        }
+      // Ocultar TODAS las secciones de tabs
+      document.querySelectorAll('[id^="tab-"]').forEach(s => s.classList.add('hidden'));
+      
+      // Mostrar la sección objetivo
+      const targetSection = document.getElementById(normalizedId);
+      if (targetSection) {
+        targetSection.classList.remove('hidden');
       }
+      
+      // Actualizar estado activo en sidebar
+      document.querySelectorAll('.sidebar-nav-item').forEach(item => {
+        item.classList.toggle('is-active', item.getAttribute('data-tab') === tabName);
+      });
+      
+      // Actualizar estado activo en mobile nav
+      document.querySelectorAll('.mobile-nav-link').forEach(a => {
+        a.classList.toggle('is-active', a.getAttribute('data-tab') === tabName);
+      });
+      
+      // Actualizar nav links legacy
+      document.querySelectorAll('.nav a').forEach(a => a.classList.remove('is-active'));
+      
+      // Cargar datos del tab correspondiente
+      try {
+        if (tabName === 'overview') {
+          if (typeof loadDashboardStats === 'function') loadDashboardStats();
+          if (typeof startDashboardAutoRefresh === 'function') startDashboardAutoRefresh();
+        } else if (tabName === 'cards') {
+          if (typeof loadCards === 'function') loadCards(1);
+        } else if (tabName === 'events') {
+          if (typeof loadGiftCardServices === 'function') loadGiftCardServices();
+          if (typeof loadGiftCards === 'function') loadGiftCards();
+        } else if (tabName === 'requests') {
+          if (typeof loadBookingRequests === 'function') loadBookingRequests();
+          if (typeof initAgendarUrl === 'function') initAgendarUrl();
+          if (typeof startRequestsAutoRefresh === 'function') startRequestsAutoRefresh();
+        } else if (tabName === 'appointments') {
+          if (typeof loadAppointments === 'function') loadAppointments();
+          if (typeof loadMonthStats === 'function') loadMonthStats();
+          if (typeof startAppointmentsAutoRefresh === 'function') startAppointmentsAutoRefresh();
+        } else if (tabName === 'services') {
+          if (typeof loadServicesTable === 'function') loadServicesTable();
+        } else if (tabName === 'settings') {
+          if (typeof loadBusinessConfig === 'function') loadBusinessConfig();
+          if (typeof loadNotificationsHistory === 'function') loadNotificationsHistory();
+        } else if (tabName === 'caja') {
+          if (typeof loadCajaData === 'function') loadCajaData();
+        } else if (tabName === 'reports') {
+          if (typeof loadReports === 'function') loadReports();
+        } else if (tabName === 'notifications') {
+          if (typeof loadNotificationsPanel === 'function') loadNotificationsPanel();
+        }
+      } catch(e) {
+        console.warn('Error cargando datos del tab:', tabName, e);
+      }
+      
+      // Scroll al top
+      window.scrollTo(0, 0);
     }
 
     // ===== FUNCIONES GLOBALES PARA BOTONES DEL MODAL DE CLIENTE =====
@@ -10219,10 +10265,7 @@
       if (typeof closeCardModal === 'function') closeCardModal();
       
       // Cambiar a la pestaña de Agenda
-      const agendaTab = document.querySelector('[data-tab="appointments"]');
-      if (agendaTab) {
-        agendaTab.click();
-      }
+      switchTab('appointments');
       
       // Esperar un momento para que la pestaña se active
       setTimeout(() => {
@@ -14120,19 +14163,7 @@
           selectedDate = new Date(date);
 
           // Cambiar a la pestaña de Citas
-          document.querySelectorAll('.nav a').forEach(a => a.classList.remove('is-active'));
-          document.querySelectorAll('.mobile-nav-link').forEach(a => a.classList.remove('is-active'));
-
-          const appointmentsTab = document.querySelector('[data-tab="appointments"]');
-          if (appointmentsTab) {
-            appointmentsTab.classList.add('is-active');
-          }
-
-          document.querySelectorAll('[id^="tab-"]').forEach(s => s.classList.add('hidden'));
-          const appointmentsSection = document.getElementById('tab-appointments');
-          if (appointmentsSection) {
-            appointmentsSection.classList.remove('hidden');
-          }
+          switchTab('appointments');
 
           renderMonthlyCalendar();
           loadAppointments();
@@ -14156,19 +14187,7 @@
           selectedDate = new Date(date);
 
           // Cambiar a la pestaña de Citas
-          document.querySelectorAll('.nav a').forEach(a => a.classList.remove('is-active'));
-          document.querySelectorAll('.mobile-nav-link').forEach(a => a.classList.remove('is-active'));
-
-          const appointmentsTab = document.querySelector('[data-tab="appointments"]');
-          if (appointmentsTab) {
-            appointmentsTab.classList.add('is-active');
-          }
-
-          document.querySelectorAll('[id^="tab-"]').forEach(s => s.classList.add('hidden'));
-          const appointmentsSection = document.getElementById('tab-appointments');
-          if (appointmentsSection) {
-            appointmentsSection.classList.remove('hidden');
-          }
+          switchTab('appointments');
 
           // Cargar citas del día seleccionado
           loadAppointments();
@@ -21705,13 +21724,7 @@ Gracias por tu preferencia`;
       item.addEventListener('click', () => {
         const tabId = item.getAttribute('data-tab');
         if (tabId) {
-          // Actualizar clases activas en sidebar
-          document.querySelectorAll('.sidebar-nav-item').forEach(i => i.classList.remove('is-active'));
-          item.classList.add('is-active');
-          
-          // Cambiar tab usando la función existente
-          switchTab('tab-' + tabId);
-          
+          switchTab(tabId);
           // Cerrar sidebar en móvil
           closeSidebar();
         }
