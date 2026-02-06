@@ -797,13 +797,56 @@
 
     /* ===== BOTTOM SHEET — Modales de cobro en móvil/tablet ===== */
 
-    /* Tablet: centrado pero más compacto */
+    /* Tablet (iPad): centrado, scroll interno, footer siempre visible */
     @media (min-width: 769px) and (max-width: 1024px) {
       #paymentDialog,
       #directSaleDialog,
       #paymentDetailDialog {
         max-width: 90% !important;
-        width: 480px !important;
+        width: 500px !important;
+        max-height: 88vh !important;
+        display: flex !important;
+        flex-direction: column !important;
+        overflow: hidden !important;
+      }
+
+      /* Contenido scrollable en tablet */
+      #paymentDialog > div:not(.dialog-header):not(.dialog-footer):not(.btn-close-payment),
+      #directSaleDialog > div:not(.dialog-header):not(.dialog-footer):not(.btn-close-payment),
+      #paymentDetailDialog > div:not(.dialog-header):not(.dialog-footer):not(.btn-close-payment) {
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+        flex: 1 !important;
+        min-height: 0 !important;
+      }
+
+      /* Footer fijo en la parte inferior del dialog en tablet */
+      #paymentDialog .dialog-footer,
+      #directSaleDialog .dialog-footer,
+      #paymentDetailDialog .dialog-footer {
+        flex-shrink: 0 !important;
+        border-top: 1px solid var(--line);
+        background: var(--bg-card);
+        padding: 16px 20px !important;
+      }
+
+      /* Scrollbar sutil */
+      #paymentDialog > div::-webkit-scrollbar,
+      #directSaleDialog > div::-webkit-scrollbar,
+      #paymentDetailDialog > div::-webkit-scrollbar {
+        width: 5px;
+      }
+      #paymentDialog > div::-webkit-scrollbar-track,
+      #directSaleDialog > div::-webkit-scrollbar-track,
+      #paymentDetailDialog > div::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      #paymentDialog > div::-webkit-scrollbar-thumb,
+      #directSaleDialog > div::-webkit-scrollbar-thumb,
+      #paymentDetailDialog > div::-webkit-scrollbar-thumb {
+        background: rgba(255,255,255,0.15);
+        border-radius: 4px;
       }
     }
 
