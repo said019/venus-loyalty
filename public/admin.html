@@ -16148,7 +16148,7 @@ Gracias por tu preferencia`;
 
       tbody.innerHTML = filtered.map(p => {
         const stockClass = p.stock <= 0 ? 'stock-out' : p.stock <= (p.minStock || 5) ? 'stock-low' : 'stock-ok';
-        const stockWarning = p.stock <= (p.minStock || 5) && p.stock > 0 ? ' : '';
+        const stockWarning = p.stock <= (p.minStock || 5) && p.stock > 0 ? ' ⚠️' : '';
 
         return `
           <tr>
