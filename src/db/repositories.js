@@ -136,13 +136,36 @@ export const ServicesRepo = {
   },
 
   async create(data) {
-    return prisma.service.create({ data });
+    // Limpiar y validar datos antes de crear
+    const cleanData = {
+      name: data.name,
+      durationMinutes: parseInt(data.durationMinutes) || 60,
+      price: parseFloat(data.price) || 0,
+      category: data.category || null,
+      description: Array.isArray(data.description) ? data.description.join(', ') : (data.description || null),
+      discount: data.discount || null,
+      isActive: data.isActive !== undefined ? data.isActive : true,
+    };
+    return prisma.service.create({ data: cleanData });
   },
 
   async update(id, data) {
+    // Limpiar y validar datos antes de actualizar
+    const cleanData = {};
+    if (data.name !== undefined) cleanData.name = data.name;
+    if (data.durationMinutes !== undefined) cleanData.durationMinutes = parseInt(data.durationMinutes) || 60;
+    if (data.price !== undefined) cleanData.price = parseFloat(data.price) || 0;
+    if (data.category !== undefined) cleanData.category = data.category || null;
+    if (data.description !== undefined) {
+      cleanData.description = Array.isArray(data.description) ? data.description.join(', ') : (data.description || null);
+    }
+    if (data.discount !== undefined) cleanData.discount = data.discount || null;
+    if (data.isActive !== undefined) cleanData.isActive = data.isActive;
+    cleanData.updatedAt = new Date();
+    
     return prisma.service.update({
       where: { id },
-      data: { ...data, updatedAt: new Date() }
+      data: cleanData
     });
   },
 

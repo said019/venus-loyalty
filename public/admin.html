@@ -16310,13 +16310,15 @@ Gracias por tu preferencia`;
       formService.addEventListener('submit', async (e) => {
         e.preventDefault();
         const id = document.getElementById('service-id').value;
+        const descriptionValue = document.getElementById('service-description').value.trim();
+        const discountValue = document.getElementById('service-discount').value.trim();
         const data = {
           name: document.getElementById('service-name').value,
           durationMinutes: parseInt(document.getElementById('service-duration').value),
           price: parseFloat(document.getElementById('service-price').value),
           category: document.getElementById('service-category').value || 'Otros',
-          description: document.getElementById('service-description').value.split('\n').map(l => l.trim()).filter(l => l.length > 0),
-          discount: document.getElementById('service-discount').value
+          description: descriptionValue || null,
+          discount: discountValue || null
         };
 
         try {
