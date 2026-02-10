@@ -30,6 +30,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { ClientSearch } from "./ClientSearch";
 
 const weekDays = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 
@@ -139,9 +140,9 @@ const AppointmentsPanel = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newAppointment)
       });
-      
+
       const data = await res.json();
-      
+
       if (data.success) {
         toast.success("Cita creada exitosamente");
         setIsNewAppointmentOpen(false);
@@ -169,7 +170,7 @@ const AppointmentsPanel = () => {
           <h1 className="text-2xl font-bold text-white font-playfair">Citas</h1>
           <p className="text-white/60 text-sm">Gestiona tu agenda de citas</p>
         </div>
-        <Button 
+        <Button
           onClick={() => setIsNewAppointmentOpen(true)}
           className="bg-primary hover:bg-primary/90 text-primary-foreground"
         >
@@ -189,13 +190,18 @@ const AppointmentsPanel = () => {
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label htmlFor="clientName" className="text-white/80">Nombre del Cliente</Label>
-              <Input
-                id="clientName"
-                value={newAppointment.clientName}
-                onChange={(e) => setNewAppointment({ ...newAppointment, clientName: e.target.value })}
-                placeholder="Ej: María García"
-                className="bg-white/5 border-white/10 text-white placeholder:text-white/40"
+              <Label htmlFor="clientName" className="text-white/80">Cliente</Label>
+              <ClientSearch
+                onSelect={(client) => {
+                  if (client) {
+                    setNewAppointment({
+                      ...newAppointment,
+                      clientName: client.name,
+                      clientPhone: client.phone
+                    });
+                  }
+                }}
+                selectedClientName={newAppointment.clientName}
               />
             </div>
             <div>
