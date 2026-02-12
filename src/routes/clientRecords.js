@@ -95,6 +95,24 @@ router.get('/card/:cardId', async (req, res) => {
       });
     }
 
+    // Obtener historial de visitas (stamps) y citas
+    const [events, appointments] = await Promise.all([
+      prisma.event.findMany({
+        where: { cardId },
+        orderBy: { timestamp: 'desc' }
+      }),
+      prisma.appointment.findMany({
+        where: {
+          OR: [
+            { cardId },
+            { clientPhone: card.phone }
+          ],
+          status: { in: ['completed', 'confirmed'] }
+        },
+        orderBy: { date: 'desc' } // Note: date is string YYYY-MM-DD, so string sort works approx. strictly better to use startDateTime but this is existing pattern
+      })
+    ]);
+
     res.json({
       success: true,
       data: {
@@ -105,7 +123,9 @@ router.get('/card/:cardId', async (req, res) => {
           phone: card.phone,
           email: card.email,
           birthday: card.birthday
-        }
+        },
+        events,
+        appointments
       }
     });
   } catch (error) {
