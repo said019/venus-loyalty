@@ -95,16 +95,62 @@ function renderServicesPreview() {
     const grid = document.getElementById('services-grid');
     if (!grid || services.length === 0) return;
 
-    const topServices = services.slice(0, 6);
-    grid.innerHTML = topServices.map(s => `
-        <div class="service-preview-card" onclick="scrollToBooking('${s.id}')">
-            <h3>${s.name}</h3>
-            <div class="meta">
-                <span><i class="far fa-clock"></i> ${s.durationMinutes || s.duration}min</span>
-                <span class="price">$${s.price}</span>
+    const categoryIcons = {
+        'Básicos Venus': 'fas fa-spa',
+        'Especializados': 'fas fa-star',
+        'Corporales': 'fas fa-hand-sparkles',
+        'Holísticos': 'fas fa-leaf',
+        'Paquetes': 'fas fa-gift',
+        'Depilación': 'fas fa-bolt'
+    };
+
+    const categoryOrder = ['Básicos Venus', 'Especializados', 'Corporales', 'Holísticos', 'Paquetes', 'Depilación'];
+    const grouped = {};
+    services.forEach(s => {
+        const cat = s.category || 'Otros';
+        if (!grouped[cat]) grouped[cat] = [];
+        grouped[cat].push(s);
+    });
+
+    const sortedCategories = Object.keys(grouped).sort((a, b) => {
+        const ia = categoryOrder.indexOf(a), ib = categoryOrder.indexOf(b);
+        if (ia === -1 && ib === -1) return a.localeCompare(b);
+        if (ia === -1) return 1;
+        if (ib === -1) return -1;
+        return ia - ib;
+    });
+
+    let html = '';
+    sortedCategories.forEach(cat => {
+        const icon = categoryIcons[cat] || 'fas fa-concierge-bell';
+        const catServices = grouped[cat].sort((a, b) => a.name.localeCompare(b.name));
+
+        html += `
+            <div class="services-category-section">
+                <div class="category-header">
+                    <div class="category-icon-circle"><i class="${icon}"></i></div>
+                    <h3 class="category-title">${cat}</h3>
+                </div>
+                <div class="category-services-grid">
+                    ${catServices.map(s => `
+                        <div class="service-preview-card" onclick="scrollToBooking('${s.id}')">
+                            <div class="service-card-top">
+                                <h3>${s.name}</h3>
+                                <span class="service-card-price">$${Math.round(s.price)}</span>
+                            </div>
+                            ${s.description ? `<p class="service-card-desc">${s.description}</p>` : ''}
+                            <div class="meta">
+                                <span><i class="far fa-clock"></i> ${s.durationMinutes || s.duration} min</span>
+                                <span class="service-card-cta">Agendar <i class="fas fa-arrow-right"></i></span>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
             </div>
-        </div>
-    `).join('');
+        `;
+    });
+
+    grid.innerHTML = html;
 }
 
 function scrollToBooking(serviceId) {
@@ -130,7 +176,7 @@ function renderServices() {
     }
 
     const categories = ['Todos', ...new Set(services.map(s => s.category || 'Otros'))];
-    const catOrder = ['Todos', 'Faciales', 'Corporales', 'Depilación', 'Masajes', 'Paquetes', 'Otros'];
+    const catOrder = ['Todos', 'Básicos Venus', 'Especializados', 'Corporales', 'Holísticos', 'Paquetes', 'Depilación', 'Otros'];
     categories.sort((a, b) => {
         const ia = catOrder.indexOf(a), ib = catOrder.indexOf(b);
         if (ia === -1 && ib === -1) return a.localeCompare(b);
@@ -153,9 +199,10 @@ function renderServices() {
     el.innerHTML = filtered.map(s => `
         <div class="service-item ${selectedService?.id === s.id ? 'selected' : ''}" onclick="selectService('${s.id}')">
             <div class="service-name">${s.name}</div>
+            ${s.description ? `<div class="service-desc-booking">${s.description}</div>` : ''}
             <div class="service-meta-row">
                 <span class="service-duration"><i class="far fa-clock"></i> ${s.durationMinutes || s.duration}m</span>
-                <span class="service-price">$${s.price}</span>
+                <span class="service-price">$${Math.round(s.price)}</span>
             </div>
         </div>
     `).join('');
