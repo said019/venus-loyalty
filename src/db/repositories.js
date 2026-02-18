@@ -620,21 +620,6 @@ export const SalesRepo = {
   }
 };
 
-export default {
-  cards: CardsRepo,
-  services: ServicesRepo,
-  appointments: AppointmentsRepo,
-  events: EventsRepo,
-  products: ProductsRepo,
-  expenses: ExpensesRepo,
-  giftCards: GiftCardsRepo,
-  notifications: NotificationsRepo,
-  bookingRequests: BookingRequestsRepo,
-  settings: SettingsRepo,
-  sales: SalesRepo,
-  blockedSlots: BlockedSlotsRepo,
-};
-
 // ==================== BLOCKED SLOTS ====================
 export const BlockedSlotsRepo = {
   async findAll() {
@@ -651,3 +636,19 @@ export const BlockedSlotsRepo = {
     return prisma.blockedSlot.delete({ where: { id } });
   }
 };
+
+export default {
+  cards: CardsRepo,
+  services: ServicesRepo,
+  appointments: AppointmentsRepo,
+  events: EventsRepo,
+  products: ProductsRepo,
+  expenses: ExpensesRepo,
+  giftCards: GiftCardsRepo,
+  notifications: NotificationsRepo,
+  bookingRequests: BookingRequestsRepo,
+  settings: SettingsRepo,
+  sales: SalesRepo,
+  blockedSlots: BlockedSlotsRepo,
+};
+
