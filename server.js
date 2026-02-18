@@ -1427,9 +1427,15 @@ app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
     // ⭐ ACTUALIZAR GOOGLE CALENDAR si hay eventos asociados
     const startDateTimeMX = `${date}T${time}:00-06:00`;
     const duration = durationMinutes || 60;
-    const end = new Date(startDateTimeMX);
-    end.setMinutes(end.getMinutes() + duration);
-    const endDateTimeMX = end.toISOString().replace('Z', '-06:00');
+    // Calcular endDateTime correctamente: partir del start en UTC y sumar minutos
+    const startUTC = new Date(startDateTimeMX); // interpreta -06:00 correctamente
+    const endUTC = new Date(startUTC.getTime() + duration * 60000);
+    // Formatear end como hora México: restar 6h a UTC para obtener hora local, luego etiquetar -06:00
+    const endMXHour = new Date(endUTC.getTime());
+    const endDateTimeMX = `${date}T${String(endMXHour.getUTCHours() - 0).padStart(2, '0')}:${String(endMXHour.getUTCMinutes()).padStart(2, '0')}:00Z`;
+    // Usar ISO UTC directamente para Google Calendar (acepta Z)
+    const startISO = startUTC.toISOString();
+    const endISO = endUTC.toISOString();
 
     if (appointment.googleCalendarEventId || appointment.googleCalendarEventId2) {
       try {
@@ -1445,8 +1451,8 @@ app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
               title: `${serviceName || appointment.serviceName} - ${appointment.clientName}`,
               description: `Cliente: ${appointment.clientName}\nTel: ${appointment.clientPhone}\nServicio: ${serviceName || appointment.serviceName}`,
               location: 'Cactus 50, San Juan del Río',
-              startISO: startDateTimeMX,
-              endISO: endDateTimeMX
+              startISO: startISO,
+              endISO: endISO
             });
             console.log(`[PATCH] ✅ Evento actualizado en calendar Said`);
           } catch (err1) {
@@ -1462,8 +1468,8 @@ app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
               title: `${serviceName || appointment.serviceName} - ${appointment.clientName}`,
               description: `Cliente: ${appointment.clientName}\nTel: ${appointment.clientPhone}\nServicio: ${serviceName || appointment.serviceName}`,
               location: 'Cactus 50, San Juan del Río',
-              startISO: startDateTimeMX,
-              endISO: endDateTimeMX
+              startISO: startISO,
+              endISO: endISO
             });
             console.log(`[PATCH] ✅ Evento actualizado en calendar Alondra`);
           } catch (err2) {
