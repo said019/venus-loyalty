@@ -16,7 +16,7 @@ import fs from "fs";
 // Database - Prisma con repositorios
 import { prisma } from './src/db/index.js';
 import { firestore } from './src/db/compat.js';
-import { CardsRepo, AppointmentsRepo, ServicesRepo, ProductsRepo, SalesRepo, NotificationsRepo } from './src/db/repositories.js';
+import { CardsRepo, AppointmentsRepo, ServicesRepo, ProductsRepo, SalesRepo, NotificationsRepo, BlockedSlotsRepo } from './src/db/repositories.js';
 
 // WhatsApp Service - USANDO V2 PARA FORZAR RECARGA
 import { WhatsAppService } from './src/services/whatsapp-v2.js';
@@ -65,6 +65,10 @@ import { config } from './src/config/config.js';
 
 // 📱 WhatsApp Webhook (Twilio)
 import whatsappWebhook from './src/routes/whatsappWebhook.js';
+
+// 📱 WhatsApp Webhook (Evolution API)
+import webhookEvolution from './src/routes/webhookEvolution.js';
+import { getEvolutionClient } from './src/services/whatsapp-evolution.js';
 
 // 📋 Expedientes de Clientas
 import clientRecordsRouter from './src/routes/clientRecords.js';
@@ -509,8 +513,86 @@ app.use('/api/calendar', calendarRoutes);
 // ✅ WhatsApp Webhook (Twilio)
 app.use('/api/whatsapp', whatsappWebhook);
 
+// ✅ WhatsApp Webhook (Evolution API) - público, sin auth
+app.use('/api/webhook/evolution', webhookEvolution);
+
 // ✅ Expedientes de Clientas
 app.use('/api/client-records', clientRecordsRouter);
+
+// ========== EVOLUTION API ADMIN ROUTES ==========
+
+// GET /api/evolution/status - Estado de conexión WhatsApp
+app.get('/api/evolution/status', adminAuth, async (req, res) => {
+  try {
+    if (config.whatsappProvider !== 'evolution') {
+      return res.json({ provider: 'twilio', connected: true, state: 'twilio-mode' });
+    }
+    const client = getEvolutionClient();
+    const status = await client.getStatus();
+    res.json({
+      provider: 'evolution',
+      connected: status.connected,
+      state: status.state,
+      number: status.number || null,
+      instanceName: config.evolution.instanceName
+    });
+  } catch (error) {
+    console.error('[Evolution] Error obteniendo estado:', error.message);
+    res.status(500).json({ error: 'Error obteniendo estado', details: error.message });
+  }
+});
+
+// POST /api/evolution/connect - Crear instancia y generar QR
+app.post('/api/evolution/connect', adminAuth, async (req, res) => {
+  try {
+    const client = getEvolutionClient();
+
+    // Intentar crear instancia si no existe
+    try {
+      await client.createInstance();
+      console.log('[Evolution] Instancia creada');
+    } catch (e) {
+      console.log('[Evolution] Instancia ya existe, conectando...');
+    }
+
+    const result = await client.connectInstance();
+    res.json({
+      success: true,
+      qrCode: result.base64 || null,
+    });
+  } catch (error) {
+    console.error('[Evolution] Error conectando:', error.message);
+    res.status(500).json({ error: 'Error conectando', details: error.message });
+  }
+});
+
+// POST /api/evolution/logout - Desvincular WhatsApp
+app.post('/api/evolution/logout', adminAuth, async (req, res) => {
+  try {
+    const client = getEvolutionClient();
+    await client.logout();
+    res.json({ success: true });
+  } catch (error) {
+    console.error('[Evolution] Error desvinculando:', error.message);
+    res.status(500).json({ error: 'Error desvinculando', details: error.message });
+  }
+});
+
+// POST /api/evolution/test - Enviar mensaje de prueba
+app.post('/api/evolution/test', adminAuth, async (req, res) => {
+  const { phone } = req.body;
+  if (!phone) {
+    return res.status(400).json({ error: 'Se requiere phone' });
+  }
+  try {
+    const client = getEvolutionClient();
+    await client.sendText(phone, '✅ Mensaje de prueba desde Evolution API - Venus Cosmetología');
+    res.json({ success: true });
+  } catch (error) {
+    console.error('[Evolution] Error enviando prueba:', error.message);
+    res.status(500).json({ error: 'Error enviando mensaje', details: error.message });
+  }
+});
 
 // 🏥 Health Check con versión
 app.get('/api/health', (req, res) => {
@@ -2915,6 +2997,54 @@ app.get('/api/public/availability', async (req, res) => {
       }
     });
 
+    // ESTRATEGIA 3: Verificar Bloqueos de Horario (BlockedSlots)
+    const requestDate = new Date(date + 'T00:00:00');
+    const dayOfWeek = requestDate.getDay(); // 0-6
+
+    const blockedSlots = await BlockedSlotsRepo.findAll();
+
+    blockedSlots.forEach(block => {
+      // Verificar si el bloqueo aplica a esta fecha
+      let applies = false;
+
+      if (block.date === date) {
+        applies = true; // Bloqueo de fecha específica
+      } else if (block.dayOfWeek !== null && block.dayOfWeek === dayOfWeek) {
+        applies = true; // Bloqueo recurrente (mismo día de la semana)
+      }
+
+      if (applies) {
+        // Agregar todos los slots en el rango
+        const startH = parseInt(block.startTime.split(':')[0]);
+        const startM = parseInt(block.startTime.split(':')[1]);
+        const endH = parseInt(block.endTime.split(':')[0]);
+        const endM = parseInt(block.endTime.split(':')[1]);
+
+        const startMinutes = startH * 60 + startM;
+        const endMinutes = endH * 60 + endM;
+
+        // Generar slots de 08:00 a 21:00 (o el rango que sea)
+        // Aquí simplificamos y marcamos los slots exactos que caen en el rango
+        // Asumiendo slots cada 60 mins por defecto, pero el frontend maneja la lógica de visualización
+        // Mejor enfoque: Marcar todas las horas "en punto" dentro del rango como ocupadas
+
+        for (let h = startH; h < endH; h++) {
+          const timeSlot = `${h.toString().padStart(2, '0')}:${startM.toString().padStart(2, '0')}`;
+          if (!busy.includes(timeSlot)) {
+            busy.push(timeSlot);
+            console.log(`[AVAILABILITY] 🚫 Bloqueo administrativo (${block.reason}): ${timeSlot}`);
+          }
+        }
+        // Si termina en media hora (ej 10:30), también bloquear la hora de inicio (10:00 ya cubierto)
+        if (endM > 0) {
+          const timeSlot = `${endH.toString().padStart(2, '0')}:00`;
+          if (!busy.includes(timeSlot)) {
+            busy.push(timeSlot);
+          }
+        }
+      }
+    });
+
     // Ordenar los slots
     busy.sort();
 
@@ -2926,6 +3056,52 @@ app.get('/api/public/availability', async (req, res) => {
   } catch (error) {
     console.error('[AVAILABILITY] Error:', error);
     res.json({ success: false, error: error.message });
+  }
+});
+
+/* ========== BLOCKED SLOTS ========== */
+
+// GET /api/calendar/blocks - Listar bloqueos
+app.get('/api/calendar/blocks', adminAuth, async (req, res) => {
+  try {
+    const blocks = await BlockedSlotsRepo.findAll();
+    res.json({ success: true, data: blocks });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// POST /api/calendar/blocks - Crear bloqueo
+app.post('/api/calendar/blocks', adminAuth, async (req, res) => {
+  try {
+    const { startTime, endTime, date, dayOfWeek, reason } = req.body;
+
+    if (!startTime || !endTime) {
+      return res.status(400).json({ success: false, error: 'Hora inicio y fin requeridas' });
+    }
+
+    const block = await BlockedSlotsRepo.create({
+      startTime,
+      endTime,
+      date: date || null,
+      dayOfWeek: dayOfWeek !== undefined ? parseInt(dayOfWeek) : null,
+      reason
+    });
+
+    res.json({ success: true, data: block });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// DELETE /api/calendar/blocks/:id - Eliminar bloqueo
+app.delete('/api/calendar/blocks/:id', adminAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    await BlockedSlotsRepo.delete(id);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 

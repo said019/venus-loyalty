@@ -5682,7 +5682,235 @@
       <section id="tab-settings" class="card hidden">
         <h2>Configuración</h2>
 
-        <!-- Configuración del Negocio -->
+        <!-- WhatsApp Manager (Evolution API) -->
+        <div
+          style="background:rgba(37,211,102,0.08);border:1px solid rgba(37,211,102,0.3);border-radius:12px;padding:14px;margin:12px 0;">
+          <h3 style="margin:0 0 12px;display:flex;align-items:center;gap:8px;">
+            <i class="fab fa-whatsapp" style="color:#25D366;font-size:22px;"></i> WhatsApp Business
+            <span id="wa-status-badge"
+              style="font-size:11px;padding:3px 10px;border-radius:20px;font-weight:500;margin-left:auto;">
+              Cargando...
+            </span>
+          </h3>
+          <p class="muted" style="margin:0 0 16px;font-size:12px;">Vincula tu número de WhatsApp para enviar
+            recordatorios automáticos de citas.</p>
+
+          <!-- Estado -->
+          <div id="wa-status-container" style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+            <div id="wa-status-dot" style="width:12px;height:12px;border-radius:50%;background:#ef4444;flex-shrink:0;">
+            </div>
+            <div>
+              <div id="wa-status-text" style="font-weight:500;font-size:14px;">Desconectado</div>
+              <div id="wa-status-number" class="muted" style="font-size:12px;"></div>
+            </div>
+          </div>
+
+          <!-- QR Code -->
+          <div id="wa-qr-container"
+            style="display:none;text-align:center;margin-bottom:14px;padding:16px;background:white;border-radius:10px;max-width:300px;">
+            <img id="wa-qr-image" style="max-width:256px;width:100%;" alt="QR Code">
+            <p style="margin:8px 0 0;font-size:13px;color:#666;">Escanea con WhatsApp</p>
+          </div>
+
+          <!-- Botones -->
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button id="wa-btn-connect" class="btn primary" onclick="waConnect()"
+              style="background:#25D366;border-color:#25D366;">
+              <i class="fab fa-whatsapp"></i> Generar QR para vincular
+            </button>
+            <button id="wa-btn-disconnect" class="btn ghost" onclick="waLogout()" style="display:none;">
+              <i class="fas fa-unlink"></i> Desvincular
+            </button>
+            <button id="wa-btn-test" class="btn ghost" onclick="waTestPrompt()" style="display:none;">
+              <i class="fas fa-paper-plane"></i> Enviar prueba
+            </button>
+          </div>
+
+          <!-- Resultado de test -->
+          <div id="wa-test-result" style="display:none;margin-top:10px;padding:10px;border-radius:8px;font-size:13px;">
+          </div>
+        </div>
+
+        <script>
+          // ========== WHATSAPP MANAGER (EVOLUTION API) ==========
+          let waPolling = null;
+
+          async function waFetchStatus() {
+            try {
+              const res = await fetch('/api/evolution/status', {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+              });
+              const data = await res.json();
+              waUpdateUI(data);
+              return data;
+            } catch (err) {
+              console.error('[WA] Error:', err);
+              waUpdateUI({ connected: false, state: 'error', provider: 'unknown' });
+            }
+          }
+
+          function waUpdateUI(data) {
+            const dot = document.getElementById('wa-status-dot');
+            const text = document.getElementById('wa-status-text');
+            const badge = document.getElementById('wa-status-badge');
+            const number = document.getElementById('wa-status-number');
+            const btnConnect = document.getElementById('wa-btn-connect');
+            const btnDisconnect = document.getElementById('wa-btn-disconnect');
+            const btnTest = document.getElementById('wa-btn-test');
+
+            if (data.provider === 'twilio') {
+              dot.style.background = '#3b82f6';
+              text.textContent = 'Usando Twilio';
+              badge.textContent = 'Twilio';
+              badge.style.background = 'rgba(59,130,246,0.15)';
+              badge.style.color = '#3b82f6';
+              number.textContent = '';
+              btnConnect.style.display = 'none';
+              btnDisconnect.style.display = 'none';
+              btnTest.style.display = 'none';
+              return;
+            }
+
+            if (data.connected) {
+              dot.style.background = '#22c55e';
+              text.textContent = 'Conectado';
+              badge.textContent = '● Conectado';
+              badge.style.background = 'rgba(34,197,94,0.15)';
+              badge.style.color = '#22c55e';
+              number.textContent = data.number ? `Número: +${data.number}` : (data.instanceName ? `Instancia: ${data.instanceName}` : '');
+              btnConnect.style.display = 'none';
+              btnDisconnect.style.display = '';
+              btnTest.style.display = '';
+              // Ocultar QR si estaba visible
+              document.getElementById('wa-qr-container').style.display = 'none';
+              // Detener polling
+              if (waPolling) { clearInterval(waPolling); waPolling = null; }
+            } else {
+              dot.style.background = '#ef4444';
+              text.textContent = 'Desconectado';
+              badge.textContent = '● Desconectado';
+              badge.style.background = 'rgba(239,68,68,0.15)';
+              badge.style.color = '#ef4444';
+              number.textContent = '';
+              btnConnect.style.display = '';
+              btnDisconnect.style.display = 'none';
+              btnTest.style.display = 'none';
+            }
+          }
+
+          async function waConnect() {
+            const btn = document.getElementById('wa-btn-connect');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generando QR...';
+
+            try {
+              const res = await fetch('/api/evolution/connect', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+              });
+              const data = await res.json();
+
+              if (data.qrCode) {
+                const qrContainer = document.getElementById('wa-qr-container');
+                const qrImage = document.getElementById('wa-qr-image');
+                // El QR puede ser base64 puro o con prefijo data:image
+                qrImage.src = data.qrCode.startsWith('data:') ? data.qrCode : `data:image/png;base64,${data.qrCode}`;
+                qrContainer.style.display = 'block';
+
+                // Iniciar polling para detectar conexión
+                if (waPolling) clearInterval(waPolling);
+                waPolling = setInterval(async () => {
+                  const status = await waFetchStatus();
+                  if (status && status.connected) {
+                    clearInterval(waPolling);
+                    waPolling = null;
+                    alert('✅ ¡WhatsApp vinculado exitosamente!');
+                  }
+                }, 5000);
+              }
+            } catch (err) {
+              console.error('[WA] Error conectando:', err);
+              alert('Error al generar el QR. Verifica la configuración.');
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fab fa-whatsapp"></i> Generar QR para vincular';
+          }
+
+          async function waLogout() {
+            if (!confirm('¿Estás seguro de desvincular WhatsApp? Los mensajes dejarán de enviarse hasta que vincules de nuevo.')) return;
+
+            try {
+              await fetch('/api/evolution/logout', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+              });
+              alert('WhatsApp desvinculado');
+              waFetchStatus();
+            } catch (err) {
+              console.error('[WA] Error:', err);
+              alert('Error al desvincular');
+            }
+          }
+
+          function waTestPrompt() {
+            const phone = prompt('Ingresa el número de teléfono para la prueba (10 dígitos o con 52):');
+            if (!phone) return;
+            waTest(phone);
+          }
+
+          async function waTest(phone) {
+            const result = document.getElementById('wa-test-result');
+            result.style.display = 'block';
+            result.style.background = 'rgba(59,130,246,0.1)';
+            result.style.color = '#3b82f6';
+            result.textContent = '📤 Enviando mensaje de prueba...';
+
+            try {
+              const res = await fetch('/api/evolution/test', {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ phone })
+              });
+              const data = await res.json();
+
+              if (data.success) {
+                result.style.background = 'rgba(34,197,94,0.1)';
+                result.style.color = '#22c55e';
+                result.textContent = '✅ Mensaje de prueba enviado exitosamente';
+              } else {
+                result.style.background = 'rgba(239,68,68,0.1)';
+                result.style.color = '#ef4444';
+                result.textContent = `❌ Error: ${data.error || data.details || 'Error desconocido'}`;
+              }
+            } catch (err) {
+              result.style.background = 'rgba(239,68,68,0.1)';
+              result.style.color = '#ef4444';
+              result.textContent = `❌ Error de conexión: ${err.message}`;
+            }
+
+            setTimeout(() => { result.style.display = 'none'; }, 8000);
+          }
+
+          // Cargar estado al abrir la pestaña de configuración
+          document.addEventListener('DOMContentLoaded', () => {
+            // Esperar a que el tab settings sea visible para cargar estado
+            const observer = new MutationObserver(() => {
+              const settingsTab = document.getElementById('tab-settings');
+              if (settingsTab && !settingsTab.classList.contains('hidden')) {
+                waFetchStatus();
+                observer.disconnect();
+              }
+            });
+            observer.observe(document.body, { childList: true, subtree: true, attributes: true });
+
+            // También cargar al inicio por si ya está visible
+            setTimeout(() => waFetchStatus(), 2000);
+          });
+        </script>
         <div
           style="background:rgba(140,150,104,0.1);border:1px solid rgba(140,150,104,0.3);border-radius:12px;padding:14px;margin:12px 0;">
           <h3 style="margin:0 0 12px;"><i class="fas fa-store"></i> Datos del Negocio</h3>
@@ -6176,6 +6404,9 @@
             <button class="btn small ghost" onclick="loadAppointments(); renderMonthlyCalendar(); loadMonthStats();"
               title="Actualizar">
               <i class="fas fa-sync"></i>
+            </button>
+            <button class="btn ghost small" onclick="openBlockTimeModal()" title="Bloquear Horario">
+              <i class="fas fa-ban"></i>
             </button>
             <button class="btn primary" id="btn-new-appointment">Nueva Cita</button>
           </div>
@@ -10341,6 +10572,79 @@
               <button type="button" class="btn ghost"
                 onclick="document.getElementById('newSessionDialog').close()">Cancelar</button>
               <button type="submit" class="btn primary"><i class="fas fa-save"></i> Guardar sesión</button>
+            </div>
+          </form>
+        </div>
+      </dialog>
+
+      <!-- Modal: Bloquear Horario -->
+      <dialog id="blockTimeDialog" class="exp-dialog">
+        <div class="exp-dialog-content">
+          <div class="exp-dialog-header">
+            <h3><i class="fas fa-ban"></i> Bloquear Horario</h3>
+            <button type="button" class="btn small ghost"
+              onclick="document.getElementById('blockTimeDialog').close()">✕</button>
+          </div>
+          <form id="form-block-time">
+            <div class="exp-form-grid">
+              <div class="exp-form-group">
+                <label>Hora Inicio *</label>
+                <input type="time" id="block-start-time" class="form-input" required>
+              </div>
+              <div class="exp-form-group">
+                <label>Hora Fin *</label>
+                <input type="time" id="block-end-time" class="form-input" required>
+              </div>
+            </div>
+
+            <div class="exp-form-group">
+              <label>Tipo de Bloqueo</label>
+              <div class="radio-group">
+                <label class="radio-label">
+                  <input type="radio" name="blockType" value="single" checked onchange="toggleBlockType()">
+                  <span>Solo una fecha</span>
+                </label>
+                <label class="radio-label">
+                  <input type="radio" name="blockType" value="recurring" onchange="toggleBlockType()">
+                  <span>Recurrente (Semanal)</span>
+                </label>
+              </div>
+            </div>
+
+            <div id="block-date-group" class="exp-form-group">
+              <label>Fecha *</label>
+              <input type="date" id="block-date" class="form-input">
+            </div>
+
+            <div id="block-day-group" class="exp-form-group hidden">
+              <label>Día de la semana *</label>
+              <select id="block-day" class="form-input">
+                <option value="1">Lunes</option>
+                <option value="2">Martes</option>
+                <option value="3">Miércoles</option>
+                <option value="4">Jueves</option>
+                <option value="5">Viernes</option>
+                <option value="6">Sábado</option>
+                <option value="0">Domingo</option>
+              </select>
+            </div>
+
+            <div class="exp-form-group">
+              <label>Motivo</label>
+              <input type="text" id="block-reason" class="form-input" placeholder="Ej: Comida, Reunión, Personal">
+            </div>
+
+            <div class="exp-dialog-footer">
+              <button type="button" class="btn ghost"
+                onclick="document.getElementById('blockTimeDialog').close()">Cancelar</button>
+              <button type="submit" class="btn primary"><i class="fas fa-save"></i> Guardar Bloqueo</button>
+            </div>
+
+            <div style="margin-top: 1rem; border-top: 1px solid var(--line); padding-top: 1rem;">
+              <h4>Bloqueos Activos</h4>
+              <div id="active-blocks-list" style="max-height: 150px; overflow-y: auto; font-size: 0.9rem;">
+                <p class="muted">Cargando...</p>
+              </div>
             </div>
           </form>
         </div>
@@ -15177,8 +15481,23 @@ Gracias por tu preferencia`;
         editDateInput.value = `${day}/${month}/${year}`;
         editDateInput.dataset.isoDate = isoDate;
 
-        editHourSelect.value = String(startDate.getHours()).padStart(2, '0');
-        editMinuteSelect.value = String(startDate.getMinutes()).padStart(2, '0');
+        // Extraer hora y minutos directamente del campo time (sin conversión de timezone)
+        // IMPORTANTE: NO usar new Date().getHours() porque convierte UTC a local y suma/resta horas
+        let apptHour, apptMinute;
+        if (appt.time && appt.time.includes(':')) {
+          // Usar el campo time directamente si existe (formato HH:MM)
+          [apptHour, apptMinute] = appt.time.split(':');
+        } else {
+          // Fallback: extraer del ISO string sin pasar por Date (evita conversión de timezone)
+          // startDateTime es algo como "2026-02-18T16:00:00.000Z" (UTC)
+          // Necesitamos restar 6 horas para México (UTC-6)
+          const startDate = new Date(appt.startDateTime);
+          const mxHours = ((startDate.getUTCHours() - 6) + 24) % 24;
+          apptHour = String(mxHours).padStart(2, '0');
+          apptMinute = String(startDate.getUTCMinutes()).padStart(2, '0');
+        }
+        editHourSelect.value = apptHour;
+        editMinuteSelect.value = apptMinute;
 
         // Calculate end time
         calculateEditEndTime();
@@ -22458,6 +22777,152 @@ Gracias por tu preferencia`;
         setTimeout(() => toast.remove(), 400);
       }, 4000);
     };
+    /* ========== BLOCKED SLOTS LOGIC ========== */
+
+    function openBlockTimeModal() {
+      const dialog = document.getElementById('blockTimeDialog');
+      if (dialog) {
+        // Reset form
+        document.getElementById('form-block-time').reset();
+        document.getElementById('block-date').valueAsDate = new Date();
+        toggleBlockType(); // Ensure correct specific fields are shown
+        loadBlockedSlots(); // Load existing blocks
+        dialog.showModal();
+      }
+    }
+
+    function toggleBlockType() {
+      const type = document.querySelector('input[name="blockType"]:checked').value;
+      const dateGroup = document.getElementById('block-date-group');
+      const dayGroup = document.getElementById('block-day-group');
+
+      if (type === 'single') {
+        dateGroup.classList.remove('hidden');
+        dayGroup.classList.add('hidden');
+        document.getElementById('block-date').required = true;
+        document.getElementById('block-day').required = false;
+      } else {
+        dateGroup.classList.add('hidden');
+        dayGroup.classList.remove('hidden');
+        document.getElementById('block-date').required = false;
+        document.getElementById('block-day').required = true;
+      }
+    }
+
+    async function loadBlockedSlots() {
+      const container = document.getElementById('active-blocks-list');
+      try {
+        const res = await fetch('/api/calendar/blocks', { credentials: 'include' });
+        const json = await res.json();
+
+        if (json.success) {
+          if (json.data.length === 0) {
+            container.innerHTML = '<p class="muted">No hay bloqueos activos.</p>';
+            return;
+          }
+
+          const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+
+          container.innerHTML = json.data.map(block => {
+            let timeInfo = '';
+            if (block.date) {
+              const dateObj = new Date(block.date + 'T12:00:00');
+              timeInfo = `<span class="badge" style="background:var(--bg-secondary); color:var(--ink);">📅 ${dateObj.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })}</span>`;
+            } else {
+              timeInfo = `<span class="badge" style="background:#e3f2fd; color:#1565c0;">🔄 Cada ${days[block.dayOfWeek]}</span>`;
+            }
+
+            return `
+              <div style="display:flex; justify-content:space-between; align-items:center; padding:8px; border-bottom:1px solid var(--line);">
+                <div>
+                  <div style="display:flex; gap:8px; align-items:center; margin-bottom:4px;">
+                    ${timeInfo}
+                    <span style="font-weight:600;">${block.startTime} - ${block.endTime}</span>
+                  </div>
+                  <div style="font-size:0.85rem; color:var(--muted);">${block.reason || 'Sin motivo'}</div>
+                </div>
+                <button class="btn icon small ghost danger" onclick="deleteBlockedSlot('${block.id}')" title="Eliminar bloqueo">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            `;
+          }).join('');
+        } else {
+          container.innerHTML = '<p class="muted error">Error al cargar bloqueos.</p>';
+        }
+      } catch (err) {
+        console.error('Error loading blocked slots:', err);
+        container.innerHTML = '<p class="muted error">Error de conexión.</p>';
+      }
+    }
+
+    document.getElementById('form-block-time').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const type = document.querySelector('input[name="blockType"]:checked').value;
+      const startTime = document.getElementById('block-start-time').value;
+      const endTime = document.getElementById('block-end-time').value;
+      const reason = document.getElementById('block-reason').value;
+
+      const payload = {
+        startTime,
+        endTime,
+        reason
+      };
+
+      if (type === 'single') {
+        payload.date = document.getElementById('block-date').value;
+      } else {
+        payload.dayOfWeek = document.getElementById('block-day').value;
+      }
+
+      try {
+        const res = await fetch('/api/calendar/blocks', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(payload)
+        });
+        const json = await res.json();
+
+        if (json.success) {
+          showNotification('Horario bloqueado correctamente', 'success');
+          loadBlockedSlots(); // Reload list
+          document.getElementById('form-block-time').reset();
+          document.getElementById('block-date').valueAsDate = new Date();
+          // Optionally refresh calendar if open/visible
+          if (typeof renderCalendar === 'function') renderCalendar();
+        } else {
+          showNotification(json.error || 'Error al guardar bloqueo', 'error');
+        }
+      } catch (err) {
+        console.error('Error saving block:', err);
+        showNotification('Error de conexión', 'error');
+      }
+    });
+
+    async function deleteBlockedSlot(id) {
+      if (!confirm('¿Eliminar este bloqueo de horario?')) return;
+
+      try {
+        const res = await fetch(`/api/calendar/blocks/${id}`, {
+          method: 'DELETE',
+          credentials: 'include'
+        });
+        const json = await res.json();
+
+        if (json.success) {
+          showNotification('Bloqueo eliminado', 'success');
+          loadBlockedSlots();
+          if (typeof renderCalendar === 'function') renderCalendar();
+        } else {
+          showNotification(json.error || 'Error al eliminar', 'error');
+        }
+      } catch (err) {
+        console.error('Error deleting block:', err);
+      }
+    }
+
   </script>
 
 </body>

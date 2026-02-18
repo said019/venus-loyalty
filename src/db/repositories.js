@@ -112,7 +112,7 @@ export const CardsRepo = {
     const cards = await prisma.card.findMany({
       where: { status: 'active' }
     });
-    
+
     return cards.filter(card => {
       if (!card.birthday) return false;
       const [, m, d] = card.birthday.split('-');
@@ -162,7 +162,7 @@ export const ServicesRepo = {
     if (data.discount !== undefined) cleanData.discount = data.discount || null;
     if (data.isActive !== undefined) cleanData.isActive = data.isActive;
     cleanData.updatedAt = new Date();
-    
+
     return prisma.service.update({
       where: { id },
       data: cleanData
@@ -439,7 +439,7 @@ export const GiftCardsRepo = {
     if (!card) throw new Error('Gift card not found');
 
     const newRemaining = Number(card.remainingAmount) - amount;
-    
+
     return prisma.giftCard.update({
       where: { id },
       data: {
@@ -481,7 +481,7 @@ export const NotificationsRepo = {
       entityId: entityId || null,
       data: entityId ? { entityId } : null
     };
-    
+
     try {
       return await prisma.notification.create({ data: notificationData });
     } catch (error) {
@@ -632,4 +632,22 @@ export default {
   bookingRequests: BookingRequestsRepo,
   settings: SettingsRepo,
   sales: SalesRepo,
+  blockedSlots: BlockedSlotsRepo,
+};
+
+// ==================== BLOCKED SLOTS ====================
+export const BlockedSlotsRepo = {
+  async findAll() {
+    return prisma.blockedSlot.findMany({
+      orderBy: { createdAt: 'desc' }
+    });
+  },
+
+  async create(data) {
+    return prisma.blockedSlot.create({ data });
+  },
+
+  async delete(id) {
+    return prisma.blockedSlot.delete({ where: { id } });
+  }
 };

@@ -391,3 +391,17 @@ model GiftCardRedeem {
 
   @@map("gift_card_redeems")
 }
+
+// Bloqueos de horario (días específicos o recurrentes)
+model BlockedSlot {
+  id        String   @id @default(cuid())
+  startTime String   // "HH:mm"
+  endTime   String   // "HH:mm"
+  date      String?  // "YYYY-MM-DD" (Fecha específica, opcional)
+  dayOfWeek Int?     // 0-6 (Día recurrente, 0=Dom, opcional)
+  reason    String?  // Motivo del bloqueo
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("blocked_slots")
+}

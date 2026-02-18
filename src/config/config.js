@@ -2,10 +2,19 @@ import 'dotenv/config';
 
 export const config = {
     port: process.env.PORT || 3000,
+    baseUrl: process.env.BASE_URL || 'http://localhost:3000',
+    // Proveedor de WhatsApp: 'evolution' o 'twilio'
+    whatsappProvider: process.env.WHATSAPP_PROVIDER || 'twilio',
     twilio: {
         accountSid: process.env.TWILIO_ACCOUNT_SID,
         authToken: process.env.TWILIO_AUTH_TOKEN,
         whatsappNumber: process.env.TWILIO_WHATSAPP_NUMBER || 'whatsapp:+14155238886'
+    },
+    // Evolution API (alternativa gratuita a Twilio)
+    evolution: {
+        apiUrl: process.env.EVOLUTION_API_URL,
+        apiKey: process.env.EVOLUTION_API_KEY,
+        instanceName: process.env.EVOLUTION_INSTANCE_NAME || 'venus-loyalty'
     },
     // Template SIDs de Twilio (ya aprobados)
     templates: {

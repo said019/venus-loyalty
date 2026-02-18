@@ -1,6 +1,7 @@
-// src/services/whatsapp.js - Sistema de notificaciones WhatsApp con Twilio
+// src/services/whatsapp-v2.js - Sistema de notificaciones WhatsApp (Twilio + Evolution API)
 import twilio from 'twilio';
 import { config } from '../config/config.js';
+import { getEvolutionClient } from './whatsapp-evolution.js';
 
 // Cliente de Twilio
 let client = null;
@@ -11,6 +12,8 @@ function getTwilioClient() {
     }
     return client;
 }
+
+const IS_EVOLUTION = config.whatsappProvider === 'evolution';
 
 /**
  * Envía un mensaje de WhatsApp usando un Content Template de Twilio
@@ -179,6 +182,36 @@ async function sendWhatsAppText(to, body) {
     }
 }
 
+/**
+ * Envía un mensaje usando Evolution API (texto libre, sin templates)
+ */
+async function sendViaEvolution(to, message) {
+    try {
+        const evoClient = getEvolutionClient();
+        const result = await evoClient.sendText(to, message);
+        console.log(`✅ [Evolution] WhatsApp enviado a ${to}`);
+        return { success: true, messageSid: result?.key?.id || 'evolution-sent' };
+    } catch (error) {
+        console.error('❌ [Evolution] Error enviando WhatsApp:', error.message);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Envía un Poll usando Evolution API (funciona en iOS y Android)
+ */
+async function sendPollViaEvolution(to, question, options) {
+    try {
+        const evoClient = getEvolutionClient();
+        const result = await evoClient.sendPoll(to, question, options, 1);
+        console.log(`✅ [Evolution] Poll enviado a ${to}`);
+        return { success: true, messageSid: result?.key?.id || 'evolution-poll-sent' };
+    } catch (error) {
+        console.error('❌ [Evolution] Error enviando Poll:', error.message);
+        return { success: false, error: error.message };
+    }
+}
+
 export const WhatsAppService = {
     /**
      * Envía confirmación de cita al momento de crearla
@@ -188,11 +221,12 @@ export const WhatsAppService = {
     async sendConfirmation(appt) {
         // VERSION: TIMEZONE-FIX-FINAL
         // SIEMPRE usar appt.time si está disponible (es el campo más confiable)
-        console.log('[WHATSAPP] 🔥 VERSION: TIMEZONE-FIX-FINAL 🔥');
+        console.log('[WHATSAPP] 🔥 VERSION: EVOLUTION-SWITCH 🔥');
         console.log('[WHATSAPP] sendConfirmation llamado con:', {
             hasTime: !!appt.time,
             time: appt.time,
-            hasStartDateTime: !!appt.startDateTime
+            hasStartDateTime: !!appt.startDateTime,
+            provider: config.whatsappProvider
         });
 
         let hora;
@@ -222,21 +256,30 @@ export const WhatsAppService = {
         }
 
         const fecha = appt.date ? formatearFechaLegible(appt.date) : formatearFechaLegible(appt.startDateTime);
+        const nombre = sanitizeForWhatsApp(appt.clientName);
+        const servicio = sanitizeForWhatsApp(appt.serviceName);
 
         console.log('[WHATSAPP] sendConfirmation FINAL:', {
-            clientName: appt.clientName,
+            clientName: nombre,
             fecha,
             hora,
             apptTimeOriginal: appt.time,
             startDateTime: appt.startDateTime
         });
 
+        // === EVOLUTION API ===
+        if (IS_EVOLUTION) {
+            const mensaje = `📅 *Cita Confirmada*\n\nHola ${nombre}, tu cita ha sido agendada:\n\n🔹 *Servicio:* ${servicio}\n📆 *Fecha:* ${fecha}\n🕐 *Hora:* ${hora}\n📍 *Lugar:* ${config.venus.location}\n\n¡Te esperamos! ✨`;
+            return await sendViaEvolution(appt.clientPhone, mensaje);
+        }
+
+        // === TWILIO ===
         return await sendWhatsAppTemplate(
             appt.clientPhone,
             config.templates.CONFIRMACION_CITA,
             {
-                '1': sanitizeForWhatsApp(appt.clientName),
-                '2': sanitizeForWhatsApp(appt.serviceName),
+                '1': nombre,
+                '2': servicio,
                 '3': fecha,
                 '4': hora,
                 '5': config.venus.location
@@ -252,13 +295,26 @@ export const WhatsAppService = {
     async sendReminder24h(appt) {
         const fecha = formatearFechaLegible(appt.date || appt.startDateTime);
         const hora = appt.time || formatearHora(appt.startDateTime);
+        const nombre = sanitizeForWhatsApp(appt.clientName);
+        const servicio = sanitizeForWhatsApp(appt.serviceName);
 
+        // === EVOLUTION API (con Poll para confirmar) ===
+        if (IS_EVOLUTION) {
+            const question = `⏰ *Recordatorio de Cita*\n\nHola ${nombre}, te recordamos tu cita de mañana:\n\n🔹 *Servicio:* ${servicio}\n📆 *Fecha:* ${fecha}\n🕐 *Hora:* ${hora}\n\n¿Qué deseas hacer?`;
+            return await sendPollViaEvolution(appt.clientPhone, question, [
+                '✅ Confirmar Asistencia',
+                '🔄 Solicitar Cambio de Horario',
+                '❌ Cancelar Cita'
+            ]);
+        }
+
+        // === TWILIO ===
         return await sendWhatsAppTemplate(
             appt.clientPhone,
             config.templates.RECORDATORIO_24H,
             {
-                '1': sanitizeForWhatsApp(appt.clientName),
-                '2': sanitizeForWhatsApp(appt.serviceName),
+                '1': nombre,
+                '2': servicio,
                 '3': fecha,
                 '4': hora
             }
@@ -272,13 +328,22 @@ export const WhatsAppService = {
      */
     async sendReminder2h(appt) {
         const hora = appt.time || formatearHora(appt.startDateTime);
+        const nombre = sanitizeForWhatsApp(appt.clientName);
+        const servicio = sanitizeForWhatsApp(appt.serviceName);
 
+        // === EVOLUTION API ===
+        if (IS_EVOLUTION) {
+            const mensaje = `🔔 *¡Tu cita es en 2 horas!*\n\nHola ${nombre}, tu cita de ${servicio} es a las ${hora}.\n\n📍 ${config.venus.location}\n\n¡Te esperamos! ✨`;
+            return await sendViaEvolution(appt.clientPhone, mensaje);
+        }
+
+        // === TWILIO ===
         return await sendWhatsAppTemplate(
             appt.clientPhone,
             config.templates.RECORDATORIO_2H,
             {
-                '1': sanitizeForWhatsApp(appt.clientName),
-                '2': sanitizeForWhatsApp(appt.serviceName),
+                '1': nombre,
+                '2': servicio,
                 '3': hora
             }
         );
@@ -294,6 +359,9 @@ export const WhatsAppService = {
 
         const mensaje = `✅ ¡Gracias ${appt.clientName}! Tu cita ha sido confirmada para el ${fecha} a las ${hora}. Te esperamos en Venus Cosmetología.`;
 
+        if (IS_EVOLUTION) {
+            return await sendViaEvolution(appt.clientPhone, mensaje);
+        }
         return await sendWhatsAppText(appt.clientPhone, mensaje);
     },
 
@@ -303,6 +371,9 @@ export const WhatsAppService = {
      */
     async sendSolicitudReprogramacion(appt) {
         const mensaje = `🔄 Entendido ${appt.clientName}. Nos pondremos en contacto contigo pronto para reprogramar tu cita.`;
+        if (IS_EVOLUTION) {
+            return await sendViaEvolution(appt.clientPhone, mensaje);
+        }
         return await sendWhatsAppText(appt.clientPhone, mensaje);
     },
 
@@ -312,6 +383,9 @@ export const WhatsAppService = {
      */
     async sendCancelacionConfirmada(appt) {
         const mensaje = `❌ Tu cita ha sido cancelada exitosamente. Esperamos verte pronto de nuevo.`;
+        if (IS_EVOLUTION) {
+            return await sendViaEvolution(appt.clientPhone, mensaje);
+        }
         return await sendWhatsAppText(appt.clientPhone, mensaje);
     },
 
