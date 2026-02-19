@@ -8217,117 +8217,68 @@
         .reminder-option {
           display: flex;
           align-items: center;
-          gap: 14px;
-          padding: 14px 16px;
-          border-radius: 12px;
-          cursor: pointer;
-          transition: all 0.25s;
-          background: var(--bg-secondary);
-          border: 1px solid var(--border-color);
-        }
-
-        .reminder-option:hover {
-          border-color: var(--border-glow);
-        }
-
-        .reminder-option input[type="checkbox"] {
-          margin: 0;
-          width: 24px;
-          height: 24px;
-          cursor: pointer;
-          accent-color: var(--accent-gold);
-          border-radius: 8px;
-        }
-
-        .reminder-text {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-        }
-
-        .reminder-text strong {
-          font-size: 14px;
-          color: var(--text-primary);
-          font-weight: 600;
-        }
-
-        .reminder-text small {
-          font-size: 12px;
-          color: var(--text-muted);
-        }
-
-        .reminder-option {
-          display: flex;
-          align-items: flex-start;
           gap: 12px;
-          padding: 12px;
+          padding: 10px 12px;
           background: rgba(255, 255, 255, 0.03);
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          border: 1px solid rgba(255, 255, 255, 0.08);
           border-radius: 10px;
+          cursor: pointer;
           transition: all 0.2s;
         }
 
         .reminder-option:hover {
           background: rgba(255, 255, 255, 0.06);
-          border-color: rgba(255, 255, 255, 0.2);
+          border-color: rgba(255, 255, 255, 0.15);
         }
 
         .reminder-option input[type="checkbox"] {
           appearance: none;
           -webkit-appearance: none;
-          margin-top: 3px;
-          width: 20px;
-          height: 20px;
+          margin: 0;
+          width: 18px;
+          height: 18px;
           cursor: pointer;
-          border: 2px solid var(--venus-soft);
-          border-radius: 6px;
-          background: rgba(0, 0, 0, 0.3);
+          border: 2px solid rgba(255, 255, 255, 0.25);
+          border-radius: 5px;
+          background: transparent;
           position: relative;
           transition: all 0.2s;
           flex-shrink: 0;
         }
 
-        .reminder-option input[type="checkbox"]:hover {
-          border-color: var(--venus-green);
-          background: rgba(140, 150, 104, 0.1);
-        }
-
         .reminder-option input[type="checkbox"]:checked {
-          background: var(--venus-green);
-          border-color: var(--venus-green);
+          background: var(--venus-soft, #8c9668);
+          border-color: var(--venus-soft, #8c9668);
         }
 
-        /* Checkmark dibujado con CSS - BLANCO Y GRUESO */
         .reminder-option input[type="checkbox"]:checked::after {
           content: "";
           position: absolute;
-          left: 6px;
-          top: 2px;
-          width: 6px;
-          height: 12px;
+          left: 5px;
+          top: 1px;
+          width: 5px;
+          height: 10px;
           border: solid #fff;
-          border-width: 0 3px 3px 0;
+          border-width: 0 2px 2px 0;
           transform: rotate(45deg);
-          filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5));
         }
 
         .reminder-text {
           display: flex;
           flex-direction: column;
-          gap: 2px;
+          gap: 1px;
         }
 
         .reminder-text strong {
-          font-size: 14px;
+          font-size: 13px;
           color: #fff;
           font-weight: 500;
         }
 
         .reminder-text small {
-          font-size: 12px;
+          font-size: 11px;
           color: var(--muted);
-          line-height: 1.4;
+          line-height: 1.3;
         }
 
         /* Weekly Calendar */
@@ -8660,7 +8611,10 @@
         }
 
         .calendar-dropdown .calendar-day.today {
-          border: 1px solid var(--venus-gold);
+          border: 2px solid var(--venus-gold, #8c9668);
+          background: rgba(140, 150, 104, 0.15);
+          font-weight: 600;
+          color: #fff;
         }
 
         .calendar-dropdown .calendar-day.empty {
@@ -15858,22 +15812,28 @@ Gracias por tu preferencia`;
         // Open on input click
         this.input.addEventListener('click', (e) => {
           e.stopPropagation();
-          console.log('[DROPDOWN] Input clicked, showing dropdown');
           this.show();
         });
 
         // Filter on input type
         this.input.addEventListener('input', () => {
           const query = this.input.value;
-          console.log('[DROPDOWN] Input changed:', query);
           if (query.length === 0) {
-            // Si está vacío, mostrar todas las opciones
             this.render(this.options);
             this.show();
           } else {
-            // Si hay texto, filtrar
             this.filter(query);
             this.show();
+          }
+        });
+
+        // Event delegation for dropdown item selection
+        this.dropdown.addEventListener('mousedown', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const itemEl = e.target.closest('.dropdown-item');
+          if (itemEl && itemEl._itemData) {
+            this.select(itemEl._itemData);
           }
         });
 
@@ -15928,12 +15888,12 @@ Gracias por tu preferencia`;
           grouped[cat].forEach(item => {
             const div = document.createElement('div');
             div.className = 'dropdown-item';
+            div._itemData = item;
             div.innerHTML = `
               <div>${item.label}</div>
               ${item.meta ? `<span class="item-meta">${item.meta.replace(/^\[[^\]]+\]\s*/, '')}</span>` : ''}
             `;
             Object.keys(item.data || {}).forEach(key => { div.dataset[key] = item.data[key]; });
-            div.addEventListener('mousedown', (e) => { e.preventDefault(); e.stopPropagation(); this.select(item); });
             this.dropdown.appendChild(div);
           });
         });
@@ -15950,6 +15910,7 @@ Gracias por tu preferencia`;
         items.forEach(item => {
           const div = document.createElement('div');
           div.className = 'dropdown-item';
+          div._itemData = item;
           const cat = this._getCategory(item);
           div.innerHTML = `
             <div style="display:flex;align-items:center;gap:8px;">
@@ -15959,7 +15920,6 @@ Gracias por tu preferencia`;
             ${item.meta ? `<span class="item-meta">${item.meta.replace(/^\[[^\]]+\]\s*/, '')}</span>` : ''}
           `;
           Object.keys(item.data || {}).forEach(key => { div.dataset[key] = item.data[key]; });
-          div.addEventListener('mousedown', (e) => { e.preventDefault(); e.stopPropagation(); this.select(item); });
           this.dropdown.appendChild(div);
         });
       }
