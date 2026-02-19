@@ -76,6 +76,25 @@ async function handleIncomingMessage(data) {
 
         console.log(`[Evolution] Mensaje de ${from} (${profileName}): ${text}`);
 
+        // Guardar mensaje en Firestore
+        try {
+            let phone = from.replace(/\D/g, '');
+            if (phone.length === 13 && phone.startsWith('521')) phone = '52' + phone.substring(3);
+            if (phone.length === 10) phone = '52' + phone;
+
+            await firestore.collection('whatsapp_messages').add({
+                phone,
+                name: profileName,
+                body: text,
+                direction: 'in',
+                timestamp: new Date().toISOString(),
+                read: false,
+                messageId: message?.key?.id || null,
+            });
+        } catch (saveErr) {
+            console.error('[Evolution] Error guardando mensaje entrante:', saveErr.message);
+        }
+
         // Procesar como respuesta de texto
         await processClientResponse(from, text.toLowerCase().trim());
 

@@ -205,8 +205,17 @@ export const AppointmentModel = {
         console.log(`   📦 Encontradas ${snap.size} citas en el rango`);
 
         // Campos para PostgreSQL (sin objeto reminders)
-        const sendField = type === 'send24h' ? 'sendWhatsApp24h' : 'sendWhatsApp2h';
-        const sentField = type === 'send24h' ? 'sent24hAt' : 'sent2hAt';
+        let sendField, sentField;
+        if (type === 'send30h') {
+            sendField = 'sendWhatsApp30h';
+            sentField = 'sent30hAt';
+        } else if (type === 'send24h') {
+            sendField = 'sendWhatsApp24h';
+            sentField = 'sent24hAt';
+        } else {
+            sendField = 'sendWhatsApp2h';
+            sentField = 'sent2hAt';
+        }
 
         const pending = snap.docs
             .map(d => ({ id: d.id, ...d.data() }))
@@ -228,9 +237,13 @@ export const AppointmentModel = {
     },
 
     async markReminderSent(id, type) {
-        // type: '24h' o '2h'
+        // type: '30h', '24h' o '2h'
         // Campos directos para PostgreSQL (sin objeto reminders)
-        const field = type === '24h' ? 'sent24hAt' : 'sent2hAt';
+        let field;
+        if (type === '30h') field = 'sent30hAt';
+        else if (type === '24h') field = 'sent24hAt';
+        else field = 'sent2hAt';
+        
         await firestore.collection(COL_APPOINTMENTS).doc(id).update({
             [field]: new Date().toISOString()
         });

@@ -618,6 +618,77 @@ app.post('/api/evolution/test', adminAuth, async (req, res) => {
   }
 });
 
+// ========== WHATSAPP INBOX (Historial de mensajes) ==========
+
+// GET /api/whatsapp/chats - Lista de conversaciones únicas
+app.get('/api/whatsapp/chats', adminAuth, async (req, res) => {
+  try {
+    const snap = await firestore.collection('whatsapp_messages')
+      .orderBy('timestamp', 'desc')
+      .limit(500)
+      .get();
+
+    const chatMap = {};
+    snap.docs.forEach(doc => {
+      const d = doc.data();
+      const phone = d.phone;
+      if (!phone) return;
+      if (!chatMap[phone]) {
+        chatMap[phone] = {
+          phone,
+          name: d.name || phone,
+          lastMessage: d.body || '',
+          lastTime: d.timestamp,
+          unread: 0,
+        };
+      }
+      if (!chatMap[phone].read && d.direction === 'in') {
+        chatMap[phone].unread++;
+      }
+    });
+
+    const chats = Object.values(chatMap).sort((a, b) => {
+      return new Date(b.lastTime) - new Date(a.lastTime);
+    });
+
+    res.json({ success: true, data: chats });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// GET /api/whatsapp/chat/:phone - Mensajes de una conversación
+app.get('/api/whatsapp/chat/:phone', adminAuth, async (req, res) => {
+  try {
+    const { phone } = req.params;
+    const snap = await firestore.collection('whatsapp_messages')
+      .where('phone', '==', phone)
+      .orderBy('timestamp', 'asc')
+      .limit(200)
+      .get();
+
+    const messages = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    res.json({ success: true, data: messages });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// POST /api/whatsapp/send - Enviar mensaje desde la bandeja
+app.post('/api/whatsapp/send', adminAuth, async (req, res) => {
+  try {
+    const { phone, message } = req.body;
+    if (!phone || !message) {
+      return res.status(400).json({ success: false, error: 'Se requiere phone y message' });
+    }
+    const { sendViaEvolutionRaw } = await import('./src/services/whatsapp-v2.js');
+    const result = await sendViaEvolutionRaw(phone, message);
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // 🏥 Health Check con versión
 app.get('/api/health', (req, res) => {
   res.json({

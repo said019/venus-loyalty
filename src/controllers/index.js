@@ -138,6 +138,7 @@ export const AppointmentsController = {
             }
 
             // 4. Preparar datos del appointment
+            const isDepilacion = serviceName.toLowerCase().includes('depilacion') || serviceName.toLowerCase().includes('depilación');
             const appointmentData = {
                 cardId: card.id,
                 clientName: card.name,
@@ -148,6 +149,7 @@ export const AppointmentsController = {
                 time,
                 durationMinutes: durationMinutes || 60,
                 location: 'Venus Cosmetología',
+                sendWhatsApp30h: isDepilacion,
                 sendWhatsApp24h: !!sendWhatsApp24h,
                 sendWhatsApp2h: !!sendWhatsApp2h
             };
@@ -381,6 +383,7 @@ export const AppointmentsController = {
                 serviceName,
                 startDateTime,
                 endDateTime,
+                sendWhatsApp30h: serviceName.toLowerCase().includes('depilacion') || serviceName.toLowerCase().includes('depilación'),
                 updatedAt: new Date().toISOString()
             };
 

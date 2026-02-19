@@ -21,6 +21,28 @@ export function startScheduler() {
         const now = new Date();
 
         try {
+            // --- RECORDATORIO 30 HORAS (DEPILACIÓN) ---
+            // Buscamos citas que ocurran entre 29h y 31h desde ahora (ventana de 2 horas)
+            const date30hStart = new Date(now.getTime() + 29 * 60 * 60 * 1000);
+            const date30hEnd = new Date(now.getTime() + 31 * 60 * 60 * 1000);
+
+            const start30h = toMexicoCityISO(date30hStart);
+            const end30h = toMexicoCityISO(date30hEnd);
+
+            const pending30h = await AppointmentModel.getPendingReminders('send30h', start30h, end30h);
+            console.log(`📅 Encontrados ${pending30h.length} recordatorios 30h pendientes`);
+
+            for (const appt of pending30h) {
+                // Solo enviar si la cita no está cancelada
+                if (appt.status !== 'cancelled') {
+                    const result = await WhatsAppService.sendReminder30h(appt);
+                    if (result.success) {
+                        await AppointmentModel.markReminderSent(appt.id, '30h');
+                        console.log(`✅ Recordatorio 30h enviado para cita ${appt.id}`);
+                    }
+                }
+            }
+
             // --- RECORDATORIO 24 HORAS ---
             // Buscamos citas que ocurran entre 23h y 25h desde ahora (ventana de 2 horas)
             const date24hStart = new Date(now.getTime() + 23 * 60 * 60 * 1000);

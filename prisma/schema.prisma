@@ -78,8 +78,10 @@ model Appointment {
   googleCalendarEventId2 String?
   
   // WhatsApp reminders
+  sendWhatsApp30h        Boolean   @default(false)
   sendWhatsApp24h        Boolean   @default(true)
   sendWhatsApp2h         Boolean   @default(true)
+  sent30hAt              DateTime?
   sent24hAt              DateTime?
   sent2hAt               DateTime?
   

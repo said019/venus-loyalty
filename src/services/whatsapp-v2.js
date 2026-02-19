@@ -190,6 +190,56 @@ async function sendViaEvolution(to, message) {
         const evoClient = getEvolutionClient();
         const result = await evoClient.sendText(to, message);
         console.log(`✅ [Evolution] WhatsApp enviado a ${to}`);
+
+        // Guardar en Firestore para historial
+        try {
+            const { firestore } = await import('../db/compat.js');
+            let phone = String(to).replace(/\D/g, '');
+            if (phone.length === 13 && phone.startsWith('521')) phone = '52' + phone.substring(3);
+            if (phone.length === 10) phone = '52' + phone;
+            await firestore.collection('whatsapp_messages').add({
+                phone,
+                name: 'Venus Cosmetología',
+                body: message,
+                direction: 'out',
+                timestamp: new Date().toISOString(),
+                read: true,
+                messageId: result?.key?.id || null,
+            });
+        } catch (saveErr) {
+            console.error('[Evolution] Error guardando mensaje enviado:', saveErr.message);
+        }
+
+        return { success: true, messageSid: result?.key?.id || 'evolution-sent' };
+    } catch (error) {
+        console.error('❌ [Evolution] Error enviando WhatsApp:', error.message);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Envía mensaje directo desde la bandeja del admin (sin guardar doble)
+ */
+export async function sendViaEvolutionRaw(to, message) {
+    try {
+        const evoClient = getEvolutionClient();
+        const result = await evoClient.sendText(to, message);
+
+        // Guardar en Firestore
+        const { firestore } = await import('../db/compat.js');
+        let phone = String(to).replace(/\D/g, '');
+        if (phone.length === 13 && phone.startsWith('521')) phone = '52' + phone.substring(3);
+        if (phone.length === 10) phone = '52' + phone;
+        await firestore.collection('whatsapp_messages').add({
+            phone,
+            name: 'Venus Cosmetología',
+            body: message,
+            direction: 'out',
+            timestamp: new Date().toISOString(),
+            read: true,
+            messageId: result?.key?.id || null,
+        });
+
         return { success: true, messageSid: result?.key?.id || 'evolution-sent' };
     } catch (error) {
         console.error('❌ [Evolution] Error enviando WhatsApp:', error.message);
@@ -285,6 +335,23 @@ export const WhatsAppService = {
                 '5': config.venus.location
             }
         );
+    },
+
+    /**
+     * Envía recordatorio 30 horas antes (Específico para depilación)
+     */
+    async sendReminder30h(appt) {
+        const nombre = sanitizeForWhatsApp(appt.clientName);
+
+        // === EVOLUTION API ===
+        if (IS_EVOLUTION) {
+            const mensaje = `🌿 *Indicaciones Antes de tu Sesión de Depilación Láser:*\n\nHola ${nombre},\n\n• Rasura el área a tratar 24 horas antes de tu cita.\n• Evita la exposición solar directa y el uso de autobronceadores al menos 72 horas antes.\n• No uses cremas, aceites, desodorantes o maquillaje el día de la sesión.\n• Suspende exfoliaciones o tratamientos irritantes una semana antes.\n• Si estás tomando antibióticos o tienes alguna condición médica, coméntalo antes de la sesión.\n\n⸻\n\n💫 *Cuidados Después de la Sesión:*\n\n• Evita exponerte al sol o calor intenso (vapor, saunas, ejercicio intenso) durante 48 horas.\n• No rasques ni frotes la piel tratada.\n• Aplica gel de aloe vera o crema calmante para hidratar y aliviar la zona.\n• No uses productos con alcohol o fragancias por al menos 24 horas.\n• Usa protector solar FPS 50 si la zona estará expuesta.`;
+            return await sendViaEvolution(appt.clientPhone, mensaje);
+        }
+
+        // Si no es Evolution, no enviamos nada por ahora o podríamos usar Twilio si hubiera template
+        console.warn('⚠️ WhatsApp: Recordatorio 30h solo soportado en Evolution API.');
+        return { success: false, error: 'Solo soportado en Evolution API' };
     },
 
     /**
