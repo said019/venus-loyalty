@@ -7278,6 +7278,18 @@
                     <div id="clients-dropdown-list" class="custom-dropdown-list search-dropdown" style="display:none;">
                     </div>
                   </div>
+                  <!-- Badge de cliente seleccionado -->
+                  <div id="client-selected-badge"
+                    style="display:none; margin-top:8px; padding:8px 12px; background:rgba(140,150,104,0.18); border:1px solid rgba(140,150,104,0.5); border-radius:10px; display:none; align-items:center; gap:10px;">
+                    <i class="fas fa-check-circle" style="color:#8c9668; font-size:16px;"></i>
+                    <div style="flex:1;">
+                      <div id="badge-client-name" style="font-weight:600; font-size:14px;"></div>
+                      <div id="badge-client-phone" style="font-size:12px; opacity:0.7;"></div>
+                    </div>
+                    <button type="button" id="btn-clear-client"
+                      style="background:none;border:none;cursor:pointer;color:rgba(255,255,255,0.4);font-size:18px;line-height:1;padding:0;"
+                      title="Cambiar cliente">✕</button>
+                  </div>
                   <button type="button" id="btn-toggle-new-client" class="add-new-btn" style="margin-top:12px;">
                     <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -14667,6 +14679,14 @@
               selectedClientPhone = phone;
               window.selectedClientPhone = phone;
 
+              // ✅ Mostrar badge visual de selección
+              const badge = document.getElementById('client-selected-badge');
+              if (badge) {
+                document.getElementById('badge-client-name').textContent = item.label;
+                document.getElementById('badge-client-phone').textContent = phone ? '📞 ' + phone : 'Sin teléfono registrado';
+                badge.style.display = 'flex';
+              }
+
               // Cargar historial de citas del cliente
               loadClientHistory(item.data.phone, item.label);
             }
@@ -16175,6 +16195,11 @@ Gracias por tu preferencia`;
       if (historyContentEl) historyContentEl.style.display = 'none';
       if (historyHeaderEl) historyHeaderEl.classList.remove('expanded');
 
+      // Limpiar badge de cliente seleccionado
+      const badgeEl = document.getElementById('client-selected-badge');
+      if (badgeEl) badgeEl.style.display = 'none';
+      window.selectedClientPhone = '';
+
       newApptDialog.showModal();
     };
 
@@ -16191,6 +16216,11 @@ Gracias por tu preferencia`;
         if (historyPanel) historyPanel.classList.add('hidden');
         if (historyContent) historyContent.style.display = 'none';
         if (historyHeader) historyHeader.classList.remove('expanded');
+
+        // Limpiar badge de cliente seleccionado
+        const badgeEl2 = document.getElementById('client-selected-badge');
+        if (badgeEl2) badgeEl2.style.display = 'none';
+        window.selectedClientPhone = '';
       });
     }
 
@@ -16201,18 +16231,27 @@ Gracias por tu preferencia`;
     // Cliente input - auto-llenar teléfono cuando se selecciona
     if (clientSelect) {
       clientSelect.addEventListener('input', function () {
-        const clientName = this.value.trim();
-        const client = allClients.find(c => c.name === clientName);
-        if (client) {
-          // Guardar el teléfono del cliente seleccionado
-          selectedClientPhone = client.phone || '';
-          window.selectedClientPhone = selectedClientPhone;
-          console.log('Cliente seleccionado:', clientName, 'Teléfono:', selectedClientPhone);
-        } else {
+        // Al escribir manualmente, ocultar badge (aún no confirmado)
+        const badge = document.getElementById('client-selected-badge');
+        if (badge) badge.style.display = 'none';
+        selectedClientPhone = '';
+        window.selectedClientPhone = '';
+      });
+
+      // Botón X del badge — limpiar selección
+      const clearBtn = document.getElementById('btn-clear-client');
+      if (clearBtn) {
+        clearBtn.addEventListener('click', function () {
+          clientSelect.value = '';
           selectedClientPhone = '';
           window.selectedClientPhone = '';
-        }
-      });
+          const badge = document.getElementById('client-selected-badge');
+          if (badge) badge.style.display = 'none';
+          const historyPanel = document.getElementById('client-history-panel');
+          if (historyPanel) historyPanel.classList.add('hidden');
+          clientSelect.focus();
+        });
+      }
     }
 
     // Servicio input - auto-llenar precio y calcular hora fin
