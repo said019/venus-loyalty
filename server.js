@@ -2838,6 +2838,128 @@ app.get('/api/public/services', async (req, res) => {
   // ... existing code ...
 });
 
+// ──────────────────────────────────────────────
+//  DIGITAL WALLET ROUTES
+// ──────────────────────────────────────────────
+
+// Serve card page at /card/:id
+app.get('/card/:id', (req, res) => {
+  res.sendFile('card.html', { root: path.join(process.cwd(), 'public') });
+});
+
+// GET /api/public/card/:id — card data for the client card page
+app.get('/api/public/card/:id', async (req, res) => {
+  try {
+    const card = await prisma.card.findUnique({ where: { id: req.params.id } });
+    if (!card) return res.status(404).json({ error: 'Tarjeta no encontrada' });
+
+    // Check if Apple certs are configured
+    const applePassAvailable = !!(
+      process.env.APPLE_CERT_PEM &&
+      process.env.APPLE_KEY_PEM &&
+      (process.env.APPLE_WWDR_PEM || true) // wwdr_rsa.pem exists in repo
+    );
+
+    res.json({
+      id: card.id,
+      name: card.name,
+      phone: card.phone,
+      stamps: card.stamps,
+      max: card.max,
+      cycles: card.cycles,
+      cardType: card.cardType || 'loyalty',
+      cardColor: card.cardColor || '#8C9668',
+      sessionsTotal: card.sessionsTotal || 0,
+      sessionsUsed: card.sessionsUsed || 0,
+      googleWalletUrl: card.walletPassUrl || null,
+      applePassAvailable,
+    });
+  } catch (e) {
+    console.error('[WALLET] Error getting card:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// GET /api/public/card/:id/apple.pkpass — download Apple Wallet pass
+app.get('/api/public/card/:id/apple.pkpass', async (req, res) => {
+  try {
+    const card = await prisma.card.findUnique({ where: { id: req.params.id } });
+    if (!card) return res.status(404).json({ error: 'Tarjeta no encontrada' });
+
+    const { generateApplePass } = await import('./src/services/appleWallet.js');
+    const buffer = await generateApplePass(card);
+
+    res.set({
+      'Content-Type': 'application/vnd.apple.pkpass',
+      'Content-Disposition': `attachment; filename="venus-${card.id}.pkpass"`,
+    });
+    res.send(buffer);
+  } catch (e) {
+    console.error('[WALLET] Apple pass error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /api/admin/cards/:id/issue-wallet — issue/regenerate wallet for a card
+app.post('/api/admin/cards/:id/issue-wallet', adminAuth, async (req, res) => {
+  try {
+    const { cardType, cardColor, sessionsTotal } = req.body;
+    const card = await prisma.card.update({
+      where: { id: req.params.id },
+      data: {
+        cardType: cardType || 'loyalty',
+        cardColor: cardColor || '#8C9668',
+        sessionsTotal: parseInt(sessionsTotal) || 0,
+        sessionsUsed: 0,
+      },
+    });
+
+    // Try to generate Google Wallet URL
+    let googleWalletUrl = null;
+    if (process.env.GOOGLE_WALLET_ISSUER_ID && process.env.GOOGLE_WALLET_SERVICE_ACCOUNT) {
+      try {
+        const { generateGoogleWalletUrl } = await import('./src/services/googleWallet.js');
+        googleWalletUrl = await generateGoogleWalletUrl({ ...card, cardType: cardType || card.cardType });
+        await prisma.card.update({ where: { id: card.id }, data: { walletPassUrl: googleWalletUrl } });
+      } catch (gErr) {
+        console.warn('[WALLET] Google Wallet generation failed:', gErr.message);
+      }
+    }
+
+    const cardLink = `${process.env.BASE_URL || 'https://venus-loyalty.onrender.com'}/card/${card.id}`;
+
+    res.json({ success: true, cardLink, googleWalletUrl });
+  } catch (e) {
+    console.error('[WALLET] Issue wallet error:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// PATCH /api/admin/cards/:id/redeem-session — redeem 1 session (Venus Constancia Anual)
+app.patch('/api/admin/cards/:id/redeem-session', adminAuth, async (req, res) => {
+  try {
+    const card = await prisma.card.findUnique({ where: { id: req.params.id } });
+    if (!card) return res.status(404).json({ error: 'Tarjeta no encontrada' });
+    if (card.sessionsTotal === 0) return res.status(400).json({ error: 'Esta tarjeta no tiene sesiones prepagadas' });
+    if (card.sessionsUsed >= card.sessionsTotal) return res.status(400).json({ error: 'No hay sesiones disponibles' });
+
+    const updated = await prisma.card.update({
+      where: { id: card.id },
+      data: { sessionsUsed: { increment: 1 } },
+    });
+
+    res.json({
+      success: true,
+      sessionsUsed: updated.sessionsUsed,
+      sessionsTotal: updated.sessionsTotal,
+      sessionsLeft: updated.sessionsTotal - updated.sessionsUsed,
+    });
+  } catch (e) {
+    console.error('[WALLET] Redeem session error:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // GET /api/public/config - Configuración pública (información del negocio)
 app.get('/api/public/config', async (req, res) => {
   try {

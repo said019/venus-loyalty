@@ -24,6 +24,13 @@ model Card {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
+  // Tarjeta Digital Wallet
+  cardType      String    @default("loyalty")  // loyalty | annual | gold
+  cardColor     String    @default("#8C9668")  // Color hex del pase
+  sessionsTotal Int       @default(0)          // Sesiones prepagadas (Venus Constancia Anual)
+  sessionsUsed  Int       @default(0)          // Sesiones ya canjeadas
+  walletPassUrl String?                        // URL Google Wallet Object
+
   // Relaciones
   appointments Appointment[]
   events       Event[]

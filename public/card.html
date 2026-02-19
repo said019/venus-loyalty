@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mi Tarjeta Venus</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Montserrat:wght@300;400;500;600&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        :root {
+            --primary: #8C9668;
+            --gold: #C4A77D;
+            --dark: #2C2C2C;
+            --light: #F8F6F1;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: var(--light);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 1rem;
+        }
+
+        .logo-top {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 2rem;
+            text-decoration: none;
+        }
+
+        .logo-top img {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .logo-top span {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.4rem;
+            font-style: italic;
+            color: var(--primary);
+        }
+
+        /* === CARD === */
+        .wallet-card {
+            width: 100%;
+            max-width: 380px;
+            border-radius: 24px;
+            padding: 2rem 1.75rem 1.75rem;
+            color: white;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+            margin-bottom: 2rem;
+            background: var(--card-bg, #8C9668);
+        }
+
+        .wallet-card::before {
+            content: '';
+            position: absolute;
+            top: -40%;
+            right: -30%;
+            width: 80%;
+            height: 80%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.12) 0%, transparent 70%);
+        }
+
+        .wallet-card::after {
+            content: '';
+            position: absolute;
+            bottom: -30%;
+            left: -20%;
+            width: 60%;
+            height: 60%;
+            background: radial-gradient(circle, rgba(0, 0, 0, 0.1) 0%, transparent 70%);
+        }
+
+        .card-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1.5rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .card-brand {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem;
+            font-style: italic;
+            font-weight: 400;
+        }
+
+        .card-type-badge {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .card-name {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .card-phone {
+            font-size: 0.85rem;
+            opacity: 0.8;
+            margin-bottom: 1.5rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .card-progress {
+            position: relative;
+            z-index: 1;
+        }
+
+        .card-progress-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            opacity: 0.85;
+            margin-bottom: 0.5rem;
+        }
+
+        .progress-bar-bg {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.25);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 10px;
+            transition: width 0.8s ease;
+        }
+
+        /* Stamps dots (loyalty only) */
+        .stamps-dots {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-top: 1rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .stamp-dot {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+        }
+
+        .stamp-dot.filled {
+            background: rgba(255, 255, 255, 0.9);
+            border-color: rgba(255, 255, 255, 0.9);
+        }
+
+        .stamp-dot.filled i {
+            color: var(--card-bg, #8C9668);
+        }
+
+        /* Sessions (annual) */
+        .sessions-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 0.5rem;
+            margin-top: 1rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .session-dot {
+            aspect-ratio: 1;
+            border-radius: 8px;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .session-dot.used {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .session-dot.available {
+            background: rgba(255, 255, 255, 0.85);
+            border-color: white;
+        }
+
+        .session-dot.available i {
+            color: var(--card-bg, #8C9668);
+        }
+
+        /* === WALLET BUTTONS === */
+        .wallet-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            width: 100%;
+            max-width: 380px;
+            margin-bottom: 2rem;
+        }
+
+        .wallet-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 1rem 1.5rem;
+            border-radius: 16px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            text-decoration: none;
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s;
+            width: 100%;
+        }
+
+        .wallet-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn-apple {
+            background: #000;
+            color: white;
+        }
+
+        .btn-google {
+            background: white;
+            color: var(--dark);
+            border: 1px solid #e0e0e0;
+        }
+
+        .btn-google img {
+            width: 20px;
+        }
+
+        .btn-apple i {
+            font-size: 1.2rem;
+        }
+
+        .btn-disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        .info-note {
+            font-size: 0.8rem;
+            color: #888;
+            text-align: center;
+            max-width: 340px;
+            line-height: 1.6;
+        }
+
+        .loading-screen {
+            text-align: center;
+            color: #999;
+            padding: 3rem;
+        }
+
+        .loading-screen i {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            color: var(--primary);
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .error-screen {
+            text-align: center;
+            color: #c0392b;
+            padding: 3rem;
+        }
+
+        .error-screen i {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+
+<body>
+    <a href="/" class="logo-top">
+        <img src="/assets/logo.png" alt="Venus" />
+        <span>Venus</span>
+    </a>
+
+    <div id="app">
+        <div class="loading-screen">
+            <i class="fas fa-circle-notch"></i>
+            <p>Cargando tu tarjeta...</p>
+        </div>
+    </div>
+
+    <script>
+        const cardId = location.pathname.split('/card/')[1];
+
+        async function init() {
+            if (!cardId) { showError('ID de tarjeta no válido'); return; }
+
+            try {
+                const res = await fetch(`/api/public/card/${cardId}`);
+                if (!res.ok) throw new Error('Tarjeta no encontrada');
+                const card = await res.json();
+                render(card);
+            } catch (e) {
+                showError(e.message);
+            }
+        }
+
+        function render(card) {
+            const isAnnual = card.cardType === 'annual';
+            const isLoyalty = card.cardType === 'loyalty';
+            const bgColor = card.cardColor || '#8C9668';
+
+            const progressPct = isAnnual
+                ? Math.round(((card.sessionsUsed || 0) / (card.sessionsTotal || 10)) * 100)
+                : Math.round(((card.stamps || 0) / (card.max || 8)) * 100);
+
+            const progressLabel = isAnnual
+                ? `${card.sessionsUsed} usadas de ${card.sessionsTotal}`
+                : `${card.stamps} de ${card.max} sellos`;
+
+            const cardTypeLabel = { loyalty: 'Lealtad', annual: 'Constancia Anual', gold: 'Gold VIP' }[card.cardType] || 'Lealtad';
+
+            // Dots / sessions
+            let dotsHtml = '';
+            if (isAnnual) {
+                dotsHtml = '<div class="sessions-grid">';
+                for (let i = 0; i < (card.sessionsTotal || 10); i++) {
+                    const used = i < (card.sessionsUsed || 0);
+                    dotsHtml += used
+                        ? `<div class="session-dot used"><i class="fas fa-check" style="color:rgba(255,255,255,0.5);font-size:0.65rem;"></i></div>`
+                        : `<div class="session-dot available"><i class="fas fa-star" style="font-size:0.65rem;"></i></div>`;
+                }
+                dotsHtml += '</div>';
+            } else {
+                dotsHtml = '<div class="stamps-dots">';
+                for (let i = 0; i < (card.max || 8); i++) {
+                    const filled = i < (card.stamps || 0);
+                    dotsHtml += filled
+                        ? `<div class="stamp-dot filled"><i class="fas fa-star"></i></div>`
+                        : `<div class="stamp-dot"></div>`;
+                }
+                dotsHtml += '</div>';
+            }
+
+            // OS detection
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+            const isAndroid = /Android/.test(navigator.userAgent);
+
+            const appleBtn = card.applePassAvailable
+                ? `<a href="/api/public/card/${card.id}/apple.pkpass" class="wallet-btn btn-apple">
+             <i class="fab fa-apple"></i> Agregar a Apple Wallet
+           </a>`
+                : `<button class="wallet-btn btn-apple btn-disabled" title="Certificados Apple pendientes">
+             <i class="fab fa-apple"></i> Apple Wallet (próximamente)
+           </button>`;
+
+            const googleBtn = card.googleWalletUrl
+                ? `<a href="${card.googleWalletUrl}" target="_blank" class="wallet-btn btn-google">
+             <img src="https://upload.wikimedia.org/wikipedia/commons/4/4e/Google_Wallet_logo_%282024%29.svg" alt="Google Wallet" style="height:20px;"/>
+             Agregar a Google Wallet
+           </a>`
+                : `<button class="wallet-btn btn-google btn-disabled" title="Google Wallet pendiente de configuración">
+             <img src="https://upload.wikimedia.org/wikipedia/commons/4/4e/Google_Wallet_logo_%282024%29.svg" alt="Google Wallet" style="height:20px;"/>
+             Google Wallet (próximamente)
+           </button>`;
+
+            document.getElementById('app').innerHTML = `
+        <div class="wallet-card" style="--card-bg:${bgColor};">
+          <div class="card-top">
+            <span class="card-brand">Venus</span>
+            <span class="card-type-badge">${cardTypeLabel}</span>
+          </div>
+          <div class="card-name">${card.name}</div>
+          <div class="card-phone">${card.phone}</div>
+          <div class="card-progress">
+            <div class="card-progress-label">
+              <span>${isAnnual ? 'Sesiones' : 'Sellos'}</span>
+              <span>${progressLabel}</span>
+            </div>
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill" style="width:${progressPct}%;"></div>
+            </div>
+          </div>
+          ${dotsHtml}
+        </div>
+
+        <div class="wallet-buttons">
+          ${appleBtn}
+          ${googleBtn}
+        </div>
+
+        <p class="info-note">
+          Guarda tu tarjeta en el wallet de tu teléfono para tenerla siempre a mano. 
+          Preséntala en cada visita a Venus.
+        </p>
+      `;
+        }
+
+        function showError(msg) {
+            document.getElementById('app').innerHTML = `
+        <div class="error-screen">
+          <i class="fas fa-triangle-exclamation"></i>
+          <p>${msg}</p>
+        </div>
+      `;
+        }
+
+        init();
+    </script>
+</body>
+
+</html>
