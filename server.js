@@ -2853,11 +2853,12 @@ app.get('/api/public/card/:id', async (req, res) => {
     const card = await prisma.card.findUnique({ where: { id: req.params.id } });
     if (!card) return res.status(404).json({ error: 'Tarjeta no encontrada' });
 
-    // Check if Apple certs are configured
+    // Apple available if cert env vars set (configured in Render)
     const applePassAvailable = !!(
-      process.env.APPLE_CERT_PEM &&
-      process.env.APPLE_KEY_PEM &&
-      (process.env.APPLE_WWDR_PEM || true) // wwdr_rsa.pem exists in repo
+      process.env.APPLE_PASS_CERT &&
+      process.env.APPLE_PASS_KEY &&
+      process.env.APPLE_TEAM_ID &&
+      process.env.APPLE_PASS_TYPE_ID
     );
 
     res.json({
@@ -2886,8 +2887,24 @@ app.get('/api/public/card/:id/apple.pkpass', async (req, res) => {
     const card = await prisma.card.findUnique({ where: { id: req.params.id } });
     if (!card) return res.status(404).json({ error: 'Tarjeta no encontrada' });
 
-    const { generateApplePass } = await import('./src/services/appleWallet.js');
-    const buffer = await generateApplePass(card);
+    const { buildApplePassBuffer } = await import('./lib/apple.js');
+
+    // Map cardType to backgroundColor for Apple pass
+    const bgColors = {
+      loyalty: 'rgb(154, 159, 130)',  // Venus green
+      annual: 'rgb(196, 167, 125)',  // Venus gold
+      gold: 'rgb(30, 30, 30)',     // Black VIP
+    };
+    const cardType = card.cardType || 'loyalty';
+    const isAnnual = cardType === 'annual';
+
+    const buffer = await buildApplePassBuffer({
+      cardId: card.id,
+      name: card.name,
+      stamps: isAnnual ? (card.sessionsTotal - card.sessionsUsed) : card.stamps,
+      max: isAnnual ? card.sessionsTotal : card.max,
+      latestMessage: card.latestMessage,
+    });
 
     res.set({
       'Content-Type': 'application/vnd.apple.pkpass',
@@ -2914,12 +2931,17 @@ app.post('/api/admin/cards/:id/issue-wallet', adminAuth, async (req, res) => {
       },
     });
 
-    // Try to generate Google Wallet URL
+    // Generate Google Wallet save URL using existing lib/google.js
     let googleWalletUrl = null;
-    if (process.env.GOOGLE_WALLET_ISSUER_ID && process.env.GOOGLE_WALLET_SERVICE_ACCOUNT) {
+    if (process.env.GOOGLE_ISSUER_ID) {
       try {
-        const { generateGoogleWalletUrl } = await import('./src/services/googleWallet.js');
-        googleWalletUrl = await generateGoogleWalletUrl({ ...card, cardType: cardType || card.cardType });
+        const { buildGoogleSaveUrl, updateLoyaltyObject } = await import('./lib/google.js');
+        const isAnnual = (cardType || 'loyalty') === 'annual';
+        const stamps = isAnnual ? (card.sessionsTotal - card.sessionsUsed) : card.stamps;
+        const max = isAnnual ? card.sessionsTotal : card.max;
+        // Sync object in Google Wallet
+        await updateLoyaltyObject(card.id, card.name, stamps, max);
+        googleWalletUrl = buildGoogleSaveUrl({ cardId: card.id, name: card.name, stamps, max });
         await prisma.card.update({ where: { id: card.id }, data: { walletPassUrl: googleWalletUrl } });
       } catch (gErr) {
         console.warn('[WALLET] Google Wallet generation failed:', gErr.message);
