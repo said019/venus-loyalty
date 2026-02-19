@@ -14009,7 +14009,7 @@
       const pastList = document.getElementById('past-birthday-list');
 
       if (allBirthdays.length === 0) {
-        section.classList.add('hidden');
+        if (section) section.classList.add('hidden');
         return;
       }
 
@@ -14028,13 +14028,13 @@
         }
       });
 
-      section.classList.remove('hidden');
+      if (section) section.classList.remove('hidden');
 
       const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
       // Render upcoming birthdays (sorted by date, closest first)
       if (upcomingBirthdays.length > 0) {
-        upcomingContainer.classList.remove('hidden');
+        if (upcomingContainer) upcomingContainer.classList.remove('hidden');
         upcomingBirthdays.sort((a, b) => {
           const [ya, ma, da] = a.birthdate.split('-').map(Number);
           const [yb, mb, db] = b.birthdate.split('-').map(Number);
@@ -14043,7 +14043,7 @@
           return dateA - dateB; // Soonest first
         });
 
-        upcomingList.innerHTML = upcomingBirthdays.map(c => {
+        if (upcomingList) upcomingList.innerHTML = upcomingBirthdays.map(c => {
           const [y, m, d] = c.birthdate.split('-').map(Number);
           const birthdayThisYear = new Date(today.getFullYear(), m - 1, d);
 
@@ -14072,12 +14072,12 @@
           `;
         }).join('');
       } else {
-        upcomingContainer.classList.add('hidden');
+        if (upcomingContainer) upcomingContainer.classList.add('hidden');
       }
 
       // Render past birthdays (sorted by date, most recent first)
       if (pastBirthdays.length > 0) {
-        pastContainer.classList.remove('hidden');
+        if (pastContainer) pastContainer.classList.remove('hidden');
         pastBirthdays.sort((a, b) => {
           const [ya, ma, da] = a.birthdate.split('-').map(Number);
           const [yb, mb, db] = b.birthdate.split('-').map(Number);
@@ -14086,7 +14086,7 @@
           return dateB - dateA; // Most recent first
         });
 
-        pastList.innerHTML = pastBirthdays.map(c => {
+        if (pastList) pastList.innerHTML = pastBirthdays.map(c => {
           const [y, m, d] = c.birthdate.split('-').map(Number);
           const birthdayThisYear = new Date(today.getFullYear(), m - 1, d);
 
@@ -14106,7 +14106,7 @@
           `;
         }).join('');
       } else {
-        pastContainer.classList.add('hidden');
+        if (pastContainer) pastContainer.classList.add('hidden');
       }
     }
 
