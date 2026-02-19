@@ -15996,6 +15996,7 @@ Gracias por tu preferencia`;
       }
 
       select(item) {
+        this._selecting = true;
         this.input.value = item.value; // Use value for input
 
         // Trigger callback if provided
@@ -16005,10 +16006,10 @@ Gracias por tu preferencia`;
 
         // Trigger native change event for other listeners
         this.input.dispatchEvent(new Event('change', { bubbles: true }));
-        this.input.dispatchEvent(new Event('input', { bubbles: true }));
 
         // Close dropdown AFTER all callbacks
         this.hide();
+        this._selecting = false;
       }
     }
 
