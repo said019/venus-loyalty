@@ -8610,9 +8610,62 @@
           border: 1px solid var(--line);
           border-radius: 12px;
           padding: 16px;
-          width: 300px;
+          width: 320px;
+          /* Increased width slightly */
           box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
           min-width: 280px;
+        }
+
+        .calendar-dropdown .calendar-grid {
+          display: grid;
+          grid-template-columns: repeat(7, 1fr);
+          background: transparent;
+          border-radius: 0;
+          gap: 2px;
+          /* Small gap */
+          border: none;
+        }
+
+        .calendar-dropdown .calendar-day-header {
+          text-align: center;
+          font-size: 12px;
+          padding: 8px 0;
+          color: var(--venus-soft);
+          background: transparent;
+          border: none;
+        }
+
+        .calendar-dropdown .calendar-day {
+          min-height: auto;
+          height: 36px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0;
+          font-size: 14px;
+          border-radius: 4px;
+          background: transparent;
+          /* Reset background */
+        }
+
+        .calendar-dropdown .calendar-day:hover {
+          background: rgba(255, 255, 255, 0.1);
+          color: white;
+        }
+
+        .calendar-dropdown .calendar-day.selected {
+          background: var(--venus-gold);
+          color: #1a1a1a;
+          font-weight: bold;
+        }
+
+        .calendar-dropdown .calendar-day.today {
+          border: 1px solid var(--venus-gold);
+        }
+
+        .calendar-dropdown .calendar-day.empty {
+          background: transparent;
+          cursor: default;
         }
 
         /* Custom Searchable Dropdown */
