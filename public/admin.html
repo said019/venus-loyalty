@@ -15933,7 +15933,7 @@ Gracias por tu preferencia`;
               ${item.meta ? `<span class="item-meta">${item.meta.replace(/^\[[^\]]+\]\s*/, '')}</span>` : ''}
             `;
             Object.keys(item.data || {}).forEach(key => { div.dataset[key] = item.data[key]; });
-            div.addEventListener('click', (e) => { e.stopPropagation(); this.select(item); });
+            div.addEventListener('mousedown', (e) => { e.preventDefault(); e.stopPropagation(); this.select(item); });
             this.dropdown.appendChild(div);
           });
         });
@@ -15959,7 +15959,7 @@ Gracias por tu preferencia`;
             ${item.meta ? `<span class="item-meta">${item.meta.replace(/^\[[^\]]+\]\s*/, '')}</span>` : ''}
           `;
           Object.keys(item.data || {}).forEach(key => { div.dataset[key] = item.data[key]; });
-          div.addEventListener('click', (e) => { e.stopPropagation(); this.select(item); });
+          div.addEventListener('mousedown', (e) => { e.preventDefault(); e.stopPropagation(); this.select(item); });
           this.dropdown.appendChild(div);
         });
       }
@@ -16264,7 +16264,17 @@ Gracias por tu preferencia`;
         loadClients();
         generateHourMinuteOptions();
         newApptDialog.showModal();
-        document.getElementById('new-appt-date').value = toLocalDateString(selectedDate);
+        const todayStr = toLocalDateString(selectedDate);
+        // Preseleccionar la fecha de hoy en el calendario del modal
+        if (newApptCalendar) {
+          newApptCalendar.selectedDate = todayStr;
+          const todayDate = selectedDate;
+          const dayNum = todayDate.getDate();
+          const monthNum = todayDate.getMonth() + 1;
+          const yearNum = todayDate.getFullYear();
+          document.getElementById('new-appt-date').value = `${dayNum}/${monthNum}/${yearNum}`;
+          document.getElementById('new-appt-date').dataset.isoDate = todayStr;
+        }
 
         // Limpiar historial
         if (historyPanel) historyPanel.classList.add('hidden');
