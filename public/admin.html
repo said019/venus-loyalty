@@ -5758,41 +5758,59 @@
             const btnDisconnect = document.getElementById('wa-btn-disconnect');
             const btnTest = document.getElementById('wa-btn-test');
 
-            if (data.provider === 'twilio') {
-              dot.style.background = '#3b82f6';
-              text.textContent = 'Usando Twilio';
+            const evo = data.evolution || {};
+            const twilio = data.twilio || {};
+
+            // Both available — show combined badge
+            if (evo.available && twilio.available) {
+              badge.textContent = 'Evolution + Twilio';
+              badge.style.background = 'rgba(37,211,102,0.15)';
+              badge.style.color = '#25D366';
+            } else if (evo.available) {
+              badge.textContent = 'Evolution API';
+              badge.style.background = 'rgba(37,211,102,0.15)';
+              badge.style.color = '#25D366';
+            } else {
               badge.textContent = 'Twilio';
               badge.style.background = 'rgba(59,130,246,0.15)';
               badge.style.color = '#3b82f6';
-              number.textContent = '';
-              btnConnect.style.display = 'none';
-              btnDisconnect.style.display = 'none';
-              btnTest.style.display = 'none';
-              return;
             }
 
-            if (data.connected) {
-              dot.style.background = '#22c55e';
-              text.textContent = 'Conectado';
-              badge.textContent = '● Conectado';
-              badge.style.background = 'rgba(34,197,94,0.15)';
-              badge.style.color = '#22c55e';
-              number.textContent = data.number ? `Número: +${data.number}` : (data.instanceName ? `Instancia: ${data.instanceName}` : '');
-              btnConnect.style.display = 'none';
-              btnDisconnect.style.display = '';
-              btnTest.style.display = '';
-              // Ocultar QR si estaba visible
-              document.getElementById('wa-qr-container').style.display = 'none';
-              // Detener polling
-              if (waPolling) { clearInterval(waPolling); waPolling = null; }
+            // Evolution connection status drives the main button/dot
+            if (evo.available) {
+              if (evo.connected) {
+                dot.style.background = '#22c55e';
+                text.textContent = 'Evolution conectado';
+                number.textContent = evo.number ? `Número: +${evo.number}` : (evo.instanceName ? `Instancia: ${evo.instanceName}` : '');
+                if (twilio.available) {
+                  number.textContent += (number.textContent ? ' · ' : '') + 'Twilio activo';
+                }
+                btnConnect.style.display = 'none';
+                btnDisconnect.style.display = '';
+                btnTest.style.display = '';
+                document.getElementById('wa-qr-container').style.display = 'none';
+                if (waPolling) { clearInterval(waPolling); waPolling = null; }
+              } else if (evo.state === 'error') {
+                dot.style.background = '#f59e0b';
+                text.textContent = 'Evolution — error de conexión';
+                number.textContent = twilio.available ? 'Usando Twilio como respaldo' : '';
+                btnConnect.style.display = '';
+                btnDisconnect.style.display = 'none';
+                btnTest.style.display = twilio.available ? '' : 'none';
+              } else {
+                dot.style.background = '#ef4444';
+                text.textContent = 'Evolution desconectado';
+                number.textContent = twilio.available ? 'Mensajes enviados por Twilio' : '';
+                btnConnect.style.display = '';
+                btnDisconnect.style.display = 'none';
+                btnTest.style.display = twilio.available ? '' : 'none';
+              }
             } else {
-              dot.style.background = '#ef4444';
-              text.textContent = 'Desconectado';
-              badge.textContent = '● Desconectado';
-              badge.style.background = 'rgba(239,68,68,0.15)';
-              badge.style.color = '#ef4444';
+              // Twilio only
+              dot.style.background = '#3b82f6';
+              text.textContent = 'Usando Twilio';
               number.textContent = '';
-              btnConnect.style.display = '';
+              btnConnect.style.display = 'none';
               btnDisconnect.style.display = 'none';
               btnTest.style.display = 'none';
             }

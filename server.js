@@ -524,17 +524,41 @@ app.use('/api/client-records', clientRecordsRouter);
 // GET /api/evolution/status - Estado de conexión WhatsApp
 app.get('/api/evolution/status', adminAuth, async (req, res) => {
   try {
-    if (config.whatsappProvider !== 'evolution') {
-      return res.json({ provider: 'twilio', connected: true, state: 'twilio-mode' });
+    const provider = config.whatsappProvider || 'twilio';
+    const hasEvolution = !!(config.evolution.apiUrl && config.evolution.apiKey);
+    const hasTwilio = !!(config.twilio.accountSid && config.twilio.authToken);
+
+    // If Evolution is configured, always try to get its connection status
+    if (hasEvolution) {
+      try {
+        const client = getEvolutionClient();
+        const status = await client.getStatus();
+        return res.json({
+          provider,
+          evolution: {
+            available: true,
+            connected: status.connected,
+            state: status.state,
+            number: status.number || null,
+            instanceName: config.evolution.instanceName,
+          },
+          twilio: { available: hasTwilio },
+        });
+      } catch (evolutionErr) {
+        console.warn('[Evolution] Status check failed:', evolutionErr.message);
+        return res.json({
+          provider,
+          evolution: { available: true, connected: false, state: 'error', error: evolutionErr.message },
+          twilio: { available: hasTwilio },
+        });
+      }
     }
-    const client = getEvolutionClient();
-    const status = await client.getStatus();
-    res.json({
-      provider: 'evolution',
-      connected: status.connected,
-      state: status.state,
-      number: status.number || null,
-      instanceName: config.evolution.instanceName
+
+    // Evolution not configured — Twilio-only mode
+    return res.json({
+      provider: 'twilio',
+      evolution: { available: false },
+      twilio: { available: hasTwilio },
     });
   } catch (error) {
     console.error('[Evolution] Error obteniendo estado:', error.message);
