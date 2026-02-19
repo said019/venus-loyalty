@@ -16281,14 +16281,35 @@ Gracias por tu preferencia`;
       btnCancelAppt.addEventListener('click', () => newApptDialog.close());
     }
 
-    // Cliente input - auto-llenar teléfono cuando se selecciona
+    // Cliente input - auto-llenar teléfono cuando se selecciona o escribe exacto
     if (clientSelect) {
       clientSelect.addEventListener('input', function () {
-        // Al escribir manualmente, ocultar badge (aún no confirmado)
+        const clientName = this.value.trim();
+        const client = allClients.find(c => c.name.toLowerCase() === clientName.toLowerCase());
+
         const badge = document.getElementById('client-selected-badge');
-        if (badge) badge.style.display = 'none';
-        selectedClientPhone = '';
-        window.selectedClientPhone = '';
+
+        if (client) {
+          // Si el nombre escrito coincide con un cliente existente
+          selectedClientPhone = client.phone || '';
+          window.selectedClientPhone = selectedClientPhone;
+          console.log('Cliente encontrado por texto:', client.name, 'Teléfono:', selectedClientPhone);
+
+          // Mostrar badge automáticamente
+          if (badge) {
+            document.getElementById('badge-client-name').textContent = client.name;
+            document.getElementById('badge-client-phone').textContent = selectedClientPhone ? '📞 ' + selectedClientPhone : 'Sin teléfono registrado';
+            badge.style.display = 'flex';
+          }
+
+          // Cargar historial si es necesario
+          loadClientHistory(client.phone, client.name);
+        } else {
+          // Si no coincide, limpiar selección
+          if (badge) badge.style.display = 'none';
+          selectedClientPhone = '';
+          window.selectedClientPhone = '';
+        }
       });
 
       // Botón X del badge — limpiar selección
