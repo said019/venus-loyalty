@@ -8634,6 +8634,23 @@
           margin-top: 2px;
         }
 
+        .dropdown-category-header {
+          padding: 8px 12px 4px;
+          font-size: 10px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          color: var(--venus-soft);
+          background: rgba(255, 255, 255, 0.04);
+          border-top: 1px solid rgba(255, 255, 255, 0.08);
+          cursor: default;
+          user-select: none;
+        }
+
+        .dropdown-category-header:first-child {
+          border-top: none;
+        }
+
         .calendar-header {
           display: flex;
           justify-content: space-between;
@@ -15749,8 +15766,57 @@ Gracias por tu preferencia`;
         this.render(options);
       }
 
-      render(items) {
-        console.log('[DROPDOWN] Renderizando', items.length, 'items');
+      // Extract category from meta string like "[Básicos Venus] 60 min - $580"
+      _getCategory(item) {
+        const match = item.meta && item.meta.match(/^\[([^\]]+)\]/);
+        return match ? match[1] : (item.category || 'Otros');
+      }
+
+      renderGrouped(items) {
+        this.dropdown.innerHTML = '';
+        if (items.length === 0) {
+          this.dropdown.innerHTML = '<div class="dropdown-item" style="cursor:default;color:var(--muted);">No hay resultados</div>';
+          return;
+        }
+
+        const categoryOrder = ['Básicos Venus', 'Especializados', 'Corporales', 'Holísticos', 'Paquetes', 'Depilación', 'Otros'];
+        const grouped = {};
+        items.forEach(item => {
+          const cat = this._getCategory(item);
+          if (!grouped[cat]) grouped[cat] = [];
+          grouped[cat].push(item);
+        });
+
+        const sortedCats = Object.keys(grouped).sort((a, b) => {
+          const ia = categoryOrder.indexOf(a), ib = categoryOrder.indexOf(b);
+          if (ia === -1 && ib === -1) return a.localeCompare(b);
+          if (ia === -1) return 1; if (ib === -1) return -1;
+          return ia - ib;
+        });
+
+        sortedCats.forEach(cat => {
+          // Category header
+          const header = document.createElement('div');
+          header.className = 'dropdown-category-header';
+          header.textContent = cat;
+          this.dropdown.appendChild(header);
+
+          grouped[cat].forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'dropdown-item';
+            div.innerHTML = `
+              <div>${item.label}</div>
+              ${item.meta ? `<span class="item-meta">${item.meta.replace(/^\[[^\]]+\]\s*/, '')}</span>` : ''}
+            `;
+            Object.keys(item.data || {}).forEach(key => { div.dataset[key] = item.data[key]; });
+            div.addEventListener('click', (e) => { e.stopPropagation(); this.select(item); });
+            this.dropdown.appendChild(div);
+          });
+        });
+      }
+
+      render(items, grouped = false) {
+        if (grouped) { this.renderGrouped(items); return; }
         this.dropdown.innerHTML = '';
         if (items.length === 0) {
           this.dropdown.innerHTML = '<div class="dropdown-item" style="cursor:default;color:var(--muted);">No hay resultados</div>';
@@ -15760,21 +15826,16 @@ Gracias por tu preferencia`;
         items.forEach(item => {
           const div = document.createElement('div');
           div.className = 'dropdown-item';
+          const cat = this._getCategory(item);
           div.innerHTML = `
-            <div>${item.label}</div>
-            ${item.meta ? `<span class="item-meta">${item.meta}</span>` : ''}
+            <div style="display:flex;align-items:center;gap:8px;">
+              ${item.label}
+              <span style="font-size:0.7rem;color:var(--venus-soft);background:var(--venus-cream);padding:2px 7px;border-radius:10px;white-space:nowrap;">${cat}</span>
+            </div>
+            ${item.meta ? `<span class="item-meta">${item.meta.replace(/^\[[^\]]+\]\s*/, '')}</span>` : ''}
           `;
-
-          // Store data attributes
-          Object.keys(item.data || {}).forEach(key => {
-            div.dataset[key] = item.data[key];
-          });
-
-          div.addEventListener('click', (e) => {
-            e.stopPropagation();
-            this.select(item);
-          });
-
+          Object.keys(item.data || {}).forEach(key => { div.dataset[key] = item.data[key]; });
+          div.addEventListener('click', (e) => { e.stopPropagation(); this.select(item); });
           this.dropdown.appendChild(div);
         });
       }
@@ -15785,14 +15846,13 @@ Gracias por tu preferencia`;
           item.label.toLowerCase().includes(lowerQuery) ||
           (item.meta && item.meta.toLowerCase().includes(lowerQuery))
         );
-        this.render(filtered);
+        this.render(filtered, false); // flat when filtering
       }
 
       show() {
-        console.log('[DROPDOWN] Mostrando dropdown con', this.options.length, 'opciones');
-        // If empty input, show all
+        // If empty input, show grouped by category
         if (!this.input.value) {
-          this.render(this.options);
+          this.renderGrouped(this.options);
         }
         this.dropdown.style.display = 'block';
         this.icon.textContent = '▲';
