@@ -14592,7 +14592,12 @@
             (item) => {
               console.log('[CLIENTS] ✅ Cliente seleccionado:', item);
               // Auto-fill phone when client selected
-              document.getElementById('new-appt-phone').value = item.data.phone || '';
+              const phone = item.data.phone || '';
+              document.getElementById('new-appt-phone').value = phone;
+
+              // ✅ Guardar teléfono para validación en submit
+              selectedClientPhone = phone;
+              window.selectedClientPhone = phone;
 
               // Cargar historial de citas del cliente
               loadClientHistory(item.data.phone, item.label);
