@@ -680,11 +680,10 @@ app.get('/api/whatsapp/chat/:phone', adminAuth, async (req, res) => {
     const limit = parseInt(req.query.limit) || 80;
     const evoClient = getEvolutionClient();
 
-    // Normalizar JID
-    let cleaned = phone.replace(/\D/g, '');
-    if (cleaned.length === 13 && cleaned.startsWith('521')) cleaned = '52' + cleaned.substring(3);
+    // Normalizar JID. OJO: No eliminar el 1 de los 521, Evolution API (Baileys) lo guarda tal cual
+    let cleaned = phone.replace(/[^0-9-]/g, '');
     if (cleaned.length === 10) cleaned = '52' + cleaned;
-    const remoteJid = cleaned.endsWith('@s.whatsapp.net') ? cleaned : `${cleaned}@s.whatsapp.net`;
+    const remoteJid = `${cleaned}@s.whatsapp.net`;
 
     const messages = await evoClient.fetchMessages(remoteJid, limit);
 
