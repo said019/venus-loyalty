@@ -15951,11 +15951,21 @@ Gracias por tu preferencia`;
         });
 
         // Event delegation for dropdown item selection
-        this.dropdown.addEventListener('mousedown', (e) => {
+        const handleDropdownSelect = (e) => {
           e.preventDefault();
           e.stopPropagation();
           const itemEl = e.target.closest('.dropdown-item');
           if (itemEl && itemEl._itemData) {
+            this.select(itemEl._itemData);
+          }
+        };
+        this.dropdown.addEventListener('mousedown', handleDropdownSelect);
+        // Soporte táctil para móviles
+        this.dropdown.addEventListener('touchend', (e) => {
+          const itemEl = e.target.closest('.dropdown-item');
+          if (itemEl && itemEl._itemData) {
+            e.preventDefault();
+            e.stopPropagation();
             this.select(itemEl._itemData);
           }
         });
@@ -16733,6 +16743,18 @@ Gracias por tu preferencia`;
           const clientName = clientSelect.value.trim();
           let clientPhone = selectedClientPhone || window.selectedClientPhone || ''; // Usar el teléfono guardado del cliente seleccionado
 
+          // ✅ FALLBACK: Si no se detectó selección del dropdown, buscar por nombre exacto
+          if (!clientPhone && !selectedClientId && clientName) {
+            const matchedClient = allClients.find(c => c.name.toLowerCase() === clientName.toLowerCase());
+            if (matchedClient) {
+              clientPhone = matchedClient.phone || '';
+              selectedClientPhone = clientPhone;
+              window.selectedClientPhone = clientPhone;
+              selectedClientId = matchedClient.id || clientName;
+              console.log('📋 [SUBMIT FALLBACK] Cliente encontrado por nombre:', matchedClient.name, 'Tel:', clientPhone, 'ID:', selectedClientId);
+            }
+          }
+
           // Si no hay teléfono guardado, verificar si estamos creando un nuevo cliente
           if (!clientPhone) {
             const newClientPhoneInput = document.getElementById('new-client-phone');
@@ -16746,7 +16768,7 @@ Gracias por tu preferencia`;
             clientPhone = clientSelect.dataset.phone;
           }
 
-          // Validar que tengamos nombre y teléfono
+          // Validar que tengamos nombre
           if (!clientName) {
             alert('Por favor ingresa el nombre del cliente');
             btn.disabled = false;
@@ -16754,7 +16776,7 @@ Gracias por tu preferencia`;
             return;
           }
 
-          // Permitir si hay teléfono O si el cliente fue seleccionado explícitamente del dropdown
+          // Permitir si hay teléfono O si el cliente fue seleccionado/encontrado
           // (algunos clientes pueden no tener teléfono registrado)
           if (!clientPhone && !selectedClientId) {
             alert('Por favor selecciona un cliente existente o registra uno nuevo con teléfono');
