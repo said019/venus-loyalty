@@ -597,11 +597,7 @@
     // ─── CHATS LIST ─────────────────────────────────────────────────
     async function refreshChats() {
       try {
-        const token = localStorage.getItem('token');
-        if (!token) { location.href = '/admin-login.html'; return; }
-        const res = await fetch('/api/whatsapp/chats', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const res = await fetch('/api/whatsapp/chats', { credentials: 'include' });
         if (res.status === 401) { location.href = '/admin-login.html'; return; }
         const json = await res.json();
         allChats = json.data || [];
@@ -682,11 +678,7 @@
     async function loadMessages() {
       if (!currentPhone) return;
       try {
-        const token = localStorage.getItem('token');
-        if (!token) { location.href = '/admin-login.html'; return; }
-        const res = await fetch(`/api/whatsapp/chat/${currentPhone}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const res = await fetch(`/api/whatsapp/chat/${currentPhone}`, { credentials: 'include' });
         const json = await res.json();
         renderMessages(json.data || []);
       } catch (e) {
@@ -748,11 +740,10 @@
       autoResize(input);
 
       try {
-        const token = localStorage.getItem('token');
-        if (!token) { location.href = '/admin-login.html'; return; }
         const res = await fetch('/api/whatsapp/send', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({ phone: currentPhone, message: text })
         });
         const json = await res.json();
