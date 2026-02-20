@@ -620,56 +620,93 @@ app.post('/api/evolution/test', adminAuth, async (req, res) => {
 
 // ========== WHATSAPP INBOX (Historial de mensajes) ==========
 
-// GET /api/whatsapp/chats - Lista de conversaciones únicas
+// Helper: extraer texto de un mensaje de Evolution
+function extractMessageText(msg) {
+  const m = msg?.message;
+  if (!m) return msg?.body || '';
+  return m.conversation
+    || m.extendedTextMessage?.text
+    || m.imageMessage?.caption
+    || m.videoMessage?.caption
+    || m.documentMessage?.caption
+    || (m.imageMessage ? '📷 Imagen' : '')
+    || (m.videoMessage ? '🎥 Video' : '')
+    || (m.audioMessage ? '🎙 Audio' : '')
+    || (m.stickerMessage ? '😄 Sticker' : '')
+    || (m.pollCreationMessage ? `📊 ${m.pollCreationMessage.name}` : '')
+    || (m.pollUpdateMessage ? '📊 Respuesta de encuesta' : '')
+    || (m.reactionMessage ? `${m.reactionMessage.text} reacción` : '')
+    || '';
+}
+
+// GET /api/whatsapp/chats - Lista de conversaciones desde Evolution API
 app.get('/api/whatsapp/chats', adminAuth, async (req, res) => {
   try {
-    const snap = await firestore.collection('whatsapp_messages')
-      .orderBy('timestamp', 'desc')
-      .limit(500)
-      .get();
+    const evoClient = getEvolutionClient();
+    const chats = await evoClient.fetchChats();
 
-    const chatMap = {};
-    snap.docs.forEach(doc => {
-      const d = doc.data();
-      const phone = d.phone;
-      if (!phone) return;
-      if (!chatMap[phone]) {
-        chatMap[phone] = {
+    const result = chats
+      .filter(c => c.remoteJid && c.remoteJid.endsWith('@s.whatsapp.net'))
+      .map(c => {
+        const phone = c.remoteJid.replace('@s.whatsapp.net', '');
+        const lastMsg = c.lastMessage || c.Messages?.[0];
+        const lastText = extractMessageText(lastMsg);
+        const lastTime = lastMsg?.messageTimestamp
+          ? new Date(lastMsg.messageTimestamp * 1000).toISOString()
+          : (c.updatedAt || c.createdAt || new Date().toISOString());
+
+        return {
           phone,
-          name: d.name || phone,
-          lastMessage: d.body || '',
-          lastTime: d.timestamp,
-          unread: 0,
+          jid: c.remoteJid,
+          name: c.name || c.pushName || phone,
+          lastMessage: lastText,
+          lastTime,
+          unread: c.unreadMessages || c._count?.Message || 0,
         };
-      }
-      if (!chatMap[phone].read && d.direction === 'in') {
-        chatMap[phone].unread++;
-      }
-    });
+      })
+      .sort((a, b) => new Date(b.lastTime) - new Date(a.lastTime));
 
-    const chats = Object.values(chatMap).sort((a, b) => {
-      return new Date(b.lastTime) - new Date(a.lastTime);
-    });
-
-    res.json({ success: true, data: chats });
+    res.json({ success: true, data: result });
   } catch (error) {
+    console.error('[Inbox] Error fetchChats:', error.message);
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// GET /api/whatsapp/chat/:phone - Mensajes de una conversación
+// GET /api/whatsapp/chat/:phone - Mensajes de una conversación desde Evolution API
 app.get('/api/whatsapp/chat/:phone', adminAuth, async (req, res) => {
   try {
     const { phone } = req.params;
-    const snap = await firestore.collection('whatsapp_messages')
-      .where('phone', '==', phone)
-      .orderBy('timestamp', 'asc')
-      .limit(200)
-      .get();
+    const limit = parseInt(req.query.limit) || 80;
+    const evoClient = getEvolutionClient();
 
-    const messages = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    res.json({ success: true, data: messages });
+    // Normalizar JID
+    let cleaned = phone.replace(/\D/g, '');
+    if (cleaned.length === 13 && cleaned.startsWith('521')) cleaned = '52' + cleaned.substring(3);
+    if (cleaned.length === 10) cleaned = '52' + cleaned;
+    const remoteJid = cleaned.endsWith('@s.whatsapp.net') ? cleaned : `${cleaned}@s.whatsapp.net`;
+
+    const messages = await evoClient.fetchMessages(remoteJid, limit);
+
+    const result = messages.map(msg => {
+      const ts = msg.messageTimestamp
+        ? new Date(msg.messageTimestamp * 1000).toISOString()
+        : (msg.createdAt || new Date().toISOString());
+
+      return {
+        id: msg.key?.id || msg.id,
+        phone: cleaned,
+        body: extractMessageText(msg),
+        direction: msg.key?.fromMe ? 'out' : 'in',
+        timestamp: ts,
+        status: msg.status || null,
+        type: Object.keys(msg.message || {})[0] || 'text',
+      };
+    }).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+    res.json({ success: true, data: result });
   } catch (error) {
+    console.error('[Inbox] Error fetchMessages:', error.message);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -681,10 +718,11 @@ app.post('/api/whatsapp/send', adminAuth, async (req, res) => {
     if (!phone || !message) {
       return res.status(400).json({ success: false, error: 'Se requiere phone y message' });
     }
-    const { sendViaEvolutionRaw } = await import('./src/services/whatsapp-v2.js');
-    const result = await sendViaEvolutionRaw(phone, message);
-    res.json(result);
+    const evoClient = getEvolutionClient();
+    await evoClient.sendText(phone, message);
+    res.json({ success: true });
   } catch (error) {
+    console.error('[Inbox] Error send:', error.message);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -697,6 +735,7 @@ app.get('/api/health', (req, res) => {
     timestamp: new Date().toISOString()
   });
 });
+
 
 // 🧪 Test endpoint para WhatsApp
 app.post('/api/test/whatsapp', async (req, res) => {

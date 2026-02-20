@@ -81,6 +81,51 @@ class EvolutionAPIClient {
         return response.data;
     }
 
+    // Obtener todos los chats (conversaciones)
+    async fetchChats() {
+        try {
+            const response = await this.client.post(`/chat/findChats/${this.instanceName}`, {});
+            return Array.isArray(response.data) ? response.data : [];
+        } catch (error) {
+            console.error('[Evolution] Error fetchChats:', error.message);
+            return [];
+        }
+    }
+
+    // Obtener mensajes de un chat específico
+    async fetchMessages(remoteJid, limit = 50) {
+        try {
+            const response = await this.client.post(`/chat/findMessages/${this.instanceName}`, {
+                where: {
+                    key: { remoteJid },
+                },
+                limit,
+            });
+            const data = response.data;
+            // Puede venir como array directo o como { messages: [...] }
+            if (Array.isArray(data)) return data;
+            if (Array.isArray(data?.messages?.records)) return data.messages.records;
+            if (Array.isArray(data?.messages)) return data.messages;
+            return [];
+        } catch (error) {
+            console.error('[Evolution] Error fetchMessages:', error.message);
+            return [];
+        }
+    }
+
+    // Obtener contacto por JID
+    async fetchContact(remoteJid) {
+        try {
+            const response = await this.client.post(`/chat/findContacts/${this.instanceName}`, {
+                where: { remoteJid },
+            });
+            const contacts = Array.isArray(response.data) ? response.data : [];
+            return contacts[0] || null;
+        } catch (error) {
+            return null;
+        }
+    }
+
     // Enviar Poll (encuesta) - funciona en iOS y Android
     async sendPoll(to, question, options, selectableCount = 1) {
         const phone = this.formatPhone(to);
