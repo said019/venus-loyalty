@@ -14514,6 +14514,8 @@
     // Variable para almacenar el teléfono del cliente seleccionado
     window.selectedClientPhone = '';
     let selectedClientPhone = window.selectedClientPhone;
+    // Variable para rastrear si un cliente fue seleccionado explícitamente (con o sin teléfono)
+    let selectedClientId = null;
 
     // Navegación semanal
     const btnPrevMonth = document.getElementById('btn-prev-month');
@@ -14788,9 +14790,10 @@
               const phone = item.data.phone || '';
               document.getElementById('new-appt-phone').value = phone;
 
-              // ✅ Guardar teléfono para validación en submit
+              // ✅ Guardar teléfono e ID para validación en submit
               selectedClientPhone = phone;
               window.selectedClientPhone = phone;
+              selectedClientId = item.data.id || null;
 
               // ✅ Mostrar badge visual de selección
               const badge = document.getElementById('client-selected-badge');
@@ -16333,6 +16336,7 @@ Gracias por tu preferencia`;
       const badgeEl = document.getElementById('client-selected-badge');
       if (badgeEl) badgeEl.style.display = 'none';
       window.selectedClientPhone = '';
+      selectedClientId = null;
 
       newApptDialog.showModal();
     };
@@ -16365,6 +16369,7 @@ Gracias por tu preferencia`;
         const badgeEl2 = document.getElementById('client-selected-badge');
         if (badgeEl2) badgeEl2.style.display = 'none';
         window.selectedClientPhone = '';
+        selectedClientId = null;
       });
     }
 
@@ -16384,6 +16389,7 @@ Gracias por tu preferencia`;
           // Si el nombre escrito coincide con un cliente existente
           selectedClientPhone = client.phone || '';
           window.selectedClientPhone = selectedClientPhone;
+          selectedClientId = client.id || null;
           console.log('Cliente encontrado por texto:', client.name, 'Teléfono:', selectedClientPhone);
 
           // Mostrar badge automáticamente
@@ -16400,6 +16406,7 @@ Gracias por tu preferencia`;
           if (badge) badge.style.display = 'none';
           selectedClientPhone = '';
           window.selectedClientPhone = '';
+          selectedClientId = null;
         }
       });
 
@@ -16410,6 +16417,7 @@ Gracias por tu preferencia`;
           clientSelect.value = '';
           selectedClientPhone = '';
           window.selectedClientPhone = '';
+          selectedClientId = null;
           const badge = document.getElementById('client-selected-badge');
           if (badge) badge.style.display = 'none';
           const historyPanel = document.getElementById('client-history-panel');
@@ -16558,9 +16566,10 @@ Gracias por tu preferencia`;
               newClientInput.value = name;  // Usar el nombre ingresado
             }
 
-            // Guardar el teléfono del nuevo cliente
+            // Guardar el teléfono e ID del nuevo cliente
             selectedClientPhone = phone;
             window.selectedClientPhone = phone;
+            selectedClientId = newClientId || name; // Usar ID si existe, o nombre como fallback
 
             // Ocultar form
             newClientForm.style.display = 'none';
@@ -16745,7 +16754,9 @@ Gracias por tu preferencia`;
             return;
           }
 
-          if (!clientPhone) {
+          // Permitir si hay teléfono O si el cliente fue seleccionado explícitamente del dropdown
+          // (algunos clientes pueden no tener teléfono registrado)
+          if (!clientPhone && !selectedClientId) {
             alert('Por favor selecciona un cliente existente o registra uno nuevo con teléfono');
             btn.disabled = false;
             btn.textContent = originalText;

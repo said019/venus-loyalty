@@ -78,7 +78,7 @@ router.post('/debug/send-reminder/:id', async (req, res) => {
         const { type } = req.body; // '24h' o '2h'
 
         const { firestore } = await import('../db/compat.js');
-        const { WhatsAppService } = await import('../services/whatsapp.js');
+        const { WhatsAppService } = await import('../services/whatsapp-v2.js');
         const { AppointmentModel } = await import('../models/index.js');
 
         const doc = await firestore.collection('appointments').doc(id).get();

@@ -287,18 +287,21 @@ class Query {
     }
 
     // Convertir operadores de Firestore a Prisma
+    // Si ya existe un filtro para este campo, combinarlo (ej: >= y <= sobre startDateTime)
+    const existing = newQuery._where[mappedField];
+    
     if (op === '==') {
       newQuery._where[mappedField] = processedValue;
     } else if (op === '!=') {
-      newQuery._where[mappedField] = { not: processedValue };
+      newQuery._where[mappedField] = { ...( typeof existing === 'object' && existing !== null ? existing : {}), not: processedValue };
     } else if (op === '>') {
-      newQuery._where[mappedField] = { gt: processedValue };
+      newQuery._where[mappedField] = { ...(typeof existing === 'object' && existing !== null ? existing : {}), gt: processedValue };
     } else if (op === '>=') {
-      newQuery._where[mappedField] = { gte: processedValue };
+      newQuery._where[mappedField] = { ...(typeof existing === 'object' && existing !== null ? existing : {}), gte: processedValue };
     } else if (op === '<') {
-      newQuery._where[mappedField] = { lt: processedValue };
+      newQuery._where[mappedField] = { ...(typeof existing === 'object' && existing !== null ? existing : {}), lt: processedValue };
     } else if (op === '<=') {
-      newQuery._where[mappedField] = { lte: processedValue };
+      newQuery._where[mappedField] = { ...(typeof existing === 'object' && existing !== null ? existing : {}), lte: processedValue };
     } else if (op === 'in') {
       // Para 'in', procesar cada valor si es un campo de fecha
       if (dateTimeFields.includes(mappedField) && Array.isArray(value)) {
@@ -330,7 +333,26 @@ class Query {
 
   _clone() {
     const newQuery = new Query(this.collectionName);
-    newQuery._where = { ...this._where };
+    // Deep clone _where para que los objetos anidados (gte, lte, etc.) no se compartan
+    newQuery._where = JSON.parse(JSON.stringify(this._where, (key, value) => {
+      // Manejar Date objects que se pierden con JSON.stringify
+      if (value instanceof Date) return { __date: value.toISOString() };
+      return value;
+    }));
+    // Restaurar Date objects
+    for (const [field, val] of Object.entries(newQuery._where)) {
+      if (val && typeof val === 'object') {
+        if (val.__date) {
+          newQuery._where[field] = new Date(val.__date);
+        } else {
+          for (const [op, opVal] of Object.entries(val)) {
+            if (opVal && typeof opVal === 'object' && opVal.__date) {
+              val[op] = new Date(opVal.__date);
+            }
+          }
+        }
+      }
+    }
     newQuery._orderBy = [...this._orderBy];
     newQuery._limit = this._limit;
     return newQuery;
