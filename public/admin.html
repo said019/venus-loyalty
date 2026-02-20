@@ -15664,13 +15664,27 @@ Gracias por tu preferencia`;
         // Populate edit form with frozen client name
         editApptId.value = id;
         editClientName.value = appt.clientName;
-        editServiceInput.value = appt.serviceName;
 
-        // Find service to get price and duration
-        const service = allServices.find(s => s.name === appt.serviceName);
-        if (service) {
-          editPriceInput.value = service.price;
-          editDurationInput.value = service.durationMinutes;
+        // Seleccionar el servicio correctamente via el dropdown para sincronizar precio/duración
+        const matchedService = allServices.find(s => s.name === appt.serviceName);
+        if (matchedService && editApptServiceDropdown) {
+          // Usar select() para que el dropdown sincronice valor, precio y duración
+          editApptServiceDropdown.select({
+            value: matchedService.name,
+            label: matchedService.name,
+            meta: `[${matchedService.category || 'Otros'}] ${matchedService.durationMinutes} min - $${matchedService.price}`,
+            data: { id: matchedService.id, price: matchedService.price, duration: matchedService.durationMinutes }
+          });
+          editPriceInput.value = matchedService.price;
+          editDurationInput.value = matchedService.durationMinutes;
+        } else {
+          // Fallback: escribir directo si no hay dropdown listo
+          editServiceInput.value = appt.serviceName;
+          const service = allServices.find(s => s.name === appt.serviceName);
+          if (service) {
+            editPriceInput.value = service.price;
+            editDurationInput.value = service.durationMinutes;
+          }
         }
 
         // Extract date and time from startDateTime
