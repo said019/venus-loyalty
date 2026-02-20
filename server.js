@@ -4015,9 +4015,17 @@ app.get("/api/dashboard/history", adminAuth, async (req, res) => {
       const nextDate = new Date(date);
       nextDate.setDate(date.getDate() + 1);
 
+      // Usar formato ISO con offset de México (UTC-6) para que coincida con startDateTime
+      const toMexicoISO = (d) => {
+        const ts = d.getTime();
+        const offset = 6 * 60 * 60 * 1000;
+        const local = new Date(ts - offset);
+        return local.toISOString().replace('Z', '-06:00');
+      };
+
       const snapshot = await firestore.collection('appointments')
-        .where('startDateTime', '>=', date.toISOString())
-        .where('startDateTime', '<', nextDate.toISOString())
+        .where('startDateTime', '>=', toMexicoISO(date))
+        .where('startDateTime', '<', toMexicoISO(nextDate))
         .get();
 
       let count = 0;
@@ -4025,7 +4033,7 @@ app.get("/api/dashboard/history", adminAuth, async (req, res) => {
 
       snapshot.forEach(doc => {
         const data = doc.data();
-        count++;
+        if (data.status !== 'cancelled') count++;
         if (data.status === 'completed' && data.totalPaid) {
           income += parseFloat(data.totalPaid) || 0;
         }

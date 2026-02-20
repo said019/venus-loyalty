@@ -19015,6 +19015,7 @@ Gracias por tu preferencia`;
                 type: 'linear',
                 display: true,
                 position: 'left',
+                beginAtZero: true,
                 grid: { color: 'rgba(255, 255, 255, 0.1)' },
                 ticks: { color: '#e5e7eb', stepSize: 1 }
               },
@@ -19022,10 +19023,11 @@ Gracias por tu preferencia`;
                 type: 'linear',
                 display: true,
                 position: 'right',
+                beginAtZero: true,
                 grid: { drawOnChartArea: false },
                 ticks: {
                   color: '#22c55e',
-                  callback: function (value) { return '$' + value; }
+                  callback: function (value) { return '$' + value.toLocaleString(); }
                 }
               }
             }
