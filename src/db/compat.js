@@ -44,6 +44,7 @@ const reverseFieldMap = {
   // Google Devices
   'cardId': 'card_id',
   'objectId': 'object_id',
+  'createdAt': 'created_at',
 };
 
 // Función para mapear datos de salida (Prisma -> formato legacy)
@@ -100,7 +101,7 @@ class DocRef {
     try {
       // Procesar datos para convertir fechas y eliminar campos inválidos
       const processedData = processDataForUpdate(this.modelName, data);
-      
+
       if (options.merge) {
         // Solo actualizar, no crear (merge = true significa que el doc ya existe)
         return await prisma[this.modelName].update({
@@ -108,7 +109,7 @@ class DocRef {
           data: processedData
         });
       }
-      
+
       // Sin merge, intentar upsert (pero esto requiere todos los campos requeridos)
       return await prisma[this.modelName].upsert({
         where: { id: this.id },
@@ -125,7 +126,7 @@ class DocRef {
     try {
       // Convertir campos de fecha si es necesario
       const processedData = processDataForUpdate(this.modelName, data);
-      
+
       return await prisma[this.modelName].update({
         where: { id: this.id },
         data: processedData
@@ -165,42 +166,42 @@ function processDataForUpdate(modelName, data) {
 
   // Campos que son DateTime en Prisma
   const dateFields = ['createdAt', 'updatedAt', 'lastVisit', 'startDateTime', 'endDateTime',
-                      'confirmedAt', 'cancelledAt', 'sent24hAt', 'sent2hAt', 'expiresAt', 'usedAt',
-                      'timestamp', 'redeemedAt', 'redeemed_at'];
+    'confirmedAt', 'cancelledAt', 'sent24hAt', 'sent2hAt', 'expiresAt', 'usedAt',
+    'timestamp', 'redeemedAt', 'redeemed_at'];
 
   for (const field of dateFields) {
     if (processed[field] && typeof processed[field] === 'string') {
       processed[field] = new Date(processed[field]);
     }
   }
-  
+
   // Eliminar updatedAt ya que Prisma lo maneja automáticamente con @updatedAt
   if (processed.updatedAt) {
     delete processed.updatedAt;
   }
-  
+
   // Eliminar createdAt si es string (Prisma usa @default(now()))
   if (processed.createdAt && typeof processed.createdAt === 'string') {
     delete processed.createdAt;
   }
-  
+
   // Mapear clientId a cardId ANTES de eliminar clientId
   if (processed.clientId && !processed.cardId) {
     processed.cardId = processed.clientId;
   }
-  
+
   // Mapear birthdate a birthday (frontend usa birthdate, Prisma usa birthday)
   if (processed.birthdate !== undefined) {
     processed.birthday = processed.birthdate;
     delete processed.birthdate;
   }
-  
+
   // Mapear active a isActive (frontend usa active, Prisma usa isActive)
   if (processed.active !== undefined) {
     processed.isActive = processed.active;
     delete processed.active;
   }
-  
+
   // Eliminar campos que no existen en los modelos de Prisma
   delete processed.notes; // Card no tiene campo notes
   delete processed.favoriteServices; // Card no tiene este campo
@@ -211,7 +212,7 @@ function processDataForUpdate(modelName, data) {
   delete processed.discount; // Service no tiene este campo
   delete processed.bookable; // Service no tiene este campo
   delete processed.clientId; // En Prisma es cardId, no clientId
-  
+
   // Mapear campos con nombres diferentes (snake_case a camelCase)
   if (processed.redeemed_at) {
     processed.redeemedAt = processed.redeemed_at instanceof Date ? processed.redeemed_at : new Date(processed.redeemed_at);
@@ -225,7 +226,15 @@ function processDataForUpdate(modelName, data) {
     processed.expiryDate = processed.expiry_date;
     delete processed.expiry_date;
   }
-  
+  if (processed.created_at !== undefined) {
+    processed.createdAt = processed.created_at instanceof Date ? processed.created_at : new Date(processed.created_at);
+    delete processed.created_at;
+    // Note: Prisma usually handles createdAt automatically via @default(now())
+    if (typeof processed.createdAt === 'string') {
+      delete processed.createdAt;
+    }
+  }
+
   return processed;
 }
 
@@ -248,6 +257,7 @@ const fieldMap = {
   // Google Devices
   'card_id': 'cardId',
   'object_id': 'objectId',
+  'created_at': 'createdAt',
 };
 
 // Clase que simula una query de Firestore
@@ -262,20 +272,20 @@ class Query {
 
   where(field, op, value) {
     const newQuery = this._clone();
-    
+
     // Mapear nombre de campo si es necesario
     const mappedField = fieldMap[field] || field;
-    
+
     // Campos que son DateTime en Prisma - convertir strings a Date
-    const dateTimeFields = ['startDateTime', 'endDateTime', 'createdAt', 'updatedAt', 
-                            'lastVisit', 'confirmedAt', 'cancelledAt', 'sent24hAt', 
-                            'sent2hAt', 'expiresAt', 'usedAt', 'timestamp', 'redeemedAt'];
-    
+    const dateTimeFields = ['startDateTime', 'endDateTime', 'createdAt', 'updatedAt',
+      'lastVisit', 'confirmedAt', 'cancelledAt', 'sent24hAt',
+      'sent2hAt', 'expiresAt', 'usedAt', 'timestamp', 'redeemedAt'];
+
     let processedValue = value;
     if (dateTimeFields.includes(mappedField) && typeof value === 'string') {
       processedValue = new Date(value);
     }
-    
+
     // Convertir operadores de Firestore a Prisma
     if (op === '==') {
       newQuery._where[mappedField] = processedValue;
@@ -300,7 +310,7 @@ class Query {
       // Para JSON arrays, esto es más complejo
       newQuery._where[mappedField] = { has: value };
     }
-    
+
     return newQuery;
   }
 
@@ -342,7 +352,7 @@ class Query {
       };
     } catch (error) {
       console.error(`Error querying ${this.collectionName}:`, error);
-      return { docs: [], empty: true, size: 0, forEach: () => {} };
+      return { docs: [], empty: true, size: 0, forEach: () => { } };
     }
   }
 }
