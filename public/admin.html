@@ -206,6 +206,66 @@
       z-index: 1;
     }
 
+    /* ===== MODAL ENHANCEMENTS ===== */
+    .input-with-icon {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .input-with-icon i {
+      position: absolute;
+      left: 14px;
+      color: var(--text-muted);
+      font-size: 14px;
+      pointer-events: none;
+    }
+
+    .input-with-icon .form-input {
+      padding-left: 38px !important;
+      width: 100%;
+    }
+
+    .segmented-control {
+      display: flex;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 4px;
+      gap: 4px;
+      margin-top: 6px;
+    }
+
+    .segment-label {
+      flex: 1;
+      cursor: pointer;
+      margin: 0;
+    }
+
+    .segment-label input[type="radio"] {
+      display: none;
+    }
+
+    .segment-btn {
+      text-align: center;
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .segment-label input[type="radio"]:checked+.segment-btn {
+      background: var(--accent-gold);
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+
     /* ===== SIDEBAR - NUEVO DISEÑO ===== */
     .sidebar {
       position: fixed;
@@ -10668,49 +10728,68 @@
             <div class="exp-form-grid">
               <div class="exp-form-group">
                 <label>Hora Inicio *</label>
-                <input type="time" id="block-start-time" class="form-input" required>
+                <div class="input-with-icon">
+                  <i class="fas fa-clock"></i>
+                  <input type="time" id="block-start-time" class="form-input" required>
+                </div>
               </div>
               <div class="exp-form-group">
                 <label>Hora Fin *</label>
-                <input type="time" id="block-end-time" class="form-input" required>
+                <div class="input-with-icon">
+                  <i class="fas fa-clock"></i>
+                  <input type="time" id="block-end-time" class="form-input" required>
+                </div>
               </div>
             </div>
 
             <div class="exp-form-group">
               <label>Tipo de Bloqueo</label>
-              <div class="radio-group">
-                <label class="radio-label">
+              <div class="segmented-control">
+                <label class="segment-label">
                   <input type="radio" name="blockType" value="single" checked onchange="toggleBlockType()">
-                  <span>Solo una fecha</span>
+                  <div class="segment-btn">
+                    <i class="fas fa-calendar-day"></i> Solo una fecha
+                  </div>
                 </label>
-                <label class="radio-label">
+                <label class="segment-label">
                   <input type="radio" name="blockType" value="recurring" onchange="toggleBlockType()">
-                  <span>Recurrente (Semanal)</span>
+                  <div class="segment-btn">
+                    <i class="fas fa-redo-alt"></i> Recurrente (Semanal)
+                  </div>
                 </label>
               </div>
             </div>
 
             <div id="block-date-group" class="exp-form-group">
               <label>Fecha *</label>
-              <input type="date" id="block-date" class="form-input">
+              <div class="input-with-icon">
+                <i class="fas fa-calendar-alt"></i>
+                <input type="date" id="block-date" class="form-input">
+              </div>
             </div>
 
             <div id="block-day-group" class="exp-form-group hidden">
               <label>Día de la semana *</label>
-              <select id="block-day" class="form-input">
-                <option value="1">Lunes</option>
-                <option value="2">Martes</option>
-                <option value="3">Miércoles</option>
-                <option value="4">Jueves</option>
-                <option value="5">Viernes</option>
-                <option value="6">Sábado</option>
-                <option value="0">Domingo</option>
-              </select>
+              <div class="input-with-icon">
+                <i class="fas fa-calendar-week"></i>
+                <select id="block-day" class="form-input">
+                  <option value="1">Lunes</option>
+                  <option value="2">Martes</option>
+                  <option value="3">Miércoles</option>
+                  <option value="4">Jueves</option>
+                  <option value="5">Viernes</option>
+                  <option value="6">Sábado</option>
+                  <option value="0">Domingo</option>
+                </select>
+              </div>
             </div>
 
             <div class="exp-form-group">
               <label>Motivo</label>
-              <input type="text" id="block-reason" class="form-input" placeholder="Ej: Comida, Reunión, Personal">
+              <div class="input-with-icon">
+                <i class="fas fa-comment-dots"></i>
+                <input type="text" id="block-reason" class="form-input" placeholder="Ej: Comida, Reunión, Personal">
+              </div>
             </div>
 
             <div class="exp-dialog-footer">
@@ -10719,10 +10798,20 @@
               <button type="submit" class="btn primary"><i class="fas fa-save"></i> Guardar Bloqueo</button>
             </div>
 
-            <div style="margin-top: 1rem; border-top: 1px solid var(--line); padding-top: 1rem;">
-              <h4>Bloqueos Activos</h4>
-              <div id="active-blocks-list" style="max-height: 150px; overflow-y: auto; font-size: 0.9rem;">
-                <p class="muted">Cargando...</p>
+            <div style="margin-top: 1.5rem; padding-top: 1.5rem; position: relative;">
+              <div
+                style="position: absolute; top: 0; left: -24px; right: -24px; height: 1px; background: var(--border-color);">
+              </div>
+              <h4 style="font-size: 0.95rem; margin-bottom: 12px; color: var(--text-primary);">
+                <i class="fas fa-list-ul" style="color:var(--accent-gold); margin-right:6px;"></i> Bloqueos Activos
+              </h4>
+              <div id="active-blocks-list"
+                style="max-height: 180px; overflow-y: auto; background: var(--bg-tertiary); border-radius: 12px; border: 1px solid var(--border-color); padding: 12px; font-size: 0.9rem;">
+                <div class="empty-state"
+                  style="text-align:center; padding: 20px 0; color: var(--text-muted); font-size: 0.85rem;">
+                  <i class="fas fa-inbox" style="font-size: 24px; margin-bottom: 8px; display:block; opacity:0.5;"></i>
+                  Cargando...
+                </div>
               </div>
             </div>
           </form>
