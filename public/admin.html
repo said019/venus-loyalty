@@ -15476,8 +15476,8 @@
       } catch (e) { alert('Error: ' + e.message); }
     };
 
-    // ========== ENVIAR RECORDATORIO POR WHATSAPP ==========
-    window.sendWhatsAppReminder = (id, phone, clientName, serviceName, startDateTime) => {
+    // ========== ENVIAR RECORDATORIO POR WHATSAPP (vía Evolution API) ==========
+    window.sendWhatsAppReminder = async (id, phone, clientName, serviceName, startDateTime) => {
       try {
         // Formatear fecha y hora
         const date = new Date(startDateTime);
@@ -15494,29 +15494,44 @@
         });
 
         // Crear mensaje
-        const message = `Hola ${clientName}
+        const message = `Hola ${clientName} 😊
 
 *Recordatorio de tu cita en Venus Cosmetología*
 
-*Fecha:* ${dateStr}
-*Hora:* ${timeStr}
-*Servicio:* ${serviceName}
+📆 *Fecha:* ${dateStr}
+🕐 *Hora:* ${timeStr}
+🔹 *Servicio:* ${serviceName}
 
-Te esperamos! Si necesitas reagendar, por favor avísanos con anticipación.
+Te esperamos. Si necesitas reagendar, por favor avísanos con anticipación.
 
-Gracias por tu preferencia`;
+¡Gracias por tu preferencia! ✨`;
 
-        // Limpiar número de teléfono (quitar espacios, guiones, etc)
+        // Limpiar número de teléfono
         const cleanPhone = phone.replace(/[^0-9]/g, '');
 
-        // Abrir WhatsApp
-        const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
-        window.open(whatsappUrl, '_blank');
+        // Enviar vía Evolution API
+        const res = await fetch('/api/whatsapp/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: cleanPhone, message })
+        });
 
-        console.log('📱 WhatsApp abierto para:', clientName, cleanPhone);
+        const data = await res.json();
+
+        if (data.success) {
+          // Toast de éxito
+          const toast = document.createElement('div');
+          toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#25D366;color:#fff;padding:12px 24px;border-radius:12px;font-size:14px;font-weight:600;z-index:99999;box-shadow:0 4px 16px rgba(37,211,102,0.4);display:flex;align-items:center;gap:8px;';
+          toast.innerHTML = '<i class="fab fa-whatsapp"></i> Mensaje enviado a ' + clientName;
+          document.body.appendChild(toast);
+          setTimeout(() => toast.remove(), 3500);
+          console.log('📱 WhatsApp enviado vía Evolution para:', clientName, cleanPhone);
+        } else {
+          throw new Error(data.error || 'Error desconocido');
+        }
       } catch (error) {
-        console.error('Error enviando recordatorio WhatsApp:', error);
-        alert('Error al abrir WhatsApp. Verifica que el número de teléfono sea válido.');
+        console.error('Error enviando WhatsApp vía Evolution:', error);
+        alert('❌ No se pudo enviar el mensaje: ' + error.message + '\n\nVerifica que Evolution API esté conectada en Ajustes.');
       }
     };
 
