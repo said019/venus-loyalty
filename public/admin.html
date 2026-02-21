@@ -15831,14 +15831,16 @@ Te esperamos. Si necesitas reagendar, por favor avísanos con anticipación.
 
           const time = `${hour}:${minute}`;
           const serviceName = editServiceInput.value.trim();
-          const service = allServices.find(s => s.name === serviceName);
 
-          if (!service) {
-            alert('Por favor selecciona un servicio válido');
+          if (!serviceName) {
+            alert('Por favor selecciona un servicio');
             btn.disabled = false;
             btn.textContent = originalText;
             return;
           }
+
+          // Buscar servicio en la lista (puede no estar si solo se cambia hora)
+          const service = allServices.find(s => s.name === serviceName);
 
           // Obtener la fecha - primero del calendario, luego del dataset, luego del input
           let dateValue = editApptCalendar.getISODate();
@@ -15866,11 +15868,11 @@ Te esperamos. Si necesitas reagendar, por favor avísanos con anticipación.
           }
 
           const body = {
-            serviceId: service.id,
-            serviceName: service.name,
+            serviceId: service ? service.id : undefined,
+            serviceName: service ? service.name : serviceName,
             date: dateValue,
             time: time,
-            durationMinutes: parseInt(service.durationMinutes)
+            durationMinutes: service ? parseInt(service.durationMinutes) : parseInt(editDurationInput.value) || undefined
           };
 
           console.log('📤 Enviando:', body);
