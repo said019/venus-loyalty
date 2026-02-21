@@ -15696,13 +15696,11 @@ Te esperamos. Si necesitas reagendar, por favor avísanos con anticipación.
           editPriceInput.value = matchedService.price;
           editDurationInput.value = matchedService.durationMinutes;
         } else {
-          // Fallback: escribir directo si no hay dropdown listo
+          // Servicio no está en el catálogo activo (nombre cambió o fue eliminado)
+          // Setear el nombre directamente en el input y usar datos guardados en la cita
           editServiceInput.value = appt.serviceName;
-          const service = allServices.find(s => s.name === appt.serviceName);
-          if (service) {
-            editPriceInput.value = service.price;
-            editDurationInput.value = service.durationMinutes;
-          }
+          editPriceInput.value = appt.price || appt.servicePrice || '';
+          editDurationInput.value = appt.duration || appt.durationMinutes || 60;
         }
 
         // Extract date and time from startDateTime
@@ -15770,9 +15768,10 @@ Te esperamos. Si necesitas reagendar, por favor avísanos con anticipación.
       const serviceName = editServiceInput.value.trim();
       const service = allServices.find(s => s.name === serviceName);
 
-      if (!hour || !minute || !service) return;
+      if (!hour || !minute) return;
 
-      const duration = parseInt(service.durationMinutes) || 60;
+      // Usar duración del servicio del catálogo, o del campo duración (para servicios no en catálogo)
+      const duration = service ? (parseInt(service.durationMinutes) || 60) : (parseInt(editDurationInput.value) || 60);
       const startDate = new Date();
       startDate.setHours(parseInt(hour), parseInt(minute), 0);
       const endDate = new Date(startDate.getTime() + duration * 60000);
