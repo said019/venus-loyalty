@@ -1625,6 +1625,22 @@ app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
       entityId: id
     });
 
+    // Enviar WhatsApp de reagendamiento (no bloquea la respuesta)
+    try {
+      const updatedAppt = {
+        clientName: appointment.clientName,
+        clientPhone: appointment.clientPhone,
+        serviceName: serviceName || appointment.serviceName,
+        date,
+        time
+      };
+      WhatsAppService.sendReschedule(updatedAppt)
+        .then(r => console.log('[PATCH] ✅ WhatsApp reagendamiento:', r.success ? 'enviado' : r.error))
+        .catch(e => console.error('[PATCH] ⚠️ WhatsApp reagendamiento falló:', e.message));
+    } catch (waErr) {
+      console.error('[PATCH] ⚠️ Error iniciando WhatsApp reagendamiento:', waErr.message);
+    }
+
     console.log(`[API] Appointment ${id} updated: ${date} ${time}`);
     res.json({ success: true });
   } catch (error) {

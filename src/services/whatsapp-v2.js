@@ -338,6 +338,35 @@ export const WhatsAppService = {
     },
 
     /**
+     * Envía notificación de reagendamiento (cita modificada por el admin)
+     */
+    async sendReschedule(appt) {
+        const fecha = appt.date ? formatearFechaLegible(appt.date) : formatearFechaLegible(appt.startDateTime);
+        const hora = appt.time || formatearHora(appt.startDateTime);
+        const nombre = sanitizeForWhatsApp(appt.clientName);
+        const servicio = sanitizeForWhatsApp(appt.serviceName);
+
+        // === EVOLUTION API ===
+        if (IS_EVOLUTION) {
+            const mensaje = `🔄 *Cita Reagendada*\n\nHola ${nombre}, tu cita ha sido modificada:\n\n🔹 *Servicio:* ${servicio}\n📆 *Nueva Fecha:* ${fecha}\n🕐 *Nueva Hora:* ${hora}\n📍 *Lugar:* ${config.venus.location}\n\n¡Te esperamos! ✨`;
+            return await sendViaEvolution(appt.clientPhone, mensaje);
+        }
+
+        // === TWILIO (usa mismo template que confirmación) ===
+        return await sendWhatsAppTemplate(
+            appt.clientPhone,
+            config.templates.CONFIRMACION_CITA,
+            {
+                '1': nombre,
+                '2': servicio,
+                '3': fecha,
+                '4': hora,
+                '5': config.venus.location
+            }
+        );
+    },
+
+    /**
      * Envía recordatorio 30 horas antes (Específico para depilación)
      */
     async sendReminder30h(appt) {
