@@ -37,23 +37,43 @@ function toGrayscale(ctx, img, x, y, size) {
   ctx.drawImage(tempCanvas, x - size / 2, y - size / 2, size, size);
 }
 
+// Verde Venus (mismo que la tarjeta de lealtad)
+const VENUS_GREEN = '#9A9F82';
+
 function applyStampEffect(ctx, img, x, y, size, isActive) {
   ctx.save();
   if (isActive) {
-    // Sello activo: blanco con sombra (para que resalte sobre fondo terracota)
-    ctx.shadowColor = 'rgba(0,0,0,0.35)';
-    ctx.shadowBlur = 10;
+    // Sesión activa: círculo verde Venus relleno + ícono blanco encima
+    ctx.shadowColor = 'rgba(0,0,0,0.3)';
+    ctx.shadowBlur = 8;
     ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 4;
+    ctx.shadowOffsetY = 3;
+
+    // Relleno verde Venus
+    ctx.beginPath();
+    ctx.arc(x, y, size / 2 + 2, 0, Math.PI * 2);
+    ctx.fillStyle = VENUS_GREEN;
+    ctx.fill();
+    ctx.restore();
+
+    // Ícono blanco encima
+    ctx.save();
     ctx.globalAlpha = 1.0;
-    // Tintado blanco sobre el ícono
     ctx.filter = 'brightness(0) invert(1)';
     ctx.drawImage(img, x - size / 2, y - size / 2, size, size);
   } else {
-    // Sello inactivo: semi-transparente con filtro oscuro
-    ctx.shadowColor = 'transparent';
-    ctx.globalAlpha = 0.35;
-    ctx.filter = 'brightness(0) invert(1)';
+    // Sesión pendiente: círculo verde Venus outline (borde) + ícono verde
+    ctx.globalAlpha = 0.55;
+
+    // Borde verde Venus
+    ctx.beginPath();
+    ctx.arc(x, y, size / 2 + 3, 0, Math.PI * 2);
+    ctx.strokeStyle = VENUS_GREEN;
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    // Ícono tintado en verde Venus (semi-transparente)
+    ctx.filter = 'brightness(0) saturate(100%) invert(66%) sepia(20%) saturate(300%) hue-rotate(50deg)';
     ctx.drawImage(img, x - size / 2, y - size / 2, size, size);
   }
   ctx.restore();
@@ -87,16 +107,6 @@ async function generateStripImage(logoImage, activeStamps, outputPath) {
     const x = startX + (col * (stampSize + CONFIG.spacingX)) + (stampSize / 2);
     const y = startY + (row * (stampSize + CONFIG.spacingY)) + (stampSize / 2);
     applyStampEffect(ctx, logoImage, x, y, stampSize, isActive);
-
-    if (!isActive) {
-      ctx.save();
-      ctx.strokeStyle = 'rgba(255,255,255,0.2)';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(x, y, stampSize / 2 + 3, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.restore();
-    }
   }
 
   const buffer = canvas.toBuffer('image/png');
