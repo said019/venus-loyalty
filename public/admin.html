@@ -10409,6 +10409,15 @@
             </button>
           </div>
 
+          <!-- Membresía Masajes -->
+          <div style="margin-top:10px;">
+            <button id="cm-issue-massage" class="btn"
+              style="width:100%;background:linear-gradient(135deg,#C4936E,#a87350);color:#fff;font-weight:700;font-size:14px;border:none;border-radius:12px;padding:13px 16px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.2s;box-shadow:0 4px 16px rgba(196,147,110,0.35);"
+              onclick="issueMassageMembership()">
+              <i class="fas fa-spa"></i> Emitir Membresía Masajes (10 sesiones)
+            </button>
+          </div>
+
           <!-- Acciones secundarias -->
           <div
             style="display:flex;justify-content:center;gap:12px;margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.05);flex-wrap:wrap;">
@@ -13758,6 +13767,71 @@
         alert('Canje realizado y Google Wallet actualizado');
       } catch (e) {
         alert('Error: ' + e.message);
+      }
+    }
+
+    /* ===== EMITIR MEMBRESÍA MASAJES ===== */
+    async function issueMassageMembership() {
+      if (!currentCardId) return;
+
+      const card = cardsCache[currentCardId];
+      const name = card?.name || 'la clienta';
+      const phone = card?.phone;
+
+      if (!confirm(`¿Emitir membresía de masajes a ${name}?\n\n• 10 sesiones de masaje\n• Fondo terracota en Wallet\n• Se enviará el link por WhatsApp`)) return;
+
+      const btn = document.getElementById('cm-issue-massage');
+      const originalHtml = btn.innerHTML;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generando...';
+      btn.disabled = true;
+
+      try {
+        const res = await fetch(`/api/admin/cards/${currentCardId}/issue-wallet`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            cardType: 'massage',
+            cardColor: '#C4936E',
+            sessionsTotal: 10
+          })
+        });
+
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.error || 'No se pudo emitir la membresía');
+
+        const cardLink = data.cardLink;
+
+        // Mensaje WhatsApp listo para enviar
+        const msg = encodeURIComponent(
+          `Hola ${name} 🌸\n\n` +
+          `¡Tu *membresía de masajes Venus* está lista! 🧖‍♀️✨\n\n` +
+          `🪨 *10 sesiones de masaje* para ti\n\n` +
+          `Aquí puedes guardar tu tarjeta digital:\n${cardLink}\n\n` +
+          `_Venus Cosmetología — Cactus 50, San Juan del Río_`
+        );
+
+        const cleanPhone = phone ? phone.replace(/\D/g, '') : '';
+        const waUrl = cleanPhone
+          ? `https://wa.me/${cleanPhone}?text=${msg}`
+          : `https://wa.me/?text=${msg}`;
+
+        btn.innerHTML = '<i class="fas fa-check"></i> ¡Membresía emitida!';
+        btn.style.background = 'linear-gradient(135deg,#22c55e,#16a34a)';
+
+        setTimeout(() => {
+          btn.innerHTML = originalHtml;
+          btn.style.background = 'linear-gradient(135deg,#C4936E,#a87350)';
+          btn.disabled = false;
+        }, 3000);
+
+        // Abrir WhatsApp con el mensaje
+        window.open(waUrl, '_blank');
+
+      } catch (e) {
+        alert('Error: ' + e.message);
+        btn.innerHTML = originalHtml;
+        btn.disabled = false;
       }
     }
 
