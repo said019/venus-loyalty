@@ -10,8 +10,8 @@ import path from 'path';
 const CONFIG = {
   width: 375,
   height: 120,
-  stampCount: 8,
-  stampsPerRow: 4,
+  stampCount: 10,
+  stampsPerRow: 5,
   bgColor: '#C4936E',       // Terracota cálido
   logoPath: 'public/assets/stamp-massage.png',  // ← imagen de masaje (línea/outline)
   stampSize: 40,
@@ -161,8 +161,8 @@ async function generateAllMassageStrips() {
     Object.assign(CONFIG, saved);
 
     console.log(`\n✅ ¡Listo! ${(CONFIG.stampCount + 1) * 2} imágenes en public/assets/`);
-    console.log('   - massage-strip-0.png … massage-strip-8.png (1x)');
-    console.log('   - massage-strip-0@2x.png … massage-strip-8@2x.png (2x)');
+    console.log('   - massage-strip-0.png … massage-strip-10.png (1x)');
+    console.log('   - massage-strip-0@2x.png … massage-strip-10@2x.png (2x)');
     console.log('\n💡 Ahora ejecuta: git add public/assets/ && git push');
   } catch (error) {
     console.error('\n❌ Error:', error.message);
