@@ -3041,8 +3041,9 @@ app.get('/api/public/card/:id/apple.pkpass', async (req, res) => {
     // Map cardType to backgroundColor for Apple pass
     const bgColors = {
       loyalty: 'rgb(154, 159, 130)',  // Venus green
-      annual: 'rgb(196, 167, 125)',  // Venus gold
-      gold: 'rgb(30, 30, 30)',     // Black VIP
+      annual: 'rgb(196, 167, 125)',   // Venus gold
+      gold: 'rgb(30, 30, 30)',        // Black VIP
+      massage: 'rgb(196, 147, 110)',  // Terracota masajes
     };
     const cardType = card.cardType || 'loyalty';
     const isAnnual = cardType === 'annual';
@@ -3052,6 +3053,7 @@ app.get('/api/public/card/:id/apple.pkpass', async (req, res) => {
       name: card.name,
       stamps: isAnnual ? (card.sessionsTotal - card.sessionsUsed) : card.stamps,
       max: isAnnual ? card.sessionsTotal : card.max,
+      cardType,
       latestMessage: card.latestMessage,
     });
 
@@ -3088,9 +3090,9 @@ app.post('/api/admin/cards/:id/issue-wallet', adminAuth, async (req, res) => {
         const isAnnual = (cardType || 'loyalty') === 'annual';
         const stamps = isAnnual ? (card.sessionsTotal - card.sessionsUsed) : card.stamps;
         const max = isAnnual ? card.sessionsTotal : card.max;
-        // Sync object in Google Wallet
-        await updateLoyaltyObject(card.id, card.name, stamps, max);
-        googleWalletUrl = buildGoogleSaveUrl({ cardId: card.id, name: card.name, stamps, max });
+        // Sync object in Google Wallet (con cardType para masajes)
+        await updateLoyaltyObject(card.id, card.name, stamps, max, cardType);
+        googleWalletUrl = buildGoogleSaveUrl({ cardId: card.id, name: card.name, stamps, max, cardType });
         await prisma.card.update({ where: { id: card.id }, data: { walletPassUrl: googleWalletUrl } });
       } catch (gErr) {
         console.warn('[WALLET] Google Wallet generation failed:', gErr.message);
@@ -4451,7 +4453,7 @@ async function ensureGoogleWalletObject(cardId, cardData) {
     } else if (checkResp.ok) {
       // Actualizar objeto existente
       console.log(`[GOOGLE WALLET] 🔄 Actualizando objeto existente para: ${cardId}`);
-      await updateLoyaltyObject(cardId, cardData.name, cardData.stamps, cardData.max);
+      await updateLoyaltyObject(cardId, cardData.name, cardData.stamps, cardData.max, cardData.cardType);
     }
 
     return true;
