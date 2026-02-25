@@ -13778,7 +13778,7 @@
       const name = card?.name || 'la clienta';
       const phone = card?.phone;
 
-      if (!confirm(`¿Emitir membresía de masajes a ${name}?\n\n• 10 sesiones de masaje\n• Fondo terracota en Wallet\n• Se enviará el link por WhatsApp`)) return;
+      if (!confirm(`¿Emitir membresía de masajes a ${name}?\n\n• 10 sesiones de masaje\n• Fondo terracota en Wallet\n• Se enviará el link por WhatsApp vía Evolution`)) return;
 
       const btn = document.getElementById('cm-issue-massage');
       const originalHtml = btn.innerHTML;
@@ -13786,6 +13786,7 @@
       btn.disabled = true;
 
       try {
+        // 1. Emitir la membresía en el servidor
         const res = await fetch(`/api/admin/cards/${currentCardId}/issue-wallet`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -13802,34 +13803,51 @@
 
         const cardLink = data.cardLink;
 
-        // Mensaje WhatsApp listo para enviar
-        const msg = encodeURIComponent(
+        // 2. Enviar por Evolution API
+        const message =
           `Hola ${name} 🌸\n\n` +
           `¡Tu *membresía de masajes Venus* está lista! 🧖‍♀️✨\n\n` +
           `🪨 *10 sesiones de masaje* para ti\n\n` +
-          `Aquí puedes guardar tu tarjeta digital:\n${cardLink}\n\n` +
-          `_Venus Cosmetología — Cactus 50, San Juan del Río_`
-        );
+          `Guarda tu tarjeta digital aquí:\n${cardLink}\n\n` +
+          `_Venus Cosmetología — Cactus 50, San Juan del Río_`;
 
-        const cleanPhone = phone ? phone.replace(/\D/g, '') : '';
-        const waUrl = cleanPhone
-          ? `https://wa.me/${cleanPhone}?text=${msg}`
-          : `https://wa.me/?text=${msg}`;
+        const cleanPhone = phone ? phone.replace(/[^0-9]/g, '') : '';
+
+        if (cleanPhone) {
+          btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
+
+          const waRes = await fetch('/api/whatsapp/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone: cleanPhone, message })
+          });
+
+          const waData = await waRes.json();
+
+          if (waData.success) {
+            // Toast de éxito
+            const toast = document.createElement('div');
+            toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#C4936E,#a87350);color:#fff;padding:12px 24px;border-radius:12px;font-size:14px;font-weight:600;z-index:99999;box-shadow:0 4px 16px rgba(196,147,110,0.5);display:flex;align-items:center;gap:8px;';
+            toast.innerHTML = '<i class="fas fa-spa"></i> Membresía enviada a ' + name + ' 🧖‍♀️';
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 4000);
+          } else {
+            throw new Error(waData.error || 'Membresía creada pero no se pudo enviar el WhatsApp');
+          }
+        } else {
+          alert('⚠️ Membresía emitida, pero la clienta no tiene teléfono registrado.\n\nLink: ' + cardLink);
+        }
 
         btn.innerHTML = '<i class="fas fa-check"></i> ¡Membresía emitida!';
         btn.style.background = 'linear-gradient(135deg,#22c55e,#16a34a)';
-
         setTimeout(() => {
           btn.innerHTML = originalHtml;
           btn.style.background = 'linear-gradient(135deg,#C4936E,#a87350)';
           btn.disabled = false;
         }, 3000);
 
-        // Abrir WhatsApp con el mensaje
-        window.open(waUrl, '_blank');
-
       } catch (e) {
-        alert('Error: ' + e.message);
+        alert('❌ Error: ' + e.message + '\n\nVerifica que Evolution API esté conectada en Ajustes.');
         btn.innerHTML = originalHtml;
         btn.disabled = false;
       }
