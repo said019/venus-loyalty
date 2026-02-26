@@ -13467,6 +13467,13 @@
           mStatus = `🎁 Próximo regalo en sesión 5 (faltan ${5 - ms})`;
         }
 
+        const hasGoogleMassage = !!card.massageWalletUrl;
+        const googleMassageBtnHtml = hasGoogleMassage
+          ? ''
+          : `<button onclick="generateMassageWallet('${card.id}')" class="btn small" style="margin-top:6px;width:100%;background:rgba(196,147,110,0.3);color:#C4936E;font-weight:600;padding:7px;border-radius:8px;font-size:11px;">
+              <i class="fab fa-google"></i> Generar Google Wallet Masajes
+            </button>`;
+
         massageSection.innerHTML = `
           <div style="background:rgba(196,147,110,0.15);border:1px solid rgba(196,147,110,0.3);border-radius:12px;padding:14px;margin-bottom:16px;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
@@ -13480,6 +13487,7 @@
             <button onclick="massageStampCard('${card.id}')" class="btn small" style="margin-top:8px;width:100%;background:#C4936E;color:#fff;font-weight:600;padding:8px;border-radius:8px;">
               <i class="fas fa-spa"></i> Agregar sesión de masaje
             </button>
+            ${googleMassageBtnHtml}
           </div>
         `;
         massageSection.classList.remove('hidden');
@@ -13826,6 +13834,27 @@
           ? `🎁 ¡Sesión ${data.massageStamps} de masaje! Regalo desbloqueado.`
           : `💆 Sesión de masaje registrada (${data.massageStamps}/${data.massageMax})`;
         alert(msg);
+      } catch (e) {
+        alert('Error: ' + e.message);
+      }
+    }
+
+    /* ===== GENERAR GOOGLE WALLET MASAJES ===== */
+    async function generateMassageWallet(cardId) {
+      if (!confirm('¿Generar pase de Google Wallet para masajes?')) return;
+      try {
+        const r = await fetch(`/api/admin/cards/${cardId}/generate-massage-wallet`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include'
+        });
+        const data = await r.json();
+        if (!r.ok || !data.success) throw new Error(data.error || 'Error generando wallet');
+
+        alert('✅ Google Wallet de masajes generado. Recarga la tarjeta del cliente.');
+        await loadCards(currentPage);
+        const updated = cardsCache[cardId];
+        if (updated) openCardModal(updated);
       } catch (e) {
         alert('Error: ' + e.message);
       }

@@ -3204,6 +3204,31 @@ app.post('/api/admin/cards/:id/issue-wallet', adminAuth, async (req, res) => {
   }
 });
 
+// POST /api/admin/cards/:id/generate-massage-wallet — generate Google Wallet URL for massage (no reset)
+app.post('/api/admin/cards/:id/generate-massage-wallet', adminAuth, async (req, res) => {
+  try {
+    const card = await prisma.card.findUnique({ where: { id: req.params.id } });
+    if (!card) return res.status(404).json({ error: 'Tarjeta no encontrada' });
+    if (!card.massageActive) return res.status(400).json({ error: 'No tiene membresía de masajes activa' });
+
+    if (!process.env.GOOGLE_ISSUER_ID) return res.status(400).json({ error: 'GOOGLE_ISSUER_ID no configurado' });
+
+    const { buildGoogleSaveUrl, updateLoyaltyObject } = await import('./lib/google.js');
+    const massageCardId = `${card.id}-massage`;
+
+    await updateLoyaltyObject(massageCardId, card.name, card.massageStamps || 0, card.massageMax || 10, 'massage');
+    const url = buildGoogleSaveUrl({ cardId: massageCardId, name: card.name, stamps: card.massageStamps || 0, max: card.massageMax || 10, cardType: 'massage' });
+
+    await prisma.card.update({ where: { id: card.id }, data: { massageWalletUrl: url } });
+
+    console.log(`[WALLET] ✅ Massage Google Wallet URL generated for ${card.id}`);
+    res.json({ success: true, massageGoogleWalletUrl: url });
+  } catch (e) {
+    console.error('[WALLET] Generate massage wallet error:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 /* =========================================================
    SELLO DE MASAJE (admin) — independiente de sellos de lealtad
    ========================================================= */
