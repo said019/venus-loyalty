@@ -3060,6 +3060,12 @@ app.get('/api/public/card/:id', async (req, res) => {
       sessionsUsed: card.sessionsUsed || 0,
       googleWalletUrl: card.walletPassUrl || null,
       applePassAvailable,
+      // Datos de membresía de masajes
+      massageActive: card.massageActive || false,
+      massageStamps: card.massageStamps || 0,
+      massageMax: card.massageMax || 10,
+      massageCycles: card.massageCycles || 0,
+      massageGoogleWalletUrl: card.massageWalletUrl || null,
     });
   } catch (e) {
     console.error('[WALLET] Error getting card:', e);
@@ -3105,32 +3111,85 @@ app.get('/api/public/card/:id/apple.pkpass', async (req, res) => {
   }
 });
 
+// GET /api/public/card/:id/massage.pkpass — download Apple Wallet pass for massage membership
+app.get('/api/public/card/:id/massage.pkpass', async (req, res) => {
+  try {
+    const card = await prisma.card.findUnique({ where: { id: req.params.id } });
+    if (!card) return res.status(404).json({ error: 'Tarjeta no encontrada' });
+    if (!card.massageActive) return res.status(400).json({ error: 'No tiene membresía de masajes' });
+
+    const { buildApplePassBuffer } = await import('./lib/apple.js');
+
+    const buffer = await buildApplePassBuffer({
+      cardId: card.id,
+      name: card.name,
+      stamps: card.massageStamps || 0,
+      max: card.massageMax || 10,
+      cardType: 'massage',
+      latestMessage: card.latestMessage,
+    });
+
+    res.set({
+      'Content-Type': 'application/vnd.apple.pkpass',
+      'Content-Disposition': `attachment; filename="venus-massage-${card.id}.pkpass"`,
+    });
+    res.send(buffer);
+  } catch (e) {
+    console.error('[WALLET] Massage Apple pass error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // POST /api/admin/cards/:id/issue-wallet — issue/regenerate wallet for a card
 app.post('/api/admin/cards/:id/issue-wallet', adminAuth, async (req, res) => {
   try {
     const { cardType, cardColor, sessionsTotal } = req.body;
-    const card = await prisma.card.update({
-      where: { id: req.params.id },
-      data: {
-        cardType: cardType || 'loyalty',
-        cardColor: cardColor || '#8C9668',
-        sessionsTotal: parseInt(sessionsTotal) || 0,
-        sessionsUsed: 0,
-      },
-    });
+    const isMassage = cardType === 'massage';
 
-    // Generate Google Wallet save URL using existing lib/google.js
+    let card;
+    if (isMassage) {
+      // Para masajes: activar campos de masaje SIN tocar la tarjeta de lealtad
+      card = await prisma.card.update({
+        where: { id: req.params.id },
+        data: {
+          massageActive: true,
+          massageStamps: 0,
+          massageMax: parseInt(sessionsTotal) || 10,
+          massageCycles: 0,
+        },
+      });
+    } else {
+      // Para otros tipos: cambiar el tipo de tarjeta
+      card = await prisma.card.update({
+        where: { id: req.params.id },
+        data: {
+          cardType: cardType || 'loyalty',
+          cardColor: cardColor || '#8C9668',
+          sessionsTotal: parseInt(sessionsTotal) || 0,
+          sessionsUsed: 0,
+        },
+      });
+    }
+
+    // Generate Google Wallet save URL
     let googleWalletUrl = null;
     if (process.env.GOOGLE_ISSUER_ID) {
       try {
         const { buildGoogleSaveUrl, updateLoyaltyObject } = await import('./lib/google.js');
-        const isAnnual = (cardType || 'loyalty') === 'annual';
-        const stamps = isAnnual ? (card.sessionsTotal - card.sessionsUsed) : card.stamps;
-        const max = isAnnual ? card.sessionsTotal : card.max;
-        // Sync object in Google Wallet (con cardType para masajes)
-        await updateLoyaltyObject(card.id, card.name, stamps, max, cardType);
-        googleWalletUrl = buildGoogleSaveUrl({ cardId: card.id, name: card.name, stamps, max, cardType });
-        await prisma.card.update({ where: { id: card.id }, data: { walletPassUrl: googleWalletUrl } });
+        if (isMassage) {
+          // Wallet separado para masajes
+          const massageCardId = `${card.id}-massage`;
+          await updateLoyaltyObject(massageCardId, card.name, 0, card.massageMax, 'massage');
+          googleWalletUrl = buildGoogleSaveUrl({ cardId: massageCardId, name: card.name, stamps: 0, max: card.massageMax, cardType: 'massage' });
+          await prisma.card.update({ where: { id: card.id }, data: { massageWalletUrl: googleWalletUrl } });
+        } else {
+          const isAnnual = (cardType || 'loyalty') === 'annual';
+          const stamps = isAnnual ? (card.sessionsTotal - card.sessionsUsed) : card.stamps;
+          const max = isAnnual ? card.sessionsTotal : card.max;
+          await updateLoyaltyObject(card.id, card.name, stamps, max, cardType);
+          googleWalletUrl = buildGoogleSaveUrl({ cardId: card.id, name: card.name, stamps, max, cardType });
+          await prisma.card.update({ where: { id: card.id }, data: { walletPassUrl: googleWalletUrl } });
+        }
       } catch (gErr) {
         console.warn('[WALLET] Google Wallet generation failed:', gErr.message);
       }
@@ -3141,6 +3200,64 @@ app.post('/api/admin/cards/:id/issue-wallet', adminAuth, async (req, res) => {
     res.json({ success: true, cardLink, googleWalletUrl });
   } catch (e) {
     console.error('[WALLET] Issue wallet error:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+/* =========================================================
+   SELLO DE MASAJE (admin) — independiente de sellos de lealtad
+   ========================================================= */
+app.post("/api/admin/massage-stamp", adminAuth, async (req, res) => {
+  try {
+    const { cardId } = req.body || {};
+    if (!cardId) return res.status(400).json({ error: "missing_cardId" });
+
+    const card = await fsGetCard(cardId);
+    if (!card) return res.status(404).json({ error: "card not found" });
+    if (!card.massageActive) return res.status(400).json({ error: "No tiene membresía de masajes activa" });
+    if (card.massageStamps >= card.massageMax) return res.status(400).json({ error: "Membresía de masajes completa" });
+
+    const newStamps = (card.massageStamps || 0) + 1;
+
+    // Actualizar en BD
+    await prisma.card.update({
+      where: { id: cardId },
+      data: { massageStamps: newStamps }
+    });
+
+    // Registrar evento
+    await fsAddEvent(cardId, "MASSAGE_STAMP", { by: "admin", massageStamps: newStamps });
+
+    // Actualizar Google Wallet (masajes usa ID separado)
+    try {
+      const { updateLoyaltyObject } = await import("./lib/google.js");
+      const massageCardId = `${cardId}-massage`;
+      await updateLoyaltyObject(massageCardId, card.name, newStamps, card.massageMax, 'massage');
+      console.log(`[GOOGLE WALLET] ✅ Massage stamp: ${cardId} (${newStamps}/${card.massageMax})`);
+    } catch (googleError) {
+      console.error(`[GOOGLE WALLET] ❌ Error massage stamp:`, googleError.message);
+    }
+
+    // Push a Apple Wallet con mensaje personalizado
+    try {
+      let customMsg = null;
+      if (newStamps === 5) {
+        customMsg = `🎁 ¡Felicidades ${card.name}! Llevas 5 masajes — tienes un regalo especial esperándote.`;
+      } else if (newStamps === 10) {
+        customMsg = `🎁🎉 ¡Increíble ${card.name}! Completaste 10 masajes — ¡tu segundo regalo te espera!`;
+      } else {
+        customMsg = `💆 Sesión de masaje registrada — llevas ${newStamps} de ${card.massageMax}.`;
+      }
+      // Usar serial de masaje para Apple
+      const massageSerial = `${cardId}-massage`;
+      await appleWebService.updatePassAndNotify(cardId, card.massageStamps, newStamps, customMsg);
+    } catch (err) {
+      console.error("[APPLE] Error notificando masaje:", err);
+    }
+
+    res.json({ ok: true, cardId, massageStamps: newStamps, massageMax: card.massageMax });
+  } catch (e) {
+    console.error("[ADMIN MASSAGE STAMP]", e);
     res.status(500).json({ error: e.message });
   }
 });

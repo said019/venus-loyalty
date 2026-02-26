@@ -366,9 +366,10 @@
 
         function render(card) {
             const isAnnual = card.cardType === 'annual';
-            const isLoyalty = card.cardType === 'loyalty';
             const bgColor = card.cardColor || '#8C9668';
+            const hasMassage = card.massageActive;
 
+            // ===== LOYALTY / ANNUAL PROGRESS =====
             const progressPct = isAnnual
                 ? Math.round(((card.sessionsUsed || 0) / (card.sessionsTotal || 10)) * 100)
                 : Math.round(((card.stamps || 0) / (card.max || 8)) * 100);
@@ -377,9 +378,9 @@
                 ? `${card.sessionsUsed} usadas de ${card.sessionsTotal}`
                 : `${card.stamps} de ${card.max} sellos`;
 
-            const cardTypeLabel = { loyalty: 'Lealtad', massage: 'Masajes', annual: 'Constancia Anual', gold: 'Gold VIP' }[card.cardType] || 'Lealtad';
+            const cardTypeLabel = { loyalty: 'Lealtad', annual: 'Constancia Anual', gold: 'Gold VIP' }[card.cardType] || 'Lealtad';
 
-            // Dots / sessions
+            // Dots / sessions for loyalty/annual card
             let dotsHtml = '';
             if (isAnnual) {
                 dotsHtml = '<div class="sessions-grid">';
@@ -391,24 +392,82 @@
                 }
                 dotsHtml += '</div>';
             } else {
-                const isMassage = card.cardType === 'massage';
                 const maxStamps = card.max || 8;
                 dotsHtml = '<div class="stamps-dots">';
                 for (let i = 0; i < maxStamps; i++) {
                     const filled = i < (card.stamps || 0);
-                    const isGiftSlot = isMassage && (i === 4 || i === 9); // Posición 5 y 10 (0-indexed: 4 y 9)
-                    const icon = isGiftSlot ? 'fa-gift' : 'fa-star';
                     dotsHtml += filled
-                        ? `<div class="stamp-dot filled${isGiftSlot ? ' gift-slot' : ''}"><i class="fas ${icon}"></i></div>`
-                        : `<div class="stamp-dot${isGiftSlot ? ' gift-slot' : ''}">${isGiftSlot ? '<i class="fas fa-gift" style="color:rgba(255,255,255,0.4);font-size:0.65rem;"></i>' : ''}</div>`;
+                        ? `<div class="stamp-dot filled"><i class="fas fa-star"></i></div>`
+                        : `<div class="stamp-dot"></div>`;
                 }
                 dotsHtml += '</div>';
             }
 
-            // OS detection
-            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-            const isAndroid = /Android/.test(navigator.userAgent);
+            // ===== MASSAGE SECTION (independent) =====
+            let massageCardHtml = '';
+            if (hasMassage) {
+                const ms = card.massageStamps || 0;
+                const mm = card.massageMax || 10;
+                const mPct = Math.round((ms / mm) * 100);
 
+                let massageDots = '<div class="stamps-dots">';
+                for (let i = 0; i < mm; i++) {
+                    const filled = i < ms;
+                    const isGiftSlot = (i === 4 || i === 9);
+                    const icon = isGiftSlot ? 'fa-gift' : 'fa-spa';
+                    massageDots += filled
+                        ? `<div class="stamp-dot filled${isGiftSlot ? ' gift-slot' : ''}"><i class="fas ${icon}"></i></div>`
+                        : `<div class="stamp-dot${isGiftSlot ? ' gift-slot' : ''}">${isGiftSlot ? '<i class="fas fa-gift" style="color:rgba(255,255,255,0.4);font-size:0.65rem;"></i>' : ''}</div>`;
+                }
+                massageDots += '</div>';
+
+                // Massage wallet buttons
+                const massageAppleBtn = card.applePassAvailable
+                    ? `<a href="/api/public/card/${card.id}/massage.pkpass" class="wallet-btn btn-apple" style="background:#5C3D2E;">
+                 <i class="fab fa-apple"></i> Masajes → Apple Wallet
+               </a>`
+                    : '';
+
+                const massageGoogleBtn = card.massageGoogleWalletUrl
+                    ? `<a href="${card.massageGoogleWalletUrl}" target="_blank" class="wallet-btn btn-google">
+                 <img src="https://upload.wikimedia.org/wikipedia/commons/4/4e/Google_Wallet_logo_%282024%29.svg" alt="Google Wallet" style="height:20px;"/>
+                 Masajes → Google Wallet
+               </a>`
+                    : '';
+
+                const massageWalletBtns = (massageAppleBtn || massageGoogleBtn)
+                    ? `<div class="wallet-buttons" style="margin-top:1rem;">${massageAppleBtn}${massageGoogleBtn}</div>`
+                    : '';
+
+                massageCardHtml = `
+          <div class="wallet-card" style="--card-bg:#C4936E;">
+            <div class="card-top">
+              <span class="card-brand">Venus</span>
+              <span class="card-type-badge">🧖 Masajes</span>
+            </div>
+            <div class="card-name">${card.name}</div>
+            <div class="card-phone">Membresía de Masajes</div>
+            <div class="card-progress">
+              <div class="card-progress-label">
+                <span>Sesiones</span>
+                <span>${ms} de ${mm}</span>
+              </div>
+              <div class="progress-bar-bg">
+                <div class="progress-bar-fill" style="width:${mPct}%;"></div>
+              </div>
+            </div>
+            ${massageDots}
+            <div style="margin-top:10px;font-size:0.75rem;opacity:0.85;text-align:center;position:relative;z-index:1;">
+              ${ms >= 10 ? '🎁🎁 ¡Membresía completa! 2 regalos desbloqueados' :
+                  ms >= 5 ? '🎁 1er regalo desbloqueado — sigue para el 2do' :
+                  '🎁 Regalos en sesión 5 y 10'}
+            </div>
+          </div>
+          ${massageWalletBtns}
+        `;
+            }
+
+            // ===== LOYALTY WALLET BUTTONS =====
             const appleBtn = card.applePassAvailable
                 ? `<a href="/api/public/card/${card.id}/apple.pkpass" class="wallet-btn btn-apple">
              <i class="fab fa-apple"></i> Agregar a Apple Wallet
@@ -451,6 +510,8 @@
           ${appleBtn}
           ${googleBtn}
         </div>
+
+        ${massageCardHtml}
 
         <p class="info-note">
           Guarda tu tarjeta en el wallet de tu teléfono para tenerla siempre a mano. 

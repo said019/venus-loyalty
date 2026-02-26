@@ -31,6 +31,13 @@ model Card {
   sessionsUsed  Int       @default(0)          // Sesiones ya canjeadas
   walletPassUrl String?                        // URL Google Wallet Object
 
+  // Membresía de Masajes (independiente de los sellos de lealtad)
+  massageActive  Boolean   @default(false)     // Si tiene membresía de masajes activa
+  massageStamps  Int       @default(0)         // Sellos de masaje actuales
+  massageMax     Int       @default(10)        // Total de sesiones de masaje
+  massageCycles  Int       @default(0)         // Ciclos completados de masaje
+  massageWalletUrl String?                     // URL Google Wallet para masajes
+
   // Relaciones
   appointments Appointment[]
   events       Event[]
