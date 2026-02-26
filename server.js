@@ -3036,7 +3036,7 @@ app.get('/card/:id', (req, res) => {
 // GET /api/public/card/:id — card data for the client card page
 app.get('/api/public/card/:id', async (req, res) => {
   try {
-    const card = await prisma.card.findUnique({ where: { id: req.params.id } });
+    let card = await prisma.card.findUnique({ where: { id: req.params.id } });
     if (!card) return res.status(404).json({ error: 'Tarjeta no encontrada' });
 
     // Apple available if cert env vars set (configured in Render)
@@ -3046,6 +3046,38 @@ app.get('/api/public/card/:id', async (req, res) => {
       process.env.APPLE_TEAM_ID &&
       process.env.APPLE_PASS_TYPE_ID
     );
+
+    // ⭐ Auto-generar Google Wallet URLs si no existen
+    if (process.env.GOOGLE_ISSUER_ID) {
+      try {
+        const { buildGoogleSaveUrl, updateLoyaltyObject } = await import('./lib/google.js');
+
+        // Google Wallet de lealtad
+        if (!card.walletPassUrl) {
+          const ct = card.cardType || 'loyalty';
+          const isAnnual = ct === 'annual';
+          const stamps = isAnnual ? (card.sessionsTotal - card.sessionsUsed) : card.stamps;
+          const max = isAnnual ? card.sessionsTotal : card.max;
+          await updateLoyaltyObject(card.id, card.name, stamps, max, ct);
+          const url = buildGoogleSaveUrl({ cardId: card.id, name: card.name, stamps, max, cardType: ct });
+          await prisma.card.update({ where: { id: card.id }, data: { walletPassUrl: url } });
+          card.walletPassUrl = url;
+          console.log(`[PUBLIC CARD] ✅ Auto-generado Google Wallet lealtad para ${card.id}`);
+        }
+
+        // Google Wallet de masajes
+        if (card.massageActive && !card.massageWalletUrl) {
+          const massageCardId = `${card.id}-massage`;
+          await updateLoyaltyObject(massageCardId, card.name, card.massageStamps || 0, card.massageMax || 10, 'massage');
+          const url = buildGoogleSaveUrl({ cardId: massageCardId, name: card.name, stamps: card.massageStamps || 0, max: card.massageMax || 10, cardType: 'massage' });
+          await prisma.card.update({ where: { id: card.id }, data: { massageWalletUrl: url } });
+          card.massageWalletUrl = url;
+          console.log(`[PUBLIC CARD] ✅ Auto-generado Google Wallet masajes para ${card.id}`);
+        }
+      } catch (gErr) {
+        console.warn('[PUBLIC CARD] ⚠️ Error auto-generando Google Wallet:', gErr.message);
+      }
+    }
 
     res.json({
       id: card.id,
