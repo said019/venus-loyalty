@@ -3248,9 +3248,9 @@ app.post("/api/admin/massage-stamp", adminAuth, async (req, res) => {
       } else {
         customMsg = `💆 Sesión de masaje registrada — llevas ${newStamps} de ${card.massageMax}.`;
       }
-      // Usar serial de masaje para Apple
+      // Usar serial de masaje para Apple (dispositivos registrados bajo este serial)
       const massageSerial = `${cardId}-massage`;
-      await appleWebService.updatePassAndNotify(cardId, card.massageStamps, newStamps, customMsg);
+      await appleWebService.updatePassAndNotify(massageSerial, card.massageStamps, newStamps, customMsg);
     } catch (err) {
       console.error("[APPLE] Error notificando masaje:", err);
     }
