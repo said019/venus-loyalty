@@ -13489,6 +13489,12 @@
       }
       document.getElementById('cm-status-text').textContent = statusText;
 
+      // Ocultar botón "Emitir Membresía" si ya tiene masajes activos
+      const issueMassageBtn = document.getElementById('cm-issue-massage');
+      if (issueMassageBtn) {
+        issueMassageBtn.style.display = hasMassage ? 'none' : 'flex';
+      }
+
       // Notas
       document.getElementById('cm-notes').value = card.notes || '';
 
@@ -13663,9 +13669,9 @@
         const events = await eventsRes.json();
 
         if (Array.isArray(events)) {
-          // Contar stamps (visitas)
-          const stamps = events.filter(e => e.type === 'STAMP');
-          const redeems = events.filter(e => e.type === 'REDEEM');
+          // Contar stamps (visitas) — case insensitive por inconsistencia histórica
+          const stamps = events.filter(e => e.type && e.type.toUpperCase() === 'STAMP');
+          const redeems = events.filter(e => e.type && e.type.toUpperCase() === 'REDEEM');
 
           document.getElementById('cm-visited-count').textContent = stamps.length;
           document.getElementById('cm-cycles-completed').textContent = redeems.length;
