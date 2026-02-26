@@ -726,6 +726,43 @@ app.post('/api/whatsapp/send', adminAuth, async (req, res) => {
   }
 });
 
+// POST /api/whatsapp/reminder-with-options - Recordatorio con opciones (confirmar/reagendar/cancelar)
+app.post('/api/whatsapp/reminder-with-options', adminAuth, async (req, res) => {
+  try {
+    const { appointmentId, phone, clientName, serviceName, startDateTime } = req.body;
+    if (!phone || !clientName) {
+      return res.status(400).json({ success: false, error: 'Se requiere phone y clientName' });
+    }
+
+    // Construir objeto cita para el servicio
+    const appt = {
+      id: appointmentId,
+      clientPhone: phone,
+      clientName,
+      serviceName,
+      startDateTime,
+      // Extraer date y time del startDateTime para formateo correcto
+      date: startDateTime ? startDateTime.split('T')[0] : null,
+      time: startDateTime ? (() => {
+        const d = new Date(startDateTime);
+        const h = d.getHours().toString().padStart(2, '0');
+        const m = d.getMinutes().toString().padStart(2, '0');
+        return `${h}:${m}`;
+      })() : null
+    };
+
+    const result = await WhatsAppService.sendReminderWithOptions(appt);
+    if (result.success) {
+      res.json({ success: true });
+    } else {
+      res.status(500).json({ success: false, error: result.error });
+    }
+  } catch (error) {
+    console.error('[WhatsApp] Error recordatorio con opciones:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // 🏥 Health Check con versión
 app.get('/api/health', (req, res) => {
   res.json({
@@ -4208,19 +4245,29 @@ app.post("/api/stamp/:cardId", basicAuth, async (req, res) => {
     const updated = await fsUpdateCardStamps(cardId, newStamps);
     await fsAddEvent(cardId, "STAMP", { by: "reception" });
 
-    // ⭐ CORRECCIÓN: Google Wallet con 4 parámetros
+    // ⭐ CORRECCIÓN: Google Wallet con cardType
     try {
       const { updateLoyaltyObject } = await import("./lib/google.js");
-      // ✅ CORRECTO: 4 parámetros en lugar de 2
-      await updateLoyaltyObject(cardId, updated.name, newStamps, updated.max);
-      console.log(`[GOOGLE WALLET] ✅ Stamp actualizado para: ${cardId} (${newStamps}/${updated.max})`);
+      await updateLoyaltyObject(cardId, updated.name, newStamps, updated.max, card.cardType || 'loyalty');
+      console.log(`[GOOGLE WALLET] ✅ Stamp actualizado para: ${cardId} (${newStamps}/${updated.max}) tipo: ${card.cardType || 'loyalty'}`);
     } catch (googleError) {
       console.error(`[GOOGLE WALLET] ❌ Error actualizando stamp:`, googleError.message);
     }
 
-    // Notificar Apple
+    // ⭐ Push a Apple Wallet con mensaje personalizado para masajes
     try {
-      await appleWebService.notifyCardUpdate(cardId);
+      const isMassage = card.cardType === 'massage';
+      let customMsg = null;
+      if (isMassage) {
+        if (newStamps === 5) {
+          customMsg = `🎁 ¡Felicidades ${card.name}! Llevas 5 masajes — tienes un regalo especial esperándote.`;
+        } else if (newStamps === 10) {
+          customMsg = `🎁🎉 ¡Increíble ${card.name}! Completaste 10 masajes — ¡tu segundo regalo te espera!`;
+        } else {
+          customMsg = `💆 Sello de masaje registrado — llevas ${newStamps} de ${updated.max}.`;
+        }
+      }
+      await appleWebService.updatePassAndNotify(cardId, card.stamps, newStamps, customMsg, card.cardType || 'loyalty');
     } catch (err) {
       console.error("[APPLE] Error notificando:", err);
     }
@@ -4908,14 +4955,26 @@ app.post("/api/admin/stamp", adminAuth, async (req, res) => {
     // ⭐ CORRECCIÓN: Agregar actualización de Google Wallet
     try {
       const { updateLoyaltyObject } = await import("./lib/google.js");
-      await updateLoyaltyObject(cardId, card.name, newStamps, card.max);
-      console.log(`[GOOGLE WALLET] ✅ Stamp admin actualizado para: ${cardId}`);
+      await updateLoyaltyObject(cardId, card.name, newStamps, card.max, card.cardType || 'loyalty');
+      console.log(`[GOOGLE WALLET] ✅ Stamp admin actualizado para: ${cardId} (tipo: ${card.cardType || 'loyalty'})`);
     } catch (googleError) {
       console.error(`[GOOGLE WALLET] ❌ Error actualizando stamp admin:`, googleError.message);
     }
 
+    // ⭐ Push a Apple Wallet con mensaje personalizado para masajes
     try {
-      await appleWebService.updatePassAndNotify(cardId, card.stamps, newStamps);
+      const isMassage = card.cardType === 'massage';
+      let customMsg = null;
+      if (isMassage) {
+        if (newStamps === 5) {
+          customMsg = `🎁 ¡Felicidades ${card.name}! Llevas 5 masajes — tienes un regalo especial esperándote.`;
+        } else if (newStamps === 10) {
+          customMsg = `🎁🎉 ¡Increíble ${card.name}! Completaste 10 masajes — ¡tu segundo regalo te espera!`;
+        } else {
+          customMsg = `💆 Sello de masaje registrado — llevas ${newStamps} de ${card.max}.`;
+        }
+      }
+      await appleWebService.updatePassAndNotify(cardId, card.stamps, newStamps, customMsg, card.cardType || 'loyalty');
     } catch (err) {
       console.error("[APPLE] Error notificando:", err);
     }

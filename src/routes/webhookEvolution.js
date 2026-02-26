@@ -138,8 +138,8 @@ async function handlePollResponse(phone, payload, profileName) {
 
     if (optionLower.includes('confirmar')) {
         await processClientResponse(phone, 'confirmar');
-    } else if (optionLower.includes('cambio') || optionLower.includes('reprogramar')) {
-        await processClientResponse(phone, 'reprogramar');
+    } else if (optionLower.includes('reagendar') || optionLower.includes('cambio') || optionLower.includes('reprogramar')) {
+        await processClientResponse(phone, 'reagendar');
     } else if (optionLower.includes('cancelar')) {
         await processClientResponse(phone, 'cancelar');
     } else {
@@ -161,10 +161,16 @@ async function processClientResponse(telefono, respuesta) {
 
     if (respuesta.includes('confirmo') || respuesta.includes('confirmar') || respuesta === '1') {
         await procesarConfirmacion(cita);
-    } else if (respuesta.includes('reprogramar') || respuesta.includes('cambio') || respuesta === '2') {
-        await procesarReprogramacion(cita);
+    } else if (
+        respuesta.includes('reagendar') || respuesta.includes('reprogramar') ||
+        respuesta.includes('cambio') || respuesta === '2'
+    ) {
+        await procesarReagendamiento(cita);
     } else if (respuesta.includes('cancelar') || respuesta === '3') {
         await procesarCancelacion(cita);
+    } else if (cita.status === 'rescheduling') {
+        // La cita está esperando una fecha de reagendamiento — guardar la solicitud
+        await procesarFechaReagendamiento(cita, telefono, respuesta);
     } else {
         console.log(`❓ Respuesta no reconocida: ${respuesta}`);
     }
@@ -261,10 +267,10 @@ async function procesarConfirmacion(cita) {
 }
 
 /**
- * Procesa solicitud de reprogramación
+ * Procesa solicitud de reagendamiento: marca cita y pide día/hora deseados
  */
-async function procesarReprogramacion(cita) {
-    console.log(`🔄 Procesando reprogramación para cita ${cita.id}`);
+async function procesarReagendamiento(cita) {
+    console.log(`🔄 Procesando reagendamiento para cita ${cita.id}`);
     try {
         await firestore.collection('appointments').doc(cita.id).update({
             status: 'rescheduling',
@@ -274,17 +280,52 @@ async function procesarReprogramacion(cita) {
         await firestore.collection('notifications').add({
             type: 'alerta',
             icon: 'calendar-times',
-            title: 'Solicitud de reprogramación',
-            message: `${cita.clientName} quiere reprogramar ${cita.serviceName}`,
+            title: 'Solicitud de reagendamiento',
+            message: `${cita.clientName} quiere reagendar ${cita.serviceName}`,
             read: false,
             createdAt: new Date().toISOString(),
             entityId: cita.id
         });
 
         await WhatsAppService.sendSolicitudReprogramacion(cita);
-        console.log(`🔄 Solicitud de reprogramación enviada para cita ${cita.id}`);
+        console.log(`🔄 Solicitud de reagendamiento enviada para cita ${cita.id}`);
     } catch (error) {
-        console.error('Error procesando reprogramación:', error);
+        console.error('Error procesando reagendamiento:', error);
+    }
+}
+
+/**
+ * Procesa la respuesta de texto libre con la fecha deseada de reagendamiento
+ */
+async function procesarFechaReagendamiento(cita, telefono, fechaTexto) {
+    console.log(`📅 Fecha de reagendamiento recibida para cita ${cita.id}: "${fechaTexto}"`);
+    try {
+        // Guardar la fecha propuesta por la cliente
+        await firestore.collection('appointments').doc(cita.id).update({
+            rescheduleProposedDate: fechaTexto,
+            rescheduleProposedAt: new Date().toISOString()
+        });
+
+        // Notificación interna para el admin
+        await firestore.collection('notifications').add({
+            type: 'alerta',
+            icon: 'calendar-alt',
+            title: 'Propuesta de reagendamiento',
+            message: `${cita.clientName} propone reagendar ${cita.serviceName} para: "${fechaTexto}"`,
+            read: false,
+            createdAt: new Date().toISOString(),
+            entityId: cita.id
+        });
+
+        // Confirmar a la cliente que recibimos su solicitud
+        const { getEvolutionClient } = await import('../services/whatsapp-evolution.js');
+        const evo = getEvolutionClient();
+        const confirmMsg = `✅ ¡Perfecto ${cita.clientName}! Recibimos tu solicitud para reagendar tu cita de *${cita.serviceName}* para el *${fechaTexto}*.\n\nNuestro equipo revisará la disponibilidad y te confirmará a la brevedad. 🌸`;
+        await evo.sendText(telefono, confirmMsg);
+
+        console.log(`📅 Fecha de reagendamiento guardada para cita ${cita.id}: ${fechaTexto}`);
+    } catch (error) {
+        console.error('Error procesando fecha de reagendamiento:', error);
     }
 }
 

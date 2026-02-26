@@ -12963,10 +12963,20 @@
             else lastVisitStr = lastDate.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' });
           }
 
+          const isMassage = card.cardType === 'massage';
+          const stampIcon = isMassage ? 'fa-spa' : 'fa-star';
+          const stampBg = isMassage ? 'background:#C4936E;' : 'background:#FFD166;';
+          const progressBg = isMassage
+            ? 'background:linear-gradient(90deg,#C4936E,#a87350);'
+            : 'background:linear-gradient(90deg,#FFD166,#8c9668);';
+          const typeTag = isMassage
+            ? `<span style="display:inline-block;background:#C4936E;color:#fff;font-size:9px;padding:1px 5px;border-radius:4px;margin-left:4px;">Masajes</span>`
+            : '';
+
           return `
           <tr data-card-id="${card.id}" class="card-row" style="cursor:pointer;">
             <td>
-              <div style="font-weight:500;">${card.name || '—'}</div>
+              <div style="font-weight:500;">${card.name || '—'}${typeTag}</div>
               ${card.birthdate ? `<div class="muted" style="font-size:11px;"><i class="fas fa-birthday-cake"></i> ${formatBirthday(card.birthdate)}</div>` : ''}
             </td>
             <td style="font-size:13px;">${card.phone || '—'}</td>
@@ -12974,14 +12984,14 @@
             <td>
               <div style="display:flex;align-items:center;gap:6px;">
                 <div style="background:rgba(255,255,255,0.1);border-radius:4px;height:6px;width:60px;overflow:hidden;">
-                  <div style="background:linear-gradient(90deg,#FFD166,#8c9668);height:100%;width:${(card.stamps / card.max) * 100}%;"></div>
+                  <div style="${progressBg}height:100%;width:${(card.stamps / card.max) * 100}%;"></div>
                 </div>
                 <span style="font-size:12px;font-weight:500;">${card.stamps}/${card.max}</span>
               </div>
             </td>
             <td>
               <div style="display:flex;gap:6px;">
-                <button class="btn small" data-action="stamp" style="background:#FFD166;color:#000;font-weight:600;padding:4px 10px;"><i class="fas fa-star"></i>+1</button>
+                <button class="btn small" data-action="stamp" style="${stampBg}color:#000;font-weight:600;padding:4px 10px;"><i class="fas ${stampIcon}"></i>+1</button>
                 <button class="btn small ghost" data-action="view" style="padding:4px 10px;">Ver</button>
               </div>
             </td>
@@ -13401,26 +13411,40 @@
       window.currentCardId = card.id;
       currentCardId = card.id;
 
+      const isMassage = card.cardType === 'massage';
+
       // Datos básicos
       document.getElementById('cm-id').textContent = card.id;
       document.getElementById('cm-name').textContent = card.name || '—';
       document.getElementById('cm-phone-display').textContent = card.phone || '—';
       document.getElementById('cm-phone-input').value = card.phone || '';
+
+      const stampsLabel = isMassage ? 'sesiones' : 'sellos';
       document.getElementById('cm-stamps').textContent = `${card.stamps} / ${card.max}`;
 
       // Resetear estado de edición de teléfono
       document.getElementById('cm-phone-display').classList.remove('hidden');
       document.getElementById('cm-phone-edit').classList.add('hidden');
 
-      // Barra de progreso
+      // Barra de progreso (terracota para masajes)
       const progressPercent = Math.min((card.stamps / card.max) * 100, 100);
-      document.getElementById('cm-progress-bar').style.width = `${progressPercent}%`;
+      const progressBar = document.getElementById('cm-progress-bar');
+      progressBar.style.width = `${progressPercent}%`;
+      progressBar.style.background = isMassage
+        ? 'linear-gradient(90deg,#C4936E,#a87350)'
+        : 'linear-gradient(90deg,#FFD166,#8c9668)';
 
-      // Texto de estado
+      // Texto de estado con info de regalos para masajes
       const remaining = card.max - card.stamps;
       let statusText = '';
       if (card.stamps >= card.max) {
-        statusText = '¡Tarjeta completa! Lista para canjear';
+        statusText = isMassage ? '🎁🎁 ¡Membresía completa! 2 regalos desbloqueados' : '¡Tarjeta completa! Lista para canjear';
+      } else if (isMassage) {
+        if (card.stamps >= 5) {
+          statusText = `🎁 1er regalo ✓ — Faltan ${10 - card.stamps} para el 2do regalo`;
+        } else {
+          statusText = `🎁 Próximo regalo en sesión 5 (faltan ${5 - card.stamps})`;
+        }
       } else if (remaining === 1) {
         statusText = '⚡ ¡Solo falta 1 sello!';
       } else if (remaining <= 3) {
@@ -14882,7 +14906,9 @@
               const phone = item.data.phone || '';
               document.getElementById('new-appt-phone').value = phone;
 
-              // ✅ Guardar teléfono e ID para validación en submit
+              // ✅ Guardar teléfono en dataset, variable y global — todos sincronizados
+              const inputEl2 = document.getElementById('new-appt-client-select');
+              if (inputEl2) inputEl2.dataset.phone = phone;
               selectedClientPhone = phone;
               window.selectedClientPhone = phone;
               selectedClientId = item.data.id || null;
@@ -15568,44 +15594,23 @@
       } catch (e) { alert('Error: ' + e.message); }
     };
 
-    // ========== ENVIAR RECORDATORIO POR WHATSAPP (vía Evolution API) ==========
+    // ========== ENVIAR RECORDATORIO POR WHATSAPP CON OPCIONES (vía Evolution API) ==========
     window.sendWhatsAppReminder = async (id, phone, clientName, serviceName, startDateTime) => {
       try {
-        // Formatear fecha y hora
-        const date = new Date(startDateTime);
-        const dateStr = date.toLocaleDateString('es-MX', {
-          weekday: 'long',
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric'
-        });
-        const timeStr = date.toLocaleTimeString('es-MX', {
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: true
-        });
-
-        // Crear mensaje
-        const message = `Hola ${clientName} 😊
-
-*Recordatorio de tu cita en Venus Cosmetología*
-
-📆 *Fecha:* ${dateStr}
-🕐 *Hora:* ${timeStr}
-🔹 *Servicio:* ${serviceName}
-
-Te esperamos. Si necesitas reagendar, por favor avísanos con anticipación.
-
-¡Gracias por tu preferencia! ✨`;
-
         // Limpiar número de teléfono
         const cleanPhone = phone.replace(/[^0-9]/g, '');
 
-        // Enviar vía Evolution API
-        const res = await fetch('/api/whatsapp/send', {
+        // Enviar recordatorio interactivo con opciones vía endpoint dedicado
+        const res = await fetch('/api/whatsapp/reminder-with-options', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phone: cleanPhone, message })
+          body: JSON.stringify({
+            appointmentId: id,
+            phone: cleanPhone,
+            clientName,
+            serviceName,
+            startDateTime
+          })
         });
 
         const data = await res.json();
@@ -15614,15 +15619,15 @@ Te esperamos. Si necesitas reagendar, por favor avísanos con anticipación.
           // Toast de éxito
           const toast = document.createElement('div');
           toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#25D366;color:#fff;padding:12px 24px;border-radius:12px;font-size:14px;font-weight:600;z-index:99999;box-shadow:0 4px 16px rgba(37,211,102,0.4);display:flex;align-items:center;gap:8px;';
-          toast.innerHTML = '<i class="fab fa-whatsapp"></i> Mensaje enviado a ' + clientName;
+          toast.innerHTML = '<i class="fab fa-whatsapp"></i> Recordatorio con opciones enviado a ' + clientName;
           document.body.appendChild(toast);
           setTimeout(() => toast.remove(), 3500);
-          console.log('📱 WhatsApp enviado vía Evolution para:', clientName, cleanPhone);
+          console.log('📱 Recordatorio interactivo enviado a:', clientName, cleanPhone);
         } else {
           throw new Error(data.error || 'Error desconocido');
         }
       } catch (error) {
-        console.error('Error enviando WhatsApp vía Evolution:', error);
+        console.error('Error enviando recordatorio WhatsApp:', error);
         alert('❌ No se pudo enviar el mensaje: ' + error.message + '\n\nVerifica que Evolution API esté conectada en Ajustes.');
       }
     };
@@ -16441,6 +16446,9 @@ Te esperamos. Si necesitas reagendar, por favor avísanos con anticipación.
       if (serviceInput) serviceInput.value = '';
       if (priceInput) priceInput.value = '';
 
+      // ✅ Limpiar dataset.phone para evitar número residual de sesión anterior
+      if (clientInput) clientInput.dataset.phone = '';
+
       // Limpiar historial
       const historyPanelEl = document.getElementById('client-history-panel');
       const historyContentEl = document.getElementById('history-content');
@@ -16503,11 +16511,16 @@ Te esperamos. Si necesitas reagendar, por favor avísanos con anticipación.
 
         const badge = document.getElementById('client-selected-badge');
 
+        // ✅ SIEMPRE limpiar dataset.phone antes de asignar nuevo valor
+        // Esto evita que quede el teléfono de una búsqueda anterior
+        this.dataset.phone = '';
+
         if (client) {
           // Si el nombre escrito coincide con un cliente existente
           selectedClientPhone = client.phone || '';
           window.selectedClientPhone = selectedClientPhone;
           selectedClientId = client.id || null;
+          this.dataset.phone = selectedClientPhone; // Asignar el correcto
           console.log('Cliente encontrado por texto:', client.name, 'Teléfono:', selectedClientPhone);
 
           // Mostrar badge automáticamente
@@ -16520,11 +16533,12 @@ Te esperamos. Si necesitas reagendar, por favor avísanos con anticipación.
           // Cargar historial si es necesario
           loadClientHistory(client.phone, client.name);
         } else {
-          // Si no coincide, limpiar selección
+          // Si no coincide, limpiar TODA la selección incluyendo dataset
           if (badge) badge.style.display = 'none';
           selectedClientPhone = '';
           window.selectedClientPhone = '';
           selectedClientId = null;
+          this.dataset.phone = '';
         }
       });
 
@@ -16533,6 +16547,7 @@ Te esperamos. Si necesitas reagendar, por favor avísanos con anticipación.
       if (clearBtn) {
         clearBtn.addEventListener('click', function () {
           clientSelect.value = '';
+          clientSelect.dataset.phone = ''; // ✅ limpiar dataset
           selectedClientPhone = '';
           window.selectedClientPhone = '';
           selectedClientId = null;

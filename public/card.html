@@ -190,6 +190,21 @@
             color: var(--card-bg, #8C9668);
         }
 
+        .stamp-dot.gift-slot {
+            border-color: rgba(255, 255, 255, 0.9);
+            border-style: dashed;
+        }
+
+        .stamp-dot.gift-slot.filled {
+            border-style: solid;
+            background: rgba(255, 215, 0, 0.9);
+            border-color: rgba(255, 215, 0, 0.9);
+        }
+
+        .stamp-dot.gift-slot.filled i {
+            color: #8B5E3C;
+        }
+
         /* Sessions (annual) */
         .sessions-grid {
             display: grid;
@@ -362,7 +377,7 @@
                 ? `${card.sessionsUsed} usadas de ${card.sessionsTotal}`
                 : `${card.stamps} de ${card.max} sellos`;
 
-            const cardTypeLabel = { loyalty: 'Lealtad', annual: 'Constancia Anual', gold: 'Gold VIP' }[card.cardType] || 'Lealtad';
+            const cardTypeLabel = { loyalty: 'Lealtad', massage: 'Masajes', annual: 'Constancia Anual', gold: 'Gold VIP' }[card.cardType] || 'Lealtad';
 
             // Dots / sessions
             let dotsHtml = '';
@@ -376,12 +391,16 @@
                 }
                 dotsHtml += '</div>';
             } else {
+                const isMassage = card.cardType === 'massage';
+                const maxStamps = card.max || 8;
                 dotsHtml = '<div class="stamps-dots">';
-                for (let i = 0; i < (card.max || 8); i++) {
+                for (let i = 0; i < maxStamps; i++) {
                     const filled = i < (card.stamps || 0);
+                    const isGiftSlot = isMassage && (i === 4 || i === 9); // Posición 5 y 10 (0-indexed: 4 y 9)
+                    const icon = isGiftSlot ? 'fa-gift' : 'fa-star';
                     dotsHtml += filled
-                        ? `<div class="stamp-dot filled"><i class="fas fa-star"></i></div>`
-                        : `<div class="stamp-dot"></div>`;
+                        ? `<div class="stamp-dot filled${isGiftSlot ? ' gift-slot' : ''}"><i class="fas ${icon}"></i></div>`
+                        : `<div class="stamp-dot${isGiftSlot ? ' gift-slot' : ''}">${isGiftSlot ? '<i class="fas fa-gift" style="color:rgba(255,255,255,0.4);font-size:0.65rem;"></i>' : ''}</div>`;
                 }
                 dotsHtml += '</div>';
             }

@@ -247,5 +247,68 @@ export const AppointmentModel = {
         await firestore.collection(COL_APPOINTMENTS).doc(id).update({
             [field]: new Date().toISOString()
         });
+    },
+
+    /**
+     * Obtiene citas que faltan ~4h, no están confirmadas y no se les ha enviado alerta de cancelación
+     */
+    async getPendingConfirmationAlert(rangeStart, rangeEnd) {
+        console.log(`🔍 Buscando citas no confirmadas 4h antes entre ${rangeStart} y ${rangeEnd}`);
+
+        const snap = await firestore.collection(COL_APPOINTMENTS)
+            .where('startDateTime', '>=', rangeStart)
+            .where('startDateTime', '<=', rangeEnd)
+            .get();
+
+        console.log(`   📦 Encontradas ${snap.size} citas en el rango`);
+
+        const pending = snap.docs
+            .map(d => ({ id: d.id, ...d.data() }))
+            .filter(a => {
+                // Solo citas agendadas (no confirmadas) sin cancelar
+                if (a.status !== 'scheduled') return false;
+                // No enviar si ya se mandó la alerta de cancelación
+                if (a.sentConfirmationAlertAt) return false;
+                return true;
+            });
+
+        console.log(`   ✅ ${pending.length} citas sin confirmar que requieren alerta`);
+        return pending;
+    },
+
+    /**
+     * Marca que se envió la alerta de confirmación/cancelación 4h antes
+     */
+    async markConfirmationAlertSent(id) {
+        await firestore.collection(COL_APPOINTMENTS).doc(id).update({
+            sentConfirmationAlertAt: new Date().toISOString()
+        });
+    },
+
+    /**
+     * Obtiene citas que recibieron alerta y siguen sin confirmar (para cancelación automática ~1h antes)
+     */
+    async getPendingAutoCancelation(rangeStart, rangeEnd) {
+        console.log(`🔍 Buscando citas para cancelación automática entre ${rangeStart} y ${rangeEnd}`);
+
+        const snap = await firestore.collection(COL_APPOINTMENTS)
+            .where('startDateTime', '>=', rangeStart)
+            .where('startDateTime', '<=', rangeEnd)
+            .get();
+
+        const pending = snap.docs
+            .map(d => ({ id: d.id, ...d.data() }))
+            .filter(a => {
+                // Solo scheduled (no confirmadas ni canceladas)
+                if (a.status !== 'scheduled') return false;
+                // Solo las que ya recibieron la alerta de cancelación
+                if (!a.sentConfirmationAlertAt) return false;
+                // Que no se haya procesado ya la cancelación automática
+                if (a.autoCancelledAt) return false;
+                return true;
+            });
+
+        console.log(`   ✅ ${pending.length} citas para cancelar automáticamente`);
+        return pending;
     }
 };

@@ -91,6 +91,115 @@ export function startScheduler() {
         }
     });
 
+    // ========== ALERTA 4H: Confirmar o se cancela en 1h ==========
+    // Corre cada 10 minutos para mayor precisión
+    cron.schedule('*/10 * * * *', async () => {
+        const now = new Date();
+
+        try {
+            // Ventana: citas que faltan entre 3h 50min y 4h 10min (ventana de 20 min centrada en 4h)
+            const rangeStart = toMexicoCityISO(new Date(now.getTime() + 3 * 60 * 60 * 1000 + 50 * 60 * 1000));
+            const rangeEnd   = toMexicoCityISO(new Date(now.getTime() + 4 * 60 * 60 * 1000 + 10 * 60 * 1000));
+
+            const pendingAlerts = await AppointmentModel.getPendingConfirmationAlert(rangeStart, rangeEnd);
+
+            if (pendingAlerts.length > 0) {
+                console.log(`⚠️ [4h-alert] ${pendingAlerts.length} citas sin confirmar — enviando alerta de cancelación`);
+            }
+
+            for (const appt of pendingAlerts) {
+                const result = await WhatsAppService.sendAlertaCancelacion(appt);
+                if (result.success) {
+                    await AppointmentModel.markConfirmationAlertSent(appt.id);
+
+                    // Notificación interna para el admin
+                    await firestore.collection('notifications').add({
+                        type: 'alerta',
+                        icon: 'exclamation-triangle',
+                        title: 'Alerta de confirmación enviada',
+                        message: `Se envió alerta a ${appt.clientName} — ${appt.serviceName} a las ${appt.time || ''}. Se cancelará si no confirma.`,
+                        read: false,
+                        createdAt: new Date().toISOString(),
+                        entityId: appt.id
+                    });
+                    console.log(`⚠️ Alerta de cancelación enviada a ${appt.clientName} (cita ${appt.id})`);
+                }
+            }
+        } catch (error) {
+            console.error('❌ Error en scheduler alerta 4h:', error);
+        }
+    });
+
+    // ========== AUTO-CANCELACIÓN 1h: Cancela si no confirmó ==========
+    // Corre cada 10 minutos
+    cron.schedule('*/10 * * * *', async () => {
+        const now = new Date();
+
+        try {
+            // Ventana: citas que faltan entre 50min y 1h 10min (ventana de 20 min centrada en 1h)
+            const rangeStart = toMexicoCityISO(new Date(now.getTime() + 50 * 60 * 1000));
+            const rangeEnd   = toMexicoCityISO(new Date(now.getTime() + 70 * 60 * 1000));
+
+            const pendingCancel = await AppointmentModel.getPendingAutoCancelation(rangeStart, rangeEnd);
+
+            if (pendingCancel.length > 0) {
+                console.log(`❌ [auto-cancel] ${pendingCancel.length} citas sin confirmar — cancelando automáticamente`);
+            }
+
+            for (const appt of pendingCancel) {
+                // Cancelar la cita
+                await firestore.collection('appointments').doc(appt.id).update({
+                    status: 'cancelled',
+                    autoCancelledAt: new Date().toISOString(),
+                    cancelledVia: 'auto-no-confirmation'
+                });
+
+                // Eliminar de Google Calendar si aplica
+                try {
+                    const { deleteEvent } = await import('../services/googleCalendarService.js');
+                    const { config } = await import('../config/config.js');
+
+                    if (appt.googleCalendarEventId) {
+                        await deleteEvent(appt.googleCalendarEventId, config.google.calendarOwner1).catch(() => {});
+                    }
+                    if (appt.googleCalendarEventId2) {
+                        await deleteEvent(appt.googleCalendarEventId2, config.google.calendarOwner2).catch(() => {});
+                    }
+                } catch (calErr) {
+                    console.error('⚠️ Error eliminando eventos del calendario:', calErr.message);
+                }
+
+                // Notificación interna
+                await firestore.collection('notifications').add({
+                    type: 'alerta',
+                    icon: 'calendar-times',
+                    title: 'Cita cancelada automáticamente',
+                    message: `La cita de ${appt.clientName} — ${appt.serviceName} fue cancelada por no confirmar.`,
+                    read: false,
+                    createdAt: new Date().toISOString(),
+                    entityId: appt.id
+                });
+
+                // Avisar a la cliente
+                const fecha = WhatsAppService.formatearFechaLegible(appt.date || appt.startDateTime);
+                const hora  = appt.time || WhatsAppService.formatearHora(appt.startDateTime);
+                const msgCancelacion = `❌ Hola ${appt.clientName}, tu cita de *${appt.serviceName}* del ${fecha} a las ${hora} fue *cancelada automáticamente* porque no se recibió confirmación.\n\nSi deseas agendar de nuevo, con gusto te atendemos. 🌸`;
+
+                try {
+                    const { getEvolutionClient } = await import('../services/whatsapp-evolution.js');
+                    const evo = getEvolutionClient();
+                    await evo.sendText(appt.clientPhone, msgCancelacion);
+                } catch (wErr) {
+                    console.error('⚠️ No se pudo notificar cancelación automática:', wErr.message);
+                }
+
+                console.log(`❌ Cita ${appt.id} de ${appt.clientName} cancelada automáticamente`);
+            }
+        } catch (error) {
+            console.error('❌ Error en scheduler auto-cancelación:', error);
+        }
+    });
+
     console.log('✅ Sistema de notificaciones WhatsApp con Twilio listo');
 
     // ========== NOTIFICACIONES AUTOMÁTICAS (cada hora) ==========

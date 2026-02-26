@@ -462,11 +462,11 @@ export const WhatsAppService = {
     },
 
     /**
-     * Envía mensaje de solicitud de reprogramación
+     * Envía mensaje de solicitud de reprogramación: pide día y hora deseados
      * USA TEXTO LIBRE (Respuesta a sesión activa)
      */
     async sendSolicitudReprogramacion(appt) {
-        const mensaje = `🔄 Entendido ${appt.clientName}. Nos pondremos en contacto contigo pronto para reprogramar tu cita.`;
+        const mensaje = `🔄 Entendido ${appt.clientName}. ¿Para qué día y hora te gustaría reagendar tu cita de *${appt.serviceName}*?\n\nPor favor dinos la fecha y hora que prefieres (por ejemplo: *lunes 3 de marzo a las 10:00 am*) y nos ponemos en contacto contigo para confirmarlo. 😊`;
         if (IS_EVOLUTION) {
             return await sendViaEvolution(appt.clientPhone, mensaje);
         }
@@ -478,10 +478,59 @@ export const WhatsAppService = {
      * USA TEXTO LIBRE (Respuesta a sesión activa)
      */
     async sendCancelacionConfirmada(appt) {
-        const mensaje = `❌ Tu cita ha sido cancelada exitosamente. Esperamos verte pronto de nuevo.`;
+        const mensaje = `❌ Tu cita ha sido cancelada exitosamente. Lamentamos no verte esta vez — cuando quieras agendar de nuevo, aquí estamos. ¡Cuídate mucho! 🌸`;
         if (IS_EVOLUTION) {
             return await sendViaEvolution(appt.clientPhone, mensaje);
         }
+        return await sendWhatsAppText(appt.clientPhone, mensaje);
+    },
+
+    /**
+     * Alerta automática 4h antes: la cita se cancelará en 1h si no confirma
+     * Incluye poll con opciones: Confirmar, Cancelar
+     */
+    async sendAlertaCancelacion(appt) {
+        const fecha = formatearFechaLegible(appt.date || appt.startDateTime);
+        const hora = appt.time || formatearHora(appt.startDateTime);
+        const nombre = sanitizeForWhatsApp(appt.clientName);
+        const servicio = sanitizeForWhatsApp(appt.serviceName);
+
+        if (IS_EVOLUTION) {
+            // Primero enviamos el mensaje de advertencia
+            const mensajeAlerta = `⚠️ *Recordatorio Importante*\n\nHola ${nombre}, tu cita es hoy:\n\n🔹 *Servicio:* ${servicio}\n📆 *Fecha:* ${fecha}\n🕐 *Hora:* ${hora}\n\n*Si no confirmas tu asistencia en la próxima hora, tu cita será cancelada automáticamente.*\n\n¿Qué deseas hacer?`;
+
+            const question = mensajeAlerta;
+            return await sendPollViaEvolution(appt.clientPhone, question, [
+                '✅ Confirmar Asistencia',
+                '❌ Cancelar Cita'
+            ]);
+        }
+
+        // Twilio fallback (texto libre)
+        const mensaje = `⚠️ Hola ${nombre}, tu cita de ${servicio} es hoy a las ${hora}. Si no confirmas en la próxima hora, tu cita será cancelada. Responde CONFIRMO para confirmar o CANCELAR para cancelar.`;
+        return await sendWhatsAppText(appt.clientPhone, mensaje);
+    },
+
+    /**
+     * Recordatorio manual desde admin (con opciones de confirmar, cancelar, reagendar)
+     */
+    async sendReminderWithOptions(appt) {
+        const fecha = formatearFechaLegible(appt.date || appt.startDateTime);
+        const hora = appt.time || formatearHora(appt.startDateTime);
+        const nombre = sanitizeForWhatsApp(appt.clientName);
+        const servicio = sanitizeForWhatsApp(appt.serviceName);
+
+        if (IS_EVOLUTION) {
+            const question = `📅 *Recordatorio de Cita - Venus Cosmetología*\n\nHola ${nombre}, te recordamos tu próxima cita:\n\n🔹 *Servicio:* ${servicio}\n📆 *Fecha:* ${fecha}\n🕐 *Hora:* ${hora}\n📍 *Lugar:* ${config.venus.location}\n\n¿Qué deseas hacer?`;
+            return await sendPollViaEvolution(appt.clientPhone, question, [
+                '✅ Confirmar Asistencia',
+                '🔄 Reagendar Cita',
+                '❌ Cancelar Cita'
+            ]);
+        }
+
+        // Twilio fallback
+        const mensaje = `Hola ${nombre}, recordatorio de tu cita de ${servicio} el ${fecha} a las ${hora}. Responde: CONFIRMO, REAGENDAR o CANCELAR.`;
         return await sendWhatsAppText(appt.clientPhone, mensaje);
     },
 
