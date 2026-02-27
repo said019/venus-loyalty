@@ -734,6 +734,32 @@ app.post('/api/whatsapp/reminder-with-options', adminAuth, async (req, res) => {
       return res.status(400).json({ success: false, error: 'Se requiere phone y clientName' });
     }
 
+    // Si tenemos appointmentId, buscar la cita en DB para obtener time correcto (campo time = hora México HH:MM)
+    let time = null;
+    let date = null;
+    if (appointmentId) {
+      try {
+        const dbAppt = await AppointmentsRepo.findById(appointmentId);
+        if (dbAppt) {
+          time = dbAppt.time;   // HH:MM en hora México — fuente de verdad
+          date = dbAppt.date;   // YYYY-MM-DD
+          console.log(`[WhatsApp] Cita ${appointmentId}: time=${time}, date=${date} (desde DB)`);
+        }
+      } catch (dbErr) {
+        console.warn('[WhatsApp] No se pudo obtener cita de DB:', dbErr.message);
+      }
+    }
+
+    // Fallback: extraer hora de startDateTime en UTC y convertir a México (UTC-6)
+    if (!time && startDateTime) {
+      const d = new Date(startDateTime);
+      let mexicoHours = d.getUTCHours() - 6;
+      if (mexicoHours < 0) mexicoHours += 24;
+      time = `${mexicoHours.toString().padStart(2, '0')}:${d.getUTCMinutes().toString().padStart(2, '0')}`;
+      date = startDateTime.split('T')[0];
+      console.log(`[WhatsApp] Hora calculada desde UTC: ${time} (UTC: ${d.getUTCHours()}:${d.getUTCMinutes().toString().padStart(2,'0')})`);
+    }
+
     // Construir objeto cita para el servicio
     const appt = {
       id: appointmentId,
@@ -741,14 +767,8 @@ app.post('/api/whatsapp/reminder-with-options', adminAuth, async (req, res) => {
       clientName,
       serviceName,
       startDateTime,
-      // Extraer date y time del startDateTime para formateo correcto
-      date: startDateTime ? startDateTime.split('T')[0] : null,
-      time: startDateTime ? (() => {
-        const d = new Date(startDateTime);
-        const h = d.getHours().toString().padStart(2, '0');
-        const m = d.getMinutes().toString().padStart(2, '0');
-        return `${h}:${m}`;
-      })() : null
+      date,
+      time,
     };
 
     const result = await WhatsAppService.sendReminderWithOptions(appt);
