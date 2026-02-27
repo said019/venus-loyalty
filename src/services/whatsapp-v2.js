@@ -317,13 +317,20 @@ export const WhatsAppService = {
             startDateTime: appt.startDateTime
         });
 
-        // === EVOLUTION API ===
-        if (IS_EVOLUTION) {
-            const mensaje = `📅 *Cita Confirmada*\n\nHola ${nombre}, tu cita ha sido agendada:\n\n🔹 *Servicio:* ${servicio}\n📆 *Fecha:* ${fecha}\n🕐 *Hora:* ${hora}\n📍 *Lugar:* ${config.venus.location}\n\n¡Te esperamos! ✨`;
-            return await sendViaEvolution(appt.clientPhone, mensaje);
+        // === EVOLUTION API (siempre intentar primero si está configurada) ===
+        const hasEvolution = !!(config.evolution?.apiUrl && config.evolution?.apiKey);
+        if (hasEvolution) {
+            try {
+                const mensaje = `📅 *Cita Confirmada*\n\nHola ${nombre}, tu cita ha sido agendada:\n\n🔹 *Servicio:* ${servicio}\n📆 *Fecha:* ${fecha}\n🕐 *Hora:* ${hora}\n📍 *Lugar:* ${config.venus.location}\n\n¡Te esperamos! ✨`;
+                const result = await sendViaEvolution(appt.clientPhone, mensaje);
+                if (result.success) return result;
+                console.warn('[WhatsApp] Evolution falló para confirmación, intentando Twilio:', result.error);
+            } catch (evoErr) {
+                console.warn('[WhatsApp] Evolution error en confirmación:', evoErr.message);
+            }
         }
 
-        // === TWILIO ===
+        // === TWILIO (fallback con template) ===
         return await sendWhatsAppTemplate(
             appt.clientPhone,
             config.templates.CONFIRMACION_CITA,
@@ -346,13 +353,20 @@ export const WhatsAppService = {
         const nombre = sanitizeForWhatsApp(appt.clientName);
         const servicio = sanitizeForWhatsApp(appt.serviceName);
 
-        // === EVOLUTION API ===
-        if (IS_EVOLUTION) {
-            const mensaje = `🔄 *Cita Reagendada*\n\nHola ${nombre}, tu cita ha sido modificada:\n\n🔹 *Servicio:* ${servicio}\n📆 *Nueva Fecha:* ${fecha}\n🕐 *Nueva Hora:* ${hora}\n📍 *Lugar:* ${config.venus.location}\n\n¡Te esperamos! ✨`;
-            return await sendViaEvolution(appt.clientPhone, mensaje);
+        // === EVOLUTION API (siempre intentar primero) ===
+        const hasEvolution = !!(config.evolution?.apiUrl && config.evolution?.apiKey);
+        if (hasEvolution) {
+            try {
+                const mensaje = `🔄 *Cita Reagendada*\n\nHola ${nombre}, tu cita ha sido modificada:\n\n🔹 *Servicio:* ${servicio}\n📆 *Nueva Fecha:* ${fecha}\n🕐 *Nueva Hora:* ${hora}\n📍 *Lugar:* ${config.venus.location}\n\n¡Te esperamos! ✨`;
+                const result = await sendViaEvolution(appt.clientPhone, mensaje);
+                if (result.success) return result;
+                console.warn('[WhatsApp] Evolution falló para reagendamiento, intentando Twilio:', result.error);
+            } catch (evoErr) {
+                console.warn('[WhatsApp] Evolution error en reagendamiento:', evoErr.message);
+            }
         }
 
-        // === TWILIO (usa mismo template que confirmación) ===
+        // === TWILIO (fallback - usa mismo template que confirmación) ===
         return await sendWhatsAppTemplate(
             appt.clientPhone,
             config.templates.CONFIRMACION_CITA,
@@ -372,15 +386,19 @@ export const WhatsAppService = {
     async sendReminder30h(appt) {
         const nombre = sanitizeForWhatsApp(appt.clientName);
 
-        // === EVOLUTION API ===
-        if (IS_EVOLUTION) {
-            const mensaje = `🌿 *Indicaciones Antes de tu Sesión de Depilación Láser:*\n\nHola ${nombre},\n\n• Rasura el área a tratar 24 horas antes de tu cita.\n• Evita la exposición solar directa y el uso de autobronceadores al menos 72 horas antes.\n• No uses cremas, aceites, desodorantes o maquillaje el día de la sesión.\n• Suspende exfoliaciones o tratamientos irritantes una semana antes.\n• Si estás tomando antibióticos o tienes alguna condición médica, coméntalo antes de la sesión.\n\n⸻\n\n💫 *Cuidados Después de la Sesión:*\n\n• Evita exponerte al sol o calor intenso (vapor, saunas, ejercicio intenso) durante 48 horas.\n• No rasques ni frotes la piel tratada.\n• Aplica gel de aloe vera o crema calmante para hidratar y aliviar la zona.\n• No uses productos con alcohol o fragancias por al menos 24 horas.\n• Usa protector solar FPS 50 si la zona estará expuesta.`;
-            return await sendViaEvolution(appt.clientPhone, mensaje);
+        const mensaje = `🌿 *Indicaciones Antes de tu Sesión de Depilación Láser:*\n\nHola ${nombre},\n\n• Rasura el área a tratar 24 horas antes de tu cita.\n• Evita la exposición solar directa y el uso de autobronceadores al menos 72 horas antes.\n• No uses cremas, aceites, desodorantes o maquillaje el día de la sesión.\n• Suspende exfoliaciones o tratamientos irritantes una semana antes.\n• Si estás tomando antibióticos o tienes alguna condición médica, coméntalo antes de la sesión.\n\n⸻\n\n💫 *Cuidados Después de la Sesión:*\n\n• Evita exponerte al sol o calor intenso (vapor, saunas, ejercicio intenso) durante 48 horas.\n• No rasques ni frotes la piel tratada.\n• Aplica gel de aloe vera o crema calmante para hidratar y aliviar la zona.\n• No uses productos con alcohol o fragancias por al menos 24 horas.\n• Usa protector solar FPS 50 si la zona estará expuesta.`;
+
+        // Siempre intentar Evolution primero
+        const hasEvolution = !!(config.evolution?.apiUrl && config.evolution?.apiKey);
+        if (hasEvolution) {
+            try {
+                const result = await sendViaEvolution(appt.clientPhone, mensaje);
+                if (result.success) return result;
+            } catch (e) { /* fall through */ }
         }
 
-        // Si no es Evolution, no enviamos nada por ahora o podríamos usar Twilio si hubiera template
-        console.warn('⚠️ WhatsApp: Recordatorio 30h solo soportado en Evolution API.');
-        return { success: false, error: 'Solo soportado en Evolution API' };
+        console.warn('⚠️ WhatsApp: Recordatorio 30h - Evolution falló y Twilio no tiene template para esto.');
+        return { success: false, error: 'Evolution no disponible y no hay template Twilio' };
     },
 
     /**
@@ -394,17 +412,24 @@ export const WhatsAppService = {
         const nombre = sanitizeForWhatsApp(appt.clientName);
         const servicio = sanitizeForWhatsApp(appt.serviceName);
 
-        // === EVOLUTION API (con Poll para confirmar) ===
-        if (IS_EVOLUTION) {
-            const question = `⏰ *Recordatorio de Cita*\n\nHola ${nombre}, te recordamos tu cita de mañana:\n\n🔹 *Servicio:* ${servicio}\n📆 *Fecha:* ${fecha}\n🕐 *Hora:* ${hora}\n\n¿Qué deseas hacer?`;
-            return await sendPollViaEvolution(appt.clientPhone, question, [
-                '✅ Confirmar Asistencia',
-                '🔄 Solicitar Cambio de Horario',
-                '❌ Cancelar Cita'
-            ]);
+        // === EVOLUTION API (siempre intentar primero - poll interactivo) ===
+        const hasEvolution24 = !!(config.evolution?.apiUrl && config.evolution?.apiKey);
+        if (hasEvolution24) {
+            try {
+                const question = `⏰ *Recordatorio de Cita*\n\nHola ${nombre}, te recordamos tu cita de mañana:\n\n🔹 *Servicio:* ${servicio}\n📆 *Fecha:* ${fecha}\n🕐 *Hora:* ${hora}\n\n¿Qué deseas hacer?`;
+                const result = await sendPollViaEvolution(appt.clientPhone, question, [
+                    '✅ Confirmar Asistencia',
+                    '🔄 Solicitar Cambio de Horario',
+                    '❌ Cancelar Cita'
+                ]);
+                if (result.success) return result;
+                console.warn('[WhatsApp] Evolution falló para recordatorio 24h, intentando Twilio:', result.error);
+            } catch (evoErr) {
+                console.warn('[WhatsApp] Evolution error en recordatorio 24h:', evoErr.message);
+            }
         }
 
-        // === TWILIO ===
+        // === TWILIO (fallback con template) ===
         return await sendWhatsAppTemplate(
             appt.clientPhone,
             config.templates.RECORDATORIO_24H,
@@ -427,13 +452,20 @@ export const WhatsAppService = {
         const nombre = sanitizeForWhatsApp(appt.clientName);
         const servicio = sanitizeForWhatsApp(appt.serviceName);
 
-        // === EVOLUTION API ===
-        if (IS_EVOLUTION) {
-            const mensaje = `🔔 *¡Tu cita es en 2 horas!*\n\nHola ${nombre}, tu cita de ${servicio} es a las ${hora}.\n\n📍 ${config.venus.location}\n\n¡Te esperamos! ✨`;
-            return await sendViaEvolution(appt.clientPhone, mensaje);
+        // === EVOLUTION API (siempre intentar primero) ===
+        const hasEvolution2h = !!(config.evolution?.apiUrl && config.evolution?.apiKey);
+        if (hasEvolution2h) {
+            try {
+                const mensaje = `🔔 *¡Tu cita es en 2 horas!*\n\nHola ${nombre}, tu cita de ${servicio} es a las ${hora}.\n\n📍 ${config.venus.location}\n\n¡Te esperamos! ✨`;
+                const result = await sendViaEvolution(appt.clientPhone, mensaje);
+                if (result.success) return result;
+                console.warn('[WhatsApp] Evolution falló para recordatorio 2h, intentando Twilio:', result.error);
+            } catch (evoErr) {
+                console.warn('[WhatsApp] Evolution error en recordatorio 2h:', evoErr.message);
+            }
         }
 
-        // === TWILIO ===
+        // === TWILIO (fallback con template) ===
         return await sendWhatsAppTemplate(
             appt.clientPhone,
             config.templates.RECORDATORIO_2H,
@@ -455,8 +487,13 @@ export const WhatsAppService = {
 
         const mensaje = `✅ ¡Gracias ${appt.clientName}! Tu cita ha sido confirmada para el ${fecha} a las ${hora}. Te esperamos en Venus Cosmetología.`;
 
-        if (IS_EVOLUTION) {
-            return await sendViaEvolution(appt.clientPhone, mensaje);
+        // Siempre intentar Evolution primero
+        const hasEvolution = !!(config.evolution?.apiUrl && config.evolution?.apiKey);
+        if (hasEvolution) {
+            try {
+                const result = await sendViaEvolution(appt.clientPhone, mensaje);
+                if (result.success) return result;
+            } catch (e) { /* fall through to Twilio */ }
         }
         return await sendWhatsAppText(appt.clientPhone, mensaje);
     },
@@ -467,8 +504,14 @@ export const WhatsAppService = {
      */
     async sendSolicitudReprogramacion(appt) {
         const mensaje = `🔄 Entendido ${appt.clientName}. ¿Para qué día y hora te gustaría reagendar tu cita de *${appt.serviceName}*?\n\nPor favor dinos la fecha y hora que prefieres (por ejemplo: *lunes 3 de marzo a las 10:00 am*) y nos ponemos en contacto contigo para confirmarlo. 😊`;
-        if (IS_EVOLUTION) {
-            return await sendViaEvolution(appt.clientPhone, mensaje);
+        
+        // Siempre intentar Evolution primero
+        const hasEvolution = !!(config.evolution?.apiUrl && config.evolution?.apiKey);
+        if (hasEvolution) {
+            try {
+                const result = await sendViaEvolution(appt.clientPhone, mensaje);
+                if (result.success) return result;
+            } catch (e) { /* fall through to Twilio */ }
         }
         return await sendWhatsAppText(appt.clientPhone, mensaje);
     },
@@ -479,8 +522,14 @@ export const WhatsAppService = {
      */
     async sendCancelacionConfirmada(appt) {
         const mensaje = `❌ Tu cita ha sido cancelada exitosamente. Lamentamos no verte esta vez — cuando quieras agendar de nuevo, aquí estamos. ¡Cuídate mucho! 🌸`;
-        if (IS_EVOLUTION) {
-            return await sendViaEvolution(appt.clientPhone, mensaje);
+        
+        // Siempre intentar Evolution primero
+        const hasEvolution = !!(config.evolution?.apiUrl && config.evolution?.apiKey);
+        if (hasEvolution) {
+            try {
+                const result = await sendViaEvolution(appt.clientPhone, mensaje);
+                if (result.success) return result;
+            } catch (e) { /* fall through to Twilio */ }
         }
         return await sendWhatsAppText(appt.clientPhone, mensaje);
     },
@@ -488,6 +537,7 @@ export const WhatsAppService = {
     /**
      * Alerta automática 4h antes: la cita se cancelará en 1h si no confirma
      * Incluye poll con opciones: Confirmar, Cancelar
+     * SIEMPRE intenta Evolution API primero (polls interactivos)
      */
     async sendAlertaCancelacion(appt) {
         const fecha = formatearFechaLegible(appt.date || appt.startDateTime);
@@ -495,15 +545,20 @@ export const WhatsAppService = {
         const nombre = sanitizeForWhatsApp(appt.clientName);
         const servicio = sanitizeForWhatsApp(appt.serviceName);
 
-        if (IS_EVOLUTION) {
-            // Primero enviamos el mensaje de advertencia
-            const mensajeAlerta = `⚠️ *Recordatorio Importante*\n\nHola ${nombre}, tu cita es hoy:\n\n🔹 *Servicio:* ${servicio}\n📆 *Fecha:* ${fecha}\n🕐 *Hora:* ${hora}\n\n*Si no confirmas tu asistencia en la próxima hora, tu cita será cancelada automáticamente.*\n\n¿Qué deseas hacer?`;
-
-            const question = mensajeAlerta;
-            return await sendPollViaEvolution(appt.clientPhone, question, [
-                '✅ Confirmar Asistencia',
-                '❌ Cancelar Cita'
-            ]);
+        // Siempre intentar Evolution primero (poll interactivo)
+        const hasEvolution = !!(config.evolution?.apiUrl && config.evolution?.apiKey);
+        if (hasEvolution) {
+            try {
+                const mensajeAlerta = `⚠️ *Recordatorio Importante*\n\nHola ${nombre}, tu cita es hoy:\n\n🔹 *Servicio:* ${servicio}\n📆 *Fecha:* ${fecha}\n🕐 *Hora:* ${hora}\n\n*Si no confirmas tu asistencia en la próxima hora, tu cita será cancelada automáticamente.*\n\n¿Qué deseas hacer?`;
+                const result = await sendPollViaEvolution(appt.clientPhone, mensajeAlerta, [
+                    '✅ Confirmar Asistencia',
+                    '❌ Cancelar Cita'
+                ]);
+                if (result.success) return result;
+                console.warn('[WhatsApp] Evolution falló para alerta cancelación, intentando Twilio:', result.error);
+            } catch (evoErr) {
+                console.warn('[WhatsApp] Evolution error en alerta cancelación:', evoErr.message);
+            }
         }
 
         // Twilio fallback (texto libre)
@@ -513,6 +568,7 @@ export const WhatsAppService = {
 
     /**
      * Recordatorio manual desde admin (con opciones de confirmar, cancelar, reagendar)
+     * SIEMPRE intenta Evolution API primero (polls interactivos), Twilio solo como fallback
      */
     async sendReminderWithOptions(appt) {
         const fecha = formatearFechaLegible(appt.date || appt.startDateTime);
@@ -520,16 +576,24 @@ export const WhatsAppService = {
         const nombre = sanitizeForWhatsApp(appt.clientName);
         const servicio = sanitizeForWhatsApp(appt.serviceName);
 
-        if (IS_EVOLUTION) {
-            const question = `📅 *Recordatorio de Cita - Venus Cosmetología*\n\nHola ${nombre}, te recordamos tu próxima cita:\n\n🔹 *Servicio:* ${servicio}\n📆 *Fecha:* ${fecha}\n🕐 *Hora:* ${hora}\n📍 *Lugar:* ${config.venus.location}\n\n¿Qué deseas hacer?`;
-            return await sendPollViaEvolution(appt.clientPhone, question, [
-                '✅ Confirmar Asistencia',
-                '🔄 Reagendar Cita',
-                '❌ Cancelar Cita'
-            ]);
+        // Siempre intentar Evolution primero (botón manual = interactivo con poll)
+        const hasEvolution = !!(config.evolution?.apiUrl && config.evolution?.apiKey);
+        if (hasEvolution) {
+            try {
+                const question = `📅 *Recordatorio de Cita - Venus Cosmetología*\n\nHola ${nombre}, te recordamos tu próxima cita:\n\n🔹 *Servicio:* ${servicio}\n📆 *Fecha:* ${fecha}\n🕐 *Hora:* ${hora}\n📍 *Lugar:* ${config.venus.location}\n\n¿Qué deseas hacer?`;
+                const result = await sendPollViaEvolution(appt.clientPhone, question, [
+                    '✅ Confirmar Asistencia',
+                    '🔄 Reagendar Cita',
+                    '❌ Cancelar Cita'
+                ]);
+                if (result.success) return result;
+                console.warn('[WhatsApp] Evolution falló para recordatorio manual, intentando Twilio:', result.error);
+            } catch (evoErr) {
+                console.warn('[WhatsApp] Evolution error en recordatorio manual:', evoErr.message);
+            }
         }
 
-        // Twilio fallback
+        // Twilio fallback (solo si Evolution no está configurada o falló)
         const mensaje = `Hola ${nombre}, recordatorio de tu cita de ${servicio} el ${fecha} a las ${hora}. Responde: CONFIRMO, REAGENDAR o CANCELAR.`;
         return await sendWhatsAppText(appt.clientPhone, mensaje);
     },

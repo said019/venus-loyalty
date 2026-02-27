@@ -1591,6 +1591,21 @@ app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
     if (serviceId) updateData.serviceId = serviceId;
     if (serviceName) updateData.serviceName = serviceName;
 
+    // ⭐ RESETEAR FLAGS DE RECORDATORIOS para que se re-envíen en la nueva fecha/hora
+    // El cron los detectará automáticamente en las nuevas ventanas de tiempo
+    updateData.sent30hAt = null;
+    updateData.sent24hAt = null;
+    updateData.sent2hAt = null;
+    updateData.sentConfirmationAlertAt = null;
+    // Resetear estado a scheduled para que los recordatorios y auto-cancelación funcionen
+    if (appointment.status === 'confirmed' || appointment.status === 'scheduled') {
+      updateData.status = 'scheduled';
+      updateData.confirmedAt = null;
+      updateData.confirmedVia = null;
+    }
+
+    console.log(`[PATCH] 🔄 Recordatorios reseteados para cita ${id} — se re-enviarán para ${date} ${time}`);
+
     // Actualizar en BD usando repositorio
     await AppointmentsRepo.update(id, updateData);
 
@@ -5638,7 +5653,10 @@ app.post("/api/admin/update-client-info", adminAuth, async (req, res) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`\n🚀 Servidor activo en http://localhost:${PORT}`);
-  console.log(`   📦 VERSION: 2026-01-08-TIMEZONE-FIX-V2`);
+  console.log(`   📦 VERSION: 2026-02-26-WHATSAPP-PROVIDER-FIX`);
+  console.log(`   📱 WhatsApp Provider: ${config.whatsappProvider || 'twilio (default)'}`);
+  console.log(`   📱 Evolution URL: ${config.evolution?.apiUrl ? '✅ Configurada' : '❌ No configurada'}`);
+  console.log(`   📱 Twilio SID: ${config.twilio?.accountSid ? '✅ Configurado' : '❌ No configurado'}`);
   console.log(`   • Admin: http://localhost:${PORT}/admin`);
   console.log(`   • Staff: http://localhost:${PORT}/staff.html`);
   console.log(`   • Google Wallet: http://localhost:${PORT}/api/google/diagnostics`);
