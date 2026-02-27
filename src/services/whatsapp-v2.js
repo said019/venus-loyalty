@@ -382,24 +382,9 @@ export const WhatsAppService = {
         const nombre = sanitizeForWhatsApp(appt.clientName);
         const servicio = sanitizeForWhatsApp(appt.serviceName);
 
-        // === EVOLUTION API (siempre intentar primero - poll interactivo) ===
-        const hasEvolution24 = !!(config.evolution?.apiUrl && config.evolution?.apiKey);
-        if (hasEvolution24) {
-            try {
-                const question = `⏰ *Recordatorio de Cita*\n\nHola ${nombre}, te recordamos tu cita de mañana:\n\n🔹 *Servicio:* ${servicio}\n📆 *Fecha:* ${fecha}\n🕐 *Hora:* ${hora}\n\n¿Qué deseas hacer?`;
-                const result = await sendPollViaEvolution(appt.clientPhone, question, [
-                    '✅ Confirmar Asistencia',
-                    '🔄 Solicitar Cambio de Horario',
-                    '❌ Cancelar Cita'
-                ], appt.id || appt.appointmentId || null);
-                if (result.success) return result;
-                console.warn('[WhatsApp] Evolution falló para recordatorio 24h, intentando Twilio:', result.error);
-            } catch (evoErr) {
-                console.warn('[WhatsApp] Evolution error en recordatorio 24h:', evoErr.message);
-            }
-        }
-
-        // === TWILIO (fallback con template) ===
+        // ✅ Recordatorio automático del cron → siempre Twilio template
+        // El poll interactivo (confirmar/cancelar/reagendar) solo se manda
+        // cuando el admin presiona el botón manual en la cita (sendReminderWithOptions)
         return await sendWhatsAppTemplate(
             appt.clientPhone,
             config.templates.RECORDATORIO_24H,
@@ -422,20 +407,7 @@ export const WhatsAppService = {
         const nombre = sanitizeForWhatsApp(appt.clientName);
         const servicio = sanitizeForWhatsApp(appt.serviceName);
 
-        // === EVOLUTION API (siempre intentar primero) ===
-        const hasEvolution2h = !!(config.evolution?.apiUrl && config.evolution?.apiKey);
-        if (hasEvolution2h) {
-            try {
-                const mensaje = `🔔 *¡Tu cita es en 2 horas!*\n\nHola ${nombre}, tu cita de ${servicio} es a las ${hora}.\n\n📍 ${config.venus.location}\n\n¡Te esperamos! ✨`;
-                const result = await sendViaEvolution(appt.clientPhone, mensaje);
-                if (result.success) return result;
-                console.warn('[WhatsApp] Evolution falló para recordatorio 2h, intentando Twilio:', result.error);
-            } catch (evoErr) {
-                console.warn('[WhatsApp] Evolution error en recordatorio 2h:', evoErr.message);
-            }
-        }
-
-        // === TWILIO (fallback con template) ===
+        // ✅ Recordatorio automático del cron → siempre Twilio template
         return await sendWhatsAppTemplate(
             appt.clientPhone,
             config.templates.RECORDATORIO_2H,
