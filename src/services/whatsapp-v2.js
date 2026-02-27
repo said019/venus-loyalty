@@ -3,6 +3,7 @@ import twilio from 'twilio';
 import { config } from '../config/config.js';
 import { getEvolutionClient } from './whatsapp-evolution.js';
 import { firestore } from '../db/compat.js';
+import { formatearFechaLegible, formatearHora, extractDateAndTime } from '../utils/mexico-time.js';
 
 // Cliente de Twilio
 let client = null;
@@ -60,31 +61,7 @@ async function sendWhatsAppTemplate(to, templateSid, variables) {
 }
 
 /**
- * Formatea fecha para mostrar de forma legible
- * Usa timezone local para evitar problemas con UTC
- */
-function formatearFechaLegible(fecha) {
-    const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
-        'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
-
-    let date;
-    if (typeof fecha === 'string' && fecha.includes('T')) {
-        // Si viene con hora ISO, parsearlo correctamente
-        date = new Date(fecha);
-    } else if (typeof fecha === 'string' && fecha.includes('-')) {
-        // Si es YYYY-MM-DD, crear fecha en timezone local (no UTC)
-        const [year, month, day] = fecha.split('-').map(Number);
-        date = new Date(year, month - 1, day, 12, 0, 0); // Usar mediodía para evitar problemas de timezone
-    } else {
-        date = new Date(fecha);
-    }
-
-    return `${date.getDate()} de ${meses[date.getMonth()]}`;
-}
-
-/**
- * Formatea hora para mostrar
- * Maneja objetos Date de Prisma (UTC) y strings ISO
+ * Fecha/hora formatting centralized in `src/utils/mexico-time.js` (America/Mexico_City)
  */
 /**
  * Sanitiza texto para evitar error 63021 de WhatsApp

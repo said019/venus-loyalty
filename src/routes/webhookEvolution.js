@@ -2,6 +2,7 @@
 import express from 'express';
 import { firestore } from '../db/compat.js';
 import { WhatsAppService } from '../services/whatsapp-v2.js';
+import { toMexicoCityISO } from '../utils/mexico-time.js';
 
 const router = express.Router();
 
@@ -218,9 +219,8 @@ async function buscarCitaActiva(telefono) {
 
         console.log(`🔍 [Evolution] Buscando cita para: ${phone}`);
 
-        const margin = new Date();
-        margin.setHours(margin.getHours() - 2);
-        const marginIso = margin.toISOString();
+    // Calcular margen -2 horas en timezone Ciudad de México
+    const marginIso = toMexicoCityISO(new Date(Date.now() - 2 * 60 * 60 * 1000));
 
         // Buscar por teléfono exacto
         const snapshot = await firestore.collection('appointments')

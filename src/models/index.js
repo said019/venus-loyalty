@@ -1,4 +1,5 @@
 import { firestore } from '../db/compat.js';
+import { extractDateAndTime } from '../utils/mexico-time.js';
 
 const COL_CLIENTS = 'clients';
 const COL_SERVICES = 'services';
@@ -134,9 +135,10 @@ export const AppointmentModel = {
         let date = data.date;
         let time = data.time;
         if (!date && data.startDateTime) {
-            // startDateTime viene como "2025-01-02T10:00:00-06:00"
-            date = data.startDateTime.split('T')[0]; // "2025-01-02"
-            time = data.startDateTime.split('T')[1].substring(0, 5); // "10:00"
+            // startDateTime viene como "2025-01-02T10:00:00-06:00" — extraer usando timezone Ciudad de México
+            const extracted = extractDateAndTime(data.startDateTime);
+            date = extracted.date;
+            time = extracted.time;
         }
 
         const docData = {
