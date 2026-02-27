@@ -161,17 +161,51 @@ function padTime(t) {
   return t.length === 5 ? t + ':00' : t;
 }
 
+// Prefijo emoji según status — visible en la vista de Google Calendar
+const STATUS_EMOJI = {
+  pending:      '🟡',
+  scheduled:    '🔵',
+  confirmed:    '🟢',
+  rescheduling: '🟠',
+  completed:    '✅',
+  cancelled:    '❌',
+  no_show:      '🔴',
+};
+
+function emojiForStatus(status) {
+  return STATUS_EMOJI[status] ?? '🔵';
+}
+
+// Etiqueta legible en español
+const STATUS_LABEL = {
+  pending:      'Pendiente',
+  scheduled:    'Agendada',
+  confirmed:    'Confirmada',
+  rescheduling: 'Reagendando',
+  completed:    'Completada',
+  cancelled:    'Cancelada',
+  no_show:      'No se presentó',
+};
+
+// Colores de Google Calendar:
+//  1  = Lavanda (morado claro)      7  = Pavo real (cian oscuro)
+//  2  = Salvia (verde grisáceo)     8  = Grafito (gris)
+//  3  = Uva (morado)                9  = Arándano (azul oscuro)
+//  4  = Flamenco (naranja rojizo)  10  = Albahaca (verde oscuro)
+//  5  = Banana (amarillo)          11  = Tomate (rojo)
+//  6  = Mandarina (naranja)
 const STATUS_COLORS = {
-  pending: '11',      // Rojo tomate
-  scheduled: '9',     // Azul
-  confirmed: '10',    // Verde basil
-  completed: '2',     // Sage
-  cancelled: '8',     // Grafito
-  no_show: '8',
+  pending:      '5',   // 🟡 Banana  — solicitud pendiente de aprobar
+  scheduled:    '9',   // 🔵 Arándano — cita agendada (confirmada por admin)
+  confirmed:    '10',  // 🟢 Albahaca — confirmada por la clienta
+  rescheduling: '6',   // 🟠 Mandarina — pidió reagendar
+  completed:    '2',   // 🌿 Salvia  — servicio realizado
+  cancelled:    '8',   // ⬛ Grafito  — cancelada
+  no_show:      '11',  // 🔴 Tomate  — no se presentó
 };
 
 function colorForStatus(status) {
-  return STATUS_COLORS[status] || '1';
+  return STATUS_COLORS[status] ?? STATUS_COLORS['scheduled'];
 }
 
 // ─────────────────────────────────────────────
@@ -188,12 +222,12 @@ export async function createEvent(appointment) {
   const endTime = padTime(appointment.endTime || appointment.end_time || _calcEndTime(startTime, appointment.durationMinutes));
 
   const event = {
-    summary: `${appointment.clientName || appointment.client_name} — ${appointment.serviceName || appointment.service_name || 'Cita'}`,
+    summary: `${emojiForStatus(appointment.status)} ${appointment.clientName || appointment.client_name} — ${appointment.serviceName || appointment.service_name || 'Cita'}`,
     description: [
-      `Cliente: ${appointment.clientName || appointment.client_name || 'N/A'}`,
-      `Teléfono: ${appointment.clientPhone || appointment.client_phone || 'N/A'}`,
-      `Servicio: ${appointment.serviceName || appointment.service_name || 'N/A'}`,
-      `Estado: ${appointment.status || 'scheduled'}`,
+      `👤 Cliente: ${appointment.clientName || appointment.client_name || 'N/A'}`,
+      `📱 Teléfono: ${appointment.clientPhone || appointment.client_phone || 'N/A'}`,
+      `💆 Servicio: ${appointment.serviceName || appointment.service_name || 'N/A'}`,
+      `📋 Estado: ${STATUS_LABEL[appointment.status] || appointment.status || 'Agendada'}`,
     ].join('\n'),
     start: { dateTime: `${dateStr}T${startTime}`, timeZone: tz },
     end:   { dateTime: `${dateStr}T${endTime}`,   timeZone: tz },
@@ -233,12 +267,8 @@ export async function createEvent(appointment) {
 //  6. ACTUALIZAR EVENTO
 // ─────────────────────────────────────────────
 export async function updateEvent(appointmentId, appointment) {
-  // Si se cancela → eliminar
-  if (appointment?.status === 'cancelled') {
-    await deleteEvent(appointmentId);
-    return { deleted: true };
-  }
-
+  // Si se cancela → pintar de gris en vez de eliminar (queda en historial)
+  // La eliminación real ocurre solo desde deleteEvent() al borrar la cita de la BD
   const authClient = await getAuthenticatedClient();
   const calCfg = await prisma.googleCalendarConfig.findUnique({ where: { id: 1 } });
   const calendarId = calCfg?.calendarId || process.env.GOOGLE_CALENDAR_ID || 'primary';
@@ -260,12 +290,12 @@ export async function updateEvent(appointmentId, appointment) {
   const endTime = padTime(appointment.endTime || appointment.end_time || _calcEndTime(startTime, appointment.durationMinutes));
 
   const event = {
-    summary: `${appointment.clientName || appointment.client_name} — ${appointment.serviceName || appointment.service_name || 'Cita'}`,
+    summary: `${emojiForStatus(appointment.status)} ${appointment.clientName || appointment.client_name} — ${appointment.serviceName || appointment.service_name || 'Cita'}`,
     description: [
-      `Cliente: ${appointment.clientName || appointment.client_name || 'N/A'}`,
-      `Teléfono: ${appointment.clientPhone || appointment.client_phone || 'N/A'}`,
-      `Servicio: ${appointment.serviceName || appointment.service_name || 'N/A'}`,
-      `Estado: ${appointment.status || 'scheduled'}`,
+      `👤 Cliente: ${appointment.clientName || appointment.client_name || 'N/A'}`,
+      `📱 Teléfono: ${appointment.clientPhone || appointment.client_phone || 'N/A'}`,
+      `💆 Servicio: ${appointment.serviceName || appointment.service_name || 'N/A'}`,
+      `📋 Estado: ${STATUS_LABEL[appointment.status] || appointment.status || 'Agendada'}`,
     ].join('\n'),
     start: { dateTime: `${dateStr}T${startTime}`, timeZone: tz },
     end:   { dateTime: `${dateStr}T${endTime}`,   timeZone: tz },
