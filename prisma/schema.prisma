@@ -113,6 +113,9 @@ model Appointment {
   serviceId String?
   // Removemos la relación estricta con Service para permitir citas con servicios eliminados
 
+  // Google Calendar mapping (OAuth2)
+  calendarMappings GoogleCalendarMapping[]
+
   @@map("appointments")
 }
 
@@ -446,4 +449,37 @@ model BlockedSlot {
   updatedAt DateTime @updatedAt
 
   @@map("blocked_slots")
+}
+
+// ===== GOOGLE CALENDAR OAUTH2 =====
+
+// Almacena los tokens OAuth2 de Google Calendar (singleton, id=1)
+model GoogleCalendarConfig {
+  id           Int       @id @default(autoincrement())
+  refreshToken String?   @map("refresh_token")
+  accessToken  String?   @map("access_token")
+  tokenExpiry  DateTime? @map("token_expiry")
+  calendarId   String    @default("primary") @map("calendar_id")
+  isConnected  Boolean   @default(false) @map("is_connected")
+  lastSyncAt   DateTime? @map("last_sync_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  @@map("google_calendar_config")
+}
+
+// Mapeo entre citas del sistema y eventos de Google Calendar
+model GoogleCalendarMapping {
+  id              Int      @id @default(autoincrement())
+  appointmentId   String   @map("appointment_id")
+  googleEventId   String   @unique @map("google_event_id")
+  syncStatus      String   @default("synced") @map("sync_status") // synced, pending, failed
+  errorMessage    String?  @map("error_message")
+  lastSyncedAt    DateTime @default(now()) @map("last_synced_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+
+  @@unique([appointmentId, googleEventId])
+  @@map("google_calendar_mapping")
 }

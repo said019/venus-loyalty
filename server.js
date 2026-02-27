@@ -1435,7 +1435,7 @@ app.post('/api/appointments', adminAuth, async (req, res) => {
     try {
       const { createEvent } = await import('./src/services/googleCalendarService.js');
 
-      console.log('[APPOINTMENT] 📅 Creando eventos en Google Calendar...');
+      console.log('[APPOINTMENT] 📅 Creando eventos en Google Calendar (Service Account)...');
 
       // Crear en calendario 1 (Said)
       try {
@@ -1462,8 +1462,26 @@ app.post('/api/appointments', adminAuth, async (req, res) => {
       }
 
     } catch (calErr) {
-      console.error('[APPOINTMENT] ⚠️ Error creating calendar events:', calErr.message);
+      console.error('[APPOINTMENT] ⚠️ Error creating calendar events (SA):', calErr.message);
     }
+
+    // ── OAuth2: sincronizar también con calendario personal del admin ──
+    try {
+      const { createEvent: oauthCreate, getStatus: oauthStatus } = await import('./src/services/googleCalendarOAuth.js');
+      const status = await oauthStatus();
+      if (status.connected) {
+        // appointmentData aún no tiene id; lo usaremos después de crear
+        // Lo enlazamos en background post-creación
+        setImmediate(async () => {
+          try {
+            await oauthCreate({ ...appointmentData, id: appointment?.id });
+            console.log(`[APPOINTMENT OAuth] ✅ Evento creado en calendar OAuth`);
+          } catch (e) {
+            console.warn('[APPOINTMENT OAuth] No crítico:', e.message);
+          }
+        });
+      }
+    } catch (_) { /* OAuth no configurado — ignorar */ }
 
     const appointment = await AppointmentsRepo.create(appointmentData);
 
@@ -1648,7 +1666,7 @@ app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
       try {
         const { updateEvent } = await import('./src/services/googleCalendarService.js');
 
-        console.log('[PATCH] 📅 Actualizando eventos en Google Calendar...');
+        console.log('[PATCH] 📅 Actualizando eventos en Google Calendar (SA)...');
 
         // Actualizar en calendario 1 (Said)
         if (appointment.googleCalendarEventId) {
@@ -1684,10 +1702,32 @@ app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
           }
         }
       } catch (calErr) {
-        console.error('[PATCH] ⚠️ Error con Google Calendar:', calErr.message);
-        // No falla la operación si Google Calendar falla
+        console.error('[PATCH] ⚠️ Error con Google Calendar (SA):', calErr.message);
       }
     }
+
+    // ── OAuth2: actualizar calendario personal ──
+    try {
+      const { updateEvent: oauthUpdate, getStatus: oauthStatus } = await import('./src/services/googleCalendarOAuth.js');
+      const oStatus = await oauthStatus();
+      if (oStatus.connected) {
+        setImmediate(async () => {
+          try {
+            await oauthUpdate(id, {
+              ...appointment,
+              date,
+              time,
+              endTime: endISO,
+              serviceName: serviceName || appointment.serviceName,
+              durationMinutes: durationMinutes || 60,
+            });
+            console.log(`[PATCH OAuth] ✅ Evento OAuth actualizado`);
+          } catch (e) {
+            console.warn('[PATCH OAuth] No crítico:', e.message);
+          }
+        });
+      }
+    } catch (_) { /* OAuth no configurado */ }
 
     // Crear notificación usando Prisma
     await NotificationsRepo.create({
@@ -1823,10 +1863,18 @@ app.patch('/api/appointments/:id/cancel', adminAuth, async (req, res) => {
           }
         }
       } catch (calErr) {
-        console.error('[CANCEL] ⚠️ Error con Google Calendar:', calErr.message);
-        // No falla la operación si Google Calendar falla
+        console.error('[CANCEL] ⚠️ Error con Google Calendar (SA):', calErr.message);
       }
     }
+
+    // ── OAuth2: eliminar del calendario personal ──
+    try {
+      const { deleteEvent: oauthDelete, getStatus: oauthStatus } = await import('./src/services/googleCalendarOAuth.js');
+      const oStatus = await oauthStatus();
+      if (oStatus.connected) {
+        await oauthDelete(id).catch(e => console.warn('[CANCEL OAuth] No crítico:', e.message));
+      }
+    } catch (_) { /* OAuth no configurado */ }
 
     // ELIMINAR completamente de la base de datos usando Prisma (no solo marcar como cancelada)
     await AppointmentsRepo.delete(id);
@@ -3930,7 +3978,7 @@ app.post('/api/booking-requests/:id/booked', adminAuth, async (req, res) => {
     try {
       const { createEvent } = await import('./src/services/googleCalendarService.js');
 
-      console.log('[BOOKING] 📅 Creando eventos en calendarios...');
+      console.log('[BOOKING] 📅 Creando eventos en calendarios (SA)...');
 
       // Crear en calendario 1 (Said)
       try {
@@ -3957,8 +4005,24 @@ app.post('/api/booking-requests/:id/booked', adminAuth, async (req, res) => {
       }
 
     } catch (calErr) {
-      console.error('[BOOKING] ⚠️ Error creating calendar event:', calErr.message);
+      console.error('[BOOKING] ⚠️ Error creating calendar event (SA):', calErr.message);
     }
+
+    // ── OAuth2: también al calendario personal del admin ──
+    try {
+      const { createEvent: oauthCreate, getStatus: oauthStatus } = await import('./src/services/googleCalendarOAuth.js');
+      const oStatus = await oauthStatus();
+      if (oStatus.connected) {
+        setImmediate(async () => {
+          try {
+            await oauthCreate({ ...appointmentData, id: appointmentRef?.id });
+            console.log(`[BOOKING OAuth] ✅ Evento OAuth creado`);
+          } catch (e) {
+            console.warn('[BOOKING OAuth] No crítico:', e.message);
+          }
+        });
+      }
+    } catch (_) { /* OAuth no configurado */ }
 
     // 2. GUARDAR CITA EN FIRESTORE
     const appointmentRef = await firestore.collection('appointments').add(appointmentData);

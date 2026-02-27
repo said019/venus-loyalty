@@ -30,6 +30,8 @@ export const config = {
         clientSecret: process.env.GOOGLE_CLIENT_SECRET,
         redirectUri: process.env.GOOGLE_REDIRECT_URI,
         refreshToken: process.env.GOOGLE_REFRESH_TOKEN,
+        // OAuth2 redirect — ejemplo: https://tudominio.com/api/admin/calendar/callback
+        oauthRedirectUri: process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3000/api/admin/calendar/callback',
         calendarOwner1: process.env.GOOGLE_ATTENDEE_1 || 'saidromero19@gmail.com',
         calendarOwner2: process.env.GOOGLE_ATTENDEE_2 || 'alondraosornom@gmail.com'
     },
