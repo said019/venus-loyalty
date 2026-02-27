@@ -131,11 +131,9 @@ class EvolutionAPIClient {
         const phone = this.formatPhone(to);
         const response = await this.client.post(`/message/sendPoll/${this.instanceName}`, {
             number: phone,
-            pollMessage: {
-                name: question,
-                selectableCount,
-                values: options,
-            },
+            name: question,
+            selectableCount,
+            values: options,
         });
         return response.data;
     }

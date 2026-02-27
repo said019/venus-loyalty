@@ -253,11 +253,27 @@ export async function sendViaEvolutionRaw(to, message) {
 async function sendPollViaEvolution(to, question, options) {
     try {
         const evoClient = getEvolutionClient();
+        
+        // Si la pregunta es muy larga (>256 chars), enviar texto primero y poll corto después
+        if (question.length > 200) {
+            console.log(`[Evolution] Pregunta larga (${question.length} chars), enviando texto + poll separados`);
+            // Enviar el mensaje completo como texto
+            await evoClient.sendText(to, question);
+            // Pequeña pausa para que llegue en orden
+            await new Promise(r => setTimeout(r, 1000));
+            // Enviar poll corto
+            const result = await evoClient.sendPoll(to, '¿Qué deseas hacer?', options, 1);
+            console.log(`✅ [Evolution] Texto + Poll enviado a ${to}`);
+            return { success: true, messageSid: result?.key?.id || 'evolution-poll-sent' };
+        }
+        
+        console.log(`[Evolution] Enviando poll a ${to}, pregunta: ${question.length} chars, opciones: ${options.length}`);
         const result = await evoClient.sendPoll(to, question, options, 1);
         console.log(`✅ [Evolution] Poll enviado a ${to}`);
         return { success: true, messageSid: result?.key?.id || 'evolution-poll-sent' };
     } catch (error) {
-        console.error('❌ [Evolution] Error enviando Poll:', error.message);
+        const responseData = error.response?.data;
+        console.error('❌ [Evolution] Error enviando Poll:', error.message, 'Response:', JSON.stringify(responseData));
         return { success: false, error: error.message };
     }
 }
