@@ -95,16 +95,19 @@ function renderServicesPreview() {
     const grid = document.getElementById('services-grid');
     if (!grid || services.length === 0) return;
 
-    const categoryIcons = {
-        'Básicos Venus': 'fas fa-spa',
-        'Especializados': 'fas fa-star',
-        'Corporales': 'fas fa-hand-sparkles',
-        'Holísticos': 'fas fa-leaf',
-        'Paquetes': 'fas fa-gift',
-        'Depilación': 'fas fa-bolt'
+    // Mapeo de categorías a filtros y datos visuales
+    const categoryMap = {
+        'Básicos Venus':  { filter: 'facial',     icon: 'fas fa-spa',           color: '#8C9668' },
+        'Especializados': { filter: 'facial',     icon: 'fas fa-star',           color: '#6b7a4e' },
+        'Corporales':     { filter: 'corporal',   icon: 'fas fa-hand-sparkles',  color: '#C4A77D' },
+        'Holísticos':     { filter: 'holistico',  icon: 'fas fa-yin-yang',       color: '#a8b485' },
+        'Paquetes':       { filter: 'paquetes',   icon: 'fas fa-gift',           color: '#D4C5B9' },
+        'Depilación':     { filter: 'depilacion', icon: 'fas fa-feather-alt',    color: '#8C9668' },
     };
 
     const categoryOrder = ['Básicos Venus', 'Especializados', 'Corporales', 'Holísticos', 'Paquetes', 'Depilación'];
+
+    // Agrupar por categoría
     const grouped = {};
     services.forEach(s => {
         const cat = s.category || 'Otros';
@@ -115,42 +118,63 @@ function renderServicesPreview() {
     const sortedCategories = Object.keys(grouped).sort((a, b) => {
         const ia = categoryOrder.indexOf(a), ib = categoryOrder.indexOf(b);
         if (ia === -1 && ib === -1) return a.localeCompare(b);
-        if (ia === -1) return 1;
-        if (ib === -1) return -1;
+        if (ia === -1) return 1; if (ib === -1) return -1;
         return ia - ib;
     });
 
-    let html = '';
+    // Generar cards
+    let allCards = '';
     sortedCategories.forEach(cat => {
-        const icon = categoryIcons[cat] || 'fas fa-concierge-bell';
+        const meta = categoryMap[cat] || { filter: 'otros', icon: 'fas fa-concierge-bell', color: '#8C9668' };
         const catServices = grouped[cat].sort((a, b) => a.name.localeCompare(b.name));
 
-        html += `
-            <div class="services-category-section">
-                <div class="category-header">
-                    <div class="category-icon-circle"><i class="${icon}"></i></div>
-                    <h3 class="category-title">${cat}</h3>
-                </div>
-                <div class="category-services-grid">
-                    ${catServices.map(s => `
-                        <div class="service-preview-card" onclick="scrollToBooking('${s.id}')">
-                            <div class="service-card-top">
-                                <h3>${s.name}</h3>
-                                <span class="service-card-price">$${Math.round(s.price)}</span>
+        catServices.forEach(s => {
+            const price = s.price ? `$${Math.round(s.price)}` : 'Consultar';
+            const duration = s.durationMinutes || s.duration || '';
+            const desc = s.description || '';
+            allCards += `
+                <div class="service-card-new" data-filter="${meta.filter}" onclick="scrollToBooking('${s.id}')">
+                    <div class="service-card-accent" style="background:${meta.color}"></div>
+                    <div class="service-card-icon-wrap" style="background:${meta.color}15;border-color:${meta.color}30">
+                        <i class="${meta.icon}" style="color:${meta.color}"></i>
+                    </div>
+                    <div class="service-card-body">
+                        <span class="service-card-category">${cat}</span>
+                        <h3 class="service-card-name">${s.name}</h3>
+                        ${desc ? `<p class="service-card-description">${desc.length > 80 ? desc.slice(0, 80) + '…' : desc}</p>` : ''}
+                        <div class="service-card-footer">
+                            <div class="service-card-meta">
+                                ${duration ? `<span class="service-meta-pill"><i class="far fa-clock"></i> ${duration} min</span>` : ''}
+                                <span class="service-meta-price">${price}</span>
                             </div>
-                            ${s.description ? `<p class="service-card-desc">${s.description}</p>` : ''}
-                            <div class="meta">
-                                <span><i class="far fa-clock"></i> ${s.durationMinutes || s.duration} min</span>
-                                <span class="service-card-cta">Agendar <i class="fas fa-arrow-right"></i></span>
-                            </div>
+                            <button class="service-card-btn">
+                                Agendar <i class="fas fa-arrow-right"></i>
+                            </button>
                         </div>
-                    `).join('')}
+                    </div>
                 </div>
-            </div>
-        `;
+            `;
+        });
     });
 
-    grid.innerHTML = html;
+    grid.innerHTML = allCards || '<p style="color:var(--muted);text-align:center;padding:2rem;">No hay servicios disponibles</p>';
+
+    // Activar filtros
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            const filter = btn.dataset.filter;
+            document.querySelectorAll('.service-card-new').forEach(card => {
+                if (filter === 'all' || card.dataset.filter === filter) {
+                    card.style.display = '';
+                    card.style.animation = 'fadeInUp 0.4s ease both';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        });
+    });
 }
 
 function scrollToBooking(serviceId) {

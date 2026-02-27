@@ -1,7 +1,8 @@
 import cron from 'node-cron';
 import { AppointmentModel } from '../models/index.js';
 import { WhatsAppService } from '../services/whatsapp-v2.js';
-import { firestore } from '../db/compat.js';
+import { prisma } from '../db/index.js';
+import { NotificationsRepo } from '../db/repositories.js';
 
 export function startScheduler() {
     console.log('⏰ Scheduler de recordatorios WhatsApp iniciado (cada hora)');
@@ -113,13 +114,12 @@ export function startScheduler() {
                     await AppointmentModel.markConfirmationAlertSent(appt.id);
 
                     // Notificación interna para el admin
-                    await firestore.collection('notifications').add({
+                    await NotificationsRepo.create({
                         type: 'alerta',
                         icon: 'exclamation-triangle',
                         title: 'Alerta de confirmación enviada',
                         message: `Se envió alerta a ${appt.clientName} — ${appt.serviceName} a las ${appt.time || ''}. Se cancelará si no confirma.`,
                         read: false,
-                        createdAt: new Date().toISOString(),
                         entityId: appt.id
                     });
                     console.log(`⚠️ Alerta de cancelación enviada a ${appt.clientName} (cita ${appt.id})`);
@@ -148,10 +148,14 @@ export function startScheduler() {
 
             for (const appt of pendingCancel) {
                 // Cancelar la cita
-                await firestore.collection('appointments').doc(appt.id).update({
-                    status: 'cancelled',
-                    autoCancelledAt: new Date().toISOString(),
-                    cancelledVia: 'auto-no-confirmation'
+                await prisma.appointment.update({
+                    where: { id: appt.id },
+                    data: {
+                        status: 'cancelled',
+                        autoCancelledAt: new Date(),
+                        cancelledVia: 'auto-no-confirmation',
+                        updatedAt: new Date()
+                    }
                 });
 
                 // Eliminar de Google Calendar si aplica
@@ -169,14 +173,12 @@ export function startScheduler() {
                     console.error('⚠️ Error eliminando eventos del calendario:', calErr.message);
                 }
 
-                // Notificación interna
-                await firestore.collection('notifications').add({
+                await NotificationsRepo.create({
                     type: 'alerta',
                     icon: 'calendar-times',
                     title: 'Cita cancelada automáticamente',
                     message: `La cita de ${appt.clientName} — ${appt.serviceName} fue cancelada por no confirmar.`,
                     read: false,
-                    createdAt: new Date().toISOString(),
                     entityId: appt.id
                 });
 
@@ -221,54 +223,33 @@ export function startScheduler() {
 async function checkBirthdays() {
     try {
         const now = new Date();
-        const in7Days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
         
-        const currentMonth = now.getMonth() + 1;
-        const currentDay = now.getDate();
-        
-        const snapshot = await firestore.collection('cards')
-            .where('status', '==', 'active')
-            .get();
+        const cards = await prisma.card.findMany({ where: { status: 'active' } });
         
         const birthdays = [];
-        snapshot.forEach(doc => {
-            const data = doc.data();
-            if (data.birthday) {
-                const [month, day] = data.birthday.split('-').map(Number);
-                
-                // Calcular días hasta el cumpleaños
+        for (const card of cards) {
+            if (card.birthday) {
+                const [month, day] = card.birthday.split('-').map(Number);
                 const birthdayThisYear = new Date(now.getFullYear(), month - 1, day);
                 const daysUntil = Math.ceil((birthdayThisYear - now) / (1000 * 60 * 60 * 24));
-                
                 if (daysUntil >= 0 && daysUntil <= 7) {
-                    birthdays.push({
-                        id: doc.id,
-                        name: data.name,
-                        phone: data.phone,
-                        daysUntil
-                    });
+                    birthdays.push({ id: card.id, name: card.name, phone: card.phone, daysUntil });
                 }
             }
-        });
+        }
         
-        // Crear notificación si hay cumpleaños próximos
         if (birthdays.length > 0) {
-            // Verificar si ya existe notificación de hoy
             const today = now.toISOString().split('T')[0];
-            const existingNotif = await firestore.collection('notifications')
-                .where('type', '==', 'cumpleaños')
-                .where('createdAt', '>=', today)
-                .limit(1)
-                .get();
-            
-            if (existingNotif.empty) {
-                await firestore.collection('notifications').add({
+            const existingNotif = await prisma.notification.findFirst({
+                where: { type: 'cumpleaños', createdAt: { gte: new Date(today) } }
+            });
+            if (!existingNotif) {
+                await NotificationsRepo.create({
                     type: 'cumpleaños',
                     icon: 'birthday-cake',
                     title: `${birthdays.length} cumpleaños próximos`,
                     message: birthdays.map(b => `${b.name} (en ${b.daysUntil} días)`).join(', '),
                     read: false,
-                    createdAt: new Date().toISOString(),
                     entityId: null
                 });
                 console.log(`🎂 Notificación de cumpleaños creada: ${birthdays.length} clientes`);
@@ -282,32 +263,19 @@ async function checkBirthdays() {
 // ========== TARJETAS COMPLETADAS (últimas 24h) ==========
 async function checkCompletedCards() {
     try {
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
         
-        const snapshot = await firestore.collection('events')
-            .where('type', '==', 'redeem')
-            .where('timestamp', '>=', yesterday.toISOString())
-            .get();
+        const redeems = await prisma.cardEvent.findMany({
+            where: { type: 'redeem', timestamp: { gte: yesterday } }
+        });
         
-        if (!snapshot.empty) {
-            const redeems = [];
-            snapshot.forEach(doc => {
-                const data = doc.data();
-                redeems.push({
-                    cardId: data.cardId,
-                    clientName: data.clientName || 'Cliente'
-                });
-            });
-            
-            // Crear notificación
-            await firestore.collection('notifications').add({
+        if (redeems.length > 0) {
+            await NotificationsRepo.create({
                 type: 'premio',
                 icon: 'gift',
                 title: `${redeems.length} tarjeta${redeems.length > 1 ? 's' : ''} completada${redeems.length > 1 ? 's' : ''}`,
-                message: `${redeems.map(r => r.clientName).join(', ')} ${redeems.length > 1 ? 'completaron' : 'completó'} su tarjeta`,
+                message: `${redeems.map(r => r.clientName || 'Cliente').join(', ')} ${redeems.length > 1 ? 'completaron' : 'completó'} su tarjeta`,
                 read: false,
-                createdAt: new Date().toISOString(),
                 entityId: null
             });
             console.log(`🎁 Notificación de tarjetas completadas: ${redeems.length}`);
@@ -320,41 +288,26 @@ async function checkCompletedCards() {
 // ========== STOCK BAJO ==========
 async function checkLowStock() {
     try {
-        const snapshot = await firestore.collection('products').get();
+        const products = await prisma.product.findMany();
         
-        const lowStockProducts = [];
-        snapshot.forEach(doc => {
-            const data = doc.data();
-            const stock = data.stock || 0;
-            const minStock = data.minStock || 5;
-            
-            if (stock <= minStock && stock > 0) {
-                lowStockProducts.push({
-                    id: doc.id,
-                    name: data.name,
-                    stock,
-                    minStock
-                });
-            }
-        });
+        const lowStockProducts = products.filter(p => {
+            const stock = p.stock || 0;
+            const minStock = p.minStock || 5;
+            return stock <= minStock && stock > 0;
+        }).map(p => ({ id: p.id, name: p.name, stock: p.stock || 0, minStock: p.minStock || 5 }));
         
         if (lowStockProducts.length > 0) {
-            // Verificar si ya existe notificación de hoy
             const today = new Date().toISOString().split('T')[0];
-            const existingNotif = await firestore.collection('notifications')
-                .where('type', '==', 'stock')
-                .where('createdAt', '>=', today)
-                .limit(1)
-                .get();
-            
-            if (existingNotif.empty) {
-                await firestore.collection('notifications').add({
+            const existingNotif = await prisma.notification.findFirst({
+                where: { type: 'stock', createdAt: { gte: new Date(today) } }
+            });
+            if (!existingNotif) {
+                await NotificationsRepo.create({
                     type: 'stock',
                     icon: 'exclamation-triangle',
                     title: `${lowStockProducts.length} producto${lowStockProducts.length > 1 ? 's' : ''} con stock bajo`,
                     message: lowStockProducts.map(p => `${p.name} (${p.stock} unidades)`).join(', '),
                     read: false,
-                    createdAt: new Date().toISOString(),
                     entityId: null
                 });
                 console.log(`⚠️ Notificación de stock bajo: ${lowStockProducts.length} productos`);
@@ -371,42 +324,30 @@ async function checkExpiringGiftCards() {
         const now = new Date();
         const in7Days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
         
-        const snapshot = await firestore.collection('giftcards')
-            .where('status', '==', 'pending')
-            .where('expiresAt', '<=', in7Days.toISOString())
-            .where('expiresAt', '>=', now.toISOString())
-            .get();
+        const expiring = await prisma.giftCard.findMany({
+            where: { status: 'pending', expiresAt: { lte: in7Days, gte: now } }
+        });
         
-        if (!snapshot.empty) {
-            const expiringCards = [];
-            snapshot.forEach(doc => {
-                const data = doc.data();
-                const daysUntil = Math.ceil((new Date(data.expiresAt) - now) / (1000 * 60 * 60 * 24));
-                expiringCards.push({
-                    id: doc.id,
-                    code: data.code,
-                    serviceName: data.serviceName,
-                    recipientName: data.recipientName || 'Sin nombre',
-                    daysUntil
-                });
-            });
+        if (expiring.length > 0) {
+            const expiringCards = expiring.map(gc => ({
+                id: gc.id,
+                code: gc.code,
+                serviceName: gc.serviceName,
+                recipientName: gc.recipientName || 'Sin nombre',
+                daysUntil: Math.ceil((new Date(gc.expiresAt) - now) / (1000 * 60 * 60 * 24))
+            }));
             
-            // Verificar si ya existe notificación de hoy
             const today = now.toISOString().split('T')[0];
-            const existingNotif = await firestore.collection('notifications')
-                .where('type', '==', 'giftcard')
-                .where('createdAt', '>=', today)
-                .limit(1)
-                .get();
-            
-            if (existingNotif.empty) {
-                await firestore.collection('notifications').add({
+            const existingNotif = await prisma.notification.findFirst({
+                where: { type: 'giftcard', createdAt: { gte: new Date(today) } }
+            });
+            if (!existingNotif) {
+                await NotificationsRepo.create({
                     type: 'giftcard',
                     icon: 'clock',
                     title: `${expiringCards.length} gift card${expiringCards.length > 1 ? 's' : ''} por vencer`,
                     message: expiringCards.map(gc => `${gc.code} - ${gc.serviceName} (${gc.daysUntil} días)`).join(', '),
                     read: false,
-                    createdAt: new Date().toISOString(),
                     entityId: null
                 });
                 console.log(`⏰ Notificación de gift cards por vencer: ${expiringCards.length}`);

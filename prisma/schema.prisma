@@ -395,6 +395,32 @@ model ClientPhoto {
   @@map("client_photos")
 }
 
+// Mensajes WhatsApp (historial entrante y saliente)
+model WhatsappMessage {
+  id        String   @id @default(cuid())
+  phone     String
+  name      String?
+  body      String
+  direction String   // 'in' | 'out'
+  timestamp DateTime @default(now())
+  read      Boolean  @default(false)
+  messageId String?
+  createdAt DateTime @default(now())
+
+  @@map("whatsapp_messages")
+}
+
+// Mapeo poll_message_id → appointment_id para respuestas de polls de Evolution API
+model PendingPoll {
+  id            String   @id // = pollMessageId devuelto por Evolution API
+  appointmentId String
+  phone         String
+  expiresAt     DateTime
+  createdAt     DateTime @default(now())
+
+  @@map("pending_polls")
+}
+
 // Historial de canjes de Gift Cards
 model GiftCardRedeem {
   id          String   @id @default(cuid())

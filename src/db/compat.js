@@ -27,6 +27,8 @@ const collectionMap = {
   'apple_updates': 'appleUpdate',
   'google_devices': 'googleDevice',
   'gift_card_redeems': 'giftCardRedeem',
+  'whatsapp_messages': 'whatsappMessage',
+  'pending_polls': 'pendingPoll',
 };
 
 // Mapeo inverso de campos (camelCase a lo que espera el código legacy)
