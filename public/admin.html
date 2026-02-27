@@ -882,23 +882,52 @@
     }
 
     /* ===== CITAS DEL DÍA - RESPONSIVE ===== */
+    /* ============================================================
+       CITAS DEL DÍA — TABLA PREMIUM
+    ============================================================ */
     .citas-dia-card {
       overflow: hidden;
+      border-radius: 20px !important;
+      border: 1px solid var(--line) !important;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
     }
 
     .citas-dia-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 16px;
+      margin-bottom: 20px;
       gap: 12px;
       flex-wrap: wrap;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--line);
     }
 
     .citas-dia-title {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
+    }
+
+    .citas-dia-title h3 {
+      font-family: 'Playfair Display', serif;
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    /* Chip con la fecha seleccionada */
+    #selected-date-label {
+      display: inline-block;
+      background: rgba(140,150,104,0.15);
+      color: var(--venus);
+      font-size: 13px;
+      font-weight: 700;
+      padding: 3px 12px;
+      border-radius: 20px;
+      border: 1px solid rgba(140,150,104,0.3);
+      font-family: 'DM Sans', sans-serif;
+      vertical-align: middle;
     }
 
     .citas-dia-table-wrap {
@@ -909,10 +938,125 @@
     }
 
     .citas-dia-table-wrap .data-table {
-      min-width: 700px;
+      min-width: 680px;
     }
 
-    /* Mobile card view for citas */
+    /* Filas de la tabla de citas — mejoradas */
+    .citas-dia-table-wrap .data-table thead th {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255,255,255,0.02);
+    }
+
+    .citas-dia-table-wrap .data-table tbody tr {
+      transition: background 0.15s;
+    }
+
+    .citas-dia-table-wrap .data-table tbody tr:hover {
+      background: rgba(140,150,104,0.06);
+    }
+
+    .citas-dia-table-wrap .data-table tbody td {
+      padding: 13px 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      vertical-align: middle;
+    }
+
+    /* Hora — estilo prominente */
+    .appt-time-cell {
+      font-family: 'Playfair Display', serif;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--ink);
+      white-space: nowrap;
+    }
+
+    /* Cliente — con avatar inicial */
+    .appt-client-cell {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .appt-avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(140,150,104,0.4), rgba(140,150,104,0.2));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--venus);
+      flex-shrink: 0;
+      text-transform: uppercase;
+      border: 1px solid rgba(140,150,104,0.3);
+    }
+
+    .appt-client-name {
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--ink);
+    }
+
+    .appt-client-phone {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 1px;
+    }
+
+    /* Badge de estado — mejorado */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 20px;
+      letter-spacing: 0.3px;
+      white-space: nowrap;
+    }
+
+    .status-badge.confirmed {
+      background: rgba(45,212,191,0.12);
+      color: #2dd4bf;
+      border: 1px solid rgba(45,212,191,0.25);
+    }
+
+    .status-badge.pending {
+      background: rgba(251,191,36,0.12);
+      color: #fbbf24;
+      border: 1px solid rgba(251,191,36,0.25);
+    }
+
+    .status-badge.cancelled {
+      background: rgba(248,113,113,0.12);
+      color: #f87171;
+      border: 1px solid rgba(248,113,113,0.25);
+    }
+
+    .status-badge.completed {
+      background: rgba(34,197,94,0.12);
+      color: #22c55e;
+      border: 1px solid rgba(34,197,94,0.25);
+    }
+
+    .status-badge::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+      flex-shrink: 0;
+    }
+
     @media (max-width: 768px) {
       .citas-dia-table-wrap {
         margin: 0;
@@ -932,9 +1076,9 @@
       .citas-dia-table-wrap .data-table tbody tr {
         display: block;
         border: 1px solid var(--line);
-        border-radius: var(--radius-sm);
-        padding: 16px;
-        margin-bottom: 12px;
+        border-radius: 14px;
+        padding: 14px 16px;
+        margin-bottom: 10px;
         background: var(--bg-card);
       }
 
@@ -946,29 +1090,17 @@
       }
 
       .citas-dia-table-wrap .data-table tbody td:first-child {
-        font-size: 24px;
+        font-size: 22px;
         font-weight: 700;
-        padding-bottom: 8px !important;
+        padding-bottom: 10px !important;
         border-bottom: 1px solid var(--line) !important;
-        margin-bottom: 8px;
+        margin-bottom: 10px;
       }
 
       .citas-dia-table-wrap .data-table tbody td:last-child {
-        padding-top: 12px !important;
+        padding-top: 10px !important;
         border-top: 1px solid var(--line) !important;
         margin-top: 8px;
-      }
-
-      .citas-dia-table-wrap .data-table tbody td:last-child>div {
-        flex-direction: column !important;
-        gap: 8px !important;
-      }
-
-      .citas-dia-table-wrap .data-table tbody td:last-child .btn-icon {
-        width: 100% !important;
-        justify-content: center !important;
-        padding: 10px 12px !important;
-        border-radius: 10px !important;
       }
     }
 
@@ -989,7 +1121,7 @@
       }
 
       /* Contenido scrollable en tablet */
-      #paymentDialog>div:not(.dialog-header):not(.dialog-footer):not(.btn-close-payment),
+      #paymentDialog .pay-dialog-body,
       #directSaleDialog>div:not(.dialog-header):not(.dialog-footer):not(.btn-close-payment),
       #paymentDetailDialog>div:not(.dialog-header):not(.dialog-footer):not(.btn-close-payment) {
         overflow-y: auto !important;
@@ -1059,7 +1191,7 @@
       }
 
       /* Handle visual para arrastrar */
-      #paymentDialog .dialog-header::before,
+      #paymentDialog .pay-dialog-header::before,
       #directSaleDialog .dialog-header::before,
       #paymentDetailDialog .dialog-header::before {
         content: '';
@@ -1071,7 +1203,7 @@
         margin: 0 auto 12px;
       }
 
-      #paymentDialog .dialog-header,
+      #paymentDialog .pay-dialog-header,
       #directSaleDialog .dialog-header,
       #paymentDetailDialog .dialog-header {
         padding: 12px 20px 16px !important;
@@ -1079,7 +1211,7 @@
       }
 
       /* Contenido scrollable */
-      #paymentDialog>div:not(.dialog-header):not(.dialog-footer),
+      #paymentDialog .pay-dialog-body,
       #directSaleDialog>div:not(.dialog-header):not(.dialog-footer) {
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
@@ -1305,6 +1437,227 @@
         width: 100%;
         justify-content: center;
       }
+    }
+
+    /* ===== CAJA DEL DÍA — PREMIUM REDESIGN ===== */
+
+    /* Grid de tarjetas totales */
+    .caja-totals-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+
+    @media (max-width: 900px) { .caja-totals-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 480px) { .caja-totals-grid { grid-template-columns: 1fr; } }
+
+    /* Tarjeta individual */
+    .caja-card {
+      border-radius: 18px;
+      padding: 20px;
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      border: none;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .caja-card::before {
+      content: '';
+      position: absolute;
+      top: -30px;
+      right: -30px;
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.06);
+    }
+
+    .caja-card.efectivo {
+      background: linear-gradient(135deg, #2F3E2B 0%, #4A5D3F 100%);
+      box-shadow: 0 4px 16px rgba(47,62,43,0.4);
+    }
+
+    .caja-card.tarjeta {
+      background: linear-gradient(135deg, #2B3A4E 0%, #3D5370 100%);
+      box-shadow: 0 4px 16px rgba(43,58,78,0.4);
+    }
+
+    .caja-card.transferencia {
+      background: linear-gradient(135deg, #3A2B4E 0%, #553D70 100%);
+      box-shadow: 0 4px 16px rgba(58,43,78,0.4);
+    }
+
+    .caja-card.total-general {
+      background: linear-gradient(135deg, #8c7a3a 0%, #c4a84a 100%);
+      box-shadow: 0 4px 20px rgba(196,168,74,0.4);
+    }
+
+    .caja-card-icon {
+      width: 44px;
+      height: 44px;
+      min-width: 44px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.18);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      color: rgba(255,255,255,0.9);
+    }
+
+    .caja-card-body {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .caja-card-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: rgba(255,255,255,0.65);
+      font-weight: 700;
+    }
+
+    .caja-card-amount {
+      font-family: 'Playfair Display', serif;
+      font-size: 26px;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.1;
+      margin-top: 4px;
+    }
+
+    .caja-card-amount.grand {
+      font-size: 30px;
+      font-weight: 800;
+    }
+
+    .caja-card-count {
+      font-size: 11px;
+      color: rgba(255,255,255,0.55);
+      margin-top: 4px;
+    }
+
+    /* Sección header (dentro de las cards) */
+    .caja-section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .caja-badge-count {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(251,191,36,0.2);
+      color: #f59e0b;
+      border: 1px solid rgba(251,191,36,0.35);
+      border-radius: 20px;
+      padding: 3px 12px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    /* Empty state */
+    .caja-empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--muted);
+    }
+
+    .caja-empty-state i {
+      font-size: 28px;
+      margin-bottom: 10px;
+      display: block;
+      opacity: 0.4;
+    }
+
+    .caja-empty-state p { margin: 0; font-size: 13px; }
+
+    /* Filtros */
+    .caja-filter-group {
+      display: flex;
+      gap: 4px;
+      background: rgba(0,0,0,0.2);
+      border-radius: 10px;
+      padding: 3px;
+      border: 1px solid var(--line);
+    }
+
+    .caja-filter-btn {
+      padding: 6px 14px;
+      border-radius: 8px;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .caja-filter-btn.is-active,
+    .caja-filter-btn:hover {
+      background: var(--venus);
+      color: #fff;
+    }
+
+    /* Tabla historial */
+    .caja-table thead th {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--muted);
+      padding: 10px 14px;
+      background: var(--bg-card);
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    .caja-table tbody td {
+      padding: 12px 14px;
+      font-size: 13px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .caja-table tfoot {
+      background: rgba(140,150,104,0.07);
+      border-top: 2px solid rgba(140,150,104,0.3);
+    }
+
+    /* Método badge en tabla */
+    .method-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 8px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    .method-badge.efectivo  { background:rgba(34,197,94,0.12);  color:#22c55e; border:1px solid rgba(34,197,94,0.2); }
+    .method-badge.tarjeta   { background:rgba(59,130,246,0.12); color:#60a5fa; border:1px solid rgba(59,130,246,0.2); }
+    .method-badge.transferencia { background:rgba(168,85,247,0.12); color:#c084fc; border:1px solid rgba(168,85,247,0.2); }
+
+    .caja-amount-cell {
+      font-family: 'Playfair Display', serif;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--venus-soft);
+      text-align: right;
     }
 
     /* ===== FIN NUEVO LAYOUT ===== */
@@ -3502,116 +3855,126 @@
     }
 
     /* ===== GOOGLE CALENDAR STYLES ===== */
+    /* ============================================================
+       CALENDARIO MENSUAL — DISEÑO PREMIUM v2
+    ============================================================ */
     .google-calendar-container {
       background: var(--bg-card);
-      border-radius: var(--radius);
+      border-radius: 20px;
       padding: 0;
-      margin-bottom: 20px;
-      box-shadow: var(--shadow-sm);
+      margin-bottom: 24px;
       border: 1px solid var(--line);
+      overflow: hidden;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.18);
     }
 
     .calendar-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 20px 24px;
+      padding: 20px 24px 18px;
       border-bottom: 1px solid var(--line);
-      background: linear-gradient(135deg, var(--bg) 0%, #2a2a2a 100%);
-      border-radius: var(--radius) var(--radius) 0 0;
+      background: linear-gradient(135deg,
+        rgba(140,150,104,0.08) 0%,
+        rgba(140,150,104,0.03) 100%);
     }
 
     .calendar-title-section {
       display: flex;
       align-items: center;
-      gap: 20px;
+      gap: 16px;
     }
 
     .calendar-title-section h2 {
       margin: 0;
       font-family: 'Playfair Display', serif;
-      font-size: 24px;
-      font-weight: 500;
-      color: var(--text-primary);
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--ink);
+      letter-spacing: -0.3px;
     }
 
     .calendar-nav {
       display: flex;
       align-items: center;
-      gap: 16px;
-      margin-bottom: 24px;
-    }
-
-    .calendar-month {
-      font-family: 'Playfair Display', serif;
-      font-size: 24px;
-      font-weight: 500;
-      color: var(--text-primary);
-    }
-
-    .calendar-nav-btns {
-      display: flex;
-      gap: 8px;
+      gap: 4px;
+      margin-bottom: 0;
+      background: rgba(255,255,255,0.04);
+      border-radius: 12px;
+      padding: 3px;
+      border: 1px solid var(--line);
     }
 
     .btn-nav,
     .nav-btn {
-      width: 36px;
-      height: 36px;
-      border-radius: 10px;
-      background: var(--glass-bg);
-      border: 1px solid var(--border-color);
-      color: var(--text-secondary);
+      width: 34px;
+      height: 34px;
+      border-radius: 9px;
+      background: transparent;
+      border: none;
+      color: var(--muted);
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: all 0.25s;
+      transition: all 0.2s;
+      font-size: 13px;
       padding: 0;
     }
 
     .btn-nav:hover,
     .nav-btn:hover {
-      background: var(--bg-tertiary);
-      color: var(--text-primary);
+      background: rgba(140,150,104,0.18);
+      color: var(--ink);
+    }
+
+    /* Botón "Hoy" dentro del nav */
+    #btn-today {
+      width: auto;
+      padding: 0 12px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
     }
 
     .calendar-actions {
       display: flex;
       align-items: center;
-      gap: 16px;
+      gap: 12px;
     }
 
     .view-selector,
     .view-toggle {
-      margin-left: auto;
       display: flex;
-      background: var(--glass-bg);
+      background: rgba(255,255,255,0.04);
       border-radius: 10px;
-      padding: 4px;
-      border: 1px solid var(--border-color);
+      padding: 3px;
+      border: 1px solid var(--line);
+      gap: 2px;
     }
 
     .view-btn {
-      padding: 8px 16px;
+      padding: 7px 14px;
       border: none;
       background: transparent;
-      color: var(--text-muted);
-      font-size: 13px;
-      font-weight: 500;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 600;
       cursor: pointer;
       border-radius: 8px;
-      transition: all 0.25s;
+      transition: all 0.2s;
+      letter-spacing: 0.2px;
     }
 
     .view-btn.active {
-      background: var(--accent-gold);
-      color: #000;
+      background: var(--venus);
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(140,150,104,0.35);
     }
 
     .view-btn:hover:not(.active) {
-      background: var(--glass-bg);
-      color: var(--text-primary);
+      background: rgba(255,255,255,0.07);
+      color: var(--ink);
     }
 
     .calendar-grid-container {
@@ -3624,37 +3987,33 @@
     .weekdays-header {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
-      background: var(--bg-tertiary);
-      border-bottom: 1px solid var(--border-color);
+      background: rgba(255,255,255,0.02);
+      border-bottom: 1px solid var(--line);
       width: 100%;
       box-sizing: border-box;
-      border-radius: 16px 16px 0 0;
     }
 
     .weekday,
     .calendar-header-cell {
-      padding: 14px 8px;
+      padding: 12px 8px;
       text-align: center;
-      font-size: 11px;
-      font-weight: 600;
+      font-size: 10px;
+      font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 1px;
-      color: var(--text-muted);
-      background: var(--bg-tertiary);
-      border-right: 1px solid var(--border-color);
+      letter-spacing: 1.2px;
+      color: var(--muted);
+      border-right: 1px solid rgba(255,255,255,0.04);
     }
 
     .weekday:last-child,
-    .calendar-header-cell:last-child {
-      border-right: none;
-    }
+    .calendar-header-cell:last-child { border-right: none; }
 
     .calendar-grid {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
-      gap: 1px;
-      background: var(--border-color);
-      border-radius: 0 0 16px 16px;
+      gap: 0;
+      background: var(--line);
+      border-radius: 0 0 20px 20px;
       overflow: hidden;
       width: 100%;
       box-sizing: border-box;
@@ -3662,9 +4021,9 @@
 
     .calendar-day,
     .calendar-cell {
-      min-height: 100px;
-      padding: 10px;
-      background: var(--bg-secondary);
+      min-height: 110px;
+      padding: 10px 8px 8px;
+      background: var(--bg-card);
       cursor: pointer;
       display: flex;
       flex-direction: column;
@@ -3672,65 +4031,46 @@
       -webkit-tap-highlight-color: transparent;
       touch-action: manipulation;
       user-select: none;
-      will-change: background-color;
-      border: 2px solid transparent;
-      transition: background-color 0.2s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+      border: 1px solid transparent;
+      transition: background 0.18s ease, border-color 0.18s ease;
     }
 
     .calendar-day:hover,
     .calendar-cell:hover {
-      background: rgba(140, 150, 104, 0.08);
-      border-color: rgba(140, 150, 104, 0.2);
+      background: rgba(140,150,104,0.07);
+      z-index: 1;
     }
 
     .calendar-day:active,
     .calendar-cell:active {
-      background: rgba(140, 150, 104, 0.15);
-      transition: background-color 0.05s ease;
+      background: rgba(140,150,104,0.14);
     }
 
-    .calendar-day.selected {
-      background: rgba(140, 150, 104, 0.12);
-      border-color: var(--accent-gold);
-      box-shadow: inset 0 0 0 1px rgba(140, 150, 104, 0.3);
-    }
-
-    .calendar-day.selected:hover {
-      background: rgba(140, 150, 104, 0.18);
+    .calendar-day.selected,
+    .calendar-cell.selected {
+      background: rgba(140,150,104,0.13);
+      border-color: var(--venus) !important;
+      box-shadow: inset 0 0 0 1px rgba(140,150,104,0.4);
+      z-index: 2;
     }
 
     .calendar-day.other-month,
     .calendar-cell.other-month {
-      opacity: 0.4;
+      opacity: 0.35;
     }
 
     .calendar-day.today,
     .calendar-cell.today {
-      background: rgba(140, 150, 104, 0.06);
-      border-color: rgba(140, 150, 104, 0.25);
+      background: rgba(140,150,104,0.06);
     }
 
-    .calendar-day.today .day-number,
-    .calendar-cell.today .calendar-date {
-      width: 30px;
-      height: 30px;
-      background: var(--accent-gold);
-      color: #000;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-      font-size: 14px;
-      box-shadow: 0 2px 8px rgba(140, 150, 104, 0.4);
-    }
-
+    /* Número del día */
     .day-number,
     .calendar-date {
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 500;
-      color: var(--text-primary);
-      margin-bottom: 6px;
+      color: var(--ink);
+      margin-bottom: 5px;
       align-self: flex-start;
       width: 28px;
       height: 28px;
@@ -3738,11 +4078,31 @@
       align-items: center;
       justify-content: center;
       border-radius: 50%;
-      transition: background-color 0.2s ease;
+      transition: background 0.15s;
+      flex-shrink: 0;
     }
 
     .calendar-day:hover .day-number {
-      background: rgba(140, 150, 104, 0.15);
+      background: rgba(140,150,104,0.18);
+    }
+
+    /* "Hoy" — círculo dorado */
+    .calendar-day.today .day-number,
+    .calendar-cell.today .calendar-date {
+      width: 28px;
+      height: 28px;
+      background: var(--venus);
+      color: #fff;
+      border-radius: 50%;
+      font-weight: 700;
+      font-size: 13px;
+      box-shadow: 0 2px 10px rgba(140,150,104,0.5);
+    }
+
+    /* Día seleccionado — círculo blanco */
+    .calendar-day.selected .day-number {
+      background: var(--venus);
+      color: #fff;
     }
 
     .day-events,
@@ -3750,90 +4110,82 @@
       flex: 1;
       display: flex;
       flex-direction: column;
-      gap: 3px;
+      gap: 2px;
       overflow: hidden;
       min-height: 0;
     }
 
     .calendar-event {
-      font-size: 11px;
-      padding: 4px 8px;
-      border-radius: 6px;
+      font-size: 10.5px;
+      padding: 3px 7px;
+      border-radius: 5px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
       font-weight: 500;
       cursor: pointer;
-      transition: filter 0.15s ease, transform 0.15s ease;
-      line-height: 1.3;
-      border-left: 3px solid transparent;
+      transition: filter 0.15s, transform 0.15s;
+      line-height: 1.4;
+      border-left: 2px solid transparent;
     }
 
     .calendar-event:hover {
-      filter: brightness(1.2);
+      filter: brightness(1.25);
       transform: translateX(2px);
     }
 
-    .calendar-event.gold {
-      background: rgba(140, 150, 104, 0.2);
-      color: var(--accent-gold);
-      border-left-color: var(--accent-gold);
-    }
-
-    .calendar-event.rose {
-      background: rgba(122, 138, 90, 0.2);
-      color: var(--accent-rose);
-      border-left-color: var(--accent-rose);
-    }
-
-    .calendar-event.sage {
-      background: rgba(160, 201, 176, 0.2);
-      color: var(--accent-sage);
-      border-left-color: var(--accent-sage);
-    }
-
+    .calendar-event.confirmed,
     .calendar-event.teal {
-      background: rgba(45, 212, 191, 0.2);
-      color: var(--status-confirmed);
-      border-left-color: var(--status-confirmed);
-    }
-
-    .calendar-event.confirmed {
-      background: rgba(45, 212, 191, 0.15);
-      color: var(--status-confirmed);
-      border-left-color: var(--status-confirmed);
-    }
-
-    .calendar-event.cancelled {
-      background: rgba(248, 113, 113, 0.15);
-      color: var(--status-cancelled);
-      border-left-color: var(--status-cancelled);
-      opacity: 0.5;
-      text-decoration: line-through;
+      background: rgba(45,212,191,0.14);
+      color: #2dd4bf;
+      border-left-color: #2dd4bf;
     }
 
     .calendar-event.pending,
-    .calendar-event.scheduled {
-      background: rgba(251, 191, 36, 0.15);
-      color: var(--status-pending);
-      border-left-color: var(--status-pending);
+    .calendar-event.scheduled,
+    .calendar-event.gold {
+      background: rgba(251,191,36,0.14);
+      color: #fbbf24;
+      border-left-color: #fbbf24;
+    }
+
+    .calendar-event.cancelled {
+      background: rgba(248,113,113,0.12);
+      color: #f87171;
+      border-left-color: #f87171;
+      opacity: 0.6;
+      text-decoration: line-through;
+    }
+
+    .calendar-event.rose {
+      background: rgba(244,114,182,0.14);
+      color: #f472b6;
+      border-left-color: #f472b6;
+    }
+
+    .calendar-event.sage {
+      background: rgba(160,201,176,0.14);
+      color: #a0c9b0;
+      border-left-color: #a0c9b0;
     }
 
     .more-events,
     .event-more {
-      font-size: 11px;
-      color: var(--text-muted);
-      padding: 2px 8px;
+      font-size: 10px;
+      color: var(--muted);
+      padding: 2px 7px;
       cursor: pointer;
-      font-weight: 600;
+      font-weight: 700;
       border-radius: 4px;
-      transition: all 0.15s ease;
+      margin-top: 1px;
+      transition: all 0.15s;
+      letter-spacing: 0.2px;
     }
 
     .more-events:hover,
     .event-more:hover {
-      color: var(--accent-gold);
-      background: rgba(140, 150, 104, 0.1);
+      color: var(--venus);
+      background: rgba(140,150,104,0.12);
     }
 
     /* ===== RESPONSIVE CALENDAR (Inspirado en Apple Calendar iOS 18) ===== */
@@ -7094,9 +7446,16 @@
 
       <!-- TAB: Caja -->
       <section id="tab-caja" class="tab-content hidden">
+        <!-- Encabezado -->
         <div class="header-actions">
-          <h2><i class="fas fa-cash-register"></i> Caja del Día</h2>
-          <div style="display:flex;gap:8px;">
+          <div>
+            <h2><i class="fas fa-cash-register"></i> Caja del Día</h2>
+            <p style="margin:0;font-size:12px;color:var(--muted);" id="caja-fecha-hoy"></p>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input type="date" id="caja-fecha-select" class="form-control"
+              onchange="cargarCajaPorFecha(this.value)"
+              style="padding:8px 12px;border-radius:10px;font-size:13px;background:var(--bg-card);border:1px solid var(--line);color:var(--ink);">
             <button class="btn ghost" onclick="cargarCaja()">
               <i class="fas fa-sync"></i> Actualizar
             </button>
@@ -7106,145 +7465,110 @@
           </div>
         </div>
 
-        <!-- Fecha actual -->
-        <div class="card"
-          style="padding:12px 16px;margin-bottom:16px;background:linear-gradient(135deg, rgba(140,150,104,0.15) 0%, rgba(140,150,104,0.05) 100%);border:1px solid rgba(140,150,104,0.3);">
-          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
-            <div style="display:flex;align-items:center;gap:10px;">
-              <i class="fas fa-calendar-day" style="color:var(--venus);font-size:18px;"></i>
-              <span id="caja-fecha-hoy" style="font-size:16px;font-weight:600;color:var(--ink);"></span>
-            </div>
-            <div style="display:flex;align-items:center;gap:8px;">
-              <label style="font-size:12px;color:var(--muted);">Ver fecha:</label>
-              <input type="date" id="caja-fecha-select" class="form-control" onchange="cargarCajaPorFecha(this.value)"
-                style="padding:6px 10px;border-radius:8px;font-size:13px;">
-            </div>
-          </div>
-        </div>
-
-        <!-- Totales del día -->
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:24px;">
+        <!-- Tarjetas de totales — diseño premium -->
+        <div class="caja-totals-grid">
           <!-- Efectivo -->
-          <div class="card" style="background:linear-gradient(135deg, #2F3E2B 0%, #4A5D3F 100%);border:none;">
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-              <div
-                style="width:40px;height:40px;border-radius:10px;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;">
-                <i class="fas fa-money-bill-wave" style="color:#C1D7AE;font-size:18px;"></i>
-              </div>
-              <span
-                style="font-size:12px;color:rgba(255,255,255,0.7);text-transform:uppercase;font-weight:600;">Efectivo</span>
+          <div class="caja-card efectivo">
+            <div class="caja-card-icon"><i class="fas fa-money-bill-wave"></i></div>
+            <div class="caja-card-body">
+              <span class="caja-card-label">Efectivo</span>
+              <span class="caja-card-amount" id="caja-total-efectivo">$0</span>
+              <span class="caja-card-count" id="caja-count-efectivo">0 transacciones</span>
             </div>
-            <div id="caja-total-efectivo" style="font-size:28px;font-weight:700;color:#fff;">$0.00</div>
-            <div id="caja-count-efectivo" style="font-size:11px;color:rgba(255,255,255,0.6);margin-top:4px;">0
-              transacciones</div>
           </div>
 
           <!-- Tarjeta -->
-          <div class="card" style="background:linear-gradient(135deg, #3a4a5e 0%, #4a5a6e 100%);border:none;">
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-              <div
-                style="width:40px;height:40px;border-radius:10px;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;">
-                <i class="fas fa-credit-card" style="color:#A8C4E0;font-size:18px;"></i>
-              </div>
-              <span
-                style="font-size:12px;color:rgba(255,255,255,0.7);text-transform:uppercase;font-weight:600;">Tarjeta</span>
+          <div class="caja-card tarjeta">
+            <div class="caja-card-icon"><i class="fas fa-credit-card"></i></div>
+            <div class="caja-card-body">
+              <span class="caja-card-label">Tarjeta</span>
+              <span class="caja-card-amount" id="caja-total-tarjeta">$0</span>
+              <span class="caja-card-count" id="caja-count-tarjeta">0 transacciones</span>
             </div>
-            <div id="caja-total-tarjeta" style="font-size:28px;font-weight:700;color:#fff;">$0.00</div>
-            <div id="caja-count-tarjeta" style="font-size:11px;color:rgba(255,255,255,0.6);margin-top:4px;">0
-              transacciones</div>
           </div>
 
           <!-- Transferencia -->
-          <div class="card" style="background:linear-gradient(135deg, #4a3a5e 0%, #5a4a6e 100%);border:none;">
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-              <div
-                style="width:40px;height:40px;border-radius:10px;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;">
-                <i class="fas fa-exchange-alt" style="color:#D4B8E8;font-size:18px;"></i>
-              </div>
-              <span
-                style="font-size:12px;color:rgba(255,255,255,0.7);text-transform:uppercase;font-weight:600;">Transferencia</span>
+          <div class="caja-card transferencia">
+            <div class="caja-card-icon"><i class="fas fa-exchange-alt"></i></div>
+            <div class="caja-card-body">
+              <span class="caja-card-label">Transferencia</span>
+              <span class="caja-card-amount" id="caja-total-transferencia">$0</span>
+              <span class="caja-card-count" id="caja-count-transferencia">0 transacciones</span>
             </div>
-            <div id="caja-total-transferencia" style="font-size:28px;font-weight:700;color:#fff;">$0.00</div>
-            <div id="caja-count-transferencia" style="font-size:11px;color:rgba(255,255,255,0.6);margin-top:4px;">0
-              transacciones</div>
           </div>
 
-          <!-- Total General -->
-          <div class="card" style="background:linear-gradient(135deg, #C1A66D 0%, #D4B896 100%);border:none;">
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-              <div
-                style="width:40px;height:40px;border-radius:10px;background:rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;">
-                <i class="fas fa-coins" style="color:#fff;font-size:18px;"></i>
-              </div>
-              <span
-                style="font-size:12px;color:rgba(255,255,255,0.9);text-transform:uppercase;font-weight:700;">Total</span>
+          <!-- Total general -->
+          <div class="caja-card total-general">
+            <div class="caja-card-icon"><i class="fas fa-coins"></i></div>
+            <div class="caja-card-body">
+              <span class="caja-card-label">Total del Día</span>
+              <span class="caja-card-amount grand" id="caja-total-general">$0</span>
+              <span class="caja-card-count" id="caja-count-general">0 transacciones</span>
             </div>
-            <div id="caja-total-general" style="font-size:32px;font-weight:800;color:#fff;">$0.00</div>
-            <div id="caja-count-general" style="font-size:11px;color:rgba(255,255,255,0.8);margin-top:4px;">0
-              transacciones</div>
           </div>
         </div>
 
         <!-- Citas pendientes de cobro -->
-        <div class="card" style="margin-bottom:20px;">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-            <h3 style="margin:0;font-size:14px;color:var(--venus-soft);display:flex;align-items:center;gap:8px;">
-              <i class="fas fa-exclamation-triangle" style="color:#f0ad4e;"></i>
-              Citas Pendientes de Cobro (Hasta Hoy)
-            </h3>
-            <span id="caja-pendientes-count" class="badge" style="background:#f0ad4e;color:#333;">0</span>
+        <div class="card caja-pendientes-card" style="margin-bottom:20px;">
+          <div class="caja-section-header">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div style="width:8px;height:8px;border-radius:50%;background:#f59e0b;animation:pulse 1.5s infinite;"></div>
+              <h3 style="margin:0;font-size:14px;font-weight:700;">Citas Pendientes de Cobro</h3>
+            </div>
+            <span id="caja-pendientes-count" class="caja-badge-count">0</span>
           </div>
-          <div id="caja-pendientes-list" style="max-height:400px;overflow-y:auto;">
-            <div style="text-align:center;padding:40px;color:var(--muted);">
-              <i class="fas fa-check-circle" style="font-size:32px;margin-bottom:12px;opacity:0.5;"></i>
-              <p style="margin:0;">No hay citas pendientes de cobro</p>
+          <div id="caja-pendientes-list" style="max-height:380px;overflow-y:auto;">
+            <div class="caja-empty-state">
+              <i class="fas fa-check-circle"></i>
+              <p>Sin citas pendientes de cobro</p>
             </div>
           </div>
         </div>
 
-        <!-- Historial de transacciones del día -->
+        <!-- Historial de transacciones -->
         <div class="card">
-          <div
-            style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:12px;">
-            <h3 style="margin:0;font-size:14px;color:var(--venus-soft);">
-              <i class="fas fa-list-alt"></i> Historial de Transacciones
+          <div class="caja-section-header" style="flex-wrap:wrap;gap:12px;">
+            <h3 style="margin:0;font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px;">
+              <i class="fas fa-list-alt" style="color:var(--venus);"></i>
+              Historial de Transacciones
             </h3>
-            <div style="display:flex;gap:8px;">
-              <button class="btn ghost small caja-filter-btn is-active" data-filter="todos"
-                onclick="filtrarCaja('todos')">Todos</button>
-              <button class="btn ghost small caja-filter-btn" data-filter="citas"
-                onclick="filtrarCaja('citas')">Citas</button>
-              <button class="btn ghost small caja-filter-btn" data-filter="productos"
-                onclick="filtrarCaja('productos')">Productos</button>
+            <div class="caja-filter-group">
+              <button class="caja-filter-btn is-active" data-filter="todos" onclick="filtrarCaja('todos')">Todos</button>
+              <button class="caja-filter-btn" data-filter="citas" onclick="filtrarCaja('citas')">Citas</button>
+              <button class="caja-filter-btn" data-filter="productos" onclick="filtrarCaja('productos')">Productos</button>
             </div>
           </div>
 
-          <div class="table-wrap" style="max-height:400px;overflow-y:auto;">
-            <table class="data-table" style="font-size:12px;">
-              <thead style="position:sticky;top:0;background:var(--bg-card);z-index:1;">
+          <div class="table-wrap" style="max-height:420px;overflow-y:auto;margin-top:4px;">
+            <table class="data-table caja-table">
+              <thead>
                 <tr>
-                  <th style="text-align:left;padding:10px;">Hora</th>
-                  <th style="text-align:left;padding:10px;">Tipo</th>
-                  <th style="text-align:left;padding:10px;">Cliente</th>
-                  <th style="text-align:left;padding:10px;">Concepto</th>
-                  <th style="text-align:right;padding:10px;">Monto</th>
-                  <th style="text-align:center;padding:10px;">Método</th>
-                  <th style="text-align:center;padding:10px;"></th>
+                  <th>Hora</th>
+                  <th>Tipo</th>
+                  <th>Cliente</th>
+                  <th>Concepto</th>
+                  <th style="text-align:right;">Monto</th>
+                  <th style="text-align:center;">Método</th>
+                  <th style="text-align:center;width:40px;"></th>
                 </tr>
               </thead>
               <tbody id="caja-historial-body">
                 <tr>
-                  <td colspan="7" style="text-align:center;padding:40px;color:var(--muted);">
-                    <i class="fas fa-inbox" style="font-size:32px;margin-bottom:12px;opacity:0.5;display:block;"></i>
-                    No hay transacciones registradas hoy
+                  <td colspan="7" class="caja-empty-state" style="padding:48px 20px;">
+                    <i class="fas fa-inbox"></i>
+                    <p>Sin transacciones registradas hoy</p>
                   </td>
                 </tr>
               </tbody>
-              <tfoot style="background:var(--bg-card);border-top:2px solid var(--venus);">
+              <tfoot>
                 <tr>
-                  <td colspan="4" style="padding:12px;font-weight:700;">TOTAL DEL DÍA</td>
+                  <td colspan="4" style="padding:14px 16px;font-weight:700;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;">
+                    Total del Día
+                  </td>
                   <td id="caja-historial-total"
-                    style="text-align:right;padding:12px;font-weight:700;font-size:16px;color:var(--venus);">$0.00</td>
+                    style="text-align:right;padding:14px 16px;font-family:'Playfair Display',serif;font-size:20px;font-weight:800;color:var(--venus-soft);">
+                    $0.00
+                  </td>
                   <td colspan="2"></td>
                 </tr>
               </tfoot>
@@ -7668,76 +7992,105 @@
 
       <!-- Modal: Modificar Cita -->
       <dialog id="editApptDialog">
+        <div class="dialog-header">
+          <div class="dialog-title">
+            <div class="dialog-title-icon" style="background:linear-gradient(135deg,#f59e0b,#fbbf24);">
+              <i class="fas fa-calendar-edit" style="color:#000;"></i>
+            </div>
+            <span class="dialog-title-text">Modificar Cita</span>
+          </div>
+          <button type="button" class="dialog-close" id="btn-close-edit-dialog" onclick="editApptDialog.close()" title="Cerrar">
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+
         <div class="dialog-content">
-          <h2><i class="fas fa-edit"></i> Modificar Cita</h2>
           <form id="form-edit-appt">
             <input type="hidden" id="edit-appt-id">
 
-            <div class="form-grid">
-              <!-- Cliente (congelado) -->
-              <div style="grid-column: 1/3;">
-                <label class="form-label">Cliente (no editable)</label>
-                <input type="text" id="edit-appt-client-name" class="form-input" readonly
-                  style="background:rgba(255,255,255,0.05);cursor:not-allowed;">
+            <!-- Cliente (solo lectura) -->
+            <div class="form-section" style="padding:14px 18px;margin-bottom:14px;">
+              <div class="form-section-header" style="margin-bottom:10px;">
+                <span class="form-section-icon"><i class="fas fa-user"></i></span>
+                <span class="form-section-title">Cliente</span>
+                <span class="optional-badge">No editable</span>
               </div>
+              <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:rgba(255,255,255,0.03);border-radius:12px;border:1px solid var(--line);">
+                <div id="edit-appt-avatar" style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,rgba(140,150,104,0.4),rgba(140,150,104,0.2));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:var(--venus);flex-shrink:0;text-transform:uppercase;border:1px solid rgba(140,150,104,0.3);">?</div>
+                <input type="text" id="edit-appt-client-name" class="form-input"
+                  readonly style="background:transparent;border:none;padding:0;font-weight:600;font-size:15px;cursor:not-allowed;flex:1;">
+              </div>
+            </div>
 
-              <!-- Servicio -->
-              <div style="grid-column: 1/3;">
-                <label class="form-label">Servicio</label>
-                <div class="custom-select-wrapper">
-                  <input type="text" id="edit-appt-service" class="form-input" required>
-                  <span class="dropdown-toggle-icon">▼</span>
-                  <div id="edit-services-dropdown-list" class="custom-dropdown-list" style="display:none;"></div>
+            <!-- Servicio y Precio -->
+            <div class="form-section" style="padding:14px 18px;margin-bottom:14px;">
+              <div class="form-section-header" style="margin-bottom:12px;">
+                <span class="form-section-icon"><i class="fas fa-spa"></i></span>
+                <span class="form-section-title">Servicio</span>
+              </div>
+              <div class="grid-service-price" style="margin-bottom:0;">
+                <div>
+                  <label class="form-label">Servicio</label>
+                  <div class="custom-select-wrapper">
+                    <input type="text" id="edit-appt-service" class="form-input" required placeholder="Buscar servicio...">
+                    <span class="dropdown-toggle-icon">▼</span>
+                    <div id="edit-services-dropdown-list" class="custom-dropdown-list" style="display:none;"></div>
+                  </div>
+                </div>
+                <div>
+                  <label class="form-label">Precio</label>
+                  <div style="position:relative;">
+                    <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--venus);font-size:14px;">$</span>
+                    <input type="number" id="edit-appt-price" class="form-input" readonly style="padding-left:28px;background:rgba(255,255,255,0.03);">
+                  </div>
                 </div>
               </div>
+            </div>
 
-              <div>
-                <label class="form-label">Precio</label>
-                <div style="position:relative;">
-                  <span
-                    style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--venus-soft);font-size:14px;">$</span>
-                  <input type="number" id="edit-appt-price" class="form-input" readonly style="padding-left:28px;">
-                </div>
+            <!-- Fecha y Hora -->
+            <div class="form-section" style="padding:14px 18px;margin-bottom:0;">
+              <div class="form-section-header" style="margin-bottom:12px;">
+                <span class="form-section-icon"><i class="fas fa-calendar-day"></i></span>
+                <span class="form-section-title">Fecha y Hora</span>
               </div>
-
-              <div>
-                <label class="form-label">Duración (min)</label>
-                <input type="number" id="edit-appt-duration" class="form-input" readonly>
-              </div>
-
-              <!-- Fecha y Hora -->
               <div class="grid-date-time full-width">
                 <div style="position:relative;">
-                  <label class="form-label"><i class="fas fa-calendar"></i> Fecha</label>
-                  <input type="text" id="edit-appt-date" class="form-input date-picker-input" readonly required
-                    placeholder="Seleccionar fecha" style="cursor:pointer;">
+                  <label class="form-label">Fecha</label>
+                  <input type="text" id="edit-appt-date" class="form-input date-picker-input"
+                    readonly required placeholder="Seleccionar fecha" style="cursor:pointer;">
                   <div id="edit-appt-calendar" class="calendar-dropdown" style="display:none;"></div>
                 </div>
                 <div>
                   <label class="form-label">Hora</label>
-                  <select id="edit-appt-hour" class="form-input" required style="width:100px;">
+                  <select id="edit-appt-hour" class="form-input" required>
                     <option value="">--</option>
                   </select>
                 </div>
                 <div>
                   <label class="form-label">Min</label>
-                  <select id="edit-appt-minute" class="form-input" required style="width:90px;">
+                  <select id="edit-appt-minute" class="form-input" required>
                     <option value="">--</option>
                   </select>
                 </div>
                 <div>
                   <label class="form-label">Termina</label>
-                  <input type="text" id="edit-appt-end-time" class="form-input" readonly>
+                  <input type="text" id="edit-appt-end-time" class="form-input" readonly
+                    style="background:rgba(0,0,0,0.15);color:var(--muted);">
                 </div>
               </div>
-
-              <!-- Botones -->
-              <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:8px;grid-column:1/3;">
-                <button type="button" class="btn ghost" id="btn-cancel-edit-appt">Cancelar</button>
-                <button type="submit" class="btn primary">Guardar Cambios</button>
-              </div>
             </div>
+
           </form>
+        </div>
+
+        <div class="dialog-footer">
+          <button type="button" class="cancel-btn" id="btn-cancel-edit-appt">Cancelar</button>
+          <button type="submit" form="form-edit-appt" class="submit-btn"
+            style="background:linear-gradient(135deg,#f59e0b,#fbbf24);color:#000;">
+            <i class="fas fa-save"></i> Guardar Cambios
+          </button>
         </div>
       </dialog>
 
@@ -7747,48 +8100,44 @@
           <i class="fas fa-times"></i>
         </button>
 
-        <div class="dialog-header">
-          <h3><i class="fas fa-receipt"></i> Cobrar Servicio</h3>
+        <!-- Header premium con info del cobro -->
+        <div class="pay-dialog-header">
+          <div class="pay-dialog-avatar" id="pay-avatar">C</div>
+          <div class="pay-dialog-info">
+            <div class="pay-dialog-client" id="payment-client-name">Cliente</div>
+            <div class="pay-dialog-service" id="payment-service-name">Servicio</div>
+          </div>
+          <div class="pay-dialog-amount">
+            <span class="pay-amount-label">Total</span>
+            <span class="pay-amount-value" id="btn-payment-total">$0</span>
+          </div>
         </div>
 
-        <div style="padding:0 20px 20px;">
-          <!-- Info cliente y servicio -->
-          <div class="payment-info-row">
-            <div class="payment-info-box">
-              <div class="payment-info-label">Cliente</div>
-              <div class="payment-info-value" id="payment-client-name">-</div>
+        <div class="pay-dialog-body">
+          <!-- Precio del servicio (editable) -->
+          <div class="pay-price-row">
+            <div style="display:flex;flex-direction:column;gap:2px;">
+              <span style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;">Precio servicio</span>
+              <span class="payment-price-display" id="payment-price-display">$0</span>
+              <input type="number" class="payment-price-input" id="payment-price-input" min="0" step="any">
             </div>
-            <div class="payment-info-box">
-              <div class="payment-info-label">Servicio</div>
-              <div class="payment-info-value" id="payment-service-name">-</div>
-              <div class="payment-price-row">
-                <span class="payment-price-display" id="payment-price-display">$0</span>
-                <input type="number" class="payment-price-input" id="payment-price-input" min="0" step="any">
-                <button class="btn-edit-price" onclick="togglePriceEdit()" title="Editar precio">
-                  <i class="fas fa-pencil" style="font-size:12px;"></i>
-                </button>
-              </div>
-            </div>
+            <button class="btn-edit-price" onclick="togglePriceEdit()" title="Editar precio">
+              <i class="fas fa-pencil" style="font-size:12px;"></i> Editar
+            </button>
           </div>
 
           <!-- Productos -->
           <div class="payment-section">
             <div class="payment-section-header">
-              <span class="payment-section-title">
-                <i class="fas fa-shopping-bag"></i> Productos
-              </span>
+              <span class="payment-section-title"><i class="fas fa-shopping-bag"></i> Productos adicionales</span>
             </div>
-
             <div class="product-add-row">
               <select id="payment-product-select">
                 <option value="">Agregar producto...</option>
               </select>
               <input type="number" id="payment-product-qty" value="1" min="1" max="99">
-              <button type="button" onclick="addProductToPayment()">
-                <i class="fas fa-plus"></i>
-              </button>
+              <button type="button" onclick="addProductToPayment()"><i class="fas fa-plus"></i></button>
             </div>
-
             <div class="payment-product-list" id="payment-products-list">
               <div class="payment-products-empty">Sin productos adicionales</div>
             </div>
@@ -7797,11 +8146,8 @@
           <!-- Descuento -->
           <div class="payment-section">
             <div class="payment-section-header">
-              <span class="payment-section-title">
-                <i class="fas fa-percent"></i> Descuento
-              </span>
+              <span class="payment-section-title"><i class="fas fa-tag"></i> Descuento</span>
             </div>
-
             <div class="discount-row">
               <div class="discount-toggle">
                 <button class="active" onclick="setDiscountType('percent')" id="btn-discount-percent">%</button>
@@ -7813,7 +8159,6 @@
                 <span class="discount-symbol" id="discount-symbol">%</span>
               </div>
             </div>
-
             <div class="discount-applied" id="discount-applied">
               <i class="fas fa-tag"></i>
               <span id="discount-applied-text">Descuento aplicado: -$0</span>
@@ -7823,31 +8168,49 @@
           <!-- Totales -->
           <div class="payment-totals">
             <div class="payment-total-row sub">
-              <span>Servicio</span>
-              <span id="total-service">$0</span>
+              <span>Servicio</span><span id="total-service">$0</span>
             </div>
             <div class="payment-total-row sub" id="total-products-row" style="display:none;">
               <span>Productos (<span id="total-products-count">0</span>)</span>
               <span id="total-products">$0</span>
             </div>
             <div class="payment-total-row subtotal-line">
-              <span>Subtotal</span>
-              <span id="total-subtotal">$0</span>
+              <span>Subtotal</span><span id="total-subtotal">$0</span>
             </div>
             <div class="payment-total-row discount" id="total-discount-row">
               <span id="total-discount-label">Descuento</span>
               <span id="total-discount">-$0</span>
             </div>
             <div class="payment-total-row grand">
-              <span>Total</span>
-              <span id="total-grand">$0</span>
+              <span>Total a cobrar</span><span id="total-grand">$0</span>
             </div>
           </div>
 
-          <!-- Método de pago -->
-          <div class="form-row" style="margin-top:16px;margin-bottom:0;">
-            <label>Método de Pago <span style="color:#ef4444;">*</span></label>
-            <select id="payment-method" class="form-input">
+          <!-- Método de pago — chips visuales -->
+          <div class="pay-method-section">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin-bottom:10px;">
+              Método de pago <span style="color:#ef4444;">*</span>
+            </div>
+            <div class="pay-method-chips">
+              <label class="pay-chip">
+                <input type="radio" name="pay-method-chip" value="efectivo" checked>
+                <span><i class="fas fa-money-bill-wave"></i> Efectivo</span>
+              </label>
+              <label class="pay-chip">
+                <input type="radio" name="pay-method-chip" value="tarjeta_credito">
+                <span><i class="fas fa-credit-card"></i> T. Crédito</span>
+              </label>
+              <label class="pay-chip">
+                <input type="radio" name="pay-method-chip" value="tarjeta_debito">
+                <span><i class="fas fa-credit-card"></i> T. Débito</span>
+              </label>
+              <label class="pay-chip">
+                <input type="radio" name="pay-method-chip" value="transferencia">
+                <span><i class="fas fa-exchange-alt"></i> Transferencia</span>
+              </label>
+            </div>
+            <!-- Select oculto para compatibilidad con el JS existente -->
+            <select id="payment-method" style="display:none;">
               <option value="efectivo">Efectivo</option>
               <option value="tarjeta_credito">Tarjeta de crédito</option>
               <option value="tarjeta_debito">Tarjeta de débito</option>
@@ -7861,11 +8224,12 @@
         </div>
 
         <div class="dialog-footer">
-          <button class="btn primary btn-cobrar" onclick="savePayment()" id="btn-save-payment">
+          <button type="button" onclick="closePaymentModal()" class="cancel-btn">Cancelar</button>
+          <button class="submit-btn btn-cobrar" onclick="savePayment()" id="btn-save-payment"
+            style="background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;">
             <i class="fas fa-check-circle"></i>
-            Cobrar <span id="btn-payment-total">$0</span>
+            Cobrar <span id="btn-payment-total-2">$0</span>
           </button>
-          <button type="button" onclick="closePaymentModal()" class="btn ghost">Cancelar</button>
         </div>
       </dialog>
 
@@ -9090,6 +9454,534 @@
         }
 
         /* ===== MODAL COBRAR SERVICIO ===== */
+        /* ===== PAYMENT DIALOG — PREMIUM REDESIGN ===== */
+
+        /* Contenedor principal */
+        #paymentDialog,
+        #directSaleDialog,
+        #paymentDetailDialog {
+          position: relative;
+        }
+
+        #paymentDialog {
+          max-width: 460px !important;
+          padding: 0 !important;
+          overflow: hidden;
+          border-radius: 20px !important;
+        }
+
+        /* Botón cerrar */
+        .btn-close-payment {
+          position: absolute;
+          top: 14px;
+          right: 14px;
+          background: rgba(0,0,0,0.25);
+          border: 1px solid rgba(255,255,255,0.15);
+          color: rgba(255,255,255,0.8);
+          width: 36px;
+          height: 36px;
+          border-radius: 10px;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s;
+          z-index: 100;
+          font-size: 13px;
+          -webkit-tap-highlight-color: transparent;
+          touch-action: manipulation;
+        }
+
+        .btn-close-payment:hover {
+          background: rgba(239,68,68,0.25);
+          border-color: rgba(239,68,68,0.4);
+          color: #ef4444;
+        }
+
+        /* Header premium con avatar + info + total */
+        .pay-dialog-header {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          padding: 22px 20px 20px;
+          background: linear-gradient(135deg, rgba(140,150,104,0.18) 0%, rgba(140,150,104,0.06) 100%);
+          border-bottom: 1px solid var(--line);
+        }
+
+        .pay-dialog-avatar {
+          width: 48px;
+          height: 48px;
+          min-width: 48px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, var(--venus), rgba(140,150,104,0.5));
+          color: #fff;
+          font-family: 'Playfair Display', serif;
+          font-size: 20px;
+          font-weight: 700;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 4px 12px rgba(140,150,104,0.35);
+        }
+
+        .pay-dialog-info {
+          flex: 1;
+          min-width: 0;
+        }
+
+        .pay-dialog-client {
+          font-size: 16px;
+          font-weight: 700;
+          color: var(--ink);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          font-family: 'Playfair Display', serif;
+        }
+
+        .pay-dialog-service {
+          font-size: 12px;
+          color: var(--muted);
+          margin-top: 2px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .pay-dialog-amount {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-end;
+          gap: 2px;
+        }
+
+        .pay-amount-label {
+          font-size: 10px;
+          text-transform: uppercase;
+          letter-spacing: 0.8px;
+          color: var(--muted);
+          font-weight: 600;
+        }
+
+        .pay-amount-value {
+          font-family: 'Playfair Display', serif;
+          font-size: 22px;
+          font-weight: 700;
+          color: var(--venus-soft);
+          white-space: nowrap;
+        }
+
+        /* Cuerpo del dialog */
+        .pay-dialog-body {
+          padding: 20px;
+          overflow-y: auto;
+          max-height: calc(80vh - 160px);
+          -webkit-overflow-scrolling: touch;
+        }
+
+        /* Fila de precio editable */
+        .pay-price-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          background: rgba(0,0,0,0.2);
+          border: 1px solid var(--line);
+          border-radius: 14px;
+          padding: 14px 16px;
+          margin-bottom: 16px;
+        }
+
+        .payment-price-display {
+          font-family: 'Playfair Display', serif;
+          font-size: 20px;
+          font-weight: 700;
+          color: var(--venus-soft);
+        }
+
+        .payment-price-input {
+          width: 110px;
+          padding: 8px 12px;
+          background: rgba(0,0,0,0.3);
+          border: 1.5px solid var(--venus);
+          border-radius: 10px;
+          color: var(--ink);
+          font-family: 'Playfair Display', serif;
+          font-size: 18px;
+          font-weight: 700;
+          display: none;
+        }
+
+        .payment-price-input.visible { display: block; }
+        .payment-price-display.hidden { display: none; }
+
+        .btn-edit-price {
+          display: flex;
+          align-items: center;
+          gap: 5px;
+          background: rgba(140,150,104,0.1);
+          border: 1px solid rgba(140,150,104,0.25);
+          color: var(--venus-soft);
+          padding: 7px 12px;
+          border-radius: 8px;
+          cursor: pointer;
+          font-size: 12px;
+          font-weight: 600;
+          transition: all 0.2s;
+        }
+
+        .btn-edit-price:hover {
+          background: rgba(140,150,104,0.2);
+          border-color: var(--venus);
+        }
+
+        /* Secciones internas */
+        .payment-section {
+          background: rgba(0,0,0,0.18);
+          border-radius: 14px;
+          padding: 16px;
+          margin-bottom: 14px;
+          border: 1px solid var(--line);
+        }
+
+        .payment-section-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 12px;
+        }
+
+        .payment-section-title {
+          font-size: 12px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.7px;
+          display: flex;
+          align-items: center;
+          gap: 7px;
+          color: var(--venus-soft);
+        }
+
+        /* Productos */
+        .product-add-row {
+          display: flex;
+          gap: 8px;
+          margin-bottom: 10px;
+        }
+
+        .product-add-row select {
+          flex: 1;
+          padding: 10px 12px;
+          background: rgba(0,0,0,0.3);
+          border: 1px solid var(--line);
+          border-radius: 8px;
+          color: var(--ink);
+          font-size: 13px;
+        }
+
+        .product-add-row input {
+          width: 60px;
+          padding: 10px;
+          background: rgba(0,0,0,0.3);
+          border: 1px solid var(--line);
+          border-radius: 8px;
+          color: var(--ink);
+          font-size: 13px;
+          text-align: center;
+        }
+
+        .product-add-row button {
+          padding: 10px 14px;
+          background: var(--venus);
+          border: none;
+          border-radius: 8px;
+          color: white;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          font-size: 12px;
+        }
+
+        .product-add-row button:hover { background: var(--venus-soft); }
+
+        .payment-product-list {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          max-height: 160px;
+          overflow-y: auto;
+        }
+
+        .payment-product-item {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 10px 12px;
+          background: rgba(255,255,255,0.03);
+          border-radius: 10px;
+          border: 1px solid var(--line);
+        }
+
+        .payment-product-icon {
+          width: 32px;
+          height: 32px;
+          background: rgba(140,150,104,0.2);
+          border-radius: 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: var(--venus-soft);
+          font-size: 14px;
+        }
+
+        .payment-product-info { flex: 1; min-width: 0; }
+
+        .payment-product-name {
+          font-size: 13px;
+          font-weight: 500;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .payment-product-meta { font-size: 11px; color: var(--muted); }
+
+        .payment-product-price {
+          font-size: 13px;
+          font-weight: 700;
+          color: var(--venus-soft);
+          white-space: nowrap;
+        }
+
+        .payment-product-remove {
+          background: none;
+          border: none;
+          color: #ef4444;
+          cursor: pointer;
+          padding: 4px;
+          opacity: 0.5;
+          display: flex;
+          align-items: center;
+          transition: opacity 0.2s;
+        }
+
+        .payment-product-remove:hover { opacity: 1; }
+
+        .payment-products-empty {
+          text-align: center;
+          padding: 14px;
+          color: var(--muted);
+          font-size: 12px;
+        }
+
+        .stock-warn {
+          font-size: 10px;
+          color: #fbbf24;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          margin-top: 2px;
+        }
+
+        /* Descuento */
+        .discount-row {
+          display: flex;
+          gap: 10px;
+          align-items: center;
+        }
+
+        .discount-toggle {
+          display: flex;
+          background: rgba(0,0,0,0.3);
+          border-radius: 8px;
+          overflow: hidden;
+          border: 1px solid var(--line);
+        }
+
+        .discount-toggle button {
+          padding: 10px 16px;
+          background: transparent;
+          border: none;
+          color: var(--muted);
+          font-size: 14px;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .discount-toggle button.active {
+          background: var(--venus);
+          color: white;
+        }
+
+        .discount-toggle button:hover:not(.active) {
+          background: rgba(255,255,255,0.05);
+          color: var(--ink);
+        }
+
+        .discount-input-wrap {
+          flex: 1;
+          position: relative;
+        }
+
+        .discount-input-wrap input {
+          width: 100%;
+          padding: 10px 36px 10px 14px;
+          background: rgba(0,0,0,0.3);
+          border: 1px solid var(--line);
+          border-radius: 10px;
+          color: var(--ink);
+          font-size: 14px;
+        }
+
+        .discount-input-wrap input:focus {
+          outline: none;
+          border-color: var(--venus);
+        }
+
+        .discount-symbol {
+          position: absolute;
+          right: 14px;
+          top: 50%;
+          transform: translateY(-50%);
+          color: var(--muted);
+          font-size: 14px;
+          font-weight: 500;
+          pointer-events: none;
+        }
+
+        .discount-applied {
+          margin-top: 10px;
+          padding: 9px 14px;
+          background: rgba(34,197,94,0.1);
+          border: 1px solid rgba(34,197,94,0.2);
+          border-radius: 10px;
+          font-size: 13px;
+          color: #22c55e;
+          display: none;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .discount-applied.visible { display: flex; }
+
+        /* Totales premium */
+        .payment-totals {
+          background: rgba(140,150,104,0.08);
+          border-radius: 16px;
+          padding: 16px;
+          margin-bottom: 16px;
+          border: 1px solid rgba(140,150,104,0.2);
+        }
+
+        .payment-total-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 5px 0;
+        }
+
+        .payment-total-row.sub {
+          font-size: 13px;
+          color: var(--muted);
+        }
+
+        .payment-total-row.subtotal-line {
+          font-size: 13px;
+          color: var(--ink);
+          border-top: 1px solid var(--line);
+          padding-top: 10px;
+          margin-top: 5px;
+        }
+
+        .payment-total-row.discount {
+          font-size: 13px;
+          color: #22c55e;
+          display: none;
+        }
+
+        .payment-total-row.discount.visible { display: flex; }
+
+        .payment-total-row.grand {
+          font-family: 'Playfair Display', serif;
+          font-size: 22px;
+          font-weight: 700;
+          color: var(--venus-soft);
+          border-top: 1px solid rgba(140,150,104,0.3);
+          padding-top: 14px;
+          margin-top: 8px;
+        }
+
+        .payment-total-row.grand span:last-child {
+          color: var(--venus-soft);
+        }
+
+        /* Método de pago — chips */
+        .pay-method-section {
+          margin-bottom: 4px;
+        }
+
+        .pay-method-chips {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 8px;
+        }
+
+        .pay-chip {
+          position: relative;
+          cursor: pointer;
+        }
+
+        .pay-chip input[type="radio"] {
+          position: absolute;
+          opacity: 0;
+          width: 0;
+          height: 0;
+        }
+
+        .pay-chip span {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          padding: 12px 10px;
+          border-radius: 12px;
+          border: 1.5px solid var(--line);
+          background: rgba(0,0,0,0.15);
+          color: var(--muted);
+          font-size: 13px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+          user-select: none;
+        }
+
+        .pay-chip:hover span {
+          background: rgba(140,150,104,0.08);
+          color: var(--ink);
+        }
+
+        .pay-chip input[type="radio"]:checked + span {
+          background: rgba(140,150,104,0.18);
+          border-color: var(--venus);
+          color: var(--ink);
+          box-shadow: 0 0 0 3px rgba(140,150,104,0.12);
+        }
+
+        /* Botón cobrar */
+        .btn-cobrar {
+          flex: 1;
+          padding: 14px 24px;
+          font-size: 15px;
+          font-weight: 700;
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+        }
+
+        /* Información legacy (para otros dialogs que aún la usan) */
         .payment-info-row {
           display: flex;
           gap: 12px;
@@ -9098,7 +9990,7 @@
 
         .payment-info-box {
           flex: 1;
-          background: rgba(0, 0, 0, 0.2);
+          background: rgba(0,0,0,0.2);
           border-radius: 10px;
           padding: 12px;
           border: 1px solid var(--line);
@@ -9118,7 +10010,7 @@
         }
 
         .payment-products {
-          background: rgba(0, 0, 0, 0.2);
+          background: rgba(0,0,0,0.2);
           border-radius: 12px;
           padding: 14px;
           margin-bottom: 16px;
@@ -9141,384 +10033,11 @@
           color: var(--venus-soft);
         }
 
-        .product-add-row {
-          display: flex;
-          gap: 8px;
-          margin-bottom: 10px;
-        }
-
-        .product-add-row select {
-          flex: 1;
-          padding: 10px 12px;
-          background: rgba(0, 0, 0, 0.3);
-          border: 1px solid var(--line);
-          border-radius: 8px;
-          color: var(--ink);
-          font-size: 13px;
-        }
-
-        .product-add-row input {
-          width: 65px;
-          padding: 10px;
-          background: rgba(0, 0, 0, 0.3);
-          border: 1px solid var(--line);
-          border-radius: 8px;
-          color: var(--ink);
-          font-size: 13px;
-          text-align: center;
-        }
-
-        .product-add-row button {
-          padding: 10px 14px;
-          background: var(--venus);
-          border: none;
-          border-radius: 8px;
-          color: white;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 4px;
-          font-size: 12px;
-        }
-
-        .product-add-row button:hover {
-          background: var(--venus-soft);
-        }
-
-        .payment-product-list {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-          max-height: 180px;
-          overflow-y: auto;
-        }
-
-        .payment-product-item {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          padding: 10px 12px;
-          background: rgba(255, 255, 255, 0.03);
-          border-radius: 8px;
-          border: 1px solid var(--line);
-        }
-
-        .payment-product-icon {
-          width: 32px;
-          height: 32px;
-          background: rgba(140, 150, 104, 0.2);
-          border-radius: 6px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: var(--venus-soft);
-          font-size: 14px;
-        }
-
-        .payment-product-info {
-          flex: 1;
-          min-width: 0;
-        }
-
-        .payment-product-name {
-          font-size: 13px;
-          font-weight: 500;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-
-        .payment-product-meta {
-          font-size: 11px;
-          color: var(--muted);
-        }
-
-        .payment-product-price {
-          font-size: 13px;
-          font-weight: 600;
-          color: var(--venus-soft);
-          white-space: nowrap;
-        }
-
-        .payment-product-remove {
-          background: none;
-          border: none;
-          color: #ef4444;
-          cursor: pointer;
-          padding: 4px;
-          opacity: 0.6;
-          display: flex;
-          align-items: center;
-        }
-
-        .payment-product-remove:hover {
-          opacity: 1;
-        }
-
-        .payment-products-empty {
-          text-align: center;
-          padding: 16px;
-          color: var(--muted);
-          font-size: 12px;
-        }
-
-        .stock-warn {
-          font-size: 10px;
-          color: #fbbf24;
-          display: flex;
-          align-items: center;
-          gap: 4px;
-          margin-top: 2px;
-        }
-
-        .payment-totals {
-          background: rgba(140, 150, 104, 0.1);
-          border-radius: 12px;
-          padding: 14px;
-          margin-bottom: 16px;
-          border: 1px solid rgba(140, 150, 104, 0.2);
-        }
-
-        .payment-total-row {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 6px 0;
-        }
-
-        .payment-total-row.subtotal {
-          font-size: 13px;
-          color: var(--muted);
-        }
-
-        .payment-total-row.grand {
-          font-size: 18px;
-          font-weight: 700;
-          color: var(--venus-soft);
-          border-top: 1px solid var(--line);
-          padding-top: 12px;
-          margin-top: 8px;
-        }
-
-        /* Estilos adicionales para modal mejorado */
-        #paymentDialog,
-        #directSaleDialog,
-        #paymentDetailDialog {
-          position: relative;
-        }
-
-        #paymentDialog {
-          max-width: 440px !important;
-        }
-
-        .btn-close-payment {
-          position: absolute;
-          top: 16px;
-          right: 16px;
-          background: rgba(255, 255, 255, 0.08);
-          border: 1px solid var(--line);
-          color: var(--muted);
-          width: 40px;
-          height: 40px;
-          border-radius: 12px;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: all 0.2s;
-          z-index: 100;
-          -webkit-tap-highlight-color: transparent;
-          touch-action: manipulation;
-        }
-
-        .btn-close-payment:hover,
-        .btn-close-payment:active {
-          background: rgba(239, 68, 68, 0.15);
-          border-color: rgba(239, 68, 68, 0.4);
-          color: #ef4444;
-          transform: scale(1.05);
-        }
-
         .payment-price-row {
           display: flex;
           align-items: center;
           gap: 8px;
           margin-top: 8px;
-        }
-
-        .payment-price-display {
-          font-size: 15px;
-          font-weight: 600;
-          color: var(--venus-soft);
-        }
-
-        .payment-price-input {
-          width: 100px;
-          padding: 6px 10px;
-          background: rgba(0, 0, 0, 0.3);
-          border: 1px solid var(--venus);
-          border-radius: 8px;
-          color: var(--ink);
-          font-size: 15px;
-          font-weight: 600;
-          display: none;
-        }
-
-        .payment-price-input.visible {
-          display: block;
-        }
-
-        .payment-price-display.hidden {
-          display: none;
-        }
-
-        .btn-edit-price {
-          background: none;
-          border: none;
-          color: var(--muted);
-          cursor: pointer;
-          padding: 4px;
-          border-radius: 6px;
-          display: flex;
-          align-items: center;
-        }
-
-        .btn-edit-price:hover {
-          color: var(--venus-soft);
-          background: rgba(140, 150, 104, 0.1);
-        }
-
-        .payment-section {
-          background: rgba(0, 0, 0, 0.2);
-          border-radius: 14px;
-          padding: 16px;
-          margin-bottom: 16px;
-          border: 1px solid var(--line);
-        }
-
-        .payment-section-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 14px;
-        }
-
-        .payment-section-title {
-          font-size: 13px;
-          font-weight: 600;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          color: var(--venus-soft);
-        }
-
-        .discount-row {
-          display: flex;
-          gap: 10px;
-          align-items: center;
-        }
-
-        .discount-toggle {
-          display: flex;
-          background: rgba(0, 0, 0, 0.3);
-          border-radius: 8px;
-          overflow: hidden;
-          border: 1px solid var(--line);
-        }
-
-        .discount-toggle button {
-          padding: 10px 18px;
-          background: transparent;
-          border: none;
-          color: var(--muted);
-          font-size: 14px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-
-        .discount-toggle button.active {
-          background: var(--venus);
-          color: white;
-        }
-
-        .discount-toggle button:hover:not(.active) {
-          background: rgba(255, 255, 255, 0.05);
-        }
-
-        .discount-input-wrap {
-          flex: 1;
-          position: relative;
-        }
-
-        .discount-input-wrap input {
-          width: 100%;
-          padding: 10px 14px;
-          padding-right: 36px;
-          background: rgba(0, 0, 0, 0.3);
-          border: 1px solid var(--line);
-          border-radius: 10px;
-          color: var(--ink);
-          font-size: 14px;
-        }
-
-        .discount-input-wrap input:focus {
-          outline: none;
-          border-color: var(--venus);
-        }
-
-        .discount-symbol {
-          position: absolute;
-          right: 14px;
-          top: 50%;
-          transform: translateY(-50%);
-          color: var(--muted);
-          font-size: 14px;
-          font-weight: 500;
-        }
-
-        .discount-applied {
-          margin-top: 12px;
-          padding: 10px 14px;
-          background: rgba(34, 197, 94, 0.1);
-          border-radius: 10px;
-          font-size: 13px;
-          color: #22c55e;
-          display: none;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .discount-applied.visible {
-          display: flex;
-        }
-
-        .payment-total-row.sub {
-          font-size: 13px;
-          color: var(--muted);
-        }
-
-        .payment-total-row.subtotal-line {
-          font-size: 14px;
-          color: var(--ink);
-        }
-
-        .payment-total-row.discount {
-          font-size: 13px;
-          color: #22c55e;
-          display: none;
-        }
-
-        .payment-total-row.discount.visible {
-          display: flex;
-        }
-
-        .btn-cobrar {
-          flex: 1;
-          padding: 14px 24px;
-          font-size: 15px;
-          font-weight: 600;
-          border-radius: 12px;
         }
 
         /* ===== DASHBOARD MEJORADO - NUEVO DISEÑO ===== */
@@ -18391,16 +18910,26 @@
       document.getElementById('payment-client-name').textContent = clientName || '-';
       document.getElementById('payment-service-name').textContent = serviceName || '-';
 
-      const modalTitle = document.querySelector('#paymentDialog h3');
-      const submitBtn = document.querySelector('#paymentDialog .btn.primary');
+      // Avatar con inicial del cliente
+      const avatarEl = document.getElementById('pay-avatar');
+      if (avatarEl) avatarEl.textContent = (clientName || 'C').charAt(0).toUpperCase();
 
-      if (isEdit) {
-        modalTitle.textContent = 'Editar Pago';
-        submitBtn.innerHTML = '<i class="fas fa-save"></i> Guardar Cambios <span id="btn-payment-total">$0</span>';
-      } else {
-        modalTitle.textContent = 'Registrar Pago';
-        submitBtn.innerHTML = '<i class="fas fa-check"></i> Completar Cita <span id="btn-payment-total">$0</span>';
+      // Reset chips de método de pago al default (efectivo)
+      const defaultChip = document.querySelector('.pay-chip input[value="efectivo"]');
+      if (defaultChip) {
+        document.querySelectorAll('.pay-chip input').forEach(r => r.checked = false);
+        defaultChip.checked = true;
+        const sel = document.getElementById('payment-method');
+        if (sel) sel.value = 'efectivo';
       }
+
+      // Sincronizar chips → select al cambiar
+      document.querySelectorAll('.pay-chip input').forEach(radio => {
+        radio.onchange = function() {
+          const sel = document.getElementById('payment-method');
+          if (sel) sel.value = this.value;
+        };
+      });
 
       // Si es edición, obtener datos actuales de la cita
       if (isEdit) {
@@ -18411,9 +18940,15 @@
             const appt = json.data;
             servicePrice = appt.serviceAmount || appt.price || 0;
 
-            // Pre-seleccionar método de pago
+            // Pre-seleccionar método de pago (chips + select)
+            const method = appt.paymentMethod || 'efectivo';
             const methodSelect = document.getElementById('payment-method');
-            if (methodSelect) methodSelect.value = appt.paymentMethod || 'efectivo';
+            if (methodSelect) methodSelect.value = method;
+            const chipToSelect = document.querySelector(`.pay-chip input[value="${method}"]`);
+            if (chipToSelect) {
+              document.querySelectorAll('.pay-chip input').forEach(r => r.checked = false);
+              chipToSelect.checked = true;
+            }
 
             // Pre-llenar descuento si existe
             if (appt.discountType) {
@@ -18425,8 +18960,6 @@
               document.getElementById('btn-discount-fixed').classList.toggle('active', discountType === 'fixed');
               document.getElementById('discount-symbol').textContent = discountType === 'percent' ? '%' : '$';
             }
-
-            // TODO: Cargar productos vendidos si es necesario (complejo porque requiere stock)
 
             // Recalcular totales después de cargar datos
             setTimeout(calculateTotals, 100);
@@ -18629,7 +19162,15 @@
       document.getElementById('total-subtotal').textContent = '$' + subtotal.toLocaleString();
       document.getElementById('total-discount').textContent = '-$' + discountAmount.toLocaleString();
       document.getElementById('total-grand').textContent = '$' + grandTotal.toLocaleString();
-      document.getElementById('btn-payment-total').textContent = '$' + grandTotal.toLocaleString();
+      // Actualizar los dos badges de total (header + botón cobrar)
+      const totalStr = '$' + grandTotal.toLocaleString();
+      const t1 = document.getElementById('btn-payment-total');
+      const t2 = document.getElementById('btn-payment-total-2');
+      if (t1) t1.textContent = totalStr;
+      if (t2) t2.textContent = totalStr;
+      // Actualizar también el amount value del header premium
+      const amountVal = document.querySelector('#paymentDialog .pay-amount-value');
+      if (amountVal) amountVal.textContent = totalStr;
 
       document.getElementById('total-products-row').style.display = productsCount > 0 ? 'flex' : 'none';
 
@@ -18744,9 +19285,8 @@
         const btn = document.getElementById('btn-save-payment');
         if (btn) {
           btn.disabled = false;
-          // Restaurar texto original (aproximado)
           const totalVal = document.getElementById('total-grand')?.textContent || '$0';
-          btn.innerHTML = '<i class="fas fa-check-circle"></i> Cobrar <span id="btn-payment-total">' + totalVal + '</span>';
+          btn.innerHTML = '<i class="fas fa-check-circle"></i> Cobrar <span id="btn-payment-total-2">' + totalVal + '</span>';
         }
       }
     }
@@ -21113,9 +21653,9 @@
 
       if (!citas || citas.length === 0) {
         container.innerHTML = `
-          <div style="text-align:center;padding:40px;color:var(--muted);">
-            <i class="fas fa-check-circle" style="font-size:32px;margin-bottom:12px;opacity:0.5;color:#5cb85c;"></i>
-            <p style="margin:0;">¡Todas las citas están cobradas!</p>
+          <div class="caja-empty-state">
+            <i class="fas fa-check-circle" style="color:#22c55e;opacity:0.6;"></i>
+            <p>¡Todas las citas están cobradas!</p>
           </div>
         `;
         return;
@@ -21163,9 +21703,9 @@
       if (!filtered || filtered.length === 0) {
         tbody.innerHTML = `
           <tr>
-            <td colspan="7" style="text-align:center;padding:40px;color:var(--muted);">
-              <i class="fas fa-inbox" style="font-size:32px;margin-bottom:12px;opacity:0.5;display:block;"></i>
-              No hay transacciones ${cajaFiltroActual !== 'todos' ? 'de ' + cajaFiltroActual : ''} registradas
+            <td colspan="7" class="caja-empty-state" style="padding:48px 20px;">
+              <i class="fas fa-inbox"></i>
+              <p>Sin transacciones ${cajaFiltroActual !== 'todos' ? 'de ' + cajaFiltroActual : ''} registradas</p>
             </td>
           </tr>
         `;
@@ -21182,19 +21722,19 @@
       tbody.innerHTML = filtered.map(t => {
         const metodoBadge = getMetodoPagoBadge(t.metodo);
         const tipoBadge = t.tipo === 'cita'
-          ? '<span style="background:#e8f5e9;color:#2e7d32;padding:2px 8px;border-radius:4px;font-size:10px;">Cita</span>'
-          : '<span style="background:#fff3e0;color:#e65100;padding:2px 8px;border-radius:4px;font-size:10px;">Producto</span>';
+          ? '<span class="status-badge confirmed" style="font-size:10px;"><i class="fas fa-calendar-check"></i> Cita</span>'
+          : '<span class="status-badge pending" style="font-size:10px;"><i class="fas fa-shopping-bag"></i> Producto</span>';
 
         return `
           <tr>
-            <td style="padding:10px;font-weight:500;">${t.hora}</td>
-            <td style="padding:10px;">${tipoBadge}</td>
-            <td style="padding:10px;">${t.cliente}</td>
-            <td style="padding:10px;">${t.concepto}</td>
-            <td style="padding:10px;text-align:right;font-weight:600;color:var(--venus);">$${(t.monto || 0).toFixed(2)}</td>
-            <td style="padding:10px;text-align:center;">${metodoBadge}</td>
-            <td style="padding:10px;text-align:center;">
-              <button class="btn ghost small" onclick="verDetalleCaja('${t.id}')" title="Ver detalle">
+            <td style="font-family:'Playfair Display',serif;font-weight:600;">${t.hora}</td>
+            <td>${tipoBadge}</td>
+            <td style="font-weight:500;">${t.cliente}</td>
+            <td style="color:var(--muted);">${t.concepto}</td>
+            <td class="caja-amount-cell">$${(t.monto || 0).toLocaleString('es-MX', {minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+            <td style="text-align:center;">${metodoBadge}</td>
+            <td style="text-align:center;">
+              <button class="btn ghost small" onclick="verDetalleCaja('${t.id}')" title="Ver detalle" style="padding:6px 8px;">
                 <i class="fas fa-eye"></i>
               </button>
             </td>
@@ -21206,13 +21746,13 @@
     function getMetodoPagoBadge(metodo) {
       const m = (metodo || 'efectivo').toLowerCase();
       if (m.includes('efectivo') || m === 'cash') {
-        return '<span style="background:#e8f5e9;color:#2e7d32;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:500;"><i class="fas fa-money-bill-wave"></i> Efectivo</span>';
+        return '<span class="method-badge efectivo"><i class="fas fa-money-bill-wave"></i> Efectivo</span>';
       } else if (m.includes('tarjeta') || m === 'card') {
-        return '<span style="background:#e3f2fd;color:#1565c0;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:500;"><i class="fas fa-credit-card"></i> Tarjeta</span>';
+        return '<span class="method-badge tarjeta"><i class="fas fa-credit-card"></i> Tarjeta</span>';
       } else if (m.includes('transfer')) {
-        return '<span style="background:#f3e5f5;color:#7b1fa2;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:500;"><i class="fas fa-exchange-alt"></i> Transf.</span>';
+        return '<span class="method-badge transferencia"><i class="fas fa-exchange-alt"></i> Transf.</span>';
       }
-      return '<span style="background:#f5f5f5;color:#666;padding:3px 8px;border-radius:6px;font-size:11px;">' + metodo + '</span>';
+      return '<span class="method-badge efectivo">' + metodo + '</span>';
     }
 
     function getStatusBadgeCaja(status) {
