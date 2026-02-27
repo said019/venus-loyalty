@@ -6482,6 +6482,180 @@
             setTimeout(() => waFetchStatus(), 2000);
           });
         </script>
+
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <!-- GOOGLE CALENDAR OAuth2                                       -->
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <div id="gcal-card"
+          style="background:rgba(66,133,244,0.07);border:1px solid rgba(66,133,244,0.25);border-radius:12px;padding:14px;margin:12px 0;">
+          <h3 style="margin:0 0 4px;display:flex;align-items:center;gap:8px;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" style="flex-shrink:0">
+              <rect x="3" y="4" width="18" height="17" rx="2" fill="#fff" stroke="#4285F4" stroke-width="1.5"/>
+              <path d="M3 9h18" stroke="#4285F4" stroke-width="1.5"/>
+              <path d="M8 2v4M16 2v4" stroke="#EA4335" stroke-width="1.5" stroke-linecap="round"/>
+              <rect x="7" y="13" width="4" height="4" rx="1" fill="#34A853"/>
+            </svg>
+            Google Calendar
+            <span id="gcal-badge"
+              style="font-size:11px;padding:3px 10px;border-radius:20px;font-weight:600;margin-left:auto;background:#f1f5f9;color:#64748b;">
+              Cargando…
+            </span>
+          </h3>
+          <p class="muted" style="margin:0 0 14px;font-size:12px;">
+            Sincroniza las citas de Venus con tu Google Calendar personal. Cada cita se crea, actualiza o cancela automáticamente.
+          </p>
+
+          <!-- Estado conectado -->
+          <div id="gcal-connected" style="display:none;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:13px;color:#166534;background:rgba(34,197,94,0.1);padding:8px 12px;border-radius:8px;">
+              <i class="fas fa-circle-check"></i>
+              <span>Conectado — sincronizando citas automáticamente</span>
+            </div>
+            <div style="font-size:12px;color:#64748b;margin-bottom:12px;">
+              Calendario: <strong id="gcal-calendar-id">primary</strong> &nbsp;·&nbsp;
+              Última sync: <strong id="gcal-last-sync">—</strong>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button class="btn primary" onclick="gcalSync()" style="background:#4285F4;border-color:#4285F4;">
+                <i class="fas fa-rotate"></i> Sincronizar ahora
+              </button>
+              <button class="btn ghost" onclick="gcalDisconnect()" style="color:#ef4444;border-color:#ef4444;">
+                <i class="fas fa-unlink"></i> Desconectar
+              </button>
+            </div>
+            <div id="gcal-sync-result" style="display:none;margin-top:10px;padding:10px;border-radius:8px;font-size:13px;"></div>
+          </div>
+
+          <!-- Estado desconectado -->
+          <div id="gcal-disconnected">
+            <button class="btn primary" onclick="gcalConnect()" style="background:#4285F4;border-color:#4285F4;">
+              <i class="fas fa-calendar-plus"></i> Conectar Google Calendar
+            </button>
+            <p style="margin:8px 0 0;font-size:11px;color:#94a3b8;">
+              Necesitas configurar <code>GOOGLE_CLIENT_ID</code> y <code>GOOGLE_CLIENT_SECRET</code> en el servidor.
+            </p>
+          </div>
+        </div>
+
+        <script>
+          // ═══════════════════════════════════════════════
+          //  GOOGLE CALENDAR OAuth2 — UI
+          // ═══════════════════════════════════════════════
+          async function gcalFetchStatus() {
+            try {
+              const res = await fetch('/api/calendar/status', {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+              });
+              if (!res.ok) return;
+              const data = await res.json();
+              const badge   = document.getElementById('gcal-badge');
+              const conn    = document.getElementById('gcal-connected');
+              const disconn = document.getElementById('gcal-disconnected');
+
+              if (data.connected) {
+                badge.textContent = 'Conectado';
+                badge.style.background = 'rgba(34,197,94,0.15)';
+                badge.style.color = '#166534';
+                conn.style.display = 'block';
+                disconn.style.display = 'none';
+                document.getElementById('gcal-calendar-id').textContent = data.calendarId || 'primary';
+                document.getElementById('gcal-last-sync').textContent =
+                  data.lastSyncAt ? new Date(data.lastSyncAt).toLocaleString('es-MX') : 'Nunca';
+              } else {
+                badge.textContent = 'Desconectado';
+                badge.style.background = 'rgba(239,68,68,0.1)';
+                badge.style.color = '#b91c1c';
+                conn.style.display = 'none';
+                disconn.style.display = 'block';
+              }
+            } catch(e) {
+              const badge = document.getElementById('gcal-badge');
+              if (badge) { badge.textContent = 'No configurado'; badge.style.background='#f1f5f9'; badge.style.color='#94a3b8'; }
+            }
+          }
+
+          async function gcalConnect() {
+            try {
+              const res = await fetch('/api/calendar/auth', {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+              });
+              const data = await res.json();
+              if (data.authUrl) {
+                window.location.href = data.authUrl;
+              } else {
+                alert('Error: ' + (data.message || 'No se pudo obtener la URL de autorización.\nConfigura GOOGLE_CLIENT_ID y GOOGLE_CLIENT_SECRET en el servidor.'));
+              }
+            } catch(e) { alert('Error de conexión: ' + e.message); }
+          }
+
+          async function gcalDisconnect() {
+            if (!confirm('¿Desconectar Google Calendar? Las citas futuras ya no se sincronizarán.')) return;
+            try {
+              await fetch('/api/calendar/disconnect', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+              });
+              gcalFetchStatus();
+            } catch(e) { alert('Error: ' + e.message); }
+          }
+
+          async function gcalSync() {
+            const result = document.getElementById('gcal-sync-result');
+            result.style.display = 'block';
+            result.style.background = 'rgba(66,133,244,0.08)';
+            result.style.color = '#1d4ed8';
+            result.textContent = '⏳ Sincronizando…';
+            try {
+              const res = await fetch('/api/calendar/sync', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+              });
+              const data = await res.json();
+              if (data.success) {
+                result.style.background = 'rgba(34,197,94,0.1)';
+                result.style.color = '#166534';
+                result.textContent = `✅ Sincronizadas: ${data.created} creadas, ${data.updated} actualizadas, ${data.failed} con error`;
+                gcalFetchStatus();
+              } else {
+                result.style.background = 'rgba(239,68,68,0.1)';
+                result.style.color = '#b91c1c';
+                result.textContent = `❌ ${data.error || 'Error al sincronizar'}`;
+              }
+            } catch(e) {
+              result.style.background = 'rgba(239,68,68,0.1)';
+              result.style.color = '#b91c1c';
+              result.textContent = `❌ Error: ${e.message}`;
+            }
+            setTimeout(() => { result.style.display = 'none'; }, 8000);
+          }
+
+          // Al cargar, verificar si venimos de un redirect de Google (?calendar=connected)
+          document.addEventListener('DOMContentLoaded', () => {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('calendar') === 'connected') {
+              history.replaceState({}, '', '/admin.html');
+              // Navegar a settings y mostrar éxito
+              setTimeout(() => {
+                const settingsTab = document.querySelector('[data-tab="settings"]');
+                if (settingsTab) settingsTab.click();
+                const badge = document.getElementById('gcal-badge');
+                if (badge) { badge.textContent = '¡Conectado!'; badge.style.background='rgba(34,197,94,0.15)'; badge.style.color='#166534'; }
+                gcalFetchStatus();
+              }, 500);
+            }
+            // Cargar estado al abrir settings
+            const observer2 = new MutationObserver(() => {
+              const settingsTab = document.getElementById('tab-settings');
+              if (settingsTab && !settingsTab.classList.contains('hidden')) {
+                gcalFetchStatus();
+                observer2.disconnect();
+              }
+            });
+            observer2.observe(document.body, { childList: true, subtree: true, attributes: true });
+            setTimeout(() => gcalFetchStatus(), 2500);
+          });
+        </script>
+
         <div
           style="background:rgba(140,150,104,0.1);border:1px solid rgba(140,150,104,0.3);border-radius:12px;padding:14px;margin:12px 0;">
           <h3 style="margin:0 0 12px;"><i class="fas fa-store"></i> Datos del Negocio</h3>
