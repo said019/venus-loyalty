@@ -55,4 +55,4 @@ function toMexicoCityISO(date) {
     return localDate.toISOString().replace('Z', '-06:00');
 }
 
-export { formatearFechaLegible, formatearHora, extractDateAndTime };
+export { formatearFechaLegible, formatearHora, extractDateAndTime, toMexicoCityISO };
