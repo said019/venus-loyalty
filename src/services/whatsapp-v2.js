@@ -2,6 +2,7 @@
 import twilio from 'twilio';
 import { config } from '../config/config.js';
 import { getEvolutionClient } from './whatsapp-evolution.js';
+import { firestore } from '../db/compat.js';
 
 // Cliente de Twilio
 let client = null;
@@ -250,10 +251,11 @@ export async function sendViaEvolutionRaw(to, message) {
 /**
  * Envía un Poll usando Evolution API (funciona en iOS y Android)
  */
-async function sendPollViaEvolution(to, question, options) {
+async function sendPollViaEvolution(to, question, options, appointmentId = null) {
     try {
         const evoClient = getEvolutionClient();
-        
+        let pollResult;
+
         // Si la pregunta es muy larga (>256 chars), enviar texto primero y poll corto después
         if (question.length > 200) {
             console.log(`[Evolution] Pregunta larga (${question.length} chars), enviando texto + poll separados`);
@@ -262,15 +264,32 @@ async function sendPollViaEvolution(to, question, options) {
             // Pequeña pausa para que llegue en orden
             await new Promise(r => setTimeout(r, 1000));
             // Enviar poll corto
-            const result = await evoClient.sendPoll(to, '¿Qué deseas hacer?', options, 1);
+            pollResult = await evoClient.sendPoll(to, '¿Qué deseas hacer?', options, 1);
             console.log(`✅ [Evolution] Texto + Poll enviado a ${to}`);
-            return { success: true, messageSid: result?.key?.id || 'evolution-poll-sent' };
+        } else {
+            console.log(`[Evolution] Enviando poll a ${to}, pregunta: ${question.length} chars, opciones: ${options.length}`);
+            pollResult = await evoClient.sendPoll(to, question, options, 1);
+            console.log(`✅ [Evolution] Poll enviado a ${to}`);
         }
-        
-        console.log(`[Evolution] Enviando poll a ${to}, pregunta: ${question.length} chars, opciones: ${options.length}`);
-        const result = await evoClient.sendPoll(to, question, options, 1);
-        console.log(`✅ [Evolution] Poll enviado a ${to}`);
-        return { success: true, messageSid: result?.key?.id || 'evolution-poll-sent' };
+
+        // Guardar mapeo pollMessageId → appointmentId para identificar cita exacta en webhook
+        const pollMsgId = pollResult?.key?.id;
+        if (pollMsgId && appointmentId) {
+            try {
+                await firestore.collection('pending_polls').doc(pollMsgId).set({
+                    appointmentId,
+                    phone: to,
+                    createdAt: new Date().toISOString(),
+                    // Expirar en 48h (limpieza eventual)
+                    expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString()
+                });
+                console.log(`✅ [Evolution] Mapeo poll ${pollMsgId} → cita ${appointmentId} guardado`);
+            } catch (fsErr) {
+                console.warn('[Evolution] No se pudo guardar mapeo poll→cita:', fsErr.message);
+            }
+        }
+
+        return { success: true, messageSid: pollMsgId || 'evolution-poll-sent' };
     } catch (error) {
         const responseData = error.response?.data;
         console.error('❌ [Evolution] Error enviando Poll:', error.message, 'Response:', JSON.stringify(responseData));
@@ -437,7 +456,7 @@ export const WhatsAppService = {
                     '✅ Confirmar Asistencia',
                     '🔄 Solicitar Cambio de Horario',
                     '❌ Cancelar Cita'
-                ]);
+                ], appt.id || appt.appointmentId || null);
                 if (result.success) return result;
                 console.warn('[WhatsApp] Evolution falló para recordatorio 24h, intentando Twilio:', result.error);
             } catch (evoErr) {
@@ -569,7 +588,7 @@ export const WhatsAppService = {
                 const result = await sendPollViaEvolution(appt.clientPhone, mensajeAlerta, [
                     '✅ Confirmar Asistencia',
                     '❌ Cancelar Cita'
-                ]);
+                ], appt.id || appt.appointmentId || null);
                 if (result.success) return result;
                 console.warn('[WhatsApp] Evolution falló para alerta cancelación, intentando Twilio:', result.error);
             } catch (evoErr) {
@@ -601,7 +620,7 @@ export const WhatsAppService = {
                     '✅ Confirmar Asistencia',
                     '🔄 Reagendar Cita',
                     '❌ Cancelar Cita'
-                ]);
+                ], appt.id || appt.appointmentId || null);
                 if (result.success) return result;
                 console.warn('[WhatsApp] Evolution falló para recordatorio manual, intentando Twilio:', result.error);
             } catch (evoErr) {

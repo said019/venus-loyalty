@@ -134,14 +134,36 @@ async function handlePollResponse(phone, payload, profileName) {
         return;
     }
 
+    // Intentar identificar la cita exacta por ID del poll (evita retornar cita equivocada)
+    const pollMsgId = payload?.message?.pollUpdateMessage?.pollCreationMessageKey?.id
+        || payload?.pollUpdate?.pollCreationMessageKey?.id
+        || null;
+
+    let citaDirecta = null;
+    if (pollMsgId) {
+        try {
+            const pollDoc = await firestore.collection('pending_polls').doc(pollMsgId).get();
+            if (pollDoc.exists) {
+                const { appointmentId } = pollDoc.data();
+                const apptDoc = await firestore.collection('appointments').doc(appointmentId).get();
+                if (apptDoc.exists) {
+                    citaDirecta = { id: apptDoc.id, ...apptDoc.data() };
+                    console.log(`✅ [Evolution] Cita identificada por pollMsgId: ${appointmentId}`);
+                }
+            }
+        } catch (lookupErr) {
+            console.warn('[Evolution] Error buscando cita por pollMsgId:', lookupErr.message);
+        }
+    }
+
     const optionLower = selectedOption.toLowerCase();
 
     if (optionLower.includes('confirmar')) {
-        await processClientResponse(phone, 'confirmar');
+        await processClientResponse(phone, 'confirmar', citaDirecta);
     } else if (optionLower.includes('reagendar') || optionLower.includes('cambio') || optionLower.includes('reprogramar')) {
-        await processClientResponse(phone, 'reagendar');
+        await processClientResponse(phone, 'reagendar', citaDirecta);
     } else if (optionLower.includes('cancelar')) {
-        await processClientResponse(phone, 'cancelar');
+        await processClientResponse(phone, 'cancelar', citaDirecta);
     } else {
         console.log(`[Evolution] Opción de poll no reconocida: ${selectedOption}`);
     }
@@ -149,10 +171,13 @@ async function handlePollResponse(phone, payload, profileName) {
 
 /**
  * Procesa respuesta del cliente (texto o poll)
+ * @param {string} telefono
+ * @param {string} respuesta
+ * @param {object|null} citaDirecta - Cita ya identificada (por pollMsgId), evita búsqueda por teléfono
  */
-async function processClientResponse(telefono, respuesta) {
-    // Buscar cita activa
-    const cita = await buscarCitaActiva(telefono);
+async function processClientResponse(telefono, respuesta, citaDirecta = null) {
+    // Usar cita ya identificada o buscar por teléfono
+    const cita = citaDirecta || await buscarCitaActiva(telefono);
 
     if (!cita) {
         console.log(`⚠️ No se encontró cita activa para ${telefono}`);
