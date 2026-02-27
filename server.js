@@ -6,6 +6,8 @@ import "dotenv/config";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import cookieParser from "cookie-parser";
+// Forcing Node process timezone to Ciudad de México to avoid UTC-related bugs
+process.env.TZ = process.env.TZ || 'America/Mexico_City';
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { sendGoogleMessage } from "./lib/google.js"
