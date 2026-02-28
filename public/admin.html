@@ -21659,11 +21659,7 @@
     let cajaData = [];
     // Obtener fecha actual en zona horaria de México
     function getFechaMexico() {
-      const now = new Date();
-      const mexicoOffset = -6 * 60; // UTC-6
-      const localOffset = now.getTimezoneOffset();
-      const mexicoTime = new Date(now.getTime() + (localOffset - mexicoOffset) * 60000);
-      return mexicoTime.toISOString().split('T')[0];
+      return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Mexico_City' }).format(new Date());
     }
     let cajaFechaActual = getFechaMexico();
     let cajaFiltroActual = 'todos';
