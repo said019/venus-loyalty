@@ -191,6 +191,18 @@ export const AppointmentsRepo = {
   },
 
   async findByDateRange(from, to) {
+    // Si son fechas simples (YYYY-MM-DD sin hora), usar el campo `date` (string)
+    // para evitar problemas de timezone UTC vs México
+    if (!from.includes('T') && !to.includes('T')) {
+      return prisma.appointment.findMany({
+        where: {
+          date: { gte: from, lte: to }
+        },
+        orderBy: { startDateTime: 'asc' }
+      });
+    }
+
+    // Si traen hora/timezone (ISO), usar startDateTime como antes
     return prisma.appointment.findMany({
       where: {
         startDateTime: {
