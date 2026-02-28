@@ -7630,11 +7630,14 @@
             <input type="date" id="caja-fecha-select" class="form-control"
               onchange="cargarCajaPorFecha(this.value)"
               style="padding:8px 12px;border-radius:10px;font-size:13px;background:var(--bg-card);border:1px solid var(--line);color:var(--ink);">
+            <label style="font-size:13px;display:flex;align-items:center;gap:4px;">
+              <input type="checkbox" id="caja-hide-cancelled" onchange="cargarCaja()" checked> Ocultar canceladas
+            </label>
             <button class="btn ghost" onclick="cargarCaja()">
               <i class="fas fa-sync"></i> Actualizar
             </button>
             <button class="btn primary" onclick="abrirVentaRapida()">
-              <i class="fas fa-plus"></i> Venta Rápida
+              <i class="fas fa-bolt"></i> Venta Rápida
             </button>
           </div>
         </div>
@@ -8500,6 +8503,84 @@
             <i class="fas fa-check-circle"></i> Cobrar <span id="btn-ds-total">$0</span>
           </button>
           <button type="button" onclick="closeDirectSaleModal()" class="btn ghost">Cancelar</button>
+        </div>
+      </dialog>
+
+      <!-- QUICK SALE DIALOG (modal distinto de venta de productos) -->
+      <dialog id="quickSaleDialog">
+        <button class="btn-close-payment" onclick="closeQuickSaleModal()" title="Cerrar">
+          <i class="fas fa-times"></i>
+        </button>
+        <div class="dialog-header" style="padding:20px 20px 0;">
+          <h3><i class="fas fa-bolt"></i> Venta Rápida</h3>
+        </div>
+        <div style="padding:0 20px 20px;">
+          <div class="form-row">
+            <label>Tipo de cliente</label>
+            <select id="quick-sale-client-type" class="form-input" onchange="toggleQuickSaleClientType()">
+              <option value="registered">Cliente registrado</option>
+              <option value="walkin">Cliente no registrado</option>
+            </select>
+          </div>
+
+          <div class="form-row" id="quick-sale-client-registered-wrap" style="position:relative;">
+            <label>Cliente registrado</label>
+            <input type="text" id="quick-sale-client-registered" placeholder="Busca por nombre o teléfono" class="form-input"
+              autocomplete="off">
+            <input type="hidden" id="quick-sale-client-id">
+            <input type="hidden" id="quick-sale-client-phone">
+            <div id="quick-sale-registered-results" class="hidden" style="
+              position:absolute;
+              left:0;
+              right:0;
+              top:calc(100% + 4px);
+              z-index:25;
+              max-height:220px;
+              overflow-y:auto;
+              background:var(--bg-card);
+              border:1px solid var(--line);
+              border-radius:10px;
+              box-shadow:0 10px 24px rgba(0,0,0,0.25);
+            "></div>
+          </div>
+
+          <div class="form-row hidden" id="quick-sale-client-walkin-wrap">
+            <label>Nombre (opcional)</label>
+            <input type="text" id="quick-sale-client-walkin" placeholder="Venta mostrador" class="form-input">
+          </div>
+
+          <div class="form-row">
+            <label>Concepto <span style="color:#ef4444;">*</span></label>
+            <input type="text" id="quick-sale-concept" placeholder="Ej: Abono facial / Producto suelto / Servicio express"
+              class="form-input">
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="form-row" style="margin:0;">
+              <label>Monto <span style="color:#ef4444;">*</span></label>
+              <input type="number" id="quick-sale-amount" class="form-input" min="0" step="0.01" placeholder="0.00">
+            </div>
+            <div class="form-row" style="margin:0;">
+              <label>Método de pago <span style="color:#ef4444;">*</span></label>
+              <select id="quick-sale-payment-method" class="form-input">
+                <option value="efectivo">Efectivo</option>
+                <option value="tarjeta_credito">Tarjeta de crédito</option>
+                <option value="tarjeta_debito">Tarjeta de débito</option>
+                <option value="transferencia">Transferencia</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <label>Notas (opcional)</label>
+            <textarea id="quick-sale-notes" class="form-input" rows="2" placeholder="Detalle adicional..."></textarea>
+          </div>
+        </div>
+        <div class="dialog-footer">
+          <button class="btn primary btn-cobrar" onclick="procesarVentaRapida()" id="btn-save-quick-sale">
+            <i class="fas fa-check-circle"></i> Registrar Venta
+          </button>
+          <button type="button" onclick="closeQuickSaleModal()" class="btn ghost">Cancelar</button>
         </div>
       </dialog>
 
@@ -18309,7 +18390,7 @@
         document.getElementById('btn-tab-services').classList.add('active');
         document.getElementById('panel-services').classList.add('active');
         loadServicesTable();
-      } else {
+      } else if (tab === 'products') {
         document.getElementById('btn-tab-products').classList.add('active');
         document.getElementById('panel-products').classList.add('active');
         loadProductsTable();
@@ -21679,6 +21760,7 @@
       const fecha = cajaFechaActual;
       const fechaInput = document.getElementById('caja-fecha-select');
       const fechaLabel = document.getElementById('caja-fecha-hoy');
+      const hideCancelled = document.getElementById('caja-hide-cancelled')?.checked ?? true;
 
       if (fechaInput) fechaInput.value = fecha;
       if (fechaLabel) {
@@ -21706,8 +21788,14 @@
         // Filtrar citas completadas del día (ya cobradas) - para historial
         // MODIFICADO: Incluir citas con totalPaid 0 o mayor (para que aparezcan las cobradas en 0)
         const citasCompletadas = citasDia.filter(c => c.status === 'completed' && c.totalPaid !== undefined && c.totalPaid !== null);
-        // Pendientes de cobro: citas hasta HOY que NO están completadas ni canceladas
-        const citasPendientesCobro = citasMes.filter(c => c.status !== 'completed' && c.status !== 'cancelled');
+        // Pendientes de cobro: citas hasta HOY que NO estén completadas/no_show
+        // y opcionalmente ocultar canceladas según checkbox.
+        const citasPendientesCobro = citasMes.filter(c => {
+          const status = (c.status || '').toLowerCase();
+          if (status === 'completed' || status === 'no_show') return false;
+          if (hideCancelled && status === 'cancelled') return false;
+          return true;
+        });
 
         // Calcular totales por método de pago
         let totalEfectivo = 0, countEfectivo = 0;
@@ -21841,6 +21929,8 @@
 
       container.innerHTML = citas.map(cita => {
         const statusBadge = getStatusBadgeCaja(cita.status);
+        const status = (cita.status || '').toLowerCase();
+        const puedeCobrar = !['completed', 'cancelled', 'no_show'].includes(status);
         // Formatear fecha corta
         const fechaCita = cita.date ? new Date(cita.date + 'T12:00:00').toLocaleDateString('es-MX', { day: '2-digit', month: 'short' }) : '';
         return `
@@ -21852,9 +21942,18 @@
             </div>
             <div style="font-size:12px;color:var(--muted);">${cita.serviceName || 'Servicio'} • <strong>${fechaCita}</strong> ${cita.time || '--:--'}</div>
           </div>
-          <button class="btn primary small" onclick="abrirCobrarCita('${cita.id}')" style="white-space:nowrap;">
-            <i class="fas fa-dollar-sign"></i> Cobrar
-          </button>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            ${puedeCobrar ? `
+              <button class="btn primary small" onclick="abrirCobrarCita('${cita.id}')" style="white-space:nowrap;">
+                <i class="fas fa-dollar-sign"></i> Cobrar
+              </button>
+              <button class="btn ghost small" onclick="marcarNoAsistioDesdeCaja('${cita.id}')" style="white-space:nowrap;">
+                <i class="fas fa-user-times"></i> No asistió
+              </button>
+            ` : `
+              <span style="font-size:12px;color:var(--muted);">Sin cobro</span>
+            `}
+          </div>
         </div>
       `}).join('');
     }
@@ -21934,8 +22033,37 @@
         return '<span style="background:#e3f2fd;color:#1565c0;padding:2px 6px;border-radius:4px;font-size:10px;">Confirmada</span>';
       } else if (s === 'in_progress') {
         return '<span style="background:#e8f5e9;color:#2e7d32;padding:2px 6px;border-radius:4px;font-size:10px;">En curso</span>';
+      } else if (s === 'cancelled') {
+        return '<span style="background:#fee2e2;color:#b91c1c;padding:2px 6px;border-radius:4px;font-size:10px;">Cancelada</span>';
+      } else if (s === 'no_show') {
+        return '<span style="background:#f3f4f6;color:#4b5563;padding:2px 6px;border-radius:4px;font-size:10px;">No asistió</span>';
       }
       return '<span style="background:#f5f5f5;color:#666;padding:2px 6px;border-radius:4px;font-size:10px;">' + status + '</span>';
+    }
+
+    async function marcarNoAsistioDesdeCaja(citaId) {
+      if (!confirm('¿Marcar esta cita como "No asistió"? Esta cita saldrá de pendientes de cobro.')) return;
+
+      try {
+        const res = await fetch(`/api/appointments/${citaId}/status`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ status: 'no_show' })
+        });
+        const json = await res.json();
+
+        if (json.success) {
+          showNotification('Cita marcada como No asistió', 'success');
+          cargarCaja();
+          if (typeof loadAppointments === 'function') loadAppointments();
+        } else {
+          showNotification(json.error || 'No se pudo actualizar la cita', 'error');
+        }
+      } catch (err) {
+        console.error('[Caja] Error marcando no_show:', err);
+        showNotification('Error de conexión', 'error');
+      }
     }
 
     function filtrarCaja(filtro) {
@@ -22513,114 +22641,236 @@
     }
     window.procesarCobroCitaActual = procesarCobroCitaActual;
 
-    // Modal de venta rápida (para productos sin cita)
+    // Venta rápida (modal distinto de venta por productos/inventario)
+    let quickSaleSearchTimer = null;
+
     function abrirVentaRapida() {
-      const html = `
-        <div class="modal" id="modal-venta-rapida" style="display:flex;">
-          <div class="modal-box" style="max-width:450px;">
-            <div class="modal-header">
-              <h3><i class="fas fa-shopping-cart"></i> Venta Rápida</h3>
-              <button class="modal-close" onclick="document.getElementById('modal-venta-rapida').remove()">×</button>
-            </div>
-            <div class="modal-body">
-              <div class="form-group">
-                <label>Concepto / Producto</label>
-                <input type="text" id="venta-concepto" class="form-input" placeholder="Ej: Crema hidratante, Serum...">
-              </div>
-              
-              <div class="form-group">
-                <label>Cliente (opcional)</label>
-                <input type="text" id="venta-cliente" class="form-input" placeholder="Nombre del cliente">
-              </div>
-              
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-                <div class="form-group">
-                  <label>Monto</label>
-                  <input type="number" id="venta-monto" class="form-input" step="0.01" min="0" placeholder="0.00">
-                </div>
-                
-                <div class="form-group">
-                  <label>Método de pago</label>
-                  <select id="venta-metodo" class="form-input">
-                    <option value="efectivo">Efectivo</option>
-                    <option value="tarjeta">Tarjeta</option>
-                    <option value="transferencia">Transferencia</option>
-                  </select>
-                </div>
-              </div>
-
-              <div class="form-group">
-                <label>Notas (opcional)</label>
-                <textarea id="venta-notas" class="form-input" rows="2" placeholder="Notas adicionales..."></textarea>
-              </div>
-            </div>
-            <div class="modal-footer">
-              <button class="btn ghost" onclick="document.getElementById('modal-venta-rapida').remove()">Cancelar</button>
-              <button class="btn primary" onclick="procesarVentaRapida()">
-                <i class="fas fa-check"></i> Registrar Venta
-              </button>
-            </div>
-          </div>
-        </div>
-      `;
-
-      document.body.insertAdjacentHTML('beforeend', html);
+      document.getElementById('quick-sale-client-type').value = 'registered';
+      document.getElementById('quick-sale-client-registered').value = '';
+      document.getElementById('quick-sale-client-id').value = '';
+      document.getElementById('quick-sale-client-phone').value = '';
+      document.getElementById('quick-sale-client-walkin').value = '';
+      document.getElementById('quick-sale-concept').value = '';
+      document.getElementById('quick-sale-amount').value = '';
+      document.getElementById('quick-sale-notes').value = '';
+      document.getElementById('quick-sale-payment-method').value = 'efectivo';
+      toggleQuickSaleClientType();
+      renderQuickSaleClientResults([]);
+      document.getElementById('quickSaleDialog').showModal();
     }
 
-    async function procesarVentaRapida() {
-      const concepto = document.getElementById('venta-concepto').value.trim();
-      const cliente = document.getElementById('venta-cliente').value.trim() || 'Venta directa';
-      const monto = parseFloat(document.getElementById('venta-monto').value) || 0;
-      const metodo = document.getElementById('venta-metodo').value;
-      const notas = document.getElementById('venta-notas').value.trim();
+    function closeQuickSaleModal() {
+      const dlg = document.getElementById('quickSaleDialog');
+      if (dlg?.open) dlg.close();
+    }
 
-      if (!concepto) {
-        showNotification('Ingresa el concepto de la venta', 'warning');
+    function toggleQuickSaleClientType() {
+      const type = document.getElementById('quick-sale-client-type').value;
+      const registeredWrap = document.getElementById('quick-sale-client-registered-wrap');
+      const walkinWrap = document.getElementById('quick-sale-client-walkin-wrap');
+      const registeredInput = document.getElementById('quick-sale-client-registered');
+      const registeredId = document.getElementById('quick-sale-client-id');
+      const registeredPhone = document.getElementById('quick-sale-client-phone');
+      const walkinInput = document.getElementById('quick-sale-client-walkin');
+
+      if (type === 'registered') {
+        registeredWrap.classList.remove('hidden');
+        walkinWrap.classList.add('hidden');
+        walkinInput.value = '';
+      } else {
+        registeredWrap.classList.add('hidden');
+        walkinWrap.classList.remove('hidden');
+        registeredInput.value = '';
+        registeredId.value = '';
+        registeredPhone.value = '';
+        renderQuickSaleClientResults([]);
+      }
+    }
+
+    function renderQuickSaleClientResults(items) {
+      const container = document.getElementById('quick-sale-registered-results');
+      if (!container) return;
+
+      container.innerHTML = '';
+      if (!items || items.length === 0) {
+        container.classList.add('hidden');
         return;
       }
 
-      if (monto <= 0) {
+      items.forEach(client => {
+        const row = document.createElement('button');
+        row.type = 'button';
+        row.style.cssText = 'width:100%;text-align:left;padding:10px 12px;border:none;background:transparent;color:var(--ink);cursor:pointer;display:flex;flex-direction:column;gap:2px;border-bottom:1px solid var(--line);';
+
+        const nameEl = document.createElement('span');
+        nameEl.style.cssText = 'font-size:13px;font-weight:600;';
+        nameEl.textContent = client.name || 'Sin nombre';
+
+        const phoneEl = document.createElement('span');
+        phoneEl.style.cssText = 'font-size:12px;color:var(--muted);';
+        phoneEl.textContent = client.phone ? `Tel: ${client.phone}` : 'Sin teléfono';
+
+        row.appendChild(nameEl);
+        row.appendChild(phoneEl);
+        row.addEventListener('click', () => {
+          document.getElementById('quick-sale-client-registered').value = client.name || '';
+          document.getElementById('quick-sale-client-id').value = client.id || '';
+          document.getElementById('quick-sale-client-phone').value = client.phone || '';
+          renderQuickSaleClientResults([]);
+        });
+
+        container.appendChild(row);
+      });
+
+      const last = container.lastElementChild;
+      if (last) last.style.borderBottom = 'none';
+      container.classList.remove('hidden');
+    }
+
+    async function searchQuickSaleClients(term) {
+      const query = String(term || '').trim();
+      if (query.length < 2) {
+        renderQuickSaleClientResults([]);
+        return;
+      }
+
+      const localMatches = (Array.isArray(allClients) ? allClients : [])
+        .filter(c => {
+          const name = String(c.name || '').toLowerCase();
+          const phone = String(c.phone || '').toLowerCase();
+          const q = query.toLowerCase();
+          return name.includes(q) || phone.includes(q);
+        })
+        .slice(0, 8);
+
+      // Mostrar rápido resultados locales y luego refinar con backend
+      if (localMatches.length > 0) {
+        renderQuickSaleClientResults(localMatches);
+      }
+
+      try {
+        const res = await fetch(`/api/admin/cards-firebase?page=1&q=${encodeURIComponent(query)}`, {
+          credentials: 'include'
+        });
+        const json = await res.json();
+        if (!json || !Array.isArray(json.items)) return;
+
+        const byId = new Map();
+        [...localMatches, ...json.items].forEach(c => {
+          const key = String(c.id || `${c.name}-${c.phone}`);
+          byId.set(key, c);
+        });
+        renderQuickSaleClientResults(Array.from(byId.values()).slice(0, 10));
+      } catch (err) {
+        console.warn('[Venta Rápida] No se pudo buscar clientes:', err);
+      }
+    }
+
+    function setupQuickSaleClientSearch() {
+      const input = document.getElementById('quick-sale-client-registered');
+      const results = document.getElementById('quick-sale-registered-results');
+      const wrap = document.getElementById('quick-sale-client-registered-wrap');
+      if (!input || !results || !wrap) return;
+
+      input.addEventListener('input', () => {
+        document.getElementById('quick-sale-client-id').value = '';
+        document.getElementById('quick-sale-client-phone').value = '';
+        clearTimeout(quickSaleSearchTimer);
+        quickSaleSearchTimer = setTimeout(() => {
+          searchQuickSaleClients(input.value);
+        }, 220);
+      });
+
+      input.addEventListener('focus', () => {
+        if (input.value.trim().length >= 2) {
+          searchQuickSaleClients(input.value);
+        }
+      });
+
+      document.addEventListener('click', (e) => {
+        if (!wrap.contains(e.target)) {
+          results.classList.add('hidden');
+        }
+      });
+    }
+
+    setupQuickSaleClientSearch();
+
+    async function procesarVentaRapida() {
+      const type = document.getElementById('quick-sale-client-type').value;
+      const concept = document.getElementById('quick-sale-concept').value.trim();
+      const amount = parseFloat(document.getElementById('quick-sale-amount').value);
+      const paymentMethod = document.getElementById('quick-sale-payment-method').value;
+      const notes = document.getElementById('quick-sale-notes').value.trim();
+      const clientId = document.getElementById('quick-sale-client-id').value || null;
+      const clientPhoneRaw = document.getElementById('quick-sale-client-phone').value || '';
+
+      const clientName = type === 'registered'
+        ? document.getElementById('quick-sale-client-registered').value.trim()
+        : document.getElementById('quick-sale-client-walkin').value.trim();
+
+      if (type === 'registered' && !clientName) {
+        showNotification('Ingresa el nombre del cliente registrado', 'warning');
+        return;
+      }
+      if (!concept) {
+        showNotification('Ingresa el concepto de la venta', 'warning');
+        return;
+      }
+      if (!Number.isFinite(amount) || amount <= 0) {
         showNotification('Ingresa un monto válido', 'warning');
         return;
       }
 
-      try {
-        // Crear una cita "rápida" para registrar la venta
-        const hoy = new Date().toISOString().split('T')[0];
-        const ahora = new Date().toTimeString().slice(0, 5);
+      const btn = document.getElementById('btn-save-quick-sale');
+      const originalBtn = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Registrando...';
 
-        const res = await fetch('/api/appointments', {
+      try {
+        const productsSold = [{
+          productId: 'custom-quick-sale',
+          name: concept,
+          price: amount,
+          qty: 1,
+          subtotal: amount,
+          custom: true,
+          notes: notes || null
+        }];
+
+        const res = await fetch('/api/direct-sales', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
           body: JSON.stringify({
-            clientName: cliente,
-            clientPhone: '',
-            serviceName: concepto,
-            date: hoy,
-            time: ahora,
-            durationMinutes: 0,
-            status: 'completed',
-            totalPaid: monto,
-            paymentMethod: metodo,
-            source: 'venta_rapida',
-            productsSold: notas ? [{ note: notas }] : null
+            clientName: clientName || 'Venta mostrador',
+            clientId,
+            clientPhone: clientPhoneRaw || null,
+            paymentMethod,
+            productsAmount: amount,
+            discountType: null,
+            discountValue: 0,
+            discountAmount: 0,
+            totalAmount: amount,
+            productsSold
           })
         });
 
         const json = await res.json();
-
         if (json.success) {
-          showNotification('¡Venta registrada correctamente!', 'success');
-          document.getElementById('modal-venta-rapida').remove();
-          cargarCaja();
+          closeQuickSaleModal();
+          showNotification('Venta rápida registrada correctamente', 'success');
+          if (typeof cargarCaja === 'function') cargarCaja();
+          if (typeof loadMonthStats === 'function') loadMonthStats();
         } else {
-          showNotification(json.message || 'Error al registrar venta', 'error');
+          showNotification(json.error || 'No se pudo registrar la venta', 'error');
         }
-
       } catch (err) {
         console.error('[Venta Rápida] Error:', err);
         showNotification('Error de conexión', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalBtn;
       }
     }
 
@@ -22640,6 +22890,8 @@
     window.abrirCobrarCita = abrirCobrarCita;
     window.procesarCobroCita = procesarCobroCita;
     window.abrirVentaRapida = abrirVentaRapida;
+    window.closeQuickSaleModal = closeQuickSaleModal;
+    window.toggleQuickSaleClientType = toggleQuickSaleClientType;
     window.procesarVentaRapida = procesarVentaRapida;
     window.verDetalleCaja = verDetalleCaja;
 

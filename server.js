@@ -1223,6 +1223,8 @@ app.post('/api/direct-sales', adminAuth, async (req, res) => {
   try {
     const {
       clientName,
+      clientId,
+      clientPhone,
       paymentMethod,
       productsAmount,
       discountType,
@@ -1236,12 +1238,26 @@ app.post('/api/direct-sales', adminAuth, async (req, res) => {
       return res.json({ success: false, error: 'Se requiere al menos un producto' });
     }
 
-    console.log('[DIRECT SALE] Procesando venta directa:', { clientName, productsAmount, totalAmount });
+    const normalizedPhone = String(clientPhone || '').replace(/\D/g, '') || null;
+
+    console.log('[DIRECT SALE] Procesando venta directa:', {
+      clientName,
+      clientId: clientId || null,
+      clientPhone: normalizedPhone,
+      productsAmount,
+      totalAmount
+    });
 
     // Descontar stock de productos vendidos
     const batch = firestore.batch();
     for (const product of productsSold) {
-      const productRef = firestore.collection('products').doc(product.productId);
+      // Solo descontar inventario de productos reales del catálogo.
+      // Las ventas rápidas "custom" no deben tocar stock.
+      if (!product?.productId || String(product.productId).startsWith('custom-')) {
+        continue;
+      }
+
+      const productRef = firestore.collection('products').doc(String(product.productId));
       const productDoc = await productRef.get();
 
       if (productDoc.exists) {
@@ -1259,7 +1275,9 @@ app.post('/api/direct-sales', adminAuth, async (req, res) => {
     // Registrar en colección de ventas
     const saleRef = await firestore.collection('sales').add({
       type: 'direct', // Venta directa (sin cita)
+      clientId: clientId || null,
       clientName: clientName || 'Venta directa',
+      clientPhone: normalizedPhone,
       serviceName: null,
       serviceAmount: 0,
       productsAmount: parseFloat(productsAmount) || 0,
@@ -1278,6 +1296,7 @@ app.post('/api/direct-sales', adminAuth, async (req, res) => {
       await SalesRepo.create({
         appointmentId: null,
         clientName: clientName || 'Venta Pasajero',
+        clientPhone: normalizedPhone,
         serviceName: null,
         serviceAmount: 0,
         productsAmount: parseFloat(productsAmount) || 0,
@@ -1322,7 +1341,15 @@ app.get('/api/transactions', adminAuth, async (req, res) => {
         }
       });
 
-      if (sales && sales.length > 0) return res.json({ success: true, data: sales });
+      if (sales && sales.length > 0) {
+        const normalizedSales = sales.map(sale => ({
+          ...sale,
+          type: sale.appointmentId ? 'appointment' : 'direct',
+          productsSold: sale.productsSold || sale.products || [],
+          createdAt: sale.createdAt || sale.date
+        }));
+        return res.json({ success: true, data: normalizedSales });
+      }
     } catch (e) { console.warn('Error fetching prismas sales:', e); }
 
     // Fallback a Firestore para ventas directas
