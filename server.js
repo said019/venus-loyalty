@@ -3932,16 +3932,23 @@ app.get('/api/booking-requests', adminAuth, async (req, res) => {
   }
 });
 
+function handleBookingRequestActionError(res, action, error) {
+  console.error(`[BOOKING REQUESTS] ❌ Error en ${action}:`, error);
+  if (error?.code === 'P2025') {
+    return res.status(404).json({ success: false, error: 'Solicitud no encontrada' });
+  }
+  return res.status(500).json({ success: false, error: 'Error interno del servidor' });
+}
+
 // POST /api/booking-requests/:id/contacted - Marcar como contactada
 app.post('/api/booking-requests/:id/contacted', adminAuth, async (req, res) => {
   try {
     await firestore.collection('booking_requests').doc(req.params.id).update({
-      status: 'contacted',
-      contactedAt: new Date().toISOString()
+      status: 'contacted'
     });
     res.json({ success: true });
   } catch (error) {
-    res.json({ success: false, error: error.message });
+    return handleBookingRequestActionError(res, 'marcar como contactada', error);
   }
 });
 
@@ -4071,9 +4078,7 @@ app.post('/api/booking-requests/:id/booked', adminAuth, async (req, res) => {
 
     // 4. ACTUALIZAR SOLICITUD
     await firestore.collection('booking_requests').doc(req.params.id).update({
-      status: 'booked',
-      bookedAt: new Date().toISOString(),
-      appointmentId: appointmentRef.id
+      status: 'booked'
     });
 
     // 5. CREAR NOTIFICACIÓN
@@ -4089,8 +4094,7 @@ app.post('/api/booking-requests/:id/booked', adminAuth, async (req, res) => {
 
     res.json({ success: true, appointmentId: appointmentRef.id });
   } catch (error) {
-    console.error('[BOOKING] Error:', error);
-    res.json({ success: false, error: error.message });
+    return handleBookingRequestActionError(res, 'marcar como agendada', error);
   }
 });
 
@@ -4118,12 +4122,11 @@ app.delete('/api/booking-requests', adminAuth, async (req, res) => {
 app.post('/api/booking-requests/:id/rejected', adminAuth, async (req, res) => {
   try {
     await firestore.collection('booking_requests').doc(req.params.id).update({
-      status: 'rejected',
-      rejectedAt: new Date().toISOString()
+      status: 'rejected'
     });
     res.json({ success: true });
   } catch (error) {
-    res.json({ success: false, error: error.message });
+    return handleBookingRequestActionError(res, 'marcar como rechazada', error);
   }
 });
 

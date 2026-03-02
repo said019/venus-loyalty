@@ -204,6 +204,14 @@ function processDataForUpdate(modelName, data) {
     delete processed.active;
   }
 
+  // Hotfix: BookingRequest no tiene estos campos en Prisma y pueden venir del flujo legacy
+  if (modelName === 'bookingRequest') {
+    delete processed.contactedAt;
+    delete processed.bookedAt;
+    delete processed.rejectedAt;
+    delete processed.appointmentId;
+  }
+
   // Eliminar campos que no existen en los modelos de Prisma
   delete processed.notes; // Card no tiene campo notes
   delete processed.favoriteServices; // Card no tiene este campo
