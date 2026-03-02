@@ -20869,7 +20869,7 @@
           <a href="https://wa.me/+${whatsappNum}" target="_blank" class="btn small" style="background:#25D366;border-color:#25D366;" title="Abrir WhatsApp">
             <i class="fab fa-whatsapp"></i> WhatsApp
           </a>
-          <button class="btn small primary" onclick="markAsBooked('${req.id}')" title="Marcar como agendada">
+          <button class="btn small primary" onclick="markAsBooked('${req.id}', this)" title="Marcar como agendada">
             <i class="fas fa-calendar-check"></i> Agendada
           </button>
           <button class="btn small ghost" onclick="rejectRequest('${req.id}')" title="Rechazar" style="color:#ef4444;border-color:#ef4444;">
@@ -20927,13 +20927,14 @@
       }
     }
 
-    async function markAsBooked(id) {
+    async function markAsBooked(id, btnEl = null) {
       // Prevenir doble clic
-      const btn = event?.target?.closest('button');
+      const btn = btnEl || event?.target?.closest('button') || null;
+      let originalHtml = '';
       if (btn && btn.disabled) return;
       if (btn) {
         btn.disabled = true;
-        const originalHtml = btn.innerHTML;
+        originalHtml = btn.innerHTML;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Agendando...';
       }
 
@@ -20965,7 +20966,7 @@
           // Re-habilitar botón en caso de error
           if (btn) {
             btn.disabled = false;
-            btn.innerHTML = originalHtml;
+            if (originalHtml) btn.innerHTML = originalHtml;
           }
         }
       } catch (error) {
@@ -20973,7 +20974,7 @@
         // Re-habilitar botón en caso de error
         if (btn) {
           btn.disabled = false;
-          btn.innerHTML = originalHtml;
+          if (originalHtml) btn.innerHTML = originalHtml;
         }
       }
     }

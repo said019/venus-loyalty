@@ -166,6 +166,21 @@ function processDataForUpdate(modelName, data) {
     processed.endDateTime = endDateTime;
   }
 
+  // Compatibilidad con payloads legacy de Appointment
+  if (modelName === 'appointment') {
+    // Legacy usa `duration`; Prisma usa `durationMinutes`
+    if (processed.duration !== undefined && processed.durationMinutes === undefined) {
+      const parsedDuration = Number(processed.duration);
+      processed.durationMinutes = Number.isFinite(parsedDuration) ? parsedDuration : 60;
+    }
+    delete processed.duration;
+
+    // Campos legacy que no existen en el modelo Prisma Appointment
+    delete processed.price;
+    delete processed.clientEmail;
+    delete processed.requestId;
+  }
+
   // Campos que son DateTime en Prisma
   const dateFields = ['createdAt', 'updatedAt', 'lastVisit', 'startDateTime', 'endDateTime',
     'confirmedAt', 'cancelledAt', 'sent24hAt', 'sent2hAt', 'expiresAt', 'usedAt',
