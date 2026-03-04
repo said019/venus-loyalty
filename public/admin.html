@@ -5980,6 +5980,35 @@
             </label>
           </div>
 
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
+            <div>
+              <label>Intervalo de citas (minutos)</label>
+              <select id="biz-interval" class="form-input">
+                <option value="30">30 min</option>
+                <option value="45">45 min</option>
+                <option value="60" selected>60 min (1 hora)</option>
+                <option value="90">90 min</option>
+                <option value="120">120 min (2 horas)</option>
+              </select>
+              <small class="muted">Cada cuánto tiempo se puede reservar una cita</small>
+            </div>
+            <div>
+              <label>Mínimo de horas para agendar</label>
+              <select id="biz-min-hours" class="form-input">
+                <option value="1">1 hora</option>
+                <option value="2">2 horas</option>
+                <option value="3">3 horas</option>
+                <option value="4" selected>4 horas</option>
+                <option value="5">5 horas</option>
+                <option value="6">6 horas</option>
+                <option value="8">8 horas</option>
+                <option value="12">12 horas</option>
+                <option value="24">24 horas (1 día)</option>
+              </select>
+              <small class="muted">Si son 4h, hasta las 6PM es el último slot para hoy (cierre 10PM)</small>
+            </div>
+          </div>
+
           <div style="margin-top:14px;">
             <button type="submit" class="btn primary"><i class="fas fa-save"></i> Guardar configuración</button>
           </div>
@@ -19350,6 +19379,10 @@ Gracias por tu preferencia`;
           document.getElementById('biz-open').value = d.openTime || '09:00';
           document.getElementById('biz-close').value = d.closeTime || '19:00';
 
+          // Intervalo y mínimo de horas
+          if (d.interval) document.getElementById('biz-interval').value = d.interval;
+          if (d.minHoursAdvance !== undefined) document.getElementById('biz-min-hours').value = d.minHoursAdvance;
+
           // Días de trabajo
           const workDays = d.workDays || [1, 2, 3, 4, 5, 6];
           for (let i = 0; i <= 6; i++) {
@@ -19476,7 +19509,9 @@ Gracias por tu preferencia`;
         mapsUrl: document.getElementById('biz-maps-url').value,
         openTime: document.getElementById('biz-open').value,
         closeTime: document.getElementById('biz-close').value,
-        workDays
+        workDays,
+        interval: parseInt(document.getElementById('biz-interval').value) || 60,
+        minHoursAdvance: parseInt(document.getElementById('biz-min-hours').value) || 4
       };
 
       try {

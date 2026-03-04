@@ -439,6 +439,24 @@ model GiftCardRedeem {
   @@map("gift_card_redeems")
 }
 
+// Configuración del negocio (singleton, id=1)
+model BusinessConfig {
+  id               Int      @id @default(1)
+  businessName     String   @default("Venus Cosmetología") @map("business_name")
+  whatsappBusiness String?  @map("whatsapp_business")
+  address          String?
+  mapsUrl          String?  @map("maps_url")
+  openTime         String   @default("09:00") @map("open_time")
+  closeTime        String   @default("19:00") @map("close_time")
+  workDays         Int[]    @default([1, 2, 3, 4, 5, 6]) @map("work_days")
+  interval         Int      @default(60) // minutos entre slots
+  minHoursAdvance  Int      @default(4)  @map("min_hours_advance") // horas mínimas de anticipación
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  @@map("business_config")
+}
+
 // Bloqueos de horario (días específicos o recurrentes)
 model BlockedSlot {
   id        String   @id @default(cuid())

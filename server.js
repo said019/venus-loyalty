@@ -2828,38 +2828,63 @@ app.get('/api/config/firebase', adminAuth, async (req, res) => {
   }
 });
 
-// GET /api/settings/business - Obtener configuración del negocio
+// GET /api/settings/business - Obtener configuración del negocio (PostgreSQL)
 app.get('/api/settings/business', async (req, res) => {
   try {
-    const doc = await firestore.collection('settings').doc('business').get();
-
-    if (!doc.exists) {
-      return res.json({
-        success: true,
-        data: {
-          businessHours: {
-            start: '09:00',
-            end: '20:00',
-            interval: 60,
-            closedDays: [0]
-          },
-          whatsappBusiness: '524271657595'
-        }
-      });
+    let cfg = await prisma.businessConfig.findUnique({ where: { id: 1 } });
+    if (!cfg) {
+      cfg = await prisma.businessConfig.create({ data: { id: 1 } });
     }
-
-    res.json({ success: true, data: doc.data() });
+    const closedDays = [0,1,2,3,4,5,6].filter(d => !cfg.workDays.includes(d));
+    res.json({
+      success: true,
+      data: {
+        businessName: cfg.businessName,
+        whatsappBusiness: cfg.whatsappBusiness || '',
+        address: cfg.address || '',
+        mapsUrl: cfg.mapsUrl || '',
+        openTime: cfg.openTime,
+        closeTime: cfg.closeTime,
+        workDays: cfg.workDays,
+        interval: cfg.interval,
+        minHoursAdvance: cfg.minHoursAdvance,
+        businessHours: {
+          start: cfg.openTime,
+          end: cfg.closeTime,
+          interval: cfg.interval,
+          closedDays
+        }
+      }
+    });
   } catch (error) {
+    console.error('[SETTINGS GET]', error);
     res.json({ success: false, error: error.message });
   }
 });
 
-// POST /api/settings/business - Guardar configuración del negocio
+// POST /api/settings/business - Guardar configuración del negocio (PostgreSQL)
 app.post('/api/settings/business', adminAuth, async (req, res) => {
   try {
-    await firestore.collection('settings').doc('business').set(req.body, { merge: true });
+    const { businessName, whatsappBusiness, address, mapsUrl, openTime, closeTime, workDays, interval, minHoursAdvance } = req.body;
+    const data = {};
+    if (businessName !== undefined) data.businessName = businessName;
+    if (whatsappBusiness !== undefined) data.whatsappBusiness = whatsappBusiness;
+    if (address !== undefined) data.address = address;
+    if (mapsUrl !== undefined) data.mapsUrl = mapsUrl;
+    if (openTime !== undefined) data.openTime = openTime;
+    if (closeTime !== undefined) data.closeTime = closeTime;
+    if (workDays !== undefined) data.workDays = workDays.map(Number);
+    if (interval !== undefined) data.interval = parseInt(interval) || 60;
+    if (minHoursAdvance !== undefined) data.minHoursAdvance = parseInt(minHoursAdvance) || 4;
+
+    await prisma.businessConfig.upsert({
+      where: { id: 1 },
+      create: { id: 1, ...data },
+      update: data
+    });
     res.json({ success: true });
   } catch (error) {
+    console.error('[SETTINGS POST]', error);
     res.json({ success: false, error: error.message });
   }
 });
@@ -3096,44 +3121,35 @@ app.patch('/api/admin/cards/:id/redeem-session', adminAuth, async (req, res) => 
   }
 });
 
-// GET /api/public/config - Configuración pública (información del negocio)
+// GET /api/public/config - Configuración pública (PostgreSQL)
 app.get('/api/public/config', async (req, res) => {
   try {
-    const doc = await firestore.collection('settings').doc('business').get();
-
-    const businessConfig = doc.exists ? doc.data() : {
-      businessName: 'Venus Cosmetología',
-      address: 'San Juan del Río, Querétaro',
-      mapsUrl: '',
-      openTime: '09:00',
-      closeTime: '19:00',
-      workDays: [1, 2, 3, 4, 5, 6],
-      businessHours: {
-        start: '09:00',
-        end: '20:00',
-        interval: 60,
-        closedDays: [0]
-      }
-    };
-
+    let cfg = await prisma.businessConfig.findUnique({ where: { id: 1 } });
+    if (!cfg) {
+      cfg = await prisma.businessConfig.create({ data: { id: 1 } });
+    }
+    const closedDays = [0,1,2,3,4,5,6].filter(d => !cfg.workDays.includes(d));
     res.json({
       success: true,
       data: {
-        businessName: businessConfig.businessName || 'Venus Cosmetología',
-        address: businessConfig.address || 'San Juan del Río, Querétaro',
-        mapsUrl: businessConfig.mapsUrl || '',
-        openTime: businessConfig.openTime || '09:00',
-        closeTime: businessConfig.closeTime || '19:00',
-        workDays: businessConfig.workDays || [1, 2, 3, 4, 5, 6],
-        businessHours: businessConfig.businessHours || {
-          start: businessConfig.openTime || '09:00',
-          end: businessConfig.closeTime || '19:00',
-          interval: 60,
-          closedDays: businessConfig.workDays ? [0, 1, 2, 3, 4, 5, 6].filter(d => !businessConfig.workDays.includes(d)) : [0]
+        businessName: cfg.businessName,
+        address: cfg.address || 'San Juan del Río, Querétaro',
+        mapsUrl: cfg.mapsUrl || '',
+        openTime: cfg.openTime,
+        closeTime: cfg.closeTime,
+        workDays: cfg.workDays,
+        interval: cfg.interval,
+        minHoursAdvance: cfg.minHoursAdvance,
+        businessHours: {
+          start: cfg.openTime,
+          end: cfg.closeTime,
+          interval: cfg.interval,
+          closedDays
         }
       }
     });
   } catch (error) {
+    console.error('[PUBLIC CONFIG]', error);
     res.json({ success: false, error: error.message });
   }
 });
@@ -3263,6 +3279,36 @@ app.get('/api/public/availability', async (req, res) => {
       }
     } catch (gcalErr) {
       console.warn(`[AVAILABILITY] Error consultando Google Calendar:`, gcalErr.message);
+    }
+
+    // ── Filtro de mínimo de horas de anticipación ──
+    try {
+      const bizCfg = await prisma.businessConfig.findUnique({ where: { id: 1 } });
+      const minHours = bizCfg?.minHoursAdvance ?? 4;
+      if (minHours > 0) {
+        const nowMx = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Mexico_City' }));
+        const todayStr = nowMx.toISOString().slice(0, 10);
+        if (date === todayStr) {
+          const cutoffMinutes = nowMx.getHours() * 60 + nowMx.getMinutes() + (minHours * 60);
+          // Bloquear todos los slots antes del cutoff
+          const closeTime = bizCfg?.closeTime || '21:00';
+          const [closeH, closeM] = closeTime.split(':').map(Number);
+          const openTime = bizCfg?.openTime || '09:00';
+          const [openH] = openTime.split(':').map(Number);
+          const interval = bizCfg?.interval || 60;
+          for (let mins = openH * 60; mins < closeH * 60 + closeM; mins += interval) {
+            if (mins < cutoffMinutes) {
+              const slotStr = `${Math.floor(mins/60).toString().padStart(2,'0')}:${(mins%60).toString().padStart(2,'0')}`;
+              if (!busy.includes(slotStr)) {
+                busy.push(slotStr);
+                console.log(`[AVAILABILITY] ⏰ Bloqueado por anticipación (${minHours}h): ${slotStr}`);
+              }
+            }
+          }
+        }
+      }
+    } catch (minErr) {
+      console.warn('[AVAILABILITY] Error verificando min hours:', minErr.message);
     }
 
     // Ordenar los slots

@@ -246,6 +246,7 @@
     let services = [];
     let businessHours = { start: '09:00', end: '20:00', interval: 60, closedDays: [0] };
     let businessConfig = {};
+    let minHoursAdvance = 4;
     let selectedService = null;
     let selectedDate = null;
     let selectedTime = null;
@@ -283,6 +284,9 @@
           businessConfig = json.data;
           if (json.data.businessHours) {
             businessHours = json.data.businessHours;
+          }
+          if (json.data.minHoursAdvance !== undefined) {
+            minHoursAdvance = json.data.minHoursAdvance;
           }
           updateBusinessInfo();
         }
@@ -500,16 +504,34 @@
       const date = new Date(dateStr + 'T00:00:00');
       document.getElementById('time-title').textContent = date.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'short' });
 
-      const startH = parseInt(businessHours.start?.split(':')[0]) || 9;
-      const endH = parseInt(businessHours.end?.split(':')[0]) || 20;
+      const [startH, startM] = (businessHours.start || '09:00').split(':').map(Number);
+      const [endH, endM] = (businessHours.end || '20:00').split(':').map(Number);
+      const interval = businessHours.interval || 60;
+
+      // Calcular cutoff por minHoursAdvance para hoy
+      const now = new Date();
+      const todayStr = now.toLocaleDateString('en-CA'); // YYYY-MM-DD
+      const isToday = dateStr === todayStr;
+      const nowMinutes = now.getHours() * 60 + now.getMinutes();
+      const cutoffMinutes = isToday ? nowMinutes + (minHoursAdvance * 60) : 0;
+
+      const startMinutes = startH * 60 + startM;
+      const endMinutes = endH * 60 + endM;
 
       let html = '';
-      for (let h = startH; h < endH; h++) {
-        const time = `${h.toString().padStart(2, '0')}:00`;
-        const display = h === 12 ? '12:00 PM' : h > 12 ? `${h - 12}:00 PM` : `${h}:00 AM`;
+      for (let mins = startMinutes; mins < endMinutes; mins += interval) {
+        const h = Math.floor(mins / 60);
+        const m = mins % 60;
+        const time = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+        const display = h === 12 ? `12:${m.toString().padStart(2,'0')} PM` : h > 12 ? `${h - 12}:${m.toString().padStart(2,'0')} PM` : `${h}:${m.toString().padStart(2,'0')} AM`;
         const isBusy = busy.includes(time);
+        const isTooSoon = isToday && mins < cutoffMinutes;
 
-        html += `<div class="tw-time-slot ${isBusy ? 'disabled' : ''}" data-time="${time}">${display}</div>`;
+        html += `<div class="tw-time-slot ${(isBusy || isTooSoon) ? 'disabled' : ''}" data-time="${time}">${display}</div>`;
+      }
+
+      if (!html) {
+        html = '<p style="grid-column:span 3;text-align:center;padding:16px;color:var(--muted);">No hay horarios disponibles para este día</p>';
       }
 
       document.getElementById('time-grid').innerHTML = html;
