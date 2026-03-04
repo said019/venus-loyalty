@@ -105,6 +105,7 @@ model Appointment {
   productsSold           Json?
   
   source                 String?
+  reviewSentAt           DateTime? @map("review_sent_at")
   createdAt              DateTime  @default(now())
   updatedAt              DateTime  @updatedAt
 
@@ -483,4 +484,22 @@ model GoogleCalendarMapping {
 
   @@unique([appointmentId, googleEventId])
   @@map("google_calendar_mapping")
+}
+
+// Evaluaciones post-cita
+model Review {
+  id              String    @id @default(cuid())
+  appointmentId   String    @unique @map("appointment_id")
+  clientName      String    @map("client_name")
+  clientPhone     String    @map("client_phone")
+  serviceName     String    @map("service_name")
+  stars           Int       // 1-5
+  liked           String?   // Lo que más le gustó
+  improve         String?   // Lo que mejoraría
+  comment         String?   // Comentario adicional
+  sentAt          DateTime? @map("sent_at")    // Cuándo se envió el link
+  answeredAt      DateTime? @map("answered_at") // Cuándo respondió
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  @@map("reviews")
 }

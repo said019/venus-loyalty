@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Evalúa tu experiencia · Venus</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    :root {
+      --venus: #8c9668;
+      --venus-soft: #a3ad82;
+      --bg: #faf9f6;
+      --card: #ffffff;
+      --ink: #1a1a1a;
+      --muted: #8c8c8c;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 20px;
+    }
+    .container {
+      max-width: 440px;
+      width: 100%;
+      margin-top: 20px;
+    }
+    .card {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      margin-bottom: 16px;
+    }
+    .logo {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .logo h1 {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--venus);
+    }
+    .logo p {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 4px;
+    }
+    .service-info {
+      text-align: center;
+      padding-bottom: 16px;
+      border-bottom: 1px solid #f0f0f0;
+      margin-bottom: 20px;
+    }
+    .service-info .name {
+      font-size: 16px;
+      font-weight: 600;
+    }
+    .service-info .date {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 2px;
+    }
+
+    /* Stars */
+    .stars-container {
+      text-align: center;
+      margin: 20px 0;
+    }
+    .stars-container p {
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+    .stars {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+    }
+    .star {
+      font-size: 40px;
+      cursor: pointer;
+      color: #e0e0e0;
+      transition: transform 0.15s, color 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .star:hover, .star.active {
+      color: #f59e0b;
+      transform: scale(1.15);
+    }
+    .star.active ~ .star {
+      color: #e0e0e0;
+      transform: scale(1);
+    }
+
+    /* Form */
+    .form-group {
+      margin-bottom: 16px;
+    }
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: var(--ink);
+    }
+    .form-group label .emoji {
+      margin-right: 4px;
+    }
+    textarea, input[type="text"] {
+      width: 100%;
+      border: 1.5px solid #e5e5e5;
+      border-radius: 10px;
+      padding: 12px;
+      font-size: 14px;
+      font-family: inherit;
+      resize: vertical;
+      transition: border-color 0.2s;
+      background: #fafafa;
+    }
+    textarea:focus, input:focus {
+      outline: none;
+      border-color: var(--venus);
+      background: white;
+    }
+    .btn-submit {
+      width: 100%;
+      padding: 14px;
+      background: var(--venus);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      margin-top: 8px;
+    }
+    .btn-submit:hover { background: var(--venus-soft); }
+    .btn-submit:active { transform: scale(0.98); }
+    .btn-submit:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    /* Thank you state */
+    .thank-you {
+      text-align: center;
+      padding: 40px 20px;
+    }
+    .thank-you .check {
+      font-size: 64px;
+      margin-bottom: 16px;
+    }
+    .thank-you h2 {
+      font-size: 22px;
+      margin-bottom: 8px;
+    }
+    .thank-you p {
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .hidden { display: none; }
+
+    /* Quick options */
+    .quick-options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .quick-opt {
+      padding: 6px 12px;
+      border: 1.5px solid #e5e5e5;
+      border-radius: 20px;
+      background: white;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .quick-opt:hover, .quick-opt.selected {
+      border-color: var(--venus);
+      background: rgba(140,150,104,0.1);
+      color: var(--venus);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">
+      <h1>💆‍♀️ Venus</h1>
+      <p>Tu opinión nos ayuda a mejorar</p>
+    </div>
+
+    <!-- Review Form -->
+    <div class="card" id="review-form">
+      <div class="service-info">
+        <div class="name" id="review-service">Cargando...</div>
+        <div class="date" id="review-date"></div>
+      </div>
+
+      <div class="stars-container">
+        <p>¿Cómo fue tu experiencia?</p>
+        <div class="stars" id="stars-row">
+          <span class="star" data-value="1">★</span>
+          <span class="star" data-value="2">★</span>
+          <span class="star" data-value="3">★</span>
+          <span class="star" data-value="4">★</span>
+          <span class="star" data-value="5">★</span>
+        </div>
+      </div>
+
+      <div id="extra-fields" class="hidden">
+        <div class="form-group">
+          <label><span class="emoji">👍</span> ¿Qué fue lo que más te gustó?</label>
+          <div class="quick-options" id="liked-options">
+            <span class="quick-opt" onclick="toggleQuickOpt(this)">La atención</span>
+            <span class="quick-opt" onclick="toggleQuickOpt(this)">El resultado</span>
+            <span class="quick-opt" onclick="toggleQuickOpt(this)">El ambiente</span>
+            <span class="quick-opt" onclick="toggleQuickOpt(this)">La limpieza</span>
+            <span class="quick-opt" onclick="toggleQuickOpt(this)">Puntualidad</span>
+            <span class="quick-opt" onclick="toggleQuickOpt(this)">El trato</span>
+          </div>
+          <textarea id="review-liked" rows="2" placeholder="Cuéntanos más..." style="margin-top:8px;"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label><span class="emoji">💡</span> ¿Qué podríamos mejorar?</label>
+          <textarea id="review-improve" rows="2" placeholder="Tu feedback nos ayuda mucho..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label><span class="emoji">💬</span> Comentario adicional (opcional)</label>
+          <textarea id="review-comment" rows="2" placeholder="Algo más que quieras decirnos..."></textarea>
+        </div>
+
+        <button class="btn-submit" id="btn-send-review" onclick="submitReview()">
+          <i class="fas fa-paper-plane"></i> Enviar evaluación
+        </button>
+      </div>
+    </div>
+
+    <!-- Thank You -->
+    <div class="card hidden" id="review-thanks">
+      <div class="thank-you">
+        <div class="check">💖</div>
+        <h2>¡Gracias por tu evaluación!</h2>
+        <p>Tu opinión nos ayuda a seguir mejorando.<br>¡Te esperamos pronto!</p>
+      </div>
+    </div>
+
+    <!-- Already answered -->
+    <div class="card hidden" id="review-already">
+      <div class="thank-you">
+        <div class="check">✅</div>
+        <h2>Ya evaluaste esta cita</h2>
+        <p>Gracias por tomarte el tiempo de darnos tu opinión.</p>
+      </div>
+    </div>
+
+    <!-- Error / Invalid -->
+    <div class="card hidden" id="review-error">
+      <div class="thank-you">
+        <div class="check">😕</div>
+        <h2>Link no válido</h2>
+        <p>Este enlace de evaluación no es válido o ya expiró.</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let selectedStars = 0;
+    let appointmentId = null;
+
+    // Leer appointmentId de la URL
+    const params = new URLSearchParams(window.location.search);
+    appointmentId = params.get('id');
+
+    if (!appointmentId) {
+      document.getElementById('review-form').classList.add('hidden');
+      document.getElementById('review-error').classList.remove('hidden');
+    } else {
+      // Cargar info de la cita
+      loadAppointmentInfo();
+    }
+
+    async function loadAppointmentInfo() {
+      try {
+        const res = await fetch(`/api/reviews/info/${appointmentId}`);
+        const json = await res.json();
+
+        if (!json.success) {
+          document.getElementById('review-form').classList.add('hidden');
+          if (json.alreadyReviewed) {
+            document.getElementById('review-already').classList.remove('hidden');
+          } else {
+            document.getElementById('review-error').classList.remove('hidden');
+          }
+          return;
+        }
+
+        document.getElementById('review-service').textContent = json.serviceName || 'Tu cita';
+        document.getElementById('review-date').textContent = json.date || '';
+      } catch (e) {
+        document.getElementById('review-form').classList.add('hidden');
+        document.getElementById('review-error').classList.remove('hidden');
+      }
+    }
+
+    // Stars interaction
+    document.querySelectorAll('.star').forEach(star => {
+      star.addEventListener('click', () => {
+        selectedStars = parseInt(star.dataset.value);
+        document.querySelectorAll('.star').forEach((s, i) => {
+          s.classList.toggle('active', i < selectedStars);
+        });
+        // Mostrar campos extra
+        document.getElementById('extra-fields').classList.remove('hidden');
+      });
+    });
+
+    function toggleQuickOpt(el) {
+      el.classList.toggle('selected');
+    }
+
+    async function submitReview() {
+      if (selectedStars === 0) {
+        alert('Selecciona una calificación con estrellas');
+        return;
+      }
+
+      const btn = document.getElementById('btn-send-review');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
+
+      // Recopilar opciones rápidas seleccionadas
+      const quickLiked = Array.from(document.querySelectorAll('#liked-options .quick-opt.selected'))
+        .map(el => el.textContent.trim());
+      const likedText = document.getElementById('review-liked').value.trim();
+      const liked = [...quickLiked, likedText].filter(Boolean).join(', ');
+
+      try {
+        const res = await fetch('/api/reviews', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            appointmentId,
+            stars: selectedStars,
+            liked: liked || null,
+            improve: document.getElementById('review-improve').value.trim() || null,
+            comment: document.getElementById('review-comment').value.trim() || null,
+          })
+        });
+
+        const json = await res.json();
+
+        if (json.success) {
+          document.getElementById('review-form').classList.add('hidden');
+          document.getElementById('review-thanks').classList.remove('hidden');
+        } else {
+          alert(json.error || 'Error al enviar');
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fas fa-paper-plane"></i> Enviar evaluación';
+        }
+      } catch (e) {
+        alert('Error de conexión');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-paper-plane"></i> Enviar evaluación';
+      }
+    }
+  </script>
+</body>
+</html>

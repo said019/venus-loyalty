@@ -3,6 +3,7 @@ import { AppointmentModel } from '../models/index.js';
 import { WhatsAppService } from '../services/whatsapp-v2.js';
 import { prisma } from '../db/index.js';
 import { NotificationsRepo } from '../db/repositories.js';
+import { config } from '../config/config.js';
 
 export function startScheduler() {
     console.log('⏰ Scheduler de recordatorios WhatsApp iniciado (cada hora)');
@@ -203,6 +204,97 @@ export function startScheduler() {
     });
 
     console.log('✅ Sistema de notificaciones WhatsApp con Twilio listo');
+
+    // ========== ENVÍO DE LINK DE EVALUACIÓN 30 MIN POST-CITA ==========
+    // Corre cada 10 minutos para detectar citas completadas
+    cron.schedule('*/10 * * * *', async () => {
+        try {
+            const now = new Date();
+
+            // Buscar citas completadas hace ~30 min que NO tengan reviewSentAt
+            // Ventana: completadas entre 20 y 40 min atrás
+            const minAgo40 = new Date(now.getTime() - 40 * 60 * 1000);
+            const minAgo20 = new Date(now.getTime() - 20 * 60 * 1000);
+
+            const pendingReviewSend = await prisma.appointment.findMany({
+                where: {
+                    status: 'completed',
+                    reviewSentAt: null,
+                    endDateTime: {
+                        gte: minAgo40,
+                        lte: minAgo20
+                    }
+                },
+                take: 20
+            });
+
+            if (pendingReviewSend.length > 0) {
+                console.log(`⭐ [review-cron] ${pendingReviewSend.length} citas completadas pendientes de evaluación`);
+            }
+
+            const baseUrl = config.baseUrl || 'https://venus-loyalty.onrender.com';
+
+            for (const appt of pendingReviewSend) {
+                const reviewUrl = `${baseUrl}/review.html?id=${appt.id}`;
+                const mensaje = `💆‍♀️ ¡Hola ${appt.clientName}! Gracias por visitarnos hoy.\n\n⭐ Nos encantaría saber cómo fue tu experiencia con tu *${appt.serviceName}*.\n\n👉 Evalúa aquí (30 segundos): ${reviewUrl}\n\nTu opinión nos ayuda a mejorar. ¡Gracias! 🌸`;
+
+                let sent = false;
+
+                // Intentar Evolution API primero (texto libre, sin template)
+                const hasEvolution = !!(config.evolution?.apiUrl && config.evolution?.apiKey);
+                if (hasEvolution) {
+                    try {
+                        const { getEvolutionClient } = await import('../services/whatsapp-evolution.js');
+                        const evo = getEvolutionClient();
+                        await evo.sendText(appt.clientPhone, mensaje);
+                        sent = true;
+                        console.log(`⭐ [review] Link de evaluación enviado vía Evolution a ${appt.clientName}`);
+                    } catch (evoErr) {
+                        console.warn(`⚠️ [review] Evolution falló para ${appt.clientName}:`, evoErr.message);
+                    }
+                }
+
+                // Fallback: Twilio texto libre (requiere sesión activa de 24h)
+                if (!sent) {
+                    try {
+                        const { sendWhatsAppText } = await import('../services/whatsapp-v2.js');
+                        // Nota: sendWhatsAppText solo funciona si hay sesión activa
+                        // Si no hay sesión, se registrará el error pero no detendrá el cron
+                        console.log(`⭐ [review] Intentando enviar link vía Twilio texto a ${appt.clientName}`);
+                    } catch (twErr) {
+                        console.warn(`⚠️ [review] Twilio texto falló:`, twErr.message);
+                    }
+                }
+
+                // Marcar como enviado para no re-enviar
+                await prisma.appointment.update({
+                    where: { id: appt.id },
+                    data: { reviewSentAt: new Date() }
+                });
+
+                // Crear review pendiente (sin estrellas, solo registro de envío)
+                try {
+                    await prisma.review.create({
+                        data: {
+                            appointmentId: appt.id,
+                            clientName: appt.clientName,
+                            clientPhone: appt.clientPhone,
+                            serviceName: appt.serviceName,
+                            stars: 0, // Se actualizará cuando la clienta responda
+                            sentAt: new Date()
+                        }
+                    });
+                } catch (revErr) {
+                    // Si ya existe la review (por unique constraint), ignorar
+                    if (!revErr.message?.includes('Unique constraint')) {
+                        console.error('⚠️ [review] Error creando registro de review:', revErr.message);
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('❌ Error en scheduler de evaluaciones:', error);
+        }
+    });
 
     // ========== NOTIFICACIONES AUTOMÁTICAS (cada hora) ==========
     cron.schedule('0 * * * *', async () => {

@@ -5399,6 +5399,153 @@ app.post("/api/admin/update-client-info", adminAuth, async (req, res) => {
 });
 
 /* =========================================================
+   REVIEWS / EVALUACIONES API
+   ========================================================= */
+
+// GET /api/reviews/info/:appointmentId — Público: info para la página de evaluación
+app.get('/api/reviews/info/:appointmentId', async (req, res) => {
+  try {
+    const { appointmentId } = req.params;
+
+    // Verificar si ya existe una review respondida (stars > 0)
+    const existingReview = await prisma.review.findUnique({
+      where: { appointmentId }
+    });
+    if (existingReview && existingReview.stars > 0) {
+      return res.json({ success: false, alreadyReviewed: true });
+    }
+
+    // Buscar la cita
+    const appointment = await prisma.appointment.findUnique({
+      where: { id: appointmentId }
+    });
+    if (!appointment) {
+      return res.json({ success: false, error: 'Cita no encontrada' });
+    }
+
+    // Formatear fecha legible
+    let dateStr = '';
+    try {
+      const d = appointment.date || appointment.startDateTime?.toISOString().split('T')[0];
+      if (d) {
+        const [y, m, day] = d.split('-');
+        const meses = ['', 'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+          'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+        dateStr = `${parseInt(day)} de ${meses[parseInt(m)]} ${y}`;
+      }
+    } catch (e) { /* ignore */ }
+
+    res.json({
+      success: true,
+      serviceName: appointment.serviceName,
+      date: dateStr,
+      clientName: appointment.clientName
+    });
+  } catch (error) {
+    console.error('[REVIEW INFO] Error:', error);
+    res.status(500).json({ success: false, error: 'Error interno' });
+  }
+});
+
+// POST /api/reviews — Público: guardar evaluación
+app.post('/api/reviews', async (req, res) => {
+  try {
+    const { appointmentId, stars, liked, improve, comment } = req.body;
+
+    if (!appointmentId || !stars || stars < 1 || stars > 5) {
+      return res.status(400).json({ success: false, error: 'Datos inválidos' });
+    }
+
+    // Buscar la cita para obtener info
+    const appointment = await prisma.appointment.findUnique({
+      where: { id: appointmentId }
+    });
+    if (!appointment) {
+      return res.status(404).json({ success: false, error: 'Cita no encontrada' });
+    }
+
+    // Verificar si ya existe una review (creada por el cron con stars=0, o ya respondida)
+    const existing = await prisma.review.findUnique({
+      where: { appointmentId }
+    });
+
+    let review;
+    if (existing && existing.stars > 0) {
+      // Ya respondió
+      return res.json({ success: false, error: 'Ya evaluaste esta cita' });
+    } else if (existing && existing.stars === 0) {
+      // Actualizar la review pendiente creada por el cron
+      review = await prisma.review.update({
+        where: { appointmentId },
+        data: {
+          stars: parseInt(stars),
+          liked: liked || null,
+          improve: improve || null,
+          comment: comment || null,
+          answeredAt: new Date()
+        }
+      });
+    } else {
+      // Crear nueva review (caso donde el link se accede sin cron previo)
+      review = await prisma.review.create({
+        data: {
+          appointmentId,
+          clientName: appointment.clientName,
+          clientPhone: appointment.clientPhone,
+          serviceName: appointment.serviceName,
+          stars: parseInt(stars),
+          liked: liked || null,
+          improve: improve || null,
+          comment: comment || null,
+          answeredAt: new Date()
+        }
+      });
+    }
+
+    console.log(`⭐ Nueva evaluación: ${stars} estrellas de ${appointment.clientName} — ${appointment.serviceName}`);
+    res.json({ success: true, review });
+  } catch (error) {
+    console.error('[REVIEW CREATE] Error:', error);
+    res.status(500).json({ success: false, error: 'Error al guardar evaluación' });
+  }
+});
+
+// GET /api/reviews — Admin: listar evaluaciones con filtro y stats
+app.get('/api/reviews', adminAuth, async (req, res) => {
+  try {
+    const { stars } = req.query;
+
+    const where = { stars: { gt: 0 } };
+    if (stars) where.stars = parseInt(stars);
+
+    const reviews = await prisma.review.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      take: 200
+    });
+
+    // Stats (solo reviews respondidas)
+    const allReviews = await prisma.review.findMany({
+      where: { stars: { gt: 0 } },
+      select: { stars: true }
+    });
+    const total = allReviews.length;
+    const avg = total > 0 ? (allReviews.reduce((s, r) => s + r.stars, 0) / total).toFixed(1) : 0;
+    const fiveStars = allReviews.filter(r => r.stars === 5).length;
+    const lowStars = allReviews.filter(r => r.stars <= 3).length;
+
+    res.json({
+      success: true,
+      reviews,
+      stats: { total, avg: parseFloat(avg), fiveStars, lowStars }
+    });
+  } catch (error) {
+    console.error('[REVIEWS LIST] Error:', error);
+    res.status(500).json({ success: false, error: 'Error al cargar evaluaciones' });
+  }
+});
+
+/* =========================================================
    SERVER
    ========================================================= */
 const PORT = process.env.PORT || 3000;

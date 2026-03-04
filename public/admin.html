@@ -5147,6 +5147,10 @@
         <i class="fas fa-chart-line"></i>
         <span>Reportes</span>
       </button>
+      <button class="sidebar-nav-item" data-tab="reviews">
+        <i class="fas fa-star"></i>
+        <span>Evaluaciones</span>
+      </button>
       <button class="sidebar-nav-item" data-tab="settings">
         <i class="fas fa-sliders-h"></i>
         <span>Configuración</span>
@@ -5688,8 +5692,80 @@
     </div>
 
     <!-- TAB: Settings - MEJORADO CON DEBUGGING -->
+    <!-- EVALUACIONES -->
+    <section id="tab-reviews" class="tab-content hidden">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:12px;">
+        <div>
+          <h2><i class="fas fa-star" style="color:#f59e0b;"></i> Evaluaciones de Clientas</h2>
+          <p class="muted" style="margin:0;font-size:12px;">Feedback automático enviado 30 min después de cada cita completada</p>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <select id="reviews-filter-stars" class="form-input" onchange="loadReviews()" style="width:auto;padding:6px 12px;">
+            <option value="all">Todas las estrellas</option>
+            <option value="5">⭐⭐⭐⭐⭐ (5)</option>
+            <option value="4">⭐⭐⭐⭐ (4)</option>
+            <option value="3">⭐⭐⭐ (3)</option>
+            <option value="2">⭐⭐ (2)</option>
+            <option value="1">⭐ (1)</option>
+          </select>
+          <button class="btn ghost" onclick="loadReviews()"><i class="fas fa-sync"></i></button>
+        </div>
+      </div>
+
+      <!-- KPIs -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px;">
+        <div class="card" style="padding:16px;text-align:center;">
+          <div style="font-size:28px;font-weight:700;color:#f59e0b;" id="reviews-avg">—</div>
+          <div class="muted" style="font-size:12px;">Promedio</div>
+        </div>
+        <div class="card" style="padding:16px;text-align:center;">
+          <div style="font-size:28px;font-weight:700;" id="reviews-total">0</div>
+          <div class="muted" style="font-size:12px;">Total evaluaciones</div>
+        </div>
+        <div class="card" style="padding:16px;text-align:center;">
+          <div style="font-size:28px;font-weight:700;color:#22c55e;" id="reviews-5star">0</div>
+          <div class="muted" style="font-size:12px;">5 estrellas</div>
+        </div>
+        <div class="card" style="padding:16px;text-align:center;">
+          <div style="font-size:28px;font-weight:700;color:#ef4444;" id="reviews-low">0</div>
+          <div class="muted" style="font-size:12px;">≤ 3 estrellas</div>
+        </div>
+      </div>
+
+      <!-- Lista de reviews -->
+      <div class="card" style="padding:0;">
+        <div id="reviews-list" style="padding:16px;">
+          <p class="muted" style="text-align:center;padding:40px;">Cargando evaluaciones...</p>
+        </div>
+      </div>
+    </section>
+
     <section id="tab-settings" class="card hidden">
       <h2>Configuración</h2>
+
+      <!-- Google Calendar Connection -->
+      <div style="background:rgba(66,133,244,0.08);border:1px solid rgba(66,133,244,0.3);border-radius:12px;padding:14px;margin:12px 0;">
+        <h3 style="margin:0 0 12px;"><i class="fab fa-google" style="color:#4285f4;"></i> Google Calendar</h3>
+        <p class="muted" style="margin:0 0 16px;font-size:12px;">Sincroniza citas automáticamente con tu Google Calendar.</p>
+        
+        <div id="gcal-status-container">
+          <div id="gcal-disconnected" style="display:none;">
+            <p style="margin:0 0 12px;color:#ef4444;"><i class="fas fa-times-circle"></i> No conectado</p>
+            <button class="btn primary" onclick="connectGoogleCalendar()" style="background:#4285f4;">
+              <i class="fab fa-google"></i> Conectar Google Calendar
+            </button>
+          </div>
+          <div id="gcal-connected" style="display:none;">
+            <p style="margin:0 0 8px;color:#22c55e;"><i class="fas fa-check-circle"></i> Conectado</p>
+            <p class="muted" style="margin:0 0 8px;font-size:12px;">Última sincronización: <span id="gcal-last-sync">—</span></p>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button class="btn small ghost" onclick="syncGoogleCalendar()"><i class="fas fa-sync"></i> Sincronizar todo</button>
+              <button class="btn small ghost" style="color:#ef4444;" onclick="disconnectGoogleCalendar()"><i class="fas fa-unlink"></i> Desconectar</button>
+            </div>
+          </div>
+          <div id="gcal-loading"><i class="fas fa-spinner fa-spin"></i> Verificando...</div>
+        </div>
+      </div>
 
       <!-- Configuración del Negocio -->
       <div
@@ -11586,6 +11662,10 @@
         } else if (tabName === 'reports') {
           if (typeof initReportsTab === 'function') initReportsTab();
           if (typeof stopDashboardAutoRefresh === 'function') stopDashboardAutoRefresh();
+        } else if (tabName === 'reviews') {
+          if (typeof loadReviews === 'function') loadReviews();
+        } else if (tabName === 'settings') {
+          if (typeof checkGCalStatus === 'function') checkGCalStatus();
         } else {
           // Detener auto-refresh cuando se sale de los tabs
           if (typeof stopAppointmentsAutoRefresh === 'function') stopAppointmentsAutoRefresh();
@@ -22426,6 +22506,136 @@ Gracias por tu preferencia`;
         setTimeout(() => toast.remove(), 400);
       }, 4000);
     };
+
+    // ===== GOOGLE CALENDAR FUNCTIONS =====
+    async function checkGCalStatus() {
+      try {
+        const res = await fetch('/api/calendar/status', { credentials: 'include' });
+        const json = await res.json();
+        document.getElementById('gcal-loading').style.display = 'none';
+        if (json.success && json.connected) {
+          document.getElementById('gcal-connected').style.display = 'block';
+          document.getElementById('gcal-disconnected').style.display = 'none';
+          const lastSync = json.lastSyncAt ? new Date(json.lastSyncAt).toLocaleString('es-MX') : 'Nunca';
+          document.getElementById('gcal-last-sync').textContent = lastSync;
+        } else {
+          document.getElementById('gcal-connected').style.display = 'none';
+          document.getElementById('gcal-disconnected').style.display = 'block';
+        }
+      } catch (e) {
+        document.getElementById('gcal-loading').style.display = 'none';
+        document.getElementById('gcal-disconnected').style.display = 'block';
+      }
+    }
+
+    async function connectGoogleCalendar() {
+      try {
+        const res = await fetch('/api/calendar/auth', { credentials: 'include' });
+        const json = await res.json();
+        if (json.success && json.authUrl) {
+          window.open(json.authUrl, '_blank');
+        } else {
+          alert(json.message || 'No se pudo obtener URL de autorización. Verifica que GOOGLE_CLIENT_ID y GOOGLE_CLIENT_SECRET estén configurados en las variables de entorno.');
+        }
+      } catch (e) {
+        alert('Error conectando: ' + e.message);
+      }
+    }
+
+    async function syncGoogleCalendar() {
+      try {
+        if (typeof showNotification === 'function') showNotification('Sincronizando...', 'info');
+        const res = await fetch('/api/calendar/sync', { method: 'POST', credentials: 'include' });
+        const json = await res.json();
+        if (json.success) {
+          if (typeof showNotification === 'function') showNotification(`Sincronizado: ${json.created} creados, ${json.updated} actualizados`, 'success');
+          checkGCalStatus();
+        } else {
+          alert('Error: ' + json.error);
+        }
+      } catch (e) {
+        alert('Error sincronizando: ' + e.message);
+      }
+    }
+
+    async function disconnectGoogleCalendar() {
+      if (!confirm('¿Desconectar Google Calendar?')) return;
+      try {
+        await fetch('/api/calendar/disconnect', { method: 'POST', credentials: 'include' });
+        checkGCalStatus();
+      } catch (e) {
+        alert('Error: ' + e.message);
+      }
+    }
+
+    window.connectGoogleCalendar = connectGoogleCalendar;
+    window.syncGoogleCalendar = syncGoogleCalendar;
+    window.disconnectGoogleCalendar = disconnectGoogleCalendar;
+
+    // Verificar estado al cargar settings
+    if (window.location.search.includes('calendar=connected')) {
+      setTimeout(() => {
+        if (typeof showNotification === 'function') showNotification('¡Google Calendar conectado!', 'success');
+        checkGCalStatus();
+      }, 500);
+    }
+
+    // ===== REVIEWS / EVALUACIONES =====
+    async function loadReviews() {
+      const container = document.getElementById('reviews-list');
+      const starsFilter = document.getElementById('reviews-filter-stars')?.value || 'all';
+
+      try {
+        let url = '/api/reviews';
+        if (starsFilter !== 'all') url += '?stars=' + starsFilter;
+        const res = await fetch(url, { credentials: 'include' });
+        const json = await res.json();
+
+        if (!json.success) {
+          container.innerHTML = '<p class="muted" style="text-align:center;padding:40px;">Error cargando evaluaciones</p>';
+          return;
+        }
+
+        const reviews = json.data || [];
+        const stats = json.stats || {};
+
+        // KPIs
+        document.getElementById('reviews-avg').textContent = stats.avg ? parseFloat(stats.avg).toFixed(1) + ' ⭐' : '—';
+        document.getElementById('reviews-total').textContent = stats.total || 0;
+        document.getElementById('reviews-5star').textContent = stats.fiveStars || 0;
+        document.getElementById('reviews-low').textContent = stats.lowStars || 0;
+
+        if (reviews.length === 0) {
+          container.innerHTML = '<p class="muted" style="text-align:center;padding:40px;"><i class="fas fa-star" style="font-size:32px;opacity:0.3;display:block;margin-bottom:8px;"></i>Aún no hay evaluaciones</p>';
+          return;
+        }
+
+        container.innerHTML = reviews.map(r => {
+          const stars = '⭐'.repeat(r.stars) + '☆'.repeat(5 - r.stars);
+          const date = new Date(r.answeredAt || r.createdAt).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' });
+          return `
+            <div style="border-bottom:1px solid var(--line);padding:14px 0;${r.stars <= 2 ? 'background:rgba(239,68,68,0.05);margin:0 -16px;padding:14px 16px;border-radius:8px;' : ''}">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;">
+                <div>
+                  <div style="font-size:18px;letter-spacing:2px;">${stars}</div>
+                  <div style="font-weight:600;margin-top:4px;">${r.clientName}</div>
+                  <div class="muted" style="font-size:12px;">${r.serviceName} · ${date}</div>
+                </div>
+                ${r.stars <= 2 ? '<span style="background:#fef2f2;color:#ef4444;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:600;">⚠️ Atención</span>' : ''}
+              </div>
+              ${r.liked ? `<div style="margin-top:8px;"><span style="color:#22c55e;font-weight:500;">👍 Le gustó:</span> ${r.liked}</div>` : ''}
+              ${r.improve ? `<div style="margin-top:4px;"><span style="color:#f59e0b;font-weight:500;">💡 Mejorar:</span> ${r.improve}</div>` : ''}
+              ${r.comment ? `<div style="margin-top:4px;color:var(--muted);font-style:italic;">"${r.comment}"</div>` : ''}
+            </div>
+          `;
+        }).join('');
+      } catch (e) {
+        console.error('[Reviews]', e);
+        container.innerHTML = '<p class="muted" style="text-align:center;">Error de conexión</p>';
+      }
+    }
+
+    window.loadReviews = loadReviews;
   </script>
 
 </body>
