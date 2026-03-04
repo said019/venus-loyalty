@@ -22543,33 +22543,43 @@ Gracias por tu preferencia`;
 
     // ===== GOOGLE CALENDAR FUNCTIONS =====
     async function checkGCalStatus() {
+      const loading = document.getElementById('gcal-loading');
+      const connected = document.getElementById('gcal-connected');
+      const disconnected = document.getElementById('gcal-disconnected');
+      if (!loading) return;
       try {
         const res = await fetch('/api/calendar/status', { credentials: 'include' });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
         const json = await res.json();
-        document.getElementById('gcal-loading').style.display = 'none';
+        console.log('[GCal Status]', json);
+        loading.style.display = 'none';
         if (json.success && json.connected) {
-          document.getElementById('gcal-connected').style.display = 'block';
-          document.getElementById('gcal-disconnected').style.display = 'none';
+          connected.style.display = 'block';
+          disconnected.style.display = 'none';
           const lastSync = json.lastSyncAt ? new Date(json.lastSyncAt).toLocaleString('es-MX') : 'Nunca';
           document.getElementById('gcal-last-sync').textContent = lastSync;
         } else {
-          document.getElementById('gcal-connected').style.display = 'none';
-          document.getElementById('gcal-disconnected').style.display = 'block';
+          connected.style.display = 'none';
+          disconnected.style.display = 'block';
         }
       } catch (e) {
-        document.getElementById('gcal-loading').style.display = 'none';
-        document.getElementById('gcal-disconnected').style.display = 'block';
+        console.warn('[GCal Status] Error:', e.message);
+        loading.style.display = 'none';
+        disconnected.style.display = 'block';
       }
     }
 
     async function connectGoogleCalendar() {
       try {
         const res = await fetch('/api/calendar/auth', { credentials: 'include' });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
         const json = await res.json();
         if (json.success && json.authUrl) {
           window.open(json.authUrl, '_blank');
+          // Re-check status after a delay (user may authorize in popup)
+          setTimeout(() => checkGCalStatus(), 10000);
         } else {
-          alert(json.message || 'No se pudo obtener URL de autorización. Verifica que GOOGLE_CLIENT_ID y GOOGLE_CLIENT_SECRET estén configurados en las variables de entorno.');
+          alert(json.message || json.error || 'No se pudo obtener URL de autorización.');
         }
       } catch (e) {
         alert('Error conectando: ' + e.message);
@@ -22580,12 +22590,13 @@ Gracias por tu preferencia`;
       try {
         if (typeof showNotification === 'function') showNotification('Sincronizando...', 'info');
         const res = await fetch('/api/calendar/sync', { method: 'POST', credentials: 'include' });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
         const json = await res.json();
         if (json.success) {
-          if (typeof showNotification === 'function') showNotification(`Sincronizado: ${json.created} creados, ${json.updated} actualizados`, 'success');
+          if (typeof showNotification === 'function') showNotification(`Sincronizado: ${json.created || 0} creados, ${json.updated || 0} actualizados`, 'success');
           checkGCalStatus();
         } else {
-          alert('Error: ' + json.error);
+          alert('Error: ' + (json.error || 'Error desconocido'));
         }
       } catch (e) {
         alert('Error sincronizando: ' + e.message);
@@ -22602,6 +22613,7 @@ Gracias por tu preferencia`;
       }
     }
 
+    window.checkGCalStatus = checkGCalStatus;
     window.connectGoogleCalendar = connectGoogleCalendar;
     window.syncGoogleCalendar = syncGoogleCalendar;
     window.disconnectGoogleCalendar = disconnectGoogleCalendar;

@@ -3197,31 +3197,6 @@ app.get('/api/public/availability', async (req, res) => {
       console.error('[AVAILABILITY] Error consultando Prisma:', prismaErr.message);
     }
 
-    // ── FUENTE LEGACY: Firestore (citas antiguas) ──
-    try {
-      const dateFieldSnapshot = await firestore.collection('appointments')
-        .where('date', '==', date)
-        .get();
-
-      console.log(`[AVAILABILITY] Firestore: ${dateFieldSnapshot.size} citas legacy`);
-
-      dateFieldSnapshot.forEach(doc => {
-        if (processedIds.has(doc.id)) return;
-        processedIds.add(doc.id);
-        const data = doc.data();
-        if (data.status === 'cancelled') return;
-        if (data.time) {
-          const timeSlot = data.time.substring(0, 5);
-          if (!busy.includes(timeSlot)) {
-            busy.push(timeSlot);
-            console.log(`[AVAILABILITY] ✅ Firestore slot ocupado: ${timeSlot}`);
-          }
-        }
-      });
-    } catch (fsErr) {
-      console.warn('[AVAILABILITY] Firestore no disponible:', fsErr.message);
-    }
-
     // ── Bloqueos de Horario (BlockedSlots) ──
     const requestDate = new Date(date + 'T00:00:00');
     const dayOfWeek = requestDate.getDay(); // 0-6
