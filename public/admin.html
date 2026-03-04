@@ -15626,20 +15626,21 @@ Gracias por tu preferencia`;
 
       select(item) {
         this._selecting = true;
-        this.input.value = item.value; // Use value for input
+        this.input.value = item.value;
 
-        // Trigger callback if provided
         if (this.onSelectCallback) {
           this.onSelectCallback(item);
         }
 
-        // Trigger native change event for other listeners
         this.input.dispatchEvent(new Event('change', { bubbles: true }));
 
-        // Close dropdown and blur input to prevent re-opening
         this.hide();
         this.input.blur();
-        this._selecting = false;
+
+        // Delay reset: mousedown hides the dropdown, so mouseup lands on
+        // the input underneath → generates a phantom 'click' that re-opens it.
+        // Keep the guard active long enough to swallow that click.
+        setTimeout(() => { this._selecting = false; }, 200);
       }
     }
 
