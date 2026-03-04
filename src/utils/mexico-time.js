@@ -55,4 +55,42 @@ function toMexicoCityISO(date) {
     return localDate.toISOString().replace('Z', '-06:00');
 }
 
-export { formatearFechaLegible, formatearHora, extractDateAndTime, toMexicoCityISO };
+// Alias para compatibilidad
+function toMexicoISO(date) {
+    return toMexicoCityISO(date instanceof Date ? date : new Date(date));
+}
+
+// Devuelve la fecha de hoy en México como 'YYYY-MM-DD'
+function todayMexicoStr() {
+    return new Intl.DateTimeFormat('en-CA', { timeZone: TIMEZONE }).format(new Date());
+}
+
+// Partes individuales de la fecha actual en México
+function mxYear() {
+    return parseInt(todayMexicoStr().split('-')[0]);
+}
+function mxMonth() {
+    return parseInt(todayMexicoStr().split('-')[1]);
+}
+function mxDay() {
+    return parseInt(todayMexicoStr().split('-')[2]);
+}
+
+// Inicio del mes actual en México como ISO string (medianoche CDM = 06:00 UTC)
+function startOfMonthMexicoISO() {
+    const [year, month] = todayMexicoStr().split('-');
+    return new Date(`${year}-${month}-01T06:00:00.000Z`).toISOString();
+}
+
+export {
+    formatearFechaLegible,
+    formatearHora,
+    extractDateAndTime,
+    toMexicoCityISO,
+    toMexicoISO,
+    todayMexicoStr,
+    mxYear,
+    mxMonth,
+    mxDay,
+    startOfMonthMexicoISO,
+};
