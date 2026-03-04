@@ -3150,118 +3150,79 @@ app.get('/api/public/availability', async (req, res) => {
     console.log(`[AVAILABILITY] ============================================`);
     console.log(`[AVAILABILITY] Buscando disponibilidad para: ${date}`);
 
-    // Las citas se crean con new Date('YYYY-MM-DDT09:00:00')
-    // En México (UTC-6), esto automáticamente se convierte a UTC al usar toISOString()
-    // Ejemplo: 2025-12-31T09:00:00 local -> 2025-12-31T15:00:00.000Z en UTC
-
-    // Para buscar todas las citas del día en hora local de México:
-    // - El día en México va de 00:00 a 23:59 hora local
-    // - En UTC esto es de 06:00Z a 05:59Z del día siguiente
-
     const busy = [];
     const processedIds = new Set();
 
-    // ESTRATEGIA 1: Buscar citas que empiezan con la fecha (formato sin Z)
-    // Esto captura citas guardadas como "2025-12-31T09:00:00" sin conversión a UTC
-    console.log(`[AVAILABILITY] Buscando citas con formato local (${date}T...)`);
+    // ── FUENTE PRINCIPAL: Prisma (PostgreSQL) ──
+    // Las citas nuevas se guardan aquí
+    try {
+      const prismaCitas = await prisma.appointment.findMany({
+        where: {
+          date: date,
+          status: { notIn: ['cancelled'] }
+        },
+        select: { id: true, time: true, date: true, status: true, durationMinutes: true }
+      });
 
-    const localSnapshot = await firestore.collection('appointments')
-      .where('startDateTime', '>=', date + 'T00:00:00')
-      .where('startDateTime', '<=', date + 'T23:59:59')
-      .get();
+      console.log(`[AVAILABILITY] Prisma: ${prismaCitas.length} citas en PostgreSQL`);
 
-    console.log(`[AVAILABILITY] Encontradas ${localSnapshot.size} citas con startDateTime local`);
+      for (const appt of prismaCitas) {
+        processedIds.add(appt.id);
+        if (appt.time) {
+          const timeSlot = appt.time.substring(0, 5);
+          const duration = appt.durationMinutes || 60;
 
-    localSnapshot.forEach(doc => {
-      if (processedIds.has(doc.id)) return;
-      processedIds.add(doc.id);
+          // Bloquear el slot de inicio
+          if (!busy.includes(timeSlot)) {
+            busy.push(timeSlot);
+            console.log(`[AVAILABILITY] ✅ Prisma slot ocupado: ${timeSlot}`);
+          }
 
-      const data = doc.data();
-      console.log(`[AVAILABILITY] Local - ID: ${doc.id}, startDateTime: ${data.startDateTime}, status: ${data.status}`);
-
-      if (data.status === 'cancelled') return;
-
-      // Extraer hora directamente del string
-      const timePart = data.startDateTime.split('T')[1] || '';
-      const timeMatch = timePart.match(/^(\d{2}):(\d{2})/);
-      if (timeMatch) {
-        const timeSlot = `${timeMatch[1]}:${timeMatch[2]}`;
-        if (!busy.includes(timeSlot)) {
-          busy.push(timeSlot);
-          console.log(`[AVAILABILITY] ✅ Agregando slot ocupado: ${timeSlot}`);
+          // Si la cita dura más de 1 hora, bloquear slots intermedios
+          if (duration > 60) {
+            const [h, m] = timeSlot.split(':').map(Number);
+            const slotsToBlock = Math.ceil(duration / 60);
+            for (let i = 1; i < slotsToBlock; i++) {
+              const extraH = h + i;
+              const extraSlot = `${extraH.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+              if (!busy.includes(extraSlot)) {
+                busy.push(extraSlot);
+                console.log(`[AVAILABILITY] ✅ Prisma slot extra (duración ${duration}min): ${extraSlot}`);
+              }
+            }
+          }
         }
       }
-    });
+    } catch (prismaErr) {
+      console.error('[AVAILABILITY] Error consultando Prisma:', prismaErr.message);
+    }
 
-    // ESTRATEGIA 2: Buscar citas en formato UTC (terminan en Z)
-    // El día 2025-12-31 en México (UTC-6) corresponde a:
-    // Desde 2025-12-31T06:00:00.000Z hasta 2026-01-01T05:59:59.999Z
-    const startUTC = date + 'T06:00:00.000Z';
-    const nextDay = new Date(date);
-    nextDay.setDate(nextDay.getDate() + 1);
-    const nextDayStr = nextDay.toISOString().split('T')[0];
-    const endUTC = nextDayStr + 'T05:59:59.999Z';
+    // ── FUENTE LEGACY: Firestore (citas antiguas) ──
+    try {
+      const dateFieldSnapshot = await firestore.collection('appointments')
+        .where('date', '==', date)
+        .get();
 
-    console.log(`[AVAILABILITY] Buscando citas UTC entre ${startUTC} y ${endUTC}`);
+      console.log(`[AVAILABILITY] Firestore: ${dateFieldSnapshot.size} citas legacy`);
 
-    const utcSnapshot = await firestore.collection('appointments')
-      .where('startDateTime', '>=', startUTC)
-      .where('startDateTime', '<=', endUTC)
-      .get();
-
-    console.log(`[AVAILABILITY] Encontradas ${utcSnapshot.size} citas en formato UTC`);
-
-    utcSnapshot.forEach(doc => {
-      if (processedIds.has(doc.id)) return;
-      processedIds.add(doc.id);
-
-      const data = doc.data();
-      console.log(`[AVAILABILITY] UTC - ID: ${doc.id}, startDateTime: ${data.startDateTime}, status: ${data.status}`);
-
-      if (data.status === 'cancelled') return;
-
-      // Convertir de UTC a hora local de México (restar 6 horas)
-      const utcDate = new Date(data.startDateTime);
-      const localHours = utcDate.getUTCHours() - 6;
-      const adjustedHour = localHours < 0 ? localHours + 24 : localHours;
-      const minutes = utcDate.getUTCMinutes();
-
-      const timeSlot = `${adjustedHour.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-      if (!busy.includes(timeSlot)) {
-        busy.push(timeSlot);
-        console.log(`[AVAILABILITY] ✅ Agregando slot ocupado (UTC -> Local): ${timeSlot}`);
-      }
-    });
-
-    // ESTRATEGIA 3: También buscar usando el campo 'date' directamente si existe
-    console.log(`[AVAILABILITY] Buscando citas con campo date = ${date}`);
-
-    const dateFieldSnapshot = await firestore.collection('appointments')
-      .where('date', '==', date)
-      .get();
-
-    console.log(`[AVAILABILITY] Encontradas ${dateFieldSnapshot.size} citas con campo date`);
-
-    dateFieldSnapshot.forEach(doc => {
-      if (processedIds.has(doc.id)) return;
-      processedIds.add(doc.id);
-
-      const data = doc.data();
-      console.log(`[AVAILABILITY] DateField - ID: ${doc.id}, time: ${data.time}, status: ${data.status}`);
-
-      if (data.status === 'cancelled') return;
-
-      // Usar el campo 'time' directamente
-      if (data.time) {
-        const timeSlot = data.time.substring(0, 5); // Tomar solo HH:MM
-        if (!busy.includes(timeSlot)) {
-          busy.push(timeSlot);
-          console.log(`[AVAILABILITY] ✅ Agregando slot ocupado (campo time): ${timeSlot}`);
+      dateFieldSnapshot.forEach(doc => {
+        if (processedIds.has(doc.id)) return;
+        processedIds.add(doc.id);
+        const data = doc.data();
+        if (data.status === 'cancelled') return;
+        if (data.time) {
+          const timeSlot = data.time.substring(0, 5);
+          if (!busy.includes(timeSlot)) {
+            busy.push(timeSlot);
+            console.log(`[AVAILABILITY] ✅ Firestore slot ocupado: ${timeSlot}`);
+          }
         }
-      }
-    });
+      });
+    } catch (fsErr) {
+      console.warn('[AVAILABILITY] Firestore no disponible:', fsErr.message);
+    }
 
-    // ESTRATEGIA 3: Verificar Bloqueos de Horario (BlockedSlots)
+    // ── Bloqueos de Horario (BlockedSlots) ──
     const requestDate = new Date(date + 'T00:00:00');
     const dayOfWeek = requestDate.getDay(); // 0-6
 

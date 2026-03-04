@@ -5767,6 +5767,38 @@
         </div>
       </div>
 
+      <!-- WhatsApp / Evolution API -->
+      <div style="background:rgba(37,211,102,0.08);border:1px solid rgba(37,211,102,0.3);border-radius:12px;padding:14px;margin:12px 0;">
+        <h3 style="margin:0 0 12px;"><i class="fab fa-whatsapp" style="color:#25d366;"></i> WhatsApp</h3>
+        <p class="muted" style="margin:0 0 16px;font-size:12px;">Estado de la conexión de WhatsApp para notificaciones automáticas.</p>
+        
+        <div id="wa-status-container">
+          <div id="wa-loading"><i class="fas fa-spinner fa-spin"></i> Verificando...</div>
+          <div id="wa-connected" style="display:none;">
+            <p style="margin:0 0 8px;color:#22c55e;"><i class="fas fa-check-circle"></i> Conectado</p>
+            <div id="wa-details" style="font-size:13px;color:var(--muted);"></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
+              <button class="btn small ghost" onclick="testWhatsApp()"><i class="fas fa-paper-plane"></i> Enviar prueba</button>
+              <button class="btn small ghost" style="color:#ef4444;" onclick="disconnectWhatsApp()"><i class="fas fa-unlink"></i> Desconectar</button>
+            </div>
+          </div>
+          <div id="wa-disconnected" style="display:none;">
+            <p style="margin:0 0 8px;color:#f59e0b;"><i class="fas fa-exclamation-circle"></i> No conectado</p>
+            <p class="muted" style="font-size:12px;margin:0 0 12px;">Conecta tu WhatsApp escaneando el código QR.</p>
+            <button class="btn primary" onclick="connectWhatsApp()" style="background:#25d366;">
+              <i class="fab fa-whatsapp"></i> Conectar WhatsApp
+            </button>
+            <div id="wa-qr-container" style="display:none;margin-top:16px;text-align:center;">
+              <img id="wa-qr-img" style="max-width:256px;border-radius:12px;">
+              <p class="muted" style="font-size:12px;margin-top:8px;">Escanea este QR con WhatsApp</p>
+            </div>
+          </div>
+          <div id="wa-not-configured" style="display:none;">
+            <p style="margin:0;color:var(--muted);"><i class="fas fa-info-circle"></i> WhatsApp usa Twilio (templates). Para texto libre, configura Evolution API en las variables de entorno.</p>
+          </div>
+        </div>
+      </div>
+
       <!-- Configuración del Negocio -->
       <div
         style="background:rgba(140,150,104,0.1);border:1px solid rgba(140,150,104,0.3);border-radius:12px;padding:14px;margin:12px 0;">
@@ -10656,6 +10688,10 @@
         } else if (tabName === 'settings') {
           if (typeof loadBusinessConfig === 'function') loadBusinessConfig();
           if (typeof loadNotificationsHistory === 'function') loadNotificationsHistory();
+          if (typeof checkGCalStatus === 'function') checkGCalStatus();
+          if (typeof checkWhatsAppStatus === 'function') checkWhatsAppStatus();
+        } else if (tabName === 'reviews') {
+          if (typeof loadReviews === 'function') loadReviews();
         } else if (tabName === 'caja') {
           if (typeof loadCajaData === 'function') loadCajaData();
         } else if (tabName === 'reports') {
@@ -11651,21 +11687,19 @@
         } else if (tabName === 'settings') {
           loadBusinessConfig();
           loadNotificationsHistory();
+          if (typeof checkGCalStatus === 'function') checkGCalStatus();
+          if (typeof checkWhatsAppStatus === 'function') checkWhatsAppStatus();
           if (typeof stopDashboardAutoRefresh === 'function') stopDashboardAutoRefresh();
         } else if (tabName === 'appointments') {
           if (typeof loadAppointments === 'function') loadAppointments();
           if (typeof loadMonthStats === 'function') loadMonthStats();
-          // Iniciar auto-refresh cuando se entra al tab de appointments
           if (typeof startAppointmentsAutoRefresh === 'function') startAppointmentsAutoRefresh();
-          // Detener auto-refresh del dashboard
           if (typeof stopDashboardAutoRefresh === 'function') stopDashboardAutoRefresh();
         } else if (tabName === 'reports') {
           if (typeof initReportsTab === 'function') initReportsTab();
           if (typeof stopDashboardAutoRefresh === 'function') stopDashboardAutoRefresh();
         } else if (tabName === 'reviews') {
           if (typeof loadReviews === 'function') loadReviews();
-        } else if (tabName === 'settings') {
-          if (typeof checkGCalStatus === 'function') checkGCalStatus();
         } else {
           // Detener auto-refresh cuando se sale de los tabs
           if (typeof stopAppointmentsAutoRefresh === 'function') stopAppointmentsAutoRefresh();
@@ -22571,6 +22605,121 @@ Gracias por tu preferencia`;
     window.connectGoogleCalendar = connectGoogleCalendar;
     window.syncGoogleCalendar = syncGoogleCalendar;
     window.disconnectGoogleCalendar = disconnectGoogleCalendar;
+
+    // ===== WHATSAPP / EVOLUTION FUNCTIONS =====
+    async function checkWhatsAppStatus() {
+      const loading = document.getElementById('wa-loading');
+      const connected = document.getElementById('wa-connected');
+      const disconnected = document.getElementById('wa-disconnected');
+      const notConfigured = document.getElementById('wa-not-configured');
+
+      if (!loading) return;
+      loading.style.display = 'block';
+      connected.style.display = 'none';
+      disconnected.style.display = 'none';
+      notConfigured.style.display = 'none';
+
+      try {
+        const res = await fetch('/api/evolution/status', { credentials: 'include' });
+        const json = await res.json();
+        loading.style.display = 'none';
+
+        if (json.evolution?.available) {
+          if (json.evolution.connected) {
+            connected.style.display = 'block';
+            const details = document.getElementById('wa-details');
+            details.innerHTML = `
+              <div><strong>Proveedor:</strong> ${json.provider === 'evolution' ? 'Evolution API' : 'Twilio + Evolution'}</div>
+              ${json.evolution.number ? `<div><strong>Número:</strong> ${json.evolution.number}</div>` : ''}
+              ${json.evolution.instanceName ? `<div><strong>Instancia:</strong> ${json.evolution.instanceName}</div>` : ''}
+              <div><strong>Estado:</strong> <span style="color:#22c55e;">${json.evolution.state || 'open'}</span></div>
+            `;
+          } else {
+            disconnected.style.display = 'block';
+          }
+        } else if (json.twilio?.available) {
+          connected.style.display = 'block';
+          document.getElementById('wa-details').innerHTML = `
+            <div><strong>Proveedor:</strong> Twilio</div>
+            <div><strong>Estado:</strong> <span style="color:#22c55e;">Activo</span></div>
+            <div class="muted" style="margin-top:4px;font-size:11px;">Usando templates de Twilio para notificaciones.</div>
+          `;
+        } else {
+          notConfigured.style.display = 'block';
+        }
+      } catch (e) {
+        loading.style.display = 'none';
+        notConfigured.style.display = 'block';
+      }
+    }
+
+    async function connectWhatsApp() {
+      try {
+        const res = await fetch('/api/evolution/connect', { method: 'POST', credentials: 'include' });
+        const json = await res.json();
+        if (json.qrCode) {
+          const qrContainer = document.getElementById('wa-qr-container');
+          const qrImg = document.getElementById('wa-qr-img');
+          qrImg.src = json.qrCode.startsWith('data:') ? json.qrCode : 'data:image/png;base64,' + json.qrCode;
+          qrContainer.style.display = 'block';
+          // Poll status every 5 seconds
+          const poll = setInterval(async () => {
+            try {
+              const st = await fetch('/api/evolution/status', { credentials: 'include' });
+              const sj = await st.json();
+              if (sj.evolution?.connected) {
+                clearInterval(poll);
+                qrContainer.style.display = 'none';
+                checkWhatsAppStatus();
+                if (typeof showNotification === 'function') showNotification('¡WhatsApp conectado!', 'success');
+              }
+            } catch (_) {}
+          }, 5000);
+          // Stop polling after 2 minutes
+          setTimeout(() => clearInterval(poll), 120000);
+        } else {
+          alert('No se pudo generar QR. Verifica la configuración de Evolution API.');
+        }
+      } catch (e) {
+        alert('Error: ' + e.message);
+      }
+    }
+
+    async function disconnectWhatsApp() {
+      if (!confirm('¿Desconectar WhatsApp?')) return;
+      try {
+        await fetch('/api/evolution/logout', { method: 'POST', credentials: 'include' });
+        checkWhatsAppStatus();
+      } catch (e) {
+        alert('Error: ' + e.message);
+      }
+    }
+
+    async function testWhatsApp() {
+      const phone = prompt('Número para prueba (ej: 524271234567):');
+      if (!phone) return;
+      try {
+        const res = await fetch('/api/evolution/test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ phone })
+        });
+        const json = await res.json();
+        if (json.success) {
+          if (typeof showNotification === 'function') showNotification('Mensaje de prueba enviado', 'success');
+        } else {
+          alert('Error: ' + (json.error || json.details));
+        }
+      } catch (e) {
+        alert('Error: ' + e.message);
+      }
+    }
+
+    window.checkWhatsAppStatus = checkWhatsAppStatus;
+    window.connectWhatsApp = connectWhatsApp;
+    window.disconnectWhatsApp = disconnectWhatsApp;
+    window.testWhatsApp = testWhatsApp;
 
     // Verificar estado al cargar settings
     if (window.location.search.includes('calendar=connected')) {
