@@ -15574,6 +15574,9 @@ Gracias por tu preferencia`;
             ${item.meta ? `<span class="item-meta">${item.meta}</span>` : ''}
           `;
 
+          // Store item data for mousedown delegation
+          div._itemData = item;
+
           // Store data attributes
           Object.keys(item.data || {}).forEach(key => {
             div.dataset[key] = item.data[key];
@@ -15598,6 +15601,7 @@ Gracias por tu preferencia`;
       }
 
       show() {
+        if (this._selecting) return;
         console.log('[DROPDOWN] Mostrando dropdown con', this.options.length, 'opciones');
         // If empty input, show all
         if (!this.input.value) {
@@ -15632,8 +15636,9 @@ Gracias por tu preferencia`;
         // Trigger native change event for other listeners
         this.input.dispatchEvent(new Event('change', { bubbles: true }));
 
-        // Close dropdown AFTER all callbacks
+        // Close dropdown and blur input to prevent re-opening
         this.hide();
+        this.input.blur();
         this._selecting = false;
       }
     }
