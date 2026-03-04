@@ -15514,17 +15514,26 @@ Gracias por tu preferencia`;
         // Toggle on icon click
         this.icon.addEventListener('click', (e) => {
           e.stopPropagation();
+          if (this._justSelected) return;
           this.toggle();
         });
 
         // Open on input click
         this.input.addEventListener('click', (e) => {
           e.stopPropagation();
+          if (this._justSelected) return;
+          this.show();
+        });
+
+        // Also open on focus (tap on mobile)
+        this.input.addEventListener('focus', () => {
+          if (this._justSelected) return;
           this.show();
         });
 
         // Filter on input type
         this.input.addEventListener('input', () => {
+          if (this._justSelected) return;
           const query = this.input.value;
           if (query.length === 0) {
             this.render(this.options);
@@ -15535,14 +15544,9 @@ Gracias por tu preferencia`;
           }
         });
 
-        // Event delegation for dropdown item selection
+        // Prevent mousedown on items from blurring the input
         this.dropdown.addEventListener('mousedown', (e) => {
           e.preventDefault();
-          e.stopPropagation();
-          const itemEl = e.target.closest('.dropdown-item');
-          if (itemEl && itemEl._itemData) {
-            this.select(itemEl._itemData);
-          }
         });
 
         // Close on outside click
@@ -15583,7 +15587,9 @@ Gracias por tu preferencia`;
           });
 
           div.addEventListener('click', (e) => {
+            e.preventDefault();
             e.stopPropagation();
+            e.stopImmediatePropagation();
             this.select(item);
           });
 
@@ -15601,7 +15607,7 @@ Gracias por tu preferencia`;
       }
 
       show() {
-        if (this._selecting) return;
+        if (this._selecting || this._justSelected) return;
         console.log('[DROPDOWN] Mostrando dropdown con', this.options.length, 'opciones');
         // If empty input, show all
         if (!this.input.value) {
@@ -15626,21 +15632,26 @@ Gracias por tu preferencia`;
 
       select(item) {
         this._selecting = true;
+        this._justSelected = true;
         this.input.value = item.value;
 
+        // Close dropdown immediately
+        this.hide();
+
+        // Remove focus from input to prevent any re-open triggers
+        this.input.blur();
+
+        // Trigger callback if provided
         if (this.onSelectCallback) {
           this.onSelectCallback(item);
         }
 
         this.input.dispatchEvent(new Event('change', { bubbles: true }));
 
-        this.hide();
-        this.input.blur();
+        this._selecting = false;
 
-        // Delay reset: mousedown hides the dropdown, so mouseup lands on
-        // the input underneath → generates a phantom 'click' that re-opens it.
-        // Keep the guard active long enough to swallow that click.
-        setTimeout(() => { this._selecting = false; }, 200);
+        // Keep _justSelected true for 300ms to swallow phantom clicks/focus
+        setTimeout(() => { this._justSelected = false; }, 300);
       }
     }
 
