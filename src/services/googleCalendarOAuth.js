@@ -402,6 +402,62 @@ export async function syncAllActive() {
 }
 
 // ─────────────────────────────────────────────
+//  9. FREEBUSY: consultar horarios ocupados
+// ─────────────────────────────────────────────
+export async function getFreeBusy(dateStr) {
+  try {
+    const authClient = await getAuthenticatedClient();
+    const calCfg = await prisma.googleCalendarConfig.findUnique({ where: { id: 1 } });
+    const calendarId = calCfg?.calendarId || process.env.GOOGLE_CALENDAR_ID || 'primary';
+    const tz = 'America/Mexico_City';
+
+    const timeMin = `${dateStr}T00:00:00-06:00`;
+    const timeMax = `${dateStr}T23:59:59-06:00`;
+
+    const calApi = google.calendar({ version: 'v3', auth: authClient });
+    const response = await calApi.freebusy.query({
+      requestBody: {
+        timeMin,
+        timeMax,
+        timeZone: tz,
+        items: [{ id: calendarId }],
+      },
+    });
+
+    const busySlots = [];
+    const calendars = response.data.calendars || {};
+    const busyPeriods = calendars[calendarId]?.busy || [];
+
+    for (const period of busyPeriods) {
+      const start = new Date(period.start);
+      const end = new Date(period.end);
+
+      // Convertir a hora local de México (UTC-6)
+      const startLocal = new Date(start.toLocaleString('en-US', { timeZone: tz }));
+      const endLocal = new Date(end.toLocaleString('en-US', { timeZone: tz }));
+
+      // Generar slots ocupados en intervalos de 30 min dentro del rango
+      let current = new Date(startLocal);
+      while (current < endLocal) {
+        const h = current.getHours();
+        const m = current.getMinutes();
+        const slot = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+        if (!busySlots.includes(slot)) {
+          busySlots.push(slot);
+        }
+        current = new Date(current.getTime() + 30 * 60000);
+      }
+    }
+
+    console.log(`[GCal OAuth] FreeBusy ${dateStr}: ${busySlots.length} slots ocupados`);
+    return busySlots;
+  } catch (err) {
+    console.warn(`[GCal OAuth] FreeBusy falló (${err.message}), continuando sin datos de calendario`);
+    return [];
+  }
+}
+
+// ─────────────────────────────────────────────
 //  HELPER PRIVADO: calcular hora de fin
 // ─────────────────────────────────────────────
 function _calcEndTime(startTime, durationMinutes = 60) {
@@ -412,4 +468,4 @@ function _calcEndTime(startTime, durationMinutes = 60) {
   return `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}:00`;
 }
 
-export default { getAuthUrl, handleCallback, getStatus, disconnect, createEvent, updateEvent, deleteEvent, syncAllActive };
+export default { getAuthUrl, handleCallback, getStatus, disconnect, createEvent, updateEvent, deleteEvent, syncAllActive, getFreeBusy };

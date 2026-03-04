@@ -1,19 +1,29 @@
 // server.js - COMPLETO CON TODAS LAS CORRECCIONES APPLICADAS
-// VERSION: 2026-01-08-TIMEZONE-FIX-V2
+// VERSION: 2026-02-26-TIMEZONE-MEXICO-CITY-FINAL
 import express from "express";
 import cors from "cors";
 import "dotenv/config";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import cookieParser from "cookie-parser";
-// Forcing Node process timezone to Ciudad de México to avoid UTC-related bugs
-process.env.TZ = process.env.TZ || 'America/Mexico_City';
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { sendGoogleMessage } from "./lib/google.js"
 import nodemailer from "nodemailer";
 import { EmailService } from './src/services/emailService.js';
 import fs from "fs";
+
+// ⏰ Helper de timezone — SIEMPRE usar esto para fechas en México
+import {
+  formatearFechaLegible,
+  formatearHora,
+  toMexicoISO,
+  startOfMonthMexicoISO,
+  todayMexicoStr,
+  mxYear,
+  mxMonth,
+  mxDay,
+} from './src/utils/mexico-time.js';
 
 // Database - Prisma con repositorios
 import { prisma } from './src/db/index.js';
@@ -421,10 +431,8 @@ async function fsMetricsMonth() {
     if ((c.stamps || 0) > 0 || (c.cycles || 0) > 0) activeClients++;
   });
 
-  // Inicio del mes actual
-  const now = new Date();
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const startOfMonthIso = startOfMonth.toISOString();
+  // Inicio del mes actual en Ciudad de México
+  const startOfMonthIso = startOfMonthMexicoISO();
 
   // Contar eventos del mes
   const evSnap = await firestore
@@ -620,171 +628,6 @@ app.post('/api/evolution/test', adminAuth, async (req, res) => {
   }
 });
 
-// ========== WHATSAPP INBOX (Historial de mensajes) ==========
-
-// Helper: extraer texto de un mensaje de Evolution
-function extractMessageText(msg) {
-  const m = msg?.message;
-  if (!m) return msg?.body || '';
-  return m.conversation
-    || m.extendedTextMessage?.text
-    || m.imageMessage?.caption
-    || m.videoMessage?.caption
-    || m.documentMessage?.caption
-    || (m.imageMessage ? '📷 Imagen' : '')
-    || (m.videoMessage ? '🎥 Video' : '')
-    || (m.audioMessage ? '🎙 Audio' : '')
-    || (m.stickerMessage ? '😄 Sticker' : '')
-    || (m.pollCreationMessage ? `📊 ${m.pollCreationMessage.name}` : '')
-    || (m.pollUpdateMessage ? '📊 Respuesta de encuesta' : '')
-    || (m.reactionMessage ? `${m.reactionMessage.text} reacción` : '')
-    || '';
-}
-
-// GET /api/whatsapp/chats - Lista de conversaciones desde Evolution API
-app.get('/api/whatsapp/chats', adminAuth, async (req, res) => {
-  try {
-    const evoClient = getEvolutionClient();
-    const chats = await evoClient.fetchChats();
-
-    const result = chats
-      .filter(c => c.remoteJid && c.remoteJid.endsWith('@s.whatsapp.net'))
-      .map(c => {
-        const phone = c.remoteJid.replace('@s.whatsapp.net', '');
-        const lastMsg = c.lastMessage || c.Messages?.[0];
-        const lastText = extractMessageText(lastMsg);
-        const lastTime = lastMsg?.messageTimestamp
-          ? new Date(lastMsg.messageTimestamp * 1000).toISOString()
-          : (c.updatedAt || c.createdAt || new Date().toISOString());
-
-        return {
-          phone,
-          jid: c.remoteJid,
-          name: c.name || c.pushName || phone,
-          lastMessage: lastText,
-          lastTime,
-          unread: c.unreadMessages || c._count?.Message || 0,
-        };
-      })
-      .sort((a, b) => new Date(b.lastTime) - new Date(a.lastTime));
-
-    res.json({ success: true, data: result });
-  } catch (error) {
-    console.error('[Inbox] Error fetchChats:', error.message);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// GET /api/whatsapp/chat/:phone - Mensajes de una conversación desde Evolution API
-app.get('/api/whatsapp/chat/:phone', adminAuth, async (req, res) => {
-  try {
-    const { phone } = req.params;
-    const limit = parseInt(req.query.limit) || 80;
-    const evoClient = getEvolutionClient();
-
-    // Normalizar JID. OJO: No eliminar el 1 de los 521, Evolution API (Baileys) lo guarda tal cual
-    let cleaned = phone.replace(/[^0-9-]/g, '');
-    if (cleaned.length === 10) cleaned = '52' + cleaned;
-    const remoteJid = `${cleaned}@s.whatsapp.net`;
-
-    const messages = await evoClient.fetchMessages(remoteJid, limit);
-
-    const result = messages.map(msg => {
-      const ts = msg.messageTimestamp
-        ? new Date(msg.messageTimestamp * 1000).toISOString()
-        : (msg.createdAt || new Date().toISOString());
-
-      return {
-        id: msg.key?.id || msg.id,
-        phone: cleaned,
-        body: extractMessageText(msg),
-        direction: msg.key?.fromMe ? 'out' : 'in',
-        timestamp: ts,
-        status: msg.status || null,
-        type: Object.keys(msg.message || {})[0] || 'text',
-      };
-    }).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-
-    res.json({ success: true, data: result });
-  } catch (error) {
-    console.error('[Inbox] Error fetchMessages:', error.message);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// POST /api/whatsapp/send - Enviar mensaje desde la bandeja
-app.post('/api/whatsapp/send', adminAuth, async (req, res) => {
-  try {
-    const { phone, message } = req.body;
-    if (!phone || !message) {
-      return res.status(400).json({ success: false, error: 'Se requiere phone y message' });
-    }
-    const evoClient = getEvolutionClient();
-    await evoClient.sendText(phone, message);
-    res.json({ success: true });
-  } catch (error) {
-    console.error('[Inbox] Error send:', error.message);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// POST /api/whatsapp/reminder-with-options - Recordatorio con opciones (confirmar/reagendar/cancelar)
-app.post('/api/whatsapp/reminder-with-options', adminAuth, async (req, res) => {
-  try {
-    const { appointmentId, phone, clientName, serviceName, startDateTime } = req.body;
-    if (!phone || !clientName) {
-      return res.status(400).json({ success: false, error: 'Se requiere phone y clientName' });
-    }
-
-    // Si tenemos appointmentId, buscar la cita en DB para obtener time correcto (campo time = hora México HH:MM)
-    let time = null;
-    let date = null;
-    if (appointmentId) {
-      try {
-        const dbAppt = await AppointmentsRepo.findById(appointmentId);
-        if (dbAppt) {
-          time = dbAppt.time;   // HH:MM en hora México — fuente de verdad
-          date = dbAppt.date;   // YYYY-MM-DD
-          console.log(`[WhatsApp] Cita ${appointmentId}: time=${time}, date=${date} (desde DB)`);
-        }
-      } catch (dbErr) {
-        console.warn('[WhatsApp] No se pudo obtener cita de DB:', dbErr.message);
-      }
-    }
-
-    // Fallback: extraer hora de startDateTime en UTC y convertir a México (UTC-6)
-    if (!time && startDateTime) {
-      const d = new Date(startDateTime);
-      let mexicoHours = d.getUTCHours() - 6;
-      if (mexicoHours < 0) mexicoHours += 24;
-      time = `${mexicoHours.toString().padStart(2, '0')}:${d.getUTCMinutes().toString().padStart(2, '0')}`;
-      date = startDateTime.split('T')[0];
-      console.log(`[WhatsApp] Hora calculada desde UTC: ${time} (UTC: ${d.getUTCHours()}:${d.getUTCMinutes().toString().padStart(2,'0')})`);
-    }
-
-    // Construir objeto cita para el servicio
-    const appt = {
-      id: appointmentId,
-      clientPhone: phone,
-      clientName,
-      serviceName,
-      startDateTime,
-      date,
-      time,
-    };
-
-    const result = await WhatsAppService.sendReminderWithOptions(appt);
-    if (result.success) {
-      res.json({ success: true });
-    } else {
-      res.status(500).json({ success: false, error: result.error });
-    }
-  } catch (error) {
-    console.error('[WhatsApp] Error recordatorio con opciones:', error.message);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
 // 🏥 Health Check con versión
 app.get('/api/health', (req, res) => {
   res.json({
@@ -793,7 +636,6 @@ app.get('/api/health', (req, res) => {
     timestamp: new Date().toISOString()
   });
 });
-
 
 // 🧪 Test endpoint para WhatsApp
 app.post('/api/test/whatsapp', async (req, res) => {
@@ -1223,8 +1065,6 @@ app.post('/api/direct-sales', adminAuth, async (req, res) => {
   try {
     const {
       clientName,
-      clientId,
-      clientPhone,
       paymentMethod,
       productsAmount,
       discountType,
@@ -1238,26 +1078,12 @@ app.post('/api/direct-sales', adminAuth, async (req, res) => {
       return res.json({ success: false, error: 'Se requiere al menos un producto' });
     }
 
-    const normalizedPhone = String(clientPhone || '').replace(/\D/g, '') || null;
-
-    console.log('[DIRECT SALE] Procesando venta directa:', {
-      clientName,
-      clientId: clientId || null,
-      clientPhone: normalizedPhone,
-      productsAmount,
-      totalAmount
-    });
+    console.log('[DIRECT SALE] Procesando venta directa:', { clientName, productsAmount, totalAmount });
 
     // Descontar stock de productos vendidos
     const batch = firestore.batch();
     for (const product of productsSold) {
-      // Solo descontar inventario de productos reales del catálogo.
-      // Las ventas rápidas "custom" no deben tocar stock.
-      if (!product?.productId || String(product.productId).startsWith('custom-')) {
-        continue;
-      }
-
-      const productRef = firestore.collection('products').doc(String(product.productId));
+      const productRef = firestore.collection('products').doc(product.productId);
       const productDoc = await productRef.get();
 
       if (productDoc.exists) {
@@ -1275,9 +1101,7 @@ app.post('/api/direct-sales', adminAuth, async (req, res) => {
     // Registrar en colección de ventas
     const saleRef = await firestore.collection('sales').add({
       type: 'direct', // Venta directa (sin cita)
-      clientId: clientId || null,
       clientName: clientName || 'Venta directa',
-      clientPhone: normalizedPhone,
       serviceName: null,
       serviceAmount: 0,
       productsAmount: parseFloat(productsAmount) || 0,
@@ -1296,7 +1120,6 @@ app.post('/api/direct-sales', adminAuth, async (req, res) => {
       await SalesRepo.create({
         appointmentId: null,
         clientName: clientName || 'Venta Pasajero',
-        clientPhone: normalizedPhone,
         serviceName: null,
         serviceAmount: 0,
         productsAmount: parseFloat(productsAmount) || 0,
@@ -1341,15 +1164,7 @@ app.get('/api/transactions', adminAuth, async (req, res) => {
         }
       });
 
-      if (sales && sales.length > 0) {
-        const normalizedSales = sales.map(sale => ({
-          ...sale,
-          type: sale.appointmentId ? 'appointment' : 'direct',
-          productsSold: sale.productsSold || sale.products || [],
-          createdAt: sale.createdAt || sale.date
-        }));
-        return res.json({ success: true, data: normalizedSales });
-      }
+      if (sales && sales.length > 0) return res.json({ success: true, data: sales });
     } catch (e) { console.warn('Error fetching prismas sales:', e); }
 
     // Fallback a Firestore para ventas directas
@@ -1658,21 +1473,6 @@ app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
     if (serviceId) updateData.serviceId = serviceId;
     if (serviceName) updateData.serviceName = serviceName;
 
-    // ⭐ RESETEAR FLAGS DE RECORDATORIOS para que se re-envíen en la nueva fecha/hora
-    // El cron los detectará automáticamente en las nuevas ventanas de tiempo
-    updateData.sent30hAt = null;
-    updateData.sent24hAt = null;
-    updateData.sent2hAt = null;
-    updateData.sentConfirmationAlertAt = null;
-    // Resetear estado a scheduled para que los recordatorios y auto-cancelación funcionen
-    if (appointment.status === 'confirmed' || appointment.status === 'scheduled') {
-      updateData.status = 'scheduled';
-      updateData.confirmedAt = null;
-      updateData.confirmedVia = null;
-    }
-
-    console.log(`[PATCH] 🔄 Recordatorios reseteados para cita ${id} — se re-enviarán para ${date} ${time}`);
-
     // Actualizar en BD usando repositorio
     await AppointmentsRepo.update(id, updateData);
 
@@ -1765,22 +1565,6 @@ app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
       read: false,
       entityId: id
     });
-
-    // Enviar WhatsApp de reagendamiento (no bloquea la respuesta)
-    try {
-      const updatedAppt = {
-        clientName: appointment.clientName,
-        clientPhone: appointment.clientPhone,
-        serviceName: serviceName || appointment.serviceName,
-        date,
-        time
-      };
-      WhatsAppService.sendReschedule(updatedAppt)
-        .then(r => console.log('[PATCH] ✅ WhatsApp reagendamiento:', r.success ? 'enviado' : r.error))
-        .catch(e => console.error('[PATCH] ⚠️ WhatsApp reagendamiento falló:', e.message));
-    } catch (waErr) {
-      console.error('[PATCH] ⚠️ Error iniciando WhatsApp reagendamiento:', waErr.message);
-    }
 
     console.log(`[API] Appointment ${id} updated: ${date} ${time}`);
     res.json({ success: true });
@@ -3204,12 +2988,6 @@ app.get('/api/public/card/:id', async (req, res) => {
       sessionsUsed: card.sessionsUsed || 0,
       googleWalletUrl: card.walletPassUrl || null,
       applePassAvailable,
-      // Datos de membresía de masajes
-      massageActive: card.massageActive || false,
-      massageStamps: card.massageStamps || 0,
-      massageMax: card.massageMax || 10,
-      massageCycles: card.massageCycles || 0,
-      massageGoogleWalletUrl: card.massageWalletUrl || null,
     });
   } catch (e) {
     console.error('[WALLET] Error getting card:', e);
@@ -3228,9 +3006,8 @@ app.get('/api/public/card/:id/apple.pkpass', async (req, res) => {
     // Map cardType to backgroundColor for Apple pass
     const bgColors = {
       loyalty: 'rgb(154, 159, 130)',  // Venus green
-      annual: 'rgb(196, 167, 125)',   // Venus gold
-      gold: 'rgb(30, 30, 30)',        // Black VIP
-      massage: 'rgb(196, 147, 110)',  // Terracota masajes
+      annual: 'rgb(196, 167, 125)',  // Venus gold
+      gold: 'rgb(30, 30, 30)',     // Black VIP
     };
     const cardType = card.cardType || 'loyalty';
     const isAnnual = cardType === 'annual';
@@ -3240,7 +3017,6 @@ app.get('/api/public/card/:id/apple.pkpass', async (req, res) => {
       name: card.name,
       stamps: isAnnual ? (card.sessionsTotal - card.sessionsUsed) : card.stamps,
       max: isAnnual ? card.sessionsTotal : card.max,
-      cardType,
       latestMessage: card.latestMessage,
     });
 
@@ -3255,85 +3031,32 @@ app.get('/api/public/card/:id/apple.pkpass', async (req, res) => {
   }
 });
 
-// GET /api/public/card/:id/massage.pkpass — download Apple Wallet pass for massage membership
-app.get('/api/public/card/:id/massage.pkpass', async (req, res) => {
-  try {
-    const card = await prisma.card.findUnique({ where: { id: req.params.id } });
-    if (!card) return res.status(404).json({ error: 'Tarjeta no encontrada' });
-    if (!card.massageActive) return res.status(400).json({ error: 'No tiene membresía de masajes' });
-
-    const { buildApplePassBuffer } = await import('./lib/apple.js');
-
-    const buffer = await buildApplePassBuffer({
-      cardId: card.id,
-      name: card.name,
-      stamps: card.massageStamps || 0,
-      max: card.massageMax || 10,
-      cardType: 'massage',
-      latestMessage: card.latestMessage,
-    });
-
-    res.set({
-      'Content-Type': 'application/vnd.apple.pkpass',
-      'Content-Disposition': `attachment; filename="venus-massage-${card.id}.pkpass"`,
-    });
-    res.send(buffer);
-  } catch (e) {
-    console.error('[WALLET] Massage Apple pass error:', e.message);
-    res.status(500).json({ error: e.message });
-  }
-});
-
 // POST /api/admin/cards/:id/issue-wallet — issue/regenerate wallet for a card
 app.post('/api/admin/cards/:id/issue-wallet', adminAuth, async (req, res) => {
   try {
     const { cardType, cardColor, sessionsTotal } = req.body;
-    const isMassage = cardType === 'massage';
+    const card = await prisma.card.update({
+      where: { id: req.params.id },
+      data: {
+        cardType: cardType || 'loyalty',
+        cardColor: cardColor || '#8C9668',
+        sessionsTotal: parseInt(sessionsTotal) || 0,
+        sessionsUsed: 0,
+      },
+    });
 
-    let card;
-    if (isMassage) {
-      // Para masajes: activar campos de masaje SIN tocar la tarjeta de lealtad
-      card = await prisma.card.update({
-        where: { id: req.params.id },
-        data: {
-          massageActive: true,
-          massageStamps: 0,
-          massageMax: parseInt(sessionsTotal) || 10,
-          massageCycles: 0,
-        },
-      });
-    } else {
-      // Para otros tipos: cambiar el tipo de tarjeta
-      card = await prisma.card.update({
-        where: { id: req.params.id },
-        data: {
-          cardType: cardType || 'loyalty',
-          cardColor: cardColor || '#8C9668',
-          sessionsTotal: parseInt(sessionsTotal) || 0,
-          sessionsUsed: 0,
-        },
-      });
-    }
-
-    // Generate Google Wallet save URL
+    // Generate Google Wallet save URL using existing lib/google.js
     let googleWalletUrl = null;
     if (process.env.GOOGLE_ISSUER_ID) {
       try {
         const { buildGoogleSaveUrl, updateLoyaltyObject } = await import('./lib/google.js');
-        if (isMassage) {
-          // Wallet separado para masajes
-          const massageCardId = `${card.id}-massage`;
-          await updateLoyaltyObject(massageCardId, card.name, 0, card.massageMax, 'massage');
-          googleWalletUrl = buildGoogleSaveUrl({ cardId: massageCardId, name: card.name, stamps: 0, max: card.massageMax, cardType: 'massage' });
-          await prisma.card.update({ where: { id: card.id }, data: { massageWalletUrl: googleWalletUrl } });
-        } else {
-          const isAnnual = (cardType || 'loyalty') === 'annual';
-          const stamps = isAnnual ? (card.sessionsTotal - card.sessionsUsed) : card.stamps;
-          const max = isAnnual ? card.sessionsTotal : card.max;
-          await updateLoyaltyObject(card.id, card.name, stamps, max, cardType);
-          googleWalletUrl = buildGoogleSaveUrl({ cardId: card.id, name: card.name, stamps, max, cardType });
-          await prisma.card.update({ where: { id: card.id }, data: { walletPassUrl: googleWalletUrl } });
-        }
+        const isAnnual = (cardType || 'loyalty') === 'annual';
+        const stamps = isAnnual ? (card.sessionsTotal - card.sessionsUsed) : card.stamps;
+        const max = isAnnual ? card.sessionsTotal : card.max;
+        // Sync object in Google Wallet
+        await updateLoyaltyObject(card.id, card.name, stamps, max);
+        googleWalletUrl = buildGoogleSaveUrl({ cardId: card.id, name: card.name, stamps, max });
+        await prisma.card.update({ where: { id: card.id }, data: { walletPassUrl: googleWalletUrl } });
       } catch (gErr) {
         console.warn('[WALLET] Google Wallet generation failed:', gErr.message);
       }
@@ -3344,89 +3067,6 @@ app.post('/api/admin/cards/:id/issue-wallet', adminAuth, async (req, res) => {
     res.json({ success: true, cardLink, googleWalletUrl });
   } catch (e) {
     console.error('[WALLET] Issue wallet error:', e);
-    res.status(500).json({ error: e.message });
-  }
-});
-
-// POST /api/admin/cards/:id/generate-massage-wallet — generate Google Wallet URL for massage (no reset)
-app.post('/api/admin/cards/:id/generate-massage-wallet', adminAuth, async (req, res) => {
-  try {
-    const card = await prisma.card.findUnique({ where: { id: req.params.id } });
-    if (!card) return res.status(404).json({ error: 'Tarjeta no encontrada' });
-    if (!card.massageActive) return res.status(400).json({ error: 'No tiene membresía de masajes activa' });
-
-    if (!process.env.GOOGLE_ISSUER_ID) return res.status(400).json({ error: 'GOOGLE_ISSUER_ID no configurado' });
-
-    const { buildGoogleSaveUrl, updateLoyaltyObject } = await import('./lib/google.js');
-    const massageCardId = `${card.id}-massage`;
-
-    await updateLoyaltyObject(massageCardId, card.name, card.massageStamps || 0, card.massageMax || 10, 'massage');
-    const url = buildGoogleSaveUrl({ cardId: massageCardId, name: card.name, stamps: card.massageStamps || 0, max: card.massageMax || 10, cardType: 'massage' });
-
-    await prisma.card.update({ where: { id: card.id }, data: { massageWalletUrl: url } });
-
-    console.log(`[WALLET] ✅ Massage Google Wallet URL generated for ${card.id}`);
-    res.json({ success: true, massageGoogleWalletUrl: url });
-  } catch (e) {
-    console.error('[WALLET] Generate massage wallet error:', e);
-    res.status(500).json({ error: e.message });
-  }
-});
-
-/* =========================================================
-   SELLO DE MASAJE (admin) — independiente de sellos de lealtad
-   ========================================================= */
-app.post("/api/admin/massage-stamp", adminAuth, async (req, res) => {
-  try {
-    const { cardId } = req.body || {};
-    if (!cardId) return res.status(400).json({ error: "missing_cardId" });
-
-    const card = await fsGetCard(cardId);
-    if (!card) return res.status(404).json({ error: "card not found" });
-    if (!card.massageActive) return res.status(400).json({ error: "No tiene membresía de masajes activa" });
-    if (card.massageStamps >= card.massageMax) return res.status(400).json({ error: "Membresía de masajes completa" });
-
-    const newStamps = (card.massageStamps || 0) + 1;
-
-    // Actualizar en BD
-    await prisma.card.update({
-      where: { id: cardId },
-      data: { massageStamps: newStamps }
-    });
-
-    // Registrar evento
-    await fsAddEvent(cardId, "MASSAGE_STAMP", { by: "admin", massageStamps: newStamps });
-
-    // Actualizar Google Wallet (masajes usa ID separado)
-    try {
-      const { updateLoyaltyObject } = await import("./lib/google.js");
-      const massageCardId = `${cardId}-massage`;
-      await updateLoyaltyObject(massageCardId, card.name, newStamps, card.massageMax, 'massage');
-      console.log(`[GOOGLE WALLET] ✅ Massage stamp: ${cardId} (${newStamps}/${card.massageMax})`);
-    } catch (googleError) {
-      console.error(`[GOOGLE WALLET] ❌ Error massage stamp:`, googleError.message);
-    }
-
-    // Push a Apple Wallet con mensaje personalizado
-    try {
-      let customMsg = null;
-      if (newStamps === 5) {
-        customMsg = `🎁 ¡Felicidades ${card.name}! Llevas 5 masajes — tienes un regalo especial esperándote.`;
-      } else if (newStamps === 10) {
-        customMsg = `🎁🎉 ¡Increíble ${card.name}! Completaste 10 masajes — ¡tu segundo regalo te espera!`;
-      } else {
-        customMsg = `💆 Sesión de masaje registrada — llevas ${newStamps} de ${card.massageMax}.`;
-      }
-      // Usar serial de masaje para Apple (dispositivos registrados bajo este serial)
-      const massageSerial = `${cardId}-massage`;
-      await appleWebService.updatePassAndNotify(massageSerial, card.massageStamps, newStamps, customMsg);
-    } catch (err) {
-      console.error("[APPLE] Error notificando masaje:", err);
-    }
-
-    res.json({ ok: true, cardId, massageStamps: newStamps, massageMax: card.massageMax });
-  } catch (e) {
-    console.error("[ADMIN MASSAGE STAMP]", e);
     res.status(500).json({ error: e.message });
   }
 });
@@ -3668,6 +3308,26 @@ app.get('/api/public/availability', async (req, res) => {
         }
       }
     });
+
+    // ESTRATEGIA 4: Consultar Google Calendar (FreeBusy) para eventos externos
+    try {
+      const { getFreeBusy, getStatus: oauthStatus } = await import('./src/services/googleCalendarOAuth.js');
+      const calStatus = await oauthStatus();
+      if (calStatus.connected) {
+        console.log(`[AVAILABILITY] Consultando Google Calendar FreeBusy...`);
+        const gcalBusy = await getFreeBusy(date);
+        for (const slot of gcalBusy) {
+          if (!busy.includes(slot)) {
+            busy.push(slot);
+            console.log(`[AVAILABILITY] 📅 Google Calendar ocupado: ${slot}`);
+          }
+        }
+      } else {
+        console.log(`[AVAILABILITY] Google Calendar no conectado, omitiendo FreeBusy`);
+      }
+    } catch (gcalErr) {
+      console.warn(`[AVAILABILITY] Error consultando Google Calendar:`, gcalErr.message);
+    }
 
     // Ordenar los slots
     busy.sort();
@@ -3932,23 +3592,16 @@ app.get('/api/booking-requests', adminAuth, async (req, res) => {
   }
 });
 
-function handleBookingRequestActionError(res, action, error) {
-  console.error(`[BOOKING REQUESTS] ❌ Error en ${action}:`, error);
-  if (error?.code === 'P2025') {
-    return res.status(404).json({ success: false, error: 'Solicitud no encontrada' });
-  }
-  return res.status(500).json({ success: false, error: 'Error interno del servidor' });
-}
-
 // POST /api/booking-requests/:id/contacted - Marcar como contactada
 app.post('/api/booking-requests/:id/contacted', adminAuth, async (req, res) => {
   try {
     await firestore.collection('booking_requests').doc(req.params.id).update({
-      status: 'contacted'
+      status: 'contacted',
+      contactedAt: new Date().toISOString()
     });
     res.json({ success: true });
   } catch (error) {
-    return handleBookingRequestActionError(res, 'marcar como contactada', error);
+    res.json({ success: false, error: error.message });
   }
 });
 
@@ -4078,7 +3731,9 @@ app.post('/api/booking-requests/:id/booked', adminAuth, async (req, res) => {
 
     // 4. ACTUALIZAR SOLICITUD
     await firestore.collection('booking_requests').doc(req.params.id).update({
-      status: 'booked'
+      status: 'booked',
+      bookedAt: new Date().toISOString(),
+      appointmentId: appointmentRef.id
     });
 
     // 5. CREAR NOTIFICACIÓN
@@ -4094,7 +3749,8 @@ app.post('/api/booking-requests/:id/booked', adminAuth, async (req, res) => {
 
     res.json({ success: true, appointmentId: appointmentRef.id });
   } catch (error) {
-    return handleBookingRequestActionError(res, 'marcar como agendada', error);
+    console.error('[BOOKING] Error:', error);
+    res.json({ success: false, error: error.message });
   }
 });
 
@@ -4122,11 +3778,12 @@ app.delete('/api/booking-requests', adminAuth, async (req, res) => {
 app.post('/api/booking-requests/:id/rejected', adminAuth, async (req, res) => {
   try {
     await firestore.collection('booking_requests').doc(req.params.id).update({
-      status: 'rejected'
+      status: 'rejected',
+      rejectedAt: new Date().toISOString()
     });
     res.json({ success: true });
   } catch (error) {
-    return handleBookingRequestActionError(res, 'marcar como rechazada', error);
+    res.json({ success: false, error: error.message });
   }
 });
 
@@ -4550,29 +4207,19 @@ app.post("/api/stamp/:cardId", basicAuth, async (req, res) => {
     const updated = await fsUpdateCardStamps(cardId, newStamps);
     await fsAddEvent(cardId, "STAMP", { by: "reception" });
 
-    // ⭐ CORRECCIÓN: Google Wallet con cardType
+    // ⭐ CORRECCIÓN: Google Wallet con 4 parámetros
     try {
       const { updateLoyaltyObject } = await import("./lib/google.js");
-      await updateLoyaltyObject(cardId, updated.name, newStamps, updated.max, card.cardType || 'loyalty');
-      console.log(`[GOOGLE WALLET] ✅ Stamp actualizado para: ${cardId} (${newStamps}/${updated.max}) tipo: ${card.cardType || 'loyalty'}`);
+      // ✅ CORRECTO: 4 parámetros en lugar de 2
+      await updateLoyaltyObject(cardId, updated.name, newStamps, updated.max);
+      console.log(`[GOOGLE WALLET] ✅ Stamp actualizado para: ${cardId} (${newStamps}/${updated.max})`);
     } catch (googleError) {
       console.error(`[GOOGLE WALLET] ❌ Error actualizando stamp:`, googleError.message);
     }
 
-    // ⭐ Push a Apple Wallet con mensaje personalizado para masajes
+    // Notificar Apple
     try {
-      const isMassage = card.cardType === 'massage';
-      let customMsg = null;
-      if (isMassage) {
-        if (newStamps === 5) {
-          customMsg = `🎁 ¡Felicidades ${card.name}! Llevas 5 masajes — tienes un regalo especial esperándote.`;
-        } else if (newStamps === 10) {
-          customMsg = `🎁🎉 ¡Increíble ${card.name}! Completaste 10 masajes — ¡tu segundo regalo te espera!`;
-        } else {
-          customMsg = `💆 Sello de masaje registrado — llevas ${newStamps} de ${updated.max}.`;
-        }
-      }
-      await appleWebService.updatePassAndNotify(cardId, card.stamps, newStamps, customMsg, card.cardType || 'loyalty');
+      await appleWebService.notifyCardUpdate(cardId);
     } catch (err) {
       console.error("[APPLE] Error notificando:", err);
     }
@@ -4805,7 +4452,7 @@ async function ensureGoogleWalletObject(cardId, cardData) {
     } else if (checkResp.ok) {
       // Actualizar objeto existente
       console.log(`[GOOGLE WALLET] 🔄 Actualizando objeto existente para: ${cardId}`);
-      await updateLoyaltyObject(cardId, cardData.name, cardData.stamps, cardData.max, cardData.cardType);
+      await updateLoyaltyObject(cardId, cardData.name, cardData.stamps, cardData.max);
     }
 
     return true;
@@ -5260,26 +4907,14 @@ app.post("/api/admin/stamp", adminAuth, async (req, res) => {
     // ⭐ CORRECCIÓN: Agregar actualización de Google Wallet
     try {
       const { updateLoyaltyObject } = await import("./lib/google.js");
-      await updateLoyaltyObject(cardId, card.name, newStamps, card.max, card.cardType || 'loyalty');
-      console.log(`[GOOGLE WALLET] ✅ Stamp admin actualizado para: ${cardId} (tipo: ${card.cardType || 'loyalty'})`);
+      await updateLoyaltyObject(cardId, card.name, newStamps, card.max);
+      console.log(`[GOOGLE WALLET] ✅ Stamp admin actualizado para: ${cardId}`);
     } catch (googleError) {
       console.error(`[GOOGLE WALLET] ❌ Error actualizando stamp admin:`, googleError.message);
     }
 
-    // ⭐ Push a Apple Wallet con mensaje personalizado para masajes
     try {
-      const isMassage = card.cardType === 'massage';
-      let customMsg = null;
-      if (isMassage) {
-        if (newStamps === 5) {
-          customMsg = `🎁 ¡Felicidades ${card.name}! Llevas 5 masajes — tienes un regalo especial esperándote.`;
-        } else if (newStamps === 10) {
-          customMsg = `🎁🎉 ¡Increíble ${card.name}! Completaste 10 masajes — ¡tu segundo regalo te espera!`;
-        } else {
-          customMsg = `💆 Sello de masaje registrado — llevas ${newStamps} de ${card.max}.`;
-        }
-      }
-      await appleWebService.updatePassAndNotify(cardId, card.stamps, newStamps, customMsg, card.cardType || 'loyalty');
+      await appleWebService.updatePassAndNotify(cardId, card.stamps, newStamps);
     } catch (err) {
       console.error("[APPLE] Error notificando:", err);
     }
