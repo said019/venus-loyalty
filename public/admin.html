@@ -14179,10 +14179,7 @@
     // Limpiar feedback cuando el usuario empieza a escribir otro nombre
     if (clientSelect) {
       clientSelect.addEventListener('input', function() {
-        if (clientSelectedProgrammatically) {
-          clientSelectedProgrammatically = false;
-          return;
-        }
+        clientSelectedProgrammatically = false;
         clearClientSelectedFeedback();
       });
     }
@@ -15506,50 +15503,38 @@ Gracias por tu preferencia`;
 
         this.options = [];
         this.onSelectCallback = onSelectCallback;
+        this._suppressOpen = false;
 
         this.init();
       }
 
       init() {
-        // Toggle on icon click
+        // Toggle on arrow icon click
         this.icon.addEventListener('click', (e) => {
           e.stopPropagation();
-          if (this._justSelected) return;
+          if (this._suppressOpen) return;
           this.toggle();
         });
 
         // Open on input click
         this.input.addEventListener('click', (e) => {
           e.stopPropagation();
-          if (this._justSelected) return;
-          this.show();
+          if (this._suppressOpen) return;
+          this._showFiltered();
         });
 
-        // Also open on focus (tap on mobile)
-        this.input.addEventListener('focus', () => {
-          if (this._justSelected) return;
-          this.show();
-        });
-
-        // Filter on input type
+        // Filter as user types — NEVER blocked so backspace/typing always works
         this.input.addEventListener('input', () => {
-          if (this._justSelected) return;
-          const query = this.input.value;
-          if (query.length === 0) {
-            this.render(this.options);
-            this.show();
-          } else {
-            this.filter(query);
-            this.show();
-          }
+          this._suppressOpen = false;
+          this._showFiltered();
         });
 
-        // Prevent mousedown on items from blurring the input
+        // Prevent mousedown on dropdown items from stealing focus/blurring input
         this.dropdown.addEventListener('mousedown', (e) => {
           e.preventDefault();
         });
 
-        // Close on outside click
+        // Close on click outside
         document.addEventListener('click', (e) => {
           if (!this.wrapper.contains(e.target)) {
             this.hide();
@@ -15559,11 +15544,9 @@ Gracias por tu preferencia`;
 
       setOptions(options) {
         this.options = options;
-        this.render(options);
       }
 
       render(items) {
-        console.log('[DROPDOWN] Renderizando', items.length, 'items');
         this.dropdown.innerHTML = '';
         if (items.length === 0) {
           this.dropdown.innerHTML = '<div class="dropdown-item" style="cursor:default;color:var(--muted);">No hay resultados</div>';
@@ -15578,10 +15561,8 @@ Gracias por tu preferencia`;
             ${item.meta ? `<span class="item-meta">${item.meta}</span>` : ''}
           `;
 
-          // Store item data for mousedown delegation
           div._itemData = item;
 
-          // Store data attributes
           Object.keys(item.data || {}).forEach(key => {
             div.dataset[key] = item.data[key];
           });
@@ -15598,23 +15579,25 @@ Gracias por tu preferencia`;
       }
 
       filter(query) {
-        const lowerQuery = query.toLowerCase();
-        const filtered = this.options.filter(item =>
-          item.label.toLowerCase().includes(lowerQuery) ||
-          (item.meta && item.meta.toLowerCase().includes(lowerQuery))
+        const lq = query.toLowerCase();
+        return this.options.filter(item =>
+          item.label.toLowerCase().includes(lq) ||
+          (item.meta && item.meta.toLowerCase().includes(lq))
         );
-        this.render(filtered);
+      }
+
+      /** Render the dropdown filtered by current input value, then open */
+      _showFiltered() {
+        const q = this.input.value.trim();
+        const items = q.length === 0 ? this.options : this.filter(q);
+        this.render(items);
+        this.dropdown.style.display = 'block';
+        this.icon.textContent = '▲';
       }
 
       show() {
-        if (this._selecting || this._justSelected) return;
-        console.log('[DROPDOWN] Mostrando dropdown con', this.options.length, 'opciones');
-        // If empty input, show all
-        if (!this.input.value) {
-          this.render(this.options);
-        }
-        this.dropdown.style.display = 'block';
-        this.icon.textContent = '▲';
+        if (this._suppressOpen) return;
+        this._showFiltered();
       }
 
       hide() {
@@ -15626,32 +15609,27 @@ Gracias por tu preferencia`;
         if (this.dropdown.style.display === 'block') {
           this.hide();
         } else {
-          this.show();
+          this._showFiltered();
         }
       }
 
       select(item) {
-        this._selecting = true;
-        this._justSelected = true;
+        // 1. Immediately suppress any re-open triggers
+        this._suppressOpen = true;
+
+        // 2. Fill value and close
         this.input.value = item.value;
-
-        // Close dropdown immediately
         this.hide();
-
-        // Remove focus from input to prevent any re-open triggers
         this.input.blur();
 
-        // Trigger callback if provided
+        // 3. Callbacks
         if (this.onSelectCallback) {
           this.onSelectCallback(item);
         }
-
         this.input.dispatchEvent(new Event('change', { bubbles: true }));
 
-        this._selecting = false;
-
-        // Keep _justSelected true for 300ms to swallow phantom clicks/focus
-        setTimeout(() => { this._justSelected = false; }, 300);
+        // 4. Allow re-opening after 400ms (enough for phantom click to pass)
+        setTimeout(() => { this._suppressOpen = false; }, 400);
       }
     }
 
