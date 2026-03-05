@@ -15092,46 +15092,63 @@
     };
 
     // ========== ENVIAR RECORDATORIO POR WHATSAPP ==========
-    window.sendWhatsAppReminder = (id, phone, clientName, serviceName, startDateTime) => {
+    window.sendWhatsAppReminder = async (id, phone, clientName, serviceName, startDateTime) => {
+      // Botón que disparó el click
+      const btn = event && event.currentTarget;
+      const originalContent = btn ? btn.innerHTML : '';
       try {
-        // Formatear fecha y hora
-        const date = new Date(startDateTime);
-        const dateStr = date.toLocaleDateString('es-MX', {
-          weekday: 'long',
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric'
+        if (btn) {
+          btn.disabled = true;
+          btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        }
+
+        // Extraer date y time del startDateTime
+        let date, time;
+        try {
+          const d = new Date(startDateTime);
+          const yyyy = d.getFullYear();
+          const mm = String(d.getMonth() + 1).padStart(2, '0');
+          const dd = String(d.getDate()).padStart(2, '0');
+          date = `${yyyy}-${mm}-${dd}`;
+          time = d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false });
+        } catch (e) {
+          date = startDateTime;
+          time = '';
+        }
+
+        const res = await fetch('/api/whatsapp/send-reminder', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ id, phone, clientName, serviceName, startDateTime, date, time })
         });
-        const timeStr = date.toLocaleTimeString('es-MX', {
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: true
-        });
+        const json = await res.json();
 
-        // Crear mensaje
-        const message = `Hola ${clientName}
-
-*Recordatorio de tu cita en Venus Cosmetología*
-
-*Fecha:* ${dateStr}
-*Hora:* ${timeStr}
-*Servicio:* ${serviceName}
-
-Te esperamos! Si necesitas reagendar, por favor avísanos con anticipación.
-
-Gracias por tu preferencia`;
-
-        // Limpiar número de teléfono (quitar espacios, guiones, etc)
-        const cleanPhone = phone.replace(/[^0-9]/g, '');
-
-        // Abrir WhatsApp
-        const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
-        window.open(whatsappUrl, '_blank');
-
-        console.log('📱 WhatsApp abierto para:', clientName, cleanPhone);
+        if (json.success) {
+          const providerLabel = json.provider === 'evolution' ? 'Evolution API' : 'Twilio';
+          if (btn) {
+            btn.innerHTML = '<i class="fas fa-check"></i>';
+            btn.style.background = '#22c55e';
+            setTimeout(() => { btn.innerHTML = originalContent; btn.style.background = ''; btn.disabled = false; }, 2500);
+          }
+          console.log(`✅ Recordatorio enviado a ${clientName} vía ${providerLabel}`);
+        } else {
+          throw new Error(json.error || 'Error al enviar');
+        }
       } catch (error) {
         console.error('Error enviando recordatorio WhatsApp:', error);
-        alert('Error al abrir WhatsApp. Verifica que el número de teléfono sea válido.');
+        // Fallback: abrir wa.me si el envío vía API falla
+        const cleanPhone = phone.replace(/[^0-9]/g, '');
+        const d = new Date(startDateTime);
+        const dateStr = d.toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        const timeStr = d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: true });
+        const message = `Hola ${clientName}\n\n*Recordatorio de tu cita en Venus Cosmetología*\n\n*Fecha:* ${dateStr}\n*Hora:* ${timeStr}\n*Servicio:* ${serviceName}\n\nTe esperamos!`;
+        window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`, '_blank');
+        if (btn) {
+          btn.innerHTML = originalContent;
+          btn.style.background = '';
+          btn.disabled = false;
+        }
       }
     };
 

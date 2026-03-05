@@ -278,6 +278,77 @@ export const WhatsAppService = {
     },
 
     /**
+     * Envía recordatorio 30 horas antes (depilación / servicios largos)
+     * Usa Evolution API si está disponible, si no Twilio template RECORDATORIO_24H como fallback
+     */
+    async sendReminder30h(appt) {
+        const fecha = formatearFechaLegible(appt.date || appt.startDateTime);
+        const hora = appt.time || formatearHora(appt.startDateTime);
+        const nombre = sanitizeForWhatsApp(appt.clientName);
+        const servicio = sanitizeForWhatsApp(appt.serviceName);
+
+        // Intentar Evolution primero (texto libre)
+        const hasEvolution = !!(config.evolution?.apiUrl && config.evolution?.apiKey);
+        if (hasEvolution) {
+            try {
+                const mensaje = `⏰ *Recordatorio de tu cita mañana*\n\nHola ${nombre} 👋\n\n🔹 *Servicio:* ${servicio}\n📆 *Fecha:* ${fecha}\n🕐 *Hora:* ${hora}\n📍 *Lugar:* ${config.venus.location}\n\n⚠️ Recuerda llegar 5 minutos antes. Si necesitas reagendar, avísanos con tiempo.\n\n¡Te esperamos! ✨`;
+                const result = await sendViaEvolution(appt.clientPhone, mensaje);
+                if (result.success) return result;
+                console.warn('[WhatsApp] Evolution falló para 30h, intentando Twilio:', result.error);
+            } catch (evoErr) {
+                console.warn('[WhatsApp] Evolution error en 30h:', evoErr.message);
+            }
+        }
+
+        // Fallback: Twilio template RECORDATORIO_24H (mismo formato)
+        return await sendWhatsAppTemplate(
+            appt.clientPhone,
+            config.templates.RECORDATORIO_24H,
+            {
+                '1': nombre,
+                '2': servicio,
+                '3': fecha,
+                '4': hora
+            }
+        );
+    },
+
+    /**
+     * Envía alerta de cancelación automática (4h antes si no ha confirmado)
+     * Usa Evolution API si está disponible, si no Twilio template
+     */
+    async sendAlertaCancelacion(appt) {
+        const fecha = formatearFechaLegible(appt.date || appt.startDateTime);
+        const hora = appt.time || formatearHora(appt.startDateTime);
+        const nombre = sanitizeForWhatsApp(appt.clientName);
+        const servicio = sanitizeForWhatsApp(appt.serviceName);
+
+        // Intentar Evolution primero (texto libre)
+        const hasEvolution = !!(config.evolution?.apiUrl && config.evolution?.apiKey);
+        if (hasEvolution) {
+            try {
+                const mensaje = `⚠️ *Confirmación pendiente*\n\nHola ${nombre}, tu cita de *${servicio}* para el ${fecha} a las ${hora} aún no ha sido confirmada.\n\n🕐 *Si no confirmas en la próxima hora, la cita será cancelada automáticamente.*\n\nResponde *CONFIRMO* para confirmar tu asistencia.\n\nSi deseas cancelar o reagendar, avísanos. 🌸`;
+                const result = await sendViaEvolution(appt.clientPhone, mensaje);
+                if (result.success) return result;
+                console.warn('[WhatsApp] Evolution falló para alerta cancelación, intentando Twilio:', result.error);
+            } catch (evoErr) {
+                console.warn('[WhatsApp] Evolution error en alerta cancelación:', evoErr.message);
+            }
+        }
+
+        // Fallback: Twilio template RECORDATORIO_2H (lo más cercano disponible)
+        return await sendWhatsAppTemplate(
+            appt.clientPhone,
+            config.templates.RECORDATORIO_2H,
+            {
+                '1': nombre,
+                '2': servicio,
+                '3': hora
+            }
+        );
+    },
+
+    /**
      * Envía recordatorio 2 horas antes
      * Template: recordatorio_2h
      * Variables: {{1}}=Nombre, {{2}}=Servicio, {{3}}=Hora

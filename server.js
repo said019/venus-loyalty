@@ -735,6 +735,62 @@ app.post('/api/whatsapp/confirmation', adminAuth, async (req, res) => {
   }
 });
 
+// POST /api/whatsapp/send-reminder - Enviar recordatorio manual desde admin (Evolution → Twilio fallback)
+app.post('/api/whatsapp/send-reminder', adminAuth, async (req, res) => {
+  try {
+    const { id, phone, clientName, serviceName, startDateTime, date, time } = req.body;
+
+    if (!phone || !clientName) {
+      return res.status(400).json({ success: false, error: 'Faltan campos requeridos (phone, clientName)' });
+    }
+
+    // Construir fecha y hora legibles
+    const { formatearFechaLegible, formatearHora } = WhatsAppService;
+    const fecha = date ? formatearFechaLegible(date) : formatearFechaLegible(startDateTime);
+    const hora = time || formatearHora(startDateTime);
+    const lugar = config.venus.location;
+
+    const mensaje = `📅 *Recordatorio de tu cita en Venus Cosmetología*\n\nHola ${clientName} 👋\n\n🔹 *Servicio:* ${serviceName}\n📆 *Fecha:* ${fecha}\n🕐 *Hora:* ${hora}\n📍 *Lugar:* ${lugar}\n\n¡Te esperamos! Si necesitas reagendar, por favor avísanos con anticipación. ✨`;
+
+    // Intentar Evolution API primero
+    const hasEvolution = !!(config.evolution?.apiUrl && config.evolution?.apiKey);
+    if (hasEvolution) {
+      try {
+        const evoClient = getEvolutionClient();
+        const status = await evoClient.getStatus();
+        if (status.connected) {
+          const result = await evoClient.sendText(phone, mensaje);
+          console.log(`✅ [Evolution] Recordatorio manual enviado a ${clientName} (${phone})`);
+          return res.json({ success: true, provider: 'evolution', messageSid: result?.key?.id || 'evolution-sent' });
+        }
+        console.warn('[Evolution] No conectado, cayendo a Twilio...');
+      } catch (evoErr) {
+        console.warn('[Evolution] Error enviando recordatorio:', evoErr.message);
+      }
+    }
+
+    // Fallback: Twilio template RECORDATORIO_24H
+    const templateResult = await WhatsAppService.sendReminder24h({
+      clientPhone: phone,
+      clientName,
+      serviceName,
+      date: date || startDateTime,
+      time: hora,
+      startDateTime
+    });
+
+    if (templateResult.success) {
+      console.log(`✅ [Twilio] Recordatorio manual enviado a ${clientName} (${phone})`);
+      return res.json({ success: true, provider: 'twilio', messageSid: templateResult.messageSid });
+    }
+
+    return res.json({ success: false, error: templateResult.error || 'No se pudo enviar por ningún canal' });
+  } catch (error) {
+    console.error('[WHATSAPP] Error enviando recordatorio manual:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 /* ========== PRODUCTOS ========== */
 
 // GET /api/products - Listar todos los productos
