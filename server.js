@@ -3295,23 +3295,25 @@ app.get('/api/public/availability', async (req, res) => {
         const startMinutes = startH * 60 + startM;
         const endMinutes = endH * 60 + endM;
 
-        // Generar slots de 08:00 a 21:00 (o el rango que sea)
-        // Aquí simplificamos y marcamos los slots exactos que caen en el rango
-        // Asumiendo slots cada 60 mins por defecto, pero el frontend maneja la lógica de visualización
-        // Mejor enfoque: Marcar todas las horas "en punto" dentro del rango como ocupadas
+        // Marcar todos los slots en punto (:00) que caen dentro del rango bloqueado
+        // También incluir la hora de inicio si no es en punto
+        const firstHour = startM > 0 ? startH + 1 : startH;
 
-        for (let h = startH; h < endH; h++) {
-          const timeSlot = `${h.toString().padStart(2, '0')}:${startM.toString().padStart(2, '0')}`;
+        // Si la hora de inicio está bloqueada (ej: bloqueo desde 08:30 bloquea slot de 08:00)
+        if (startM > 0) {
+          const timeSlot = `${startH.toString().padStart(2, '0')}:00`;
           if (!busy.includes(timeSlot)) {
             busy.push(timeSlot);
             console.log(`[AVAILABILITY] 🚫 Bloqueo administrativo (${block.reason}): ${timeSlot}`);
           }
         }
-        // Si termina en media hora (ej 10:30), también bloquear la hora de inicio (10:00 ya cubierto)
-        if (endM > 0) {
-          const timeSlot = `${endH.toString().padStart(2, '0')}:00`;
+
+        for (let h = firstHour; h <= endH; h++) {
+          if (h === endH && endM === 0) break; // no incluir hora exacta de fin
+          const timeSlot = `${h.toString().padStart(2, '0')}:00`;
           if (!busy.includes(timeSlot)) {
             busy.push(timeSlot);
+            console.log(`[AVAILABILITY] 🚫 Bloqueo administrativo (${block.reason}): ${timeSlot}`);
           }
         }
       }

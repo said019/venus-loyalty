@@ -447,6 +447,19 @@ export async function getFreeBusy(dateStr) {
         }
         current = new Date(current.getTime() + 30 * 60000);
       }
+
+      // También marcar slots en punto (:00) que caen dentro del período ocupado
+      // Esto asegura que los slots de citas por hora se bloqueen correctamente
+      const firstFullHour = startLocal.getMinutes() > 0 ? startLocal.getHours() + 1 : startLocal.getHours();
+      const endHour = endLocal.getHours();
+      const endMin = endLocal.getMinutes();
+      for (let h = firstFullHour; h <= endHour; h++) {
+        if (h === endHour && endMin === 0) break; // no incluir la hora exacta de fin si termina en :00
+        const slot = `${String(h).padStart(2, '0')}:00`;
+        if (!busySlots.includes(slot)) {
+          busySlots.push(slot);
+        }
+      }
     }
 
     console.log(`[GCal OAuth] FreeBusy ${dateStr}: ${busySlots.length} slots ocupados`);
