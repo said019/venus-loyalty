@@ -3281,22 +3281,24 @@ app.get('/api/public/availability', async (req, res) => {
       console.warn(`[AVAILABILITY] Error consultando Google Calendar:`, gcalErr.message);
     }
 
-    // ── Filtro de mínimo de horas de anticipación ──
+    // ── Filtro de mínimo de horas de anticipación (solo aplica para HOY) ──
     try {
       const bizCfg = await prisma.businessConfig.findUnique({ where: { id: 1 } });
       const minHours = bizCfg?.minHoursAdvance ?? 4;
       if (minHours > 0) {
+        // Obtener hora actual en México
         const nowMx = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Mexico_City' }));
-        const todayStr = nowMx.toISOString().slice(0, 10);
-        if (date === todayStr) {
+        const todayMx = `${nowMx.getFullYear()}-${String(nowMx.getMonth()+1).padStart(2,'0')}-${String(nowMx.getDate()).padStart(2,'0')}`;
+
+        if (date === todayMx) {
           const cutoffMinutes = nowMx.getHours() * 60 + nowMx.getMinutes() + (minHours * 60);
-          // Bloquear todos los slots antes del cutoff
-          const closeTime = bizCfg?.closeTime || '21:00';
-          const [closeH, closeM] = closeTime.split(':').map(Number);
           const openTime = bizCfg?.openTime || '09:00';
-          const [openH] = openTime.split(':').map(Number);
+          const closeTime = bizCfg?.closeTime || '19:00';
+          const [openH, openM] = openTime.split(':').map(Number);
+          const [closeH, closeM] = closeTime.split(':').map(Number);
           const interval = bizCfg?.interval || 60;
-          for (let mins = openH * 60; mins < closeH * 60 + closeM; mins += interval) {
+
+          for (let mins = openH * 60 + openM; mins < closeH * 60 + closeM; mins += interval) {
             if (mins < cutoffMinutes) {
               const slotStr = `${Math.floor(mins/60).toString().padStart(2,'0')}:${(mins%60).toString().padStart(2,'0')}`;
               if (!busy.includes(slotStr)) {
@@ -3305,6 +3307,7 @@ app.get('/api/public/availability', async (req, res) => {
               }
             }
           }
+          console.log(`[AVAILABILITY] Hoy ${todayMx}: cutoff a los ${cutoffMinutes} min (${Math.floor(cutoffMinutes/60)}:${String(cutoffMinutes%60).padStart(2,'0')})`);
         }
       }
     } catch (minErr) {
