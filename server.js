@@ -512,7 +512,15 @@ app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-app.use(express.static("public"));
+app.use(express.static("public", {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.html')) {
+      res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+      res.set('Pragma', 'no-cache');
+      res.set('Expires', '0');
+    }
+  }
+}));
 
 // ✅ Appointments API
 app.use('/api', appointmentsRouter);
@@ -2034,6 +2042,11 @@ function basicAuth(req, res, next) {
    Páginas HTML
    ========================================================= */
 app.get("/admin", (_req, res) => {
+  res.set({
+    'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+    'Pragma': 'no-cache',
+    'Expires': '0'
+  });
   res.sendFile(path.join(__dirname, "public", "admin.html"));
 });
 app.get("/admin-login.html", (_req, res) => {
