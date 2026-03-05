@@ -14440,7 +14440,13 @@
             (item) => {
               console.log('[CLIENTS] ✅ Cliente seleccionado:', item);
               // Auto-fill phone when client selected
-              document.getElementById('new-appt-phone').value = item.data.phone || '';
+              const phone = item.data.phone || '';
+              document.getElementById('new-appt-phone').value = phone;
+              selectedClientPhone = phone;
+              window.selectedClientPhone = phone;
+
+              // Store on input as well for fallback
+              document.getElementById('new-appt-client-select').dataset.phone = phone;
 
               // Mostrar retroalimentación visual de cliente seleccionada
               showClientSelectedFeedback(item.label);
@@ -16239,6 +16245,14 @@ Gracias por tu preferencia`;
           // Si aún no hay teléfono, verificar data-phone del input
           if (!clientPhone && clientSelect.dataset && clientSelect.dataset.phone) {
             clientPhone = clientSelect.dataset.phone;
+          }
+
+          // Último fallback: campo oculto new-appt-phone
+          if (!clientPhone) {
+            const hiddenPhone = document.getElementById('new-appt-phone');
+            if (hiddenPhone && hiddenPhone.value.trim()) {
+              clientPhone = hiddenPhone.value.trim();
+            }
           }
           
           // Validar que tengamos nombre y teléfono
