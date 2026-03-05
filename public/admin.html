@@ -14955,7 +14955,7 @@
                       </button>
                     </div>
                     `}
-                    <button onclick="sendWhatsAppReminder('${appt.id}', '${appt.clientPhone}', '${appt.clientName.replace(/'/g, "\\'")}', '${appt.serviceName.replace(/'/g, "\\'")}', '${appt.startDateTime}')" class="btn-icon" style="background:linear-gradient(135deg, #25D366 0%, #128C7E 100%);color:white;padding:6px 12px;border-radius:8px;font-size:0.85em;display:flex;align-items:center;gap:6px;border:none;cursor:pointer;transition:all 0.2s;box-shadow:0 2px 4px rgba(37,211,102,0.3);" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 8px rgba(37,211,102,0.4)'" onmouseout="this.style.transform='';this.style.boxShadow='0 2px 4px rgba(37,211,102,0.3)'" title="Enviar recordatorio por WhatsApp">
+                    <button onclick="sendWhatsAppReminder(this, '${appt.id}', '${appt.clientPhone}', '${appt.clientName.replace(/'/g, "\\'")}', '${appt.serviceName.replace(/'/g, "\\'")}', '${appt.startDateTime}')" class="btn-icon" style="background:linear-gradient(135deg, #25D366 0%, #128C7E 100%);color:white;padding:6px 12px;border-radius:8px;font-size:0.85em;display:flex;align-items:center;gap:6px;border:none;cursor:pointer;transition:all 0.2s;box-shadow:0 2px 4px rgba(37,211,102,0.3);" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 8px rgba(37,211,102,0.4)'" onmouseout="this.style.transform='';this.style.boxShadow='0 2px 4px rgba(37,211,102,0.3)'" title="Enviar recordatorio por WhatsApp">
                       <i class="fab fa-whatsapp"></i>
                     </button>
                     <button onclick="editAppointment('${appt.id}')" class="btn-icon" style="background:linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);color:white;padding:6px 12px;border-radius:8px;font-size:0.85em;display:flex;align-items:center;gap:6px;border:none;cursor:pointer;transition:all 0.2s;box-shadow:0 2px 4px rgba(59,130,246,0.3);" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 8px rgba(59,130,246,0.4)'" onmouseout="this.style.transform='';this.style.boxShadow='0 2px 4px rgba(59,130,246,0.3)'">
@@ -15092,15 +15092,15 @@
     };
 
     // ========== ENVIAR RECORDATORIO POR WHATSAPP ==========
-    window.sendWhatsAppReminder = async (id, phone, clientName, serviceName, startDateTime) => {
-      // Botón que disparó el click
-      const btn = event && event.currentTarget;
+    window.sendWhatsAppReminder = async (btn, id, phone, clientName, serviceName, startDateTime) => {
       const originalContent = btn ? btn.innerHTML : '';
       try {
         if (btn) {
           btn.disabled = true;
           btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
         }
+
+        console.log('📤 [WhatsApp] Enviando recordatorio vía API...', { id, phone, clientName });
 
         // Extraer date y time del startDateTime
         let date, time;
@@ -15122,7 +15122,9 @@
           credentials: 'include',
           body: JSON.stringify({ id, phone, clientName, serviceName, startDateTime, date, time })
         });
-        const json = await res.json();
+
+        const json = await res.json().catch(() => ({ success: false, error: `HTTP ${res.status}` }));
+        console.log('📨 [WhatsApp] Respuesta API:', res.status, json);
 
         if (json.success) {
           const providerLabel = json.provider === 'evolution' ? 'Evolution API' : 'Twilio';
@@ -15133,11 +15135,14 @@
           }
           console.log(`✅ Recordatorio enviado a ${clientName} vía ${providerLabel}`);
         } else {
-          throw new Error(json.error || 'Error al enviar');
+          console.error('❌ [WhatsApp] API no pudo enviar:', json.error);
+          alert('No se pudo enviar el recordatorio: ' + (json.error || 'Error desconocido'));
+          if (btn) { btn.innerHTML = originalContent; btn.style.background = ''; btn.disabled = false; }
         }
       } catch (error) {
-        console.error('Error enviando recordatorio WhatsApp:', error);
-        // Fallback: abrir wa.me si el envío vía API falla
+        console.error('❌ [WhatsApp] Error de red enviando recordatorio:', error);
+        alert('Error de conexión al enviar recordatorio. Abriendo WhatsApp Web como respaldo...');
+        // Solo abrir wa.me como último recurso en error de red
         const cleanPhone = phone.replace(/[^0-9]/g, '');
         const d = new Date(startDateTime);
         const dateStr = d.toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
