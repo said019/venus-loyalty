@@ -14439,9 +14439,7 @@
             'clients-dropdown-list',
             (item) => {
               console.log('[CLIENTS] ✅ Cliente seleccionado:', item);
-              // Auto-fill phone when client selected
               const phone = item.data.phone || '';
-              document.getElementById('new-appt-phone').value = phone;
               selectedClientPhone = phone;
               window.selectedClientPhone = phone;
 
@@ -15857,14 +15855,16 @@ Gracias por tu preferencia`;
 
       // Limpiar campos
       const clientInput = document.getElementById('new-appt-client-select');
-      const phoneInput = document.getElementById('new-appt-phone');
       const serviceInput = document.getElementById('new-appt-service');
       const priceInput = document.getElementById('new-appt-price');
 
-      if (clientInput) clientInput.value = '';
-      if (phoneInput) phoneInput.value = '';
+      if (clientInput) { clientInput.value = ''; delete clientInput.dataset.phone; }
       if (serviceInput) serviceInput.value = '';
       if (priceInput) priceInput.value = '';
+
+      // Limpiar teléfono del cliente seleccionado
+      selectedClientPhone = '';
+      window.selectedClientPhone = '';
 
       // Limpiar feedback de cliente seleccionada
       clearClientSelectedFeedback();
@@ -16245,14 +16245,6 @@ Gracias por tu preferencia`;
           // Si aún no hay teléfono, verificar data-phone del input
           if (!clientPhone && clientSelect.dataset && clientSelect.dataset.phone) {
             clientPhone = clientSelect.dataset.phone;
-          }
-
-          // Último fallback: campo oculto new-appt-phone
-          if (!clientPhone) {
-            const hiddenPhone = document.getElementById('new-appt-phone');
-            if (hiddenPhone && hiddenPhone.value.trim()) {
-              clientPhone = hiddenPhone.value.trim();
-            }
           }
           
           // Validar que tengamos nombre y teléfono
