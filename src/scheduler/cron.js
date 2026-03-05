@@ -205,24 +205,23 @@ export function startScheduler() {
 
     console.log('✅ Sistema de notificaciones WhatsApp con Twilio listo');
 
-    // ========== ENVÍO DE LINK DE EVALUACIÓN 30 MIN POST-CITA ==========
+    // ========== ENVÍO DE LINK DE EVALUACIÓN POST-CITA ==========
     // Corre cada 10 minutos para detectar citas completadas
     cron.schedule('*/10 * * * *', async () => {
         try {
             const now = new Date();
 
-            // Buscar citas completadas hace ~30 min que NO tengan reviewSentAt
-            // Ventana: completadas entre 20 y 40 min atrás
-            const minAgo40 = new Date(now.getTime() - 40 * 60 * 1000);
-            const minAgo20 = new Date(now.getTime() - 20 * 60 * 1000);
+            // Buscar CUALQUIER cita completada que no tenga reviewSentAt
+            // Sin filtrar por endDateTime — el admin puede completar horas después
+            // Limitamos a citas de los últimos 3 días para no enviar a citas muy antiguas
+            const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
 
             const pendingReviewSend = await prisma.appointment.findMany({
                 where: {
                     status: 'completed',
                     reviewSentAt: null,
                     endDateTime: {
-                        gte: minAgo40,
-                        lte: minAgo20
+                        gte: threeDaysAgo
                     }
                 },
                 take: 20
