@@ -5149,7 +5149,8 @@
       </button>
       <button class="sidebar-nav-item" data-tab="reviews">
         <i class="fas fa-star"></i>
-        <span>Evaluaciones</span>
+        <span>Reseñas</span>
+        <span id="reviews-badge" style="display:none;background:#f5a623;color:#fff;font-size:10px;font-weight:700;border-radius:10px;padding:1px 6px;margin-left:auto;">0</span>
       </button>
       <button class="sidebar-nav-item" data-tab="settings">
         <i class="fas fa-sliders-h"></i>
@@ -5691,113 +5692,42 @@
       </div>
     </div>
 
-    <!-- TAB: Settings - MEJORADO CON DEBUGGING -->
-    <!-- EVALUACIONES -->
-    <section id="tab-reviews" class="tab-content hidden">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:12px;">
-        <div>
-          <h2><i class="fas fa-star" style="color:#f59e0b;"></i> Evaluaciones de Clientas</h2>
-          <p class="muted" style="margin:0;font-size:12px;">Feedback automático enviado 30 min después de cada cita completada</p>
-        </div>
-        <div style="display:flex;gap:8px;">
-          <select id="reviews-filter-stars" class="form-input" onchange="loadReviews()" style="width:auto;padding:6px 12px;">
-            <option value="all">Todas las estrellas</option>
-            <option value="5">⭐⭐⭐⭐⭐ (5)</option>
-            <option value="4">⭐⭐⭐⭐ (4)</option>
-            <option value="3">⭐⭐⭐ (3)</option>
-            <option value="2">⭐⭐ (2)</option>
-            <option value="1">⭐ (1)</option>
+    <!-- TAB: Reviews / Reseñas -->
+    <section id="tab-reviews" class="card hidden">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px;">
+        <h2 style="margin:0;display:flex;align-items:center;gap:10px;">
+          <i class="fas fa-star" style="color:#f5a623;"></i> Reseñas de Clientas
+        </h2>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <select id="reviews-filter" onchange="filterReviews(this.value)" style="border:1.5px solid #e0d8d0;border-radius:10px;padding:6px 12px;font-size:13px;background:#fff;">
+            <option value="">Todas ⭐</option>
+            <option value="5">5 estrellas 🤩</option>
+            <option value="4">4 estrellas 😊</option>
+            <option value="3">3 estrellas 🙂</option>
+            <option value="2">2 estrellas 😐</option>
+            <option value="1">1 estrella 😞</option>
           </select>
-          <button class="btn ghost" onclick="loadReviews()"><i class="fas fa-sync"></i></button>
+          <button onclick="loadReviews()" style="background:linear-gradient(135deg,#9A9F82,#7d836a);color:#fff;border:none;border-radius:10px;padding:7px 14px;font-size:13px;cursor:pointer;">
+            <i class="fas fa-sync-alt"></i>
+          </button>
         </div>
       </div>
 
-      <!-- KPIs -->
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px;">
-        <div class="card" style="padding:16px;text-align:center;">
-          <div style="font-size:28px;font-weight:700;color:#f59e0b;" id="reviews-avg">—</div>
-          <div class="muted" style="font-size:12px;">Promedio</div>
-        </div>
-        <div class="card" style="padding:16px;text-align:center;">
-          <div style="font-size:28px;font-weight:700;" id="reviews-total">0</div>
-          <div class="muted" style="font-size:12px;">Total evaluaciones</div>
-        </div>
-        <div class="card" style="padding:16px;text-align:center;">
-          <div style="font-size:28px;font-weight:700;color:#22c55e;" id="reviews-5star">0</div>
-          <div class="muted" style="font-size:12px;">5 estrellas</div>
-        </div>
-        <div class="card" style="padding:16px;text-align:center;">
-          <div style="font-size:28px;font-weight:700;color:#ef4444;" id="reviews-low">0</div>
-          <div class="muted" style="font-size:12px;">≤ 3 estrellas</div>
-        </div>
-      </div>
+      <!-- Estadísticas -->
+      <div id="reviews-stats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:24px;"></div>
 
-      <!-- Lista de reviews -->
-      <div class="card" style="padding:0;">
-        <div id="reviews-list" style="padding:16px;">
-          <p class="muted" style="text-align:center;padding:40px;">Cargando evaluaciones...</p>
+      <!-- Lista -->
+      <div id="reviews-list" style="display:flex;flex-direction:column;gap:14px;">
+        <div style="text-align:center;padding:40px;color:#aaa;">
+          <i class="fas fa-star" style="font-size:32px;margin-bottom:8px;display:block;"></i>
+          Cargando reseñas...
         </div>
       </div>
     </section>
 
+    <!-- TAB: Settings - MEJORADO CON DEBUGGING -->
     <section id="tab-settings" class="card hidden">
       <h2>Configuración</h2>
-
-      <!-- Google Calendar Connection -->
-      <div style="background:rgba(66,133,244,0.08);border:1px solid rgba(66,133,244,0.3);border-radius:12px;padding:14px;margin:12px 0;">
-        <h3 style="margin:0 0 12px;"><i class="fab fa-google" style="color:#4285f4;"></i> Google Calendar</h3>
-        <p class="muted" style="margin:0 0 16px;font-size:12px;">Sincroniza citas automáticamente con tu Google Calendar.</p>
-        
-        <div id="gcal-status-container">
-          <div id="gcal-disconnected" style="display:none;">
-            <p style="margin:0 0 12px;color:#ef4444;"><i class="fas fa-times-circle"></i> No conectado</p>
-            <button class="btn primary" onclick="connectGoogleCalendar()" style="background:#4285f4;">
-              <i class="fab fa-google"></i> Conectar Google Calendar
-            </button>
-          </div>
-          <div id="gcal-connected" style="display:none;">
-            <p style="margin:0 0 8px;color:#22c55e;"><i class="fas fa-check-circle"></i> Conectado</p>
-            <p class="muted" style="margin:0 0 8px;font-size:12px;">Última sincronización: <span id="gcal-last-sync">—</span></p>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;">
-              <button class="btn small ghost" onclick="syncGoogleCalendar()"><i class="fas fa-sync"></i> Sincronizar todo</button>
-              <button class="btn small ghost" style="color:#ef4444;" onclick="disconnectGoogleCalendar()"><i class="fas fa-unlink"></i> Desconectar</button>
-            </div>
-          </div>
-          <div id="gcal-loading"><i class="fas fa-spinner fa-spin"></i> Verificando...</div>
-        </div>
-      </div>
-
-      <!-- WhatsApp / Evolution API -->
-      <div style="background:rgba(37,211,102,0.08);border:1px solid rgba(37,211,102,0.3);border-radius:12px;padding:14px;margin:12px 0;">
-        <h3 style="margin:0 0 12px;"><i class="fab fa-whatsapp" style="color:#25d366;"></i> WhatsApp</h3>
-        <p class="muted" style="margin:0 0 16px;font-size:12px;">Estado de la conexión de WhatsApp para notificaciones automáticas.</p>
-        
-        <div id="wa-status-container">
-          <div id="wa-loading"><i class="fas fa-spinner fa-spin"></i> Verificando...</div>
-          <div id="wa-connected" style="display:none;">
-            <p style="margin:0 0 8px;color:#22c55e;"><i class="fas fa-check-circle"></i> Conectado</p>
-            <div id="wa-details" style="font-size:13px;color:var(--muted);"></div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
-              <button class="btn small ghost" onclick="testWhatsApp()"><i class="fas fa-paper-plane"></i> Enviar prueba</button>
-              <button class="btn small ghost" style="color:#ef4444;" onclick="disconnectWhatsApp()"><i class="fas fa-unlink"></i> Desconectar</button>
-            </div>
-          </div>
-          <div id="wa-disconnected" style="display:none;">
-            <p style="margin:0 0 8px;color:#f59e0b;"><i class="fas fa-exclamation-circle"></i> No conectado</p>
-            <p class="muted" style="font-size:12px;margin:0 0 12px;">Conecta tu WhatsApp escaneando el código QR.</p>
-            <button class="btn primary" onclick="connectWhatsApp()" style="background:#25d366;">
-              <i class="fab fa-whatsapp"></i> Conectar WhatsApp
-            </button>
-            <div id="wa-qr-container" style="display:none;margin-top:16px;text-align:center;">
-              <img id="wa-qr-img" style="max-width:256px;border-radius:12px;">
-              <p class="muted" style="font-size:12px;margin-top:8px;">Escanea este QR con WhatsApp</p>
-            </div>
-          </div>
-          <div id="wa-not-configured" style="display:none;">
-            <p style="margin:0;color:var(--muted);"><i class="fas fa-info-circle"></i> WhatsApp usa Twilio (templates). Para texto libre, configura Evolution API en las variables de entorno.</p>
-          </div>
-        </div>
-      </div>
 
       <!-- Configuración del Negocio -->
       <div
@@ -5978,35 +5908,6 @@
             <label for="biz-day-0" class="day-label">
               <span class="checkmark">✓</span> Dom
             </label>
-          </div>
-
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
-            <div>
-              <label>Intervalo de citas (minutos)</label>
-              <select id="biz-interval" class="form-input">
-                <option value="30">30 min</option>
-                <option value="45">45 min</option>
-                <option value="60" selected>60 min (1 hora)</option>
-                <option value="90">90 min</option>
-                <option value="120">120 min (2 horas)</option>
-              </select>
-              <small class="muted">Cada cuánto tiempo se puede reservar una cita</small>
-            </div>
-            <div>
-              <label>Mínimo de horas para agendar</label>
-              <select id="biz-min-hours" class="form-input">
-                <option value="1">1 hora</option>
-                <option value="2">2 horas</option>
-                <option value="3">3 horas</option>
-                <option value="4" selected>4 horas</option>
-                <option value="5">5 horas</option>
-                <option value="6">6 horas</option>
-                <option value="8">8 horas</option>
-                <option value="12">12 horas</option>
-                <option value="24">24 horas (1 día)</option>
-              </select>
-              <small class="muted">Si son 4h, hasta las 6PM es el último slot para hoy (cierre 10PM)</small>
-            </div>
           </div>
 
           <div style="margin-top:14px;">
@@ -10717,10 +10618,6 @@
         } else if (tabName === 'settings') {
           if (typeof loadBusinessConfig === 'function') loadBusinessConfig();
           if (typeof loadNotificationsHistory === 'function') loadNotificationsHistory();
-          if (typeof checkGCalStatus === 'function') checkGCalStatus();
-          if (typeof checkWhatsAppStatus === 'function') checkWhatsAppStatus();
-        } else if (tabName === 'reviews') {
-          if (typeof loadReviews === 'function') loadReviews();
         } else if (tabName === 'caja') {
           if (typeof loadCajaData === 'function') loadCajaData();
         } else if (tabName === 'reports') {
@@ -11716,19 +11613,17 @@
         } else if (tabName === 'settings') {
           loadBusinessConfig();
           loadNotificationsHistory();
-          if (typeof checkGCalStatus === 'function') checkGCalStatus();
-          if (typeof checkWhatsAppStatus === 'function') checkWhatsAppStatus();
           if (typeof stopDashboardAutoRefresh === 'function') stopDashboardAutoRefresh();
         } else if (tabName === 'appointments') {
           if (typeof loadAppointments === 'function') loadAppointments();
           if (typeof loadMonthStats === 'function') loadMonthStats();
+          // Iniciar auto-refresh cuando se entra al tab de appointments
           if (typeof startAppointmentsAutoRefresh === 'function') startAppointmentsAutoRefresh();
+          // Detener auto-refresh del dashboard
           if (typeof stopDashboardAutoRefresh === 'function') stopDashboardAutoRefresh();
         } else if (tabName === 'reports') {
           if (typeof initReportsTab === 'function') initReportsTab();
           if (typeof stopDashboardAutoRefresh === 'function') stopDashboardAutoRefresh();
-        } else if (tabName === 'reviews') {
-          if (typeof loadReviews === 'function') loadReviews();
         } else {
           // Detener auto-refresh cuando se sale de los tabs
           if (typeof stopAppointmentsAutoRefresh === 'function') stopAppointmentsAutoRefresh();
@@ -14179,7 +14074,10 @@
     // Limpiar feedback cuando el usuario empieza a escribir otro nombre
     if (clientSelect) {
       clientSelect.addEventListener('input', function() {
-        clientSelectedProgrammatically = false;
+        if (clientSelectedProgrammatically) {
+          clientSelectedProgrammatically = false;
+          return;
+        }
         clearClientSelectedFeedback();
       });
     }
@@ -14439,12 +14337,8 @@
             'clients-dropdown-list',
             (item) => {
               console.log('[CLIENTS] ✅ Cliente seleccionado:', item);
-              const phone = item.data.phone || '';
-              selectedClientPhone = phone;
-              window.selectedClientPhone = phone;
-
-              // Store on input as well for fallback
-              document.getElementById('new-appt-client-select').dataset.phone = phone;
+              // Auto-fill phone when client selected
+              document.getElementById('new-appt-phone').value = item.data.phone || '';
 
               // Mostrar retroalimentación visual de cliente seleccionada
               showClientSelectedFeedback(item.label);
@@ -14955,7 +14849,7 @@
                       </button>
                     </div>
                     `}
-                    <button onclick="sendWhatsAppReminder(this, '${appt.id}', '${appt.clientPhone}', '${appt.clientName.replace(/'/g, "\\'")}', '${appt.serviceName.replace(/'/g, "\\'")}', '${appt.startDateTime}')" class="btn-icon" style="background:linear-gradient(135deg, #25D366 0%, #128C7E 100%);color:white;padding:6px 12px;border-radius:8px;font-size:0.85em;display:flex;align-items:center;gap:6px;border:none;cursor:pointer;transition:all 0.2s;box-shadow:0 2px 4px rgba(37,211,102,0.3);" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 8px rgba(37,211,102,0.4)'" onmouseout="this.style.transform='';this.style.boxShadow='0 2px 4px rgba(37,211,102,0.3)'" title="Enviar recordatorio por WhatsApp">
+                    <button onclick="sendWhatsAppReminder('${appt.id}', '${appt.clientPhone}', '${appt.clientName.replace(/'/g, "\\'")}', '${appt.serviceName.replace(/'/g, "\\'")}', '${appt.startDateTime}')" class="btn-icon" style="background:linear-gradient(135deg, #25D366 0%, #128C7E 100%);color:white;padding:6px 12px;border-radius:8px;font-size:0.85em;display:flex;align-items:center;gap:6px;border:none;cursor:pointer;transition:all 0.2s;box-shadow:0 2px 4px rgba(37,211,102,0.3);" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 8px rgba(37,211,102,0.4)'" onmouseout="this.style.transform='';this.style.boxShadow='0 2px 4px rgba(37,211,102,0.3)'" title="Enviar recordatorio por WhatsApp">
                       <i class="fab fa-whatsapp"></i>
                     </button>
                     <button onclick="editAppointment('${appt.id}')" class="btn-icon" style="background:linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);color:white;padding:6px 12px;border-radius:8px;font-size:0.85em;display:flex;align-items:center;gap:6px;border:none;cursor:pointer;transition:all 0.2s;box-shadow:0 2px 4px rgba(59,130,246,0.3);" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 8px rgba(59,130,246,0.4)'" onmouseout="this.style.transform='';this.style.boxShadow='0 2px 4px rgba(59,130,246,0.3)'">
@@ -15092,61 +14986,46 @@
     };
 
     // ========== ENVIAR RECORDATORIO POR WHATSAPP ==========
-    window.sendWhatsAppReminder = async (btn, id, phone, clientName, serviceName, startDateTime) => {
-      const originalContent = btn ? btn.innerHTML : '';
+    window.sendWhatsAppReminder = (id, phone, clientName, serviceName, startDateTime) => {
       try {
-        if (btn) {
-          btn.disabled = true;
-          btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-        }
-
-        console.log('📤 [WhatsApp] Enviando recordatorio vía API...', { id, phone, clientName });
-
-        // Extraer date y time del startDateTime
-        let date, time;
-        try {
-          const d = new Date(startDateTime);
-          const yyyy = d.getFullYear();
-          const mm = String(d.getMonth() + 1).padStart(2, '0');
-          const dd = String(d.getDate()).padStart(2, '0');
-          date = `${yyyy}-${mm}-${dd}`;
-          time = d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false });
-        } catch (e) {
-          date = startDateTime;
-          time = '';
-        }
-
-        const res = await fetch('/api/whatsapp/send-reminder', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({ id, phone, clientName, serviceName, startDateTime, date, time })
+        // Formatear fecha y hora
+        const date = new Date(startDateTime);
+        const dateStr = date.toLocaleDateString('es-MX', {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        });
+        const timeStr = date.toLocaleTimeString('es-MX', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true
         });
 
-        const json = await res.json().catch(() => ({ success: false, error: `HTTP ${res.status}` }));
-        console.log('📨 [WhatsApp] Respuesta API:', res.status, json);
+        // Crear mensaje
+        const message = `Hola ${clientName}
 
-        if (json.success) {
-          const providerLabel = json.provider === 'evolution' ? 'Evolution API' : 'Twilio';
-          if (btn) {
-            btn.innerHTML = '<i class="fas fa-check"></i>';
-            btn.style.background = '#22c55e';
-            setTimeout(() => { btn.innerHTML = originalContent; btn.style.background = ''; btn.disabled = false; }, 2500);
-          }
-          console.log(`✅ Recordatorio enviado a ${clientName} vía ${providerLabel}`);
-        } else {
-          console.error('❌ [WhatsApp] API no pudo enviar:', json.error);
-          alert('No se pudo enviar el recordatorio: ' + (json.error || 'Error desconocido'));
-          if (btn) { btn.innerHTML = originalContent; btn.style.background = ''; btn.disabled = false; }
-        }
+*Recordatorio de tu cita en Venus Cosmetología*
+
+*Fecha:* ${dateStr}
+*Hora:* ${timeStr}
+*Servicio:* ${serviceName}
+
+Te esperamos! Si necesitas reagendar, por favor avísanos con anticipación.
+
+Gracias por tu preferencia`;
+
+        // Limpiar número de teléfono (quitar espacios, guiones, etc)
+        const cleanPhone = phone.replace(/[^0-9]/g, '');
+
+        // Abrir WhatsApp
+        const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+        window.open(whatsappUrl, '_blank');
+
+        console.log('📱 WhatsApp abierto para:', clientName, cleanPhone);
       } catch (error) {
-        console.error('❌ [WhatsApp] Error de red enviando recordatorio:', error);
-        alert('Error de conexión al enviar recordatorio. Verifica tu conexión e intenta de nuevo.');
-        if (btn) {
-          btn.innerHTML = originalContent;
-          btn.style.background = '';
-          btn.disabled = false;
-        }
+        console.error('Error enviando recordatorio WhatsApp:', error);
+        alert('Error al abrir WhatsApp. Verifica que el número de teléfono sea válido.');
       }
     };
 
@@ -15522,38 +15401,46 @@
 
         this.options = [];
         this.onSelectCallback = onSelectCallback;
-        this._suppressOpen = false;
 
         this.init();
       }
 
       init() {
-        // Toggle on arrow icon click
+        // Toggle on icon click
         this.icon.addEventListener('click', (e) => {
           e.stopPropagation();
-          if (this._suppressOpen) return;
           this.toggle();
         });
 
         // Open on input click
         this.input.addEventListener('click', (e) => {
           e.stopPropagation();
-          if (this._suppressOpen) return;
-          this._showFiltered();
+          this.show();
         });
 
-        // Filter as user types — NEVER blocked so backspace/typing always works
+        // Filter on input type
         this.input.addEventListener('input', () => {
-          this._suppressOpen = false;
-          this._showFiltered();
+          const query = this.input.value;
+          if (query.length === 0) {
+            this.render(this.options);
+            this.show();
+          } else {
+            this.filter(query);
+            this.show();
+          }
         });
 
-        // Prevent mousedown on dropdown items from stealing focus/blurring input
+        // Event delegation for dropdown item selection
         this.dropdown.addEventListener('mousedown', (e) => {
           e.preventDefault();
+          e.stopPropagation();
+          const itemEl = e.target.closest('.dropdown-item');
+          if (itemEl && itemEl._itemData) {
+            this.select(itemEl._itemData);
+          }
         });
 
-        // Close on click outside
+        // Close on outside click
         document.addEventListener('click', (e) => {
           if (!this.wrapper.contains(e.target)) {
             this.hide();
@@ -15563,9 +15450,11 @@
 
       setOptions(options) {
         this.options = options;
+        this.render(options);
       }
 
       render(items) {
+        console.log('[DROPDOWN] Renderizando', items.length, 'items');
         this.dropdown.innerHTML = '';
         if (items.length === 0) {
           this.dropdown.innerHTML = '<div class="dropdown-item" style="cursor:default;color:var(--muted);">No hay resultados</div>';
@@ -15580,16 +15469,13 @@
             ${item.meta ? `<span class="item-meta">${item.meta}</span>` : ''}
           `;
 
-          div._itemData = item;
-
+          // Store data attributes
           Object.keys(item.data || {}).forEach(key => {
             div.dataset[key] = item.data[key];
           });
 
           div.addEventListener('click', (e) => {
-            e.preventDefault();
             e.stopPropagation();
-            e.stopImmediatePropagation();
             this.select(item);
           });
 
@@ -15598,25 +15484,22 @@
       }
 
       filter(query) {
-        const lq = query.toLowerCase();
-        return this.options.filter(item =>
-          item.label.toLowerCase().includes(lq) ||
-          (item.meta && item.meta.toLowerCase().includes(lq))
+        const lowerQuery = query.toLowerCase();
+        const filtered = this.options.filter(item =>
+          item.label.toLowerCase().includes(lowerQuery) ||
+          (item.meta && item.meta.toLowerCase().includes(lowerQuery))
         );
-      }
-
-      /** Render the dropdown filtered by current input value, then open */
-      _showFiltered() {
-        const q = this.input.value.trim();
-        const items = q.length === 0 ? this.options : this.filter(q);
-        this.render(items);
-        this.dropdown.style.display = 'block';
-        this.icon.textContent = '▲';
+        this.render(filtered);
       }
 
       show() {
-        if (this._suppressOpen) return;
-        this._showFiltered();
+        console.log('[DROPDOWN] Mostrando dropdown con', this.options.length, 'opciones');
+        // If empty input, show all
+        if (!this.input.value) {
+          this.render(this.options);
+        }
+        this.dropdown.style.display = 'block';
+        this.icon.textContent = '▲';
       }
 
       hide() {
@@ -15628,27 +15511,25 @@
         if (this.dropdown.style.display === 'block') {
           this.hide();
         } else {
-          this._showFiltered();
+          this.show();
         }
       }
 
       select(item) {
-        // 1. Immediately suppress any re-open triggers
-        this._suppressOpen = true;
+        this._selecting = true;
+        this.input.value = item.value; // Use value for input
 
-        // 2. Fill value and close
-        this.input.value = item.value;
-        this.hide();
-        this.input.blur();
-
-        // 3. Callbacks
+        // Trigger callback if provided
         if (this.onSelectCallback) {
           this.onSelectCallback(item);
         }
+
+        // Trigger native change event for other listeners
         this.input.dispatchEvent(new Event('change', { bubbles: true }));
 
-        // 4. Allow re-opening after 400ms (enough for phantom click to pass)
-        setTimeout(() => { this._suppressOpen = false; }, 400);
+        // Close dropdown AFTER all callbacks
+        this.hide();
+        this._selecting = false;
       }
     }
 
@@ -15870,16 +15751,14 @@
 
       // Limpiar campos
       const clientInput = document.getElementById('new-appt-client-select');
+      const phoneInput = document.getElementById('new-appt-phone');
       const serviceInput = document.getElementById('new-appt-service');
       const priceInput = document.getElementById('new-appt-price');
 
-      if (clientInput) { clientInput.value = ''; delete clientInput.dataset.phone; }
+      if (clientInput) clientInput.value = '';
+      if (phoneInput) phoneInput.value = '';
       if (serviceInput) serviceInput.value = '';
       if (priceInput) priceInput.value = '';
-
-      // Limpiar teléfono del cliente seleccionado
-      selectedClientPhone = '';
-      window.selectedClientPhone = '';
 
       // Limpiar feedback de cliente seleccionada
       clearClientSelectedFeedback();
@@ -16806,7 +16685,7 @@
 
       tbody.innerHTML = filtered.map(p => {
         const stockClass = p.stock <= 0 ? 'stock-out' : p.stock <= (p.minStock || 5) ? 'stock-low' : 'stock-ok';
-        const stockWarning = p.stock <= (p.minStock || 5) && p.stock > 0 ? ' ⚠️' : '';
+        const stockWarning = p.stock <= (p.minStock || 5) && p.stock > 0 ? ' : '';
 
         return `
           <tr>
@@ -19395,10 +19274,6 @@
           document.getElementById('biz-open').value = d.openTime || '09:00';
           document.getElementById('biz-close').value = d.closeTime || '19:00';
 
-          // Intervalo y mínimo de horas
-          if (d.interval) document.getElementById('biz-interval').value = d.interval;
-          if (d.minHoursAdvance !== undefined) document.getElementById('biz-min-hours').value = d.minHoursAdvance;
-
           // Días de trabajo
           const workDays = d.workDays || [1, 2, 3, 4, 5, 6];
           for (let i = 0; i <= 6; i++) {
@@ -19525,9 +19400,7 @@
         mapsUrl: document.getElementById('biz-maps-url').value,
         openTime: document.getElementById('biz-open').value,
         closeTime: document.getElementById('biz-close').value,
-        workDays,
-        interval: parseInt(document.getElementById('biz-interval').value) || 60,
-        minHoursAdvance: parseInt(document.getElementById('biz-min-hours').value) || 4
+        workDays
       };
 
       try {
@@ -22592,262 +22465,173 @@
       }, 4000);
     };
 
-    // ===== GOOGLE CALENDAR FUNCTIONS =====
-    async function checkGCalStatus() {
-      const loading = document.getElementById('gcal-loading');
-      const connected = document.getElementById('gcal-connected');
-      const disconnected = document.getElementById('gcal-disconnected');
-      if (!loading) return;
+    /* ===== RESEÑAS ===== */
+    let reviewsCache = [];
+    let reviewsStats = {};
+
+    async function loadReviews() {
+      const listEl  = document.getElementById('reviews-list');
+      const statsEl = document.getElementById('reviews-stats');
+      listEl.innerHTML = '<div style="text-align:center;padding:40px;color:#aaa;"><i class="fas fa-spinner fa-spin" style="font-size:28px;"></i></div>';
+
       try {
-        const res = await fetch('/api/calendar/status', { credentials: 'include' });
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const json = await res.json();
-        console.log('[GCal Status]', json);
-        loading.style.display = 'none';
-        if (json.success && json.connected) {
-          connected.style.display = 'block';
-          disconnected.style.display = 'none';
-          const lastSync = json.lastSyncAt ? new Date(json.lastSyncAt).toLocaleString('es-MX') : 'Nunca';
-          document.getElementById('gcal-last-sync').textContent = lastSync;
-        } else {
-          connected.style.display = 'none';
-          disconnected.style.display = 'block';
+        const r = await fetch('/api/admin/reviews?limit=100', { credentials: 'include' });
+        const d = await r.json();
+        if (!d.success) throw new Error(d.error);
+
+        reviewsCache = d.data;
+        reviewsStats = d.stats;
+
+        renderReviewsStats(d.stats);
+        renderReviewsList(d.data);
+
+        // Badge en sidebar
+        const badge = document.getElementById('reviews-badge');
+        if (badge) {
+          const unread = d.data.filter(rev => !rev.replied).length;
+          badge.textContent = unread;
+          badge.style.display = unread > 0 ? '' : 'none';
         }
+
       } catch (e) {
-        console.warn('[GCal Status] Error:', e.message);
-        loading.style.display = 'none';
-        disconnected.style.display = 'block';
+        listEl.innerHTML = `<div style="text-align:center;padding:32px;color:#e74c3c;">❌ ${e.message}</div>`;
       }
     }
 
-    async function connectGoogleCalendar() {
-      try {
-        const res = await fetch('/api/calendar/auth', { credentials: 'include' });
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const json = await res.json();
-        if (json.success && json.authUrl) {
-          window.open(json.authUrl, '_blank');
-          // Re-check status after a delay (user may authorize in popup)
-          setTimeout(() => checkGCalStatus(), 10000);
-        } else {
-          alert(json.message || json.error || 'No se pudo obtener URL de autorización.');
-        }
-      } catch (e) {
-        alert('Error conectando: ' + e.message);
-      }
+    function renderReviewsStats(stats) {
+      const el = document.getElementById('reviews-stats');
+      if (!stats || !el) return;
+
+      const stars = Math.round(stats.avgRating || 0);
+      const starsHtml = Array.from({length:5}, (_,i) =>
+        `<span style="color:${i < stars ? '#f5a623' : '#ddd'}">★</span>`
+      ).join('');
+
+      el.innerHTML = `
+        <div style="background:linear-gradient(135deg,#f5a62320,#f5a62308);border:1px solid #f5a62330;border-radius:14px;padding:16px;text-align:center;">
+          <div style="font-size:32px;font-weight:700;color:#f5a623;">${stats.avgRating || 0}</div>
+          <div style="font-size:18px;margin:4px 0;">${starsHtml}</div>
+          <div style="font-size:12px;color:#888;">${stats.total} reseña${stats.total !== 1 ? 's' : ''}</div>
+        </div>
+        ${[5,4,3,2,1].map(n => {
+          const count = (stats.dist || {})[n] || 0;
+          const pct   = stats.total > 0 ? Math.round(count / stats.total * 100) : 0;
+          return `
+            <div style="background:#fff;border:1px solid #f0ece8;border-radius:14px;padding:14px;">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                <span style="font-size:16px;color:#f5a623;">${'★'.repeat(n)}</span>
+                <span style="font-size:12px;color:#aaa;">${n} estrella${n>1?'s':''}</span>
+              </div>
+              <div style="background:#f0ece8;border-radius:4px;height:6px;margin-bottom:4px;">
+                <div style="background:#f5a623;height:6px;border-radius:4px;width:${pct}%;transition:width .4s;"></div>
+              </div>
+              <div style="font-size:12px;color:#888;">${count} (${pct}%)</div>
+            </div>`;
+        }).join('')}
+      `;
     }
 
-    async function syncGoogleCalendar() {
-      try {
-        if (typeof showNotification === 'function') showNotification('Sincronizando...', 'info');
-        const res = await fetch('/api/calendar/sync', { method: 'POST', credentials: 'include' });
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const json = await res.json();
-        if (json.success) {
-          if (typeof showNotification === 'function') showNotification(`Sincronizado: ${json.created || 0} creados, ${json.updated || 0} actualizados`, 'success');
-          checkGCalStatus();
-        } else {
-          alert('Error: ' + (json.error || 'Error desconocido'));
-        }
-      } catch (e) {
-        alert('Error sincronizando: ' + e.message);
+    function renderReviewsList(list) {
+      const el = document.getElementById('reviews-list');
+      if (!list.length) {
+        el.innerHTML = '<div style="text-align:center;padding:48px;color:#ccc;"><i class="fas fa-star" style="font-size:36px;display:block;margin-bottom:12px;"></i>Aún no hay reseñas</div>';
+        return;
       }
+      el.innerHTML = list.map(rev => renderReviewCard(rev)).join('');
     }
 
-    async function disconnectGoogleCalendar() {
-      if (!confirm('¿Desconectar Google Calendar?')) return;
-      try {
-        await fetch('/api/calendar/disconnect', { method: 'POST', credentials: 'include' });
-        checkGCalStatus();
-      } catch (e) {
-        alert('Error: ' + e.message);
-      }
+    function renderReviewCard(rev) {
+      const stars = Array.from({length:5}, (_,i) =>
+        `<span style="color:${i < (rev.rating||0) ? '#f5a623' : '#ddd'};font-size:18px;">★</span>`
+      ).join('');
+
+      const chipsHtml = (rev.highlights || []).map(h =>
+        `<span style="background:#f5f0eb;border:1px solid #e8e0d8;border-radius:16px;padding:3px 10px;font-size:12px;color:#666;">${h}</span>`
+      ).join('');
+
+      const dateStr = rev.createdAt
+        ? new Date(rev.createdAt).toLocaleDateString('es-MX', {day:'numeric',month:'long',year:'numeric'})
+        : '';
+
+      const replyHtml = rev.replied
+        ? `<div style="background:#f5f0eb;border-left:3px solid #9A9F82;border-radius:0 10px 10px 0;padding:10px 14px;margin-top:10px;font-size:13px;color:#555;">
+             <strong style="color:#9A9F82;">💬 Respuesta Venus:</strong><br>${rev.reply}
+           </div>`
+        : `<div style="margin-top:10px;display:flex;gap:8px;">
+             <input id="reply-input-${rev.id}" type="text" placeholder="Escribe una respuesta..." style="flex:1;border:1.5px solid #e8e0d8;border-radius:10px;padding:7px 12px;font-size:13px;outline:none;" />
+             <button onclick="sendReviewReply('${rev.id}')" style="background:#9A9F82;color:#fff;border:none;border-radius:10px;padding:7px 14px;font-size:12px;cursor:pointer;font-weight:600;">Responder</button>
+           </div>`;
+
+      return `
+        <div style="background:#fff;border:1px solid #f0ece8;border-radius:16px;padding:18px 20px;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+            <div>
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px;">
+                <span style="font-weight:700;font-size:15px;">${rev.clientName || 'Clienta'}</span>
+                ${rev.replied ? '<span style="background:#e8f5e9;color:#27ae60;font-size:10px;font-weight:700;border-radius:8px;padding:2px 7px;">✓ Respondida</span>' : ''}
+              </div>
+              <div style="font-size:12px;color:#aaa;">${rev.serviceName || ''} · ${dateStr}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div>${stars}</div>
+              <button onclick="deleteReview('${rev.id}')" style="background:none;border:none;color:#ccc;cursor:pointer;font-size:13px;" title="Eliminar">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </div>
+
+          ${chipsHtml ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;">${chipsHtml}</div>` : ''}
+
+          ${rev.comment ? `<p style="margin-top:10px;font-size:14px;color:#444;line-height:1.55;">${rev.comment}</p>` : ''}
+
+          ${replyHtml}
+        </div>`;
     }
 
-    window.checkGCalStatus = checkGCalStatus;
-    window.connectGoogleCalendar = connectGoogleCalendar;
-    window.syncGoogleCalendar = syncGoogleCalendar;
-    window.disconnectGoogleCalendar = disconnectGoogleCalendar;
-
-    // ===== WHATSAPP / EVOLUTION FUNCTIONS =====
-    async function checkWhatsAppStatus() {
-      const loading = document.getElementById('wa-loading');
-      const connected = document.getElementById('wa-connected');
-      const disconnected = document.getElementById('wa-disconnected');
-      const notConfigured = document.getElementById('wa-not-configured');
-
-      if (!loading) return;
-      loading.style.display = 'block';
-      connected.style.display = 'none';
-      disconnected.style.display = 'none';
-      notConfigured.style.display = 'none';
-
-      try {
-        const res = await fetch('/api/evolution/status', { credentials: 'include' });
-        const json = await res.json();
-        loading.style.display = 'none';
-
-        if (json.evolution?.available) {
-          if (json.evolution.connected) {
-            connected.style.display = 'block';
-            const details = document.getElementById('wa-details');
-            details.innerHTML = `
-              <div><strong>Proveedor:</strong> ${json.provider === 'evolution' ? 'Evolution API' : 'Twilio + Evolution'}</div>
-              ${json.evolution.number ? `<div><strong>Número:</strong> ${json.evolution.number}</div>` : ''}
-              ${json.evolution.instanceName ? `<div><strong>Instancia:</strong> ${json.evolution.instanceName}</div>` : ''}
-              <div><strong>Estado:</strong> <span style="color:#22c55e;">${json.evolution.state || 'open'}</span></div>
-            `;
-          } else {
-            disconnected.style.display = 'block';
-          }
-        } else if (json.twilio?.available) {
-          connected.style.display = 'block';
-          document.getElementById('wa-details').innerHTML = `
-            <div><strong>Proveedor:</strong> Twilio</div>
-            <div><strong>Estado:</strong> <span style="color:#22c55e;">Activo</span></div>
-            <div class="muted" style="margin-top:4px;font-size:11px;">Usando templates de Twilio para notificaciones.</div>
-          `;
-        } else {
-          notConfigured.style.display = 'block';
-        }
-      } catch (e) {
-        loading.style.display = 'none';
-        notConfigured.style.display = 'block';
-      }
+    function filterReviews(val) {
+      const filtered = val
+        ? reviewsCache.filter(r => r.rating === parseInt(val))
+        : reviewsCache;
+      renderReviewsList(filtered);
     }
 
-    async function connectWhatsApp() {
-      try {
-        const res = await fetch('/api/evolution/connect', { method: 'POST', credentials: 'include' });
-        const json = await res.json();
-        if (json.qrCode) {
-          const qrContainer = document.getElementById('wa-qr-container');
-          const qrImg = document.getElementById('wa-qr-img');
-          qrImg.src = json.qrCode.startsWith('data:') ? json.qrCode : 'data:image/png;base64,' + json.qrCode;
-          qrContainer.style.display = 'block';
-          // Poll status every 5 seconds
-          const poll = setInterval(async () => {
-            try {
-              const st = await fetch('/api/evolution/status', { credentials: 'include' });
-              const sj = await st.json();
-              if (sj.evolution?.connected) {
-                clearInterval(poll);
-                qrContainer.style.display = 'none';
-                checkWhatsAppStatus();
-                if (typeof showNotification === 'function') showNotification('¡WhatsApp conectado!', 'success');
-              }
-            } catch (_) {}
-          }, 5000);
-          // Stop polling after 2 minutes
-          setTimeout(() => clearInterval(poll), 120000);
-        } else {
-          alert('No se pudo generar QR. Verifica la configuración de Evolution API.');
-        }
-      } catch (e) {
-        alert('Error: ' + e.message);
-      }
-    }
+    async function sendReviewReply(id) {
+      const input = document.getElementById(`reply-input-${id}`);
+      const reply = (input?.value || '').trim();
+      if (!reply) return;
 
-    async function disconnectWhatsApp() {
-      if (!confirm('¿Desconectar WhatsApp?')) return;
       try {
-        await fetch('/api/evolution/logout', { method: 'POST', credentials: 'include' });
-        checkWhatsAppStatus();
-      } catch (e) {
-        alert('Error: ' + e.message);
-      }
-    }
-
-    async function testWhatsApp() {
-      const phone = prompt('Número para prueba (ej: 524271234567):');
-      if (!phone) return;
-      try {
-        const res = await fetch('/api/evolution/test', {
-          method: 'POST',
+        const r = await fetch(`/api/admin/reviews/${id}/reply`, {
+          method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: JSON.stringify({ phone })
+          body: JSON.stringify({ reply })
         });
-        const json = await res.json();
-        if (json.success) {
-          if (typeof showNotification === 'function') showNotification('Mensaje de prueba enviado', 'success');
-        } else {
-          alert('Error: ' + (json.error || json.details));
-        }
+        const d = await r.json();
+        if (d.success) loadReviews();
+        else alert('❌ Error al responder: ' + d.error);
       } catch (e) {
-        alert('Error: ' + e.message);
+        alert('❌ ' + e.message);
       }
     }
 
-    window.checkWhatsAppStatus = checkWhatsAppStatus;
-    window.connectWhatsApp = connectWhatsApp;
-    window.disconnectWhatsApp = disconnectWhatsApp;
-    window.testWhatsApp = testWhatsApp;
-
-    // Verificar estado al cargar settings
-    if (window.location.search.includes('calendar=connected')) {
-      setTimeout(() => {
-        if (typeof showNotification === 'function') showNotification('¡Google Calendar conectado!', 'success');
-        checkGCalStatus();
-      }, 500);
-    }
-
-    // ===== REVIEWS / EVALUACIONES =====
-    async function loadReviews() {
-      const container = document.getElementById('reviews-list');
-      const starsFilter = document.getElementById('reviews-filter-stars')?.value || 'all';
-
+    async function deleteReview(id) {
+      if (!confirm('¿Eliminar esta reseña?')) return;
       try {
-        let url = '/api/reviews';
-        if (starsFilter !== 'all') url += '?stars=' + starsFilter;
-        const res = await fetch(url, { credentials: 'include' });
-        const json = await res.json();
-
-        if (!json.success) {
-          container.innerHTML = '<p class="muted" style="text-align:center;padding:40px;">Error cargando evaluaciones</p>';
-          return;
-        }
-
-        const reviews = json.data || [];
-        const stats = json.stats || {};
-
-        // KPIs
-        document.getElementById('reviews-avg').textContent = stats.avg ? parseFloat(stats.avg).toFixed(1) + ' ⭐' : '—';
-        document.getElementById('reviews-total').textContent = stats.total || 0;
-        document.getElementById('reviews-5star').textContent = stats.fiveStars || 0;
-        document.getElementById('reviews-low').textContent = stats.lowStars || 0;
-
-        if (reviews.length === 0) {
-          container.innerHTML = '<p class="muted" style="text-align:center;padding:40px;"><i class="fas fa-star" style="font-size:32px;opacity:0.3;display:block;margin-bottom:8px;"></i>Aún no hay evaluaciones</p>';
-          return;
-        }
-
-        container.innerHTML = reviews.map(r => {
-          const stars = '⭐'.repeat(r.stars) + '☆'.repeat(5 - r.stars);
-          const date = new Date(r.answeredAt || r.createdAt).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' });
-          return `
-            <div style="border-bottom:1px solid var(--line);padding:14px 0;${r.stars <= 2 ? 'background:rgba(239,68,68,0.05);margin:0 -16px;padding:14px 16px;border-radius:8px;' : ''}">
-              <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;">
-                <div>
-                  <div style="font-size:18px;letter-spacing:2px;">${stars}</div>
-                  <div style="font-weight:600;margin-top:4px;">${r.clientName}</div>
-                  <div class="muted" style="font-size:12px;">${r.serviceName} · ${date}</div>
-                </div>
-                ${r.stars <= 2 ? '<span style="background:#fef2f2;color:#ef4444;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:600;">⚠️ Atención</span>' : ''}
-              </div>
-              ${r.liked ? `<div style="margin-top:8px;"><span style="color:#22c55e;font-weight:500;">👍 Le gustó:</span> ${r.liked}</div>` : ''}
-              ${r.improve ? `<div style="margin-top:4px;"><span style="color:#f59e0b;font-weight:500;">💡 Mejorar:</span> ${r.improve}</div>` : ''}
-              ${r.comment ? `<div style="margin-top:4px;color:var(--muted);font-style:italic;">"${r.comment}"</div>` : ''}
-            </div>
-          `;
-        }).join('');
+        await fetch(`/api/admin/reviews/${id}`, { method: 'DELETE', credentials: 'include' });
+        loadReviews();
       } catch (e) {
-        console.error('[Reviews]', e);
-        container.innerHTML = '<p class="muted" style="text-align:center;">Error de conexión</p>';
+        alert('❌ ' + e.message);
       }
     }
 
-    window.loadReviews = loadReviews;
+    // Cargar cuando se abre el tab
+    document.addEventListener('DOMContentLoaded', () => {
+      const reviewsBtn = document.querySelector('[data-tab="reviews"]');
+      if (reviewsBtn) {
+        reviewsBtn.addEventListener('click', () => loadReviews());
+      }
+    });
   </script>
 
 </body>

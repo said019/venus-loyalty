@@ -512,15 +512,7 @@ app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-app.use(express.static("public", {
-  setHeaders: (res, filePath) => {
-    if (filePath.endsWith('.html')) {
-      res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
-      res.set('Pragma', 'no-cache');
-      res.set('Expires', '0');
-    }
-  }
-}));
+app.use(express.static("public"));
 
 // ✅ Appointments API
 app.use('/api', appointmentsRouter);
@@ -740,62 +732,6 @@ app.post('/api/whatsapp/confirmation', adminAuth, async (req, res) => {
       success: false,
       error: error.message
     });
-  }
-});
-
-// POST /api/whatsapp/send-reminder - Enviar recordatorio manual desde admin (Evolution → Twilio fallback)
-app.post('/api/whatsapp/send-reminder', adminAuth, async (req, res) => {
-  try {
-    const { id, phone, clientName, serviceName, startDateTime, date, time } = req.body;
-
-    if (!phone || !clientName) {
-      return res.status(400).json({ success: false, error: 'Faltan campos requeridos (phone, clientName)' });
-    }
-
-    // Construir fecha y hora legibles
-    const { formatearFechaLegible, formatearHora } = WhatsAppService;
-    const fecha = date ? formatearFechaLegible(date) : formatearFechaLegible(startDateTime);
-    const hora = time || formatearHora(startDateTime);
-    const lugar = config.venus.location;
-
-    const mensaje = `📅 *Recordatorio de tu cita en Venus Cosmetología*\n\nHola ${clientName} 👋\n\n🔹 *Servicio:* ${serviceName}\n📆 *Fecha:* ${fecha}\n🕐 *Hora:* ${hora}\n📍 *Lugar:* ${lugar}\n\n¡Te esperamos! Si necesitas reagendar, por favor avísanos con anticipación. ✨`;
-
-    // Intentar Evolution API primero
-    const hasEvolution = !!(config.evolution?.apiUrl && config.evolution?.apiKey);
-    if (hasEvolution) {
-      try {
-        const evoClient = getEvolutionClient();
-        const status = await evoClient.getStatus();
-        if (status.connected) {
-          const result = await evoClient.sendText(phone, mensaje);
-          console.log(`✅ [Evolution] Recordatorio manual enviado a ${clientName} (${phone})`);
-          return res.json({ success: true, provider: 'evolution', messageSid: result?.key?.id || 'evolution-sent' });
-        }
-        console.warn('[Evolution] No conectado, cayendo a Twilio...');
-      } catch (evoErr) {
-        console.warn('[Evolution] Error enviando recordatorio:', evoErr.message);
-      }
-    }
-
-    // Fallback: Twilio template RECORDATORIO_24H
-    const templateResult = await WhatsAppService.sendReminder24h({
-      clientPhone: phone,
-      clientName,
-      serviceName,
-      date: date || startDateTime,
-      time: hora,
-      startDateTime
-    });
-
-    if (templateResult.success) {
-      console.log(`✅ [Twilio] Recordatorio manual enviado a ${clientName} (${phone})`);
-      return res.json({ success: true, provider: 'twilio', messageSid: templateResult.messageSid });
-    }
-
-    return res.json({ success: false, error: templateResult.error || 'No se pudo enviar por ningún canal' });
-  } catch (error) {
-    console.error('[WHATSAPP] Error enviando recordatorio manual:', error);
-    res.status(500).json({ success: false, error: error.message });
   }
 });
 
@@ -2042,11 +1978,6 @@ function basicAuth(req, res, next) {
    Páginas HTML
    ========================================================= */
 app.get("/admin", (_req, res) => {
-  res.set({
-    'Cache-Control': 'no-store, no-cache, must-revalidate, private',
-    'Pragma': 'no-cache',
-    'Expires': '0'
-  });
   res.sendFile(path.join(__dirname, "public", "admin.html"));
 });
 app.get("/admin-login.html", (_req, res) => {
@@ -2897,63 +2828,38 @@ app.get('/api/config/firebase', adminAuth, async (req, res) => {
   }
 });
 
-// GET /api/settings/business - Obtener configuración del negocio (PostgreSQL)
+// GET /api/settings/business - Obtener configuración del negocio
 app.get('/api/settings/business', async (req, res) => {
   try {
-    let cfg = await prisma.businessConfig.findUnique({ where: { id: 1 } });
-    if (!cfg) {
-      cfg = await prisma.businessConfig.create({ data: { id: 1 } });
-    }
-    const closedDays = [0,1,2,3,4,5,6].filter(d => !cfg.workDays.includes(d));
-    res.json({
-      success: true,
-      data: {
-        businessName: cfg.businessName,
-        whatsappBusiness: cfg.whatsappBusiness || '',
-        address: cfg.address || '',
-        mapsUrl: cfg.mapsUrl || '',
-        openTime: cfg.openTime,
-        closeTime: cfg.closeTime,
-        workDays: cfg.workDays,
-        interval: cfg.interval,
-        minHoursAdvance: cfg.minHoursAdvance,
-        businessHours: {
-          start: cfg.openTime,
-          end: cfg.closeTime,
-          interval: cfg.interval,
-          closedDays
+    const doc = await firestore.collection('settings').doc('business').get();
+
+    if (!doc.exists) {
+      return res.json({
+        success: true,
+        data: {
+          businessHours: {
+            start: '09:00',
+            end: '20:00',
+            interval: 60,
+            closedDays: [0]
+          },
+          whatsappBusiness: '524271657595'
         }
-      }
-    });
+      });
+    }
+
+    res.json({ success: true, data: doc.data() });
   } catch (error) {
-    console.error('[SETTINGS GET]', error);
     res.json({ success: false, error: error.message });
   }
 });
 
-// POST /api/settings/business - Guardar configuración del negocio (PostgreSQL)
+// POST /api/settings/business - Guardar configuración del negocio
 app.post('/api/settings/business', adminAuth, async (req, res) => {
   try {
-    const { businessName, whatsappBusiness, address, mapsUrl, openTime, closeTime, workDays, interval, minHoursAdvance } = req.body;
-    const data = {};
-    if (businessName !== undefined) data.businessName = businessName;
-    if (whatsappBusiness !== undefined) data.whatsappBusiness = whatsappBusiness;
-    if (address !== undefined) data.address = address;
-    if (mapsUrl !== undefined) data.mapsUrl = mapsUrl;
-    if (openTime !== undefined) data.openTime = openTime;
-    if (closeTime !== undefined) data.closeTime = closeTime;
-    if (workDays !== undefined) data.workDays = workDays.map(Number);
-    if (interval !== undefined) data.interval = parseInt(interval) || 60;
-    if (minHoursAdvance !== undefined) data.minHoursAdvance = parseInt(minHoursAdvance) || 4;
-
-    await prisma.businessConfig.upsert({
-      where: { id: 1 },
-      create: { id: 1, ...data },
-      update: data
-    });
+    await firestore.collection('settings').doc('business').set(req.body, { merge: true });
     res.json({ success: true });
   } catch (error) {
-    console.error('[SETTINGS POST]', error);
     res.json({ success: false, error: error.message });
   }
 });
@@ -3190,35 +3096,44 @@ app.patch('/api/admin/cards/:id/redeem-session', adminAuth, async (req, res) => 
   }
 });
 
-// GET /api/public/config - Configuración pública (PostgreSQL)
+// GET /api/public/config - Configuración pública (información del negocio)
 app.get('/api/public/config', async (req, res) => {
   try {
-    let cfg = await prisma.businessConfig.findUnique({ where: { id: 1 } });
-    if (!cfg) {
-      cfg = await prisma.businessConfig.create({ data: { id: 1 } });
-    }
-    const closedDays = [0,1,2,3,4,5,6].filter(d => !cfg.workDays.includes(d));
+    const doc = await firestore.collection('settings').doc('business').get();
+
+    const businessConfig = doc.exists ? doc.data() : {
+      businessName: 'Venus Cosmetología',
+      address: 'San Juan del Río, Querétaro',
+      mapsUrl: '',
+      openTime: '09:00',
+      closeTime: '19:00',
+      workDays: [1, 2, 3, 4, 5, 6],
+      businessHours: {
+        start: '09:00',
+        end: '20:00',
+        interval: 60,
+        closedDays: [0]
+      }
+    };
+
     res.json({
       success: true,
       data: {
-        businessName: cfg.businessName,
-        address: cfg.address || 'San Juan del Río, Querétaro',
-        mapsUrl: cfg.mapsUrl || '',
-        openTime: cfg.openTime,
-        closeTime: cfg.closeTime,
-        workDays: cfg.workDays,
-        interval: cfg.interval,
-        minHoursAdvance: cfg.minHoursAdvance,
-        businessHours: {
-          start: cfg.openTime,
-          end: cfg.closeTime,
-          interval: cfg.interval,
-          closedDays
+        businessName: businessConfig.businessName || 'Venus Cosmetología',
+        address: businessConfig.address || 'San Juan del Río, Querétaro',
+        mapsUrl: businessConfig.mapsUrl || '',
+        openTime: businessConfig.openTime || '09:00',
+        closeTime: businessConfig.closeTime || '19:00',
+        workDays: businessConfig.workDays || [1, 2, 3, 4, 5, 6],
+        businessHours: businessConfig.businessHours || {
+          start: businessConfig.openTime || '09:00',
+          end: businessConfig.closeTime || '19:00',
+          interval: 60,
+          closedDays: businessConfig.workDays ? [0, 1, 2, 3, 4, 5, 6].filter(d => !businessConfig.workDays.includes(d)) : [0]
         }
       }
     });
   } catch (error) {
-    console.error('[PUBLIC CONFIG]', error);
     res.json({ success: false, error: error.message });
   }
 });
@@ -3235,54 +3150,118 @@ app.get('/api/public/availability', async (req, res) => {
     console.log(`[AVAILABILITY] ============================================`);
     console.log(`[AVAILABILITY] Buscando disponibilidad para: ${date}`);
 
+    // Las citas se crean con new Date('YYYY-MM-DDT09:00:00')
+    // En México (UTC-6), esto automáticamente se convierte a UTC al usar toISOString()
+    // Ejemplo: 2025-12-31T09:00:00 local -> 2025-12-31T15:00:00.000Z en UTC
+
+    // Para buscar todas las citas del día en hora local de México:
+    // - El día en México va de 00:00 a 23:59 hora local
+    // - En UTC esto es de 06:00Z a 05:59Z del día siguiente
+
     const busy = [];
     const processedIds = new Set();
 
-    // ── FUENTE PRINCIPAL: Prisma (PostgreSQL) ──
-    // Las citas nuevas se guardan aquí
-    try {
-      const prismaCitas = await prisma.appointment.findMany({
-        where: {
-          date: date,
-          status: { notIn: ['cancelled'] }
-        },
-        select: { id: true, time: true, date: true, status: true, durationMinutes: true }
-      });
+    // ESTRATEGIA 1: Buscar citas que empiezan con la fecha (formato sin Z)
+    // Esto captura citas guardadas como "2025-12-31T09:00:00" sin conversión a UTC
+    console.log(`[AVAILABILITY] Buscando citas con formato local (${date}T...)`);
 
-      console.log(`[AVAILABILITY] Prisma: ${prismaCitas.length} citas en PostgreSQL`);
+    const localSnapshot = await firestore.collection('appointments')
+      .where('startDateTime', '>=', date + 'T00:00:00')
+      .where('startDateTime', '<=', date + 'T23:59:59')
+      .get();
 
-      for (const appt of prismaCitas) {
-        processedIds.add(appt.id);
-        if (appt.time) {
-          const timeSlot = appt.time.substring(0, 5);
-          const duration = appt.durationMinutes || 60;
+    console.log(`[AVAILABILITY] Encontradas ${localSnapshot.size} citas con startDateTime local`);
 
-          // Bloquear el slot de inicio
-          if (!busy.includes(timeSlot)) {
-            busy.push(timeSlot);
-            console.log(`[AVAILABILITY] ✅ Prisma slot ocupado: ${timeSlot}`);
-          }
+    localSnapshot.forEach(doc => {
+      if (processedIds.has(doc.id)) return;
+      processedIds.add(doc.id);
 
-          // Si la cita dura más de 1 hora, bloquear slots intermedios
-          if (duration > 60) {
-            const [h, m] = timeSlot.split(':').map(Number);
-            const slotsToBlock = Math.ceil(duration / 60);
-            for (let i = 1; i < slotsToBlock; i++) {
-              const extraH = h + i;
-              const extraSlot = `${extraH.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
-              if (!busy.includes(extraSlot)) {
-                busy.push(extraSlot);
-                console.log(`[AVAILABILITY] ✅ Prisma slot extra (duración ${duration}min): ${extraSlot}`);
-              }
-            }
-          }
+      const data = doc.data();
+      console.log(`[AVAILABILITY] Local - ID: ${doc.id}, startDateTime: ${data.startDateTime}, status: ${data.status}`);
+
+      if (data.status === 'cancelled') return;
+
+      // Extraer hora directamente del string
+      const timePart = data.startDateTime.split('T')[1] || '';
+      const timeMatch = timePart.match(/^(\d{2}):(\d{2})/);
+      if (timeMatch) {
+        const timeSlot = `${timeMatch[1]}:${timeMatch[2]}`;
+        if (!busy.includes(timeSlot)) {
+          busy.push(timeSlot);
+          console.log(`[AVAILABILITY] ✅ Agregando slot ocupado: ${timeSlot}`);
         }
       }
-    } catch (prismaErr) {
-      console.error('[AVAILABILITY] Error consultando Prisma:', prismaErr.message);
-    }
+    });
 
-    // ── Bloqueos de Horario (BlockedSlots) ──
+    // ESTRATEGIA 2: Buscar citas en formato UTC (terminan en Z)
+    // El día 2025-12-31 en México (UTC-6) corresponde a:
+    // Desde 2025-12-31T06:00:00.000Z hasta 2026-01-01T05:59:59.999Z
+    const startUTC = date + 'T06:00:00.000Z';
+    const nextDay = new Date(date);
+    nextDay.setDate(nextDay.getDate() + 1);
+    const nextDayStr = nextDay.toISOString().split('T')[0];
+    const endUTC = nextDayStr + 'T05:59:59.999Z';
+
+    console.log(`[AVAILABILITY] Buscando citas UTC entre ${startUTC} y ${endUTC}`);
+
+    const utcSnapshot = await firestore.collection('appointments')
+      .where('startDateTime', '>=', startUTC)
+      .where('startDateTime', '<=', endUTC)
+      .get();
+
+    console.log(`[AVAILABILITY] Encontradas ${utcSnapshot.size} citas en formato UTC`);
+
+    utcSnapshot.forEach(doc => {
+      if (processedIds.has(doc.id)) return;
+      processedIds.add(doc.id);
+
+      const data = doc.data();
+      console.log(`[AVAILABILITY] UTC - ID: ${doc.id}, startDateTime: ${data.startDateTime}, status: ${data.status}`);
+
+      if (data.status === 'cancelled') return;
+
+      // Convertir de UTC a hora local de México (restar 6 horas)
+      const utcDate = new Date(data.startDateTime);
+      const localHours = utcDate.getUTCHours() - 6;
+      const adjustedHour = localHours < 0 ? localHours + 24 : localHours;
+      const minutes = utcDate.getUTCMinutes();
+
+      const timeSlot = `${adjustedHour.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+      if (!busy.includes(timeSlot)) {
+        busy.push(timeSlot);
+        console.log(`[AVAILABILITY] ✅ Agregando slot ocupado (UTC -> Local): ${timeSlot}`);
+      }
+    });
+
+    // ESTRATEGIA 3: También buscar usando el campo 'date' directamente si existe
+    console.log(`[AVAILABILITY] Buscando citas con campo date = ${date}`);
+
+    const dateFieldSnapshot = await firestore.collection('appointments')
+      .where('date', '==', date)
+      .get();
+
+    console.log(`[AVAILABILITY] Encontradas ${dateFieldSnapshot.size} citas con campo date`);
+
+    dateFieldSnapshot.forEach(doc => {
+      if (processedIds.has(doc.id)) return;
+      processedIds.add(doc.id);
+
+      const data = doc.data();
+      console.log(`[AVAILABILITY] DateField - ID: ${doc.id}, time: ${data.time}, status: ${data.status}`);
+
+      if (data.status === 'cancelled') return;
+
+      // Usar el campo 'time' directamente
+      if (data.time) {
+        const timeSlot = data.time.substring(0, 5); // Tomar solo HH:MM
+        if (!busy.includes(timeSlot)) {
+          busy.push(timeSlot);
+          console.log(`[AVAILABILITY] ✅ Agregando slot ocupado (campo time): ${timeSlot}`);
+        }
+      }
+    });
+
+    // ESTRATEGIA 3: Verificar Bloqueos de Horario (BlockedSlots)
     const requestDate = new Date(date + 'T00:00:00');
     const dayOfWeek = requestDate.getDay(); // 0-6
 
@@ -3308,25 +3287,23 @@ app.get('/api/public/availability', async (req, res) => {
         const startMinutes = startH * 60 + startM;
         const endMinutes = endH * 60 + endM;
 
-        // Marcar todos los slots en punto (:00) que caen dentro del rango bloqueado
-        // También incluir la hora de inicio si no es en punto
-        const firstHour = startM > 0 ? startH + 1 : startH;
+        // Generar slots de 08:00 a 21:00 (o el rango que sea)
+        // Aquí simplificamos y marcamos los slots exactos que caen en el rango
+        // Asumiendo slots cada 60 mins por defecto, pero el frontend maneja la lógica de visualización
+        // Mejor enfoque: Marcar todas las horas "en punto" dentro del rango como ocupadas
 
-        // Si la hora de inicio está bloqueada (ej: bloqueo desde 08:30 bloquea slot de 08:00)
-        if (startM > 0) {
-          const timeSlot = `${startH.toString().padStart(2, '0')}:00`;
+        for (let h = startH; h < endH; h++) {
+          const timeSlot = `${h.toString().padStart(2, '0')}:${startM.toString().padStart(2, '0')}`;
           if (!busy.includes(timeSlot)) {
             busy.push(timeSlot);
             console.log(`[AVAILABILITY] 🚫 Bloqueo administrativo (${block.reason}): ${timeSlot}`);
           }
         }
-
-        for (let h = firstHour; h <= endH; h++) {
-          if (h === endH && endM === 0) break; // no incluir hora exacta de fin
-          const timeSlot = `${h.toString().padStart(2, '0')}:00`;
+        // Si termina en media hora (ej 10:30), también bloquear la hora de inicio (10:00 ya cubierto)
+        if (endM > 0) {
+          const timeSlot = `${endH.toString().padStart(2, '0')}:00`;
           if (!busy.includes(timeSlot)) {
             busy.push(timeSlot);
-            console.log(`[AVAILABILITY] 🚫 Bloqueo administrativo (${block.reason}): ${timeSlot}`);
           }
         }
       }
@@ -3350,39 +3327,6 @@ app.get('/api/public/availability', async (req, res) => {
       }
     } catch (gcalErr) {
       console.warn(`[AVAILABILITY] Error consultando Google Calendar:`, gcalErr.message);
-    }
-
-    // ── Filtro de mínimo de horas de anticipación (solo aplica para HOY) ──
-    try {
-      const bizCfg = await prisma.businessConfig.findUnique({ where: { id: 1 } });
-      const minHours = bizCfg?.minHoursAdvance ?? 4;
-      if (minHours > 0) {
-        // Obtener hora actual en México
-        const nowMx = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Mexico_City' }));
-        const todayMx = `${nowMx.getFullYear()}-${String(nowMx.getMonth()+1).padStart(2,'0')}-${String(nowMx.getDate()).padStart(2,'0')}`;
-
-        if (date === todayMx) {
-          const cutoffMinutes = nowMx.getHours() * 60 + nowMx.getMinutes() + (minHours * 60);
-          const openTime = bizCfg?.openTime || '09:00';
-          const closeTime = bizCfg?.closeTime || '19:00';
-          const [openH, openM] = openTime.split(':').map(Number);
-          const [closeH, closeM] = closeTime.split(':').map(Number);
-          const interval = bizCfg?.interval || 60;
-
-          for (let mins = openH * 60 + openM; mins < closeH * 60 + closeM; mins += interval) {
-            if (mins < cutoffMinutes) {
-              const slotStr = `${Math.floor(mins/60).toString().padStart(2,'0')}:${(mins%60).toString().padStart(2,'0')}`;
-              if (!busy.includes(slotStr)) {
-                busy.push(slotStr);
-                console.log(`[AVAILABILITY] ⏰ Bloqueado por anticipación (${minHours}h): ${slotStr}`);
-              }
-            }
-          }
-          console.log(`[AVAILABILITY] Hoy ${todayMx}: cutoff a los ${cutoffMinutes} min (${Math.floor(cutoffMinutes/60)}:${String(cutoffMinutes%60).padStart(2,'0')})`);
-        }
-      }
-    } catch (minErr) {
-      console.warn('[AVAILABILITY] Error verificando min hours:', minErr.message);
     }
 
     // Ordenar los slots
@@ -5455,149 +5399,145 @@ app.post("/api/admin/update-client-info", adminAuth, async (req, res) => {
 });
 
 /* =========================================================
-   REVIEWS / EVALUACIONES API
+   ⭐ RESEÑAS (REVIEWS)
    ========================================================= */
 
-// GET /api/reviews/info/:appointmentId — Público: info para la página de evaluación
-app.get('/api/reviews/info/:appointmentId', async (req, res) => {
+// GET /review — sirve la página pública de review
+app.get('/review', (req, res) => {
+  res.sendFile('review.html', { root: path.join(process.cwd(), 'public') });
+});
+
+// GET /api/appointment-review-info/:apptId — info pública de la cita para review
+app.get('/api/appointment-review-info/:apptId', async (req, res) => {
   try {
-    const { appointmentId } = req.params;
+    const doc = await firestore.collection('appointments').doc(req.params.apptId).get();
+    if (!doc.exists) return res.status(404).json({ error: 'not found' });
+    const d = doc.data();
 
-    // Verificar si ya existe una review respondida (stars > 0)
-    const existingReview = await prisma.review.findUnique({
-      where: { appointmentId }
-    });
-    if (existingReview && existingReview.stars > 0) {
-      return res.json({ success: false, alreadyReviewed: true });
-    }
-
-    // Buscar la cita
-    const appointment = await prisma.appointment.findUnique({
-      where: { id: appointmentId }
-    });
-    if (!appointment) {
-      return res.json({ success: false, error: 'Cita no encontrada' });
-    }
-
-    // Formatear fecha legible
-    let dateStr = '';
-    try {
-      const d = appointment.date || appointment.startDateTime?.toISOString().split('T')[0];
-      if (d) {
-        const [y, m, day] = d.split('-');
-        const meses = ['', 'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
-          'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
-        dateStr = `${parseInt(day)} de ${meses[parseInt(m)]} ${y}`;
-      }
-    } catch (e) { /* ignore */ }
+    const dateStr = d.date
+      ? new Date(d.date + 'T00:00:00').toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })
+      : '';
 
     res.json({
-      success: true,
-      serviceName: appointment.serviceName,
-      date: dateStr,
-      clientName: appointment.clientName
+      serviceName: d.serviceName || '',
+      serviceDate: dateStr,
+      clientName:  d.clientName  || ''
     });
-  } catch (error) {
-    console.error('[REVIEW INFO] Error:', error);
-    res.status(500).json({ success: false, error: 'Error interno' });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
   }
 });
 
-// POST /api/reviews — Público: guardar evaluación
+// POST /api/reviews — guardar reseña (público, sin auth)
 app.post('/api/reviews', async (req, res) => {
   try {
-    const { appointmentId, stars, liked, improve, comment } = req.body;
+    const { appointmentId, rating, highlights, comment, clientName, serviceName, serviceDate } = req.body;
 
-    if (!appointmentId || !stars || stars < 1 || stars > 5) {
-      return res.status(400).json({ success: false, error: 'Datos inválidos' });
+    if (!appointmentId || !rating) {
+      return res.status(400).json({ success: false, error: 'Faltan campos requeridos' });
     }
 
-    // Buscar la cita para obtener info
-    const appointment = await prisma.appointment.findUnique({
-      where: { id: appointmentId }
+    // Verificar que no haya reseña duplicada para esta cita
+    const existing = await firestore.collection('reviews')
+      .where('appointmentId', '==', appointmentId)
+      .limit(1).get();
+
+    if (!existing.empty) {
+      return res.json({ success: false, error: 'Ya existe una reseña para esta cita', duplicate: true });
+    }
+
+    const reviewData = {
+      appointmentId,
+      rating: parseInt(rating),
+      highlights: highlights || [],
+      comment: comment || '',
+      clientName: clientName || 'Clienta',
+      serviceName: serviceName || '',
+      serviceDate: serviceDate || '',
+      createdAt: new Date().toISOString(),
+      replied: false,
+      reply: null
+    };
+
+    const docRef = await firestore.collection('reviews').add(reviewData);
+
+    // Crear notificación en admin
+    await firestore.collection('notifications').add({
+      type: 'review',
+      icon: 'star',
+      title: `Nueva reseña ⭐${rating}`,
+      message: `${clientName || 'Clienta'} calificó su cita de ${serviceName || 'servicio'} con ${rating} estrella${rating === 1 ? '' : 's'}`,
+      entityId: docRef.id,
+      read: false,
+      createdAt: new Date().toISOString()
     });
-    if (!appointment) {
-      return res.status(404).json({ success: false, error: 'Cita no encontrada' });
-    }
 
-    // Verificar si ya existe una review (creada por el cron con stars=0, o ya respondida)
-    const existing = await prisma.review.findUnique({
-      where: { appointmentId }
-    });
+    console.log(`[REVIEWS] ✅ Nueva reseña de ${clientName}: ${rating} estrellas`);
+    res.json({ success: true, id: docRef.id });
 
-    let review;
-    if (existing && existing.stars > 0) {
-      // Ya respondió
-      return res.json({ success: false, error: 'Ya evaluaste esta cita' });
-    } else if (existing && existing.stars === 0) {
-      // Actualizar la review pendiente creada por el cron
-      review = await prisma.review.update({
-        where: { appointmentId },
-        data: {
-          stars: parseInt(stars),
-          liked: liked || null,
-          improve: improve || null,
-          comment: comment || null,
-          answeredAt: new Date()
-        }
-      });
-    } else {
-      // Crear nueva review (caso donde el link se accede sin cron previo)
-      review = await prisma.review.create({
-        data: {
-          appointmentId,
-          clientName: appointment.clientName,
-          clientPhone: appointment.clientPhone,
-          serviceName: appointment.serviceName,
-          stars: parseInt(stars),
-          liked: liked || null,
-          improve: improve || null,
-          comment: comment || null,
-          answeredAt: new Date()
-        }
-      });
-    }
-
-    console.log(`⭐ Nueva evaluación: ${stars} estrellas de ${appointment.clientName} — ${appointment.serviceName}`);
-    res.json({ success: true, review });
   } catch (error) {
-    console.error('[REVIEW CREATE] Error:', error);
-    res.status(500).json({ success: false, error: 'Error al guardar evaluación' });
+    console.error('[REVIEWS] Error:', error);
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// GET /api/reviews — Admin: listar evaluaciones con filtro y stats
-app.get('/api/reviews', adminAuth, async (req, res) => {
+// GET /api/admin/reviews — listar reseñas
+app.get('/api/admin/reviews', adminAuth, async (req, res) => {
   try {
-    const { stars } = req.query;
+    const { rating, limit = 50 } = req.query;
 
-    const where = { stars: { gt: 0 } };
-    if (stars) where.stars = parseInt(stars);
+    let query = firestore.collection('reviews').orderBy('createdAt', 'desc').limit(parseInt(limit));
 
-    const reviews = await prisma.review.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      take: 200
-    });
+    const snapshot = await query.get();
+    let data = [];
+    snapshot.forEach(doc => data.push({ id: doc.id, ...doc.data() }));
 
-    // Stats (solo reviews respondidas)
-    const allReviews = await prisma.review.findMany({
-      where: { stars: { gt: 0 } },
-      select: { stars: true }
-    });
+    if (rating) {
+      data = data.filter(r => r.rating === parseInt(rating));
+    }
+
+    // Estadísticas
+    const allSnap = await firestore.collection('reviews').get();
+    const allReviews = [];
+    allSnap.forEach(doc => allReviews.push(doc.data()));
+
     const total = allReviews.length;
-    const avg = total > 0 ? (allReviews.reduce((s, r) => s + r.stars, 0) / total).toFixed(1) : 0;
-    const fiveStars = allReviews.filter(r => r.stars === 5).length;
-    const lowStars = allReviews.filter(r => r.stars <= 3).length;
+    const avgRating = total > 0
+      ? (allReviews.reduce((s, r) => s + (r.rating || 0), 0) / total).toFixed(1)
+      : 0;
 
-    res.json({
-      success: true,
-      reviews,
-      stats: { total, avg: parseFloat(avg), fiveStars, lowStars }
-    });
+    const dist = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    allReviews.forEach(r => { if (r.rating) dist[r.rating]++; });
+
+    res.json({ success: true, data, stats: { total, avgRating: parseFloat(avgRating), dist } });
   } catch (error) {
-    console.error('[REVIEWS LIST] Error:', error);
-    res.status(500).json({ success: false, error: 'Error al cargar evaluaciones' });
+    console.error('[REVIEWS] Error listing:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// PATCH /api/admin/reviews/:id/reply — responder reseña
+app.patch('/api/admin/reviews/:id/reply', adminAuth, async (req, res) => {
+  try {
+    const { reply } = req.body;
+    await firestore.collection('reviews').doc(req.params.id).update({
+      replied: true,
+      reply: reply || '',
+      repliedAt: new Date().toISOString()
+    });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// DELETE /api/admin/reviews/:id — eliminar reseña
+app.delete('/api/admin/reviews/:id', adminAuth, async (req, res) => {
+  try {
+    await firestore.collection('reviews').doc(req.params.id).delete();
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
