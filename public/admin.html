@@ -6215,7 +6215,7 @@
       <div class="header-actions">
         <h2><i class="fas fa-calendar"></i> Agenda de Citas</h2>
         <div style="display:flex;gap:8px;">
-          <button class="btn small ghost" onclick="loadAppointments(); renderMonthlyCalendar(); loadMonthStats();"
+          <button class="btn small ghost" onclick="clearAppointmentsCache(); loadMonthAppointments(true); loadAppointments(true); loadMonthStats(true);"
             title="Actualizar">
             <i class="fas fa-sync"></i>
           </button>
@@ -6241,7 +6241,7 @@
           </div>
 
           <div class="calendar-actions">
-            <button class="btn small ghost" onclick="loadAppointments(); renderMonthlyCalendar(); loadMonthStats();"
+            <button class="btn small ghost" onclick="clearAppointmentsCache(); loadMonthAppointments(true); loadAppointments(true); loadMonthStats(true);"
               title="Actualizar">
               <i class="fas fa-sync"></i>
             </button>
@@ -10610,6 +10610,7 @@
           if (typeof initAgendarUrl === 'function') initAgendarUrl();
           if (typeof startRequestsAutoRefresh === 'function') startRequestsAutoRefresh();
         } else if (tabName === 'appointments') {
+          if (typeof loadMonthAppointments === 'function') loadMonthAppointments();
           if (typeof loadAppointments === 'function') loadAppointments();
           if (typeof loadMonthStats === 'function') loadMonthStats();
           if (typeof startAppointmentsAutoRefresh === 'function') startAppointmentsAutoRefresh();
@@ -11615,6 +11616,7 @@
           loadNotificationsHistory();
           if (typeof stopDashboardAutoRefresh === 'function') stopDashboardAutoRefresh();
         } else if (tabName === 'appointments') {
+          if (typeof loadMonthAppointments === 'function') loadMonthAppointments();
           if (typeof loadAppointments === 'function') loadAppointments();
           if (typeof loadMonthStats === 'function') loadMonthStats();
           // Iniciar auto-refresh cuando se entra al tab de appointments
@@ -13969,6 +13971,10 @@
     let currentView = 'month';
     let monthAppointments = {}; // Cache de citas del mes
     let allAppointments = []; // Todas las citas del mes para el calendario
+    const appointmentsMonthCache = new Map();
+    const appointmentsMonthRequests = new Map();
+    let servicesLoaded = false;
+    let clientsLoaded = false;
 
     // Helper function to convert Date to local YYYY-MM-DD
     function toLocalDateString(date) {
@@ -13976,6 +13982,107 @@
       const month = String(date.getMonth() + 1).padStart(2, '0');
       const day = String(date.getDate()).padStart(2, '0');
       return `${year}-${month}-${day}`;
+    }
+
+    function getMonthCacheKey(date) {
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    }
+
+    function buildMonthCacheEntry(appointments) {
+      const normalizedAppointments = (appointments || []).map(appt => ({
+        ...appt,
+        date: appt.date || toLocalDateString(new Date(appt.startDateTime)),
+        time: appt.time || new Date(appt.startDateTime).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false })
+      }));
+
+      const appointmentsByDate = {};
+      const countsByDate = {};
+
+      normalizedAppointments.forEach(appt => {
+        if (!appointmentsByDate[appt.date]) {
+          appointmentsByDate[appt.date] = [];
+        }
+        appointmentsByDate[appt.date].push(appt);
+
+        if (appt.status !== 'cancelled') {
+          countsByDate[appt.date] = (countsByDate[appt.date] || 0) + 1;
+        }
+      });
+
+      return {
+        allAppointments: normalizedAppointments,
+        appointmentsByDate,
+        monthAppointments: countsByDate
+      };
+    }
+
+    function applyMonthCacheEntry(cacheEntry) {
+      allAppointments = cacheEntry?.allAppointments || [];
+      monthAppointments = cacheEntry?.monthAppointments || {};
+    }
+
+    function clearAppointmentsCache() {
+      appointmentsMonthCache.clear();
+      appointmentsMonthRequests.clear();
+    }
+
+    async function ensureMonthAppointments(monthDate = currentMonth, force = false) {
+      const monthRef = new Date(monthDate);
+      monthRef.setDate(1);
+      monthRef.setHours(0, 0, 0, 0);
+
+      const cacheKey = getMonthCacheKey(monthRef);
+
+      if (!force && appointmentsMonthCache.has(cacheKey)) {
+        const cachedEntry = appointmentsMonthCache.get(cacheKey);
+        if (cacheKey === getMonthCacheKey(currentMonth)) {
+          applyMonthCacheEntry(cachedEntry);
+        }
+        return cachedEntry;
+      }
+
+      if (!force && appointmentsMonthRequests.has(cacheKey)) {
+        const pendingEntry = await appointmentsMonthRequests.get(cacheKey);
+        if (cacheKey === getMonthCacheKey(currentMonth)) {
+          applyMonthCacheEntry(pendingEntry);
+        }
+        return pendingEntry;
+      }
+
+      const requestPromise = (async () => {
+        const year = monthRef.getFullYear();
+        const month = monthRef.getMonth() + 1;
+        const res = await fetch(`/api/appointments/month?year=${year}&month=${month}`);
+        const json = await res.json();
+
+        if (!json.success) {
+          throw new Error(json.error || 'No se pudieron cargar las citas del mes');
+        }
+
+        const cacheEntry = buildMonthCacheEntry(json.data || []);
+        appointmentsMonthCache.set(cacheKey, cacheEntry);
+        return cacheEntry;
+      })();
+
+      appointmentsMonthRequests.set(cacheKey, requestPromise);
+
+      try {
+        const cacheEntry = await requestPromise;
+        if (cacheKey === getMonthCacheKey(currentMonth)) {
+          applyMonthCacheEntry(cacheEntry);
+        }
+        return cacheEntry;
+      } finally {
+        appointmentsMonthRequests.delete(cacheKey);
+      }
+    }
+
+    function getCachedAppointmentsForDate(dateValue) {
+      const dateObj = typeof dateValue === 'string' ? new Date(`${dateValue}T12:00:00`) : new Date(dateValue);
+      const dateStr = typeof dateValue === 'string' ? dateValue : toLocalDateString(dateObj);
+      const cacheEntry = appointmentsMonthCache.get(getMonthCacheKey(dateObj));
+      if (!cacheEntry) return [];
+      return cacheEntry.appointmentsByDate[dateStr] || [];
     }
 
     // Elementos del DOM
@@ -14111,47 +14218,52 @@
     }
 
     // ========== CARGAR SERVICIOS ==========
-    async function loadServices() {
+    function configureServiceDropdowns() {
+      const options = allServices.map(s => ({
+        value: s.name,
+        label: s.name,
+        meta: `[${s.category || 'Otros'}] ${s.durationMinutes} min - $${s.price}`,
+        data: { id: s.id, price: s.price, duration: s.durationMinutes }
+      }));
+
+      if (!newApptServiceDropdown) {
+        newApptServiceDropdown = new CustomSearchableDropdown(
+          'new-appt-service',
+          'services-dropdown-list',
+          (item) => {
+            document.getElementById('new-appt-price').value = item.data.price;
+          }
+        );
+      }
+      newApptServiceDropdown.setOptions(options);
+
+      if (!editApptServiceDropdown) {
+        editApptServiceDropdown = new CustomSearchableDropdown(
+          'edit-appt-service',
+          'edit-services-dropdown-list',
+          (item) => {
+            document.getElementById('edit-appt-price').value = item.data.price;
+            document.getElementById('edit-appt-duration').value = item.data.duration;
+            calculateEditEndTime();
+          }
+        );
+      }
+      editApptServiceDropdown.setOptions(options);
+    }
+
+    async function loadServices(force = false) {
       try {
+        if (!force && servicesLoaded && allServices.length > 0) {
+          configureServiceDropdowns();
+          return;
+        }
+
         const res = await fetch('/api/services');
         const json = await res.json();
         if (json.success) {
           allServices = json.data;
-
-          // Map services to dropdown options format
-          const options = allServices.map(s => ({
-            value: s.name,
-            label: s.name,
-            meta: `[${s.category || 'Otros'}] ${s.durationMinutes} min - $${s.price}`,
-            data: { id: s.id, price: s.price, duration: s.durationMinutes }
-          }));
-
-          // Initialize dropdowns if not already done
-          if (!newApptServiceDropdown) {
-            newApptServiceDropdown = new CustomSearchableDropdown(
-              'new-appt-service',
-              'services-dropdown-list',
-              (item) => {
-                // Auto-fill price when service selected
-                document.getElementById('new-appt-price').value = item.data.price;
-              }
-            );
-          }
-          newApptServiceDropdown.setOptions(options);
-
-          if (!editApptServiceDropdown) {
-            editApptServiceDropdown = new CustomSearchableDropdown(
-              'edit-appt-service',
-              'edit-services-dropdown-list',
-              (item) => {
-                // Auto-fill price and duration when service selected
-                document.getElementById('edit-appt-price').value = item.data.price;
-                document.getElementById('edit-appt-duration').value = item.data.duration;
-                calculateEditEndTime();
-              }
-            );
-          }
-          editApptServiceDropdown.setOptions(options);
+          servicesLoaded = true;
+          configureServiceDropdowns();
         }
       } catch (e) { console.error('Error loading services', e); }
     }
@@ -14280,8 +14392,56 @@
     window.selectHistoryService = selectHistoryService;
 
     // ========== CARGAR CLIENTES ==========
-    async function loadClients() {
+    function configureClientDropdown() {
+      const options = allClients.map(c => ({
+        value: c.name,
+        label: c.name,
+        meta: c.phone || 'Sin teléfono',
+        data: { id: c.id, phone: c.phone }
+      }));
+
+      console.log('[CLIENTS] 📋 Opciones mapeadas:', options.length);
+
+      const inputEl = document.getElementById('new-appt-client-select');
+      const dropdownEl = document.getElementById('clients-dropdown-list');
+
+      console.log('[CLIENTS] 🔍 Input existe:', !!inputEl);
+      console.log('[CLIENTS] 🔍 Dropdown existe:', !!dropdownEl);
+
+      if (!inputEl || !dropdownEl) {
+        console.error('[CLIENTS] ❌ Elementos no encontrados en el DOM');
+        return;
+      }
+
+      if (!newApptClientDropdown) {
+        console.log('[CLIENTS] 🆕 Creando nuevo dropdown...');
+        newApptClientDropdown = new CustomSearchableDropdown(
+          'new-appt-client-select',
+          'clients-dropdown-list',
+          (item) => {
+            console.log('[CLIENTS] ✅ Cliente seleccionado:', item);
+            document.getElementById('new-appt-phone').value = item.data.phone || '';
+            showClientSelectedFeedback(item.label);
+            loadClientHistory(item.data.phone, item.label);
+          }
+        );
+      }
+
+      if (newApptClientDropdown) {
+        newApptClientDropdown.setOptions(options);
+        console.log('[CLIENTS] ✅ Opciones configuradas');
+      } else {
+        console.error('[CLIENTS] ❌ Dropdown no se pudo crear');
+      }
+    }
+
+    async function loadClients(force = false) {
       try {
+        if (!force && clientsLoaded && allClients.length > 0) {
+          configureClientDropdown();
+          return;
+        }
+
         console.log('[CLIENTS] 🔍 Cargando TODOS los clientes...');
 
         // Cargar TODAS las páginas de clientes
@@ -14307,54 +14467,8 @@
 
         // Actualizar variable global
         allClients = allClientsData;
-
-        // Map clients to dropdown options format
-        const options = allClientsData.map(c => ({
-          value: c.name,
-          label: c.name,
-          meta: c.phone || 'Sin teléfono',
-          data: { id: c.id, phone: c.phone }
-        }));
-
-        console.log('[CLIENTS] 📋 Opciones mapeadas:', options.length);
-
-        // Verificar que los elementos existen
-        const inputEl = document.getElementById('new-appt-client-select');
-        const dropdownEl = document.getElementById('clients-dropdown-list');
-
-        console.log('[CLIENTS] 🔍 Input existe:', !!inputEl);
-        console.log('[CLIENTS] 🔍 Dropdown existe:', !!dropdownEl);
-
-        if (!inputEl || !dropdownEl) {
-          console.error('[CLIENTS] ❌ Elementos no encontrados en el DOM');
-          return;
-        }
-
-        if (!newApptClientDropdown) {
-          console.log('[CLIENTS] 🆕 Creando nuevo dropdown...');
-          newApptClientDropdown = new CustomSearchableDropdown(
-            'new-appt-client-select',
-            'clients-dropdown-list',
-            (item) => {
-              console.log('[CLIENTS] ✅ Cliente seleccionado:', item);
-              // Auto-fill phone when client selected
-              document.getElementById('new-appt-phone').value = item.data.phone || '';
-
-              // Mostrar retroalimentación visual de cliente seleccionada
-              showClientSelectedFeedback(item.label);
-
-              // Cargar historial de citas del cliente
-              loadClientHistory(item.data.phone, item.label);
-            }
-          );
-        }
-
-        if (newApptClientDropdown) {
-          newApptClientDropdown.setOptions(options);
-          console.log('[CLIENTS] ✅ Opciones configuradas');
-        } else {
-          console.error('[CLIENTS] ❌ Dropdown no se pudo crear');
-        }
+        clientsLoaded = true;
+        configureClientDropdown();
       } catch (e) {
         console.error('[CLIENTS] ❌ Error loading clients:', e);
       }
@@ -14550,7 +14664,7 @@
       if (hourSelect) hourSelect.value = h;
       if (minuteSelect) minuteSelect.value = m;
     }
-    async function renderMonthlyCalendar() {
+    function renderMonthlyCalendar() {
       if (!monthlyCalendar) return;
 
       const year = currentMonth.getFullYear();
@@ -14599,8 +14713,6 @@
         }
       }
 
-      // Cargar citas del mes
-      await loadMonthAppointments();
     }
 
     function createGoogleCalendarDay(dayNum, year, month, isOtherMonth) {
@@ -14637,11 +14749,7 @@
       eventsContainer.className = 'day-events';
 
       // Obtener citas del día
-      const dayAppointments = (allAppointments || []).filter(apt => {
-        const aptDate = new Date(apt.date + 'T00:00:00');
-        aptDate.setHours(0, 0, 0, 0);
-        return aptDate.getTime() === date.getTime();
-      });
+      const dayAppointments = getCachedAppointmentsForDate(dateStr);
 
       // Mostrar hasta 3 eventos, el resto como "+X más"
       const maxEvents = 3;
@@ -14714,37 +14822,17 @@
 
     // Función createDayElement eliminada - ahora usamos createGoogleCalendarDay
 
-    async function loadMonthAppointments() {
-      const year = currentMonth.getFullYear();
-      const month = currentMonth.getMonth() + 1;
-
+    async function loadMonthAppointments(force = false, monthDate = currentMonth) {
       try {
-        const res = await fetch(`/api/appointments/month?year=${year}&month=${month}`);
-        const json = await res.json();
-
-        if (json.success) {
-          // Guardar todas las citas del mes
-          allAppointments = json.data.map(appt => ({
-            ...appt,
-            date: appt.date || toLocalDateString(new Date(appt.startDateTime)),
-            time: appt.time || new Date(appt.startDateTime).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false })
-          }));
-
-          // Contar citas por día
-          monthAppointments = {};
-          json.data.forEach(appt => {
-            if (appt.status !== 'cancelled') {
-              const date = new Date(appt.startDateTime);
-              const dateStr = toLocalDateString(date);
-              monthAppointments[dateStr] = (monthAppointments[dateStr] || 0) + 1;
-            }
-          });
-
-          // Re-renderizar con los datos
+        const monthEntry = await ensureMonthAppointments(monthDate, force);
+        if (getMonthCacheKey(monthDate) === getMonthCacheKey(currentMonth)) {
+          applyMonthCacheEntry(monthEntry);
           renderCalendar();
         }
+        return monthEntry;
       } catch (error) {
         console.error('Error loading month appointments:', error);
+        return null;
       }
     }
 
@@ -14758,7 +14846,107 @@
 
 
     // ========== CARGAR CITAS ==========
-    async function loadAppointments() {
+    function renderAppointmentsTable(appointments) {
+      if (!apptsTbody) return;
+
+      if (!appointments || appointments.length === 0) {
+        apptsTbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;" class="muted">No hay citas para este día</td></tr>';
+        return;
+      }
+
+      apptsTbody.innerHTML = appointments.map(appt => {
+        const time = new Date(appt.startDateTime).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false });
+        const statusColors = {
+          'scheduled': '#3b82f6',
+          'confirmed': '#22c55e',
+          'rescheduling': '#fbbf24',
+          'completed': 'var(--venus-soft)',
+          'cancelled': '#ef4444',
+          'no_show': '#6b7280'
+        };
+        const statusOptions = {
+          'scheduled': 'Agendada',
+          'confirmed': 'Confirmada',
+          'completed': 'Completada',
+          'cancelled': 'Cancelada',
+          'no_show': 'No asistió'
+        };
+
+        const statusBg = statusColors[appt.status] || '#6b7280';
+
+        return `
+          <tr>
+            <td style="padding:12px;font-weight:bold;color:#e5e7eb;">${time}</td>
+            <td style="padding:12px;">
+              <div style="font-weight:600;color:#f3f4f6;">${appt.clientName}</div>
+              <div style="font-size:0.85em;color:#9ca3af;">${appt.clientPhone}</div>
+            </td>
+            <td style="padding:12px;color:#d1d5db;">${appt.serviceName}</td>
+            <td style="padding:12px;">
+              <select
+                onchange="updateAppointmentStatus('${appt.id}', this.value)"
+                style="
+                  background-color: ${statusBg};
+                  color: white;
+                  border: none;
+                  padding: 4px 8px;
+                  border-radius: 12px;
+                  font-size: 0.85em;
+                  font-weight: 500;
+                  cursor: pointer;
+                  appearance: none;
+                  -webkit-appearance: none;
+                  text-align: center;
+                  width: 100px;
+                "
+              >
+                ${Object.entries(statusOptions).map(([key, label]) => `
+                  <option value="${key}" ${appt.status === key ? 'selected' : ''} style="background-color:#1f2937;color:white;">
+                    ${label}
+                  </option>
+                `).join('')}
+              </select>
+            </td>
+            <td style="padding:12px;">
+              <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                ${appt.status !== 'completed' ? `
+                <button onclick="openPaymentModal('${appt.id}', '${appt.clientName.replace(/'/g, "\\'") || ''}', '${appt.serviceName.replace(/'/g, "\\'") || ''}', ${appt.price || 0})" class="btn-icon" style="background:linear-gradient(135deg, #10b981 0%, #059669 100%);color:white;padding:6px 12px;border-radius:8px;font-size:0.85em;display:flex;align-items:center;gap:6px;border:none;cursor:pointer;transition:all 0.2s;box-shadow:0 2px 4px rgba(16,185,129,0.3);" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 8px rgba(16,185,129,0.4)'" onmouseout="this.style.transform='';this.style.boxShadow='0 2px 4px rgba(16,185,129,0.3)'">
+                  <i class="fas fa-money-bill-wave"></i> Pagar
+                </button>
+                ` : `
+                <div style="display:flex;align-items:center;gap:6px;background:rgba(34,197,94,0.1);padding:4px 8px;border-radius:6px;border:1px solid rgba(34,197,94,0.3);">
+                  <span style="color:#22c55e;font-weight:600;font-size:0.9em;">$${appt.totalPaid || 0}</span>
+                  ${(appt.productsSold && appt.productsSold.length > 0) ? `
+                    <span style="background:#8b5cf6;color:white;padding:2px 6px;border-radius:4px;font-size:0.75em;font-weight:600;" title="${appt.productsSold.reduce((sum, p) => sum + p.qty, 0)} productos"><i class="fas fa-box"></i> ${appt.productsSold.reduce((sum, p) => sum + p.qty, 0)}</span>
+                  ` : ''}
+                  <button onclick="viewPaymentDetails('${appt.id}')" title="Ver detalle de pago" style="background:none;border:none;color:#60a5fa;cursor:pointer;padding:2px 4px;font-size:0.85em;">
+                    <i class="fas fa-eye"></i>
+                  </button>
+                  <button onclick="openPaymentModal('${appt.id}', '${appt.clientName.replace(/'/g, "\\'")}', '${appt.serviceName.replace(/'/g, "\\'")}', ${appt.totalPaid || 0}, true)" title="Editar pago" style="background:none;border:none;color:#9ca3af;cursor:pointer;padding:0;font-size:0.8em;">
+                    <i class="fas fa-pencil-alt"></i>
+                  </button>
+                </div>
+                `}
+                <button onclick="sendWhatsAppAttendanceSurvey('${appt.id}')" class="btn-icon" style="background:linear-gradient(135deg, #16a34a 0%, #15803d 100%);color:white;padding:6px 12px;border-radius:8px;font-size:0.85em;display:flex;align-items:center;gap:6px;border:none;cursor:pointer;transition:all 0.2s;box-shadow:0 2px 4px rgba(22,163,74,0.3);" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 8px rgba(22,163,74,0.4)'" onmouseout="this.style.transform='';this.style.boxShadow='0 2px 4px rgba(22,163,74,0.3)'" title="Enviar encuesta de asistencia por WhatsApp">
+                  <i class="fab fa-whatsapp"></i> Encuesta
+                </button>
+                <button onclick="sendWhatsAppReminder('${appt.id}', '${appt.clientPhone}', '${appt.clientName.replace(/'/g, "\\'")}', '${appt.serviceName.replace(/'/g, "\\'")}', '${appt.startDateTime}')" class="btn-icon" style="background:linear-gradient(135deg, #25D366 0%, #128C7E 100%);color:white;padding:6px 12px;border-radius:8px;font-size:0.85em;display:flex;align-items:center;gap:6px;border:none;cursor:pointer;transition:all 0.2s;box-shadow:0 2px 4px rgba(37,211,102,0.3);" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 8px rgba(37,211,102,0.4)'" onmouseout="this.style.transform='';this.style.boxShadow='0 2px 4px rgba(37,211,102,0.3)'" title="Enviar recordatorio manual por WhatsApp">
+                  <i class="fab fa-whatsapp"></i>
+                </button>
+                <button onclick="editAppointment('${appt.id}')" class="btn-icon" style="background:linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);color:white;padding:6px 12px;border-radius:8px;font-size:0.85em;display:flex;align-items:center;gap:6px;border:none;cursor:pointer;transition:all 0.2s;box-shadow:0 2px 4px rgba(59,130,246,0.3);" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 8px rgba(59,130,246,0.4)'" onmouseout="this.style.transform='';this.style.boxShadow='0 2px 4px rgba(59,130,246,0.3)'">
+                  <i class="fas fa-edit"></i> Modificar
+                </button>
+                <button onclick="cancelAppointment('${appt.id}')" class="btn-icon" style="background:linear-gradient(135deg, #ef4444 0%, #dc2626 100%);color:white;padding:6px 12px;border-radius:8px;font-size:0.85em;display:flex;align-items:center;gap:6px;border:none;cursor:pointer;transition:all 0.2s;box-shadow:0 2px 4px rgba(239,68,68,0.3);" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 8px rgba(239,68,68,0.4)'" onmouseout="this.style.transform='';this.style.boxShadow='0 2px 4px rgba(239,68,68,0.3)'">
+                  <i class="fas fa-times-circle"></i> Cancelar
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    async function loadAppointments(force = false) {
       if (!apptsTbody) return;
       apptsTbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;">Cargando...</td></tr>';
 
@@ -14766,104 +14954,14 @@
       console.log(`📋 Cargar lista citas para: ${dateStr}`);
 
       try {
-        const res = await fetch(`/api/appointments?date=${dateStr}`);
-        const json = await res.json();
-        console.log(`   📦 Recibidas ${json.data?.length} citas para lista`);
+        const targetMonth = new Date(selectedDate);
+        targetMonth.setDate(1);
+        targetMonth.setHours(0, 0, 0, 0);
 
-        if (json.success) {
-          if (json.data.length === 0) {
-            apptsTbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;" class="muted">No hay citas para este día</td></tr>';
-            return;
-          }
-
-          apptsTbody.innerHTML = json.data.map(appt => {
-            const time = new Date(appt.startDateTime).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false });
-            const statusColors = {
-              'scheduled': '#3b82f6',      // Azul
-              'confirmed': '#22c55e',      // Verde
-              'rescheduling': '#fbbf24',   // Amarillo
-              'completed': 'var(--venus-soft)', // Verde Venus
-              'cancelled': '#ef4444',       // Rojo
-              'no_show': '#6b7280'         // Gris
-            };
-            const statusOptions = {
-              'scheduled': 'Agendada',
-              'confirmed': 'Confirmada',
-              'completed': 'Completada',
-              'cancelled': 'Cancelada',
-              'no_show': 'No asistió'
-            };
-
-            const statusBg = statusColors[appt.status] || '#6b7280';
-
-            return `
-              <tr>
-                <td style="padding:12px;font-weight:bold;color:#e5e7eb;">${time}</td>
-                <td style="padding:12px;">
-                  <div style="font-weight:600;color:#f3f4f6;">${appt.clientName}</div>
-                  <div style="font-size:0.85em;color:#9ca3af;">${appt.clientPhone}</div>
-                </td>
-                <td style="padding:12px;color:#d1d5db;">${appt.serviceName}</td>
-                <td style="padding:12px;">
-                  <select 
-                    onchange="updateAppointmentStatus('${appt.id}', this.value)"
-                    style="
-                      background-color: ${statusBg};
-                      color: white;
-                      border: none;
-                      padding: 4px 8px;
-                      border-radius: 12px;
-                      font-size: 0.85em;
-                      font-weight: 500;
-                      cursor: pointer;
-                      appearance: none;
-                      -webkit-appearance: none;
-                      text-align: center;
-                      width: 100px;
-                    "
-                  >
-                    ${Object.entries(statusOptions).map(([key, label]) => `
-                      <option value="${key}" ${appt.status === key ? 'selected' : ''} style="background-color:#1f2937;color:white;">
-                        ${label}
-                      </option>
-                    `).join('')}
-                  </select>
-                </td>
-                <td style="padding:12px;">
-                  <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-                    ${appt.status !== 'completed' ? `
-                    <button onclick="openPaymentModal('${appt.id}', '${appt.clientName.replace(/'/g, "\\'") || ''}', '${appt.serviceName.replace(/'/g, "\\'") || ''}', ${appt.price || 0})" class="btn-icon" style="background:linear-gradient(135deg, #10b981 0%, #059669 100%);color:white;padding:6px 12px;border-radius:8px;font-size:0.85em;display:flex;align-items:center;gap:6px;border:none;cursor:pointer;transition:all 0.2s;box-shadow:0 2px 4px rgba(16,185,129,0.3);" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 8px rgba(16,185,129,0.4)'" onmouseout="this.style.transform='';this.style.boxShadow='0 2px 4px rgba(16,185,129,0.3)'">
-                      <i class="fas fa-money-bill-wave"></i> Pagar
-                    </button>
-                    ` : `
-                    <div style="display:flex;align-items:center;gap:6px;background:rgba(34,197,94,0.1);padding:4px 8px;border-radius:6px;border:1px solid rgba(34,197,94,0.3);">
-                      <span style="color:#22c55e;font-weight:600;font-size:0.9em;">$${appt.totalPaid || 0}</span>
-                      ${(appt.productsSold && appt.productsSold.length > 0) ? `
-                        <span style="background:#8b5cf6;color:white;padding:2px 6px;border-radius:4px;font-size:0.75em;font-weight:600;" title="${appt.productsSold.reduce((sum, p) => sum + p.qty, 0)} productos"><i class="fas fa-box"></i> ${appt.productsSold.reduce((sum, p) => sum + p.qty, 0)}</span>
-                      ` : ''}
-                      <button onclick="viewPaymentDetails('${appt.id}')" title="Ver detalle de pago" style="background:none;border:none;color:#60a5fa;cursor:pointer;padding:2px 4px;font-size:0.85em;">
-                        <i class="fas fa-eye"></i>
-                      </button>
-                      <button onclick="openPaymentModal('${appt.id}', '${appt.clientName.replace(/'/g, "\\'")}', '${appt.serviceName.replace(/'/g, "\\'")}', ${appt.totalPaid || 0}, true)" title="Editar pago" style="background:none;border:none;color:#9ca3af;cursor:pointer;padding:0;font-size:0.8em;">
-                        <i class="fas fa-pencil-alt"></i>
-                      </button>
-                    </div>
-                    `}
-                    <button onclick="sendWhatsAppReminder('${appt.id}', '${appt.clientPhone}', '${appt.clientName.replace(/'/g, "\\'")}', '${appt.serviceName.replace(/'/g, "\\'")}', '${appt.startDateTime}')" class="btn-icon" style="background:linear-gradient(135deg, #25D366 0%, #128C7E 100%);color:white;padding:6px 12px;border-radius:8px;font-size:0.85em;display:flex;align-items:center;gap:6px;border:none;cursor:pointer;transition:all 0.2s;box-shadow:0 2px 4px rgba(37,211,102,0.3);" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 8px rgba(37,211,102,0.4)'" onmouseout="this.style.transform='';this.style.boxShadow='0 2px 4px rgba(37,211,102,0.3)'" title="Enviar recordatorio por WhatsApp">
-                      <i class="fab fa-whatsapp"></i>
-                    </button>
-                    <button onclick="editAppointment('${appt.id}')" class="btn-icon" style="background:linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);color:white;padding:6px 12px;border-radius:8px;font-size:0.85em;display:flex;align-items:center;gap:6px;border:none;cursor:pointer;transition:all 0.2s;box-shadow:0 2px 4px rgba(59,130,246,0.3);" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 8px rgba(59,130,246,0.4)'" onmouseout="this.style.transform='';this.style.boxShadow='0 2px 4px rgba(59,130,246,0.3)'">
-                      <i class="fas fa-edit"></i> Modificar
-                    </button>
-                    <button onclick="cancelAppointment('${appt.id}')" class="btn-icon" style="background:linear-gradient(135deg, #ef4444 0%, #dc2626 100%);color:white;padding:6px 12px;border-radius:8px;font-size:0.85em;display:flex;align-items:center;gap:6px;border:none;cursor:pointer;transition:all 0.2s;box-shadow:0 2px 4px rgba(239,68,68,0.3);" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 8px rgba(239,68,68,0.4)'" onmouseout="this.style.transform='';this.style.boxShadow='0 2px 4px rgba(239,68,68,0.3)'">
-                      <i class="fas fa-times-circle"></i> Cancelar
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            `;
-          }).join('');
-        }
+        const monthEntry = await ensureMonthAppointments(targetMonth, force);
+        const appointments = monthEntry.appointmentsByDate[dateStr] || [];
+        console.log(`   📦 Recibidas ${appointments.length} citas para lista`);
+        renderAppointmentsTable(appointments);
       } catch (e) {
         console.error(e);
         apptsTbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--err-text);">Error cargando citas</td></tr>';
@@ -14871,100 +14969,74 @@
     }
 
     // ========== ESTADÍSTICAS DEL MES ==========
-    async function loadMonthStats() {
-      const now = new Date();
-      const year = now.getFullYear();
-      const month = now.getMonth();
-      const firstDay = new Date(year, month, 1);
-      const lastDay = new Date(year, month + 1, 0);
+    async function loadMonthStats(force = false) {
+      const year = currentMonth.getFullYear();
+      const month = currentMonth.getMonth() + 1;
 
-      console.log(`[STATS] Cargando estadísticas para: año=${year}, mes=${month + 1}`);
+      console.log(`[STATS] Cargando estadísticas para: año=${year}, mes=${month}`);
 
       try {
-        // Obtener todas las citas del mes
-        const res = await fetch('/api/appointments/month?' + new URLSearchParams({
-          year: year.toString(),
-          month: (month + 1).toString()
-        }));
+        const monthEntry = await ensureMonthAppointments(currentMonth, force);
+        const appointments = monthEntry.allAppointments || [];
+        const total = appointments.length;
+        const completed = appointments.filter(a => a.status === 'completed').length;
+        const cancelled = appointments.filter(a => a.status === 'cancelled').length;
+        const pending = appointments.filter(a => a.status === 'scheduled').length;
 
-        if (!res.ok) {
-          throw new Error('Error cargando estadísticas');
-        }
+        document.getElementById('stat-total').textContent = total;
+        document.getElementById('stat-completed').textContent = completed;
+        document.getElementById('stat-cancelled').textContent = cancelled;
+        document.getElementById('stat-pending').textContent = pending;
 
-        const json = await res.json();
-
-        if (json.success && json.data) {
-          const appointments = json.data;
-          const total = appointments.length;
-          const completed = appointments.filter(a => a.status === 'completed').length;
-          const cancelled = appointments.filter(a => a.status === 'cancelled').length;
-          const pending = appointments.filter(a => a.status === 'scheduled').length;
-
-          document.getElementById('stat-total').textContent = total;
-          document.getElementById('stat-completed').textContent = completed;
-          document.getElementById('stat-cancelled').textContent = cancelled;
-          document.getElementById('stat-pending').textContent = pending;
-        } else {
-          document.getElementById('stat-total').textContent = '0';
-          document.getElementById('stat-completed').textContent = '0';
-          document.getElementById('stat-cancelled').textContent = '0';
-          document.getElementById('stat-pending').textContent = '0';
-        }
-
-        // Calculate revenue by payment method
         let cashTotal = 0;
         let cardTotal = 0;
         let transferTotal = 0;
 
-        if (json.success && json.data) {
-          console.log(`[REVENUE] Total citas del mes: ${json.data.length}`);
-          const completedAppts = json.data.filter(a => a.status === 'completed');
-          console.log(`[REVENUE] Citas completadas: ${completedAppts.length}`);
+        console.log(`[REVENUE] Total citas del mes: ${appointments.length}`);
+        const completedAppts = appointments.filter(a => a.status === 'completed');
+        console.log(`[REVENUE] Citas completadas: ${completedAppts.length}`);
 
-          json.data.forEach(appt => {
-            if (appt.status === 'completed') {
-              // Support both structures (legacy object or root fields)
-              const amount = parseFloat(appt.totalPaid || (appt.payment ? appt.payment.amount : 0) || 0);
-              const method = appt.paymentMethod || (appt.payment ? appt.payment.method : '') || '';
+        appointments.forEach(appt => {
+          if (appt.status === 'completed') {
+            const amount = parseFloat(appt.totalPaid || (appt.payment ? appt.payment.amount : 0) || 0);
+            const method = appt.paymentMethod || (appt.payment ? appt.payment.method : '') || '';
 
-              console.log(`[REVENUE] Cita ${appt.id}:`, {
-                status: appt.status,
-                startDateTime: appt.startDateTime,
-                totalPaid: appt.totalPaid,
-                paymentMethod: appt.paymentMethod,
-                payment: appt.payment,
-                amount: amount,
-                method: method,
-                clientName: appt.clientName,
-                serviceName: appt.serviceName
-              });
+            console.log(`[REVENUE] Cita ${appt.id}:`, {
+              status: appt.status,
+              startDateTime: appt.startDateTime,
+              totalPaid: appt.totalPaid,
+              paymentMethod: appt.paymentMethod,
+              payment: appt.payment,
+              amount: amount,
+              method: method,
+              clientName: appt.clientName,
+              serviceName: appt.serviceName
+            });
 
-              if (amount > 0 && method) {
-                switch (method) {
-                  case 'efectivo':
-                    cashTotal += amount;
-                    break;
-                  case 'tarjeta':
-                    cardTotal += amount;
-                    break;
-                  case 'transferencia':
-                    transferTotal += amount;
-                    break;
-                }
+            if (amount > 0 && method) {
+              switch (method) {
+                case 'efectivo':
+                  cashTotal += amount;
+                  break;
+                case 'tarjeta':
+                  cardTotal += amount;
+                  break;
+                case 'transferencia':
+                  transferTotal += amount;
+                  break;
               }
             }
-          });
+          }
+        });
 
-          console.log(`[REVENUE] Totales calculados: Efectivo=${cashTotal}, Tarjeta=${cardTotal}, Transferencia=${transferTotal}`);
-        }
+        console.log(`[REVENUE] Totales calculados: Efectivo=${cashTotal}, Tarjeta=${cardTotal}, Transferencia=${transferTotal}`);
 
-        const total = cashTotal + cardTotal + transferTotal;
+        const totalRevenue = cashTotal + cardTotal + transferTotal;
 
-        // Update revenue display
         document.getElementById('revenue-cash').textContent = `$${cashTotal.toFixed(2)}`;
         document.getElementById('revenue-card').textContent = `$${cardTotal.toFixed(2)}`;
         document.getElementById('revenue-transfer').textContent = `$${transferTotal.toFixed(2)}`;
-        document.getElementById('revenue-total').textContent = `$${total.toFixed(2)}`;
+        document.getElementById('revenue-total').textContent = `$${totalRevenue.toFixed(2)}`;
       } catch (e) {
         console.error('Error loading month stats', e);
         document.getElementById('stat-total').textContent = '-';
@@ -14979,10 +15051,46 @@
       if (!confirm('¿Cancelar esta cita?')) return;
       try {
         await fetch(`/api/appointments/${id}/cancel`, { method: 'PATCH' });
-        loadAppointments();
-        renderMonthlyCalendar();
-        loadMonthStats();
+        clearAppointmentsCache();
+        loadMonthAppointments(true);
+        loadAppointments(true);
+        loadMonthStats(true);
       } catch (e) { alert('Error: ' + e.message); }
+    };
+
+    window.sendWhatsAppAttendanceSurvey = async (id) => {
+      if (!confirm('¿Enviar encuesta de asistencia por WhatsApp?')) return;
+
+      try {
+        const res = await fetch(`/api/appointments/${id}/attendance-survey`, {
+          method: 'POST',
+          credentials: 'include'
+        });
+        const json = await res.json();
+
+        if (json.success) {
+          const message = json.delivery === 'poll'
+            ? 'Encuesta enviada por WhatsApp.'
+            : 'Mensaje de asistencia enviado por WhatsApp.';
+          if (window.showNotification) showNotification(message, 'success');
+          else alert(message);
+          return;
+        }
+
+        if (json.manualUrl) {
+          const openManual = confirm('No se pudo enviar automáticamente. ¿Abrir WhatsApp con el mensaje listo para enviarlo manualmente?');
+          if (openManual) {
+            window.open(json.manualUrl, '_blank');
+          }
+          return;
+        }
+
+        throw new Error(json.error || 'No se pudo enviar la encuesta');
+      } catch (error) {
+        console.error('Error enviando encuesta de asistencia:', error);
+        if (window.showNotification) showNotification('No se pudo enviar la encuesta de asistencia', 'error');
+        else alert('No se pudo enviar la encuesta de asistencia');
+      }
     };
 
     // ========== ENVIAR RECORDATORIO POR WHATSAPP ==========
@@ -15051,11 +15159,10 @@ Gracias por tu preferencia`;
         const json = await res.json();
 
         if (json.success) {
-          // Si se canceló, recargar todo para actualizar calendarios y contadores
-          if (newStatus === 'cancelled') {
-            renderMonthlyCalendar();
-          }
-          loadAppointments();
+          clearAppointmentsCache();
+          loadMonthAppointments(true);
+          loadAppointments(true);
+          loadMonthStats(true);
         } else {
           alert('Error al actualizar estado: ' + json.error);
           loadAppointments();
@@ -15351,9 +15458,10 @@ Gracias por tu preferencia`;
             alert('Cita actualizada');
             editApptDialog.close();
             formEditAppt.reset();
-            loadAppointments();
-            renderMonthlyCalendar();
-            loadMonthStats();
+            clearAppointmentsCache();
+            loadMonthAppointments(true);
+            loadAppointments(true);
+            loadMonthStats(true);
           } else {
             // Mostrar mensaje específico para conflictos de horario
             if (res.status === 409) {
@@ -15683,7 +15791,10 @@ Gracias por tu preferencia`;
           selectedDate.setDate(selectedDate.getDate() - 1);
           currentMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
         }
-        loadMonthAppointments(); // Fetch data then render
+        loadMonthAppointments();
+        loadAppointments();
+        loadMonthStats();
+        updateSelectedDateLabel();
       });
     }
 
@@ -15698,7 +15809,10 @@ Gracias por tu preferencia`;
           selectedDate.setDate(selectedDate.getDate() + 1);
           currentMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
         }
-        loadMonthAppointments(); // Fetch data then render
+        loadMonthAppointments();
+        loadAppointments();
+        loadMonthStats();
+        updateSelectedDateLabel();
       });
     }
 
@@ -15708,16 +15822,19 @@ Gracias por tu preferencia`;
         currentMonth = new Date(today.getFullYear(), today.getMonth(), 1);
         selectedDate = new Date();
         selectedDate.setHours(0, 0, 0, 0);
-        loadMonthAppointments(); // Fetch data then render
+        loadMonthAppointments();
         loadAppointments();
+        loadMonthStats();
         updateSelectedDateLabel();
       });
     }
 
     if (btnRefreshAppts) {
       btnRefreshAppts.addEventListener('click', () => {
-        loadAppointments();
-        renderMonthlyCalendar();
+        clearAppointmentsCache();
+        loadMonthAppointments(true);
+        loadAppointments(true);
+        loadMonthStats(true);
       });
     }
 
@@ -16265,8 +16382,10 @@ Gracias por tu preferencia`;
           formNewAppt.reset();
           selectedServices = [];
           renderSelectedServices();
-          loadAppointments();
-          renderMonthlyCalendar();
+          clearAppointmentsCache();
+          loadMonthAppointments(true);
+          loadAppointments(true);
+          loadMonthStats(true);
         } catch (e) {
           console.error('Error al agendar:', e);
           alert('Error de conexión: ' + (e.message || 'Intenta de nuevo'));
@@ -16278,14 +16397,14 @@ Gracias por tu preferencia`;
     }
 
     // Inicializar
-    renderMonthlyCalendar();
+    loadMonthAppointments();
     updateSelectedDateLabel();
     loadMonthStats();
 
     // Auto-load when tab is shown
     window.addEventListener('hashchange', () => {
       if (location.hash === '#appointments') {
-        renderMonthlyCalendar();
+        loadMonthAppointments();
         loadAppointments();
         updateSelectedDateLabel();
         loadMonthStats();
@@ -16293,7 +16412,7 @@ Gracias por tu preferencia`;
     });
 
     if (location.hash === '#appointments') {
-      renderMonthlyCalendar();
+      loadMonthAppointments();
       loadAppointments();
       updateSelectedDateLabel();
       loadMonthStats();
@@ -16685,7 +16804,7 @@ Gracias por tu preferencia`;
 
       tbody.innerHTML = filtered.map(p => {
         const stockClass = p.stock <= 0 ? 'stock-out' : p.stock <= (p.minStock || 5) ? 'stock-low' : 'stock-ok';
-        const stockWarning = p.stock <= (p.minStock || 5) && p.stock > 0 ? ' : '';
+        const stockWarning = p.stock <= (p.minStock || 5) && p.stock > 0 ? ' (bajo)' : '';
 
         return `
           <tr>
@@ -17732,9 +17851,11 @@ Gracias por tu preferencia`;
         if (json.success) {
           closePaymentModal();
           // Actualizar UI
-          if (typeof loadAppointments === 'function') loadAppointments();
+          if (typeof clearAppointmentsCache === 'function') clearAppointmentsCache();
+          if (typeof loadMonthAppointments === 'function') loadMonthAppointments(true);
+          if (typeof loadAppointments === 'function') loadAppointments(true);
           if (typeof loadTodayAppointments === 'function') loadTodayAppointments();
-          if (typeof loadMonthStats === 'function') loadMonthStats();
+          if (typeof loadMonthStats === 'function') loadMonthStats(true);
           if (typeof cargarCaja === 'function') cargarCaja();
           
           if (window.showNotification) 
@@ -18108,7 +18229,10 @@ Gracias por tu preferencia`;
 
         if (res.ok) {
           alert('Webhook simulado correctamente. Revisa la consola del servidor y el estado de la cita.');
-          loadAppointments(); // Recargar citas para ver cambios
+          clearAppointmentsCache();
+          loadMonthAppointments(true);
+          loadAppointments(true);
+          loadMonthStats(true);
         } else {
           alert('Error al simular webhook');
         }
@@ -18927,6 +19051,7 @@ Gracias por tu preferencia`;
               initAgendarUrl();
               startRequestsAutoRefresh();
             } else if (tab === 'appointments') {
+              if (typeof loadMonthAppointments === 'function') loadMonthAppointments();
               if (typeof loadAppointments === 'function') loadAppointments();
               if (typeof loadMonthStats === 'function') loadMonthStats();
               if (typeof startAppointmentsAutoRefresh === 'function') startAppointmentsAutoRefresh();
@@ -19160,11 +19285,20 @@ Gracias por tu preferencia`;
           }
 
           // Si estamos en el tab de citas, recargar
+          if (typeof clearAppointmentsCache === 'function') {
+            clearAppointmentsCache();
+          }
+          if (typeof loadMonthAppointments === 'function') {
+            loadMonthAppointments(true);
+          }
           if (typeof loadAppointments === 'function') {
-            loadAppointments();
+            loadAppointments(true);
           }
           if (typeof renderWeeklyCalendar === 'function') {
-            renderMonthlyCalendar();
+            renderCalendar();
+          }
+          if (typeof loadMonthStats === 'function') {
+            loadMonthStats(true);
           }
 
           alert('Cita agendada correctamente');

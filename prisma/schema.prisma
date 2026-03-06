@@ -118,6 +118,10 @@ model Appointment {
   // Google Calendar mapping (OAuth2)
   calendarMappings GoogleCalendarMapping[]
 
+  @@index([date, startDateTime])
+  @@index([startDateTime])
+  @@index([status, startDateTime])
+  @@index([clientPhone, startDateTime])
   @@map("appointments")
 }
 

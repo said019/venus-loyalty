@@ -982,6 +982,55 @@ app.get('/api/appointments/:id', adminAuth, async (req, res) => {
   }
 });
 
+// POST /api/appointments/:id/attendance-survey - Enviar encuesta de asistencia por WhatsApp
+app.post('/api/appointments/:id/attendance-survey', adminAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const appointment = await AppointmentsRepo.findById(id);
+
+    if (!appointment) {
+      return res.status(404).json({ success: false, error: 'Cita no encontrada' });
+    }
+
+    const result = await WhatsAppService.sendAttendanceSurvey(appointment);
+    let phone = String(appointment.clientPhone || '').replace(/\D/g, '');
+    if (phone.length === 10) phone = `52${phone}`;
+    if (phone && !phone.startsWith('52')) phone = `52${phone}`;
+
+    const manualMessage = result.manualMessage || WhatsAppService.buildAttendanceSurveyMessage(appointment);
+    const manualUrl = phone
+      ? `https://wa.me/${phone}?text=${encodeURIComponent(manualMessage)}`
+      : null;
+
+    if (result.success) {
+      await NotificationsRepo.create({
+        type: 'cita',
+        icon: 'whatsapp',
+        title: 'Encuesta de asistencia enviada',
+        message: `${appointment.clientName} recibió encuesta para ${appointment.serviceName}`,
+        read: false,
+        entityId: id
+      });
+
+      return res.json({
+        success: true,
+        delivery: result.delivery || 'text',
+        manualUrl
+      });
+    }
+
+    return res.json({
+      success: false,
+      error: result.error || 'No se pudo enviar la encuesta',
+      delivery: 'manual',
+      manualUrl
+    });
+  } catch (error) {
+    console.error('Error sending attendance survey:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // POST /api/appointments/:id/payment - Registrar pago con productos y descuento
 app.post('/api/appointments/:id/payment', adminAuth, async (req, res) => {
   try {

@@ -181,6 +181,18 @@ async function sendPollViaEvolution(to, question, options, appointmentId = null)
     }
 }
 
+function buildAttendanceSurveyCopy(appt) {
+    const fecha = formatearFechaLegible(appt.date || appt.startDateTime);
+    const hora = appt.time || formatearHora(appt.startDateTime);
+    const nombre = sanitizeForWhatsApp(appt.clientName);
+    const servicio = sanitizeForWhatsApp(appt.serviceName);
+
+    return {
+        question: `Hola ${nombre}, ¿nos confirmas tu asistencia para ${servicio} el ${fecha} a las ${hora}?`,
+        message: `Hola ${nombre} 👋\n\nQueremos confirmar tu asistencia a *${servicio}* el *${fecha}* a las *${hora}*.\n\nResponde con una opción:\n1. Confirmar asistencia\n2. Reagendar\n3. Cancelar\n\nGracias por elegir Venus Cosmetología.`
+    };
+}
+
 export const WhatsAppService = {
     /**
      * Envía confirmación de cita al momento de crearla
@@ -370,6 +382,43 @@ export const WhatsAppService = {
         );
     },
 
+    async sendAttendanceSurvey(appt) {
+        const { question, message } = buildAttendanceSurveyCopy(appt);
+        const hasEvolution = !!(config.evolution?.apiUrl && config.evolution?.apiKey);
+
+        if (hasEvolution) {
+            try {
+                const result = await sendPollViaEvolution(
+                    appt.clientPhone,
+                    question,
+                    ['Confirmar asistencia', 'Reagendar', 'Cancelar'],
+                    appt.id
+                );
+                if (result.success) {
+                    return { ...result, delivery: 'poll', manualMessage: message };
+                }
+            } catch (error) {
+                console.warn('[WhatsApp] Evolution error en encuesta de asistencia:', error.message);
+            }
+
+            try {
+                const result = await sendViaEvolution(appt.clientPhone, message);
+                if (result.success) {
+                    return { ...result, delivery: 'text', manualMessage: message };
+                }
+            } catch (error) {
+                console.warn('[WhatsApp] Evolution fallback text error:', error.message);
+            }
+        }
+
+        const result = await sendWhatsAppText(appt.clientPhone, message);
+        return {
+            ...result,
+            delivery: result.success ? 'text' : 'manual',
+            manualMessage: message
+        };
+    },
+
     /**
      * Envía confirmación cuando el cliente confirma su cita
      * USA TEXTO LIBRE (Respuesta a sesión activa)
@@ -428,6 +477,9 @@ export const WhatsAppService = {
     },
 
     // Helpers exportados
+    buildAttendanceSurveyMessage(appt) {
+        return buildAttendanceSurveyCopy(appt).message;
+    },
     formatearFechaLegible,
     formatearHora
 };
