@@ -267,7 +267,7 @@
       <div class="thank-you">
         <div class="check">😕</div>
         <h2>Link no válido</h2>
-        <p>Este enlace de evaluación no es válido o ya expiró.</p>
+        <p>Este enlace de evaluación no es válido.</p>
       </div>
     </div>
   </div>
@@ -361,6 +361,9 @@
         if (json.success) {
           document.getElementById('review-form').classList.add('hidden');
           document.getElementById('review-thanks').classList.remove('hidden');
+        } else if (json.duplicate) {
+          document.getElementById('review-form').classList.add('hidden');
+          document.getElementById('review-already').classList.remove('hidden');
         } else {
           alert(json.error || 'Error al enviar');
           btn.disabled = false;

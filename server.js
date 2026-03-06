@@ -5456,73 +5456,208 @@ app.get('/review', (req, res) => {
   res.sendFile('review.html', { root: path.join(process.cwd(), 'public') });
 });
 
-// GET /api/appointment-review-info/:apptId — info pública de la cita para review
-app.get('/api/appointment-review-info/:apptId', async (req, res) => {
-  try {
-    const doc = await firestore.collection('appointments').doc(req.params.apptId).get();
-    if (!doc.exists) return res.status(404).json({ error: 'not found' });
-    const d = doc.data();
+async function getAppointmentForReview(apptId) {
+  const appointment = await prisma.appointment.findUnique({
+    where: { id: apptId },
+    select: {
+      id: true,
+      clientName: true,
+      clientPhone: true,
+      serviceName: true,
+      date: true,
+      startDateTime: true
+    }
+  });
 
-    const dateStr = d.date
-      ? new Date(d.date + 'T00:00:00').toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })
+  if (appointment) return appointment;
+
+  if (firestore) {
+    const doc = await firestore.collection('appointments').doc(apptId).get();
+    if (doc.exists) {
+      return { id: doc.id, ...doc.data() };
+    }
+  }
+
+  return null;
+}
+
+async function getExistingSubmittedReview(apptId) {
+  const prismaReview = await prisma.review.findUnique({
+    where: { appointmentId: apptId }
+  }).catch(() => null);
+
+  if (prismaReview && ((prismaReview.stars || 0) > 0 || prismaReview.answeredAt)) {
+    return { source: 'prisma', review: prismaReview };
+  }
+
+  if (!firestore) {
+    return null;
+  }
+
+  const fsReviews = await firestore.collection('reviews')
+    .where('appointmentId', '==', apptId)
+    .limit(1)
+    .get();
+
+  if (!fsReviews.empty) {
+    return { source: 'firestore', review: { id: fsReviews.docs[0].id, ...fsReviews.docs[0].data() } };
+  }
+
+  return null;
+}
+
+async function handleReviewInfo(req, res) {
+  try {
+    const appointment = await getAppointmentForReview(req.params.apptId);
+    if (!appointment) {
+      return res.status(404).json({ success: false, error: 'Cita no encontrada' });
+    }
+
+    const existingReview = await getExistingSubmittedReview(req.params.apptId);
+    if (existingReview) {
+      return res.json({ success: false, alreadyReviewed: true });
+    }
+
+    const dateStr = appointment.date
+      ? new Date(`${appointment.date}T12:00:00`).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })
       : '';
 
     res.json({
-      serviceName: d.serviceName || '',
-      serviceDate: dateStr,
-      clientName:  d.clientName  || ''
+      success: true,
+      serviceName: appointment.serviceName || '',
+      date: dateStr,
+      clientName: appointment.clientName || ''
     });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ success: false, error: e.message });
   }
-});
+}
+
+// GET /api/reviews/info/:apptId — info pública de la cita para review
+app.get('/api/reviews/info/:apptId', handleReviewInfo);
+
+// Compatibilidad con ruta anterior
+app.get('/api/appointment-review-info/:apptId', handleReviewInfo);
 
 // POST /api/reviews — guardar reseña (público, sin auth)
 app.post('/api/reviews', async (req, res) => {
   try {
-    const { appointmentId, rating, highlights, comment, clientName, serviceName, serviceDate } = req.body;
+    const {
+      appointmentId,
+      rating,
+      stars,
+      highlights,
+      liked,
+      improve,
+      comment,
+      clientName,
+      serviceName,
+      serviceDate
+    } = req.body;
 
-    if (!appointmentId || !rating) {
+    const normalizedRating = parseInt(rating || stars || 0, 10);
+    const normalizedHighlights = Array.isArray(highlights)
+      ? highlights.filter(Boolean).map(item => String(item).trim()).filter(Boolean)
+      : String(liked || '')
+          .split(',')
+          .map(item => item.trim())
+          .filter(Boolean);
+
+    if (!appointmentId || !normalizedRating || normalizedRating < 1 || normalizedRating > 5) {
       return res.status(400).json({ success: false, error: 'Faltan campos requeridos' });
     }
 
-    // Verificar que no haya reseña duplicada para esta cita
-    const existing = await firestore.collection('reviews')
-      .where('appointmentId', '==', appointmentId)
-      .limit(1).get();
+    const appointment = await getAppointmentForReview(appointmentId);
+    if (!appointment) {
+      return res.status(404).json({ success: false, error: 'Cita no encontrada' });
+    }
 
-    if (!existing.empty) {
+    const existingSubmitted = await getExistingSubmittedReview(appointmentId);
+    if (existingSubmitted) {
       return res.json({ success: false, error: 'Ya existe una reseña para esta cita', duplicate: true });
+    }
+
+    const existingPendingReview = await prisma.review.findUnique({
+      where: { appointmentId }
+    }).catch(() => null);
+
+    const resolvedClientName = clientName || appointment.clientName || 'Clienta';
+    const resolvedServiceName = serviceName || appointment.serviceName || '';
+    const resolvedServiceDate = serviceDate || (
+      appointment.date
+        ? new Date(`${appointment.date}T12:00:00`).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })
+        : ''
+    );
+    const combinedComment = [comment, improve ? `Sugerencia de mejora: ${improve}` : null]
+      .filter(Boolean)
+      .join('\n\n');
+
+    if (existingPendingReview) {
+      await prisma.review.update({
+        where: { appointmentId },
+        data: {
+          clientName: resolvedClientName,
+          clientPhone: appointment.clientPhone || existingPendingReview.clientPhone,
+          serviceName: resolvedServiceName,
+          stars: normalizedRating,
+          liked: normalizedHighlights.join(', ') || null,
+          improve: improve || null,
+          comment: comment || null,
+          answeredAt: new Date()
+        }
+      });
+    } else {
+      await prisma.review.create({
+        data: {
+          appointmentId,
+          clientName: resolvedClientName,
+          clientPhone: appointment.clientPhone || '',
+          serviceName: resolvedServiceName,
+          stars: normalizedRating,
+          liked: normalizedHighlights.join(', ') || null,
+          improve: improve || null,
+          comment: comment || null,
+          answeredAt: new Date()
+        }
+      });
     }
 
     const reviewData = {
       appointmentId,
-      rating: parseInt(rating),
-      highlights: highlights || [],
-      comment: comment || '',
-      clientName: clientName || 'Clienta',
-      serviceName: serviceName || '',
-      serviceDate: serviceDate || '',
+      rating: normalizedRating,
+      highlights: normalizedHighlights,
+      liked: normalizedHighlights.join(', ') || null,
+      improve: improve || null,
+      comment: combinedComment || '',
+      clientName: resolvedClientName,
+      clientPhone: appointment.clientPhone || '',
+      serviceName: resolvedServiceName,
+      serviceDate: resolvedServiceDate,
       createdAt: new Date().toISOString(),
       replied: false,
       reply: null
     };
 
-    const docRef = await firestore.collection('reviews').add(reviewData);
+    if (firestore) {
+      const reviewRef = firestore.collection('reviews').doc(appointmentId);
+      await reviewRef.set(reviewData, { merge: false });
+    }
 
     // Crear notificación en admin
-    await firestore.collection('notifications').add({
-      type: 'review',
-      icon: 'star',
-      title: `Nueva reseña ⭐${rating}`,
-      message: `${clientName || 'Clienta'} calificó su cita de ${serviceName || 'servicio'} con ${rating} estrella${rating === 1 ? '' : 's'}`,
-      entityId: docRef.id,
-      read: false,
-      createdAt: new Date().toISOString()
-    });
+    if (firestore) {
+      await firestore.collection('notifications').add({
+        type: 'review',
+        icon: 'star',
+        title: `Nueva reseña ⭐${normalizedRating}`,
+        message: `${resolvedClientName} calificó su cita de ${resolvedServiceName || 'servicio'} con ${normalizedRating} estrella${normalizedRating === 1 ? '' : 's'}`,
+        entityId: appointmentId,
+        read: false,
+        createdAt: new Date().toISOString()
+      });
+    }
 
-    console.log(`[REVIEWS] ✅ Nueva reseña de ${clientName}: ${rating} estrellas`);
-    res.json({ success: true, id: docRef.id });
+    console.log(`[REVIEWS] ✅ Nueva reseña de ${resolvedClientName}: ${normalizedRating} estrellas`);
+    res.json({ success: true, id: appointmentId });
 
   } catch (error) {
     console.error('[REVIEWS] Error:', error);
