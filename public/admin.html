@@ -14927,11 +14927,8 @@
                   </button>
                 </div>
                 `}
-                <button onclick="sendWhatsAppAttendanceSurvey('${appt.id}')" class="btn-icon" style="background:linear-gradient(135deg, #16a34a 0%, #15803d 100%);color:white;padding:6px 12px;border-radius:8px;font-size:0.85em;display:flex;align-items:center;gap:6px;border:none;cursor:pointer;transition:all 0.2s;box-shadow:0 2px 4px rgba(22,163,74,0.3);" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 8px rgba(22,163,74,0.4)'" onmouseout="this.style.transform='';this.style.boxShadow='0 2px 4px rgba(22,163,74,0.3)'" title="Enviar encuesta de asistencia por WhatsApp">
-                  <i class="fab fa-whatsapp"></i> Encuesta
-                </button>
-                <button onclick="sendWhatsAppReminder('${appt.id}', '${appt.clientPhone}', '${appt.clientName.replace(/'/g, "\\'")}', '${appt.serviceName.replace(/'/g, "\\'")}', '${appt.startDateTime}')" class="btn-icon" style="background:linear-gradient(135deg, #25D366 0%, #128C7E 100%);color:white;padding:6px 12px;border-radius:8px;font-size:0.85em;display:flex;align-items:center;gap:6px;border:none;cursor:pointer;transition:all 0.2s;box-shadow:0 2px 4px rgba(37,211,102,0.3);" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 8px rgba(37,211,102,0.4)'" onmouseout="this.style.transform='';this.style.boxShadow='0 2px 4px rgba(37,211,102,0.3)'" title="Enviar recordatorio manual por WhatsApp">
-                  <i class="fab fa-whatsapp"></i>
+                <button onclick="sendWhatsAppAttendanceSurvey('${appt.id}')" class="btn-icon" style="background:linear-gradient(135deg, #25D366 0%, #128C7E 100%);color:white;padding:6px 12px;border-radius:8px;font-size:0.85em;display:flex;align-items:center;gap:6px;border:none;cursor:pointer;transition:all 0.2s;box-shadow:0 2px 4px rgba(37,211,102,0.3);" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 8px rgba(37,211,102,0.4)'" onmouseout="this.style.transform='';this.style.boxShadow='0 2px 4px rgba(37,211,102,0.3)'" title="Enviar encuesta de asistencia por WhatsApp">
+                  <i class="fab fa-whatsapp"></i> WhatsApp
                 </button>
                 <button onclick="editAppointment('${appt.id}')" class="btn-icon" style="background:linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);color:white;padding:6px 12px;border-radius:8px;font-size:0.85em;display:flex;align-items:center;gap:6px;border:none;cursor:pointer;transition:all 0.2s;box-shadow:0 2px 4px rgba(59,130,246,0.3);" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 8px rgba(59,130,246,0.4)'" onmouseout="this.style.transform='';this.style.boxShadow='0 2px 4px rgba(59,130,246,0.3)'">
                   <i class="fas fa-edit"></i> Modificar
@@ -15093,49 +15090,8 @@
       }
     };
 
-    // ========== ENVIAR RECORDATORIO POR WHATSAPP ==========
-    window.sendWhatsAppReminder = (id, phone, clientName, serviceName, startDateTime) => {
-      try {
-        // Formatear fecha y hora
-        const date = new Date(startDateTime);
-        const dateStr = date.toLocaleDateString('es-MX', {
-          weekday: 'long',
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric'
-        });
-        const timeStr = date.toLocaleTimeString('es-MX', {
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: true
-        });
-
-        // Crear mensaje
-        const message = `Hola ${clientName}
-
-*Recordatorio de tu cita en Venus Cosmetología*
-
-*Fecha:* ${dateStr}
-*Hora:* ${timeStr}
-*Servicio:* ${serviceName}
-
-Te esperamos! Si necesitas reagendar, por favor avísanos con anticipación.
-
-Gracias por tu preferencia`;
-
-        // Limpiar número de teléfono (quitar espacios, guiones, etc)
-        const cleanPhone = phone.replace(/[^0-9]/g, '');
-
-        // Abrir WhatsApp
-        const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
-        window.open(whatsappUrl, '_blank');
-
-        console.log('📱 WhatsApp abierto para:', clientName, cleanPhone);
-      } catch (error) {
-        console.error('Error enviando recordatorio WhatsApp:', error);
-        alert('Error al abrir WhatsApp. Verifica que el número de teléfono sea válido.');
-      }
-    };
+    // Compatibilidad: cualquier botón viejo de WhatsApp ahora envía la encuesta de asistencia.
+    window.sendWhatsAppReminder = (id) => window.sendWhatsAppAttendanceSurvey(id);
 
     async function updateAppointmentStatus(id, newStatus) {
       // Prevenir cambio a 'completed' sin registrar pago
