@@ -14420,7 +14420,15 @@
           'clients-dropdown-list',
           (item) => {
             console.log('[CLIENTS] ✅ Cliente seleccionado:', item);
-            document.getElementById('new-appt-phone').value = item.data.phone || '';
+            // Guardar teléfono en variable global (no hay campo new-appt-phone)
+            selectedClientPhone = item.data.phone || '';
+            window.selectedClientPhone = selectedClientPhone;
+            // Guardar en data attributes del input
+            const clientInput = document.getElementById('new-appt-client-select');
+            if (clientInput) {
+              clientInput.dataset.phone = item.data.phone || '';
+              clientInput.dataset.clientId = item.data.id || '';
+            }
             showClientSelectedFeedback(item.label);
             loadClientHistory(item.data.phone, item.label);
           }
@@ -15824,12 +15832,16 @@
 
       // Limpiar campos
       const clientInput = document.getElementById('new-appt-client-select');
-      const phoneInput = document.getElementById('new-appt-phone');
       const serviceInput = document.getElementById('new-appt-service');
       const priceInput = document.getElementById('new-appt-price');
 
-      if (clientInput) clientInput.value = '';
-      if (phoneInput) phoneInput.value = '';
+      if (clientInput) {
+        clientInput.value = '';
+        clientInput.dataset.phone = '';
+        clientInput.dataset.clientId = '';
+      }
+      selectedClientPhone = '';
+      window.selectedClientPhone = '';
       if (serviceInput) serviceInput.value = '';
       if (priceInput) priceInput.value = '';
 

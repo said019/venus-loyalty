@@ -147,7 +147,13 @@ async function buscarCitaActiva(telefono) {
  * Procesa confirmación de cita
  */
 async function procesarConfirmacion(cita) {
-    console.log(`✅ Procesando confirmación para cita ${cita.id}`);
+    console.log(`✅ Procesando confirmación para cita ${cita.id} (status actual: ${cita.status})`);
+
+    // Si ya está confirmada, no re-enviar el mensaje
+    if (cita.status === 'confirmed') {
+        console.log(`⏭️ Cita ${cita.id} ya estaba confirmada, no se re-envía mensaje`);
+        return;
+    }
 
     try {
         await firestore.collection('appointments').doc(cita.id).update({
