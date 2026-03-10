@@ -628,6 +628,22 @@ app.post('/api/evolution/test', adminAuth, async (req, res) => {
   }
 });
 
+// POST /api/whatsapp/send — enviar mensaje de WhatsApp genérico (admin)
+app.post('/api/whatsapp/send', adminAuth, async (req, res) => {
+  const { phone, message } = req.body;
+  if (!phone || !message) {
+    return res.status(400).json({ success: false, error: 'Se requiere phone y message' });
+  }
+  try {
+    const client = getEvolutionClient();
+    await client.sendText(phone, message);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('[WhatsApp Send] Error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // 🏥 Health Check con versión
 app.get('/api/health', (req, res) => {
   res.json({
@@ -3037,6 +3053,11 @@ app.get('/api/public/card/:id', async (req, res) => {
       sessionsUsed: card.sessionsUsed || 0,
       googleWalletUrl: card.walletPassUrl || null,
       applePassAvailable,
+      massageActive: card.massageActive || false,
+      massageStamps: card.massageStamps || 0,
+      massageMax: card.massageMax || 10,
+      massageWalletUrl: card.massageWalletUrl || null,
+      massageGoogleWalletUrl: card.massageWalletUrl || null,
     });
   } catch (e) {
     console.error('[WALLET] Error getting card:', e);
