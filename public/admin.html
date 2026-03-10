@@ -12961,6 +12961,9 @@
             <button onclick="massageStampCard('${card.id}')" class="btn small" style="margin-top:8px;width:100%;background:#C4936E;color:#fff;font-weight:600;padding:8px;border-radius:8px;">
               <i class="fas fa-spa"></i> Agregar sesión de masaje
             </button>
+            <button onclick="resendMassageLink('${card.id}')" class="btn small" style="margin-top:6px;width:100%;background:rgba(37,211,102,0.2);color:#25D366;font-weight:600;padding:7px;border-radius:8px;font-size:11px;">
+              <i class="fab fa-whatsapp"></i> Reenviar link de masajes por WhatsApp
+            </button>
             ${googleMassageBtnHtml}
           </div>
         `;
@@ -13276,6 +13279,49 @@
         alert('Sello agregado y Google Wallet actualizado');
       } catch (e) {
         alert('Error: ' + e.message);
+      }
+    }
+
+    /* ===== REENVIAR LINK MASAJES POR WHATSAPP ===== */
+    async function resendMassageLink(cardId) {
+      const card = cardsCache[cardId];
+      if (!card) return;
+      const name = card.name || 'la clienta';
+      const phone = card.phone ? card.phone.replace(/[^0-9]/g, '') : '';
+
+      if (!phone) {
+        alert('⚠️ La clienta no tiene teléfono registrado.');
+        return;
+      }
+
+      if (!confirm(`¿Enviar link de membresía de masajes a ${name} por WhatsApp?`)) return;
+
+      const cardLink = `${window.location.origin}/card/${cardId}`;
+      const message =
+        `Hola ${name} 🌸\n\n` +
+        `Aquí tienes tu *tarjeta de masajes Venus* 🧖‍♀️✨\n\n` +
+        `Guarda tu tarjeta digital aquí:\n${cardLink}\n\n` +
+        `_Venus Cosmetología — Cactus 50, San Juan del Río_`;
+
+      try {
+        const res = await fetch('/api/whatsapp/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone, message })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          const toast = document.createElement('div');
+          toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#25D366,#128C7E);color:#fff;padding:12px 24px;border-radius:12px;font-size:14px;font-weight:600;z-index:99999;box-shadow:0 4px 16px rgba(37,211,102,0.4);display:flex;align-items:center;gap:8px;';
+          toast.innerHTML = '<i class="fab fa-whatsapp"></i> Link de masajes enviado a ' + name;
+          document.body.appendChild(toast);
+          setTimeout(() => toast.remove(), 4000);
+        } else {
+          throw new Error(data.error || 'No se pudo enviar');
+        }
+      } catch (e) {
+        alert('❌ Error: ' + e.message);
       }
     }
 
