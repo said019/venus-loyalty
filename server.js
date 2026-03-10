@@ -3101,32 +3101,85 @@ app.get('/api/public/card/:id/apple.pkpass', async (req, res) => {
   }
 });
 
+// GET /api/public/card/:id/massage.pkpass — download Apple Wallet pass for massage
+app.get('/api/public/card/:id/massage.pkpass', async (req, res) => {
+  try {
+    const card = await prisma.card.findUnique({ where: { id: req.params.id } });
+    if (!card) return res.status(404).json({ error: 'Tarjeta no encontrada' });
+    if (!card.massageActive) return res.status(400).json({ error: 'No tiene membresía de masajes activa' });
+
+    const { buildApplePassBuffer } = await import('./lib/apple.js');
+
+    const buffer = await buildApplePassBuffer({
+      cardId: card.id,
+      name: card.name,
+      stamps: card.massageStamps || 0,
+      max: card.massageMax || 10,
+      latestMessage: card.latestMessage,
+      cardType: 'massage',
+      cardColor: '#C4936E',
+    });
+
+    res.set({
+      'Content-Type': 'application/vnd.apple.pkpass',
+      'Content-Disposition': `attachment; filename="venus-massage-${card.id}.pkpass"`,
+    });
+    res.send(buffer);
+  } catch (e) {
+    console.error('[WALLET] Apple massage pass error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // POST /api/admin/cards/:id/issue-wallet — issue/regenerate wallet for a card
 app.post('/api/admin/cards/:id/issue-wallet', adminAuth, async (req, res) => {
   try {
     const { cardType, cardColor, sessionsTotal } = req.body;
-    const card = await prisma.card.update({
-      where: { id: req.params.id },
-      data: {
-        cardType: cardType || 'loyalty',
-        cardColor: cardColor || '#8C9668',
-        sessionsTotal: parseInt(sessionsTotal) || 0,
-        sessionsUsed: 0,
-      },
-    });
+    const isMassage = cardType === 'massage';
 
-    // Generate Google Wallet save URL using existing lib/google.js
+    let card;
+    if (isMassage) {
+      // Activar membresía de masajes
+      card = await prisma.card.update({
+        where: { id: req.params.id },
+        data: {
+          massageActive: true,
+          massageStamps: 0,
+          massageMax: parseInt(sessionsTotal) || 10,
+          massageCycles: 0,
+        },
+      });
+    } else {
+      card = await prisma.card.update({
+        where: { id: req.params.id },
+        data: {
+          cardType: cardType || 'loyalty',
+          cardColor: cardColor || '#8C9668',
+          sessionsTotal: parseInt(sessionsTotal) || 0,
+          sessionsUsed: 0,
+        },
+      });
+    }
+
+    // Generate Google Wallet save URL
     let googleWalletUrl = null;
     if (process.env.GOOGLE_ISSUER_ID) {
       try {
         const { buildGoogleSaveUrl, updateLoyaltyObject } = await import('./lib/google.js');
-        const isAnnual = (cardType || 'loyalty') === 'annual';
-        const stamps = isAnnual ? (card.sessionsTotal - card.sessionsUsed) : card.stamps;
-        const max = isAnnual ? card.sessionsTotal : card.max;
-        // Sync object in Google Wallet
-        await updateLoyaltyObject(card.id, card.name, stamps, max);
-        googleWalletUrl = buildGoogleSaveUrl({ cardId: card.id, name: card.name, stamps, max });
-        await prisma.card.update({ where: { id: card.id }, data: { walletPassUrl: googleWalletUrl } });
+
+        if (isMassage) {
+          const massageCardId = `${card.id}-massage`;
+          await updateLoyaltyObject(massageCardId, card.name, 0, card.massageMax || 10, 'massage');
+          googleWalletUrl = buildGoogleSaveUrl({ cardId: massageCardId, name: card.name, stamps: 0, max: card.massageMax || 10, cardType: 'massage' });
+          await prisma.card.update({ where: { id: card.id }, data: { massageWalletUrl: googleWalletUrl } });
+        } else {
+          const isAnnual = (cardType || 'loyalty') === 'annual';
+          const stamps = isAnnual ? (card.sessionsTotal - card.sessionsUsed) : card.stamps;
+          const max = isAnnual ? card.sessionsTotal : card.max;
+          await updateLoyaltyObject(card.id, card.name, stamps, max);
+          googleWalletUrl = buildGoogleSaveUrl({ cardId: card.id, name: card.name, stamps, max });
+          await prisma.card.update({ where: { id: card.id }, data: { walletPassUrl: googleWalletUrl } });
+        }
       } catch (gErr) {
         console.warn('[WALLET] Google Wallet generation failed:', gErr.message);
       }
