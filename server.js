@@ -3120,6 +3120,59 @@ app.post('/api/admin/cards/:id/issue-wallet', adminAuth, async (req, res) => {
   }
 });
 
+// POST /api/admin/massage-stamp — add 1 massage session stamp
+app.post("/api/admin/massage-stamp", adminAuth, async (req, res) => {
+  try {
+    const { cardId } = req.body || {};
+    if (!cardId) return res.status(400).json({ error: "missing_cardId" });
+
+    const card = await fsGetCard(cardId);
+    if (!card) return res.status(404).json({ error: "card not found" });
+    if (!card.massageActive) return res.status(400).json({ error: "No tiene membresía de masajes activa" });
+    if (card.massageStamps >= card.massageMax) return res.status(400).json({ error: "Membresía de masajes completa" });
+
+    const newStamps = (card.massageStamps || 0) + 1;
+
+    await prisma.card.update({
+      where: { id: cardId },
+      data: { massageStamps: newStamps }
+    });
+
+    await fsAddEvent(cardId, "MASSAGE_STAMP", { by: "admin", massageStamps: newStamps });
+
+    // Actualizar Google Wallet
+    try {
+      const { updateLoyaltyObject } = await import("./lib/google.js");
+      const massageCardId = `${cardId}-massage`;
+      await updateLoyaltyObject(massageCardId, card.name, newStamps, card.massageMax, 'massage');
+      console.log(`[GOOGLE WALLET] ✅ Massage stamp: ${cardId} (${newStamps}/${card.massageMax})`);
+    } catch (googleError) {
+      console.error(`[GOOGLE WALLET] ❌ Error massage stamp:`, googleError.message);
+    }
+
+    // Push a Apple Wallet
+    try {
+      let customMsg = null;
+      if (newStamps === 5) {
+        customMsg = `🎁 ¡Felicidades ${card.name}! Llevas 5 masajes — tienes un regalo especial esperándote.`;
+      } else if (newStamps === 10) {
+        customMsg = `🎁🎉 ¡Increíble ${card.name}! Completaste 10 masajes — ¡tu segundo regalo te espera!`;
+      } else {
+        customMsg = `💆 Sesión de masaje registrada — llevas ${newStamps} de ${card.massageMax}.`;
+      }
+      const massageSerial = `${cardId}-massage`;
+      await appleWebService.updatePassAndNotify(massageSerial, card.massageStamps, newStamps, customMsg);
+    } catch (err) {
+      console.error("[APPLE] Error notificando masaje:", err);
+    }
+
+    res.json({ ok: true, cardId, massageStamps: newStamps, massageMax: card.massageMax });
+  } catch (e) {
+    console.error("[ADMIN MASSAGE STAMP]", e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // PATCH /api/admin/cards/:id/redeem-session — redeem 1 session (Venus Constancia Anual)
 app.patch('/api/admin/cards/:id/redeem-session', adminAuth, async (req, res) => {
   try {

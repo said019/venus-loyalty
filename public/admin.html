@@ -10084,6 +10084,15 @@
           </button>
         </div>
 
+        <!-- Membresía Masajes -->
+        <div style="margin-top:10px;">
+          <button id="cm-issue-massage" class="btn"
+            style="width:100%;background:linear-gradient(135deg,#C4936E,#a87350);color:#fff;font-weight:700;font-size:14px;border:none;border-radius:12px;padding:13px 16px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.2s;box-shadow:0 4px 16px rgba(196,147,110,0.35);"
+            onclick="issueMassageMembership()">
+            <i class="fas fa-spa"></i> Emitir Membresía Masajes (10 sesiones)
+          </button>
+        </div>
+
         <!-- Acciones secundarias -->
         <div
           style="display:flex;justify-content:center;gap:12px;margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.05);flex-wrap:wrap;">
@@ -12440,7 +12449,7 @@
           return `
           <tr data-card-id="${card.id}" class="card-row" style="cursor:pointer;">
             <td>
-              <div style="font-weight:500;">${card.name || '—'}</div>
+              <div style="font-weight:500;">${card.name || '—'}${card.massageActive ? `<span style="display:inline-block;background:#C4936E;color:#fff;font-size:9px;padding:1px 5px;border-radius:4px;margin-left:4px;">🧖 Masajes ${card.massageStamps || 0}/${card.massageMax || 10}</span>` : ''}</div>
               ${card.birthdate ? `<div class="muted" style="font-size:11px;"><i class="fas fa-birthday-cake"></i> ${formatBirthday(card.birthdate)}</div>` : ''}
             </td>
             <td style="font-size:13px;">${card.phone || '—'}</td>
@@ -12454,9 +12463,10 @@
               </div>
             </td>
             <td>
-              <div style="display:flex;gap:6px;">
-                <button class="btn small" data-action="stamp" style="background:#FFD166;color:#000;font-weight:600;padding:4px 10px;"><i class="fas fa-star"></i>+1</button>
-                <button class="btn small ghost" data-action="view" style="padding:4px 10px;">Ver</button>
+              <div style="display:flex;gap:4px;flex-wrap:wrap;">
+                <button class="btn small" data-action="stamp" style="background:#FFD166;color:#000;font-weight:600;padding:4px 8px;font-size:11px;"><i class="fas fa-star"></i>+1</button>
+                ${card.massageActive ? `<button class="btn small" data-action="massage-stamp" style="background:#C4936E;color:#fff;font-weight:600;padding:4px 8px;font-size:11px;"><i class="fas fa-spa"></i>+1</button>` : ''}
+                <button class="btn small ghost" data-action="view" style="padding:4px 8px;font-size:11px;">Ver</button>
               </div>
             </td>
           </tr>
@@ -12534,6 +12544,9 @@
           break;
         case 'stamp':
           await stampCard(cardId);
+          break;
+        case 'massage-stamp':
+          await massageStampCard(cardId);
           break;
         case 'redeem':
           await redeemCard(cardId);
@@ -12904,6 +12917,59 @@
       }
       document.getElementById('cm-status-text').textContent = statusText;
 
+      const hasMassage = card.massageActive;
+
+      // ===== Sección de masajes =====
+      let massageSection = document.getElementById('cm-massage-section');
+      if (!massageSection) {
+        const progressSection = document.getElementById('cm-status-text').closest('div[style]');
+        massageSection = document.createElement('div');
+        massageSection.id = 'cm-massage-section';
+        progressSection.parentNode.insertBefore(massageSection, progressSection.nextSibling);
+      }
+
+      if (hasMassage) {
+        const ms = card.massageStamps || 0;
+        const mm = card.massageMax || 10;
+        const mPct = Math.min((ms / mm) * 100, 100);
+        let mStatus = '';
+        if (ms >= mm) {
+          mStatus = '🎁🎁 ¡Membresía completa! 2 regalos desbloqueados';
+        } else if (ms >= 5) {
+          mStatus = `🎁 1er regalo ✓ — Faltan ${mm - ms} para el 2do`;
+        } else {
+          mStatus = `🎁 Próximo regalo en sesión 5 (faltan ${5 - ms})`;
+        }
+
+        const hasGoogleMassage = !!card.massageWalletUrl;
+        const googleMassageBtnHtml = hasGoogleMassage
+          ? ''
+          : `<button onclick="generateMassageWallet('${card.id}')" class="btn small" style="margin-top:6px;width:100%;background:rgba(196,147,110,0.3);color:#C4936E;font-weight:600;padding:7px;border-radius:8px;font-size:11px;">
+              <i class="fab fa-google"></i> Generar Google Wallet Masajes
+            </button>`;
+
+        massageSection.innerHTML = `
+          <div style="background:rgba(196,147,110,0.15);border:1px solid rgba(196,147,110,0.3);border-radius:12px;padding:14px;margin-bottom:16px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+              <span style="font-size:13px;color:#C4936E;font-weight:600;">🧖 Masajes</span>
+              <span style="font-weight:700;font-size:18px;color:#C4936E;">${ms} / ${mm}</span>
+            </div>
+            <div style="background:rgba(255,255,255,0.1);border-radius:8px;height:8px;overflow:hidden;">
+              <div style="background:linear-gradient(90deg,#C4936E,#a87350);height:100%;width:${mPct}%;transition:width 0.3s;border-radius:8px;"></div>
+            </div>
+            <div class="muted" style="font-size:11px;margin-top:6px;text-align:center;">${mStatus}</div>
+            <button onclick="massageStampCard('${card.id}')" class="btn small" style="margin-top:8px;width:100%;background:#C4936E;color:#fff;font-weight:600;padding:8px;border-radius:8px;">
+              <i class="fas fa-spa"></i> Agregar sesión de masaje
+            </button>
+            ${googleMassageBtnHtml}
+          </div>
+        `;
+        massageSection.classList.remove('hidden');
+      } else {
+        massageSection.innerHTML = '';
+        massageSection.classList.add('hidden');
+      }
+
       // Ocultar botón "Emitir Membresía" si ya tiene masajes activos
       const issueMassageBtn = document.getElementById('cm-issue-massage');
       if (issueMassageBtn) {
@@ -13210,6 +13276,119 @@
         alert('Sello agregado y Google Wallet actualizado');
       } catch (e) {
         alert('Error: ' + e.message);
+      }
+    }
+
+    /* ===== SELLO DE MASAJE ===== */
+    async function massageStampCard(cardId) {
+      const card = cardsCache[cardId];
+      const name = card?.name || 'la clienta';
+      if (!confirm(`¿Agregar 1 sesión de masaje a ${name}?`)) return;
+      try {
+        const r = await fetch('/api/admin/massage-stamp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ cardId })
+        });
+        const data = await r.json();
+        if (!r.ok || !data.ok) {
+          throw new Error(data.error || 'No se pudo agregar sesión de masaje');
+        }
+
+        await loadCards(currentPage);
+        if (currentCardId === cardId) {
+          const updated = cardsCache[cardId];
+          if (updated) openCardModal(updated);
+        }
+
+        const isGift = data.massageStamps === 5 || data.massageStamps === 10;
+        const msg = isGift
+          ? `🎁 ¡Sesión ${data.massageStamps} de masaje! Regalo desbloqueado.`
+          : `💆 Sesión de masaje registrada (${data.massageStamps}/${data.massageMax})`;
+        alert(msg);
+      } catch (e) {
+        alert('Error: ' + e.message);
+      }
+    }
+
+    /* ===== EMITIR MEMBRESÍA MASAJES ===== */
+    async function issueMassageMembership() {
+      if (!currentCardId) return;
+
+      const card = cardsCache[currentCardId];
+      const name = card?.name || 'la clienta';
+      const phone = card?.phone;
+
+      if (!confirm(`¿Emitir membresía de masajes a ${name}?\n\n• 10 sesiones de masaje\n• Fondo terracota en Wallet\n• Se enviará el link por WhatsApp vía Evolution`)) return;
+
+      const btn = document.getElementById('cm-issue-massage');
+      const originalHtml = btn.innerHTML;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generando...';
+      btn.disabled = true;
+
+      try {
+        const res = await fetch(`/api/admin/cards/${currentCardId}/issue-wallet`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            cardType: 'massage',
+            cardColor: '#C4936E',
+            sessionsTotal: 10
+          })
+        });
+
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.error || 'No se pudo emitir la membresía');
+
+        const cardLink = data.cardLink;
+
+        const message =
+          `Hola ${name} 🌸\n\n` +
+          `¡Tu *membresía de masajes Venus* está lista! 🧖‍♀️✨\n\n` +
+          `🪨 *10 sesiones de masaje* para ti\n\n` +
+          `Guarda tu tarjeta digital aquí:\n${cardLink}\n\n` +
+          `_Venus Cosmetología — Cactus 50, San Juan del Río_`;
+
+        const cleanPhone = phone ? phone.replace(/[^0-9]/g, '') : '';
+
+        if (cleanPhone) {
+          btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
+
+          const waRes = await fetch('/api/whatsapp/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone: cleanPhone, message })
+          });
+
+          const waData = await waRes.json();
+
+          if (waData.success) {
+            const toast = document.createElement('div');
+            toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#C4936E,#a87350);color:#fff;padding:12px 24px;border-radius:12px;font-size:14px;font-weight:600;z-index:99999;box-shadow:0 4px 16px rgba(196,147,110,0.5);display:flex;align-items:center;gap:8px;';
+            toast.innerHTML = '<i class="fas fa-spa"></i> Membresía enviada a ' + name + ' 🧖‍♀️';
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 4000);
+          } else {
+            throw new Error(waData.error || 'Membresía creada pero no se pudo enviar el WhatsApp');
+          }
+        } else {
+          alert('⚠️ Membresía emitida, pero la clienta no tiene teléfono registrado.\n\nLink: ' + cardLink);
+        }
+
+        btn.innerHTML = '<i class="fas fa-check"></i> ¡Membresía emitida!';
+        btn.style.background = 'linear-gradient(135deg,#22c55e,#16a34a)';
+        setTimeout(() => {
+          btn.innerHTML = originalHtml;
+          btn.style.background = 'linear-gradient(135deg,#C4936E,#a87350)';
+          btn.disabled = false;
+        }, 3000);
+
+      } catch (e) {
+        alert('❌ Error: ' + e.message + '\n\nVerifica que Evolution API esté conectada en Ajustes.');
+        btn.innerHTML = originalHtml;
+        btn.disabled = false;
       }
     }
 
