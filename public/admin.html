@@ -5971,6 +5971,46 @@
         </div>
       </div>
 
+      <!-- CAMPAÑA PROMO 2025 -->
+      <div style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:12px;padding:14px;margin:16px 0;">
+        <h3 style="margin:0 0 8px;"><i class="fab fa-whatsapp"></i> Campaña WhatsApp — Clientes 2025</h3>
+        <p class="muted" style="font-size:12px;margin-bottom:10px;">Envía un mensaje promocional a clientes que te escribieron en 2025 pero no han regresado. Se envía 1 mensaje cada 5 minutos.</p>
+
+        <label>Mensaje promocional</label>
+        <textarea id="promo-message" rows="4" placeholder="Hola {nombre}, te extrañamos en Venus! Tenemos un descuento especial en nuestros servicios básicos solo para ti. Agenda tu cita hoy. ¡Te esperamos!" style="width:100%;"></textarea>
+        <small class="muted">Usa <b>{nombre}</b> para personalizar con el nombre de la clienta</small>
+
+        <div style="margin-top:10px;">
+          <label>Cantidad máxima de envíos</label>
+          <input id="promo-limit" type="number" min="1" max="500" value="20" placeholder="20" style="width:100px;">
+          <small class="muted">Déjalo vacío para enviar a todos</small>
+        </div>
+
+        <div class="row" style="margin-top:12px;gap:10px;">
+          <button type="button" id="btn-promo-start" class="btn primary" onclick="startPromo2025()"><i class="fab fa-whatsapp"></i> Iniciar campaña</button>
+          <button type="button" id="btn-promo-stop" class="btn ghost" style="color:#ef4444;" onclick="stopPromo2025()" disabled><i class="fas fa-stop"></i> Detener</button>
+          <button type="button" class="btn ghost" onclick="refreshPromoStatus()"><i class="fas fa-sync-alt"></i></button>
+        </div>
+
+        <div id="promo-status" class="hidden" style="margin-top:12px;padding:10px;background:rgba(255,255,255,0.05);border-radius:8px;">
+          <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:13px;">
+            <span><i class="fas fa-paper-plane" style="color:#22c55e;"></i> Enviados: <b id="promo-sent">0</b></span>
+            <span><i class="fas fa-exclamation-triangle" style="color:#ef4444;"></i> Fallidos: <b id="promo-failed">0</b></span>
+            <span><i class="fas fa-clock" style="color:#f59e0b;"></i> En cola: <b id="promo-remaining">0</b></span>
+            <span><i class="fas fa-users"></i> Total: <b id="promo-total">0</b></span>
+          </div>
+          <div id="promo-running-badge" class="hidden" style="margin-top:8px;font-size:12px;color:#22c55e;"><i class="fas fa-circle fa-xs"></i> Campaña en curso...</div>
+          <div id="promo-done-badge" class="hidden" style="margin-top:8px;font-size:12px;color:#8c8c8c;"><i class="fas fa-check-circle"></i> Campaña finalizada</div>
+        </div>
+
+        <div id="promo-sent-list" class="hidden" style="margin-top:10px;max-height:200px;overflow-y:auto;">
+          <table style="width:100%;font-size:12px;">
+            <thead><tr><th>Nombre</th><th>Teléfono</th><th>Enviado</th></tr></thead>
+            <tbody id="promo-sent-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
       <div style="margin-top:16px;">
         <div class="row" style="justify-content:space-between;margin-bottom:8px;">
           <h3 style="margin:0;"><i class="fas fa-list"></i> Historial</h3>
@@ -12690,6 +12730,97 @@
 
       openCardModal(card);
     }
+
+    /* ===== CAMPAÑA PROMO 2025 - WhatsApp ===== */
+    async function startPromo2025() {
+      const message = document.getElementById('promo-message').value.trim();
+      if (!message) { alert('Escribe el mensaje promocional'); return; }
+      const limit = parseInt(document.getElementById('promo-limit').value) || 0;
+      const limitText = limit > 0 ? `(máx ${limit})` : '(todos)';
+      if (!confirm(`¿Iniciar campaña? Se enviará 1 mensaje cada 5 min a clientes del 2025 que no han regresado ${limitText}.`)) return;
+
+      document.getElementById('btn-promo-start').disabled = true;
+      try {
+        const res = await fetch('/api/admin/promo-2025/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ message, limit: limit || undefined })
+        });
+        const json = await res.json();
+        if (json.success) {
+          document.getElementById('btn-promo-stop').disabled = false;
+          showToast(json.message, 'success');
+          updatePromoUI(json.status);
+          // Auto-refresh cada 30s
+          window._promoInterval = setInterval(refreshPromoStatus, 30000);
+        } else {
+          alert(json.error || 'Error al iniciar');
+          document.getElementById('btn-promo-start').disabled = false;
+        }
+      } catch (e) {
+        alert('Error de conexión');
+        document.getElementById('btn-promo-start').disabled = false;
+      }
+    }
+
+    async function stopPromo2025() {
+      if (!confirm('¿Detener la campaña?')) return;
+      try {
+        const res = await fetch('/api/admin/promo-2025/stop', { method: 'POST', credentials: 'include' });
+        const json = await res.json();
+        showToast('Campaña detenida', 'info');
+        updatePromoUI(json);
+        document.getElementById('btn-promo-start').disabled = false;
+        document.getElementById('btn-promo-stop').disabled = true;
+        if (window._promoInterval) clearInterval(window._promoInterval);
+      } catch (e) { alert('Error'); }
+    }
+
+    async function refreshPromoStatus() {
+      try {
+        const res = await fetch('/api/admin/promo-2025/status', { credentials: 'include' });
+        const json = await res.json();
+        if (json.success) updatePromoUI(json);
+      } catch (e) { /* silencio */ }
+    }
+
+    function updatePromoUI(data) {
+      const statusDiv = document.getElementById('promo-status');
+      statusDiv.classList.remove('hidden');
+
+      document.getElementById('promo-sent').textContent = data.sent || 0;
+      document.getElementById('promo-failed').textContent = data.failed || 0;
+      document.getElementById('promo-remaining').textContent = data.remaining || 0;
+      document.getElementById('promo-total').textContent = data.total || 0;
+
+      const runBadge = document.getElementById('promo-running-badge');
+      const doneBadge = document.getElementById('promo-done-badge');
+      if (data.running) {
+        runBadge.classList.remove('hidden');
+        doneBadge.classList.add('hidden');
+        document.getElementById('btn-promo-start').disabled = true;
+        document.getElementById('btn-promo-stop').disabled = false;
+      } else {
+        runBadge.classList.add('hidden');
+        if (data.sent > 0 || data.failed > 0) doneBadge.classList.remove('hidden');
+        document.getElementById('btn-promo-start').disabled = false;
+        document.getElementById('btn-promo-stop').disabled = true;
+        if (window._promoInterval) clearInterval(window._promoInterval);
+      }
+
+      // Tabla de enviados
+      if (data.sentList && data.sentList.length > 0) {
+        document.getElementById('promo-sent-list').classList.remove('hidden');
+        const tbody = document.getElementById('promo-sent-tbody');
+        tbody.innerHTML = data.sentList.map(c =>
+          `<tr><td>${c.name}</td><td>${c.phone}</td><td>${new Date(c.sentAt).toLocaleTimeString()}</td></tr>`
+        ).join('');
+      }
+    }
+
+    // Revisar estado al cargar la página
+    refreshPromoStatus();
 
     /* ===== PUSH NOTIFICATIONS - CORREGIDO ===== */
     const typeEmojis = {

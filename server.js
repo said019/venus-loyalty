@@ -4446,6 +4446,184 @@ app.delete("/api/admin/notifications/clear", adminAuth, async (req, res) => {
 });
 
 /* =========================================================
+   CAMPAÑA PROMO - Envío masivo WhatsApp a clientes 2025
+   ========================================================= */
+
+// Estado en memoria de la campaña
+let promoState = {
+  running: false,
+  queue: [],        // [{name, phone}]
+  sent: [],         // [{name, phone, sentAt}]
+  failed: [],       // [{name, phone, error}]
+  intervalId: null,
+  message: '',
+  startedAt: null,
+};
+
+// Iniciar campaña
+app.post('/api/admin/promo-2025/start', adminAuth, async (req, res) => {
+  if (promoState.running) {
+    return res.json({ success: false, error: 'Ya hay una campaña en curso', status: getPromoStatus() });
+  }
+
+  const { message, limit } = req.body;
+  if (!message) {
+    return res.status(400).json({ success: false, error: 'Se requiere el campo "message" con el texto a enviar' });
+  }
+  const maxSend = limit && Number(limit) > 0 ? Number(limit) : 0; // 0 = sin límite
+
+  try {
+    // Buscar teléfonos que enviaron mensajes de WhatsApp en 2025 (mensajes entrantes)
+    const messages2025 = await prisma.whatsappMessage.findMany({
+      where: {
+        direction: 'in',
+        timestamp: {
+          gte: new Date('2025-01-01T00:00:00Z'),
+          lt:  new Date('2026-01-01T00:00:00Z'),
+        },
+        phone: { not: '' },
+      },
+      select: { phone: true, name: true },
+    });
+
+    // Obtener phones únicos
+    const phoneMap = new Map();
+    for (const m of messages2025) {
+      const phone = m.phone.replace(/\D/g, '');
+      if (phone && phone.length >= 10 && !phoneMap.has(phone)) {
+        phoneMap.set(phone, m.name || 'Cliente');
+      }
+    }
+
+    // Excluir clientes que ya tienen citas en 2026 (ya regresaron)
+    const recentClients = await prisma.appointment.findMany({
+      where: {
+        startDateTime: { gte: new Date('2026-01-01T00:00:00Z') },
+        status: { in: ['completed', 'confirmed', 'scheduled'] },
+        clientPhone: { not: '' },
+      },
+      select: { clientPhone: true },
+    });
+    const recentPhones = new Set(recentClients.map(c => c.clientPhone.replace(/\D/g, '')));
+
+    // También excluir los que ya escribieron en 2026
+    const messages2026 = await prisma.whatsappMessage.findMany({
+      where: {
+        direction: 'in',
+        timestamp: { gte: new Date('2026-01-01T00:00:00Z') },
+        phone: { not: '' },
+      },
+      select: { phone: true },
+    });
+    for (const m of messages2026) {
+      recentPhones.add(m.phone.replace(/\D/g, ''));
+    }
+
+    const queue = [];
+    for (const [phone, name] of phoneMap) {
+      if (!recentPhones.has(phone)) {
+        queue.push({ name, phone });
+      }
+    }
+
+    if (queue.length === 0) {
+      return res.json({ success: false, error: 'No se encontraron clientes del 2025 inactivos' });
+    }
+
+    // Aplicar límite si se especificó
+    const finalQueue = maxSend > 0 ? queue.slice(0, maxSend) : queue;
+
+    // Iniciar campaña
+    promoState = {
+      running: true,
+      queue: [...finalQueue],
+      sent: [],
+      failed: [],
+      intervalId: null,
+      message,
+      startedAt: new Date().toISOString(),
+    };
+
+    // Enviar cada 5 min
+    promoState.intervalId = setInterval(async () => {
+      if (promoState.queue.length === 0) {
+        clearInterval(promoState.intervalId);
+        promoState.running = false;
+        promoState.intervalId = null;
+        console.log('[PROMO 2025] Campaña terminada. Enviados:', promoState.sent.length, 'Fallidos:', promoState.failed.length);
+        return;
+      }
+
+      const client = promoState.queue.shift();
+      try {
+        const evoClient = getEvolutionClient();
+        const personalMsg = promoState.message.replace(/{nombre}/gi, client.name || 'estimada clienta');
+        await evoClient.sendText(client.phone, personalMsg);
+        promoState.sent.push({ ...client, sentAt: new Date().toISOString() });
+        console.log(`[PROMO 2025] Enviado a ${client.name} (${client.phone}) — Quedan: ${promoState.queue.length}`);
+      } catch (err) {
+        promoState.failed.push({ ...client, error: err.message });
+        console.error(`[PROMO 2025] Error enviando a ${client.phone}:`, err.message);
+      }
+    }, 5 * 60 * 1000); // 5 minutos
+
+    // Enviar el primer mensaje inmediatamente
+    const firstClient = promoState.queue.shift();
+    try {
+      const evoClient = getEvolutionClient();
+      const personalMsg = promoState.message.replace(/{nombre}/gi, firstClient.name || 'estimada clienta');
+      await evoClient.sendText(firstClient.phone, personalMsg);
+      promoState.sent.push({ ...firstClient, sentAt: new Date().toISOString() });
+      console.log(`[PROMO 2025] Primer envío a ${firstClient.name} (${firstClient.phone}) — Quedan: ${promoState.queue.length}`);
+    } catch (err) {
+      promoState.failed.push({ ...firstClient, error: err.message });
+      console.error(`[PROMO 2025] Error en primer envío:`, err.message);
+    }
+
+    res.json({
+      success: true,
+      totalClients: finalQueue.length,
+      totalFound: queue.length,
+      message: `Campaña iniciada. ${finalQueue.length} clientes en cola${maxSend ? ` (de ${queue.length} encontrados)` : ''}. Se enviará 1 mensaje cada 5 min.`,
+      estimatedTime: `${Math.ceil((finalQueue.length - 1) * 5)} minutos`,
+      status: getPromoStatus(),
+    });
+
+  } catch (err) {
+    console.error('[PROMO 2025] Error iniciando campaña:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Ver estado
+app.get('/api/admin/promo-2025/status', adminAuth, (req, res) => {
+  res.json({ success: true, ...getPromoStatus() });
+});
+
+// Parar campaña
+app.post('/api/admin/promo-2025/stop', adminAuth, (req, res) => {
+  if (promoState.intervalId) {
+    clearInterval(promoState.intervalId);
+  }
+  promoState.running = false;
+  promoState.intervalId = null;
+  res.json({ success: true, message: 'Campaña detenida', ...getPromoStatus() });
+});
+
+function getPromoStatus() {
+  return {
+    running: promoState.running,
+    startedAt: promoState.startedAt,
+    sent: promoState.sent.length,
+    failed: promoState.failed.length,
+    remaining: promoState.queue.length,
+    total: promoState.sent.length + promoState.failed.length + promoState.queue.length,
+    sentList: promoState.sent,
+    failedList: promoState.failed,
+  };
+}
+
+/* =========================================================
    CANJEAR (staff) - CON NOTIFICACIÓN APPLE
    ========================================================= */
 app.post("/api/redeem/:cardId", basicAuth, async (req, res) => {
