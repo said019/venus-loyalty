@@ -4473,27 +4473,22 @@ app.post('/api/admin/promo-2025/start', adminAuth, async (req, res) => {
   const maxSend = limit && Number(limit) > 0 ? Number(limit) : 0; // 0 = sin límite
 
   try {
-    // Buscar teléfonos que enviaron mensajes de WhatsApp en 2025 (mensajes entrantes)
-    const messages2025 = await prisma.whatsappMessage.findMany({
-      where: {
-        direction: 'in',
-        timestamp: {
-          gte: new Date('2025-01-01T00:00:00Z'),
-          lt:  new Date('2026-01-01T00:00:00Z'),
-        },
-        phone: { not: '' },
-      },
-      select: { phone: true, name: true },
-    });
+    // Obtener todos los chats directamente de WhatsApp Business (Evolution API)
+    const evoClient = getEvolutionClient();
+    const allChats = await evoClient.fetchChats();
+    console.log(`[PROMO 2025] Chats encontrados en WhatsApp Business: ${allChats.length}`);
 
-    // Obtener phones únicos
+    // Extraer teléfonos únicos de los chats (solo individuales, no grupos)
     const phoneMap = new Map();
-    for (const m of messages2025) {
-      const phone = m.phone.replace(/\D/g, '');
+    for (const chat of allChats) {
+      const jid = chat.id || chat.remoteJid || '';
+      if (!jid.endsWith('@s.whatsapp.net')) continue; // solo chats individuales
+      const phone = jid.replace('@s.whatsapp.net', '').replace(/\D/g, '');
       if (phone && phone.length >= 10 && !phoneMap.has(phone)) {
-        phoneMap.set(phone, m.name || 'Cliente');
+        phoneMap.set(phone, chat.name || chat.pushName || chat.contact?.pushName || 'Cliente');
       }
     }
+    console.log(`[PROMO 2025] Contactos individuales: ${phoneMap.size}`);
 
     // Excluir clientes que ya tienen citas en 2026 (ya regresaron)
     const recentClients = await prisma.appointment.findMany({
@@ -4505,19 +4500,6 @@ app.post('/api/admin/promo-2025/start', adminAuth, async (req, res) => {
       select: { clientPhone: true },
     });
     const recentPhones = new Set(recentClients.map(c => c.clientPhone.replace(/\D/g, '')));
-
-    // También excluir los que ya escribieron en 2026
-    const messages2026 = await prisma.whatsappMessage.findMany({
-      where: {
-        direction: 'in',
-        timestamp: { gte: new Date('2026-01-01T00:00:00Z') },
-        phone: { not: '' },
-      },
-      select: { phone: true },
-    });
-    for (const m of messages2026) {
-      recentPhones.add(m.phone.replace(/\D/g, ''));
-    }
 
     const queue = [];
     for (const [phone, name] of phoneMap) {
