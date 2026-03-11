@@ -5974,25 +5974,64 @@
       <!-- CAMPAÑA PROMO 2025 -->
       <div style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:12px;padding:14px;margin:16px 0;">
         <h3 style="margin:0 0 8px;"><i class="fab fa-whatsapp"></i> Campaña WhatsApp — Clientes 2025</h3>
-        <p class="muted" style="font-size:12px;margin-bottom:10px;">Envía un mensaje promocional a clientes que te escribieron en 2025 pero no han regresado. Se envía 1 mensaje cada 5 minutos.</p>
+        <p class="muted" style="font-size:12px;margin-bottom:10px;">Analiza tus chats de WhatsApp Business, identifica clientes reales y envíales una promo. 1 mensaje cada 5 min.</p>
 
-        <label>Mensaje promocional</label>
-        <textarea id="promo-message" rows="4" placeholder="Hola {nombre}, te extrañamos en Venus! Tenemos un descuento especial en nuestros servicios básicos solo para ti. Agenda tu cita hoy. ¡Te esperamos!" style="width:100%;"></textarea>
-        <small class="muted">Usa <b>{nombre}</b> para personalizar con el nombre de la clienta</small>
-
-        <div style="margin-top:10px;">
-          <label>Cantidad máxima de envíos</label>
-          <input id="promo-limit" type="number" min="1" max="500" value="20" placeholder="20" style="width:100px;">
-          <small class="muted">Déjalo vacío para enviar a todos</small>
+        <!-- PASO 1: Analizar -->
+        <div style="background:rgba(255,255,255,0.06);border-radius:10px;padding:12px;margin-bottom:12px;">
+          <h4 style="margin:0 0 8px;font-size:14px;"><i class="fas fa-search"></i> Paso 1 — Analizar chats</h4>
+          <p class="muted" style="font-size:11px;margin-bottom:8px;">Lee los mensajes de cada chat para separar clientes reales de spam/proveedores.</p>
+          <button type="button" id="btn-promo-analyze" class="btn ghost" onclick="analyzePromo2025()"><i class="fas fa-microscope"></i> Analizar chats de 2025</button>
+          <span id="promo-analyze-status" class="muted" style="font-size:12px;margin-left:8px;"></span>
         </div>
 
-        <div class="row" style="margin-top:12px;gap:10px;">
-          <button type="button" id="btn-promo-start" class="btn primary" onclick="startPromo2025()"><i class="fab fa-whatsapp"></i> Iniciar campaña</button>
-          <button type="button" id="btn-promo-stop" class="btn ghost" style="color:#ef4444;" onclick="stopPromo2025()" disabled><i class="fas fa-stop"></i> Detener</button>
-          <button type="button" class="btn ghost" onclick="refreshPromoStatus()"><i class="fas fa-sync-alt"></i></button>
+        <!-- Resultados del análisis -->
+        <div id="promo-analysis-results" class="hidden" style="margin-bottom:12px;">
+          <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:13px;margin-bottom:8px;">
+            <span style="color:#22c55e;"><i class="fas fa-user-check"></i> Clientes: <b id="promo-a-clients">0</b></span>
+            <span style="color:#ef4444;"><i class="fas fa-user-times"></i> No clientes: <b id="promo-a-not">0</b></span>
+            <span style="color:#f59e0b;"><i class="fas fa-question-circle"></i> Indeterminados: <b id="promo-a-unknown">0</b></span>
+          </div>
+
+          <!-- Tabla de clientes encontrados con checkbox -->
+          <div style="max-height:300px;overflow-y:auto;border:1px solid rgba(255,255,255,0.1);border-radius:8px;">
+            <table style="width:100%;font-size:12px;">
+              <thead style="position:sticky;top:0;background:#1a1a2e;">
+                <tr>
+                  <th style="width:30px;"><input type="checkbox" id="promo-select-all" checked onchange="toggleAllPromo(this.checked)"></th>
+                  <th>Nombre</th>
+                  <th>Teléfono</th>
+                  <th>Tipo</th>
+                  <th>Muestra</th>
+                </tr>
+              </thead>
+              <tbody id="promo-analysis-tbody"></tbody>
+            </table>
+          </div>
         </div>
 
-        <div id="promo-status" class="hidden" style="margin-top:12px;padding:10px;background:rgba(255,255,255,0.05);border-radius:8px;">
+        <!-- PASO 2: Mensaje y envío -->
+        <div id="promo-step2" class="hidden" style="background:rgba(255,255,255,0.06);border-radius:10px;padding:12px;margin-bottom:12px;">
+          <h4 style="margin:0 0 8px;font-size:14px;"><i class="fas fa-paper-plane"></i> Paso 2 — Escribir mensaje y enviar</h4>
+
+          <label>Mensaje promocional</label>
+          <textarea id="promo-message" rows="4" placeholder="Hola {nombre}, te extrañamos en Venus! Tenemos un descuento especial en nuestros servicios básicos solo para ti. Agenda tu cita hoy." style="width:100%;"></textarea>
+          <small class="muted">Usa <b>{nombre}</b> para personalizar con el nombre de la clienta</small>
+
+          <div style="margin-top:10px;">
+            <label>Cantidad máxima de envíos</label>
+            <input id="promo-limit" type="number" min="1" max="500" value="20" placeholder="20" style="width:100px;">
+            <small class="muted">Déjalo vacío para enviar a todos los seleccionados</small>
+          </div>
+
+          <div class="row" style="margin-top:12px;gap:10px;">
+            <button type="button" id="btn-promo-start" class="btn primary" onclick="startPromo2025()"><i class="fab fa-whatsapp"></i> Enviar a seleccionados</button>
+            <button type="button" id="btn-promo-stop" class="btn ghost" style="color:#ef4444;" onclick="stopPromo2025()" disabled><i class="fas fa-stop"></i> Detener</button>
+            <button type="button" class="btn ghost" onclick="refreshPromoStatus()"><i class="fas fa-sync-alt"></i></button>
+          </div>
+        </div>
+
+        <!-- Estado de envío -->
+        <div id="promo-status" class="hidden" style="padding:10px;background:rgba(255,255,255,0.05);border-radius:8px;">
           <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:13px;">
             <span><i class="fas fa-paper-plane" style="color:#22c55e;"></i> Enviados: <b id="promo-sent">0</b></span>
             <span><i class="fas fa-exclamation-triangle" style="color:#ef4444;"></i> Fallidos: <b id="promo-failed">0</b></span>
@@ -12732,12 +12771,81 @@
     }
 
     /* ===== CAMPAÑA PROMO 2025 - WhatsApp ===== */
+    let promoAnalyzedData = null; // guarda el resultado del análisis
+
+    // PASO 1: Analizar chats
+    async function analyzePromo2025() {
+      const btn = document.getElementById('btn-promo-analyze');
+      const status = document.getElementById('promo-analyze-status');
+      btn.disabled = true;
+      status.textContent = 'Analizando chats... esto puede tardar unos segundos.';
+
+      try {
+        const res = await fetch('/api/admin/promo-2025/analyze', {
+          method: 'POST', credentials: 'include'
+        });
+        const json = await res.json();
+        if (!json.success) { alert(json.error || 'Error'); btn.disabled = false; status.textContent = ''; return; }
+
+        promoAnalyzedData = json;
+        status.textContent = `Listo. ${json.clients.length} clientes, ${json.notClients.length} no clientes, ${json.unknown.length} indeterminados.`;
+
+        // Mostrar resultados
+        document.getElementById('promo-analysis-results').classList.remove('hidden');
+        document.getElementById('promo-step2').classList.remove('hidden');
+        document.getElementById('promo-a-clients').textContent = json.clients.length;
+        document.getElementById('promo-a-not').textContent = json.notClients.length;
+        document.getElementById('promo-a-unknown').textContent = json.unknown.length;
+
+        // Llenar tabla
+        const tbody = document.getElementById('promo-analysis-tbody');
+        let rows = '';
+        for (const c of json.clients) {
+          rows += `<tr><td><input type="checkbox" class="promo-check" data-phone="${c.phone}" data-name="${c.name}" checked></td>
+            <td>${c.name}</td><td>${c.phone}</td>
+            <td><span style="color:#22c55e;font-size:11px;">Cliente (${c.score})</span></td>
+            <td style="font-size:11px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.sample || '-'}</td></tr>`;
+        }
+        for (const c of json.unknown) {
+          rows += `<tr style="opacity:0.7;"><td><input type="checkbox" class="promo-check" data-phone="${c.phone}" data-name="${c.name}"></td>
+            <td>${c.name}</td><td>${c.phone}</td>
+            <td><span style="color:#f59e0b;font-size:11px;">Indeterminado</span></td>
+            <td style="font-size:11px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.sample || '-'}</td></tr>`;
+        }
+        for (const c of json.notClients) {
+          rows += `<tr style="opacity:0.5;"><td><input type="checkbox" class="promo-check" data-phone="${c.phone}" data-name="${c.name}"></td>
+            <td>${c.name}</td><td>${c.phone}</td>
+            <td><span style="color:#ef4444;font-size:11px;">No cliente (${c.score})</span></td>
+            <td style="font-size:11px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.sample || '-'}</td></tr>`;
+        }
+        tbody.innerHTML = rows;
+        btn.disabled = false;
+      } catch (e) {
+        alert('Error de conexión');
+        btn.disabled = false;
+        status.textContent = '';
+      }
+    }
+
+    function toggleAllPromo(checked) {
+      document.querySelectorAll('.promo-check').forEach(cb => cb.checked = checked);
+    }
+
+    // PASO 2: Enviar a seleccionados
     async function startPromo2025() {
       const message = document.getElementById('promo-message').value.trim();
       if (!message) { alert('Escribe el mensaje promocional'); return; }
+
+      // Obtener los seleccionados
+      const selected = [];
+      document.querySelectorAll('.promo-check:checked').forEach(cb => {
+        selected.push({ phone: cb.dataset.phone, name: cb.dataset.name });
+      });
+      if (selected.length === 0) { alert('No hay contactos seleccionados'); return; }
+
       const limit = parseInt(document.getElementById('promo-limit').value) || 0;
-      const limitText = limit > 0 ? `(máx ${limit})` : '(todos)';
-      if (!confirm(`¿Iniciar campaña? Se enviará 1 mensaje cada 5 min a clientes del 2025 que no han regresado ${limitText}.`)) return;
+      const count = limit > 0 ? Math.min(limit, selected.length) : selected.length;
+      if (!confirm(`¿Enviar a ${count} contactos? (1 cada 5 min)`)) return;
 
       document.getElementById('btn-promo-start').disabled = true;
       try {
@@ -12745,14 +12853,13 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: JSON.stringify({ message, limit: limit || undefined })
+          body: JSON.stringify({ message, limit: limit || undefined, phones: selected })
         });
         const json = await res.json();
         if (json.success) {
           document.getElementById('btn-promo-stop').disabled = false;
           showToast(json.message, 'success');
           updatePromoUI(json.status);
-          // Auto-refresh cada 30s
           window._promoInterval = setInterval(refreshPromoStatus, 30000);
         } else {
           alert(json.error || 'Error al iniciar');
@@ -12765,7 +12872,6 @@
     }
 
     async function stopPromo2025() {
-      if (!confirm('¿Detener la campaña?')) return;
       try {
         const res = await fetch('/api/admin/promo-2025/stop', { method: 'POST', credentials: 'include' });
         const json = await res.json();
@@ -12774,7 +12880,7 @@
         document.getElementById('btn-promo-start').disabled = false;
         document.getElementById('btn-promo-stop').disabled = true;
         if (window._promoInterval) clearInterval(window._promoInterval);
-      } catch (e) { alert('Error'); }
+      } catch (e) { alert('Error al detener'); }
     }
 
     async function refreshPromoStatus() {
@@ -12788,7 +12894,6 @@
     function updatePromoUI(data) {
       const statusDiv = document.getElementById('promo-status');
       statusDiv.classList.remove('hidden');
-
       document.getElementById('promo-sent').textContent = data.sent || 0;
       document.getElementById('promo-failed').textContent = data.failed || 0;
       document.getElementById('promo-remaining').textContent = data.remaining || 0;
@@ -12809,17 +12914,14 @@
         if (window._promoInterval) clearInterval(window._promoInterval);
       }
 
-      // Tabla de enviados
       if (data.sentList && data.sentList.length > 0) {
         document.getElementById('promo-sent-list').classList.remove('hidden');
-        const tbody = document.getElementById('promo-sent-tbody');
-        tbody.innerHTML = data.sentList.map(c =>
+        document.getElementById('promo-sent-tbody').innerHTML = data.sentList.map(c =>
           `<tr><td>${c.name}</td><td>${c.phone}</td><td>${new Date(c.sentAt).toLocaleTimeString()}</td></tr>`
         ).join('');
       }
     }
 
-    // Revisar estado al cargar la página
     refreshPromoStatus();
 
     /* ===== PUSH NOTIFICATIONS - CORREGIDO ===== */

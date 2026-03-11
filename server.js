@@ -4446,51 +4446,90 @@ app.delete("/api/admin/notifications/clear", adminAuth, async (req, res) => {
 });
 
 /* =========================================================
-   CAMPAÑA PROMO - Envío masivo WhatsApp a clientes 2025
+   CAMPAÑA PROMO - Análisis + Envío WhatsApp a clientes 2025
    ========================================================= */
 
-// Estado en memoria de la campaña
+// Palabras clave → cliente real
+const PROMO_CLIENT_KW = [
+  'cita','agendar','reservar','turno','horario','disponible',
+  'facial','masaje','depilación','depilacion','limpieza','tratamiento',
+  'servicio','precio','costo','cuanto','cuánto','promoción','promocion','descuento',
+  'quiero','necesito','me interesa','tienen','hacen',
+  'confirmo','confirmar','reprogramar','cancelar',
+  'venus','sesión','sesion','paquete',
+  'tarjeta','lealtad','sello','membresía','membresia',
+  'básico','basico','anual',
+  'ubicación','ubicacion','dirección','direccion','donde están','donde estan',
+];
+// Palabras clave → NO es cliente
+const PROMO_NOT_CLIENT_KW = [
+  'proveedor','venta','distribui','catálogo','catalogo','mayoreo',
+  'publicidad','marketing','google ads','facebook ads',
+  'préstamo','prestamo','crédito','credito','inversión','inversion',
+  'vacante','empleo','trabajo','cv','curriculum',
+  'encuesta','sorteo','ganador','premio',
+];
+
+function classifyWhatsAppChat(messages) {
+  let clientScore = 0, notClientScore = 0;
+  const incomingTexts = [];
+  for (const msg of messages) {
+    const isFromMe = msg.key?.fromMe || false;
+    const text = (
+      msg.message?.conversation ||
+      msg.message?.extendedTextMessage?.text ||
+      msg.message?.buttonsResponseMessage?.selectedDisplayText ||
+      msg.message?.listResponseMessage?.title || ''
+    ).toLowerCase().trim();
+    if (!text) continue;
+    if (!isFromMe) {
+      incomingTexts.push(text);
+      for (const kw of PROMO_CLIENT_KW) { if (text.includes(kw)) clientScore++; }
+      for (const kw of PROMO_NOT_CLIENT_KW) { if (text.includes(kw)) notClientScore += 3; }
+    } else {
+      if (text.length > 10) clientScore += 0.5;
+    }
+  }
+  const isClient = clientScore > notClientScore && clientScore >= 1;
+  return { isClient, clientScore, notClientScore, sampleMessages: incomingTexts.slice(0, 3) };
+}
+
+// Estado en memoria
+let promoAnalysis = null; // resultado del análisis
 let promoState = {
   running: false,
-  queue: [],        // [{name, phone}]
-  sent: [],         // [{name, phone, sentAt}]
-  failed: [],       // [{name, phone, error}]
+  queue: [],
+  sent: [],
+  failed: [],
   intervalId: null,
   message: '',
   startedAt: null,
 };
 
-// Iniciar campaña
-app.post('/api/admin/promo-2025/start', adminAuth, async (req, res) => {
-  if (promoState.running) {
-    return res.json({ success: false, error: 'Ya hay una campaña en curso', status: getPromoStatus() });
-  }
-
-  const { message, limit } = req.body;
-  if (!message) {
-    return res.status(400).json({ success: false, error: 'Se requiere el campo "message" con el texto a enviar' });
-  }
-  const maxSend = limit && Number(limit) > 0 ? Number(limit) : 0; // 0 = sin límite
-
+// 1) ANALIZAR chats de WhatsApp
+app.post('/api/admin/promo-2025/analyze', adminAuth, async (req, res) => {
   try {
-    // Obtener todos los chats directamente de WhatsApp Business (Evolution API)
     const evoClient = getEvolutionClient();
     const allChats = await evoClient.fetchChats();
-    console.log(`[PROMO 2025] Chats encontrados en WhatsApp Business: ${allChats.length}`);
+    console.log(`[PROMO] Chats totales: ${allChats.length}`);
 
-    // Extraer teléfonos únicos de los chats (solo individuales, no grupos)
-    const phoneMap = new Map();
+    // Filtrar chats individuales de 2025
+    const start2025 = new Date('2025-01-01T00:00:00Z').getTime() / 1000;
+    const start2026 = new Date('2026-01-01T00:00:00Z').getTime() / 1000;
+
+    const individualChats = [];
     for (const chat of allChats) {
       const jid = chat.id || chat.remoteJid || '';
-      if (!jid.endsWith('@s.whatsapp.net')) continue; // solo chats individuales
-      const phone = jid.replace('@s.whatsapp.net', '').replace(/\D/g, '');
-      if (phone && phone.length >= 10 && !phoneMap.has(phone)) {
-        phoneMap.set(phone, chat.name || chat.pushName || chat.contact?.pushName || 'Cliente');
-      }
+      if (!jid.endsWith('@s.whatsapp.net')) continue;
+      const ts = chat.lastMsgTimestamp || chat.conversationTimestamp || chat.timestamp || 0;
+      const tsNum = typeof ts === 'object' ? Number(ts.low || ts) : Number(ts);
+      // Si hay timestamp, filtrar por 2025; si no hay, incluir todos
+      if (tsNum > 0 && (tsNum < start2025 || tsNum >= start2026)) continue;
+      individualChats.push({ jid, chat, tsNum });
     }
-    console.log(`[PROMO 2025] Contactos individuales: ${phoneMap.size}`);
+    console.log(`[PROMO] Chats individuales 2025: ${individualChats.length}`);
 
-    // Excluir clientes que ya tienen citas en 2026 (ya regresaron)
+    // Excluir los que ya tienen cita en 2026
     const recentClients = await prisma.appointment.findMany({
       where: {
         startDateTime: { gte: new Date('2026-01-01T00:00:00Z') },
@@ -4501,92 +4540,138 @@ app.post('/api/admin/promo-2025/start', adminAuth, async (req, res) => {
     });
     const recentPhones = new Set(recentClients.map(c => c.clientPhone.replace(/\D/g, '')));
 
-    const queue = [];
-    for (const [phone, name] of phoneMap) {
-      if (!recentPhones.has(phone)) {
-        queue.push({ name, phone });
-      }
-    }
+    const clients = [], notClients = [], unknown = [];
+    let processed = 0;
 
-    if (queue.length === 0) {
-      return res.json({ success: false, error: 'No se encontraron clientes del 2025 inactivos' });
-    }
+    for (const { jid, chat } of individualChats) {
+      const phone = jid.replace('@s.whatsapp.net', '').replace(/\D/g, '');
+      if (!phone || phone.length < 10) continue;
+      if (recentPhones.has(phone)) continue; // ya regresó en 2026
 
-    // Aplicar límite si se especificó
-    const finalQueue = maxSend > 0 ? queue.slice(0, maxSend) : queue;
-
-    // Iniciar campaña
-    promoState = {
-      running: true,
-      queue: [...finalQueue],
-      sent: [],
-      failed: [],
-      intervalId: null,
-      message,
-      startedAt: new Date().toISOString(),
-    };
-
-    // Enviar cada 5 min
-    promoState.intervalId = setInterval(async () => {
-      if (promoState.queue.length === 0) {
-        clearInterval(promoState.intervalId);
-        promoState.running = false;
-        promoState.intervalId = null;
-        console.log('[PROMO 2025] Campaña terminada. Enviados:', promoState.sent.length, 'Fallidos:', promoState.failed.length);
-        return;
-      }
-
-      const client = promoState.queue.shift();
+      const name = chat.name || chat.pushName || chat.contact?.pushName || phone;
       try {
-        const evoClient = getEvolutionClient();
-        const personalMsg = promoState.message.replace(/{nombre}/gi, client.name || 'estimada clienta');
-        await evoClient.sendText(client.phone, personalMsg);
-        promoState.sent.push({ ...client, sentAt: new Date().toISOString() });
-        console.log(`[PROMO 2025] Enviado a ${client.name} (${client.phone}) — Quedan: ${promoState.queue.length}`);
-      } catch (err) {
-        promoState.failed.push({ ...client, error: err.message });
-        console.error(`[PROMO 2025] Error enviando a ${client.phone}:`, err.message);
-      }
-    }, 5 * 60 * 1000); // 5 minutos
+        const messages = await evoClient.fetchMessages(jid, 20);
+        const analysis = classifyWhatsAppChat(messages);
+        const entry = { phone, name, ...analysis };
 
-    // Enviar el primer mensaje inmediatamente
-    const firstClient = promoState.queue.shift();
-    try {
-      const evoClient = getEvolutionClient();
-      const personalMsg = promoState.message.replace(/{nombre}/gi, firstClient.name || 'estimada clienta');
-      await evoClient.sendText(firstClient.phone, personalMsg);
-      promoState.sent.push({ ...firstClient, sentAt: new Date().toISOString() });
-      console.log(`[PROMO 2025] Primer envío a ${firstClient.name} (${firstClient.phone}) — Quedan: ${promoState.queue.length}`);
-    } catch (err) {
-      promoState.failed.push({ ...firstClient, error: err.message });
-      console.error(`[PROMO 2025] Error en primer envío:`, err.message);
+        if (analysis.isClient) clients.push(entry);
+        else if (analysis.notClientScore > analysis.clientScore) notClients.push(entry);
+        else unknown.push(entry);
+
+        processed++;
+        // Pausa para no saturar la API
+        if (processed % 5 === 0) await new Promise(r => setTimeout(r, 200));
+      } catch (err) {
+        console.error(`[PROMO] Error analizando ${phone}:`, err.message);
+      }
     }
+
+    promoAnalysis = { clients, notClients, unknown, analyzedAt: new Date().toISOString() };
 
     res.json({
       success: true,
-      totalClients: finalQueue.length,
-      totalFound: queue.length,
-      message: `Campaña iniciada. ${finalQueue.length} clientes en cola${maxSend ? ` (de ${queue.length} encontrados)` : ''}. Se enviará 1 mensaje cada 5 min.`,
-      estimatedTime: `${Math.ceil((finalQueue.length - 1) * 5)} minutos`,
-      status: getPromoStatus(),
+      totalChats: allChats.length,
+      filtered2025: individualChats.length,
+      excludedActive2026: recentPhones.size,
+      clients: clients.map(c => ({ phone: c.phone, name: c.name, score: c.clientScore, sample: c.sampleMessages[0] || '' })),
+      notClients: notClients.map(c => ({ phone: c.phone, name: c.name, score: c.notClientScore, sample: c.sampleMessages[0] || '' })),
+      unknown: unknown.map(c => ({ phone: c.phone, name: c.name, sample: c.sampleMessages[0] || '' })),
     });
-
   } catch (err) {
-    console.error('[PROMO 2025] Error iniciando campaña:', err);
+    console.error('[PROMO] Error en análisis:', err);
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
-// Ver estado
+// 2) INICIAR campaña (solo con clientes aprobados del análisis)
+app.post('/api/admin/promo-2025/start', adminAuth, async (req, res) => {
+  if (promoState.running) {
+    return res.json({ success: false, error: 'Ya hay una campaña en curso', status: getPromoStatus() });
+  }
+
+  const { message, limit, phones } = req.body;
+  if (!message) {
+    return res.status(400).json({ success: false, error: 'Se requiere el campo "message"' });
+  }
+
+  // Si se pasaron phones específicos, usar esos; si no, usar el análisis previo
+  let queue = [];
+  if (phones && Array.isArray(phones) && phones.length > 0) {
+    queue = phones.map(p => ({ phone: p.phone, name: p.name || 'Cliente' }));
+  } else if (promoAnalysis && promoAnalysis.clients.length > 0) {
+    queue = promoAnalysis.clients.map(c => ({ phone: c.phone, name: c.name }));
+  } else {
+    return res.status(400).json({ success: false, error: 'Primero ejecuta el análisis o envía la lista de teléfonos' });
+  }
+
+  const maxSend = limit && Number(limit) > 0 ? Number(limit) : 0;
+  const finalQueue = maxSend > 0 ? queue.slice(0, maxSend) : queue;
+
+  if (finalQueue.length === 0) {
+    return res.json({ success: false, error: 'No hay clientes para enviar' });
+  }
+
+  promoState = {
+    running: true,
+    queue: [...finalQueue],
+    sent: [],
+    failed: [],
+    intervalId: null,
+    message,
+    startedAt: new Date().toISOString(),
+  };
+
+  // Enviar cada 5 min
+  promoState.intervalId = setInterval(async () => {
+    if (promoState.queue.length === 0) {
+      clearInterval(promoState.intervalId);
+      promoState.running = false;
+      promoState.intervalId = null;
+      console.log('[PROMO 2025] Campaña terminada. Enviados:', promoState.sent.length, 'Fallidos:', promoState.failed.length);
+      return;
+    }
+    const client = promoState.queue.shift();
+    try {
+      const evoClient = getEvolutionClient();
+      const personalMsg = promoState.message.replace(/{nombre}/gi, client.name || 'estimada clienta');
+      await evoClient.sendText(client.phone, personalMsg);
+      promoState.sent.push({ ...client, sentAt: new Date().toISOString() });
+      console.log(`[PROMO 2025] Enviado a ${client.name} (${client.phone}) — Quedan: ${promoState.queue.length}`);
+    } catch (err) {
+      promoState.failed.push({ ...client, error: err.message });
+      console.error(`[PROMO 2025] Error enviando a ${client.phone}:`, err.message);
+    }
+  }, 5 * 60 * 1000);
+
+  // Primer mensaje inmediato
+  const first = promoState.queue.shift();
+  try {
+    const evoClient = getEvolutionClient();
+    const personalMsg = promoState.message.replace(/{nombre}/gi, first.name || 'estimada clienta');
+    await evoClient.sendText(first.phone, personalMsg);
+    promoState.sent.push({ ...first, sentAt: new Date().toISOString() });
+    console.log(`[PROMO 2025] Primer envío a ${first.name} (${first.phone}) — Quedan: ${promoState.queue.length}`);
+  } catch (err) {
+    promoState.failed.push({ ...first, error: err.message });
+  }
+
+  res.json({
+    success: true,
+    totalClients: finalQueue.length,
+    message: `Campaña iniciada. ${finalQueue.length} clientes. 1 mensaje cada 5 min.`,
+    estimatedTime: `${Math.ceil((finalQueue.length - 1) * 5)} minutos`,
+    status: getPromoStatus(),
+  });
+});
+
+// 3) Estado
 app.get('/api/admin/promo-2025/status', adminAuth, (req, res) => {
   res.json({ success: true, ...getPromoStatus() });
 });
 
-// Parar campaña
+// 4) Detener
 app.post('/api/admin/promo-2025/stop', adminAuth, (req, res) => {
-  if (promoState.intervalId) {
-    clearInterval(promoState.intervalId);
-  }
+  if (promoState.intervalId) clearInterval(promoState.intervalId);
   promoState.running = false;
   promoState.intervalId = null;
   res.json({ success: true, message: 'Campaña detenida', ...getPromoStatus() });
