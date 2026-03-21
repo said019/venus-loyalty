@@ -23,6 +23,27 @@ export function startScheduler() {
         const now = new Date();
 
         try {
+            // --- RECORDATORIO 48 HORAS (DEPILACIÓN LÁSER — indicaciones antes/después) ---
+            // Ventana: citas entre 47h y 49h desde ahora
+            const date48hStart = new Date(now.getTime() + 47 * 60 * 60 * 1000);
+            const date48hEnd   = new Date(now.getTime() + 49 * 60 * 60 * 1000);
+
+            const start48h = toMexicoCityISO(date48hStart);
+            const end48h   = toMexicoCityISO(date48hEnd);
+
+            const pending48h = await AppointmentModel.getPendingReminders('send48h', start48h, end48h);
+            console.log(`📅 Encontrados ${pending48h.length} recordatorios 48h depilación pendientes`);
+
+            for (const appt of pending48h) {
+                if (appt.status !== 'cancelled') {
+                    const result = await WhatsAppService.sendReminderDepilacion48h(appt);
+                    if (result.success) {
+                        await AppointmentModel.markReminderSent(appt.id, '48h');
+                        console.log(`✅ Recordatorio 48h depilación enviado para cita ${appt.id}`);
+                    }
+                }
+            }
+
             // --- RECORDATORIO 30 HORAS (DEPILACIÓN) ---
             // Buscamos citas que ocurran entre 29h y 31h desde ahora (ventana de 2 horas)
             const date30hStart = new Date(now.getTime() + 29 * 60 * 60 * 1000);

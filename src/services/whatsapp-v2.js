@@ -290,6 +290,52 @@ export const WhatsAppService = {
     },
 
     /**
+     * Envía indicaciones de depilación láser 48 horas antes de la cita
+     * Solo Evolution API (mensaje de texto libre con antes/después)
+     */
+    async sendReminderDepilacion48h(appt) {
+        const fecha = formatearFechaLegible(appt.date || appt.startDateTime);
+        const hora = appt.time || formatearHora(appt.startDateTime);
+        const nombre = sanitizeForWhatsApp(appt.clientName);
+        const servicio = sanitizeForWhatsApp(appt.serviceName);
+
+        const mensaje =
+`Hola ${nombre} 👋 Te recordamos que tienes una cita de *${servicio}* el *${fecha}* a las *${hora}*.
+
+🌿 *Indicaciones Antes de tu Sesión de Depilación Láser:*
+• Rasura el área a tratar 24 horas antes de tu cita.
+• Evita la exposición solar directa y el uso de autobronceadores al menos 72 horas antes.
+• No uses cremas, aceites, desodorantes o maquillaje el día de la sesión.
+• Suspende exfoliaciones o tratamientos irritantes una semana antes.
+• Si estás tomando antibióticos o tienes alguna condición médica, coméntalo antes de la sesión.
+
+─────────────────────
+
+💫 *Cuidados Después de la Sesión:*
+• Evita exponerte al sol o calor intenso (vapor, saunas, ejercicio intenso) durante 48 horas.
+• No rasques ni frotes la piel tratada.
+• Aplica gel de aloe vera o crema calmante para hidratar y aliviar la zona.
+• No uses productos con alcohol o fragancias por al menos 24 horas.
+• Usa protector solar FPS 50 si la zona estará expuesta.
+
+¡Te esperamos! 🌸`;
+
+        const hasEvolution = !!(config.evolution?.apiUrl && config.evolution?.apiKey);
+        if (hasEvolution) {
+            try {
+                const result = await sendViaEvolution(appt.clientPhone, mensaje);
+                if (result.success) return result;
+                console.warn('[WhatsApp] Evolution falló para recordatorio 48h depilación:', result.error);
+            } catch (evoErr) {
+                console.warn('[WhatsApp] Evolution error en 48h depilación:', evoErr.message);
+            }
+        }
+
+        // Sin Evolution no se puede enviar este mensaje libre
+        return { success: false, error: 'Evolution API no disponible para recordatorio 48h depilación' };
+    },
+
+    /**
      * Envía recordatorio 30 horas antes (depilación / servicios largos)
      * Usa Evolution API si está disponible, si no Twilio template RECORDATORIO_24H como fallback
      */

@@ -214,6 +214,9 @@ export const AppointmentModel = {
         } else if (type === 'send24h') {
             sendField = 'sendWhatsApp24h';
             sentField = 'sent24hAt';
+        } else if (type === 'send48h') {
+            sendField = null; // No requiere flag — aplica a todas las citas de depilación
+            sentField = 'sent48hAt';
         } else {
             sendField = 'sendWhatsApp2h';
             sentField = 'sent2hAt';
@@ -225,10 +228,16 @@ export const AppointmentModel = {
                 // Debe estar scheduled o confirmed
                 if (a.status !== 'scheduled' && a.status !== 'confirmed') return false;
 
-                // Debe tener el flag de envío activado (sendWhatsApp24h o sendWhatsApp2h)
-                if (!a[sendField]) return false;
+                // Para 48h: solo citas de depilación (sin requerir flag)
+                if (type === 'send48h') {
+                    const svc = (a.serviceName || '').toLowerCase();
+                    if (!svc.includes('depilacion') && !svc.includes('depilación') && !svc.includes('laser') && !svc.includes('láser')) return false;
+                } else {
+                    // Debe tener el flag de envío activado
+                    if (!a[sendField]) return false;
+                }
 
-                // No debe haberse enviado ya (sent24hAt o sent2hAt debe ser null)
+                // No debe haberse enviado ya
                 if (a[sentField]) return false;
 
                 return true;
@@ -239,10 +248,11 @@ export const AppointmentModel = {
     },
 
     async markReminderSent(id, type) {
-        // type: '30h', '24h' o '2h'
+        // type: '48h', '30h', '24h' o '2h'
         // Campos directos para PostgreSQL (sin objeto reminders)
         let field;
-        if (type === '30h') field = 'sent30hAt';
+        if (type === '48h') field = 'sent48hAt';
+        else if (type === '30h') field = 'sent30hAt';
         else if (type === '24h') field = 'sent24hAt';
         else field = 'sent2hAt';
         
