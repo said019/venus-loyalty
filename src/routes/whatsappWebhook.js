@@ -1,4 +1,4 @@
-// src/routes/whatsappWebhook.js - Webhook para respuestas de WhatsApp (Twilio)
+// src/routes/whatsappWebhook.js - Webhook para respuestas de WhatsApp
 import express from 'express';
 import { firestore } from '../db/compat.js';
 import { WhatsAppService } from '../services/whatsapp-v2.js';
@@ -6,7 +6,7 @@ import { WhatsAppService } from '../services/whatsapp-v2.js';
 const router = express.Router();
 
 /**
- * Webhook para recibir mensajes de WhatsApp (Twilio)
+ * Webhook para recibir mensajes de WhatsApp
  * POST /api/whatsapp/webhook
  */
 router.post('/webhook', async (req, res) => {
@@ -66,7 +66,7 @@ router.post('/webhook', async (req, res) => {
 async function buscarCitaActiva(telefono) {
     try {
         // Normalizar teléfono
-        // Twilio a veces manda +521... para celulares de México
+        // A veces llega +521... para celulares de México
         // Base de datos suele tener 52...
 
         let phone = telefono.replace(/\D/g, '');

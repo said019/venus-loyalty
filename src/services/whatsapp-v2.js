@@ -1,70 +1,12 @@
-// src/services/whatsapp-v2.js - Sistema de notificaciones WhatsApp (Twilio + Evolution API)
-import twilio from 'twilio';
+// src/services/whatsapp-v2.js - Sistema de notificaciones WhatsApp (Evolution API)
 import { config } from '../config/config.js';
 import { getEvolutionClient } from './whatsapp-evolution.js';
 import { firestore } from '../db/compat.js';
 import { formatearFechaLegible, formatearHora } from '../utils/mexico-time.js';
 
-// Cliente de Twilio
-let client = null;
-
-function getTwilioClient() {
-    if (!client && config.twilio.accountSid && config.twilio.authToken) {
-        client = twilio(config.twilio.accountSid, config.twilio.authToken);
-    }
-    return client;
-}
-
-const IS_EVOLUTION = config.whatsappProvider === 'evolution';
-
 /**
- * Envía un mensaje de WhatsApp usando un Content Template de Twilio
- */
-async function sendWhatsAppTemplate(to, templateSid, variables) {
-    const twilioClient = getTwilioClient();
-
-    if (!twilioClient) {
-        console.warn('⚠️ WhatsApp: Twilio no configurado. Saltando envío.');
-        return { success: false, error: 'Twilio no configurado' };
-    }
-
-    try {
-        // Normalizar teléfono (agregar prefijo si es necesario)
-        let phone = to.replace(/\D/g, '');
-        if (phone.length === 10) phone = '52' + phone;
-        if (!phone.startsWith('52')) phone = '52' + phone;
-
-        const messageParams = {
-            from: config.twilio.whatsappNumber,
-            to: `whatsapp:+${phone}`,
-            contentSid: templateSid,
-            contentVariables: JSON.stringify(variables)
-        };
-
-        console.log('📤 Enviando WhatsApp con parámetros:', {
-            from: messageParams.from,
-            to: messageParams.to,
-            contentSid: messageParams.contentSid,
-            variables: variables
-        });
-
-        const message = await twilioClient.messages.create(messageParams);
-
-        console.log(`✅ WhatsApp enviado a +${phone}: ${message.sid}`);
-        return { success: true, messageSid: message.sid };
-    } catch (error) {
-        console.error('❌ Error enviando WhatsApp:', error.message);
-        if (error.code) console.error('   Código de error:', error.code);
-        if (error.moreInfo) console.error('   Más info:', error.moreInfo);
-        return { success: false, error: error.message };
-    }
-}
-
-// formatearFechaLegible y formatearHora importados de ../utils/mexico-time.js
-
-/**
- * Sanitiza texto para evitar error 63021 de WhatsApp
- * Reemplaza caracteres especiales que causan problemas en templates
+ * Sanitiza texto para WhatsApp
+ * Reemplaza caracteres especiales que causan problemas
  */
 function sanitizeForWhatsApp(text) {
     if (!text) return '';
@@ -77,44 +19,6 @@ function sanitizeForWhatsApp(text) {
         .replace(/\r/g, '')            // Eliminar retorno de carro
         .replace(/[\u0000-\u001F]/g, '') // Eliminar caracteres de control
         .trim();
-}
-
-/**
- * Envía un mensaje de texto libre (solo funciona si hay sesión activa de 24h)
- */
-async function sendWhatsAppText(to, body) {
-    const twilioClient = getTwilioClient();
-
-    if (!twilioClient) {
-        console.warn('⚠️ WhatsApp: Twilio no configurado. Saltando envío.');
-        return { success: false, error: 'Twilio no configurado' };
-    }
-
-    try {
-        // Normalizar teléfono
-        let phone = to.replace(/\D/g, '');
-        if (phone.length === 10) phone = '52' + phone;
-        if (!phone.startsWith('52')) phone = '52' + phone;
-
-        const messageParams = {
-            from: config.twilio.whatsappNumber,
-            to: `whatsapp:+${phone}`,
-            body: body
-        };
-
-        console.log('📤 Enviando mensaje de texto WhatsApp:', {
-            to: messageParams.to,
-            body: body
-        });
-
-        const message = await twilioClient.messages.create(messageParams);
-
-        console.log(`✅ WhatsApp texto enviado a +${phone}: ${message.sid}`);
-        return { success: true, messageSid: message.sid };
-    } catch (error) {
-        console.error('❌ Error enviando WhatsApp texto:', error.message);
-        return { success: false, error: error.message };
-    }
 }
 
 /**
@@ -194,105 +98,37 @@ function buildAttendanceSurveyCopy(appt) {
 }
 
 export const WhatsAppService = {
-    /**
-     * Envía confirmación de cita al momento de crearla
-     * Template: confirmacion_cita
-     * Variables: {{1}}=Nombre, {{2}}=Servicio, {{3}}=Fecha, {{4}}=Hora, {{5}}=Lugar
-     */
+    /** Envía confirmación de cita al momento de crearla */
     async sendConfirmation(appt) {
-        // VERSION: TIMEZONE-FIX-FINAL
-        // SIEMPRE usar appt.time si está disponible (es el campo más confiable)
-        console.log('[WHATSAPP] 🔥 VERSION: EVOLUTION-SWITCH 🔥');
         console.log('[WHATSAPP] sendConfirmation llamado con:', {
             hasTime: !!appt.time,
             time: appt.time,
-            hasStartDateTime: !!appt.startDateTime,
-            provider: config.whatsappProvider
+            hasStartDateTime: !!appt.startDateTime
         });
 
         let hora;
         if (appt.time) {
-            // Si time existe, usarlo directamente (formato HH:MM) - SIN CONVERSIÓN
             hora = appt.time;
-            console.log('[WHATSAPP] ✅✅✅ Usando appt.time DIRECTAMENTE SIN CONVERSIÓN:', hora);
         } else if (appt.startDateTime) {
-            console.log('[WHATSAPP] No hay appt.time, convirtiendo startDateTime:', appt.startDateTime);
-            // Usar formatearHora del helper México (maneja Date y strings ISO correctamente)
             hora = formatearHora(appt.startDateTime);
-            console.log('[WHATSAPP] Convertido con helper México:', hora);
         } else {
-            hora = '00:00'; // Fallback de emergencia
+            hora = '00:00';
         }
 
         const fecha = appt.date ? formatearFechaLegible(appt.date) : formatearFechaLegible(appt.startDateTime);
         const nombre = sanitizeForWhatsApp(appt.clientName);
         const servicio = sanitizeForWhatsApp(appt.serviceName);
 
-        console.log('[WHATSAPP] sendConfirmation FINAL:', {
-            clientName: nombre,
-            fecha,
-            hora,
-            apptTimeOriginal: appt.time,
-            startDateTime: appt.startDateTime
-        });
-
-        // === EVOLUTION API (siempre intentar primero si está configurada) ===
-        const hasEvolution = !!(config.evolution?.apiUrl && config.evolution?.apiKey);
-        if (hasEvolution) {
-            try {
-                const mensaje = `📅 *Cita Confirmada*\n\nHola ${nombre}, tu cita ha sido agendada:\n\n🔹 *Servicio:* ${servicio}\n📆 *Fecha:* ${fecha}\n🕐 *Hora:* ${hora}\n📍 *Lugar:* ${config.venus.location}\n\n¡Te esperamos! ✨`;
-                const result = await sendViaEvolution(appt.clientPhone, mensaje);
-                if (result.success) return result;
-                console.warn('[WhatsApp] Evolution falló para confirmación, intentando Twilio:', result.error);
-            } catch (evoErr) {
-                console.warn('[WhatsApp] Evolution error en confirmación:', evoErr.message);
-            }
-        }
-
-        // === TWILIO (fallback con template) ===
-        return await sendWhatsAppTemplate(
-            appt.clientPhone,
-            config.templates.CONFIRMACION_CITA,
-            {
-                '1': nombre,
-                '2': servicio,
-                '3': fecha,
-                '4': hora,
-                '5': config.venus.location
-            }
-        );
+        const mensaje = `📅 *Cita Confirmada*\n\nHola ${nombre}, tu cita ha sido agendada:\n\n🔹 *Servicio:* ${servicio}\n📆 *Fecha:* ${fecha}\n🕐 *Hora:* ${hora}\n📍 *Lugar:* ${config.venus.location}\n\n¡Te esperamos! ✨`;
+        return await sendViaEvolution(appt.clientPhone, mensaje);
     },
 
-    /**
-     * Envía recordatorio 24 horas antes
-     * Template: recordatorio_24h
-     * Variables: {{1}}=Nombre, {{2}}=Servicio, {{3}}=Fecha, {{4}}=Hora
-     */
+    /** Envía recordatorio 24 horas antes con encuesta de confirmación */
     async sendReminder24h(appt) {
-        const fecha = formatearFechaLegible(appt.date || appt.startDateTime);
-        const hora = appt.time || formatearHora(appt.startDateTime);
-        const nombre = sanitizeForWhatsApp(appt.clientName);
-        const servicio = sanitizeForWhatsApp(appt.serviceName);
-
-        // ✅ Recordatorio automático del cron → siempre Twilio template
-        // El poll interactivo (confirmar/cancelar/reagendar) solo se manda
-        // cuando el admin presiona el botón manual en la cita (sendReminderWithOptions)
-        return await sendWhatsAppTemplate(
-            appt.clientPhone,
-            config.templates.RECORDATORIO_24H,
-            {
-                '1': nombre,
-                '2': servicio,
-                '3': fecha,
-                '4': hora
-            }
-        );
+        return await this.sendAttendanceSurvey(appt);
     },
 
-    /**
-     * Envía indicaciones de depilación láser 48 horas antes de la cita
-     * Solo Evolution API (mensaje de texto libre con antes/después)
-     */
+    /** Envía indicaciones de depilación láser 48 horas antes de la cita */
     async sendReminderDepilacion48h(appt) {
         const fecha = formatearFechaLegible(appt.date || appt.startDateTime);
         const hora = appt.time || formatearHora(appt.startDateTime);
@@ -320,144 +156,61 @@ export const WhatsAppService = {
 
 ¡Te esperamos! 🌸`;
 
-        const hasEvolution = !!(config.evolution?.apiUrl && config.evolution?.apiKey);
-        if (hasEvolution) {
-            try {
-                const result = await sendViaEvolution(appt.clientPhone, mensaje);
-                if (result.success) return result;
-                console.warn('[WhatsApp] Evolution falló para recordatorio 48h depilación:', result.error);
-            } catch (evoErr) {
-                console.warn('[WhatsApp] Evolution error en 48h depilación:', evoErr.message);
-            }
-        }
-
-        // Sin Evolution no se puede enviar este mensaje libre
-        return { success: false, error: 'Evolution API no disponible para recordatorio 48h depilación' };
+        return await sendViaEvolution(appt.clientPhone, mensaje);
     },
 
-    /**
-     * Envía recordatorio 30 horas antes (depilación / servicios largos)
-     * Usa Evolution API si está disponible, si no Twilio template RECORDATORIO_24H como fallback
-     */
+    /** Envía recordatorio 30 horas antes (depilación / servicios largos) */
     async sendReminder30h(appt) {
         const fecha = formatearFechaLegible(appt.date || appt.startDateTime);
         const hora = appt.time || formatearHora(appt.startDateTime);
         const nombre = sanitizeForWhatsApp(appt.clientName);
         const servicio = sanitizeForWhatsApp(appt.serviceName);
 
-        // Intentar Evolution primero (texto libre)
-        const hasEvolution = !!(config.evolution?.apiUrl && config.evolution?.apiKey);
-        if (hasEvolution) {
-            try {
-                const mensaje = `⏰ *Recordatorio de tu cita mañana*\n\nHola ${nombre} 👋\n\n🔹 *Servicio:* ${servicio}\n📆 *Fecha:* ${fecha}\n🕐 *Hora:* ${hora}\n📍 *Lugar:* ${config.venus.location}\n\n⚠️ Recuerda llegar 5 minutos antes. Si necesitas reagendar, avísanos con tiempo.\n\n¡Te esperamos! ✨`;
-                const result = await sendViaEvolution(appt.clientPhone, mensaje);
-                if (result.success) return result;
-                console.warn('[WhatsApp] Evolution falló para 30h, intentando Twilio:', result.error);
-            } catch (evoErr) {
-                console.warn('[WhatsApp] Evolution error en 30h:', evoErr.message);
-            }
-        }
-
-        // Fallback: Twilio template RECORDATORIO_24H (mismo formato)
-        return await sendWhatsAppTemplate(
-            appt.clientPhone,
-            config.templates.RECORDATORIO_24H,
-            {
-                '1': nombre,
-                '2': servicio,
-                '3': fecha,
-                '4': hora
-            }
-        );
+        const mensaje = `⏰ *Recordatorio de tu cita mañana*\n\nHola ${nombre} 👋\n\n🔹 *Servicio:* ${servicio}\n📆 *Fecha:* ${fecha}\n🕐 *Hora:* ${hora}\n📍 *Lugar:* ${config.venus.location}\n\n⚠️ Recuerda llegar 5 minutos antes. Si necesitas reagendar, avísanos con tiempo.\n\n¡Te esperamos! ✨`;
+        return await sendViaEvolution(appt.clientPhone, mensaje);
     },
 
-    /**
-     * Envía alerta de cancelación automática (4h antes si no ha confirmado)
-     * Usa Evolution API si está disponible, si no Twilio template
-     */
+    /** Envía alerta de cancelación automática (4h antes si no ha confirmado) */
     async sendAlertaCancelacion(appt) {
         const fecha = formatearFechaLegible(appt.date || appt.startDateTime);
         const hora = appt.time || formatearHora(appt.startDateTime);
         const nombre = sanitizeForWhatsApp(appt.clientName);
         const servicio = sanitizeForWhatsApp(appt.serviceName);
 
-        // Intentar Evolution primero (texto libre)
-        const hasEvolution = !!(config.evolution?.apiUrl && config.evolution?.apiKey);
-        if (hasEvolution) {
-            try {
-                const mensaje = `⚠️ *Confirmación pendiente*\n\nHola ${nombre}, tu cita de *${servicio}* para el ${fecha} a las ${hora} aún no ha sido confirmada.\n\n🕐 *Si no confirmas en la próxima hora, la cita será cancelada automáticamente.*\n\nResponde *CONFIRMO* para confirmar tu asistencia.\n\nSi deseas cancelar o reagendar, avísanos. 🌸`;
-                const result = await sendViaEvolution(appt.clientPhone, mensaje);
-                if (result.success) return result;
-                console.warn('[WhatsApp] Evolution falló para alerta cancelación, intentando Twilio:', result.error);
-            } catch (evoErr) {
-                console.warn('[WhatsApp] Evolution error en alerta cancelación:', evoErr.message);
-            }
-        }
-
-        // Fallback: Twilio template RECORDATORIO_2H (lo más cercano disponible)
-        return await sendWhatsAppTemplate(
-            appt.clientPhone,
-            config.templates.RECORDATORIO_2H,
-            {
-                '1': nombre,
-                '2': servicio,
-                '3': hora
-            }
-        );
+        const mensaje = `⚠️ *Confirmación pendiente*\n\nHola ${nombre}, tu cita de *${servicio}* para el ${fecha} a las ${hora} aún no ha sido confirmada.\n\n🕐 *Si no confirmas en la próxima hora, la cita será cancelada automáticamente.*\n\nResponde *CONFIRMO* para confirmar tu asistencia.\n\nSi deseas cancelar o reagendar, avísanos. 🌸`;
+        return await sendViaEvolution(appt.clientPhone, mensaje);
     },
 
-    /**
-     * Envía recordatorio 2 horas antes
-     * Template: recordatorio_2h
-     * Variables: {{1}}=Nombre, {{2}}=Servicio, {{3}}=Hora
-     */
+    /** Envía recordatorio 2 horas antes */
     async sendReminder2h(appt) {
         const hora = appt.time || formatearHora(appt.startDateTime);
         const nombre = sanitizeForWhatsApp(appt.clientName);
         const servicio = sanitizeForWhatsApp(appt.serviceName);
 
-        // ✅ Recordatorio automático del cron → siempre Twilio template
-        return await sendWhatsAppTemplate(
-            appt.clientPhone,
-            config.templates.RECORDATORIO_2H,
-            {
-                '1': nombre,
-                '2': servicio,
-                '3': hora
-            }
-        );
+        const mensaje = `🔔 *Tu cita es en 2 horas*\n\nHola ${nombre} 👋\n\n🔹 *Servicio:* ${servicio}\n🕐 *Hora:* ${hora}\n📍 *Lugar:* ${config.venus.location}\n\n⚠️ Recuerda llegar 5 minutos antes.\n\n¡Te esperamos! ✨`;
+        return await sendViaEvolution(appt.clientPhone, mensaje);
     },
 
     async sendAttendanceSurvey(appt) {
         const { question, message } = buildAttendanceSurveyCopy(appt);
-        const hasEvolution = !!(config.evolution?.apiUrl && config.evolution?.apiKey);
 
-        if (hasEvolution) {
-            try {
-                const result = await sendPollViaEvolution(
-                    appt.clientPhone,
-                    question,
-                    ['Confirmar asistencia', 'Reagendar', 'Cancelar'],
-                    appt.id
-                );
-                if (result.success) {
-                    return { ...result, delivery: 'poll', manualMessage: message };
-                }
-            } catch (error) {
-                console.warn('[WhatsApp] Evolution error en encuesta de asistencia:', error.message);
+        // Intentar poll primero (mejor UX)
+        try {
+            const result = await sendPollViaEvolution(
+                appt.clientPhone,
+                question,
+                ['Confirmar asistencia', 'Reagendar', 'Cancelar'],
+                appt.id
+            );
+            if (result.success) {
+                return { ...result, delivery: 'poll', manualMessage: message };
             }
-
-            try {
-                const result = await sendViaEvolution(appt.clientPhone, message);
-                if (result.success) {
-                    return { ...result, delivery: 'text', manualMessage: message };
-                }
-            } catch (error) {
-                console.warn('[WhatsApp] Evolution fallback text error:', error.message);
-            }
+        } catch (error) {
+            console.warn('[WhatsApp] Evolution error en encuesta de asistencia:', error.message);
         }
 
-        const result = await sendWhatsAppText(appt.clientPhone, message);
+        // Fallback: texto libre
+        const result = await sendViaEvolution(appt.clientPhone, message);
         return {
             ...result,
             delivery: result.success ? 'text' : 'manual',
@@ -465,61 +218,23 @@ export const WhatsAppService = {
         };
     },
 
-    /**
-     * Envía confirmación cuando el cliente confirma su cita
-     * USA TEXTO LIBRE (Respuesta a sesión activa)
-     */
+    /** Envía confirmación cuando el cliente confirma su cita */
     async sendConfirmacionRecibida(appt) {
         const fecha = formatearFechaLegible(appt.date || appt.startDateTime);
         const hora = appt.time || formatearHora(appt.startDateTime);
 
         const mensaje = `✅ ¡Gracias ${appt.clientName}! Tu cita ha sido confirmada para el ${fecha} a las ${hora}. Te esperamos en Venus Cosmetología.`;
-
-        // Siempre intentar Evolution primero
-        const hasEvolution = !!(config.evolution?.apiUrl && config.evolution?.apiKey);
-        if (hasEvolution) {
-            try {
-                const result = await sendViaEvolution(appt.clientPhone, mensaje);
-                if (result.success) return result;
-            } catch (e) { /* fall through to Twilio */ }
-        }
-        return await sendWhatsAppText(appt.clientPhone, mensaje);
+        return await sendViaEvolution(appt.clientPhone, mensaje);
     },
 
-    /**
-     * Envía mensaje de solicitud de reprogramación
-     * USA TEXTO LIBRE (Respuesta a sesión activa)
-     */
     async sendSolicitudReprogramacion(appt) {
         const mensaje = `🔄 Entendido ${appt.clientName}. Nos pondremos en contacto contigo pronto para reprogramar tu cita.`;
-        
-        // Siempre intentar Evolution primero
-        const hasEvolution = !!(config.evolution?.apiUrl && config.evolution?.apiKey);
-        if (hasEvolution) {
-            try {
-                const result = await sendViaEvolution(appt.clientPhone, mensaje);
-                if (result.success) return result;
-            } catch (e) { /* fall through to Twilio */ }
-        }
-        return await sendWhatsAppText(appt.clientPhone, mensaje);
+        return await sendViaEvolution(appt.clientPhone, mensaje);
     },
 
-    /**
-     * Envía confirmación de cancelación
-     * USA TEXTO LIBRE (Respuesta a sesión activa)
-     */
     async sendCancelacionConfirmada(appt) {
         const mensaje = `❌ Tu cita ha sido cancelada exitosamente. Esperamos verte pronto de nuevo.`;
-        
-        // Siempre intentar Evolution primero
-        const hasEvolution = !!(config.evolution?.apiUrl && config.evolution?.apiKey);
-        if (hasEvolution) {
-            try {
-                const result = await sendViaEvolution(appt.clientPhone, mensaje);
-                if (result.success) return result;
-            } catch (e) { /* fall through to Twilio */ }
-        }
-        return await sendWhatsAppText(appt.clientPhone, mensaje);
+        return await sendViaEvolution(appt.clientPhone, mensaje);
     },
 
     // Helpers exportados

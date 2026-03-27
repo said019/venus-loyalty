@@ -224,7 +224,7 @@ export function startScheduler() {
         }
     });
 
-    console.log('✅ Sistema de notificaciones WhatsApp con Twilio listo');
+    console.log('✅ Sistema de notificaciones WhatsApp con Evolution API listo');
 
     // ========== ENVÍO DE LINK DE EVALUACIÓN POST-CITA ==========
     // Corre cada 10 minutos para detectar citas completadas
@@ -258,32 +258,13 @@ export function startScheduler() {
                 const reviewUrl = `${baseUrl}/review.html?id=${appt.id}`;
                 const mensaje = `💆‍♀️ ¡Hola ${appt.clientName}! Gracias por visitarnos hoy.\n\n⭐ Nos encantaría saber cómo fue tu experiencia con tu *${appt.serviceName}*.\n\n👉 Evalúa aquí (30 segundos): ${reviewUrl}\n\nTu opinión nos ayuda a mejorar. ¡Gracias! 🌸`;
 
-                let sent = false;
-
-                // Intentar Evolution API primero (texto libre, sin template)
-                const hasEvolution = !!(config.evolution?.apiUrl && config.evolution?.apiKey);
-                if (hasEvolution) {
-                    try {
-                        const { getEvolutionClient } = await import('../services/whatsapp-evolution.js');
-                        const evo = getEvolutionClient();
-                        await evo.sendText(appt.clientPhone, mensaje);
-                        sent = true;
-                        console.log(`⭐ [review] Link de evaluación enviado vía Evolution a ${appt.clientName}`);
-                    } catch (evoErr) {
-                        console.warn(`⚠️ [review] Evolution falló para ${appt.clientName}:`, evoErr.message);
-                    }
-                }
-
-                // Fallback: Twilio texto libre (requiere sesión activa de 24h)
-                if (!sent) {
-                    try {
-                        const { sendWhatsAppText } = await import('../services/whatsapp-v2.js');
-                        // Nota: sendWhatsAppText solo funciona si hay sesión activa
-                        // Si no hay sesión, se registrará el error pero no detendrá el cron
-                        console.log(`⭐ [review] Intentando enviar link vía Twilio texto a ${appt.clientName}`);
-                    } catch (twErr) {
-                        console.warn(`⚠️ [review] Twilio texto falló:`, twErr.message);
-                    }
+                try {
+                    const { getEvolutionClient } = await import('../services/whatsapp-evolution.js');
+                    const evo = getEvolutionClient();
+                    await evo.sendText(appt.clientPhone, mensaje);
+                    console.log(`⭐ [review] Link de evaluación enviado a ${appt.clientName}`);
+                } catch (evoErr) {
+                    console.warn(`⚠️ [review] Error enviando review a ${appt.clientName}:`, evoErr.message);
                 }
 
                 // Marcar como enviado para no re-enviar
