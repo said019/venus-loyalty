@@ -5,6 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Venus Lealtad</title>
   <link rel="icon" href="/assets/logo.png">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="/assets/logo.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Venus">
+  <meta name="theme-color" content="#2d3a2d">
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1362,6 +1368,87 @@
         setLoading(false);
       }
     });
+    // ===== PWA: Service Worker + Add to Home Screen =====
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    }
+
+    // Banner "Agregar a pantalla de inicio"
+    let deferredPrompt = null;
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      showInstallBanner();
+    });
+
+    function showInstallBanner() {
+      // No mostrar si ya está instalada o si ya se descartó
+      if (window.matchMedia('(display-mode: standalone)').matches) return;
+      if (sessionStorage.getItem('venus_install_dismissed')) return;
+
+      const banner = document.createElement('div');
+      banner.id = 'pwa-install-banner';
+      banner.innerHTML = `
+        <div style="position:fixed;bottom:0;left:0;right:0;z-index:9999;padding:12px 16px;
+          background:linear-gradient(135deg,#2d3a2d,#3a4a3a);
+          border-top:2px solid #8c9668;display:flex;align-items:center;gap:12px;
+          box-shadow:0 -4px 20px rgba(0,0,0,0.3);font-family:Inter,sans-serif;">
+          <img src="/assets/logo.png" style="width:44px;height:44px;border-radius:10px;background:white;padding:3px;">
+          <div style="flex:1;min-width:0;">
+            <div style="color:#f5f0e8;font-weight:600;font-size:14px;">Venus Lealtad</div>
+            <div style="color:#a8b892;font-size:12px;">Agrega a tu pantalla de inicio</div>
+          </div>
+          <button id="pwa-install-btn" style="background:linear-gradient(135deg,#8c9668,#a8b892);color:white;
+            border:none;padding:10px 18px;border-radius:10px;font-weight:600;font-size:13px;cursor:pointer;
+            white-space:nowrap;">Agregar</button>
+          <button id="pwa-dismiss-btn" style="background:none;border:none;color:#a8b892;font-size:20px;
+            cursor:pointer;padding:4px 8px;line-height:1;">&times;</button>
+        </div>
+      `;
+      document.body.appendChild(banner);
+
+      document.getElementById('pwa-install-btn').onclick = async () => {
+        if (deferredPrompt) {
+          deferredPrompt.prompt();
+          const result = await deferredPrompt.userChoice;
+          if (result.outcome === 'accepted') banner.remove();
+          deferredPrompt = null;
+        }
+      };
+
+      document.getElementById('pwa-dismiss-btn').onclick = () => {
+        banner.remove();
+        sessionStorage.setItem('venus_install_dismissed', '1');
+      };
+    }
+
+    // iOS: mostrar instrucciones manuales (Safari no soporta beforeinstallprompt)
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+    if (isIOS && !isStandalone && !sessionStorage.getItem('venus_install_dismissed')) {
+      const iosBanner = document.createElement('div');
+      iosBanner.id = 'ios-install-banner';
+      iosBanner.innerHTML = `
+        <div style="position:fixed;bottom:0;left:0;right:0;z-index:9999;padding:16px;
+          background:linear-gradient(135deg,#2d3a2d,#3a4a3a);
+          border-top:2px solid #8c9668;text-align:center;
+          box-shadow:0 -4px 20px rgba(0,0,0,0.3);font-family:Inter,sans-serif;">
+          <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:8px;">
+            <img src="/assets/logo.png" style="width:36px;height:36px;border-radius:8px;background:white;padding:2px;">
+            <span style="color:#f5f0e8;font-weight:600;font-size:14px;">Instala Venus Lealtad</span>
+            <button onclick="this.closest('#ios-install-banner').remove();sessionStorage.setItem('venus_install_dismissed','1')"
+              style="background:none;border:none;color:#a8b892;font-size:20px;cursor:pointer;margin-left:auto;">&times;</button>
+          </div>
+          <div style="color:#a8b892;font-size:12px;line-height:1.5;">
+            Toca <svg style="display:inline;vertical-align:middle;width:18px;height:18px;" fill="none" stroke="#a8b892" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+            </svg> y luego <strong style="color:#f5f0e8;">Agregar a inicio</strong>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(iosBanner);
+    }
   </script>
 </body>
 </html>

@@ -2946,7 +2946,7 @@ app.get('/api/public/services', async (req, res) => {
           name: data.name,
           category: data.category || 'Otros',
           price: data.price || 0,
-          duration: data.duration || 60,
+          duration: data.duration || data.durationMinutes || 60,
           description: data.description || [],
           discount: data.discount || null
         });
@@ -2967,7 +2967,7 @@ app.get('/api/public/services', async (req, res) => {
             name: data.name,
             category: data.category || 'Otros',
             price: data.price || 0,
-            duration: data.duration || 60,
+            duration: data.duration || data.durationMinutes || 60,
             description: data.description || [],
             discount: data.discount || null
           });
@@ -2980,9 +2980,121 @@ app.get('/api/public/services', async (req, res) => {
   }
 });
 
-// GET /api/public/services - Servicios disponibles (público)
-app.get('/api/public/services', async (req, res) => {
-  // ... existing code ...
+/* =========================================================
+   SERVICIOS - CRUD ADMIN
+   ========================================================= */
+
+// GET /api/services - Lista todos los servicios (admin)
+app.get('/api/services', adminAuth, async (req, res) => {
+  try {
+    const snapshot = await firestore.collection('services').orderBy('name').get();
+    const services = snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        name: data.name,
+        category: data.category || 'Otros',
+        price: data.price || 0,
+        duration: data.duration || data.durationMinutes || 60,
+        durationMinutes: data.durationMinutes || data.duration || 60,
+        description: data.description || '',
+        discount: data.discount || null,
+        active: data.active !== false,
+        bookable: data.bookable !== false
+      };
+    });
+    res.json({ success: true, data: services });
+  } catch (error) {
+    console.error('[SERVICES GET] Error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// POST /api/services - Crear nuevo servicio (admin)
+app.post('/api/services', adminAuth, async (req, res) => {
+  try {
+    const { name, category, durationMinutes, price, description, discount } = req.body;
+
+    if (!name || !price) {
+      return res.status(400).json({ success: false, error: 'Nombre y precio son requeridos' });
+    }
+
+    const duration = parseInt(durationMinutes) || 60;
+    const serviceData = {
+      name: String(name).trim(),
+      category: category || 'Otros',
+      price: parseFloat(price) || 0,
+      duration,
+      durationMinutes: duration,
+      description: description || '',
+      discount: discount || null,
+      active: true,
+      bookable: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    const docRef = await firestore.collection('services').add(serviceData);
+    console.log(`[SERVICES POST] Servicio creado: ${docRef.id} - ${name}`);
+
+    res.json({ success: true, id: docRef.id, data: { id: docRef.id, ...serviceData } });
+  } catch (error) {
+    console.error('[SERVICES POST] Error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// PUT /api/services/:id - Actualizar servicio (admin)
+app.put('/api/services/:id', adminAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, category, durationMinutes, price, description, discount } = req.body;
+
+    const doc = await firestore.collection('services').doc(id).get();
+    if (!doc.exists) {
+      return res.status(404).json({ success: false, error: 'Servicio no encontrado' });
+    }
+
+    const duration = parseInt(durationMinutes) || 60;
+    const updateData = {
+      name: String(name).trim(),
+      category: category || 'Otros',
+      price: parseFloat(price) || 0,
+      duration,
+      durationMinutes: duration,
+      description: description || '',
+      discount: discount || null,
+      updatedAt: new Date().toISOString()
+    };
+
+    await firestore.collection('services').doc(id).update(updateData);
+    console.log(`[SERVICES PUT] Servicio actualizado: ${id} - ${name}`);
+
+    res.json({ success: true, id, data: { id, ...updateData } });
+  } catch (error) {
+    console.error('[SERVICES PUT] Error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// DELETE /api/services/:id - Eliminar servicio (admin)
+app.delete('/api/services/:id', adminAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const doc = await firestore.collection('services').doc(id).get();
+    if (!doc.exists) {
+      return res.status(404).json({ success: false, error: 'Servicio no encontrado' });
+    }
+
+    await firestore.collection('services').doc(id).delete();
+    console.log(`[SERVICES DELETE] Servicio eliminado: ${id}`);
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('[SERVICES DELETE] Error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
 // ──────────────────────────────────────────────
@@ -4495,7 +4607,7 @@ function classifyWhatsAppChat(messages) {
 }
 
 // Estado en memoria
-let promoAnalysis = null; // resultado del análisis
+let promoAnalysis = { status: 'idle', clients: [], notClients: [], unknown: [], processed: 0, total: 0 };
 let promoState = {
   running: false,
   queue: [],
@@ -4506,81 +4618,105 @@ let promoState = {
   startedAt: null,
 };
 
-// 1) ANALIZAR chats de WhatsApp
+// 1a) INICIAR análisis en background (no bloquea)
 app.post('/api/admin/promo-2025/analyze', adminAuth, async (req, res) => {
-  try {
-    const evoClient = getEvolutionClient();
-    const allChats = await evoClient.fetchChats();
-    console.log(`[PROMO] Chats totales: ${allChats.length}`);
-
-    // Filtrar chats individuales de 2025
-    const start2025 = new Date('2025-01-01T00:00:00Z').getTime() / 1000;
-    const start2026 = new Date('2026-01-01T00:00:00Z').getTime() / 1000;
-
-    const individualChats = [];
-    for (const chat of allChats) {
-      const jid = chat.id || chat.remoteJid || '';
-      if (!jid.endsWith('@s.whatsapp.net')) continue;
-      const ts = chat.lastMsgTimestamp || chat.conversationTimestamp || chat.timestamp || 0;
-      const tsNum = typeof ts === 'object' ? Number(ts.low || ts) : Number(ts);
-      // Si hay timestamp, filtrar por 2025; si no hay, incluir todos
-      if (tsNum > 0 && (tsNum < start2025 || tsNum >= start2026)) continue;
-      individualChats.push({ jid, chat, tsNum });
-    }
-    console.log(`[PROMO] Chats individuales 2025: ${individualChats.length}`);
-
-    // Excluir los que ya tienen cita en 2026
-    const recentClients = await prisma.appointment.findMany({
-      where: {
-        startDateTime: { gte: new Date('2026-01-01T00:00:00Z') },
-        status: { in: ['completed', 'confirmed', 'scheduled'] },
-        clientPhone: { not: '' },
-      },
-      select: { clientPhone: true },
-    });
-    const recentPhones = new Set(recentClients.map(c => c.clientPhone.replace(/\D/g, '')));
-
-    const clients = [], notClients = [], unknown = [];
-    let processed = 0;
-
-    for (const { jid, chat } of individualChats) {
-      const phone = jid.replace('@s.whatsapp.net', '').replace(/\D/g, '');
-      if (!phone || phone.length < 10) continue;
-      if (recentPhones.has(phone)) continue; // ya regresó en 2026
-
-      const name = chat.name || chat.pushName || chat.contact?.pushName || phone;
-      try {
-        const messages = await evoClient.fetchMessages(jid, 20);
-        const analysis = classifyWhatsAppChat(messages);
-        const entry = { phone, name, ...analysis };
-
-        if (analysis.isClient) clients.push(entry);
-        else if (analysis.notClientScore > analysis.clientScore) notClients.push(entry);
-        else unknown.push(entry);
-
-        processed++;
-        // Pausa para no saturar la API
-        if (processed % 5 === 0) await new Promise(r => setTimeout(r, 200));
-      } catch (err) {
-        console.error(`[PROMO] Error analizando ${phone}:`, err.message);
-      }
-    }
-
-    promoAnalysis = { clients, notClients, unknown, analyzedAt: new Date().toISOString() };
-
-    res.json({
-      success: true,
-      totalChats: allChats.length,
-      filtered2025: individualChats.length,
-      excludedActive2026: recentPhones.size,
-      clients: clients.map(c => ({ phone: c.phone, name: c.name, score: c.clientScore, sample: c.sampleMessages[0] || '' })),
-      notClients: notClients.map(c => ({ phone: c.phone, name: c.name, score: c.notClientScore, sample: c.sampleMessages[0] || '' })),
-      unknown: unknown.map(c => ({ phone: c.phone, name: c.name, sample: c.sampleMessages[0] || '' })),
-    });
-  } catch (err) {
-    console.error('[PROMO] Error en análisis:', err);
-    res.status(500).json({ success: false, error: err.message });
+  if (promoAnalysis.status === 'running') {
+    return res.json({ success: true, message: 'Análisis ya en curso', status: promoAnalysis.status, processed: promoAnalysis.processed, total: promoAnalysis.total });
   }
+
+  promoAnalysis = { status: 'running', clients: [], notClients: [], unknown: [], processed: 0, total: 0 };
+  res.json({ success: true, message: 'Análisis iniciado en background' });
+
+  // Ejecutar en background
+  (async () => {
+    try {
+      const evoClient = getEvolutionClient();
+      const allChats = await evoClient.fetchChats();
+      console.log(`[PROMO] Chats totales: ${allChats.length}`);
+
+      const start2025 = new Date('2025-01-01T00:00:00Z').getTime() / 1000;
+      const start2026 = new Date('2026-01-01T00:00:00Z').getTime() / 1000;
+
+      const individualChats = [];
+      for (const chat of allChats) {
+        const jid = chat.id || chat.remoteJid || '';
+        if (!jid.endsWith('@s.whatsapp.net')) continue;
+        const ts = chat.lastMsgTimestamp || chat.conversationTimestamp || chat.timestamp || 0;
+        const tsNum = typeof ts === 'object' ? Number(ts.low || ts) : Number(ts);
+        if (tsNum > 0 && (tsNum < start2025 || tsNum >= start2026)) continue;
+        individualChats.push({ jid, chat, tsNum });
+      }
+
+      // Si no encontró por timestamp, tomar todos los individuales
+      if (individualChats.length === 0) {
+        console.log('[PROMO] No se filtraron por fecha, tomando todos los chats individuales');
+        for (const chat of allChats) {
+          const jid = chat.id || chat.remoteJid || '';
+          if (jid.endsWith('@s.whatsapp.net')) {
+            individualChats.push({ jid, chat, tsNum: 0 });
+          }
+        }
+      }
+
+      console.log(`[PROMO] Chats a analizar: ${individualChats.length}`);
+      promoAnalysis.total = individualChats.length;
+
+      const recentClients = await prisma.appointment.findMany({
+        where: {
+          startDateTime: { gte: new Date('2026-01-01T00:00:00Z') },
+          status: { in: ['completed', 'confirmed', 'scheduled'] },
+          clientPhone: { not: '' },
+        },
+        select: { clientPhone: true },
+      });
+      const recentPhones = new Set(recentClients.map(c => c.clientPhone.replace(/\D/g, '')));
+
+      for (const { jid, chat } of individualChats) {
+        const phone = jid.replace('@s.whatsapp.net', '').replace(/\D/g, '');
+        if (!phone || phone.length < 10) { promoAnalysis.processed++; continue; }
+        if (recentPhones.has(phone)) { promoAnalysis.processed++; continue; }
+
+        const name = chat.name || chat.pushName || chat.contact?.pushName || phone;
+        try {
+          const messages = await evoClient.fetchMessages(jid, 20);
+          const analysis = classifyWhatsAppChat(messages);
+          const entry = { phone, name, ...analysis };
+
+          if (analysis.isClient) promoAnalysis.clients.push(entry);
+          else if (analysis.notClientScore > analysis.clientScore) promoAnalysis.notClients.push(entry);
+          else promoAnalysis.unknown.push(entry);
+        } catch (err) {
+          console.error(`[PROMO] Error analizando ${phone}:`, err.message);
+        }
+        promoAnalysis.processed++;
+        if (promoAnalysis.processed % 10 === 0) {
+          console.log(`[PROMO] Progreso: ${promoAnalysis.processed}/${promoAnalysis.total}`);
+        }
+        await new Promise(r => setTimeout(r, 150));
+      }
+
+      promoAnalysis.status = 'done';
+      console.log(`[PROMO] Análisis terminado. Clientes: ${promoAnalysis.clients.length}, No: ${promoAnalysis.notClients.length}, Indeterminados: ${promoAnalysis.unknown.length}`);
+    } catch (err) {
+      console.error('[PROMO] Error en análisis:', err);
+      promoAnalysis.status = 'error';
+      promoAnalysis.error = err.message;
+    }
+  })();
+});
+
+// 1b) Consultar progreso/resultados del análisis
+app.get('/api/admin/promo-2025/analysis', adminAuth, (req, res) => {
+  res.json({
+    success: true,
+    status: promoAnalysis.status,
+    processed: promoAnalysis.processed,
+    total: promoAnalysis.total,
+    error: promoAnalysis.error || null,
+    clients: promoAnalysis.clients.map(c => ({ phone: c.phone, name: c.name, score: c.clientScore, sample: c.sampleMessages?.[0] || '' })),
+    notClients: promoAnalysis.notClients.map(c => ({ phone: c.phone, name: c.name, score: c.notClientScore, sample: c.sampleMessages?.[0] || '' })),
+    unknown: promoAnalysis.unknown.map(c => ({ phone: c.phone, name: c.name, sample: c.sampleMessages?.[0] || '' })),
+  });
 });
 
 // 2) INICIAR campaña (solo con clientes aprobados del análisis)
