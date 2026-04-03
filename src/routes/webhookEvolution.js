@@ -39,6 +39,15 @@ router.post('/', async (req, res) => {
             case 'messages.upsert':
                 await handleIncomingMessage(data);
                 break;
+            case 'messages.update':
+                // Poll responses can come as messages.update
+                console.log('[Evolution] messages.update recibido:', JSON.stringify(data).substring(0, 500));
+                await handleIncomingMessage(data);
+                break;
+            case 'poll.response':
+                console.log('[Evolution] poll.response recibido:', JSON.stringify(data).substring(0, 500));
+                await handleIncomingMessage(data);
+                break;
             default:
                 console.log(`[Evolution Webhook] Evento no manejado: ${event}`);
         }
@@ -53,11 +62,16 @@ async function handleIncomingMessage(data) {
     try {
         const message = data?.messages?.[0] || data;
         if (message?.key?.fromMe) return;
-        const from = message?.key?.remoteJid?.replace('@s.whatsapp.net', '') || '';
+        const from = message?.key?.remoteJid?.replace('@s.whatsapp.net', '')
+            || data?.remoteJid?.replace('@s.whatsapp.net', '')
+            || data?.key?.remoteJid?.replace('@s.whatsapp.net', '') || '';
         const profileName = data?.pushName || message?.pushName || 'Cliente';
 
-        if (message?.message?.pollUpdateMessage || data?.pollUpdate) {
-            console.log(`[Evolution] Respuesta de Poll de ${from}`);
+        // Detectar poll response en varios formatos de Evolution API
+        if (message?.message?.pollUpdateMessage || data?.pollUpdate
+            || data?.message?.pollUpdateMessage || data?.pollResponse
+            || message?.pollUpdateMessage) {
+            console.log(`[Evolution] Respuesta de Poll detectada de ${from}`);
             await handlePollResponse(from, data, profileName);
             return;
         }
@@ -79,15 +93,43 @@ async function handleIncomingMessage(data) {
 
 async function handlePollResponse(phone, payload, profileName) {
     let selectedOption = null;
-    const votes = payload?.pollUpdate?.votes;
-    if (Array.isArray(votes) && votes.length > 0) selectedOption = votes[0]?.optionName || votes[0]?.name;
+
+    // Formato 1: pollUpdate.votes
+    const votes = payload?.pollUpdate?.votes || payload?.data?.pollUpdate?.votes;
+    if (Array.isArray(votes) && votes.length > 0) {
+        selectedOption = votes[0]?.optionName || votes[0]?.name || votes[0];
+    }
+
+    // Formato 2: pollResponse
+    if (!selectedOption && payload?.pollResponse) {
+        const pr = payload.pollResponse;
+        selectedOption = pr?.selectedOption || pr?.optionName || pr?.name;
+        if (!selectedOption && Array.isArray(pr?.selectedOptions)) {
+            selectedOption = pr.selectedOptions[0]?.optionName || pr.selectedOptions[0]?.name || pr.selectedOptions[0];
+        }
+    }
+
+    // Formato 3: messages[0].message.pollUpdateMessage
+    const msg0 = payload?.messages?.[0];
+    if (!selectedOption && msg0?.message?.pollUpdateMessage) {
+        const pum = msg0.message.pollUpdateMessage;
+        if (Array.isArray(pum?.votes)) {
+            selectedOption = pum.votes[0]?.optionName || pum.votes[0]?.name;
+        }
+    }
+
+    // Formato 4: body directo
     if (!selectedOption) selectedOption = payload?.body || payload?.data?.body || null;
 
     console.log(`[Evolution] Poll respuesta: "${selectedOption}" de ${phone}`);
-    if (!selectedOption) { console.log('[Evolution] No se pudo determinar la opción seleccionada'); return; }
+    if (!selectedOption) {
+        console.log('[Evolution] No se pudo determinar la opción. Payload:', JSON.stringify(payload).substring(0, 800));
+        return;
+    }
 
     const pollMsgId = payload?.message?.pollUpdateMessage?.pollCreationMessageKey?.id
-        || payload?.pollUpdate?.pollCreationMessageKey?.id || null;
+        || payload?.pollUpdate?.pollCreationMessageKey?.id
+        || msg0?.message?.pollUpdateMessage?.pollCreationMessageKey?.id || null;
 
     let citaDirecta = null;
     if (pollMsgId) {
