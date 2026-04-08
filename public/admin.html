@@ -6377,9 +6377,14 @@
             <i class="fas fa-calendar-day" style="color:var(--venus-soft);"></i>
             <h3 style="margin:0;">Citas del <span id="selected-date-label">Hoy</span></h3>
           </div>
-          <button class="btn small ghost" id="btn-refresh-appts">
-            <i class="fas fa-sync-alt"></i> Actualizar
-          </button>
+          <div style="display:flex;gap:8px;">
+            <button class="btn small ghost" onclick="reconcilePolls()" title="Reprocesar respuestas de encuestas perdidas" id="btn-reconcile-polls">
+              <i class="fas fa-check-double"></i> Sincronizar respuestas
+            </button>
+            <button class="btn small ghost" id="btn-refresh-appts">
+              <i class="fas fa-sync-alt"></i> Actualizar
+            </button>
+          </div>
         </div>
 
         <div class="citas-dia-table-wrap">
@@ -15453,6 +15458,28 @@
           </tr>
         `;
       }).join('');
+    }
+
+    async function reconcilePolls() {
+      const btn = document.getElementById('btn-reconcile-polls');
+      if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sincronizando...'; }
+      try {
+        const res = await fetch('/api/admin/reconcile-polls', { method: 'POST', credentials: 'include' });
+        const json = await res.json();
+        if (json.success && json.reconciled?.length > 0) {
+          showNotification(`${json.reconciled.length} cita(s) actualizada(s)`, 'success');
+          // Recargar la lista de citas
+          clearAppointmentsCache();
+          loadAppointments(true);
+        } else {
+          showNotification(json.message || 'No se encontraron respuestas pendientes', 'info');
+        }
+      } catch (err) {
+        console.error('[Reconcile] Error:', err);
+        showNotification('Error al sincronizar respuestas', 'error');
+      } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-check-double"></i> Sincronizar respuestas'; }
+      }
     }
 
     async function loadAppointments(force = false) {

@@ -5920,12 +5920,12 @@ app.post('/api/admin/reconcile-polls', adminAuth, async (req, res) => {
         const { WhatsAppService } = await import('./src/services/whatsapp-v2.js');
         const evo = getEvolutionClient();
 
-        // Buscar citas scheduled/confirmed que tuvieron send24h=true (se les envió encuesta)
+        // Buscar citas scheduled que ya se les envió la encuesta 24h
         const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
         const pendingAppts = await prisma.appointment.findMany({
             where: {
-                send24h: true,
-                status: { in: ['scheduled'] },
+                sent24hAt: { not: null },
+                status: 'scheduled',
                 startDateTime: { gte: twoDaysAgo }
             },
             orderBy: { startDateTime: 'asc' }
