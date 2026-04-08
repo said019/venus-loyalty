@@ -61,20 +61,25 @@ router.post('/', async (req, res) => {
 async function handleIncomingMessage(data) {
     try {
         const message = data?.messages?.[0] || data;
-        if (message?.key?.fromMe) return;
         const from = message?.key?.remoteJid?.replace('@s.whatsapp.net', '')
             || data?.remoteJid?.replace('@s.whatsapp.net', '')
             || data?.key?.remoteJid?.replace('@s.whatsapp.net', '') || '';
         const profileName = data?.pushName || message?.pushName || 'Cliente';
 
-        // Detectar poll response en varios formatos de Evolution API
-        if (message?.message?.pollUpdateMessage || data?.pollUpdate
+        // Detectar poll response ANTES del filtro fromMe
+        // Las respuestas de poll vienen con fromMe=true porque referencian el poll original
+        const isPollResponse = message?.message?.pollUpdateMessage || data?.pollUpdate
             || data?.message?.pollUpdateMessage || data?.pollResponse
-            || message?.pollUpdateMessage) {
+            || message?.pollUpdateMessage;
+
+        if (isPollResponse) {
             console.log(`[Evolution] Respuesta de Poll detectada de ${from}`);
             await handlePollResponse(from, data, profileName);
             return;
         }
+
+        // Ignorar mensajes propios (pero NO polls, ya se manejaron arriba)
+        if (message?.key?.fromMe) return;
 
         const text = message?.message?.conversation ||
             message?.message?.extendedTextMessage?.text ||

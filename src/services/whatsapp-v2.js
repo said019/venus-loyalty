@@ -1,7 +1,7 @@
 // src/services/whatsapp-v2.js - Sistema de notificaciones WhatsApp (Evolution API)
 import { config } from '../config/config.js';
 import { getEvolutionClient } from './whatsapp-evolution.js';
-import { firestore } from '../db/compat.js';
+import { prisma } from '../db/index.js';
 import { formatearFechaLegible, formatearHora } from '../utils/mexico-time.js';
 
 /**
@@ -64,16 +64,17 @@ async function sendPollViaEvolution(to, question, options, appointmentId = null)
         const pollMsgId = pollResult?.key?.id;
         if (pollMsgId && appointmentId) {
             try {
-                await firestore.collection('pending_polls').doc(pollMsgId).set({
-                    appointmentId,
-                    phone: to,
-                    createdAt: new Date().toISOString(),
-                    // Expirar en 48h (limpieza eventual)
-                    expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString()
+                await prisma.pendingPoll.create({
+                    data: {
+                        id: pollMsgId,
+                        appointmentId,
+                        phone: to,
+                        expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000)
+                    }
                 });
-                console.log(`✅ [Evolution] Mapeo poll ${pollMsgId} → cita ${appointmentId} guardado`);
-            } catch (fsErr) {
-                console.warn('[Evolution] No se pudo guardar mapeo poll→cita:', fsErr.message);
+                console.log(`✅ [Evolution] Mapeo poll ${pollMsgId} → cita ${appointmentId} guardado en PostgreSQL`);
+            } catch (dbErr) {
+                console.warn('[Evolution] No se pudo guardar mapeo poll→cita:', dbErr.message);
             }
         }
 

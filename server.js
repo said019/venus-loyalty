@@ -5913,6 +5913,113 @@ app.get("/api/debug/database-status", adminAuth, async (req, res) => {
 // === HEALTH CHECK
 app.get("/health", (req, res) => res.json({ ok: true }));
 
+// === RECONCILIAR POLLS: reprocesar respuestas perdidas de encuestas ===
+app.post('/api/admin/reconcile-polls', adminAuth, async (req, res) => {
+    try {
+        const { getEvolutionClient } = await import('./src/services/whatsapp-evolution.js');
+        const { WhatsAppService } = await import('./src/services/whatsapp-v2.js');
+        const evo = getEvolutionClient();
+
+        // Buscar citas scheduled/confirmed que tuvieron send24h=true (se les envió encuesta)
+        const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
+        const pendingAppts = await prisma.appointment.findMany({
+            where: {
+                send24h: true,
+                status: { in: ['scheduled'] },
+                startDateTime: { gte: twoDaysAgo }
+            },
+            orderBy: { startDateTime: 'asc' }
+        });
+
+        if (pendingAppts.length === 0) {
+            return res.json({ success: true, message: 'No hay citas pendientes de reconciliar', reconciled: [] });
+        }
+
+        const reconciled = [];
+
+        for (const appt of pendingAppts) {
+            try {
+                // Normalizar teléfono para buscar en Evolution
+                let phone = appt.clientPhone.replace(/\D/g, '');
+                if (phone.length === 13 && phone.startsWith('521')) phone = '52' + phone.substring(3);
+                if (phone.length === 10) phone = '52' + phone;
+                const jid = phone + '@s.whatsapp.net';
+
+                // Buscar mensajes recientes del chat de esta clienta
+                const messages = await evo.fetchMessages(jid, 20);
+
+                // Buscar respuestas de confirmación en mensajes recientes
+                let found = null;
+                for (const msg of messages) {
+                    // Solo mensajes del cliente (no nuestros)
+                    if (msg?.key?.fromMe) continue;
+
+                    const text = (msg?.message?.conversation
+                        || msg?.message?.extendedTextMessage?.text
+                        || '').toLowerCase().trim();
+
+                    // También buscar en poll votes
+                    const pollUpdate = msg?.message?.pollUpdateMessage;
+                    let pollOption = null;
+                    if (pollUpdate?.votes) {
+                        pollOption = (pollUpdate.votes[0]?.optionName || pollUpdate.votes[0]?.name || '').toLowerCase();
+                    }
+
+                    const respuesta = pollOption || text;
+                    if (!respuesta) continue;
+
+                    if (respuesta.includes('confirmar') || respuesta.includes('confirmo') || respuesta === '1') {
+                        found = 'confirmed';
+                        break;
+                    } else if (respuesta.includes('cancelar') || respuesta === '3') {
+                        found = 'cancelled';
+                        break;
+                    } else if (respuesta.includes('reagendar') || respuesta.includes('reprogramar') || respuesta === '2') {
+                        found = 'rescheduling';
+                        break;
+                    }
+                }
+
+                if (found) {
+                    if (found === 'confirmed') {
+                        await prisma.appointment.update({
+                            where: { id: appt.id },
+                            data: { status: 'confirmed', confirmedAt: new Date(), confirmedVia: 'whatsapp-reconciled', updatedAt: new Date() }
+                        });
+                    } else if (found === 'cancelled') {
+                        await prisma.appointment.update({
+                            where: { id: appt.id },
+                            data: { status: 'cancelled', cancelledAt: new Date(), cancelledVia: 'whatsapp-reconciled', updatedAt: new Date() }
+                        });
+                    } else if (found === 'rescheduling') {
+                        await prisma.appointment.update({
+                            where: { id: appt.id },
+                            data: { status: 'rescheduling', rescheduleRequestedAt: new Date(), updatedAt: new Date() }
+                        });
+                    }
+
+                    reconciled.push({ id: appt.id, client: appt.clientName, service: appt.serviceName, newStatus: found });
+                    console.log(`✅ [Reconcile] Cita ${appt.id} de ${appt.clientName} → ${found}`);
+                }
+            } catch (msgErr) {
+                console.warn(`[Reconcile] Error procesando ${appt.clientName}:`, msgErr.message);
+            }
+        }
+
+        res.json({
+            success: true,
+            total: pendingAppts.length,
+            reconciled: reconciled,
+            message: reconciled.length > 0
+                ? `${reconciled.length} cita(s) reconciliada(s)`
+                : 'No se encontraron respuestas pendientes de procesar'
+        });
+    } catch (error) {
+        console.error('[Reconcile] Error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 /* =========================================================
    ADMIN: ACTUALIZAR INFORMACIÓN DE CLIENTE (FASE 5)
    ========================================================= */
