@@ -6338,148 +6338,159 @@
 
     <!-- TAB: Citas -->
     <section id="tab-appointments" class="tab-content hidden">
-      <div class="header-actions">
-        <h2><i class="fas fa-calendar"></i> Agenda de Citas</h2>
-        <div style="display:flex;gap:8px;">
-          <button class="btn small ghost" onclick="clearAppointmentsCache(); loadMonthAppointments(true); loadAppointments(true); loadMonthStats(true);"
-            title="Actualizar">
-            <i class="fas fa-sync"></i>
+
+      <!-- 1. Summary Cards Row -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;">
+        <!-- Monthly History -->
+        <div style="background:var(--glass-bg);border:1px solid var(--border-color);border-radius:16px;padding:24px;transition:transform 0.2s;" onmouseenter="this.style.transform='scale(1.01)'" onmouseleave="this.style.transform='scale(1)'">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;">
+            <div>
+              <h2 style="font-size:18px;font-weight:700;color:var(--venus-soft);margin:0;letter-spacing:-0.3px;">Historial del Mes</h2>
+              <p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin:4px 0 0;" id="calendar-month-title">Abril 2026</p>
+            </div>
+            <i class="fas fa-chart-bar" style="font-size:20px;color:var(--venus);opacity:0.6;"></i>
+          </div>
+          <div id="month-stats" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
+            <div style="display:flex;flex-direction:column;">
+              <span style="font-size:28px;font-weight:800;color:var(--ink);" id="stat-total">-</span>
+              <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);">Total</span>
+            </div>
+            <div style="display:flex;flex-direction:column;">
+              <span style="font-size:28px;font-weight:800;color:var(--venus-soft);" id="stat-completed">-</span>
+              <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);">Completadas</span>
+            </div>
+            <div style="display:flex;flex-direction:column;">
+              <span style="font-size:28px;font-weight:800;color:#ef4444;" id="stat-cancelled">-</span>
+              <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);">Canceladas</span>
+            </div>
+            <div style="display:flex;flex-direction:column;">
+              <span style="font-size:28px;font-weight:800;color:#f59e0b;" id="stat-pending">-</span>
+              <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);">Pendientes</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Monthly Sales -->
+        <div style="background:var(--glass-bg);border:1px solid var(--border-color);border-radius:16px;padding:24px;transition:transform 0.2s;" onmouseenter="this.style.transform='scale(1.01)'" onmouseleave="this.style.transform='scale(1)'">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;">
+            <div>
+              <h2 style="font-size:18px;font-weight:700;color:var(--venus-soft);margin:0;letter-spacing:-0.3px;">Ventas del Mes</h2>
+              <p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin:4px 0 0;">Desglose de ingresos</p>
+            </div>
+            <i class="fas fa-dollar-sign" style="font-size:20px;color:var(--venus);opacity:0.6;"></i>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
+            <div style="display:flex;flex-direction:column;">
+              <span style="font-size:22px;font-weight:800;color:var(--ink);" id="revenue-cash">$0</span>
+              <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);">Efectivo</span>
+            </div>
+            <div style="display:flex;flex-direction:column;">
+              <span style="font-size:22px;font-weight:800;color:var(--ink);" id="revenue-card">$0</span>
+              <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);">Tarjeta</span>
+            </div>
+            <div style="display:flex;flex-direction:column;">
+              <span style="font-size:22px;font-weight:800;color:var(--ink);" id="revenue-transfer">$0</span>
+              <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);">Transferencia</span>
+            </div>
+            <div style="background:rgba(140,150,104,0.15);border-radius:10px;padding:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+              <span style="font-size:20px;font-weight:800;color:var(--venus-soft);" id="revenue-total">$0</span>
+              <span style="font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--venus);">Total</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Main Grid: Calendar + Daily Appointments -->
+      <div style="display:grid;grid-template-columns:2fr 1fr;gap:20px;">
+
+        <!-- Calendar Section -->
+        <div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+            <h2 style="font-size:24px;font-weight:800;color:var(--ink);letter-spacing:-0.5px;margin:0;">Agenda</h2>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <button class="btn small ghost" onclick="clearAppointmentsCache(); loadMonthAppointments(true); loadAppointments(true); loadMonthStats(true);" title="Actualizar">
+                <i class="fas fa-sync"></i>
+              </button>
+              <div style="display:flex;align-items:center;gap:4px;background:var(--glass-bg);border:1px solid var(--border-color);padding:4px;border-radius:999px;">
+                <button class="btn-nav" id="btn-prev-month" title="Mes anterior" style="padding:6px 10px;background:none;border:none;color:var(--ink);cursor:pointer;border-radius:999px;transition:background 0.2s;">
+                  <i class="fas fa-chevron-left" style="font-size:12px;"></i>
+                </button>
+                <button class="btn-nav" id="btn-today" title="Ir a hoy" style="padding:6px 12px;background:none;border:none;color:var(--ink);cursor:pointer;font-size:13px;font-weight:700;border-radius:999px;transition:background 0.2s;">Hoy</button>
+                <button class="btn-nav" id="btn-next-month" title="Mes siguiente" style="padding:6px 10px;background:none;border:none;color:var(--ink);cursor:pointer;border-radius:999px;transition:background 0.2s;">
+                  <i class="fas fa-chevron-right" style="font-size:12px;"></i>
+                </button>
+              </div>
+              <div class="view-selector">
+                <button class="view-btn active" data-view="month">Mes</button>
+                <button class="view-btn" data-view="week">Semana</button>
+                <button class="view-btn" data-view="day">Dia</button>
+              </div>
+              <button class="btn primary" id="btn-new-appointment" style="padding:8px 16px;border-radius:12px;font-size:13px;font-weight:700;">
+                <i class="fas fa-plus" style="margin-right:4px;"></i> Nueva Cita
+              </button>
+            </div>
+          </div>
+
+          <div class="google-calendar-container" style="background:var(--glass-bg);border:1px solid var(--border-color);border-radius:16px;padding:24px;">
+            <div class="calendar-grid-container">
+              <div class="weekdays-header">
+                <div class="weekday">Dom</div>
+                <div class="weekday">Lun</div>
+                <div class="weekday">Mar</div>
+                <div class="weekday">Mie</div>
+                <div class="weekday">Jue</div>
+                <div class="weekday">Vie</div>
+                <div class="weekday">Sab</div>
+              </div>
+              <div class="calendar-grid" id="monthly-calendar">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Daily Appointments Sidebar -->
+        <div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+            <h2 style="font-size:16px;font-weight:700;color:var(--ink);margin:0;">Citas del <span id="selected-date-label">Hoy</span></h2>
+            <div style="display:flex;gap:6px;">
+              <button class="btn small ghost" onclick="reconcilePolls()" title="Sincronizar respuestas" id="btn-reconcile-polls" style="padding:6px 8px;font-size:11px;">
+                <i class="fas fa-check-double"></i>
+              </button>
+              <button class="btn small ghost" id="btn-refresh-appts" style="padding:6px 8px;font-size:11px;">
+                <i class="fas fa-sync-alt"></i>
+              </button>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:10px;" id="appts-cards-container">
+            <!-- Las citas se renderizan aqui como cards -->
+          </div>
+
+          <!-- Fallback table (hidden, kept for JS compatibility) -->
+          <div class="citas-dia-table-wrap" style="display:none;">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Hora</th>
+                  <th>Cliente</th>
+                  <th>Servicio</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="appts-tbody">
+                <tr>
+                  <td colspan="5" style="text-align:center;padding:20px;">Cargando...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Add New Button -->
+          <button onclick="document.getElementById('newApptDialog').showModal()" style="width:100%;margin-top:12px;padding:16px;border-radius:12px;border:2px dashed var(--border-color);background:none;cursor:pointer;transition:all 0.2s;display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--muted);" onmouseenter="this.style.borderColor='var(--venus)';this.style.color='var(--venus-soft)'" onmouseleave="this.style.borderColor='var(--border-color)';this.style.color='var(--muted)'">
+            <i class="fas fa-plus-circle" style="font-size:20px;"></i>
+            <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:2px;">Agendar Nueva</span>
           </button>
-          <button class="btn primary" id="btn-new-appointment">Nueva Cita</button>
-        </div>
-      </div>
-
-      <!-- Google Calendar Style -->
-      <div class="google-calendar-container">
-        <!-- Header del calendario -->
-        <div class="calendar-header">
-          <div class="calendar-title-section">
-            <h2 id="calendar-month-title">Diciembre 2024</h2>
-            <div class="calendar-nav">
-              <button class="btn-nav" id="btn-prev-month" title="Mes anterior">
-                <i class="fas fa-chevron-left"></i>
-              </button>
-              <button class="btn-nav" id="btn-today" title="Ir a hoy">Hoy</button>
-              <button class="btn-nav" id="btn-next-month" title="Mes siguiente">
-                <i class="fas fa-chevron-right"></i>
-              </button>
-            </div>
-          </div>
-
-          <div class="calendar-actions">
-            <button class="btn small ghost" onclick="clearAppointmentsCache(); loadMonthAppointments(true); loadAppointments(true); loadMonthStats(true);"
-              title="Actualizar">
-              <i class="fas fa-sync"></i>
-            </button>
-            <div class="view-selector">
-              <button class="view-btn active" data-view="month">Mes</button>
-              <button class="view-btn" data-view="week">Semana</button>
-              <button class="view-btn" data-view="day">Día</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Calendario principal -->
-        <div class="calendar-grid-container">
-          <!-- Días de la semana -->
-          <div class="weekdays-header">
-            <div class="weekday">Dom</div>
-            <div class="weekday">Lun</div>
-            <div class="weekday">Mar</div>
-            <div class="weekday">Mié</div>
-            <div class="weekday">Jue</div>
-            <div class="weekday">Vie</div>
-            <div class="weekday">Sáb</div>
-          </div>
-
-          <!-- Grid de días -->
-          <div class="calendar-grid" id="monthly-calendar">
-            <!-- Los días se generan dinámicamente -->
-          </div>
-        </div>
-      </div>
-
-      <!-- Citas del Día Seleccionado -->
-      <div class="card citas-dia-card">
-        <div class="citas-dia-header">
-          <div class="citas-dia-title">
-            <i class="fas fa-calendar-day" style="color:var(--venus-soft);"></i>
-            <h3 style="margin:0;">Citas del <span id="selected-date-label">Hoy</span></h3>
-          </div>
-          <div style="display:flex;gap:8px;">
-            <button class="btn small ghost" onclick="reconcilePolls()" title="Reprocesar respuestas de encuestas perdidas" id="btn-reconcile-polls">
-              <i class="fas fa-check-double"></i> Sincronizar respuestas
-            </button>
-            <button class="btn small ghost" id="btn-refresh-appts">
-              <i class="fas fa-sync-alt"></i> Actualizar
-            </button>
-          </div>
-        </div>
-
-        <div class="citas-dia-table-wrap">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Hora</th>
-                <th>Cliente</th>
-                <th>Servicio</th>
-                <th>Estado</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody id="appts-tbody">
-              <tr>
-                <td colspan="5" style="text-align:center;padding:20px;">Cargando...</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Historial del Mes -->
-      <div class="card" style="margin-top:20px;">
-        <h3 style="margin-top:0;">Historial del Mes</h3>
-        <div id="month-stats"
-          style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px;">
-          <div class="stat-card">
-            <div class="stat-label">Total Citas</div>
-            <div class="stat-value" id="stat-total">-</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Completadas</div>
-            <div class="stat-value" id="stat-completed">-</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Canceladas</div>
-            <div class="stat-value" id="stat-cancelled">-</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Pendientes</div>
-            <div class="stat-value" id="stat-pending">-</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Resumen de Ventas del Mes -->
-      <div class="card" style="margin-top:20px;">
-        <h3 style="margin-top:0;"><i class="fas fa-dollar-sign"></i> Ventas del Mes</h3>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;">
-          <div class="stat-card">
-            <div class="stat-label"><i class="fas fa-money-bill"></i> Efectivo</div>
-            <div class="stat-value stat-money" id="revenue-cash">$0.00</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label"><i class="fas fa-credit-card"></i> Tarjeta</div>
-            <div class="stat-value stat-money" id="revenue-card">$0.00</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label"><i class="fas fa-building"></i> Transferencia</div>
-            <div class="stat-value stat-money" id="revenue-transfer">$0.00</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label"><i class="fas fa-dollar-sign"></i> Total</div>
-            <div class="stat-value stat-money" id="revenue-total" style="color:#FFD166;font-weight:700;">$0.00</div>
-          </div>
         </div>
       </div>
     </section>
