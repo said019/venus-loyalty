@@ -99,14 +99,38 @@ function buildAttendanceSurveyCopy(appt) {
 }
 
 export const WhatsAppService = {
-    /** Envía confirmación de cita al momento de crearla */
+    /** Envía confirmación de cita al momento de crearla.
+     *  Si la clienta tiene otra cita el mismo día, envía 1 solo mensaje consolidado.
+     */
     async sendConfirmation(appt) {
-        console.log('[WHATSAPP] sendConfirmation llamado con:', {
-            hasTime: !!appt.time,
-            time: appt.time,
-            hasStartDateTime: !!appt.startDateTime
-        });
+        const nombre = sanitizeForWhatsApp(appt.clientName);
+        const fecha = appt.date ? formatearFechaLegible(appt.date) : formatearFechaLegible(appt.startDateTime);
 
+        // Buscar otras citas del mismo teléfono en el mismo día que no estén canceladas
+        let otrasCitas = [];
+        try {
+            const phone = appt.clientPhone.replace(/\D/g, '');
+            const normalPhone = phone.length === 10 ? '52' + phone : phone;
+            otrasCitas = await prisma.appointment.findMany({
+                where: {
+                    clientPhone: { in: [phone, normalPhone, appt.clientPhone] },
+                    date: appt.date,
+                    status: { not: 'cancelled' },
+                    id: { not: appt.id }
+                },
+                orderBy: { startDateTime: 'asc' }
+            });
+        } catch (e) { /* continuar sin agrupar */ }
+
+        if (otrasCitas.length > 0) {
+            // Consolidar: incluir esta cita + las otras en 1 mensaje
+            const todas = [appt, ...otrasCitas].sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+            const citasTexto = todas.map(a => `  • *${sanitizeForWhatsApp(a.serviceName)}* a las *${a.time || formatearHora(a.startDateTime)}*`).join('\n');
+            const mensaje = `📅 *Citas Confirmadas*\n\nHola ${nombre}, tus citas han sido agendadas para el *${fecha}*:\n\n${citasTexto}\n\n📍 *Lugar:* ${config.venus.location}\n\n¡Te esperamos! ✨`;
+            return await sendViaEvolution(appt.clientPhone, mensaje);
+        }
+
+        // Cita única
         let hora;
         if (appt.time) {
             hora = appt.time;
@@ -116,10 +140,7 @@ export const WhatsAppService = {
             hora = '00:00';
         }
 
-        const fecha = appt.date ? formatearFechaLegible(appt.date) : formatearFechaLegible(appt.startDateTime);
-        const nombre = sanitizeForWhatsApp(appt.clientName);
         const servicio = sanitizeForWhatsApp(appt.serviceName);
-
         const mensaje = `📅 *Cita Confirmada*\n\nHola ${nombre}, tu cita ha sido agendada:\n\n🔹 *Servicio:* ${servicio}\n📆 *Fecha:* ${fecha}\n🕐 *Hora:* ${hora}\n📍 *Lugar:* ${config.venus.location}\n\n¡Te esperamos! ✨`;
         return await sendViaEvolution(appt.clientPhone, mensaje);
     },

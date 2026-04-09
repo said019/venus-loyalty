@@ -160,11 +160,49 @@ async function processClientResponse(telefono, respuesta, citaDirecta = null) {
     const cita = citaDirecta || await buscarCitaActiva(telefono);
     if (!cita) { console.log(`⚠️ No se encontró cita activa para ${telefono}`); return; }
 
-    if (respuesta.includes('confirmo') || respuesta.includes('confirmar') || respuesta === '1') await procesarConfirmacion(cita);
+    if (respuesta.includes('confirmo') || respuesta.includes('confirmar') || respuesta === '1') {
+        // Confirmar TODAS las citas activas del mismo teléfono (por si tiene citas seguidas)
+        const todasCitas = await buscarTodasCitasActivas(telefono);
+        if (todasCitas.length > 0) {
+            let envioConfirmacion = false;
+            for (const c of todasCitas) {
+                await procesarConfirmacion(c, !envioConfirmacion);
+                envioConfirmacion = true; // Solo enviar mensaje de confirmación 1 vez
+            }
+        } else {
+            await procesarConfirmacion(cita, true);
+        }
+    }
     else if (respuesta.includes('reagendar') || respuesta.includes('reprogramar') || respuesta.includes('cambio') || respuesta === '2') await procesarReagendamiento(cita);
     else if (respuesta.includes('cancelar') || respuesta === '3') await procesarCancelacion(cita);
     else if (cita.status === 'rescheduling') await procesarFechaReagendamiento(cita, telefono, respuesta);
     else console.log(`❓ Respuesta no reconocida: ${respuesta}`);
+}
+
+async function buscarTodasCitasActivas(telefono) {
+    try {
+        const phone = normalizePhone(telefono);
+        const marginDate = new Date(Date.now() - 2 * 60 * 60 * 1000);
+        const validStatuses = ['scheduled', 'confirmed', 'rescheduling'];
+
+        let results = await prisma.appointment.findMany({
+            where: { clientPhone: phone, startDateTime: { gte: marginDate }, status: { in: validStatuses } },
+            orderBy: { startDateTime: 'asc' }
+        });
+
+        if (results.length === 0) {
+            const last10 = phone.slice(-10);
+            results = await prisma.appointment.findMany({
+                where: { clientPhone: { endsWith: last10 }, startDateTime: { gte: marginDate }, status: { in: validStatuses } },
+                orderBy: { startDateTime: 'asc' }
+            });
+        }
+
+        return results;
+    } catch (error) {
+        console.error('❌ Error buscando todas las citas activas:', error);
+        return [];
+    }
 }
 
 async function buscarCitaActiva(telefono) {
@@ -195,11 +233,10 @@ async function buscarCitaActiva(telefono) {
     }
 }
 
-async function procesarConfirmacion(cita) {
+async function procesarConfirmacion(cita, enviarMensaje = true) {
     console.log(`✅ Procesando confirmación para cita ${cita.id} (status actual: ${cita.status})`);
-    // Si ya está confirmada, no re-enviar el mensaje
     if (cita.status === 'confirmed') {
-        console.log(`⏭️ Cita ${cita.id} ya estaba confirmada, no se re-envía mensaje`);
+        console.log(`⏭️ Cita ${cita.id} ya estaba confirmada`);
         return;
     }
     try {
@@ -208,7 +245,9 @@ async function procesarConfirmacion(cita) {
             data: { status: 'confirmed', confirmedAt: new Date(), confirmedVia: 'whatsapp-evolution', updatedAt: new Date() }
         });
         await NotificationsRepo.create({ type: 'cita', icon: 'calendar-check', title: 'Cita confirmada', message: `${cita.clientName} confirmó ${cita.serviceName}`, read: false, entityId: cita.id });
-        await WhatsAppService.sendConfirmacionRecibida(cita);
+        if (enviarMensaje) {
+            await WhatsAppService.sendConfirmacionRecibida(cita);
+        }
         console.log(`✅ Cita ${cita.id} confirmada exitosamente`);
     } catch (error) { console.error('Error procesando confirmación:', error); }
 }
