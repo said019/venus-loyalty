@@ -15408,6 +15408,55 @@
 
     // ========== CARGAR CITAS ==========
     function renderAppointmentsTable(appointments) {
+      // Render sidebar cards
+      const cardsContainer = document.getElementById('appts-cards-container');
+      if (cardsContainer) {
+        if (!appointments || appointments.length === 0) {
+          cardsContainer.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted);font-size:13px;">No hay citas para este dia</div>';
+        } else {
+          cardsContainer.innerHTML = appointments.map(appt => {
+            const time = new Date(appt.startDateTime).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false });
+            const initials = (appt.clientName || '??').split(' ').map(w => w[0]).join('').toUpperCase().substring(0, 2);
+            const statusColors = { scheduled: '#3b82f6', confirmed: '#22c55e', rescheduling: '#fbbf24', completed: 'var(--venus-soft)', cancelled: '#ef4444', no_show: '#6b7280' };
+            const statusLabels = { scheduled: 'Agendada', confirmed: 'Confirmada', completed: 'Completada', cancelled: 'Cancelada', rescheduling: 'Reagendando', no_show: 'No asistio' };
+            const stColor = statusColors[appt.status] || '#6b7280';
+            const stLabel = statusLabels[appt.status] || appt.status;
+            const escapedName = (appt.clientName || '').replace(/'/g, "\\'");
+            const escapedService = (appt.serviceName || '').replace(/'/g, "\\'");
+            return `
+              <div style="background:var(--glass-bg);border:1px solid var(--border-color);padding:14px;border-radius:14px;transition:transform 0.15s;" onmouseenter="this.style.transform='scale(1.02)'" onmouseleave="this.style.transform='scale(1)'">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                  <div style="display:flex;align-items:center;gap:10px;">
+                    <div style="width:36px;height:36px;border-radius:50%;background:rgba(140,150,104,0.2);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:var(--venus-soft);">${initials}</div>
+                    <div>
+                      <p style="font-weight:700;font-size:13px;color:var(--ink);margin:0;">${appt.clientName}</p>
+                      <div style="display:flex;align-items:center;gap:4px;">
+                        <i class="fas fa-clock" style="font-size:9px;color:var(--muted);"></i>
+                        <span style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;">${time} — ${appt.serviceName}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <span style="background:${stColor};color:#fff;font-size:9px;font-weight:700;padding:3px 8px;border-radius:999px;text-transform:uppercase;">${stLabel}</span>
+                </div>
+                <div style="display:flex;gap:6px;border-top:1px solid var(--border-color);padding-top:8px;margin-top:4px;">
+                  ${appt.status !== 'completed' ? `
+                  <button onclick="openPaymentModal('${appt.id}','${escapedName}','${escapedService}',${appt.price || 0})" style="flex:1;font-size:9px;font-weight:700;padding:6px;border-radius:8px;background:var(--venus);color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;">
+                    <i class="fas fa-money-bill-wave" style="font-size:10px;"></i> Pagar
+                  </button>` : `
+                  <div style="flex:1;font-size:10px;font-weight:700;padding:6px;text-align:center;color:#22c55e;">$${appt.totalPaid || 0}</div>`}
+                  <button onclick="sendWhatsAppAttendanceSurvey('${appt.id}')" style="flex:1;font-size:9px;font-weight:700;padding:6px;border-radius:8px;background:#25D366;color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;">
+                    <i class="fab fa-whatsapp" style="font-size:10px;"></i> WhatsApp
+                  </button>
+                  <button onclick="editAppointment('${appt.id}')" style="padding:6px 8px;border-radius:8px;background:var(--glass-bg);border:1px solid var(--border-color);color:var(--muted);cursor:pointer;">
+                    <i class="fas fa-edit" style="font-size:11px;"></i>
+                  </button>
+                </div>
+              </div>`;
+          }).join('');
+        }
+      }
+
+      // Also render legacy table
       if (!apptsTbody) return;
 
       if (!appointments || appointments.length === 0) {
