@@ -5938,6 +5938,35 @@
         </div>
       </div>
 
+      <!-- Google Calendar OAuth -->
+      <div style="background:rgba(66,133,244,0.08);border:1px solid rgba(66,133,244,0.25);border-radius:12px;padding:14px;margin:12px 0;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <h3 style="margin:0;"><i class="fab fa-google" style="color:#4285F4;"></i> Google Calendar</h3>
+          <span id="gcal-status-badge" style="font-size:12px;padding:4px 10px;border-radius:20px;background:#e74c3c20;color:#e74c3c;">Desconectado</span>
+        </div>
+        <p class="muted" style="margin:0 0 12px;font-size:12px;">Sincroniza las citas con tu Google Calendar personal. Los eventos se crean, actualizan y eliminan automáticamente.</p>
+
+        <div id="gcal-disconnected" style="display:flex;gap:8px;">
+          <button class="btn primary" onclick="connectGoogleCalendar()">
+            <i class="fab fa-google"></i> Conectar Google Calendar
+          </button>
+        </div>
+        <div id="gcal-connected" style="display:none;">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">
+            <span>Última sincronización: <strong id="gcal-last-sync">-</strong></span>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn primary small" onclick="syncGoogleCalendar()">
+              <i class="fas fa-sync"></i> Sincronizar todas las citas
+            </button>
+            <button class="btn danger small" onclick="disconnectGoogleCalendar()">
+              <i class="fas fa-unlink"></i> Desconectar
+            </button>
+          </div>
+          <div id="gcal-sync-result" style="margin-top:10px;font-size:12px;display:none;"></div>
+        </div>
+      </div>
+
       <p class="muted" style="margin-top:20px;">Envía notificaciones push a todos los pases en Google Wallet.</p>
 
       <div
@@ -20016,6 +20045,84 @@
 
       alert('URL de Maps generada. Recuerda guardar la configuración.');
     });
+
+    // ===== GOOGLE CALENDAR =====
+    async function loadGoogleCalendarStatus() {
+      try {
+        const res = await fetch('/api/admin/calendar/status', { credentials: 'include' });
+        const json = await res.json();
+        const badge = document.getElementById('gcal-status-badge');
+        const connDiv = document.getElementById('gcal-connected');
+        const discDiv = document.getElementById('gcal-disconnected');
+        if (json.connected) {
+          badge.textContent = 'Conectado';
+          badge.style.background = '#22c55e20';
+          badge.style.color = '#22c55e';
+          connDiv.style.display = 'block';
+          discDiv.style.display = 'none';
+          const lastSync = json.lastSyncAt ? new Date(json.lastSyncAt).toLocaleString('es-MX') : 'Nunca';
+          document.getElementById('gcal-last-sync').textContent = lastSync;
+        } else {
+          badge.textContent = 'Desconectado';
+          badge.style.background = '#e74c3c20';
+          badge.style.color = '#e74c3c';
+          connDiv.style.display = 'none';
+          discDiv.style.display = 'flex';
+        }
+      } catch (err) { console.warn('[GCal] Error cargando estado:', err); }
+    }
+
+    async function connectGoogleCalendar() {
+      try {
+        const res = await fetch('/api/admin/calendar/auth', { credentials: 'include' });
+        const json = await res.json();
+        if (json.authUrl) {
+          window.open(json.authUrl, '_blank');
+        } else {
+          showNotification(json.message || 'Error al obtener URL de autorización', 'error');
+        }
+      } catch (err) { showNotification('Error conectando Google Calendar', 'error'); }
+    }
+
+    async function syncGoogleCalendar() {
+      const resultDiv = document.getElementById('gcal-sync-result');
+      resultDiv.style.display = 'block';
+      resultDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sincronizando...';
+      try {
+        const res = await fetch('/api/admin/calendar/sync', { method: 'POST', credentials: 'include' });
+        const json = await res.json();
+        if (json.success) {
+          resultDiv.innerHTML = `<span style="color:#22c55e;">✅ ${json.created} creados, ${json.updated} actualizados, ${json.failed} errores (de ${json.total} citas)</span>`;
+          showNotification('Google Calendar sincronizado', 'success');
+          loadGoogleCalendarStatus();
+        } else {
+          resultDiv.innerHTML = `<span style="color:#e74c3c;">❌ ${json.error}</span>`;
+        }
+      } catch (err) {
+        resultDiv.innerHTML = `<span style="color:#e74c3c;">❌ Error: ${err.message}</span>`;
+      }
+    }
+
+    async function disconnectGoogleCalendar() {
+      if (!confirm('¿Desconectar Google Calendar? Las citas seguirán en tu calendario pero ya no se sincronizarán.')) return;
+      try {
+        await fetch('/api/admin/calendar/disconnect', { method: 'POST', credentials: 'include' });
+        showNotification('Google Calendar desconectado', 'success');
+        loadGoogleCalendarStatus();
+      } catch (err) { showNotification('Error desconectando', 'error'); }
+    }
+
+    // Cargar estado al abrir settings y al detectar callback de Google
+    loadGoogleCalendarStatus();
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('calendar') === 'connected') {
+      showNotification('Google Calendar conectado exitosamente', 'success');
+      loadGoogleCalendarStatus();
+      window.history.replaceState({}, '', window.location.pathname);
+    } else if (urlParams.get('calendar') === 'error') {
+      showNotification('Error conectando Google Calendar: ' + (urlParams.get('reason') || 'desconocido'), 'error');
+      window.history.replaceState({}, '', window.location.pathname);
+    }
 
     document.getElementById('business-config-form')?.addEventListener('submit', async (e) => {
       e.preventDefault();
