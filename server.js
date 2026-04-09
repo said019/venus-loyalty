@@ -6280,33 +6280,46 @@ app.post('/api/reviews', async (req, res) => {
   }
 });
 
-// GET /api/admin/reviews — listar reseñas
+// GET /api/admin/reviews — listar reseñas (desde PostgreSQL)
 app.get('/api/admin/reviews', adminAuth, async (req, res) => {
   try {
-    const { rating, limit = 50 } = req.query;
+    const { rating, limit = 100 } = req.query;
 
-    let query = firestore.collection('reviews').orderBy('createdAt', 'desc').limit(parseInt(limit));
+    const where = { stars: { gt: 0 } }; // Solo reviews contestadas (stars > 0)
+    if (rating) where.stars = parseInt(rating);
 
-    const snapshot = await query.get();
-    let data = [];
-    snapshot.forEach(doc => data.push({ id: doc.id, ...doc.data() }));
+    let data = await prisma.review.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      take: parseInt(limit)
+    });
 
-    if (rating) {
-      data = data.filter(r => r.rating === parseInt(rating));
-    }
+    // Mapear campos para compatibilidad con el frontend
+    data = data.map(r => ({
+      id: r.id,
+      appointmentId: r.appointmentId,
+      rating: r.stars,
+      clientName: r.clientName,
+      clientPhone: r.clientPhone,
+      serviceName: r.serviceName,
+      comment: r.comment || '',
+      liked: r.liked || '',
+      improve: r.improve || '',
+      replied: r.replied || false,
+      reply: r.reply || null,
+      repliedAt: r.repliedAt || null,
+      createdAt: (r.answeredAt || r.createdAt || new Date()).toISOString()
+    }));
 
-    // Estadísticas
-    const allSnap = await firestore.collection('reviews').get();
-    const allReviews = [];
-    allSnap.forEach(doc => allReviews.push(doc.data()));
-
+    // Estadísticas sobre TODAS las reviews contestadas
+    const allReviews = await prisma.review.findMany({ where: { stars: { gt: 0 } } });
     const total = allReviews.length;
     const avgRating = total > 0
-      ? (allReviews.reduce((s, r) => s + (r.rating || 0), 0) / total).toFixed(1)
+      ? (allReviews.reduce((s, r) => s + r.stars, 0) / total).toFixed(1)
       : 0;
 
     const dist = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-    allReviews.forEach(r => { if (r.rating) dist[r.rating]++; });
+    allReviews.forEach(r => { if (r.stars >= 1 && r.stars <= 5) dist[r.stars]++; });
 
     res.json({ success: true, data, stats: { total, avgRating: parseFloat(avgRating), dist } });
   } catch (error) {
@@ -6319,10 +6332,9 @@ app.get('/api/admin/reviews', adminAuth, async (req, res) => {
 app.patch('/api/admin/reviews/:id/reply', adminAuth, async (req, res) => {
   try {
     const { reply } = req.body;
-    await firestore.collection('reviews').doc(req.params.id).update({
-      replied: true,
-      reply: reply || '',
-      repliedAt: new Date().toISOString()
+    await prisma.review.update({
+      where: { id: req.params.id },
+      data: { replied: true, reply: reply || '', repliedAt: new Date() }
     });
     res.json({ success: true });
   } catch (error) {

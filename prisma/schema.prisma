@@ -519,6 +519,9 @@ model Review {
   liked           String?   // Lo que más le gustó
   improve         String?   // Lo que mejoraría
   comment         String?   // Comentario adicional
+  replied         Boolean   @default(false)
+  reply           String?
+  repliedAt       DateTime? @map("replied_at")
   sentAt          DateTime? @map("sent_at")    // Cuándo se envió el link
   answeredAt      DateTime? @map("answered_at") // Cuándo respondió
   createdAt       DateTime  @default(now()) @map("created_at")
