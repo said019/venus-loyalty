@@ -3523,7 +3523,8 @@
       display: block;
       padding: 0;
       width: 100%;
-      overflow: hidden;
+      overflow-x: auto;
+      min-width: 0;
     }
 
     .weekdays-header {
@@ -3565,12 +3566,14 @@
 
     .calendar-day, .calendar-cell {
       min-height: 100px;
+      min-width: 0;
       padding: 10px;
       background: var(--bg-secondary);
       transition: background-color 0.15s ease;
       cursor: pointer;
       display: flex;
       flex-direction: column;
+      overflow: hidden;
       position: relative;
       -webkit-tap-highlight-color: transparent;
       touch-action: manipulation;
@@ -6401,7 +6404,7 @@
       </div>
 
       <!-- 2. Main Grid: Calendar + Daily Appointments -->
-      <div style="display:grid;grid-template-columns:3fr 1fr;gap:20px;min-width:0;">
+      <div style="display:grid;grid-template-columns:1fr 320px;gap:20px;min-width:0;">
 
         <!-- Calendar Section -->
         <div style="min-width:0;overflow:hidden;">
