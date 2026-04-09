@@ -16809,10 +16809,9 @@
     if (formNewAppt) {
       formNewAppt.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const btn = formNewAppt.querySelector('button[type="submit"]');
-        const originalText = btn.textContent;
-        btn.disabled = true;
-        btn.textContent = 'Agendando...';
+        const btn = document.querySelector('button[form="form-new-appt"]') || formNewAppt.querySelector('button[type="submit"]');
+        const originalText = btn ? btn.textContent : '';
+        if (btn) { btn.disabled = true; btn.textContent = 'Agendando...'; }
 
         try {
           // Construir hora desde los selectores separados
@@ -16984,8 +16983,7 @@
           console.error('Error al agendar:', e);
           alert('Error de conexión: ' + (e.message || 'Intenta de nuevo'));
         } finally {
-          btn.disabled = false;
-          btn.textContent = originalText;
+          if (btn) { btn.disabled = false; btn.textContent = originalText; }
         }
       });
     }
