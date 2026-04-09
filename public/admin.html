@@ -6401,13 +6401,13 @@
       </div>
 
       <!-- 2. Main Grid: Calendar + Daily Appointments -->
-      <div style="display:grid;grid-template-columns:2fr 1fr;gap:20px;">
+      <div style="display:grid;grid-template-columns:3fr 1fr;gap:20px;min-width:0;">
 
         <!-- Calendar Section -->
-        <div>
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <div style="min-width:0;overflow:hidden;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
             <h2 style="font-size:24px;font-weight:800;color:var(--ink);letter-spacing:-0.5px;margin:0;">Agenda</h2>
-            <div style="display:flex;align-items:center;gap:8px;">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
               <button class="btn small ghost" onclick="clearAppointmentsCache(); loadMonthAppointments(true); loadAppointments(true); loadMonthStats(true);" title="Actualizar">
                 <i class="fas fa-sync"></i>
               </button>
