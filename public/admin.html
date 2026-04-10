@@ -15688,9 +15688,15 @@
 
     // ========== CANCELAR CITA ==========
     window.cancelAppointment = async (id) => {
-      if (!confirm('¿Cancelar esta cita?')) return;
+      if (!confirm('¿Eliminar esta cita? Se eliminará también de Google Calendar.')) return;
       try {
-        await fetch(`/api/appointments/${id}/cancel`, { method: 'PATCH' });
+        const res = await fetch(`/api/appointments/${id}/cancel`, { method: 'PATCH', credentials: 'include' });
+        const json = await res.json();
+        if (!json.success) {
+          alert('Error al eliminar: ' + (json.error || 'Error desconocido'));
+          return;
+        }
+        showNotification('Cita eliminada', 'success');
         clearAppointmentsCache();
         loadMonthAppointments(true);
         loadAppointments(true);
@@ -15752,6 +15758,7 @@
       try {
         const res = await fetch(`/api/appointments/${id}/status`, {
           method: 'PATCH',
+          credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ status: newStatus })
         });
