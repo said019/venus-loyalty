@@ -15441,7 +15441,13 @@
                       </div>
                     </div>
                   </div>
-                  <span style="background:${stColor};color:#fff;font-size:9px;font-weight:700;padding:3px 8px;border-radius:999px;text-transform:uppercase;">${stLabel}</span>
+                  <select onchange="updateAppointmentStatus('${appt.id}', this.value)" style="background:${stColor};color:#fff;font-size:9px;font-weight:700;padding:4px 8px;border-radius:999px;text-transform:uppercase;border:none;cursor:pointer;appearance:none;-webkit-appearance:none;min-width:90px;text-align:center;" onclick="this.style.appearance='auto';this.style.webkitAppearance='menulist'" onblur="this.style.appearance='none';this.style.webkitAppearance='none'">
+                    <option value="scheduled" ${appt.status==='scheduled'?'selected':''}>Agendada</option>
+                    <option value="confirmed" ${appt.status==='confirmed'?'selected':''}>Confirmada</option>
+                    <option value="completed" ${appt.status==='completed'?'selected':''}>Completada</option>
+                    <option value="cancelled" ${appt.status==='cancelled'?'selected':''}>Cancelada</option>
+                    <option value="no_show" ${appt.status==='no_show'?'selected':''}>No asistio</option>
+                  </select>
                 </div>
                 <div style="display:flex;gap:6px;border-top:1px solid var(--border-color);padding-top:8px;margin-top:4px;">
                   ${appt.status !== 'completed' ? `
