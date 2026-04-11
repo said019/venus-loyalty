@@ -518,7 +518,7 @@ app.use(express.static("public"));
 app.use('/api', appointmentsRouter);
 
 // ✅ Calendar API
-app.use('/api/calendar', calendarRoutes);
+app.use('/api/admin/calendar', calendarRoutes);
 
 // ✅ WhatsApp Webhook (Twilio)
 app.use('/api/whatsapp', whatsappWebhook);
