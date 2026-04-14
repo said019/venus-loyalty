@@ -163,7 +163,7 @@ export const AppointmentsController = {
             const eventData = {
                 title: `${serviceName} - ${card.name}`,
                 description: `Cliente: ${card.name}\nTel: ${card.phone}\nServicio: ${serviceName}`,
-                location: 'Cactus 50, San Juan del Río',
+                location: 'Sierra del Eje Pte. 7, Villas del Parque, San Juan del Río',
                 startISO: startDateTime,
                 endISO: endDateTime
             };
@@ -397,7 +397,7 @@ export const AppointmentsController = {
                 const eventData = {
                     title: `${serviceName} - ${currentAppt.clientName}`,
                     description: `Cliente: ${currentAppt.clientName}\nTel: ${currentAppt.clientPhone}\nServicio: ${serviceName}`,
-                    location: 'Cactus 50, San Juan del Río',
+                    location: 'Sierra del Eje Pte. 7, Villas del Parque, San Juan del Río',
                     startISO: startDateTime,
                     endISO: endDateTime
                 };

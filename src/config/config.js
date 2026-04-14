@@ -21,6 +21,6 @@ export const config = {
     },
     timezone: process.env.DEFAULT_TIMEZONE || 'America/Mexico_City',
     venus: {
-        location: 'Cactus 50, San Juan del Río'
+        location: 'Sierra del Eje Pte. 7, Villas del Parque, San Juan del Río'
     }
 };

@@ -683,7 +683,7 @@ app.post('/api/test/whatsapp', async (req, res) => {
       date: testDate,
       time: testTime,
       startDateTime: new Date(`${testDate}T${testTime}:00-06:00`).toISOString(),
-      location: 'Cactus 50, San Juan del Río'
+      location: 'Sierra del Eje Pte. 7, Villas del Parque, San Juan del Río'
     };
 
     const result = await WhatsAppService.sendConfirmation(testAppt);
@@ -1340,7 +1340,7 @@ app.post('/api/appointments', adminAuth, async (req, res) => {
     const eventData = {
       title: `${serviceName} - ${name}`,
       description: `Cliente: ${name}\nTel: ${phoneClean}\nServicio: ${serviceName}`,
-      location: 'Cactus 50, San Juan del Río',
+      location: 'Sierra del Eje Pte. 7, Villas del Parque, San Juan del Río',
       startISO: startDateTime,
       endISO: endDateTime
     };
@@ -1573,7 +1573,7 @@ app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
               calendarId: config.google.calendarOwner1,
               title: `${serviceName || appointment.serviceName} - ${appointment.clientName}`,
               description: `Cliente: ${appointment.clientName}\nTel: ${appointment.clientPhone}\nServicio: ${serviceName || appointment.serviceName}`,
-              location: 'Cactus 50, San Juan del Río',
+              location: 'Sierra del Eje Pte. 7, Villas del Parque, San Juan del Río',
               startISO: startISO,
               endISO: endISO
             });
@@ -1590,7 +1590,7 @@ app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
               calendarId: config.google.calendarOwner2,
               title: `${serviceName || appointment.serviceName} - ${appointment.clientName}`,
               description: `Cliente: ${appointment.clientName}\nTel: ${appointment.clientPhone}\nServicio: ${serviceName || appointment.serviceName}`,
-              location: 'Cactus 50, San Juan del Río',
+              location: 'Sierra del Eje Pte. 7, Villas del Parque, San Juan del Río',
               startISO: startISO,
               endISO: endISO
             });
@@ -3951,7 +3951,7 @@ app.post('/api/booking-requests/:id/booked', adminAuth, async (req, res) => {
     const eventData = {
       title: `${requestData.serviceName} - ${requestData.clientName}`,
       description: `Cliente: ${requestData.clientName}\\nTel: ${requestData.clientPhone}\\nServicio: ${requestData.serviceName}\\nPrecio: $${requestData.servicePrice || 0}`,
-      location: 'Cactus 50, San Juan del Río',
+      location: 'Sierra del Eje Pte. 7, Villas del Parque, San Juan del Río',
       startISO: startDateTime,
       endISO: endDateTime
     };

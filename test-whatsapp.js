@@ -17,7 +17,7 @@ const testAppt = {
     clientPhone: '4272757136', // Tu número de prueba
     serviceName: 'Depilación (Facial)',
     startDateTime: '2025-11-27T20:00:00-06:00',
-    location: 'Cactus 50, San Juan del Río'
+    location: 'Sierra del Eje Pte. 7, Villas del Parque, San Juan del Río'
 };
 
 console.log('📱 Enviando mensaje de prueba a:', testAppt.clientPhone);

@@ -39,7 +39,7 @@ function getEmailWrapper(content) {
         </div>
         <div class="footer">
           <p>© ${new Date().getFullYear()} Venus Cosmetología. Todos los derechos reservados.</p>
-          <p>Cactus 50, San Juan del Río, Qro.</p>
+          <p>Sierra del Eje Pte. 7, Villas del Parque, San Juan del Río, Qro.</p>
           <div class="social-links">
             <a href="https://instagram.com/venuscosmetologia">Instagram</a>
             <a href="https://wa.me/524271657595">WhatsApp</a>
@@ -137,7 +137,7 @@ export const EmailService = {
         </div>
         <div class="details-item">
           <span class="details-label">Lugar</span>
-          <span class="details-value">Cactus 50, San Juan del Río</span>
+          <span class="details-value">Sierra del Eje Pte. 7, Villas del Parque, San Juan del Río</span>
         </div>
       </div>
       

@@ -5781,7 +5781,7 @@
           <div style="position:relative;">
             <!-- Nuevo componente web de Places API -->
             <gmp-place-autocomplete id="biz-address-autocomplete"
-              placeholder="Ej: Cactus 50, San Juan del Río, Querétaro">
+              placeholder="Ej: Sierra del Eje Pte. 7, Villas del Parque, San Juan del Río, Querétaro">
             </gmp-place-autocomplete>
             <input type="hidden" id="biz-address">
           </div>
@@ -13639,7 +13639,7 @@
         `Hola ${name} 🌸\n\n` +
         `Aquí tienes tu *tarjeta de masajes Venus* 🧖‍♀️✨\n\n` +
         `Guarda tu tarjeta digital aquí:\n${cardLink}\n\n` +
-        `_Venus Cosmetología — Cactus 50, San Juan del Río_`;
+        `_Venus Cosmetología — Sierra del Eje Pte. 7, Villas del Parque, San Juan del Río_`;
 
       try {
         const res = await fetch('/api/whatsapp/send', {
@@ -13733,7 +13733,7 @@
           `¡Tu *membresía de masajes Venus* está lista! 🧖‍♀️✨\n\n` +
           `🪨 *10 sesiones de masaje* para ti\n\n` +
           `Guarda tu tarjeta digital aquí:\n${cardLink}\n\n` +
-          `_Venus Cosmetología — Cactus 50, San Juan del Río_`;
+          `_Venus Cosmetología — Sierra del Eje Pte. 7, Villas del Parque, San Juan del Río_`;
 
         const cleanPhone = phone ? phone.replace(/[^0-9]/g, '') : '';
 
@@ -17908,7 +17908,7 @@
             <div style="font-size:11px;color:var(--muted);">Código: ${gc.code}</div>
             <div style="font-size:11px;color:var(--muted);margin-top:4px;">Válida hasta: ${expiresDate}</div>
             <div style="margin-top:16px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.1);">
-              <div style="font-size:11px;color:var(--muted);"><i class="fas fa-map-marker-alt"></i> Cactus 50, Col. Indeco</div>
+              <div style="font-size:11px;color:var(--muted);"><i class="fas fa-map-marker-alt"></i> Sierra del Eje Pte. 7, Villas del Parque</div>
               <div style="font-size:11px;color:var(--muted);margin-top:2px;"><i class="fab fa-whatsapp"></i> WhatsApp: 427 165 7595</div>
             </div>
           </div>
@@ -17951,7 +17951,7 @@
         const canvas = await html2canvas(element, { scale: 2, backgroundColor: '#3f4037', useCORS: true });
         const gc = selectedGiftCard;
         const url = `${window.location.origin}/giftcard/${gc.code}`;
-        const message = `Te han regalado un servicio en Venus Cosmetología!\n\n${gc.serviceName}\n${gc.recipientName ? `Para: ${gc.recipientName}\n` : ''}${gc.message ? `"${gc.message}"\n` : ''}\nCactus 50, Col. Indeco\nWhatsApp: 427 165 7595\n\nCanjea tu gift card aquí:\n${url}`;
+        const message = `Te han regalado un servicio en Venus Cosmetología!\n\n${gc.serviceName}\n${gc.recipientName ? `Para: ${gc.recipientName}\n` : ''}${gc.message ? `"${gc.message}"\n` : ''}\nSierra del Eje Pte. 7, Villas del Parque\nWhatsApp: 427 165 7595\n\nCanjea tu gift card aquí:\n${url}`;
 
         if (navigator.share && navigator.canShare) {
           const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
@@ -18000,7 +18000,7 @@
       const gc = allGiftCards.find(g => g.id === id);
       if (!gc) return;
       const url = `${window.location.origin}/giftcard/${gc.code}`;
-      const text = encodeURIComponent(`Te han regalado un servicio en Venus Cosmetología!\n\n${gc.serviceName}\n\nCactus 50, Col. Indeco\nWhatsApp: 427 165 7595\n\nCanjea tu gift card aquí:\n${url}`);
+      const text = encodeURIComponent(`Te han regalado un servicio en Venus Cosmetología!\n\n${gc.serviceName}\n\nSierra del Eje Pte. 7, Villas del Parque\nWhatsApp: 427 165 7595\n\nCanjea tu gift card aquí:\n${url}`);
       window.open(`https://wa.me/?text=${text}`, '_blank');
     }
 

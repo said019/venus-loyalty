@@ -8,7 +8,7 @@ async function main() {
         serviceName: 'Depilacion Piernas + axila + bikini',
         date: '2026-01-24',
         time: '16:00',
-        location: 'Cactus 50, San Juan del Río'
+        location: 'Sierra del Eje Pte. 7, Villas del Parque, San Juan del Río'
     };
 
     console.log(`--- Reenviando confirmación a: ${appt.clientName} ---`);
