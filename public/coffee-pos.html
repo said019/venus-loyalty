@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Venus The Coffee Bar ☕ POS</title>
+  <link rel="icon" href="/assets/logo.png">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="/coffee-pos.css">
+</head>
+<body>
+
+  <!-- TOPBAR -->
+  <div class="pos-topbar">
+    <div style="display:flex;align-items:center;gap:16px;">
+      <a href="/admin.html" class="btn-back"><i class="fas fa-arrow-left"></i> Admin</a>
+      <h1>☕ <span>Venus</span> The Coffee Bar</h1>
+    </div>
+    <div class="pos-topbar-right">
+      <div class="view-tabs">
+        <div class="view-tab active" data-view="pos"><i class="fas fa-cash-register"></i> Venta</div>
+        <div class="view-tab" data-view="cash"><i class="fas fa-wallet"></i> Caja</div>
+        <div class="view-tab" data-view="reports"><i class="fas fa-chart-bar"></i> Reportes</div>
+        <div class="view-tab" data-view="products-admin"><i class="fas fa-box"></i> Productos</div>
+      </div>
+      <span>|</span>
+      <span class="cashier-name" id="cashier-name">Admin</span>
+      <button class="btn-sm" onclick="logout()">Salir</button>
+    </div>
+  </div>
+
+  <!-- ================== POS VIEW ================== -->
+  <div class="pos-view active" id="view-pos">
+    <div class="pos-main">
+      <!-- LEFT: Products -->
+      <div class="pos-left">
+        <div class="pos-categories" id="categories"></div>
+        <div class="pos-products" id="products-grid"></div>
+      </div>
+      <!-- RIGHT: Cart -->
+      <div class="pos-right">
+        <div class="cart-header">🛒 Orden actual</div>
+        <div class="cart-items" id="cart-items">
+          <div class="cart-empty">Agrega productos para empezar</div>
+        </div>
+        <div class="cart-totals">
+          <div class="row"><span>Subtotal</span><span id="cart-subtotal">$0.00</span></div>
+          <div class="row"><span>IVA 16%</span><span id="cart-tax">$0.00</span></div>
+          <div class="row"><span>Descuento</span><span id="cart-discount">$0.00</span></div>
+          <div class="row total"><span>Total</span><span id="cart-total">$0.00</span></div>
+        </div>
+        <div class="cart-actions">
+          <div class="payment-methods">
+            <button class="pay-btn selected" data-method="efectivo"><i class="fas fa-money-bill"></i> Efectivo</button>
+            <button class="pay-btn" data-method="tarjeta"><i class="fas fa-credit-card"></i> Tarjeta</button>
+            <button class="pay-btn" data-method="transferencia"><i class="fas fa-exchange-alt"></i> Transfer</button>
+          </div>
+          <div class="cash-input-row" id="cash-input-row">
+            <input type="number" id="cash-amount" placeholder="Monto recibido" step="0.01">
+          </div>
+          <div class="change-display" id="change-display"></div>
+          <button class="charge-btn" id="charge-btn" disabled>COBRAR $0.00</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================== CASH VIEW ================== -->
+  <div class="pos-view" id="view-cash">
+    <div class="panel-view active" style="display:flex;">
+      <h2>💰 Control de Caja</h2>
+      <div id="cash-status"></div>
+      <div id="cash-actions-area"></div>
+      <h3 style="margin-top:16px;">Movimientos de la sesión</h3>
+      <div id="cash-movements"></div>
+    </div>
+  </div>
+
+  <!-- ================== REPORTS VIEW ================== -->
+  <div class="pos-view" id="view-reports">
+    <div class="panel-view active" style="display:flex;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <h2>📊 Reporte del día</h2>
+        <input type="date" id="report-date" style="padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:13px;">
+      </div>
+      <div class="stat-cards" id="report-stats"></div>
+      <h3>Top productos</h3>
+      <table class="data-table" id="report-top-table"><thead><tr><th>Producto</th><th>Qty</th><th>Ingreso</th></tr></thead><tbody></tbody></table>
+      <h3>Ventas</h3>
+      <table class="data-table" id="report-sales-table"><thead><tr><th>Folio</th><th>Hora</th><th>Método</th><th>Total</th><th>Status</th></tr></thead><tbody></tbody></table>
+    </div>
+  </div>
+
+  <!-- ================== PRODUCTS ADMIN VIEW ================== -->
+  <div class="pos-view" id="view-products-admin">
+    <div class="panel-view active" style="display:flex;">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <h2>📦 Productos</h2>
+        <button class="btn-sm" onclick="openProductModal()"><i class="fas fa-plus"></i> Nuevo producto</button>
+      </div>
+      <div class="admin-products-list" id="admin-products-list"></div>
+    </div>
+  </div>
+
+  <!-- ================== TICKET PRINT ================== -->
+  <div class="ticket-print" id="ticket-overlay">
+    <div>
+      <div class="ticket" id="ticket-content"></div>
+      <div class="ticket-actions">
+        <button onclick="window.print()" style="background:var(--accent);color:#fff;"><i class="fas fa-print"></i> Imprimir</button>
+        <button onclick="closeTicket()" style="background:#333;color:#fff;">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================== MODALS ================== -->
+  <!-- Cash open modal -->
+  <div class="modal-overlay" id="modal-cash-open">
+    <div class="modal">
+      <h2>Abrir Caja</h2>
+      <label>Monto inicial (fondo de caja)</label>
+      <input type="number" id="cash-open-amount" step="0.01" placeholder="500.00">
+      <div class="modal-btns">
+        <button class="btn-secondary" onclick="closeModal('modal-cash-open')">Cancelar</button>
+        <button class="btn-primary" onclick="openCash()">Abrir Caja</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cash close modal -->
+  <div class="modal-overlay" id="modal-cash-close">
+    <div class="modal">
+      <h2>Cerrar Caja</h2>
+      <label>Monto real contado en caja</label>
+      <input type="number" id="cash-close-amount" step="0.01" placeholder="1500.00">
+      <label>Notas (opcional)</label>
+      <textarea id="cash-close-notes" rows="2" placeholder="Observaciones del turno..."></textarea>
+      <div class="modal-btns">
+        <button class="btn-secondary" onclick="closeModal('modal-cash-close')">Cancelar</button>
+        <button class="btn-primary" onclick="closeCash()">Cerrar Caja</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cash movement modal -->
+  <div class="modal-overlay" id="modal-cash-movement">
+    <div class="modal">
+      <h2 id="movement-title">Registrar Movimiento</h2>
+      <label>Monto</label>
+      <input type="number" id="movement-amount" step="0.01" placeholder="100.00">
+      <label>Motivo</label>
+      <input type="text" id="movement-reason" placeholder="Cambio de billete, pago proveedor...">
+      <input type="hidden" id="movement-type">
+      <div class="modal-btns">
+        <button class="btn-secondary" onclick="closeModal('modal-cash-movement')">Cancelar</button>
+        <button class="btn-primary" onclick="saveMovement()">Registrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Product modal -->
+  <div class="modal-overlay" id="modal-product">
+    <div class="modal">
+      <h2 id="product-modal-title">Nuevo Producto</h2>
+      <input type="hidden" id="product-edit-id">
+      <label>Nombre</label>
+      <input type="text" id="product-name" placeholder="Americano">
+      <label>Categoría</label>
+      <select id="product-category" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:14px;">
+        <option value="bagels">🥯 Bagels</option>
+        <option value="cafe">☕ Café</option>
+        <option value="te_matcha">🍵 Té y Matcha</option>
+        <option value="smoothies">🥤 Smoothies</option>
+      </select>
+      <label>Precio base</label>
+      <input type="number" id="product-price" step="0.01" placeholder="45.00">
+      <div class="modal-btns">
+        <button class="btn-secondary" onclick="closeModal('modal-product')">Cancelar</button>
+        <button class="btn-primary" onclick="saveProduct()">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Note modal -->
+  <div class="modal-overlay" id="modal-note">
+    <div class="modal">
+      <h2>Nota para <span id="note-product-name"></span></h2>
+      <label>Nota (ej: sin azúcar, extra caliente)</label>
+      <input type="text" id="note-text" placeholder="sin azúcar">
+      <div class="modal-btns">
+        <button class="btn-secondary" onclick="closeModal('modal-note')">Cancelar</button>
+        <button class="btn-primary" onclick="saveNote()">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/coffee-pos.js"></script>
+</body>
+</html>

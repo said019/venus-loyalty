@@ -85,6 +85,9 @@ import { getEvolutionClient } from './src/services/whatsapp-evolution.js';
 // 📋 Expedientes de Clientas
 import clientRecordsRouter from './src/routes/clientRecords.js';
 
+// ☕ Venus The Coffee Bar - POS
+import coffeePosRouter from './lib/api/coffee-pos.js';
+
 
 // __dirname para ESModules
 const __filename = fileURLToPath(import.meta.url);
@@ -528,6 +531,9 @@ app.use('/api/webhook/evolution', webhookEvolution);
 
 // ✅ Expedientes de Clientas
 app.use('/api/client-records', clientRecordsRouter);
+
+// ☕ Venus The Coffee Bar - POS
+app.use('/api/pos', coffeePosRouter);
 
 // ========== EVOLUTION API ADMIN ROUTES ==========
 

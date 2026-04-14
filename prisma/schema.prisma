@@ -508,6 +508,106 @@ model GoogleCalendarMapping {
   @@map("google_calendar_mapping")
 }
 
+// ===== VENUS THE COFFEE BAR - POS =====
+
+model CoffeeProduct {
+  id         String   @id @default(cuid())
+  name       String
+  category   String   // cafe_caliente, cafe_frio, panaderia, extras
+  price      Decimal  @db.Decimal(10, 2)
+  taxRate    Decimal  @default(0.16) @db.Decimal(5, 4) @map("tax_rate")
+  isActive   Boolean  @default(true) @map("is_active")
+  sortOrder  Int      @default(0) @map("sort_order")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  variants   CoffeeProductVariant[]
+  saleItems  CoffeeSaleItem[]
+
+  @@map("coffee_products")
+}
+
+model CoffeeProductVariant {
+  id         String   @id @default(cuid())
+  productId  String   @map("product_id")
+  name       String   // "Grande", "Leche de almendra"
+  type       String   // "size", "extra"
+  priceAdj   Decimal  @default(0) @db.Decimal(10, 2) @map("price_adj")
+  isActive   Boolean  @default(true) @map("is_active")
+  product    CoffeeProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("coffee_product_variants")
+}
+
+model CoffeeSale {
+  id            String    @id @default(cuid())
+  folio         String    @unique
+  cashSessionId String?   @map("cash_session_id")
+  cashierName   String    @map("cashier_name")
+  subtotal      Decimal   @db.Decimal(10, 2)
+  tax           Decimal   @db.Decimal(10, 2)
+  discount      Decimal   @default(0) @db.Decimal(10, 2)
+  total         Decimal   @db.Decimal(10, 2)
+  paymentMethod String    @map("payment_method")
+  amountPaid    Decimal?  @db.Decimal(10, 2) @map("amount_paid")
+  change        Decimal?  @db.Decimal(10, 2)
+  status        String    @default("completed")
+  cancelReason  String?   @map("cancel_reason")
+  cancelledBy   String?   @map("cancelled_by")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  items         CoffeeSaleItem[]
+  cashSession   CoffeeCashSession? @relation(fields: [cashSessionId], references: [id])
+
+  @@map("coffee_sales")
+}
+
+model CoffeeSaleItem {
+  id          String   @id @default(cuid())
+  saleId      String   @map("sale_id")
+  productId   String   @map("product_id")
+  productName String   @map("product_name")
+  qty         Int      @default(1)
+  unitPrice   Decimal  @db.Decimal(10, 2) @map("unit_price")
+  discount    Decimal  @default(0) @db.Decimal(10, 2)
+  notes       String?
+  variants    String?  // JSON string de variantes seleccionadas
+  sale        CoffeeSale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product     CoffeeProduct @relation(fields: [productId], references: [id])
+
+  @@map("coffee_sale_items")
+}
+
+model CoffeeCashSession {
+  id            String    @id @default(cuid())
+  openedBy      String    @map("opened_by")
+  openedAt      DateTime  @default(now()) @map("opened_at")
+  openingAmount Decimal   @db.Decimal(10, 2) @map("opening_amount")
+  closedBy      String?   @map("closed_by")
+  closedAt      DateTime? @map("closed_at")
+  expectedCash  Decimal?  @db.Decimal(10, 2) @map("expected_cash")
+  actualCash    Decimal?  @db.Decimal(10, 2) @map("actual_cash")
+  difference    Decimal?  @db.Decimal(10, 2)
+  totalSales    Decimal?  @db.Decimal(10, 2) @map("total_sales")
+  status        String    @default("open")
+  notes         String?
+  sales         CoffeeSale[]
+  movements     CoffeeCashMovement[]
+
+  @@map("coffee_cash_sessions")
+}
+
+model CoffeeCashMovement {
+  id            String   @id @default(cuid())
+  cashSessionId String   @map("cash_session_id")
+  type          String   // "income", "withdrawal"
+  amount        Decimal  @db.Decimal(10, 2)
+  reason        String
+  createdBy     String   @map("created_by")
+  createdAt     DateTime @default(now()) @map("created_at")
+  cashSession   CoffeeCashSession @relation(fields: [cashSessionId], references: [id])
+
+  @@map("coffee_cash_movements")
+}
+
 // Evaluaciones post-cita
 model Review {
   id              String    @id @default(cuid())
