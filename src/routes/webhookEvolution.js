@@ -137,12 +137,22 @@ async function handlePollResponse(phone, payload, profileName) {
         || msg0?.message?.pollUpdateMessage?.pollCreationMessageKey?.id || null;
 
     let citaDirecta = null;
+    let pollRows = [];
     if (pollMsgId) {
         try {
-            const pollRow = await prisma.pendingPoll.findUnique({ where: { id: pollMsgId } });
-            if (pollRow) {
-                citaDirecta = await AppointmentsRepo.findById(pollRow.appointmentId);
-                if (citaDirecta) console.log(`✅ [Evolution] Cita identificada por pollMsgId: ${pollRow.appointmentId}`);
+            // 1. Buscar poll exacto (caso single-cita)
+            const exactPoll = await prisma.pendingPoll.findUnique({ where: { id: pollMsgId } });
+            if (exactPoll) pollRows.push(exactPoll);
+
+            // 2. Buscar polls consolidados (ID es `{pollMsgId}_{appointmentId}`)
+            const consolidatedPolls = await prisma.pendingPoll.findMany({
+                where: { id: { startsWith: pollMsgId + '_' } }
+            });
+            pollRows = pollRows.concat(consolidatedPolls);
+
+            if (pollRows.length > 0) {
+                citaDirecta = await AppointmentsRepo.findById(pollRows[0].appointmentId);
+                console.log(`✅ [Evolution] ${pollRows.length} cita(s) identificada(s) por pollMsgId ${pollMsgId}`);
             }
         } catch (lookupErr) {
             console.warn('[Evolution] Error buscando cita por pollMsgId:', lookupErr.message);
@@ -150,6 +160,20 @@ async function handlePollResponse(phone, payload, profileName) {
     }
 
     const opt = selectedOption.toLowerCase();
+
+    // Si hay múltiples citas mapeadas (poll consolidado), confirmar todas
+    if (opt.includes('confirmar') && pollRows.length > 1) {
+        let envioMensaje = false;
+        for (const pr of pollRows) {
+            const c = await AppointmentsRepo.findById(pr.appointmentId);
+            if (c) {
+                await procesarConfirmacion(c, !envioMensaje);
+                envioMensaje = true;
+            }
+        }
+        return;
+    }
+
     if (opt.includes('confirmar')) await processClientResponse(phone, 'confirmar', citaDirecta);
     else if (opt.includes('reagendar') || opt.includes('cambio') || opt.includes('reprogramar')) await processClientResponse(phone, 'reagendar', citaDirecta);
     else if (opt.includes('cancelar')) await processClientResponse(phone, 'cancelar', citaDirecta);
