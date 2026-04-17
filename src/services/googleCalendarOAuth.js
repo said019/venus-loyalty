@@ -373,6 +373,29 @@ export async function deleteEvent(appointmentId) {
 export async function syncAllActive() {
   const today = new Date().toISOString().split('T')[0];
 
+  // 1. Limpiar eventos de citas canceladas que siguen en Google Calendar
+  let cleaned = 0;
+  const cancelledWithMappings = await prisma.appointment.findMany({
+    where: { status: 'cancelled' },
+    select: { id: true, clientName: true },
+  });
+
+  for (const appt of cancelledWithMappings) {
+    try {
+      const mapping = await prisma.googleCalendarMapping.findFirst({
+        where: { appointmentId: appt.id },
+      });
+      if (mapping) {
+        await deleteEvent(appt.id);
+        console.log(`[GCal OAuth] 🧹 Limpiado evento huérfano de cita cancelada: ${appt.clientName}`);
+        cleaned++;
+      }
+    } catch (err) {
+      console.error(`[GCal OAuth] Error limpiando cita cancelada ${appt.id}:`, err.message);
+    }
+  }
+
+  // 2. Sincronizar citas activas futuras
   const appointments = await prisma.appointment.findMany({
     where: {
       date: { gte: today },
@@ -402,7 +425,7 @@ export async function syncAllActive() {
     }
   }
 
-  return { total: appointments.length, created, updated, failed };
+  return { total: appointments.length, created, updated, failed, cleaned };
 }
 
 // ─────────────────────────────────────────────

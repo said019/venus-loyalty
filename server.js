@@ -1672,6 +1672,33 @@ app.patch('/api/appointments/:id/status', adminAuth, async (req, res) => {
     // Actualizar estado usando repositorio
     await AppointmentsRepo.update(id, { status });
 
+    // Si se cancela, eliminar eventos de Google Calendar
+    if (status === 'cancelled') {
+      // Service Account calendars
+      if (appointment.googleCalendarEventId || appointment.googleCalendarEventId2) {
+        try {
+          const { deleteEvent } = await import('./src/services/googleCalendarService.js');
+          if (appointment.googleCalendarEventId) {
+            await deleteEvent(appointment.googleCalendarEventId, config.google.calendarOwner1).catch(e =>
+              console.error('[STATUS→CANCEL] Error calendar 1:', e.message));
+          }
+          if (appointment.googleCalendarEventId2) {
+            await deleteEvent(appointment.googleCalendarEventId2, config.google.calendarOwner2).catch(e =>
+              console.error('[STATUS→CANCEL] Error calendar 2:', e.message));
+          }
+        } catch (e) { console.error('[STATUS→CANCEL] SA:', e.message); }
+      }
+      // OAuth calendar
+      try {
+        const { deleteEvent: oauthDelete, getStatus: oauthStatus } = await import('./src/services/googleCalendarOAuth.js');
+        const oStatus = await oauthStatus();
+        if (oStatus.connected) {
+          await oauthDelete(id);
+          console.log(`[STATUS→CANCEL] ✅ Evento OAuth eliminado para cita ${id}`);
+        }
+      } catch (e) { console.error('[STATUS→CANCEL] OAuth:', e.message); }
+    }
+
     // Crear notificación de cambio manual de estado usando Prisma
     const statusLabels = {
       'scheduled': 'Agendada',
