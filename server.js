@@ -1754,9 +1754,13 @@ app.patch('/api/appointments/:id/cancel', adminAuth, async (req, res) => {
       const { deleteEvent: oauthDelete, getStatus: oauthStatus } = await import('./src/services/googleCalendarOAuth.js');
       const oStatus = await oauthStatus();
       if (oStatus.connected) {
-        await oauthDelete(id).catch(e => console.warn('[CANCEL OAuth] No crítico:', e.message));
+        await oauthDelete(id);
+        console.log(`[CANCEL] ✅ Evento OAuth eliminado de Google Calendar para cita ${id}`);
       }
-    } catch (_) { /* OAuth no configurado */ }
+    } catch (oauthErr) {
+      console.error(`[CANCEL] ⚠️ No se pudo eliminar el evento de Google Calendar (OAuth):`, oauthErr.message);
+      // No bloqueamos la cancelación si el calendario falla
+    }
 
     // ELIMINAR completamente de la base de datos usando Prisma (no solo marcar como cancelada)
     await AppointmentsRepo.delete(id);

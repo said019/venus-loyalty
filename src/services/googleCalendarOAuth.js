@@ -351,15 +351,19 @@ export async function deleteEvent(appointmentId) {
 
     await calApi.events.delete({ calendarId, eventId: mapping.googleEventId, sendUpdates: 'none' });
     console.log(`[GCal OAuth] 🗑️ Evento eliminado: ${mapping.googleEventId}`);
+
+    // Limpiar mapeo solo tras confirmación de eliminación exitosa
+    await prisma.googleCalendarMapping.delete({ where: { id: mapping.id } }).catch(() => {});
   } catch (err) {
     if (err.code === 404 || err.status === 404 || err.code === 410) {
+      // El evento ya no existe en Google — limpiar el mapeo local
       console.warn(`[GCal OAuth] Evento ya no existe en Google (${mapping.googleEventId}), limpiando mapeo`);
+      await prisma.googleCalendarMapping.delete({ where: { id: mapping.id } }).catch(() => {});
     } else {
+      // Error de autenticación u otro — NO borrar el mapeo para poder reintentar
       console.error('[GCal OAuth] Error eliminando evento:', err.message);
+      throw err; // propagar para que el caller sepa que falló
     }
-  } finally {
-    // Siempre limpiar el mapeo local
-    await prisma.googleCalendarMapping.delete({ where: { id: mapping.id } }).catch(() => {});
   }
 }
 
