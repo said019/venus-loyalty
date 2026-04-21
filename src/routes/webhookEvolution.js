@@ -1,10 +1,26 @@
 // src/routes/webhookEvolution.js - Webhook para respuestas de WhatsApp (Evolution API)
 // 100% PostgreSQL via Prisma — sin Firestore
 import express from 'express';
+import crypto from 'crypto';
 import { prisma } from '../db/index.js';
 import { AppointmentsRepo, NotificationsRepo } from '../db/repositories.js';
 import { WhatsAppService } from '../services/whatsapp-v2.js';
 import { toMexicoCityISO } from '../utils/mexico-time.js';
+
+// Calcula SHA-256 hex de una string (usado para decodificar votos de polls de Evolution API)
+function sha256Hex(s) {
+    return crypto.createHash('sha256').update(s, 'utf8').digest('hex');
+}
+
+// Dado un array de opciones y un vote hash, devuelve la opción que coincide
+function matchOptionByHash(options, voteHash) {
+    if (!options || !Array.isArray(options) || !voteHash) return null;
+    const normalized = String(voteHash).toLowerCase();
+    for (const opt of options) {
+        if (sha256Hex(opt).toLowerCase() === normalized) return opt;
+    }
+    return null;
+}
 
 const router = express.Router();
 
@@ -97,9 +113,13 @@ async function handleIncomingMessage(data) {
 }
 
 async function handlePollResponse(phone, payload, profileName) {
-    let selectedOption = null;
+    // LOG COMPLETO para debug en producción
+    console.log('[Evolution Poll] 📊 Payload recibido:', JSON.stringify(payload).substring(0, 1500));
 
-    // Formato 1: pollUpdate.votes
+    let selectedOption = null;
+    let voteHashes = [];
+
+    // Formato 1: pollUpdate.votes (algunas versiones)
     const votes = payload?.pollUpdate?.votes || payload?.data?.pollUpdate?.votes;
     if (Array.isArray(votes) && votes.length > 0) {
         selectedOption = votes[0]?.optionName || votes[0]?.name || votes[0];
@@ -110,31 +130,38 @@ async function handlePollResponse(phone, payload, profileName) {
         const pr = payload.pollResponse;
         selectedOption = pr?.selectedOption || pr?.optionName || pr?.name;
         if (!selectedOption && Array.isArray(pr?.selectedOptions)) {
-            selectedOption = pr.selectedOptions[0]?.optionName || pr.selectedOptions[0]?.name || pr.selectedOptions[0];
+            const first = pr.selectedOptions[0];
+            selectedOption = first?.optionName || first?.name || (typeof first === 'string' ? first : null);
         }
     }
 
     // Formato 3: messages[0].message.pollUpdateMessage
     const msg0 = payload?.messages?.[0];
-    if (!selectedOption && msg0?.message?.pollUpdateMessage) {
-        const pum = msg0.message.pollUpdateMessage;
+    const pum = msg0?.message?.pollUpdateMessage || payload?.message?.pollUpdateMessage;
+    if (!selectedOption && pum) {
         if (Array.isArray(pum?.votes)) {
             selectedOption = pum.votes[0]?.optionName || pum.votes[0]?.name;
+        }
+        // Evolution API v2: pum.vote.selectedOptions = [hash1, hash2, ...]
+        if (!selectedOption && Array.isArray(pum?.vote?.selectedOptions)) {
+            voteHashes = pum.vote.selectedOptions.map(x => typeof x === 'string' ? x : (x?.buffer || x));
         }
     }
 
     // Formato 4: body directo
     if (!selectedOption) selectedOption = payload?.body || payload?.data?.body || null;
 
-    console.log(`[Evolution] Poll respuesta: "${selectedOption}" de ${phone}`);
-    if (!selectedOption) {
-        console.log('[Evolution] No se pudo determinar la opción. Payload:', JSON.stringify(payload).substring(0, 800));
-        return;
+    // Formato 5: vote object general
+    if (!selectedOption && payload?.vote?.selectedOptions) {
+        voteHashes = payload.vote.selectedOptions;
     }
 
-    const pollMsgId = payload?.message?.pollUpdateMessage?.pollCreationMessageKey?.id
+    const pollMsgId = pum?.pollCreationMessageKey?.id
         || payload?.pollUpdate?.pollCreationMessageKey?.id
-        || msg0?.message?.pollUpdateMessage?.pollCreationMessageKey?.id || null;
+        || payload?.pollCreationMessageKey?.id
+        || null;
+
+    console.log(`[Evolution Poll] pollMsgId=${pollMsgId} option="${selectedOption}" hashes=${JSON.stringify(voteHashes).substring(0,200)}`);
 
     let citaDirecta = null;
     let pollRows = [];
@@ -153,10 +180,30 @@ async function handlePollResponse(phone, payload, profileName) {
             if (pollRows.length > 0) {
                 citaDirecta = await AppointmentsRepo.findById(pollRows[0].appointmentId);
                 console.log(`✅ [Evolution] ${pollRows.length} cita(s) identificada(s) por pollMsgId ${pollMsgId}`);
+
+                // Si no tenemos selectedOption pero sí hashes, intentar match contra opciones guardadas
+                if (!selectedOption && voteHashes.length > 0 && pollRows[0].options) {
+                    try {
+                        const opts = JSON.parse(pollRows[0].options);
+                        for (const h of voteHashes) {
+                            const matched = matchOptionByHash(opts, h);
+                            if (matched) {
+                                selectedOption = matched;
+                                console.log(`[Evolution Poll] ✅ Hash decodificado → "${matched}"`);
+                                break;
+                            }
+                        }
+                    } catch (e) { /* ignore JSON parse errors */ }
+                }
             }
         } catch (lookupErr) {
             console.warn('[Evolution] Error buscando cita por pollMsgId:', lookupErr.message);
         }
+    }
+
+    if (!selectedOption) {
+        console.log('[Evolution Poll] ❌ No se pudo determinar la opción seleccionada. Payload completo:', JSON.stringify(payload).substring(0, 2000));
+        return;
     }
 
     const opt = selectedOption.toLowerCase();

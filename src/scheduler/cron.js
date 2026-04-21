@@ -124,11 +124,18 @@ export function startScheduler() {
 
                             // Guardar mapeo poll→cita para TODAS las citas del grupo
                             const pollMsgId = pollResult?.key?.id;
+                            const pollOpts = ['Confirmar asistencia', 'Reagendar', 'Cancelar'];
                             if (pollMsgId) {
                                 for (const a of appts) {
                                     try {
                                         await prisma.pendingPoll.create({
-                                            data: { id: `${pollMsgId}_${a.id}`, appointmentId: a.id, phone: a.clientPhone, expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000) }
+                                            data: {
+                                                id: `${pollMsgId}_${a.id}`,
+                                                appointmentId: a.id,
+                                                phone: a.clientPhone,
+                                                options: JSON.stringify(pollOpts),
+                                                expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000)
+                                            }
                                         });
                                     } catch (e) { /* ignore duplicates */ }
                                 }

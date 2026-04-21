@@ -69,6 +69,7 @@ async function sendPollViaEvolution(to, question, options, appointmentId = null)
                         id: pollMsgId,
                         appointmentId,
                         phone: to,
+                        options: JSON.stringify(options),
                         expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000)
                     }
                 });

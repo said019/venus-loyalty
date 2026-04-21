@@ -142,11 +142,10 @@
   function updateTotals() {
     let subtotal = 0;
     for (const item of cart) subtotal += item.unitPrice * item.qty;
-    const tax = Math.round(subtotal * 0.16 * 100) / 100;
-    const total = Math.round((subtotal + tax) * 100) / 100;
+    // Los precios ya incluyen IVA — no sumarlo al total
+    const total = Math.round(subtotal * 100) / 100;
 
     document.getElementById('cart-subtotal').textContent = `$${subtotal.toFixed(2)}`;
-    document.getElementById('cart-tax').textContent = `$${tax.toFixed(2)}`;
     document.getElementById('cart-discount').textContent = '$0.00';
     document.getElementById('cart-total').textContent = `$${total.toFixed(2)}`;
 
@@ -221,9 +220,9 @@
       <div class="t-items">${items}</div>
       <hr>
       <div class="t-row"><span>Subtotal:</span><span>$${Number(sale.subtotal).toFixed(2)}</span></div>
-      <div class="t-row"><span>IVA:</span><span>$${Number(sale.tax).toFixed(2)}</span></div>
       ${Number(sale.discount) > 0 ? `<div class="t-row"><span>Descuento:</span><span>-$${Number(sale.discount).toFixed(2)}</span></div>` : ''}
       <div class="t-row total"><span>Total:</span><span>$${Number(sale.total).toFixed(2)}</span></div>
+      <div class="t-row" style="font-size:11px;color:#888;"><span>IVA incluido:</span><span>$${Number(sale.tax).toFixed(2)}</span></div>
       <hr>
       <div class="t-row"><span>Método:</span><span>${sale.paymentMethod}</span></div>
       ${sale.amountPaid ? `<div class="t-row"><span>Pagó:</span><span>$${Number(sale.amountPaid).toFixed(2)}</span></div>` : ''}
