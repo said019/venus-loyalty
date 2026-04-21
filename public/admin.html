@@ -5097,6 +5097,288 @@
       }
     }
 
+    /* ===== CALENDAR & APPOINTMENTS LAYOUT ===== */
+
+    /* Desktop: 2-col layout (replaces removed inline grid-template-columns) */
+    #appts-summary-row {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    #cal-main-grid {
+      grid-template-columns: 1fr 320px;
+    }
+
+    /* ===== MOBILE CALENDAR & APPOINTMENTS REDESIGN ===== */
+
+    @media (max-width: 768px) {
+
+      /* --- Summary Stats Row: stack to single column --- */
+      #appts-summary-row {
+        grid-template-columns: 1fr;
+        gap: 12px !important;
+        margin-bottom: 16px !important;
+      }
+
+      /* Month stats: 2 cols instead of 4 */
+      #month-stats {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 10px !important;
+      }
+
+      #month-stats span[id^="stat-"] {
+        font-size: 22px !important;
+      }
+
+      /* Revenue sub-grid: 2 cols */
+      #appts-summary-row > div:last-child > div:last-child {
+        grid-template-columns: repeat(2, 1fr) !important;
+      }
+
+      /* --- Main Grid: calendar + appointments sidebar → stack --- */
+      #cal-main-grid {
+        grid-template-columns: 1fr;
+        gap: 0 !important;
+      }
+
+      /* Calendar section: full width with breathing room */
+      #cal-main-grid > div:first-child {
+        min-width: 0 !important;
+        overflow: hidden !important;
+      }
+
+      /* Agenda header: tighten on mobile */
+      #cal-main-grid > div:first-child > div:first-child h2 {
+        font-size: 18px !important;
+        letter-spacing: -0.3px !important;
+      }
+
+      /* View selector buttons: compact */
+      .view-selector {
+        margin-left: 0 !important;
+      }
+
+      .view-btn {
+        padding: 5px 9px !important;
+        font-size: 11px !important;
+      }
+
+      /* Calendar container: full width, clean radius */
+      .google-calendar-container,
+      #cal-main-grid .google-calendar-container {
+        padding: 10px !important;
+        border-radius: 14px !important;
+        margin-bottom: 0 !important;
+      }
+
+      /* Weekday labels: abbreviate well */
+      .weekday {
+        font-size: 9px !important;
+        padding: 8px 2px !important;
+        letter-spacing: 0.3px !important;
+      }
+
+      /* Calendar day cells: clean square proportions */
+      .calendar-day {
+        min-height: 48px !important;
+        padding: 4px 3px !important;
+        cursor: pointer;
+      }
+
+      .day-number {
+        font-size: 11px !important;
+        width: 22px !important;
+        height: 22px !important;
+        line-height: 22px !important;
+        font-weight: 600 !important;
+      }
+
+      /* Today highlight */
+      .calendar-day.today .day-number {
+        background: var(--accent-gold) !important;
+        color: #111 !important;
+        font-weight: 800 !important;
+        border-radius: 50% !important;
+      }
+
+      /* Selected day: subtle glow ring */
+      .calendar-day.selected {
+        background: rgba(140, 150, 104, 0.18) !important;
+        box-shadow: inset 0 0 0 1.5px var(--accent-gold) !important;
+        border-radius: 10px !important;
+      }
+
+      /* Event dots: clean row of dots */
+      .calendar-event {
+        height: 4px !important;
+        width: 4px !important;
+        min-height: 4px !important;
+        border-radius: 50% !important;
+        margin: 1px !important;
+        display: inline-block !important;
+        font-size: 0 !important;
+        padding: 0 !important;
+      }
+
+      .calendar-events-container {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 2px !important;
+        justify-content: center !important;
+        padding: 2px 0 !important;
+      }
+
+      .event-more {
+        display: none !important;
+      }
+
+      /* --- Appointments sidebar: full width below calendar --- */
+      #cal-main-grid > div:last-child {
+        padding-top: 20px !important;
+        border-top: 1px solid var(--border-color) !important;
+        margin-top: 4px !important;
+      }
+
+      /* Day label: bigger, more prominent */
+      #cal-main-grid > div:last-child > div:first-child h2 {
+        font-size: 15px !important;
+        font-weight: 800 !important;
+        letter-spacing: -0.3px !important;
+      }
+
+      /* Appointment cards container */
+      #appts-cards-container {
+        gap: 10px !important;
+      }
+
+      /* Each appointment card: improved mobile layout */
+      #appts-cards-container > div {
+        padding: 14px 14px 12px !important;
+        border-radius: 16px !important;
+        border-width: 1px !important;
+        transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.18s ease !important;
+      }
+
+      /* Card top row: avatar + name + status */
+      #appts-cards-container > div > div:first-child {
+        gap: 10px !important;
+        margin-bottom: 10px !important;
+        align-items: flex-start !important;
+      }
+
+      /* Avatar circle */
+      #appts-cards-container > div > div:first-child > div:first-child > div:first-child {
+        width: 38px !important;
+        height: 38px !important;
+        min-width: 38px !important;
+        font-size: 12px !important;
+        border-radius: 50% !important;
+      }
+
+      /* Client name: bigger for readability */
+      #appts-cards-container > div p {
+        font-size: 14px !important;
+        letter-spacing: -0.2px !important;
+      }
+
+      /* Time + service subtitle */
+      #appts-cards-container > div span {
+        font-size: 10px !important;
+      }
+
+      /* Status dropdown: pill style, right-aligned */
+      #appts-cards-container > div select {
+        font-size: 9px !important;
+        padding: 5px 10px !important;
+        min-width: 82px !important;
+        border-radius: 999px !important;
+        letter-spacing: 0.3px !important;
+      }
+
+      /* Action buttons row: full width, generous touch targets */
+      #appts-cards-container > div > div:last-child {
+        gap: 6px !important;
+        padding-top: 10px !important;
+      }
+
+      #appts-cards-container > div > div:last-child button {
+        min-height: 38px !important;
+        font-size: 10px !important;
+        border-radius: 10px !important;
+        padding: 8px 6px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 4px !important;
+      }
+
+      /* Edit icon button: square */
+      #appts-cards-container > div > div:last-child button:last-child {
+        flex: 0 0 38px !important;
+        min-width: 38px !important;
+        padding: 8px !important;
+      }
+
+      /* Add new appointment CTA: tighter on mobile */
+      #cal-main-grid > div:last-child > button[onclick*="newApptDialog"] {
+        margin-top: 10px !important;
+        padding: 14px !important;
+        border-radius: 14px !important;
+      }
+
+      /* Nav control pill: compact */
+      #btn-prev-month,
+      #btn-next-month {
+        padding: 5px 8px !important;
+      }
+
+      #btn-today {
+        padding: 5px 10px !important;
+        font-size: 12px !important;
+      }
+
+      /* Sync + reconcile buttons */
+      #btn-refresh-appts,
+      #btn-reconcile-polls {
+        padding: 7px 8px !important;
+      }
+    }
+
+    /* Extra small phones */
+    @media (max-width: 400px) {
+      #appts-summary-row {
+        gap: 10px !important;
+      }
+
+      #cal-main-grid > div:last-child > div:first-child h2 {
+        font-size: 14px !important;
+      }
+
+      .calendar-day {
+        min-height: 42px !important;
+      }
+
+      .day-number {
+        font-size: 10px !important;
+        width: 20px !important;
+        height: 20px !important;
+        line-height: 20px !important;
+      }
+
+      .weekday {
+        font-size: 8px !important;
+        padding: 6px 1px !important;
+      }
+
+      #appts-cards-container > div p {
+        font-size: 13px !important;
+      }
+
+      .view-btn {
+        padding: 4px 7px !important;
+        font-size: 10px !important;
+      }
+    }
+
   </style>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -6350,7 +6632,7 @@
     <section id="tab-appointments" class="tab-content hidden">
 
       <!-- 1. Summary Cards Row -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;">
+      <div id="appts-summary-row" style="display:grid;gap:16px;margin-bottom:24px;">
         <!-- Monthly History -->
         <div style="background:var(--glass-bg);border:1px solid var(--border-color);border-radius:16px;padding:24px;transition:transform 0.2s;" onmouseenter="this.style.transform='scale(1.01)'" onmouseleave="this.style.transform='scale(1)'">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;">
@@ -6411,7 +6693,7 @@
       </div>
 
       <!-- 2. Main Grid: Calendar + Daily Appointments -->
-      <div style="display:grid;grid-template-columns:1fr 320px;gap:20px;min-width:0;">
+      <div id="cal-main-grid" style="display:grid;gap:20px;min-width:0;">
 
         <!-- Calendar Section -->
         <div style="min-width:0;overflow:hidden;">
