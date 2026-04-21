@@ -183,20 +183,30 @@
       return;
     }
 
-    const body = {
-      items: cart.map(c => ({ productId: c.productId, qty: c.qty, unitPrice: c.unitPrice, notes: c.notes, variants: c.variants })),
-      paymentMethod: selectedPayment,
-      amountPaid,
-    };
+    const chargeBtn = document.getElementById('charge-btn');
+    if (chargeBtn) { chargeBtn.disabled = true; chargeBtn.textContent = 'Procesando...'; }
 
-    const r = await api('/api/pos/sales', { method: 'POST', body: JSON.stringify(body) });
-    if (r?.success) {
-      showTicket(r.data);
-      cart = [];
-      renderCart();
-      document.getElementById('cash-amount').value = '';
-    } else {
-      alert(r?.error || 'Error al registrar venta');
+    try {
+      const body = {
+        items: cart.map(c => ({ productId: c.productId, qty: c.qty, unitPrice: c.unitPrice, notes: c.notes, variants: c.variants })),
+        paymentMethod: selectedPayment,
+        amountPaid,
+      };
+
+      const r = await api('/api/pos/sales', { method: 'POST', body: JSON.stringify(body) });
+      if (r?.success) {
+        cart = [];
+        renderCart();
+        document.getElementById('cash-amount').value = '';
+        showTicket(r.data);
+      } else {
+        alert(r?.error || 'Error al registrar venta');
+        if (chargeBtn) { chargeBtn.disabled = false; updateTotals(); }
+      }
+    } catch (err) {
+      console.error('[POS] Error en cobro:', err);
+      alert('Error al procesar venta: ' + err.message);
+      if (chargeBtn) { chargeBtn.disabled = false; updateTotals(); }
     }
   }
 
@@ -233,7 +243,8 @@
   }
 
   window.closeTicket = function () {
-    document.getElementById('ticket-overlay').classList.remove('open');
+    const overlay = document.getElementById('ticket-overlay');
+    if (overlay) overlay.classList.remove('open');
   };
 
   // ==================== CASH SESSION ====================
@@ -484,6 +495,12 @@
 
     // Charge button
     document.getElementById('charge-btn').addEventListener('click', charge);
+
+    // Ticket close button (backup — también está en onclick inline del HTML)
+    document.querySelectorAll('[onclick="closeTicket()"]').forEach(btn => {
+      btn.onclick = null;
+      btn.addEventListener('click', window.closeTicket);
+    });
 
     // View tabs
     document.querySelectorAll('.view-tab').forEach(tab => {
