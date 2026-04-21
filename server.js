@@ -3024,22 +3024,22 @@ app.get('/api/public/services', async (req, res) => {
 // GET /api/services - Lista todos los servicios (admin)
 app.get('/api/services', adminAuth, async (req, res) => {
   try {
-    const snapshot = await firestore.collection('services').orderBy('name').get();
-    const services = snapshot.docs.map(doc => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        name: data.name,
-        category: data.category || 'Otros',
-        price: data.price || 0,
-        duration: data.duration || data.durationMinutes || 60,
-        durationMinutes: data.durationMinutes || data.duration || 60,
-        description: data.description || '',
-        discount: data.discount || null,
-        active: data.active !== false,
-        bookable: data.bookable !== false
-      };
+    const rows = await prisma.service.findMany({
+      where: { active: true },
+      orderBy: { name: 'asc' }
     });
+    const services = rows.map(s => ({
+      id: s.id,
+      name: s.name,
+      category: s.category || 'Otros',
+      price: Number(s.price) || 0,
+      duration: s.durationMinutes || 60,
+      durationMinutes: s.durationMinutes || 60,
+      description: s.description || '',
+      discount: s.discount || null,
+      active: s.active !== false,
+      bookable: s.bookable !== false
+    }));
     res.json({ success: true, data: services });
   } catch (error) {
     console.error('[SERVICES GET] Error:', error);
@@ -4211,18 +4211,35 @@ app.get("/api/admin/wallet-stats", adminAuth, async (req, res) => {
 app.get("/api/admin/cards-firebase", adminAuth, async (req, res) => {
   try {
     const page = Math.max(1, parseInt(req.query.page || "1", 10));
+    const limit = parseInt(req.query.limit || "100", 10);
     const q = (req.query.q || "").trim();
-    const sortBy = req.query.sortBy || "createdAt";
-    const sortOrder = req.query.sortOrder || "desc";
+    const skip = (page - 1) * limit;
 
-    const data = await fsListCardsPage({
+    const where = q ? {
+      OR: [
+        { name: { contains: q, mode: 'insensitive' } },
+        { phone: { contains: q } },
+        { email: { contains: q, mode: 'insensitive' } }
+      ]
+    } : {};
+
+    const [items, total] = await Promise.all([
+      prisma.card.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' }
+      }),
+      prisma.card.count({ where })
+    ]);
+
+    res.json({
+      items,
+      total,
       page,
-      limit: 12,
-      q,
-      sortBy,
-      sortOrder
+      totalPages: Math.ceil(total / limit),
+      source: 'prisma'
     });
-    res.json({ ...data, source: "firestore" });
   } catch (e) {
     console.error("[CARDS-FIREBASE]", e);
     res.status(500).json({ error: e.message });
