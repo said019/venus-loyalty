@@ -22731,23 +22731,46 @@
 
         console.log('[REPORTS] Cargando mes:', firstDay, 'a', lastDayStr);
 
-        const res = await fetch(`/api/appointments/range?from=${fromISO}&to=${toISO}`, { credentials: 'include' });
-        const json = await res.json();
+        // Cargar citas y ventas de cafetería en paralelo
+        const [apptRes, coffeeRes] = await Promise.all([
+          fetch(`/api/appointments/range?from=${fromISO}&to=${toISO}`, { credentials: 'include' }),
+          fetch(`/api/pos/sales?from=${firstDay}&to=${lastDayStr}`, { credentials: 'include' })
+        ]);
 
-        if (!json.success) {
-          console.error('[REPORTS] Error:', json.error);
-          return;
+        const [apptJson, coffeeJson] = await Promise.all([apptRes.json(), coffeeRes.json()]);
+
+        if (!apptJson.success) {
+          console.error('[REPORTS] Error citas:', apptJson.error);
         }
 
-        // Filtrar ventas completadas
-        const ventas = (json.data || []).filter(a =>
+        // Citas completadas
+        const ventas = (apptJson.data || []).filter(a =>
           a.status === 'completed' && a.totalPaid && a.paymentMethod
         );
 
-        console.log('[REPORTS] Ventas del mes:', ventas.length);
-        reportData = ventas;
+        // Ventas cafetería (excluir canceladas) → normalizar al mismo formato
+        const coffeeSales = (coffeeJson.success ? coffeeJson.data || [] : [])
+          .filter(s => s.status !== 'cancelled')
+          .map(s => ({
+            id: s.id,
+            paidAt: s.createdAt,
+            clientName: s.folio,
+            serviceName: 'Venus Coffee Bar',
+            paymentMethod: s.paymentMethod,
+            totalPaid: parseFloat(s.total),
+            serviceAmount: parseFloat(s.subtotal),
+            discountAmount: parseFloat(s.discount) || 0,
+            _isCoffeeSale: true
+          }));
 
-        renderExcelReport(ventas);
+        console.log('[REPORTS] Citas completadas:', ventas.length, '| Coffee Bar:', coffeeSales.length);
+
+        const todasLasVentas = [...ventas, ...coffeeSales].sort(
+          (a, b) => new Date(a.paidAt || a.startDateTime) - new Date(b.paidAt || b.startDateTime)
+        );
+
+        reportData = todasLasVentas;
+        renderExcelReport(todasLasVentas);
       } catch (error) {
         console.error('[REPORTS] Error cargando mes:', error);
       }
@@ -22924,7 +22947,12 @@
         totalDescuento += descuento;
         totalGeneral += total;
 
-        const tipo = (v.productsSold?.length > 0) ? 'PRODUCTO' : 'SERVICIO';
+        const tipo = v._isCoffeeSale ? 'CAFETERÍA' : (v.productsSold?.length > 0) ? 'PRODUCTO' : 'SERVICIO';
+        const tipoColor = v._isCoffeeSale
+          ? { bg: '#fef9c3', fg: '#713f12' }
+          : tipo === 'PRODUCTO'
+            ? { bg: '#fef3c7', fg: '#92400e' }
+            : { bg: '#e0e7ff', fg: '#3730a3' };
         const formaPago = (v.paymentMethod || '').charAt(0).toUpperCase() + (v.paymentMethod || '').slice(1);
         const cuentaBancaria = v.paymentMethod === 'transferencia' ? 'BBVA Aho' :
           v.paymentMethod === 'tarjeta' ? 'BBVA Aho' : 'Caja';
@@ -22934,7 +22962,7 @@
             <td style="white-space:nowrap;">${fechaStr}</td>
             <td>${v.clientName || 'Sin nombre'}</td>
             <td>${v.serviceName || '-'}</td>
-            <td><span style="font-size:10px;padding:2px 6px;border-radius:4px;background:${tipo === 'PRODUCTO' ? '#fef3c7' : '#e0e7ff'};color:${tipo === 'PRODUCTO' ? '#92400e' : '#3730a3'}">${tipo}</span></td>
+            <td><span style="font-size:10px;padding:2px 6px;border-radius:4px;background:${tipoColor.bg};color:${tipoColor.fg}">${tipo}</span></td>
             <td>${formaPago}</td>
             <td>${cuentaBancaria}</td>
             <td>$${subtotal.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
@@ -23049,20 +23077,41 @@
 
         console.log('[REPORTS] Cargando rango:', from, 'a', to);
 
-        const res = await fetch(`/api/appointments/range?from=${fromISO}&to=${toISO}`, { credentials: 'include' });
-        const json = await res.json();
+        const [apptRes, coffeeRes] = await Promise.all([
+          fetch(`/api/appointments/range?from=${fromISO}&to=${toISO}`, { credentials: 'include' }),
+          fetch(`/api/pos/sales?from=${from}&to=${to}`, { credentials: 'include' })
+        ]);
 
-        if (!json.success) {
-          console.error('[REPORTS] Error:', json.error);
-          return;
+        const [apptJson, coffeeJson] = await Promise.all([apptRes.json(), coffeeRes.json()]);
+
+        if (!apptJson.success) {
+          console.error('[REPORTS] Error citas:', apptJson.error);
         }
 
         // Filtrar ventas completadas
-        const ventas = (json.data || []).filter(a =>
+        const ventasCitas = (apptJson.data || []).filter(a =>
           a.status === 'completed' && a.totalPaid && a.paymentMethod
         );
 
-        console.log('[REPORTS] Ventas encontradas:', ventas.length);
+        const coffeeSales = (coffeeJson.success ? coffeeJson.data || [] : [])
+          .filter(s => s.status !== 'cancelled')
+          .map(s => ({
+            id: s.id,
+            paidAt: s.createdAt,
+            clientName: s.folio,
+            serviceName: 'Venus Coffee Bar',
+            paymentMethod: s.paymentMethod,
+            totalPaid: parseFloat(s.total),
+            serviceAmount: parseFloat(s.subtotal),
+            discountAmount: parseFloat(s.discount) || 0,
+            _isCoffeeSale: true
+          }));
+
+        const ventas = [...ventasCitas, ...coffeeSales].sort(
+          (a, b) => new Date(a.paidAt || a.startDateTime) - new Date(b.paidAt || b.startDateTime)
+        );
+
+        console.log('[REPORTS] Citas completadas:', ventasCitas.length, '| Coffee Bar:', coffeeSales.length);
 
         // Guardar datos para filtros
         reportData = ventas;
