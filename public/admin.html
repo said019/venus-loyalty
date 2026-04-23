@@ -5337,9 +5337,28 @@
       }
 
       /* Sync + reconcile buttons */
-      #btn-refresh-appts,
-      #btn-reconcile-polls {
+      #btn-refresh-appts {
         padding: 7px 8px !important;
+      }
+
+      #btn-reconcile-polls {
+        padding: 7px 10px !important;
+        font-size: 10px !important;
+      }
+
+      #btn-reconcile-polls span {
+        display: inline !important;
+      }
+    }
+
+    /* Mostrar solo icono en pantallas muy angostas para no romper layout */
+    @media (max-width: 420px) {
+      #btn-reconcile-polls span {
+        display: none !important;
+      }
+
+      #btn-reconcile-polls {
+        padding: 7px 9px !important;
       }
     }
 
@@ -6745,10 +6764,11 @@
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
             <h2 style="font-size:16px;font-weight:700;color:var(--ink);margin:0;">Citas del <span id="selected-date-label">Hoy</span></h2>
             <div style="display:flex;gap:6px;">
-              <button class="btn small ghost" onclick="reconcilePolls()" title="Sincronizar respuestas" id="btn-reconcile-polls" style="padding:6px 8px;font-size:11px;">
-                <i class="fas fa-check-double"></i>
+              <button class="btn small primary" onclick="reconcilePolls()" title="Revisa las respuestas de WhatsApp y actualiza el estado de las citas" id="btn-reconcile-polls" style="padding:6px 12px;font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:6px;">
+                <i class="fab fa-whatsapp"></i>
+                <span>Sincronizar respuestas</span>
               </button>
-              <button class="btn small ghost" id="btn-refresh-appts" style="padding:6px 8px;font-size:11px;">
+              <button class="btn small ghost" id="btn-refresh-appts" title="Refrescar lista" style="padding:6px 8px;font-size:11px;">
                 <i class="fas fa-sync-alt"></i>
               </button>
             </div>
