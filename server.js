@@ -5972,6 +5972,7 @@ app.post('/api/admin/reconcile-polls', adminAuth, async (req, res) => {
     try {
         const { getEvolutionClient } = await import('./src/services/whatsapp-evolution.js');
         const { WhatsAppService } = await import('./src/services/whatsapp-v2.js');
+        const { matchOptionByHash } = await import('./src/routes/webhookEvolution.js');
         const evo = getEvolutionClient();
 
         // Buscar citas scheduled que ya se les envió la encuesta 24h
@@ -5999,24 +6000,63 @@ app.post('/api/admin/reconcile-polls', adminAuth, async (req, res) => {
                 if (phone.length === 10) phone = '52' + phone;
                 const jid = phone + '@s.whatsapp.net';
 
+                // Traer pendingPolls de esta cita para poder decodificar hashes
+                const apptPolls = await prisma.pendingPoll.findMany({
+                    where: { appointmentId: appt.id }
+                });
+                const apptPollIds = new Set(apptPolls.map(p => p.id));
+                const apptPollOptions = apptPolls
+                    .filter(p => p.options)
+                    .map(p => { try { return JSON.parse(p.options); } catch { return null; } })
+                    .filter(Boolean);
+
                 // Buscar mensajes recientes del chat de esta clienta
-                const messages = await evo.fetchMessages(jid, 20);
+                const messages = await evo.fetchMessages(jid, 30);
 
                 // Buscar respuestas de confirmación en mensajes recientes
                 let found = null;
                 for (const msg of messages) {
-                    // Solo mensajes del cliente (no nuestros)
-                    if (msg?.key?.fromMe) continue;
+                    // Solo mensajes del cliente (no nuestros) — excepto polls que siempre vienen fromMe=true
+                    const pollUpdate = msg?.message?.pollUpdateMessage;
+                    if (!pollUpdate && msg?.key?.fromMe) continue;
 
                     const text = (msg?.message?.conversation
                         || msg?.message?.extendedTextMessage?.text
                         || '').toLowerCase().trim();
 
-                    // También buscar en poll votes
-                    const pollUpdate = msg?.message?.pollUpdateMessage;
+                    // Extraer opción del poll (texto plano o hashes)
                     let pollOption = null;
-                    if (pollUpdate?.votes) {
-                        pollOption = (pollUpdate.votes[0]?.optionName || pollUpdate.votes[0]?.name || '').toLowerCase();
+                    if (pollUpdate) {
+                        if (Array.isArray(pollUpdate?.votes)) {
+                            pollOption = (pollUpdate.votes[0]?.optionName || pollUpdate.votes[0]?.name || '').toLowerCase();
+                        }
+                        // Formato hash: pollUpdate.vote.selectedOptions = [Buffer/hex/base64]
+                        if (!pollOption && Array.isArray(pollUpdate?.vote?.selectedOptions)) {
+                            const hashes = pollUpdate.vote.selectedOptions;
+                            const targetPollId = pollUpdate?.pollCreationMessageKey?.id;
+                            // Intentar contra la opción del pendingPoll específico; fallback a cualquier poll de esta cita
+                            const pollsToTry = targetPollId && apptPollIds.has(targetPollId)
+                                ? apptPolls.filter(p => p.id === targetPollId && p.options)
+                                : apptPolls.filter(p => p.options);
+                            for (const pp of pollsToTry) {
+                                try {
+                                    const opts = JSON.parse(pp.options);
+                                    for (const h of hashes) {
+                                        const matched = matchOptionByHash(opts, h);
+                                        if (matched) { pollOption = matched.toLowerCase(); break; }
+                                    }
+                                } catch { /* ignore */ }
+                                if (pollOption) break;
+                            }
+                            // Fallback global: opciones estándar si no hay pendingPoll guardado
+                            if (!pollOption) {
+                                const fallbackOpts = ['Confirmar asistencia', 'Reagendar', 'Cancelar'];
+                                for (const h of hashes) {
+                                    const matched = matchOptionByHash(fallbackOpts, h);
+                                    if (matched) { pollOption = matched.toLowerCase(); break; }
+                                }
+                            }
+                        }
                     }
 
                     const respuesta = pollOption || text;

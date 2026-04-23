@@ -12,10 +12,45 @@ function sha256Hex(s) {
     return crypto.createHash('sha256').update(s, 'utf8').digest('hex');
 }
 
-// Dado un array de opciones y un vote hash, devuelve la opción que coincide
-function matchOptionByHash(options, voteHash) {
+// Normaliza un voteHash a hex lowercase. Evolution/Baileys puede enviarlo como:
+//   - string hex ("a1b2...")
+//   - string base64 ("oQI...")
+//   - Buffer ({type:"Buffer", data:[..]})
+//   - Uint8Array / array plano de bytes
+//   - { buffer: ... } wrapper
+export function normalizeVoteHash(raw) {
+    if (!raw) return null;
+    // Unwrap común
+    const v = raw?.buffer !== undefined ? raw.buffer : raw;
+
+    // Buffer/Uint8Array/Array de bytes
+    if (Array.isArray(v?.data)) {
+        return Buffer.from(v.data).toString('hex').toLowerCase();
+    }
+    if (Array.isArray(v) && v.every(n => typeof n === 'number')) {
+        return Buffer.from(v).toString('hex').toLowerCase();
+    }
+    if (v instanceof Uint8Array || Buffer.isBuffer(v)) {
+        return Buffer.from(v).toString('hex').toLowerCase();
+    }
+
+    if (typeof v !== 'string') return null;
+    const s = v.trim();
+    // Ya viene en hex
+    if (/^[0-9a-f]{64}$/i.test(s)) return s.toLowerCase();
+    // Intentar base64 → hex (poll hash son 32 bytes = 44 chars base64 aprox)
+    try {
+        const buf = Buffer.from(s, 'base64');
+        if (buf.length === 32) return buf.toString('hex').toLowerCase();
+    } catch { /* ignore */ }
+    return s.toLowerCase();
+}
+
+// Dado un array de opciones y un vote hash (en cualquier formato), devuelve la opción que coincide
+export function matchOptionByHash(options, voteHash) {
     if (!options || !Array.isArray(options) || !voteHash) return null;
-    const normalized = String(voteHash).toLowerCase();
+    const normalized = normalizeVoteHash(voteHash);
+    if (!normalized) return null;
     for (const opt of options) {
         if (sha256Hex(opt).toLowerCase() === normalized) return opt;
     }
@@ -198,6 +233,20 @@ async function handlePollResponse(phone, payload, profileName) {
             }
         } catch (lookupErr) {
             console.warn('[Evolution] Error buscando cita por pollMsgId:', lookupErr.message);
+        }
+    }
+
+    // Fallback: hash match contra opciones estándar de encuesta de asistencia
+    // (cubre polls antiguos sin `options` guardadas o polls cuyo pollMsgId no matchea)
+    if (!selectedOption && voteHashes.length > 0) {
+        const fallbackOpts = ['Confirmar asistencia', 'Reagendar', 'Cancelar'];
+        for (const h of voteHashes) {
+            const matched = matchOptionByHash(fallbackOpts, h);
+            if (matched) {
+                selectedOption = matched;
+                console.log(`[Evolution Poll] ✅ Hash decodificado vía fallback estándar → "${matched}"`);
+                break;
+            }
         }
     }
 
