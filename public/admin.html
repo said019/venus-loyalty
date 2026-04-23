@@ -20438,7 +20438,7 @@
     // ===== GOOGLE CALENDAR =====
     async function loadGoogleCalendarStatus() {
       try {
-        const res = await fetch('/api/calendar/status', { credentials: 'include' });
+        const res = await fetch('/api/admin/calendar/status', { credentials: 'include' });
         const json = await res.json();
         const badge = document.getElementById('gcal-status-badge');
         const connDiv = document.getElementById('gcal-connected');
@@ -20463,7 +20463,7 @@
 
     async function connectGoogleCalendar() {
       try {
-        const res = await fetch('/api/calendar/auth', { credentials: 'include' });
+        const res = await fetch('/api/admin/calendar/auth', { credentials: 'include' });
         const json = await res.json();
         if (json.authUrl) {
           window.open(json.authUrl, '_blank');
@@ -20478,7 +20478,7 @@
       resultDiv.style.display = 'block';
       resultDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sincronizando...';
       try {
-        const res = await fetch('/api/calendar/sync', { method: 'POST', credentials: 'include' });
+        const res = await fetch('/api/admin/calendar/sync', { method: 'POST', credentials: 'include' });
         const json = await res.json();
         if (json.success) {
           resultDiv.innerHTML = `<span style="color:#22c55e;">✅ ${json.created} creados, ${json.updated} actualizados, ${json.failed} errores (de ${json.total} citas)</span>`;
@@ -20495,7 +20495,7 @@
     async function disconnectGoogleCalendar() {
       if (!confirm('¿Desconectar Google Calendar? Las citas seguirán en tu calendario pero ya no se sincronizarán.')) return;
       try {
-        await fetch('/api/calendar/disconnect', { method: 'POST', credentials: 'include' });
+        await fetch('/api/admin/calendar/disconnect', { method: 'POST', credentials: 'include' });
         showNotification('Google Calendar desconectado', 'success');
         loadGoogleCalendarStatus();
       } catch (err) { showNotification('Error desconectando', 'error'); }
