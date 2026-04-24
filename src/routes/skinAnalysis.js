@@ -206,6 +206,49 @@ router.post('/import', async (req, res) => {
 });
 
 /**
+ * GET /api/skin-analysis/image-proxy?url=<yiyuanUrl>
+ * Proxy para imágenes de zm.yiyuan.ai — necesario para que html2canvas
+ * pueda incluirlas en el PDF sin CORS taint.
+ * IMPORTANTE: este route debe ir ANTES del /:id catch-all.
+ * Whitelist: solo dominios Yiyuan oficiales.
+ */
+router.get('/image-proxy', async (req, res) => {
+    try {
+        const raw = req.query.url;
+        if (!raw || typeof raw !== 'string') {
+            return res.status(400).send('url requerida');
+        }
+
+        let parsed;
+        try { parsed = new URL(raw); } catch { return res.status(400).send('url inválida'); }
+
+        const allowed = ['zm.yiyuan.ai', 'yiyuan.ai'];
+        if (!allowed.includes(parsed.hostname)) {
+            return res.status(403).send('dominio no permitido');
+        }
+
+        const upstream = await fetch(parsed.toString(), {
+            headers: { referer: 'https://zm.yiyuan.ai/zmskinweb/' },
+        });
+
+        if (!upstream.ok) {
+            return res.status(upstream.status).send('upstream error');
+        }
+
+        const contentType = upstream.headers.get('content-type') || 'image/jpeg';
+        const buf = Buffer.from(await upstream.arrayBuffer());
+
+        res.set('Content-Type', contentType);
+        res.set('Cache-Control', 'public, max-age=86400');
+        res.set('Access-Control-Allow-Origin', '*');
+        return res.send(buf);
+    } catch (err) {
+        console.error('[SkinAnalysis /image-proxy] Error:', err.message);
+        return res.status(500).send('proxy error');
+    }
+});
+
+/**
  * GET /api/skin-analysis/:id
  * Devuelve el análisis con scores e imágenes embebidos.
  */

@@ -567,6 +567,13 @@
 
         // Regenerate narrative
         $('btn-regenerate').addEventListener('click', () => regenerateNarrative(a.id));
+
+        // PDF buttons
+        $('btn-download-pdf').addEventListener('click', () => generatePDF(a, 'download'));
+        $('btn-share-pdf').addEventListener('click', () => generatePDF(a, 'share'));
+
+        // Guardar análisis en state para reusar en PDF
+        state.currentAnalysis = a;
     }
 
     // ── AI Narrative renderer ──
@@ -638,6 +645,243 @@
             nextBox.classList.remove('hidden');
         } else {
             nextBox.classList.add('hidden');
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // PDF EXPORT
+    // ═══════════════════════════════════════════════════════════════
+    function fillPDFTemplate(a) {
+        const cardName = a.card?.name || a.clientName || 'Sin nombre';
+        const cardPhone = a.card?.phone || a.clientPhone || '—';
+        const analyzedAt = a.analyzedAt ? new Date(a.analyzedAt) : new Date();
+        const fecha = analyzedAt.toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
+
+        $('pdf-date').textContent = fecha;
+        $('pdf-date-2').textContent = fecha;
+        $('pdf-client-name').textContent = cardName;
+        $('pdf-client-name-2').textContent = cardName;
+
+        const metaParts = [];
+        if (a.ageReal) metaParts.push(`<strong>${a.ageReal} años</strong>`);
+        metaParts.push(`Tel. ${escapeHtml(cardPhone)}`);
+        if (a.skinType) metaParts.push(`Piel <strong>${escapeHtml(a.skinType)}</strong>`);
+        if (a.skinColor) metaParts.push(`Fototipo <strong>${escapeHtml(a.skinColor)}</strong>`);
+        $('pdf-client-meta').innerHTML = metaParts.join(' &nbsp;·&nbsp; ');
+
+        $('pdf-score').textContent = a.overallScore ?? '—';
+
+        // Summary grid (4 celdas)
+        $('pdf-summary').innerHTML = `
+            <div class="pdf-summary-cell"><dt>Tipo de piel</dt><dd>${escapeHtml(a.skinType || '—')}</dd></div>
+            <div class="pdf-summary-cell"><dt>Fototipo</dt><dd>${escapeHtml(a.skinColor || '—')}</dd></div>
+            <div class="pdf-summary-cell"><dt>Rostro</dt><dd>${escapeHtml(a.faceShape || '—')}</dd></div>
+            <div class="pdf-summary-cell"><dt>Edad biológica</dt><dd>${a.ageBiological ?? '—'}${a.ageBiological && a.ageReal ? ` <span style="font-size:9pt;color:#999">(${a.ageBiological < a.ageReal ? '−' : '+'}${Math.abs(a.ageBiological - a.ageReal)})</span>` : ''}</dd></div>
+        `;
+
+        // AI narrative
+        const ai = a.aiRecommendations;
+        if (ai && ai.headline && ai.summary) {
+            $('pdf-headline').textContent = ai.headline;
+            $('pdf-summary-text').textContent = ai.summary;
+            $('pdf-narrative-block').style.display = 'block';
+        } else {
+            $('pdf-narrative-block').style.display = 'none';
+        }
+
+        // Concerns (top 3 critical/concern)
+        const sorted = [...(a.scores || [])].sort((x, y) => {
+            const so = SEVERITY_ORDER[x.severity] - SEVERITY_ORDER[y.severity];
+            return so !== 0 ? so : Number(x.score) - Number(y.score);
+        });
+        const whyMap = {};
+        if (ai && Array.isArray(ai.concerns)) {
+            ai.concerns.forEach(c => { if (c.metric) whyMap[c.metric] = c.why; });
+        }
+        const topConcerns = sorted.filter(s => s.severity === 'critical' || s.severity === 'concern').slice(0, 3);
+
+        if (topConcerns.length === 0) {
+            $('pdf-concerns').innerHTML = `
+                <div class="pdf-concern" style="border-left-color:#6e7a4e">
+                    <div class="pdf-concern-label">A+</div>
+                    <div class="pdf-concern-main">
+                        <div class="name">Piel saludable</div>
+                        <div class="why">Todas las métricas en rango óptimo.</div>
+                    </div>
+                    <div class="pdf-concern-score">${a.overallScore || '—'}<small>/100</small></div>
+                </div>
+            `;
+        } else {
+            $('pdf-concerns').innerHTML = topConcerns.map((c, idx) => `
+                <div class="pdf-concern ${c.severity}">
+                    <div class="pdf-concern-label">${String(idx + 1).padStart(2, '0')}</div>
+                    <div class="pdf-concern-main">
+                        <div class="name">${escapeHtml(c.labelEs)}</div>
+                        <div class="why">${escapeHtml(whyMap[c.metric] || (c.severity === 'critical' ? 'Requiere atención inmediata.' : 'Área a trabajar con tratamiento.'))}</div>
+                    </div>
+                    <div class="pdf-concern-score">${Math.round(Number(c.score))}<small>/100</small></div>
+                </div>
+            `).join('');
+        }
+
+        // Treatments
+        const treatments = Array.isArray(ai?.recommendations) ? ai.recommendations : [];
+        if (treatments.length > 0) {
+            $('pdf-treatments').innerHTML = treatments.map((t) => `
+                <div class="pdf-treatment">
+                    <div>
+                        <div class="name">${escapeHtml(t.treatment || '—')}</div>
+                        <div class="why">${escapeHtml(t.why || '')}</div>
+                    </div>
+                    <div class="pdf-treatment-meta">
+                        <strong>${t.sessions ?? '—'}</strong>
+                        <div>${t.sessions ? 'sesiones' : ''}</div>
+                        <div style="margin-top:4px;letter-spacing:1px;text-transform:uppercase;font-size:8pt;color:#8c9668;font-weight:700;">${escapeHtml(t.frequency || '')}</div>
+                    </div>
+                </div>
+            `).join('');
+            $('pdf-treatments-block').style.display = 'block';
+        } else {
+            $('pdf-treatments-block').style.display = 'none';
+        }
+
+        // Home care
+        const homecare = Array.isArray(ai?.homeCare) ? ai.homeCare : [];
+        if (homecare.length > 0) {
+            $('pdf-homecare').innerHTML = homecare.map(tip => `<li>${escapeHtml(tip)}</li>`).join('');
+            $('pdf-homecare-block').style.display = 'block';
+        } else {
+            $('pdf-homecare-block').style.display = 'none';
+        }
+
+        // Next analysis
+        const weeks = ai?.nextAnalysisIn;
+        if (weeks && Number.isFinite(weeks)) {
+            const future = new Date();
+            future.setDate(future.getDate() + (weeks * 7));
+            const fechaFutura = future.toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
+            $('pdf-next-value').textContent = `En ${weeks} semanas — alrededor del ${fechaFutura}`;
+            $('pdf-next-block').style.display = 'flex';
+        } else {
+            $('pdf-next-block').style.display = 'none';
+        }
+
+        // Gallery page (solo si hay imágenes) — usa proxy para evitar CORS taint
+        const images = a.images || [];
+        if (images.length > 0) {
+            // Primeras 9 para caber en 1 página
+            const shown = images.slice(0, 9);
+            $('pdf-gallery').innerHTML = shown.map(img => {
+                const proxied = `/api/skin-analysis/image-proxy?url=${encodeURIComponent(img.originalUrl)}`;
+                return `
+                <div class="pdf-gallery-item">
+                    <img src="${proxied}" alt="${escapeHtml(img.labelEs)}" crossorigin="anonymous">
+                    <div class="pdf-gallery-cap">${escapeHtml(img.labelEs)}</div>
+                </div>`;
+            }).join('');
+            $('pdf-page-2').style.display = 'block';
+        } else {
+            $('pdf-page-2').style.display = 'none';
+        }
+    }
+
+    function pdfFilename(a) {
+        const name = (a.card?.name || a.clientName || 'cliente')
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[̀-ͯ]/g, '')
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-|-$/g, '');
+        const d = a.analyzedAt ? new Date(a.analyzedAt) : new Date();
+        const ymd = d.toISOString().slice(0, 10);
+        return `venus-skin-${name}-${ymd}.pdf`;
+    }
+
+    async function generatePDF(a, mode) {
+        if (!window.html2pdf) {
+            alert('La librería de PDF no cargó. Recarga la página.');
+            return;
+        }
+
+        showLoading(true);
+        const btn = mode === 'download' ? $('btn-download-pdf') : $('btn-share-pdf');
+        const oldHTML = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generando…';
+
+        try {
+            fillPDFTemplate(a);
+
+            // Esperar a que las imágenes carguen (si hay página 2)
+            const pdfImages = document.querySelectorAll('#pdf-root img');
+            await Promise.all(
+                Array.from(pdfImages).map(img => {
+                    if (img.complete) return Promise.resolve();
+                    return new Promise(resolve => {
+                        img.onload = resolve;
+                        img.onerror = resolve;
+                        setTimeout(resolve, 4000); // timeout si alguna falla
+                    });
+                })
+            );
+
+            const root = $('pdf-root');
+            const filename = pdfFilename(a);
+
+            const opts = {
+                margin: 0,
+                filename,
+                image: { type: 'jpeg', quality: 0.95 },
+                html2canvas: {
+                    scale: 2,
+                    useCORS: true,
+                    allowTaint: true,
+                    backgroundColor: '#ffffff',
+                    logging: false,
+                },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                pagebreak: { mode: ['css', 'legacy'] },
+            };
+
+            if (mode === 'download') {
+                await html2pdf().set(opts).from(root).save();
+            } else {
+                // Share mode: genera blob y usa navigator.share si está disponible
+                const worker = html2pdf().set(opts).from(root);
+                const blob = await worker.outputPdf('blob');
+                const file = new File([blob], filename, { type: 'application/pdf' });
+
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    await navigator.share({
+                        files: [file],
+                        title: `Análisis de piel — ${a.card?.name || a.clientName}`,
+                        text: 'Resultado de tu análisis clínico en Venus Cosmetología.',
+                    });
+                } else {
+                    // Fallback: descargar + abrir WhatsApp Web con texto
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = filename;
+                    link.click();
+                    setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+                    const phone = (a.card?.phone || a.clientPhone || '').replace(/\D/g, '');
+                    if (phone) {
+                        const msg = `Hola ${a.card?.name || a.clientName || ''}, te adjunto tu análisis de piel. Descarga el PDF que acabo de mandarte. — Venus Cosmetología`;
+                        setTimeout(() => {
+                            window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+                        }, 800);
+                    }
+                }
+            }
+        } catch (err) {
+            console.error('[PDF] error:', err);
+            alert(`No se pudo generar el PDF: ${err.message}`);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = oldHTML;
+            showLoading(false);
         }
     }
 

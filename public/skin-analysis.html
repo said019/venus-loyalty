@@ -9,6 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script src="https://unpkg.com/html5-qrcode@2.3.10/html5-qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.3/html2pdf.bundle.min.js"></script>
     <style>
         :root {
             --bg: #0a0a0f;
@@ -1437,6 +1438,477 @@
             .homecare-list { grid-template-columns: 1fr; }
         }
 
+        /* ═══════════════════════════════════════════════════════════
+           PDF TEMPLATE (light theme, A4 portrait, print-friendly)
+           Se renderiza off-screen y se pasa a html2pdf
+           ═══════════════════════════════════════════════════════════ */
+
+        #pdf-root {
+            position: fixed;
+            top: 0;
+            left: -10000px;
+            width: 210mm;
+            background: #ffffff;
+            color: #1a1a1a;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 11pt;
+            line-height: 1.5;
+            padding: 0;
+            z-index: -1;
+        }
+
+        .pdf-page {
+            padding: 18mm 16mm;
+            width: 210mm;
+            min-height: 297mm;
+            box-sizing: border-box;
+            background: #ffffff;
+            page-break-after: always;
+        }
+
+        .pdf-page:last-child { page-break-after: auto; }
+
+        /* Venus header */
+        .pdf-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-bottom: 14px;
+            border-bottom: 1.5px solid #8c9668;
+            margin-bottom: 20px;
+        }
+
+        .pdf-header-brand {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .pdf-logo {
+            width: 52px;
+            height: 52px;
+            object-fit: contain;
+        }
+
+        .pdf-brand-name {
+            font-family: 'Playfair Display', serif;
+            font-size: 22pt;
+            font-weight: 500;
+            color: #1a1a1a;
+            letter-spacing: -0.4px;
+            line-height: 1;
+        }
+
+        .pdf-brand-tag {
+            font-size: 8pt;
+            letter-spacing: 2.5px;
+            text-transform: uppercase;
+            color: #8c9668;
+            font-weight: 700;
+            margin-top: 4px;
+        }
+
+        .pdf-header-date {
+            text-align: right;
+            font-size: 9pt;
+            color: #555;
+        }
+
+        .pdf-header-date strong {
+            font-family: 'Playfair Display', serif;
+            display: block;
+            font-size: 11pt;
+            color: #1a1a1a;
+            letter-spacing: -0.2px;
+            font-weight: 500;
+            margin-bottom: 2px;
+        }
+
+        /* Title */
+        .pdf-title {
+            text-align: center;
+            font-family: 'Playfair Display', serif;
+            font-size: 16pt;
+            font-weight: 400;
+            font-style: italic;
+            color: #6e7a4e;
+            letter-spacing: -0.3px;
+            margin-bottom: 22px;
+        }
+
+        /* Client block */
+        .pdf-client-block {
+            background: #f7f6f0;
+            border-left: 3px solid #8c9668;
+            padding: 16px 20px;
+            margin-bottom: 22px;
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .pdf-client-name {
+            font-family: 'Playfair Display', serif;
+            font-size: 22pt;
+            font-weight: 500;
+            letter-spacing: -0.5px;
+            color: #1a1a1a;
+            line-height: 1;
+            margin-bottom: 6px;
+        }
+
+        .pdf-client-meta {
+            font-size: 9.5pt;
+            color: #666;
+            letter-spacing: 0.2px;
+        }
+
+        .pdf-client-meta strong { color: #1a1a1a; font-weight: 600; }
+
+        .pdf-score-big {
+            text-align: center;
+            padding: 0 8px;
+        }
+
+        .pdf-score-number {
+            font-family: 'Playfair Display', serif;
+            font-size: 44pt;
+            font-weight: 500;
+            letter-spacing: -1.5px;
+            color: #8c9668;
+            line-height: 1;
+        }
+
+        .pdf-score-label {
+            font-size: 7.5pt;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: #8c9668;
+            font-weight: 700;
+            margin-top: 4px;
+        }
+
+        /* Summary grid */
+        .pdf-summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1px;
+            background: #ddd;
+            border: 1px solid #ddd;
+            margin-bottom: 24px;
+        }
+
+        .pdf-summary-cell {
+            background: #fff;
+            padding: 12px 14px;
+        }
+
+        .pdf-summary-cell dt {
+            font-size: 7.5pt;
+            font-weight: 700;
+            letter-spacing: 1.8px;
+            text-transform: uppercase;
+            color: #8c9668;
+            margin-bottom: 4px;
+        }
+
+        .pdf-summary-cell dd {
+            font-family: 'Playfair Display', serif;
+            font-size: 13pt;
+            font-weight: 500;
+            letter-spacing: -0.2px;
+            color: #1a1a1a;
+        }
+
+        /* Section title */
+        .pdf-h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 14pt;
+            font-weight: 500;
+            letter-spacing: -0.3px;
+            color: #1a1a1a;
+            padding-bottom: 6px;
+            margin-bottom: 12px;
+            border-bottom: 1px solid #e0ddd0;
+        }
+
+        /* Narrative */
+        .pdf-narrative {
+            background: #fdfcf8;
+            border: 1px solid #ebe8dc;
+            padding: 18px 22px;
+            margin-bottom: 22px;
+            border-radius: 2px;
+        }
+
+        .pdf-narrative-headline {
+            font-family: 'Playfair Display', serif;
+            font-size: 16pt;
+            font-weight: 500;
+            letter-spacing: -0.4px;
+            color: #1a1a1a;
+            line-height: 1.2;
+            margin-bottom: 10px;
+        }
+
+        .pdf-narrative-summary {
+            font-size: 10.5pt;
+            line-height: 1.55;
+            color: #333;
+        }
+
+        /* Concerns */
+        .pdf-concerns-list {
+            display: grid;
+            gap: 10px;
+            margin-bottom: 22px;
+        }
+
+        .pdf-concern {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 16px;
+            align-items: center;
+            padding: 12px 14px;
+            background: #fafaf7;
+            border-left: 3px solid #e0a25b;
+        }
+
+        .pdf-concern.critical { border-left-color: #c75a5a; }
+
+        .pdf-concern-label {
+            font-family: 'Playfair Display', serif;
+            font-size: 18pt;
+            font-weight: 500;
+            color: #999;
+            min-width: 28px;
+        }
+
+        .pdf-concern-main .name {
+            font-family: 'Playfair Display', serif;
+            font-size: 13pt;
+            font-weight: 500;
+            color: #1a1a1a;
+            margin-bottom: 2px;
+            letter-spacing: -0.2px;
+        }
+
+        .pdf-concern-main .why {
+            font-size: 9.5pt;
+            color: #555;
+            line-height: 1.4;
+        }
+
+        .pdf-concern-score {
+            font-family: 'Playfair Display', serif;
+            font-size: 18pt;
+            font-weight: 500;
+            color: #1a1a1a;
+        }
+
+        .pdf-concern-score small {
+            font-family: 'DM Sans', sans-serif;
+            font-size: 8pt;
+            color: #999;
+            font-weight: 400;
+        }
+
+        /* Treatments */
+        .pdf-treatments {
+            display: grid;
+            gap: 8px;
+            margin-bottom: 22px;
+        }
+
+        .pdf-treatment {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 12px;
+            padding: 12px 16px;
+            background: #ffffff;
+            border: 1px solid #e0ddd0;
+            border-left: 3px solid #8c9668;
+        }
+
+        .pdf-treatment .name {
+            font-family: 'Playfair Display', serif;
+            font-size: 12pt;
+            font-weight: 500;
+            color: #1a1a1a;
+            margin-bottom: 2px;
+        }
+
+        .pdf-treatment .why {
+            font-size: 9.5pt;
+            color: #555;
+            line-height: 1.4;
+        }
+
+        .pdf-treatment-meta {
+            text-align: right;
+            font-size: 9pt;
+            color: #666;
+            min-width: 110px;
+        }
+
+        .pdf-treatment-meta strong {
+            font-family: 'Playfair Display', serif;
+            display: block;
+            font-size: 14pt;
+            color: #6e7a4e;
+            font-weight: 500;
+            line-height: 1;
+        }
+
+        /* Home care */
+        .pdf-homecare {
+            padding-left: 0;
+            list-style: none;
+            counter-reset: pdfhc;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 24px;
+        }
+
+        .pdf-homecare li {
+            counter-increment: pdfhc;
+            position: relative;
+            padding: 10px 14px 10px 40px;
+            background: #fafaf7;
+            border: 1px solid #ebe8dc;
+            font-size: 9.5pt;
+            line-height: 1.4;
+            color: #333;
+        }
+
+        .pdf-homecare li::before {
+            content: counter(pdfhc, decimal-leading-zero);
+            position: absolute;
+            left: 12px;
+            top: 10px;
+            font-family: 'Playfair Display', serif;
+            font-size: 11pt;
+            color: #8c9668;
+            font-weight: 500;
+        }
+
+        /* Next */
+        .pdf-next {
+            padding: 12px 18px;
+            background: #f7f6f0;
+            border-left: 3px solid #8c9668;
+            margin-bottom: 26px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .pdf-next-label {
+            font-size: 7.5pt;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: #8c9668;
+            font-weight: 700;
+        }
+
+        .pdf-next-value {
+            font-family: 'Playfair Display', serif;
+            font-size: 12pt;
+            color: #1a1a1a;
+            font-weight: 500;
+        }
+
+        /* Signature */
+        .pdf-signature {
+            margin-top: 34px;
+            padding-top: 22px;
+            border-top: 1px solid #e0ddd0;
+        }
+
+        .pdf-sig-line {
+            width: 220px;
+            height: 1.5px;
+            background: #1a1a1a;
+            margin: 36px 0 8px;
+        }
+
+        .pdf-sig-name {
+            font-family: 'Playfair Display', serif;
+            font-size: 14pt;
+            font-weight: 500;
+            color: #1a1a1a;
+            letter-spacing: -0.2px;
+            line-height: 1.1;
+        }
+
+        .pdf-sig-title {
+            font-size: 9pt;
+            color: #666;
+            margin-top: 2px;
+        }
+
+        .pdf-sig-clinic {
+            font-size: 8.5pt;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: #8c9668;
+            font-weight: 700;
+            margin-top: 4px;
+        }
+
+        /* Footer */
+        .pdf-footer {
+            margin-top: 22px;
+            padding-top: 14px;
+            border-top: 1px solid #ebe8dc;
+            display: flex;
+            justify-content: space-between;
+            font-size: 8pt;
+            color: #999;
+            letter-spacing: 0.3px;
+        }
+
+        .pdf-footer-brand { font-weight: 600; color: #555; }
+
+        /* Page 2 for images */
+        .pdf-gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-top: 14px;
+        }
+
+        .pdf-gallery-item {
+            border: 1px solid #e0ddd0;
+            background: #f7f6f0;
+        }
+
+        .pdf-gallery-item img {
+            width: 100%;
+            aspect-ratio: 1;
+            object-fit: cover;
+            display: block;
+        }
+
+        .pdf-gallery-cap {
+            font-size: 7.5pt;
+            color: #666;
+            padding: 5px 8px;
+            letter-spacing: 0.2px;
+        }
+
+        .pdf-disclaimer {
+            background: #fdfcf8;
+            border: 1px solid #ebe8dc;
+            padding: 10px 14px;
+            font-size: 8pt;
+            color: #666;
+            line-height: 1.4;
+            margin-top: 14px;
+        }
+
         /* ────── UTILITY ────── */
         .hidden { display: none !important; }
 
@@ -1667,11 +2139,21 @@
             </h2>
             <div class="gallery-strip" id="d-gallery"></div>
 
-            <div class="actions-bar">
+            <div class="actions-bar" style="grid-template-columns: repeat(3, 1fr);">
+                <button class="btn btn-primary" id="btn-download-pdf">
+                    <i class="fas fa-file-pdf"></i>
+                    Descargar PDF
+                </button>
+                <button class="btn btn-primary" id="btn-share-pdf" style="background:#6e7a4e;color:#fff;">
+                    <i class="fas fa-share-alt"></i>
+                    Compartir PDF
+                </button>
                 <button class="btn btn-whatsapp" id="btn-whatsapp">
                     <i class="fab fa-whatsapp"></i>
-                    Enviar resumen por WhatsApp
+                    Enviar texto
                 </button>
+            </div>
+            <div class="actions-bar" style="grid-template-columns: 1fr 1fr; margin-top: -16px;">
                 <button class="btn btn-ghost" id="btn-regenerate">
                     <i class="fas fa-sync"></i>
                     Regenerar narrativa IA
@@ -1696,6 +2178,117 @@
         <button class="close" id="lightbox-close"><i class="fas fa-times"></i></button>
         <img id="lightbox-img" alt="">
         <div class="caption" id="lightbox-caption"></div>
+    </div>
+
+    <!-- ════════ PDF TEMPLATE (off-screen) ════════ -->
+    <div id="pdf-root" aria-hidden="true">
+        <!-- Página 1 -->
+        <div class="pdf-page" id="pdf-page-1">
+            <header class="pdf-header">
+                <div class="pdf-header-brand">
+                    <img class="pdf-logo" src="/assets/logo.png" alt="Venus">
+                    <div>
+                        <div class="pdf-brand-name">Venus</div>
+                        <div class="pdf-brand-tag">Cosmetología · SJR</div>
+                    </div>
+                </div>
+                <div class="pdf-header-date">
+                    <strong>Análisis Clínico de Piel</strong>
+                    <div id="pdf-date"></div>
+                </div>
+            </header>
+
+            <div class="pdf-title">Reporte personalizado con tecnología multiespectral</div>
+
+            <div class="pdf-client-block">
+                <div>
+                    <div class="pdf-client-name" id="pdf-client-name"></div>
+                    <div class="pdf-client-meta" id="pdf-client-meta"></div>
+                </div>
+                <div class="pdf-score-big">
+                    <div class="pdf-score-number" id="pdf-score"></div>
+                    <div class="pdf-score-label">Score general</div>
+                </div>
+            </div>
+
+            <dl class="pdf-summary-grid" id="pdf-summary"></dl>
+
+            <div id="pdf-narrative-block" style="display:none;">
+                <h2 class="pdf-h2">Interpretación clínica</h2>
+                <div class="pdf-narrative">
+                    <div class="pdf-narrative-headline" id="pdf-headline"></div>
+                    <div class="pdf-narrative-summary" id="pdf-summary-text"></div>
+                </div>
+            </div>
+
+            <h2 class="pdf-h2">Principales preocupaciones</h2>
+            <div class="pdf-concerns-list" id="pdf-concerns"></div>
+
+            <div id="pdf-treatments-block" style="display:none;">
+                <h2 class="pdf-h2">Plan de tratamiento sugerido</h2>
+                <div class="pdf-treatments" id="pdf-treatments"></div>
+            </div>
+
+            <div id="pdf-homecare-block" style="display:none;">
+                <h2 class="pdf-h2">Rutina en casa</h2>
+                <ul class="pdf-homecare" id="pdf-homecare"></ul>
+            </div>
+
+            <div class="pdf-next" id="pdf-next-block" style="display:none;">
+                <div>
+                    <div class="pdf-next-label">Próximo análisis recomendado</div>
+                    <div class="pdf-next-value" id="pdf-next-value"></div>
+                </div>
+            </div>
+
+            <div class="pdf-signature">
+                <div class="pdf-sig-line"></div>
+                <div class="pdf-sig-name">Alondra Osorno</div>
+                <div class="pdf-sig-title">Cosmetóloga profesional</div>
+                <div class="pdf-sig-clinic">Venus Cosmetología</div>
+            </div>
+
+            <div class="pdf-disclaimer">
+                Este reporte es resultado de un análisis multiespectral con tecnología Yiyuan Skin Analyzer. No sustituye una valoración dermatológica. Si alguna métrica presenta score crítico (&lt;30), agenda una valoración con especialista médico.
+            </div>
+
+            <footer class="pdf-footer">
+                <span class="pdf-footer-brand">Venus Cosmetología</span>
+                <span>San Juan del Río, Querétaro</span>
+                <span>@venuscosmetologia</span>
+            </footer>
+        </div>
+
+        <!-- Página 2: imágenes multiespectrales -->
+        <div class="pdf-page" id="pdf-page-2" style="display:none;">
+            <header class="pdf-header">
+                <div class="pdf-header-brand">
+                    <img class="pdf-logo" src="/assets/logo.png" alt="Venus">
+                    <div>
+                        <div class="pdf-brand-name">Venus</div>
+                        <div class="pdf-brand-tag">Imágenes Clínicas</div>
+                    </div>
+                </div>
+                <div class="pdf-header-date">
+                    <strong id="pdf-client-name-2"></strong>
+                    <div id="pdf-date-2"></div>
+                </div>
+            </header>
+
+            <div class="pdf-title">Capturas multiespectrales</div>
+
+            <div class="pdf-gallery-grid" id="pdf-gallery"></div>
+
+            <div class="pdf-disclaimer" style="margin-top:22px;">
+                Capturas obtenidas con iluminación polarizada, ultravioleta y canales cromáticos dedicados. Permiten detectar daño subdérmico, vascularidad y pigmentación no visibles a simple vista.
+            </div>
+
+            <footer class="pdf-footer">
+                <span class="pdf-footer-brand">Venus Cosmetología</span>
+                <span>San Juan del Río, Querétaro</span>
+                <span>@venuscosmetologia</span>
+            </footer>
+        </div>
     </div>
 
     <script src="/skin-analysis.js" defer></script>
