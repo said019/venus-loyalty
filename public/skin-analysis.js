@@ -471,6 +471,9 @@
             <div class="summary-cell"><dt>Edad biológica</dt><dd>${a.ageBiological ?? '—'}${a.ageBiological && a.ageReal ? ` <span style="font-size:12px;color:var(--ink-3)">(${a.ageBiological < a.ageReal ? '-' : '+'}${Math.abs(a.ageBiological - a.ageReal)})</span>` : ''}</dd></div>
         `;
 
+        // ── AI narrative ──
+        renderAINarrative(a);
+
         // Sort scores by severity then score asc
         const sorted = [...(a.scores || [])].sort((a, b) => {
             const so = SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity];
@@ -494,10 +497,14 @@
                 </div>
             `;
         } else {
-            $('d-concerns').innerHTML = concerns.map(c => `
+            const whyMap = state.concernsWhyMap || {};
+            $('d-concerns').innerHTML = concerns.map(c => {
+                const aiWhy = whyMap[c.metric];
+                return `
                 <div class="concern-card ${c.severity}">
                     <span class="concern-label">${SEVERITY_LABELS[c.severity]}</span>
                     <div class="concern-name">${escapeHtml(c.labelEs)}</div>
+                    ${aiWhy ? `<p style="font-size:13px;color:var(--ink-2);line-height:1.5;margin-top:10px;max-width:36ch;">${escapeHtml(aiWhy)}</p>` : ''}
                     <div class="concern-score-row">
                         <div>
                             <span class="concern-score">${Math.round(Number(c.score))}</span>
@@ -506,7 +513,8 @@
                         <span class="concern-badge">${SEVERITY_LABELS[c.severity]}</span>
                     </div>
                 </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         // Bento grid
@@ -556,6 +564,107 @@
 
         // WhatsApp button
         $('btn-whatsapp').addEventListener('click', () => sendWhatsAppSummary(a));
+
+        // Regenerate narrative
+        $('btn-regenerate').addEventListener('click', () => regenerateNarrative(a.id));
+    }
+
+    // ── AI Narrative renderer ──
+    function renderAINarrative(a) {
+        const ai = a.aiRecommendations;
+        const concernsWhyMap = {};
+
+        const aiBlock = $('d-ai-block');
+        if (ai && ai.headline && ai.summary) {
+            $('d-ai-headline').textContent = ai.headline;
+            $('d-ai-summary').textContent = ai.summary;
+            aiBlock.classList.remove('hidden');
+
+            // Map of metric → why para enriquecer los concern cards
+            if (Array.isArray(ai.concerns)) {
+                ai.concerns.forEach(c => {
+                    if (c.metric) concernsWhyMap[c.metric] = c.why;
+                });
+            }
+        } else {
+            aiBlock.classList.add('hidden');
+        }
+
+        state.concernsWhyMap = concernsWhyMap;
+
+        // Treatments
+        const tSection = $('d-treatments-section');
+        const treatments = Array.isArray(ai?.recommendations) ? ai.recommendations : [];
+        if (treatments.length > 0) {
+            $('d-treatments-sub').textContent = `${treatments.length} del menú Venus`;
+            $('d-treatments').innerHTML = treatments.map((t, idx) => `
+                <div class="treatment">
+                    <span class="treatment-num">${String(idx + 1).padStart(2, '0')}</span>
+                    <div class="treatment-main">
+                        <div class="name">${escapeHtml(t.treatment || '—')}</div>
+                        <div class="why">${escapeHtml(t.why || '')}</div>
+                    </div>
+                    <div class="treatment-meta">
+                        <div class="treatment-sessions">${t.sessions ?? '—'}<small> sesiones</small></div>
+                        <div class="treatment-freq">${escapeHtml(t.frequency || '')}</div>
+                    </div>
+                </div>
+            `).join('');
+            tSection.classList.remove('hidden');
+        } else {
+            tSection.classList.add('hidden');
+        }
+
+        // Home care
+        const hcSection = $('d-homecare-section');
+        const homecare = Array.isArray(ai?.homeCare) ? ai.homeCare : [];
+        if (homecare.length > 0) {
+            $('d-homecare').innerHTML = homecare.map(tip => `
+                <li>${escapeHtml(tip)}</li>
+            `).join('');
+            hcSection.classList.remove('hidden');
+        } else {
+            hcSection.classList.add('hidden');
+        }
+
+        // Next analysis
+        const nextBox = $('d-next-analysis-box');
+        const weeks = ai?.nextAnalysisIn;
+        if (weeks && Number.isFinite(weeks)) {
+            const future = new Date();
+            future.setDate(future.getDate() + (weeks * 7));
+            const fechaFutura = future.toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
+            $('d-next-analysis-value').textContent = `En ${weeks} semanas · alrededor del ${fechaFutura}`;
+            nextBox.classList.remove('hidden');
+        } else {
+            nextBox.classList.add('hidden');
+        }
+    }
+
+    async function regenerateNarrative(analysisId) {
+        const btn = $('btn-regenerate');
+        const oldHTML = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Regenerando…';
+
+        try {
+            const res = await fetch(`/api/skin-analysis/${analysisId}/regenerate-narrative`, {
+                method: 'POST',
+                credentials: 'include',
+            });
+            const json = await res.json();
+            if (!res.ok || !json.success) {
+                alert(json.error || 'No se pudo regenerar la narrativa');
+                return;
+            }
+            // Recarga la vista para ver la nueva narrativa
+            location.reload();
+        } catch (err) {
+            alert(`Error de red: ${err.message}`);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = oldHTML;
+        }
     }
 
     function openLightbox(url, caption) {
@@ -576,22 +685,44 @@
             return;
         }
 
-        const concerns = [...(a.scores || [])]
-            .filter(s => s.severity === 'critical' || s.severity === 'concern')
-            .sort((x, y) => Number(x.score) - Number(y.score))
-            .slice(0, 3)
-            .map(s => `• ${s.labelEs}: ${Math.round(Number(s.score))}/100`)
-            .join('\n');
-
         const name = a.card?.name || a.clientName || '';
         const score = a.overallScore ?? '—';
         const skinType = a.skinType || '—';
+        const ai = a.aiRecommendations;
 
-        const msg = `Hola ${name} 🌸\n\nAquí está el resumen de tu análisis de piel en Venus Cosmetología:\n\n` +
-            `*Score general:* ${score}/100\n` +
-            `*Tipo de piel:* ${skinType}\n\n` +
-            (concerns ? `*Áreas a mejorar:*\n${concerns}\n\n` : '') +
-            `Agenda tu próxima sesión para empezar un plan personalizado. ✨`;
+        let msg;
+
+        if (ai && ai.summary) {
+            // Versión rica con narrativa IA
+            const treatmentsTxt = Array.isArray(ai.recommendations)
+                ? ai.recommendations
+                    .slice(0, 3)
+                    .map((t, i) => `${i + 1}. *${t.treatment}* — ${t.sessions} sesiones ${t.frequency ? `(${t.frequency})` : ''}`)
+                    .join('\n')
+                : '';
+
+            msg = `Hola ${name} 🌸\n\n*Tu análisis de piel — Venus Cosmetología*\n\n` +
+                `${ai.summary}\n\n` +
+                `*Score general:* ${score}/100\n` +
+                `*Tipo de piel:* ${skinType}\n\n` +
+                (treatmentsTxt ? `*Tratamientos recomendados:*\n${treatmentsTxt}\n\n` : '') +
+                (ai.nextAnalysisIn ? `*Próximo análisis sugerido:* en ${ai.nextAnalysisIn} semanas\n\n` : '') +
+                `Agenda tu cita cuando quieras ✨`;
+        } else {
+            // Fallback sin IA
+            const concerns = [...(a.scores || [])]
+                .filter(s => s.severity === 'critical' || s.severity === 'concern')
+                .sort((x, y) => Number(x.score) - Number(y.score))
+                .slice(0, 3)
+                .map(s => `• ${s.labelEs}: ${Math.round(Number(s.score))}/100`)
+                .join('\n');
+
+            msg = `Hola ${name} 🌸\n\nAquí está el resumen de tu análisis de piel en Venus Cosmetología:\n\n` +
+                `*Score general:* ${score}/100\n` +
+                `*Tipo de piel:* ${skinType}\n\n` +
+                (concerns ? `*Áreas a mejorar:*\n${concerns}\n\n` : '') +
+                `Agenda tu próxima sesión para empezar un plan personalizado. ✨`;
+        }
 
         const url = `https://wa.me/${phone.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`;
         window.open(url, '_blank');

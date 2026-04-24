@@ -16,6 +16,8 @@ import {
     YiyuanApiError,
 } from '../services/yiyuan.js';
 import { normalizeYiyuanResponse } from '../services/skinNormalizer.js';
+import { compactForAI } from '../services/ai/compactAnalysis.js';
+import { generateNarrativeSafe } from '../services/ai/claudeNarrative.js';
 
 const router = express.Router();
 router.use(adminAuth);
@@ -159,19 +161,35 @@ router.post('/import', async (req, res) => {
             }),
         ]);
 
-        // 8. Top concerns para el response
+        // 8. Narrativa IA (no bloquea si falla — devuelve null)
+        const compact = compactForAI(normalized);
+        const narrative = await generateNarrativeSafe(compact);
+
+        if (narrative) {
+            await prisma.skinAnalysis.update({
+                where: { id: analysis.id },
+                data: {
+                    aiSummaryEs: narrative.summary,
+                    aiRecommendations: narrative,
+                    treatmentSuggestions: narrative.recommendations,
+                },
+            });
+        }
+
+        // 9. Top concerns para el response
         const topConcerns = normalized.metrics
             .filter((m) => m.severity === 'critical' || m.severity === 'concern')
             .sort((a, b) => a.score - b.score)
             .slice(0, 3)
             .map((m) => ({ key: m.key, label: m.labelEs, score: m.score, severity: m.severity }));
 
-        console.log(`✅ [SkinAnalysis] Importado ${shareId} para ${resolvedName}`);
+        console.log(`✅ [SkinAnalysis] Importado ${shareId} para ${resolvedName}${narrative ? ' (con narrativa IA)' : ''}`);
 
         return res.json({
             success: true,
             analysisId: analysis.id,
             shareId,
+            narrativeGenerated: !!narrative,
             summary: {
                 client: normalized.client,
                 overallScore: normalized.overallScore,
@@ -288,6 +306,49 @@ router.get('/', async (req, res) => {
         return res.json({ success: true, data: items, total, limit: take, offset: skip });
     } catch (err) {
         console.error('[SkinAnalysis /] Error:', err);
+        return res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+/**
+ * POST /api/skin-analysis/:id/regenerate-narrative
+ * Regenera la narrativa IA desde el rawResponse guardado. Útil cuando se
+ * cambia el menú Venus, se afina el prompt, o el admin quiere otra versión.
+ */
+router.post('/:id/regenerate-narrative', async (req, res) => {
+    try {
+        const existing = await prisma.skinAnalysis.findUnique({
+            where: { id: req.params.id },
+            select: { id: true, rawResponse: true },
+        });
+        if (!existing) {
+            return res.status(404).json({ success: false, error: 'Análisis no encontrado' });
+        }
+
+        // Re-normalizar desde el raw guardado
+        const normalized = normalizeYiyuanResponse(existing.rawResponse);
+        const compact = compactForAI(normalized);
+        const narrative = await generateNarrativeSafe(compact);
+
+        if (!narrative) {
+            return res.status(502).json({
+                success: false,
+                error: 'IA no disponible o error generando narrativa (revisa logs del server)',
+            });
+        }
+
+        await prisma.skinAnalysis.update({
+            where: { id: existing.id },
+            data: {
+                aiSummaryEs: narrative.summary,
+                aiRecommendations: narrative,
+                treatmentSuggestions: narrative.recommendations,
+            },
+        });
+
+        return res.json({ success: true, narrative });
+    } catch (err) {
+        console.error('[SkinAnalysis /regenerate-narrative] Error:', err);
         return res.status(500).json({ success: false, error: err.message });
     }
 });

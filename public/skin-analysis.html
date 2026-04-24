@@ -1174,7 +1174,7 @@
         /* ────── ACTION BAR ────── */
         .actions-bar {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 2fr 1fr 1fr;
             gap: 12px;
             padding: 20px 0 48px;
             margin-top: 16px;
@@ -1183,6 +1183,258 @@
         .actions-bar .btn {
             padding: 16px;
             font-size: 14px;
+        }
+
+        /* ═══════════════════════════════════════════════════════════
+           AI NARRATIVE BLOCK
+           ═══════════════════════════════════════════════════════════ */
+
+        .ai-block {
+            background:
+                linear-gradient(135deg, rgba(140, 150, 104, 0.09) 0%, rgba(140, 150, 104, 0.03) 50%, transparent 100%),
+                var(--surface);
+            border: 1px solid rgba(140, 150, 104, 0.22);
+            border-radius: var(--radius-lg);
+            padding: 32px 36px;
+            margin: 0 0 40px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .ai-block::before {
+            content: '';
+            position: absolute;
+            top: -40%;
+            left: -10%;
+            width: 360px;
+            height: 360px;
+            background: radial-gradient(circle, rgba(140, 150, 104, 0.14), transparent 60%);
+            pointer-events: none;
+        }
+
+        .ai-ribbon {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 2.5px;
+            text-transform: uppercase;
+            color: var(--accent-soft);
+            margin-bottom: 16px;
+            position: relative;
+        }
+
+        .ai-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--accent);
+            animation: aiPulse 2s var(--ease) infinite;
+        }
+
+        @keyframes aiPulse {
+            0%, 100% { opacity: 0.5; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.3); }
+        }
+
+        .ai-divider {
+            width: 24px;
+            height: 1px;
+            background: rgba(168, 184, 146, 0.4);
+        }
+
+        .ai-sub {
+            color: var(--ink-3);
+            letter-spacing: 1.5px;
+        }
+
+        .ai-headline {
+            font-family: 'Playfair Display', serif;
+            font-size: 30px;
+            font-weight: 500;
+            line-height: 1.15;
+            letter-spacing: -0.8px;
+            color: var(--ink);
+            margin-bottom: 14px;
+            max-width: 34ch;
+            position: relative;
+        }
+
+        .ai-summary {
+            font-size: 15px;
+            line-height: 1.65;
+            color: var(--ink-2);
+            max-width: 72ch;
+            position: relative;
+        }
+
+        /* ════════ TREATMENTS ════════ */
+        .treatments-list {
+            display: grid;
+            gap: 12px;
+            margin-bottom: 44px;
+        }
+
+        .treatment {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            align-items: center;
+            gap: 20px;
+            padding: 20px 22px;
+            background: var(--glass);
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--accent);
+            border-radius: var(--radius);
+            transition: transform 0.25s var(--ease), border-color 0.25s;
+        }
+
+        .treatment:hover {
+            transform: translateX(3px);
+            border-left-color: var(--accent-soft);
+            border-color: var(--border-strong);
+        }
+
+        .treatment-num {
+            font-family: 'Playfair Display', serif;
+            font-size: 34px;
+            font-weight: 500;
+            letter-spacing: -1px;
+            color: var(--accent-soft);
+            line-height: 1;
+            min-width: 32px;
+        }
+
+        .treatment-main .name {
+            font-family: 'Playfair Display', serif;
+            font-size: 19px;
+            font-weight: 500;
+            letter-spacing: -0.3px;
+            line-height: 1.2;
+            margin-bottom: 4px;
+        }
+
+        .treatment-main .why {
+            font-size: 13px;
+            color: var(--ink-2);
+            line-height: 1.5;
+            max-width: 54ch;
+        }
+
+        .treatment-meta {
+            text-align: right;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            min-width: 120px;
+        }
+
+        .treatment-sessions {
+            font-family: 'Playfair Display', serif;
+            font-size: 22px;
+            font-weight: 500;
+            color: var(--ink);
+            line-height: 1;
+        }
+
+        .treatment-sessions small {
+            font-family: 'DM Sans', sans-serif;
+            font-size: 11px;
+            color: var(--ink-3);
+            font-weight: 400;
+        }
+
+        .treatment-freq {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: var(--ink-3);
+        }
+
+        /* ════════ HOME CARE ════════ */
+        .homecare-list {
+            list-style: none;
+            counter-reset: hc;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 36px;
+            padding: 0;
+        }
+
+        .homecare-list li {
+            counter-increment: hc;
+            position: relative;
+            padding: 18px 22px 18px 58px;
+            background: var(--glass);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            font-size: 14px;
+            line-height: 1.5;
+            color: var(--ink-2);
+        }
+
+        .homecare-list li::before {
+            content: counter(hc, decimal-leading-zero);
+            position: absolute;
+            left: 20px;
+            top: 18px;
+            font-family: 'Playfair Display', serif;
+            font-size: 16px;
+            color: var(--accent-soft);
+            font-weight: 500;
+            letter-spacing: -0.3px;
+        }
+
+        /* ════════ NEXT ANALYSIS BOX ════════ */
+        .next-analysis {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            padding: 22px 28px;
+            background: linear-gradient(90deg, rgba(140, 150, 104, 0.08) 0%, transparent 100%);
+            border: 1px solid rgba(140, 150, 104, 0.22);
+            border-radius: var(--radius);
+            margin-bottom: 44px;
+        }
+
+        .next-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: rgba(140, 150, 104, 0.18);
+            color: var(--accent-soft);
+            display: grid;
+            place-items: center;
+            font-size: 18px;
+        }
+
+        .next-label {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--ink-3);
+            margin-bottom: 4px;
+        }
+
+        .next-value {
+            font-family: 'Playfair Display', serif;
+            font-size: 18px;
+            font-weight: 500;
+            letter-spacing: -0.3px;
+            color: var(--ink);
+        }
+
+        /* ════════ MOBILE AI ════════ */
+        @media (max-width: 768px) {
+            .ai-block { padding: 24px 20px; }
+            .ai-headline { font-size: 22px; }
+            .actions-bar { grid-template-columns: 1fr; }
+            .treatment { grid-template-columns: auto 1fr; }
+            .treatment-meta { grid-column: 1 / -1; flex-direction: row; justify-content: space-between; min-width: 0; padding-top: 8px; border-top: 1px solid var(--border); }
+            .homecare-list { grid-template-columns: 1fr; }
         }
 
         /* ────── UTILITY ────── */
@@ -1358,6 +1610,18 @@
 
             <dl class="summary-grid" id="d-summary"></dl>
 
+            <!-- ═══ AI NARRATIVE ═══ -->
+            <section class="ai-block hidden" id="d-ai-block">
+                <div class="ai-ribbon">
+                    <span class="ai-dot"></span>
+                    <span>Interpretación clínica</span>
+                    <span class="ai-divider"></span>
+                    <span class="ai-sub">Generada con IA</span>
+                </div>
+                <h2 class="ai-headline" id="d-ai-headline"></h2>
+                <p class="ai-summary" id="d-ai-summary"></p>
+            </section>
+
             <h2 class="section-title">
                 Principales preocupaciones
                 <span class="sub" id="d-concerns-sub"></span>
@@ -1370,6 +1634,33 @@
             </h2>
             <div class="bento" id="d-bento"></div>
 
+            <!-- ═══ TREATMENT RECOMMENDATIONS ═══ -->
+            <section class="hidden" id="d-treatments-section">
+                <h2 class="section-title">
+                    Tratamientos recomendados
+                    <span class="sub" id="d-treatments-sub"></span>
+                </h2>
+                <div class="treatments-list" id="d-treatments"></div>
+            </section>
+
+            <!-- ═══ HOME CARE ═══ -->
+            <section class="hidden" id="d-homecare-section">
+                <h2 class="section-title">
+                    Rutina en casa
+                    <span class="sub">Protocolo personalizado</span>
+                </h2>
+                <ol class="homecare-list" id="d-homecare"></ol>
+            </section>
+
+            <!-- ═══ NEXT ANALYSIS BADGE ═══ -->
+            <div class="next-analysis hidden" id="d-next-analysis-box">
+                <div class="next-icon"><i class="fas fa-calendar-plus"></i></div>
+                <div>
+                    <div class="next-label">Próximo análisis recomendado</div>
+                    <div class="next-value" id="d-next-analysis-value"></div>
+                </div>
+            </div>
+
             <h2 class="section-title">
                 Imágenes multiespectrales
                 <span class="sub" id="d-images-count"></span>
@@ -1380,6 +1671,10 @@
                 <button class="btn btn-whatsapp" id="btn-whatsapp">
                     <i class="fab fa-whatsapp"></i>
                     Enviar resumen por WhatsApp
+                </button>
+                <button class="btn btn-ghost" id="btn-regenerate">
+                    <i class="fas fa-sync"></i>
+                    Regenerar narrativa IA
                 </button>
                 <a href="/skin-analysis.html" class="btn btn-ghost">
                     <i class="fas fa-plus"></i>
