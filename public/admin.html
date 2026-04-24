@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es" data-theme="dark">
+<html lang="es" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -5466,65 +5466,77 @@
 
     <nav class="sidebar-nav">
       <!-- OPERACIONES -->
-      <div class="sidebar-section-label">Operaciones</div>
+      <div class="sidebar-section-label">Hoy</div>
       <button class="sidebar-nav-item is-active" data-tab="overview">
         <i class="fas fa-th-large"></i>
-        <span>Dashboard</span>
+        <span>Inicio</span>
+        <small>Resumen del día</small>
       </button>
       <button class="sidebar-nav-item" data-tab="requests">
         <i class="fas fa-inbox"></i>
         <span>Solicitudes</span>
+        <small>Citas por aprobar</small>
         <span class="nav-badge" id="requests-badge" style="display:none;">0</span>
       </button>
       <button class="sidebar-nav-item" data-tab="appointments">
         <i class="fas fa-calendar-alt"></i>
-        <span>Citas</span>
+        <span>Agenda</span>
+        <small>Calendario y horarios</small>
       </button>
       <button class="sidebar-nav-item" data-tab="caja">
         <i class="fas fa-cash-register"></i>
         <span>Caja</span>
+        <small>Cobros del día</small>
       </button>
 
       <!-- CLIENTES -->
-      <div class="sidebar-section-label">Clientes</div>
+      <div class="sidebar-section-label">Clientas</div>
       <button class="sidebar-nav-item" data-tab="cards">
         <i class="fas fa-id-card"></i>
-        <span>Tarjetas</span>
+        <span>Clientas</span>
+        <small>Lealtad y datos</small>
       </button>
       <button class="sidebar-nav-item" data-tab="notifications">
         <i class="fas fa-paper-plane"></i>
-        <span>Notificaciones</span>
+        <span>Mensajes</span>
+        <small>WhatsApp y avisos</small>
       </button>
       <button class="sidebar-nav-item" data-tab="events">
         <i class="fas fa-gift"></i>
         <span>Gift Cards</span>
+        <small>Regalos vendidos</small>
       </button>
 
       <!-- NEGOCIO -->
       <div class="sidebar-section-label">Negocio</div>
       <button class="sidebar-nav-item" data-tab="services">
         <i class="fas fa-spa"></i>
-        <span>Catálogo</span>
+        <span>Servicios</span>
+        <small>Precios y productos</small>
       </button>
       <button class="sidebar-nav-item" data-tab="reports">
         <i class="fas fa-chart-line"></i>
-        <span>Reportes</span>
+        <span>Ventas</span>
+        <small>Ingresos y gastos</small>
       </button>
       <button class="sidebar-nav-item" data-tab="reviews">
         <i class="fas fa-star"></i>
         <span>Reseñas</span>
+        <small>Opiniones de clientas</small>
         <span id="reviews-badge" style="display:none;background:#f5a623;color:#fff;font-size:10px;font-weight:700;border-radius:10px;padding:1px 6px;margin-left:auto;">0</span>
       </button>
       <button class="sidebar-nav-item" data-tab="settings">
         <i class="fas fa-sliders-h"></i>
-        <span>Configuración</span>
+        <span>Ajustes</span>
+        <small>Datos del negocio</small>
       </button>
 
-      <!-- COFFEE BAR -->
-      <div class="sidebar-section-label">Coffee Bar</div>
+      <!-- CAFETERIA -->
+      <div class="sidebar-section-label">Cafetería</div>
       <a href="/coffee-pos.html" class="sidebar-nav-item" style="text-decoration:none;color:inherit;">
         <i class="fas fa-coffee"></i>
-        <span>☕ Punto de Venta</span>
+        <span>Café</span>
+        <small>Punto de venta</small>
       </a>
     </nav>
 
@@ -5635,8 +5647,12 @@
 
     <!-- TAB: Overview - MODIFICADO CON FILTROS Y REPORTES -->
     <section id="tab-overview" class="tab-content">
-      <div class="header-actions" style="margin-bottom:20px;">
-        <h2 id="dash-greeting">Buenos días</h2>
+      <div class="header-actions admin-page-hero" style="margin-bottom:20px;">
+        <div>
+          <p class="admin-eyebrow">Panel de hoy</p>
+          <h2 id="dash-greeting">Buenos días</h2>
+          <p class="admin-hero-copy">Lo importante primero: citas, clientas pendientes, cobros y señales del negocio.</p>
+        </div>
         <div style="display:flex;gap:10px;">
           <button class="btn small ghost" onclick="loadTodayStats(); loadGiftCardStats();" title="Actualizar">
             <i class="fas fa-sync"></i>
@@ -5645,6 +5661,36 @@
             <i class="fas fa-plus"></i> Nueva Cita
           </button>
         </div>
+      </div>
+
+      <div class="admin-clarity-grid" id="admin-clarity-grid">
+        <article class="clarity-card clarity-card-main">
+          <div class="clarity-kicker">Guía rápida</div>
+          <h3>Qué revisar antes de empezar</h3>
+          <p id="admin-brief-text">Carga el panel y revisa si hay citas por confirmar, clientas con cumpleaños o cobros pendientes.</p>
+          <div class="clarity-actions">
+            <button class="btn small primary" onclick="switchTab('tab-appointments')"><i class="fas fa-calendar-check"></i> Ver agenda</button>
+            <button class="btn small ghost" onclick="switchTab('tab-requests')"><i class="fas fa-inbox"></i> Solicitudes</button>
+          </div>
+        </article>
+        <article class="clarity-card">
+          <span class="clarity-icon"><i class="fas fa-clock"></i></span>
+          <h4>Por confirmar</h4>
+          <strong id="brief-pending">0</strong>
+          <p>Prioridad para WhatsApp o llamada.</p>
+        </article>
+        <article class="clarity-card">
+          <span class="clarity-icon"><i class="fas fa-cash-register"></i></span>
+          <h4>Caja</h4>
+          <strong id="brief-income">$0</strong>
+          <p>Ingreso registrado hasta ahora.</p>
+        </article>
+        <article class="clarity-card">
+          <span class="clarity-icon"><i class="fas fa-mug-hot"></i></span>
+          <h4>Café</h4>
+          <strong>POS</strong>
+          <p>Venta rápida sin salir del flujo.</p>
+        </article>
       </div>
 
       <!-- Hero Stats -->
@@ -7184,7 +7230,7 @@
           <button class="btn ghost" onclick="cargarCaja()">
             <i class="fas fa-sync"></i> Actualizar
           </button>
-          <button class="btn primary" onclick="abrirVentaRapida()">
+          <button class="btn primary" onclick="openDirectSaleModal()">
             <i class="fas fa-plus"></i> Venta Rápida
           </button>
         </div>
@@ -10940,6 +10986,405 @@
 
         .btn {
           white-space: normal;
+        }
+      }
+
+      /* ========== VENUS CLARITY ADMIN 2026 ========== */
+      html[data-theme="light"] {
+        --bg-primary: #f6f1e8;
+        --bg-secondary: #fffdf8;
+        --bg-tertiary: #eee6d8;
+        --bg-card: #fffdf8;
+        --bg-card-hover: #faf5eb;
+        --bg-sidebar: #fffaf0;
+        --bg-topbar: rgba(255, 253, 248, 0.9);
+        --bg-hover: rgba(109, 116, 78, 0.08);
+        --bg-active: rgba(109, 116, 78, 0.13);
+        --text-primary: #28291f;
+        --text-secondary: #5f624f;
+        --text-muted: #8a866f;
+        --ink: #28291f;
+        --muted: #6b6f5a;
+        --text-dim: #96917c;
+        --card: rgba(255, 253, 248, 0.94);
+        --card-solid: #fffdf8;
+        --panel: #faf5eb;
+        --line: rgba(74, 77, 59, 0.13);
+        --line-strong: rgba(74, 77, 59, 0.22);
+        --border-color: rgba(74, 77, 59, 0.12);
+        --venus: #737b52;
+        --venus-soft: #8c9668;
+        --venus-light: #e7edca;
+        --venus-olive: #424635;
+        --venus-coffee: #9a6f4f;
+        --shadow-soft: 0 16px 42px rgba(74, 77, 59, 0.1);
+        --shadow-md: 0 18px 44px rgba(74, 77, 59, 0.12);
+        --radius: 8px;
+        --radius-sm: 8px;
+        --radius-lg: 12px;
+      }
+
+      html[data-theme="dark"] {
+        --bg-primary: #22241b;
+        --bg-secondary: #292b21;
+        --bg-tertiary: #333527;
+        --bg-card: #2d2f24;
+        --bg-card-hover: #343729;
+        --bg-sidebar: #161810;
+        --bg-topbar: rgba(24, 26, 19, 0.92);
+        --text-primary: #fffdf8;
+        --text-secondary: #d8d5c7;
+        --text-muted: #aaa894;
+        --ink: #fffdf8;
+        --muted: #c3c0ae;
+        --card: rgba(45, 47, 36, 0.9);
+        --panel: #25271f;
+        --line: rgba(238, 241, 220, 0.14);
+        --border-color: rgba(238, 241, 220, 0.14);
+      }
+
+      html[data-theme="light"] body,
+      html[data-theme="dark"] body {
+        font-family: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      html[data-theme="light"] body {
+        background:
+          linear-gradient(90deg, rgba(74, 77, 59, 0.045) 1px, transparent 1px),
+          linear-gradient(180deg, rgba(74, 77, 59, 0.035) 1px, transparent 1px),
+          radial-gradient(circle at 10% 0%, rgba(201, 210, 160, 0.38), transparent 32%),
+          linear-gradient(145deg, #f6f1e8 0%, #fffdf8 52%, #efe2d4 130%);
+        background-size: 42px 42px, 42px 42px, auto, auto;
+      }
+
+      .sidebar {
+        background:
+          linear-gradient(180deg, rgba(255, 253, 248, 0.94), rgba(247, 241, 229, 0.96)),
+          linear-gradient(90deg, rgba(115, 123, 82, 0.06), transparent);
+        border-right: 1px solid var(--line);
+        box-shadow: 18px 0 46px rgba(74, 77, 59, 0.1);
+      }
+
+      html[data-theme="dark"] .sidebar {
+        background: linear-gradient(180deg, #181a13, #202219);
+      }
+
+      .sidebar-brand {
+        padding-bottom: 22px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .sidebar-brand img,
+      .sidebar-user-avatar {
+        border-radius: 8px;
+      }
+
+      .sidebar-section-label {
+        margin-top: 24px;
+        color: var(--venus);
+        font-size: 10px;
+        letter-spacing: 0.14em;
+      }
+
+      .sidebar-nav-item {
+        display: grid !important;
+        grid-template-columns: 26px minmax(0, 1fr) auto;
+        column-gap: 10px;
+        row-gap: 1px;
+        align-items: center;
+        min-height: 54px;
+        padding: 10px 12px !important;
+        border-radius: 8px !important;
+        color: var(--text-secondary) !important;
+      }
+
+      .sidebar-nav-item i {
+        grid-row: 1 / span 2;
+        color: var(--text-muted);
+      }
+
+      .sidebar-nav-item span:not(.nav-badge):not(#reviews-badge) {
+        font-weight: 700;
+        color: var(--text-primary);
+        line-height: 1.1;
+      }
+
+      .sidebar-nav-item small {
+        grid-column: 2 / span 2;
+        font-size: 11px;
+        line-height: 1.2;
+        color: var(--text-muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .sidebar-nav-item:hover {
+        background: rgba(115, 123, 82, 0.08) !important;
+        transform: translateX(2px);
+      }
+
+      .sidebar-nav-item.is-active {
+        background: #eef1dc !important;
+        border: 1px solid rgba(115, 123, 82, 0.24);
+        box-shadow: 0 12px 28px rgba(115, 123, 82, 0.14);
+      }
+
+      html[data-theme="dark"] .sidebar-nav-item.is-active {
+        background: rgba(201, 210, 160, 0.14) !important;
+      }
+
+      .topbar-new {
+        border-bottom: 1px solid var(--line);
+        box-shadow: 0 10px 34px rgba(74, 77, 59, 0.08);
+      }
+
+      .topbar-greeting h2,
+      #dash-greeting {
+        font-family: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        font-weight: 800;
+        letter-spacing: 0;
+      }
+
+      .topbar-greeting p {
+        color: var(--text-secondary);
+      }
+
+      .admin-page-hero {
+        align-items: flex-end;
+        padding: 8px 0 4px;
+      }
+
+      .admin-eyebrow,
+      .clarity-kicker {
+        margin: 0 0 6px;
+        color: var(--venus);
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .admin-hero-copy {
+        margin: 6px 0 0;
+        max-width: 56ch;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.5;
+      }
+
+      .admin-clarity-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.55fr) repeat(3, minmax(160px, 0.55fr));
+        gap: 12px;
+        margin-bottom: 18px;
+      }
+
+      .clarity-card {
+        position: relative;
+        min-height: 132px;
+        padding: 18px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background:
+          linear-gradient(145deg, rgba(255, 253, 248, 0.9), rgba(247, 241, 229, 0.76));
+        box-shadow: var(--shadow-soft);
+        overflow: hidden;
+      }
+
+      html[data-theme="dark"] .clarity-card {
+        background: linear-gradient(145deg, rgba(45, 47, 36, 0.95), rgba(37, 39, 31, 0.84));
+      }
+
+      .clarity-card::after {
+        content: "";
+        position: absolute;
+        inset: auto 0 0;
+        height: 3px;
+        background: linear-gradient(90deg, var(--venus-coffee), var(--venus), var(--venus-soft));
+        opacity: 0.76;
+      }
+
+      .clarity-card h3,
+      .clarity-card h4 {
+        margin: 0;
+        color: var(--text-primary);
+      }
+
+      .clarity-card h3 {
+        font-size: 22px;
+      }
+
+      .clarity-card h4 {
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      .clarity-card p {
+        margin: 8px 0 0;
+        color: var(--muted);
+        line-height: 1.45;
+        font-size: 13px;
+      }
+
+      .clarity-card strong {
+        display: block;
+        margin-top: 10px;
+        font-size: 28px;
+        color: var(--text-primary);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .clarity-card-main {
+        min-height: 148px;
+      }
+
+      .clarity-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 14px;
+      }
+
+      .clarity-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 34px;
+        height: 34px;
+        margin-bottom: 12px;
+        border-radius: 8px;
+        background: rgba(115, 123, 82, 0.12);
+        color: var(--venus);
+      }
+
+      .hero-stats {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .hero-stat,
+      .today-card,
+      .card,
+      .wallet-card,
+      .gc-stat,
+      .stat-item {
+        background: var(--card);
+        border: 1px solid var(--line);
+        box-shadow: var(--shadow-soft);
+      }
+
+      .hero-stat {
+        min-height: 132px;
+      }
+
+      .hero-stat-label,
+      .today-card-info p,
+      .wallet-card-label,
+      th {
+        letter-spacing: 0.08em;
+      }
+
+      .today-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .dash-grid {
+        grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.65fr);
+      }
+
+      .card-header,
+      .modal-header {
+        border-bottom-color: var(--line);
+      }
+
+      .card-title {
+        color: var(--text-primary);
+      }
+
+      .btn.primary {
+        background: #737b52;
+        border-color: #737b52;
+      }
+
+      .btn.primary:hover {
+        background: #646b47;
+      }
+
+      input,
+      select,
+      textarea,
+      .form-input {
+        background: rgba(255, 253, 248, 0.72) !important;
+      }
+
+      html[data-theme="dark"] input,
+      html[data-theme="dark"] select,
+      html[data-theme="dark"] textarea,
+      html[data-theme="dark"] .form-input {
+        background: rgba(255, 253, 248, 0.07) !important;
+      }
+
+      .table-wrap {
+        background: var(--card);
+      }
+
+      thead {
+        background: rgba(115, 123, 82, 0.09);
+      }
+
+      th {
+        color: var(--venus-olive);
+      }
+
+      html[data-theme="dark"] th {
+        color: var(--venus-light);
+      }
+
+      td {
+        color: var(--text-primary);
+      }
+
+      .quick-action-btn {
+        border-radius: 8px !important;
+      }
+
+      @media (max-width: 1180px) {
+        .admin-clarity-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+
+        .clarity-card-main {
+          grid-column: 1 / -1;
+        }
+      }
+
+      @media (max-width: 900px) {
+        .hero-stats,
+        .today-grid,
+        .dash-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 640px) {
+        .sidebar-nav-item small {
+          white-space: normal;
+        }
+
+        .admin-page-hero {
+          display: block !important;
+        }
+
+        .admin-page-hero > div:last-child {
+          margin-top: 14px;
+        }
+
+        .admin-clarity-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .clarity-card {
+          min-height: auto;
         }
       }
     </style>
@@ -19789,9 +20234,29 @@
           document.getElementById('today-appointments').textContent = appointments;
           document.getElementById('today-pending').textContent = pending;
           document.getElementById('today-income').textContent = '$' + income.toLocaleString();
+          updateAdminBrief({ appointments, pending, income });
         }
       } catch (error) {
         console.error('Error loading today stats:', error);
+      }
+    }
+
+    function updateAdminBrief({ appointments = 0, pending = 0, income = 0 } = {}) {
+      const pendingEl = document.getElementById('brief-pending');
+      const incomeEl = document.getElementById('brief-income');
+      const textEl = document.getElementById('admin-brief-text');
+
+      if (pendingEl) pendingEl.textContent = pending;
+      if (incomeEl) incomeEl.textContent = '$' + Number(income || 0).toLocaleString();
+
+      if (!textEl) return;
+
+      if (pending > 0) {
+        textEl.textContent = `Hay ${pending} cita${pending === 1 ? '' : 's'} por confirmar. Conviene revisar WhatsApp antes de mover agenda o caja.`;
+      } else if (appointments > 0) {
+        textEl.textContent = `Tienes ${appointments} cita${appointments === 1 ? '' : 's'} hoy. La agenda está lista; revisa pagos y prepara mensajes si hace falta.`;
+      } else {
+        textEl.textContent = 'No hay citas marcadas para hoy. Buen momento para revisar clientas, cumpleaños, servicios y ventas de cafetería.';
       }
     }
 
@@ -22633,6 +23098,10 @@
 
     let reportData = [];
 
+    function getReportField(id, fallbackId) {
+      return document.getElementById(id) || (fallbackId ? document.getElementById(fallbackId) : null);
+    }
+
     // Cargar servicios en el filtro cuando se entre a la pestaña de reportes
     document.addEventListener('DOMContentLoaded', () => {
       // Detectar cuando se abre la pestaña de reportes
@@ -22644,8 +23113,10 @@
           const hoy = new Date();
           const hace30Dias = new Date();
           hace30Dias.setDate(hoy.getDate() - 30);
-          document.getElementById('filter-date-from').value = hace30Dias.toISOString().split('T')[0];
-          document.getElementById('filter-date-to').value = hoy.toISOString().split('T')[0];
+          const dateFromEl = getReportField('filter-date-from', 'report-date-from');
+          const dateToEl = getReportField('filter-date-to', 'report-date-to');
+          if (dateFromEl) dateFromEl.value = hace30Dias.toISOString().split('T')[0];
+          if (dateToEl) dateToEl.value = hoy.toISOString().split('T')[0];
         });
       }
     });
@@ -22658,6 +23129,7 @@
         if (json.success) {
           const servicios = json.data || [];
           const select = document.getElementById('filter-service');
+          if (!select) return;
           select.innerHTML = '<option value="">Todos</option>';
 
           servicios.forEach(s => {
@@ -22682,16 +23154,18 @@
       const hoy = new Date();
       const primerDiaMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
 
-      document.getElementById('filter-date-from').value = primerDiaMes.toISOString().split('T')[0];
-      document.getElementById('filter-date-to').value = hoy.toISOString().split('T')[0];
+      const dateFromEl = getReportField('filter-date-from', 'report-date-from');
+      const dateToEl = getReportField('filter-date-to', 'report-date-to');
+      if (dateFromEl) dateFromEl.value = primerDiaMes.toISOString().split('T')[0];
+      if (dateToEl) dateToEl.value = hoy.toISOString().split('T')[0];
 
       console.log('[REPORTS] Tab inicializado. Listo para aplicar filtros.');
     }
 
     async function aplicarFiltrosReporte() {
       try {
-        const dateFrom = document.getElementById('filter-date-from').value;
-        const dateTo = document.getElementById('filter-date-to').value;
+        const dateFrom = getReportField('filter-date-from', 'report-date-from')?.value;
+        const dateTo = getReportField('filter-date-to', 'report-date-to')?.value;
 
         if (!dateFrom || !dateTo) {
           alert('Por favor selecciona un rango de fechas');
@@ -22756,8 +23230,8 @@
         console.log('[REPORTS] Citas completadas con pago:', ventas.length);
 
         // Aplicar filtros adicionales
-        const paymentFilter = document.getElementById('filter-payment-method').value;
-        const serviceFilter = document.getElementById('filter-service').value;
+        const paymentFilter = document.getElementById('filter-payment-method')?.value || '';
+        const serviceFilter = document.getElementById('filter-service')?.value || '';
 
         console.log('[REPORTS] Filtros adicionales:', { paymentFilter, serviceFilter });
 
@@ -22930,10 +23404,12 @@
     }
 
     function limpiarFiltrosReporte() {
-      document.getElementById('filter-date-from').value = '';
-      document.getElementById('filter-date-to').value = '';
-      document.getElementById('filter-payment-method').value = '';
-      document.getElementById('filter-service').value = '';
+      const dateFromEl = getReportField('filter-date-from', 'report-date-from');
+      const dateToEl = getReportField('filter-date-to', 'report-date-to');
+      if (dateFromEl) dateFromEl.value = '';
+      if (dateToEl) dateToEl.value = '';
+      if (document.getElementById('filter-payment-method')) document.getElementById('filter-payment-method').value = '';
+      if (document.getElementById('filter-service')) document.getElementById('filter-service').value = '';
 
       reportData = [];
 
@@ -23015,8 +23491,8 @@
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');
         const url = URL.createObjectURL(blob);
-        const dateFrom = document.getElementById('filter-date-from').value;
-        const dateTo = document.getElementById('filter-date-to').value;
+        const dateFrom = getReportField('filter-date-from', 'report-date-from')?.value || 'inicio';
+        const dateTo = getReportField('filter-date-to', 'report-date-to')?.value || 'fin';
 
         link.setAttribute('href', url);
         link.setAttribute('download', `reporte-ventas-${dateFrom}-${dateTo}.csv`);
