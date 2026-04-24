@@ -14090,14 +14090,23 @@
     }
 
     function extractCardId(text) {
+      if (!text) return null;
+      const raw = String(text).trim();
+
       try {
-        const u = new URL(text);
+        const u = new URL(raw);
         let c = u.searchParams.get("cardId");
         if (c) return c;
         c = u.searchParams.get("card");
         if (c) return c;
+        const cardPath = u.pathname.match(/\/card\/([^/?#]+)/);
+        if (cardPath) return decodeURIComponent(cardPath[1]);
       } catch { }
-      if (/^card_\d+/.test(text)) return text;
+
+      if (/^card_\d+/.test(raw)) return raw;
+      if (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(raw)) return raw;
+      if (/^[A-Za-z0-9_-]{12,}$/.test(raw) && !raw.includes('/')) return raw;
+
       return null;
     }
 
@@ -14119,7 +14128,8 @@
             credentials: 'include'
           });
           if (r.ok) {
-            card = await r.json();
+            const json = await r.json();
+            card = json.data || json;
           }
         } catch (e) {
           console.error('Error buscando tarjeta por ID', e);
@@ -20753,12 +20763,18 @@
 
     async function handleLoyaltyScan(cardId) {
       try {
-        const res = await fetch(`/api/card/${cardId}`, { credentials: 'include' });
+        const normalizedCardId = extractCardId(cardId);
+        if (!normalizedCardId) {
+          document.getElementById('scanner-hint').textContent = 'QR de tarjeta inválido';
+          return;
+        }
+
+        const res = await fetch(`/api/card/${encodeURIComponent(normalizedCardId)}`, { credentials: 'include' });
         const json = await res.json();
 
         if (json.success) {
           const card = json.data;
-          showScanResult('loyalty', card.name, `${card.stamps}/8 sellos`, cardId);
+          showScanResult('loyalty', card.name, `${card.stamps}/8 sellos`, normalizedCardId);
         } else {
           document.getElementById('scanner-hint').textContent = 'Tarjeta no encontrada';
           setTimeout(() => {
@@ -20843,13 +20859,21 @@
 
     async function addStampFromScanner(cardId) {
       try {
-        const res = await fetch(`/api/stamp/${cardId}`, {
+        const normalizedCardId = extractCardId(cardId);
+        if (!normalizedCardId) {
+          alert('QR de tarjeta inválido');
+          return;
+        }
+
+        const res = await fetch('/api/admin/stamp', {
           method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cardId: normalizedCardId }),
           credentials: 'include'
         });
         const json = await res.json();
 
-        if (json.success || json.stamps !== undefined) {
+        if (json.ok || json.success || json.stamps !== undefined) {
           const clientName = json.name || 'Cliente';
           const stamps = json.stamps || 0;
           const maxStamps = json.max || 8;
