@@ -89,6 +89,9 @@ import clientRecordsRouter from './src/routes/clientRecords.js';
 // ☕ Venus The Coffee Bar - POS
 import coffeePosRouter from './lib/api/coffee-pos.js';
 
+// 🧖 Venus Skin - Análisis de piel (Yiyuan Analyzer)
+import skinAnalysisRouter from './src/routes/skinAnalysis.js';
+
 
 // __dirname para ESModules
 const __filename = fileURLToPath(import.meta.url);
@@ -555,6 +558,9 @@ app.use('/api/client-records', clientRecordsRouter);
 
 // ☕ Venus The Coffee Bar - POS
 app.use('/api/pos', coffeePosRouter);
+
+// 🧖 Venus Skin - Análisis de piel
+app.use('/api/skin-analysis', skinAnalysisRouter);
 
 // ========== EVOLUTION API ADMIN ROUTES ==========
 

@@ -19,28 +19,29 @@ model Card {
   cycles        Int       @default(0)
   status        String    @default("active")
   lastVisit     DateTime?
-  latestMessage String?   // Para notificaciones push
+  latestMessage String? // Para notificaciones push
   source        String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
   // Tarjeta Digital Wallet
-  cardType      String    @default("loyalty")  // loyalty | annual | gold
-  cardColor     String    @default("#8C9668")  // Color hex del pase
-  sessionsTotal Int       @default(0)          // Sesiones prepagadas (Venus Constancia Anual)
-  sessionsUsed  Int       @default(0)          // Sesiones ya canjeadas
-  walletPassUrl String?                        // URL Google Wallet Object
+  cardType      String  @default("loyalty") // loyalty | annual | gold
+  cardColor     String  @default("#8C9668") // Color hex del pase
+  sessionsTotal Int     @default(0) // Sesiones prepagadas (Venus Constancia Anual)
+  sessionsUsed  Int     @default(0) // Sesiones ya canjeadas
+  walletPassUrl String? // URL Google Wallet Object
 
   // Membresía de Masajes (independiente de los sellos de lealtad)
-  massageActive  Boolean   @default(false)     // Si tiene membresía de masajes activa
-  massageStamps  Int       @default(0)         // Sellos de masaje actuales
-  massageMax     Int       @default(10)        // Total de sesiones de masaje
-  massageCycles  Int       @default(0)         // Ciclos completados de masaje
-  massageWalletUrl String?                     // URL Google Wallet para masajes
+  massageActive    Boolean @default(false) // Si tiene membresía de masajes activa
+  massageStamps    Int     @default(0) // Sellos de masaje actuales
+  massageMax       Int     @default(10) // Total de sesiones de masaje
+  massageCycles    Int     @default(0) // Ciclos completados de masaje
+  massageWalletUrl String? // URL Google Wallet para masajes
 
   // Relaciones
   appointments Appointment[]
   events       Event[]
+  skinAnalyses SkinAnalysis[]
 
   @@map("cards")
 }
@@ -63,55 +64,55 @@ model Service {
 
 // Citas
 model Appointment {
-  id                     String    @id @default(cuid())
-  clientName             String
-  clientPhone            String
-  serviceName            String
-  date                   String
-  time                   String
-  startDateTime          DateTime
-  endDateTime            DateTime
-  durationMinutes        Int       @default(60)
-  status                 String    @default("scheduled") // scheduled, confirmed, completed, cancelled, rescheduling
-  location               String?
-  
+  id              String   @id @default(cuid())
+  clientName      String
+  clientPhone     String
+  serviceName     String
+  date            String
+  time            String
+  startDateTime   DateTime
+  endDateTime     DateTime
+  durationMinutes Int      @default(60)
+  status          String   @default("scheduled") // scheduled, confirmed, completed, cancelled, rescheduling
+  location        String?
+
   // Pago
-  totalPaid              Decimal?  @db.Decimal(10, 2)
-  paymentMethod          String?   // efectivo, tarjeta, transferencia
-  discount               Decimal?  @db.Decimal(10, 2)
-  
+  totalPaid     Decimal? @db.Decimal(10, 2)
+  paymentMethod String? // efectivo, tarjeta, transferencia
+  discount      Decimal? @db.Decimal(10, 2)
+
   // Google Calendar
   googleCalendarEventId  String?
   googleCalendarEventId2 String?
-  
+
   // WhatsApp reminders
-  sendWhatsApp30h        Boolean   @default(false)
-  sendWhatsApp24h        Boolean   @default(true)
-  sendWhatsApp2h         Boolean   @default(true)
-  sent30hAt                  DateTime?
-  sent24hAt                  DateTime?
-  sent2hAt                   DateTime?
-  sentConfirmationAlertAt    DateTime?
-  
+  sendWhatsApp30h         Boolean   @default(false)
+  sendWhatsApp24h         Boolean   @default(true)
+  sendWhatsApp2h          Boolean   @default(true)
+  sent30hAt               DateTime?
+  sent24hAt               DateTime?
+  sent2hAt                DateTime?
+  sentConfirmationAlertAt DateTime?
+
   // Confirmación
-  confirmedAt            DateTime?
-  confirmedVia           String?   // whatsapp, manual
-  cancelledAt            DateTime?
-  cancelledVia           String?   // whatsapp, manual
-  cancelReason           String?
-  rescheduleRequestedAt  DateTime?
-  
+  confirmedAt           DateTime?
+  confirmedVia          String? // whatsapp, manual
+  cancelledAt           DateTime?
+  cancelledVia          String? // whatsapp, manual
+  cancelReason          String?
+  rescheduleRequestedAt DateTime?
+
   // Productos vendidos (JSON)
-  productsSold           Json?
-  
-  source                 String?
-  reviewSentAt           DateTime? @map("review_sent_at")
-  createdAt              DateTime  @default(now())
-  updatedAt              DateTime  @updatedAt
+  productsSold Json?
+
+  source       String?
+  reviewSentAt DateTime? @map("review_sent_at")
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   // Relaciones
   cardId    String?
-  card      Card?    @relation(fields: [cardId], references: [id], onDelete: SetNull)
+  card      Card?   @relation(fields: [cardId], references: [id], onDelete: SetNull)
   serviceId String?
   // Removemos la relación estricta con Service para permitir citas con servicios eliminados
 
@@ -128,7 +129,7 @@ model Appointment {
 // Eventos (sellos, canjes)
 model Event {
   id        String   @id @default(cuid())
-  type      String   // stamp, redeem
+  type      String // stamp, redeem
   cardId    String
   card      Card     @relation(fields: [cardId], references: [id])
   staffId   String?
@@ -161,7 +162,7 @@ model Product {
 model Expense {
   id          String   @id @default(cuid())
   date        String
-  category    String   // productos, renta, servicios, salarios, marketing, equipo, mantenimiento, transporte, otros
+  category    String // productos, renta, servicios, salarios, marketing, equipo, mantenimiento, transporte, otros
   description String
   amount      Decimal  @db.Decimal(10, 2)
   createdAt   DateTime @default(now())
@@ -172,20 +173,20 @@ model Expense {
 
 // Tarjetas de regalo
 model GiftCard {
-  id             String    @id @default(cuid())
-  code           String    @unique
-  amount         Decimal   @db.Decimal(10, 2)
-  remainingAmount Decimal  @db.Decimal(10, 2)
-  status         String    @default("pending") // pending, active, used, expired
-  purchaserName  String?
-  purchaserPhone String?
-  recipientName  String?
-  recipientPhone String?
-  message        String?
-  expiresAt      DateTime?
-  usedAt         DateTime?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  id              String    @id @default(cuid())
+  code            String    @unique
+  amount          Decimal   @db.Decimal(10, 2)
+  remainingAmount Decimal   @db.Decimal(10, 2)
+  status          String    @default("pending") // pending, active, used, expired
+  purchaserName   String?
+  purchaserPhone  String?
+  recipientName   String?
+  recipientPhone  String?
+  message         String?
+  expiresAt       DateTime?
+  usedAt          DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   @@map("giftcards")
 }
@@ -193,13 +194,13 @@ model GiftCard {
 // Notificaciones
 model Notification {
   id        String   @id @default(cuid())
-  type      String   // cumpleaños, premio, stock, giftcard, cita, alerta
+  type      String // cumpleaños, premio, stock, giftcard, cita, alerta
   icon      String?
   title     String
   message   String
   read      Boolean  @default(false)
   data      Json?
-  entityId  String?  // ID de la entidad relacionada (cita, tarjeta, etc.)
+  entityId  String? // ID de la entidad relacionada (cita, tarjeta, etc.)
   createdAt DateTime @default(now())
 
   @@map("notifications")
@@ -290,12 +291,12 @@ model AdminReset {
 
 // Dispositivos Apple Wallet
 model AppleDevice {
-  id             String   @id @default(cuid())
-  deviceId       String
-  pushToken      String
-  passTypeId     String
-  serialNumber   String
-  createdAt      DateTime @default(now())
+  id           String   @id @default(cuid())
+  deviceId     String
+  pushToken    String
+  passTypeId   String
+  serialNumber String
+  createdAt    DateTime @default(now())
 
   @@unique([deviceId, passTypeId, serialNumber])
   @@map("apple_devices")
@@ -324,83 +325,83 @@ model GoogleDevice {
 
 // Expediente principal de la clienta
 model ClientRecord {
-  id              String   @id @default(cuid())
-  cardId          String   @unique
-  
+  id     String @id @default(cuid())
+  cardId String @unique
+
   // Datos personales adicionales
-  age             Int?
-  skinType        String?   // normal, grasa, seca, mixta, sensible
-  allergies       String?   // Alergias conocidas
-  medicalHistory  String?   // Antecedentes médicos relevantes
-  objectives      String?   // Objetivos del tratamiento
-  observations    String?   // Observaciones generales
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
+  age            Int?
+  skinType       String? // normal, grasa, seca, mixta, sensible
+  allergies      String? // Alergias conocidas
+  medicalHistory String? // Antecedentes médicos relevantes
+  objectives     String? // Objetivos del tratamiento
+  observations   String? // Observaciones generales
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relaciones
-  sessions        TreatmentSession[]
-  photos          ClientPhoto[]
-  
+  sessions TreatmentSession[]
+  photos   ClientPhoto[]
+
   @@map("client_records")
 }
 
 // Sesiones de tratamiento
 model TreatmentSession {
-  id              String   @id @default(cuid())
-  recordId        String
-  record          ClientRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
-  
+  id       String       @id @default(cuid())
+  recordId String
+  record   ClientRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
+
   // Datos de la sesión
-  date            DateTime @default(now())
-  treatmentType   String   // facial, corporal, depilación, etc.
-  serviceName     String?
-  staffName       String?
-  
+  date          DateTime @default(now())
+  treatmentType String // facial, corporal, depilación, etc.
+  serviceName   String?
+  staffName     String?
+
   // Parámetros del aparato
-  deviceName      String?  // Nombre del aparato usado
-  deviceSettings  Json?    // Configuración: potencia, frecuencia, tiempo, etc.
-  
+  deviceName     String? // Nombre del aparato usado
+  deviceSettings Json? // Configuración: potencia, frecuencia, tiempo, etc.
+
   // Zonas tratadas
-  treatedAreas    String?  // Zonas del cuerpo/cara tratadas
-  
+  treatedAreas String? // Zonas del cuerpo/cara tratadas
+
   // Productos utilizados
-  productsUsed    String?
-  
+  productsUsed String?
+
   // Observaciones de la sesión
   observations    String?
   results         String?
-  recommendations String?  // Recomendaciones para próxima sesión
-  
+  recommendations String? // Recomendaciones para próxima sesión
+
   // Fotos de la sesión
-  photos          ClientPhoto[]
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
+  photos ClientPhoto[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@map("treatment_sessions")
 }
 
 // Fotos del expediente
 model ClientPhoto {
-  id              String   @id @default(cuid())
-  recordId        String
-  record          ClientRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
-  
-  sessionId       String?
-  session         TreatmentSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
-  
+  id       String       @id @default(cuid())
+  recordId String
+  record   ClientRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
+
+  sessionId String?
+  session   TreatmentSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+
   // Datos de la foto
-  url             String   // URL de la imagen
-  publicId        String?  // ID para Cloudinary/storage
-  type            String   @default("progress") // before, after, progress
-  category        String?  // facial, corporal, etc.
-  area            String?  // Zona específica
-  description     String?
-  
-  takenAt         DateTime @default(now())
-  createdAt       DateTime @default(now())
-  
+  url         String // URL de la imagen
+  publicId    String? // ID para Cloudinary/storage
+  type        String  @default("progress") // before, after, progress
+  category    String? // facial, corporal, etc.
+  area        String? // Zona específica
+  description String?
+
+  takenAt   DateTime @default(now())
+  createdAt DateTime @default(now())
+
   @@map("client_photos")
 }
 
@@ -410,7 +411,7 @@ model WhatsappMessage {
   phone     String
   name      String?
   body      String
-  direction String   // 'in' | 'out'
+  direction String // 'in' | 'out'
   timestamp DateTime @default(now())
   read      Boolean  @default(false)
   messageId String?
@@ -425,7 +426,7 @@ model PendingPoll {
   appointmentId String
   phone         String
   expiresAt     DateTime
-  options       String?  // JSON array de opciones del poll
+  options       String? // JSON array de opciones del poll
   createdAt     DateTime @default(now())
 
   @@map("pending_polls")
@@ -433,13 +434,13 @@ model PendingPoll {
 
 // Historial de canjes de Gift Cards
 model GiftCardRedeem {
-  id          String   @id @default(cuid())
-  code        String
-  service     String?
-  clientName  String?  @map("client_name")
-  expiryDate  String?  @map("expiry_date")
-  redeemedAt  DateTime @default(now()) @map("redeemed_at")
-  createdAt   DateTime @default(now())
+  id         String   @id @default(cuid())
+  code       String
+  service    String?
+  clientName String?  @map("client_name")
+  expiryDate String?  @map("expiry_date")
+  redeemedAt DateTime @default(now()) @map("redeemed_at")
+  createdAt  DateTime @default(now())
 
   @@map("gift_card_redeems")
 }
@@ -455,7 +456,7 @@ model BusinessConfig {
   closeTime        String   @default("19:00") @map("close_time")
   workDays         Int[]    @default([1, 2, 3, 4, 5, 6]) @map("work_days")
   interval         Int      @default(60) // minutos entre slots
-  minHoursAdvance  Int      @default(4)  @map("min_hours_advance") // horas mínimas de anticipación
+  minHoursAdvance  Int      @default(4) @map("min_hours_advance") // horas mínimas de anticipación
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
@@ -465,11 +466,11 @@ model BusinessConfig {
 // Bloqueos de horario (días específicos o recurrentes)
 model BlockedSlot {
   id        String   @id @default(cuid())
-  startTime String   // "HH:mm"
-  endTime   String   // "HH:mm"
-  date      String?  // "YYYY-MM-DD" (Fecha específica, opcional)
-  dayOfWeek Int?     // 0-6 (Día recurrente, 0=Dom, opcional)
-  reason    String?  // Motivo del bloqueo
+  startTime String // "HH:mm"
+  endTime   String // "HH:mm"
+  date      String? // "YYYY-MM-DD" (Fecha específica, opcional)
+  dayOfWeek Int? // 0-6 (Día recurrente, 0=Dom, opcional)
+  reason    String? // Motivo del bloqueo
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -495,13 +496,13 @@ model GoogleCalendarConfig {
 
 // Mapeo entre citas del sistema y eventos de Google Calendar
 model GoogleCalendarMapping {
-  id              Int      @id @default(autoincrement())
-  appointmentId   String   @map("appointment_id")
-  googleEventId   String   @unique @map("google_event_id")
-  syncStatus      String   @default("synced") @map("sync_status") // synced, pending, failed
-  errorMessage    String?  @map("error_message")
-  lastSyncedAt    DateTime @default(now()) @map("last_synced_at")
-  createdAt       DateTime @default(now()) @map("created_at")
+  id            Int      @id @default(autoincrement())
+  appointmentId String   @map("appointment_id")
+  googleEventId String   @unique @map("google_event_id")
+  syncStatus    String   @default("synced") @map("sync_status") // synced, pending, failed
+  errorMessage  String?  @map("error_message")
+  lastSyncedAt  DateTime @default(now()) @map("last_synced_at")
+  createdAt     DateTime @default(now()) @map("created_at")
 
   appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
 
@@ -512,49 +513,49 @@ model GoogleCalendarMapping {
 // ===== VENUS THE COFFEE BAR - POS =====
 
 model CoffeeProduct {
-  id         String   @id @default(cuid())
-  name       String
-  category   String   // cafe_caliente, cafe_frio, panaderia, extras
-  price      Decimal  @db.Decimal(10, 2)
-  taxRate    Decimal  @default(0.16) @db.Decimal(5, 4) @map("tax_rate")
-  isActive   Boolean  @default(true) @map("is_active")
-  sortOrder  Int      @default(0) @map("sort_order")
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
-  variants   CoffeeProductVariant[]
-  saleItems  CoffeeSaleItem[]
+  id        String                 @id @default(cuid())
+  name      String
+  category  String // cafe_caliente, cafe_frio, panaderia, extras
+  price     Decimal                @db.Decimal(10, 2)
+  taxRate   Decimal                @default(0.16) @map("tax_rate") @db.Decimal(5, 4)
+  isActive  Boolean                @default(true) @map("is_active")
+  sortOrder Int                    @default(0) @map("sort_order")
+  createdAt DateTime               @default(now()) @map("created_at")
+  updatedAt DateTime               @updatedAt @map("updated_at")
+  variants  CoffeeProductVariant[]
+  saleItems CoffeeSaleItem[]
 
   @@map("coffee_products")
 }
 
 model CoffeeProductVariant {
-  id         String   @id @default(cuid())
-  productId  String   @map("product_id")
-  name       String   // "Grande", "Leche de almendra"
-  type       String   // "size", "extra"
-  priceAdj   Decimal  @default(0) @db.Decimal(10, 2) @map("price_adj")
-  isActive   Boolean  @default(true) @map("is_active")
-  product    CoffeeProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  id        String        @id @default(cuid())
+  productId String        @map("product_id")
+  name      String // "Grande", "Leche de almendra"
+  type      String // "size", "extra"
+  priceAdj  Decimal       @default(0) @map("price_adj") @db.Decimal(10, 2)
+  isActive  Boolean       @default(true) @map("is_active")
+  product   CoffeeProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@map("coffee_product_variants")
 }
 
 model CoffeeSale {
-  id            String    @id @default(cuid())
-  folio         String    @unique
-  cashSessionId String?   @map("cash_session_id")
-  cashierName   String    @map("cashier_name")
-  subtotal      Decimal   @db.Decimal(10, 2)
-  tax           Decimal   @db.Decimal(10, 2)
-  discount      Decimal   @default(0) @db.Decimal(10, 2)
-  total         Decimal   @db.Decimal(10, 2)
-  paymentMethod String    @map("payment_method")
-  amountPaid    Decimal?  @db.Decimal(10, 2) @map("amount_paid")
-  change        Decimal?  @db.Decimal(10, 2)
-  status        String    @default("completed")
-  cancelReason  String?   @map("cancel_reason")
-  cancelledBy   String?   @map("cancelled_by")
-  createdAt     DateTime  @default(now()) @map("created_at")
+  id            String             @id @default(cuid())
+  folio         String             @unique
+  cashSessionId String?            @map("cash_session_id")
+  cashierName   String             @map("cashier_name")
+  subtotal      Decimal            @db.Decimal(10, 2)
+  tax           Decimal            @db.Decimal(10, 2)
+  discount      Decimal            @default(0) @db.Decimal(10, 2)
+  total         Decimal            @db.Decimal(10, 2)
+  paymentMethod String             @map("payment_method")
+  amountPaid    Decimal?           @map("amount_paid") @db.Decimal(10, 2)
+  change        Decimal?           @db.Decimal(10, 2)
+  status        String             @default("completed")
+  cancelReason  String?            @map("cancel_reason")
+  cancelledBy   String?            @map("cancelled_by")
+  createdAt     DateTime           @default(now()) @map("created_at")
   items         CoffeeSaleItem[]
   cashSession   CoffeeCashSession? @relation(fields: [cashSessionId], references: [id])
 
@@ -562,15 +563,15 @@ model CoffeeSale {
 }
 
 model CoffeeSaleItem {
-  id          String   @id @default(cuid())
-  saleId      String   @map("sale_id")
-  productId   String   @map("product_id")
-  productName String   @map("product_name")
-  qty         Int      @default(1)
-  unitPrice   Decimal  @db.Decimal(10, 2) @map("unit_price")
-  discount    Decimal  @default(0) @db.Decimal(10, 2)
+  id          String        @id @default(cuid())
+  saleId      String        @map("sale_id")
+  productId   String        @map("product_id")
+  productName String        @map("product_name")
+  qty         Int           @default(1)
+  unitPrice   Decimal       @map("unit_price") @db.Decimal(10, 2)
+  discount    Decimal       @default(0) @db.Decimal(10, 2)
   notes       String?
-  variants    String?  // JSON string de variantes seleccionadas
+  variants    String? // JSON string de variantes seleccionadas
   sale        CoffeeSale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
   product     CoffeeProduct @relation(fields: [productId], references: [id])
 
@@ -578,17 +579,17 @@ model CoffeeSaleItem {
 }
 
 model CoffeeCashSession {
-  id            String    @id @default(cuid())
-  openedBy      String    @map("opened_by")
-  openedAt      DateTime  @default(now()) @map("opened_at")
-  openingAmount Decimal   @db.Decimal(10, 2) @map("opening_amount")
-  closedBy      String?   @map("closed_by")
-  closedAt      DateTime? @map("closed_at")
-  expectedCash  Decimal?  @db.Decimal(10, 2) @map("expected_cash")
-  actualCash    Decimal?  @db.Decimal(10, 2) @map("actual_cash")
-  difference    Decimal?  @db.Decimal(10, 2)
-  totalSales    Decimal?  @db.Decimal(10, 2) @map("total_sales")
-  status        String    @default("open")
+  id            String               @id @default(cuid())
+  openedBy      String               @map("opened_by")
+  openedAt      DateTime             @default(now()) @map("opened_at")
+  openingAmount Decimal              @map("opening_amount") @db.Decimal(10, 2)
+  closedBy      String?              @map("closed_by")
+  closedAt      DateTime?            @map("closed_at")
+  expectedCash  Decimal?             @map("expected_cash") @db.Decimal(10, 2)
+  actualCash    Decimal?             @map("actual_cash") @db.Decimal(10, 2)
+  difference    Decimal?             @db.Decimal(10, 2)
+  totalSales    Decimal?             @map("total_sales") @db.Decimal(10, 2)
+  status        String               @default("open")
   notes         String?
   sales         CoffeeSale[]
   movements     CoffeeCashMovement[]
@@ -597,13 +598,13 @@ model CoffeeCashSession {
 }
 
 model CoffeeCashMovement {
-  id            String   @id @default(cuid())
-  cashSessionId String   @map("cash_session_id")
-  type          String   // "income", "withdrawal"
-  amount        Decimal  @db.Decimal(10, 2)
+  id            String            @id @default(cuid())
+  cashSessionId String            @map("cash_session_id")
+  type          String // "income", "withdrawal"
+  amount        Decimal           @db.Decimal(10, 2)
   reason        String
-  createdBy     String   @map("created_by")
-  createdAt     DateTime @default(now()) @map("created_at")
+  createdBy     String            @map("created_by")
+  createdAt     DateTime          @default(now()) @map("created_at")
   cashSession   CoffeeCashSession @relation(fields: [cashSessionId], references: [id])
 
   @@map("coffee_cash_movements")
@@ -611,21 +612,113 @@ model CoffeeCashMovement {
 
 // Evaluaciones post-cita
 model Review {
-  id              String    @id @default(cuid())
-  appointmentId   String    @unique @map("appointment_id")
-  clientName      String    @map("client_name")
-  clientPhone     String    @map("client_phone")
-  serviceName     String    @map("service_name")
-  stars           Int       // 1-5
-  liked           String?   // Lo que más le gustó
-  improve         String?   // Lo que mejoraría
-  comment         String?   // Comentario adicional
-  replied         Boolean   @default(false)
-  reply           String?
-  repliedAt       DateTime? @map("replied_at")
-  sentAt          DateTime? @map("sent_at")    // Cuándo se envió el link
-  answeredAt      DateTime? @map("answered_at") // Cuándo respondió
-  createdAt       DateTime  @default(now()) @map("created_at")
+  id            String    @id @default(cuid())
+  appointmentId String    @unique @map("appointment_id")
+  clientName    String    @map("client_name")
+  clientPhone   String    @map("client_phone")
+  serviceName   String    @map("service_name")
+  stars         Int // 1-5
+  liked         String? // Lo que más le gustó
+  improve       String? // Lo que mejoraría
+  comment       String? // Comentario adicional
+  replied       Boolean   @default(false)
+  reply         String?
+  repliedAt     DateTime? @map("replied_at")
+  sentAt        DateTime? @map("sent_at") // Cuándo se envió el link
+  answeredAt    DateTime? @map("answered_at") // Cuándo respondió
+  createdAt     DateTime  @default(now()) @map("created_at")
 
   @@map("reviews")
+}
+
+// ===== VENUS SKIN - Análisis de piel (integración Yiyuan Analyzer) =====
+
+model SkinAnalysis {
+  id          String  @id @default(cuid())
+  cardId      String? @map("card_id")
+  clientPhone String? @map("client_phone")
+  clientName  String  @map("client_name")
+
+  // IDs del sistema Yiyuan
+  yiyuanShareId    String  @unique @map("yiyuan_share_id")
+  yiyuanAnalysisId BigInt? @map("yiyuan_analysis_id")
+
+  analyzedAt DateTime @map("analyzed_at")
+  locale     String?  @default("es-419")
+
+  // Datos biográficos al momento del análisis
+  ageReal       Int?    @map("age_real")
+  ageBiological Int?    @map("age_biological")
+  sex           String? // 'F' | 'M'
+
+  // Clasificación de piel (traducida al español)
+  skinType  String?  @map("skin_type") // 'Grasa' | 'Seca' | 'Mixta' | 'Normal'
+  skinColor String?  @map("skin_color") // fototipo en texto
+  ita       Decimal? @db.Decimal(6, 2)
+
+  // Scores globales (0-100)
+  overallScore    Int? @map("overall_score")
+  appearanceScore Int? @map("appearance_score")
+
+  // Métricas estéticas
+  faceShape      String?  @map("face_shape")
+  goldenTriangle Decimal? @map("golden_triangle") @db.Decimal(6, 4)
+
+  // Narrativa generada con IA (Fase 3)
+  aiSummaryEs          String? @map("ai_summary_es")
+  aiRecommendations    Json?   @map("ai_recommendations")
+  treatmentSuggestions Json?   @map("treatment_suggestions")
+
+  // JSON crudo de Yiyuan (nunca se pierde información)
+  rawResponse Json @map("raw_response")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  card   Card?               @relation(fields: [cardId], references: [id], onDelete: SetNull)
+  scores SkinAnalysisScore[]
+  images SkinAnalysisImage[]
+
+  @@index([cardId, analyzedAt])
+  @@index([clientPhone])
+  @@map("skin_analyses")
+}
+
+model SkinAnalysisScore {
+  id         String @id @default(cuid())
+  analysisId String @map("analysis_id")
+
+  metric  String // 'acne'|'blackhead'|'pore'|'spot'|'pigment'|'uv_spot'|'pockmark'|'wrinkle'|'texture'|'collagen'|'ext_water'|'sensitive'|'dark_circle'
+  labelEs String @map("label_es")
+
+  score    Decimal @db.Decimal(6, 2)
+  level    Int?
+  count    Int?
+  severity String // 'excellent'|'good'|'moderate'|'concern'|'critical'
+
+  imageUrl String? @map("image_url")
+
+  createdAt DateTime     @default(now()) @map("created_at")
+  analysis  SkinAnalysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+
+  @@index([analysisId])
+  @@index([metric])
+  @@map("skin_analysis_scores")
+}
+
+model SkinAnalysisImage {
+  id         String @id @default(cuid())
+  analysisId String @map("analysis_id")
+
+  imageType String @map("image_type") // 'normal'|'positive'|'negative'|'uv'|'woods'|'blue'|'brown'|'red'|'aging_simu'|'face_atriums'|'face_eyes'
+  labelEs   String @map("label_es")
+
+  originalUrl String  @map("original_url") // URL pública en zm.yiyuan.ai
+  storagePath String? @map("storage_path") // path local si descargamos (Fase futura)
+
+  createdAt DateTime     @default(now()) @map("created_at")
+  analysis  SkinAnalysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+
+  @@index([analysisId])
+  @@map("skin_analysis_images")
 }
