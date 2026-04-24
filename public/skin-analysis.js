@@ -775,7 +775,7 @@
                 const proxied = `/api/skin-analysis/image-proxy?url=${encodeURIComponent(img.originalUrl)}`;
                 return `
                 <div class="pdf-gallery-item">
-                    <img src="${proxied}" alt="${escapeHtml(img.labelEs)}" crossorigin="anonymous">
+                    <img src="${proxied}" alt="${escapeHtml(img.labelEs)}">
                     <div class="pdf-gallery-cap">${escapeHtml(img.labelEs)}</div>
                 </div>`;
             }).join('');
@@ -803,31 +803,43 @@
             return;
         }
 
-        showLoading(true);
         const btn = mode === 'download' ? $('btn-download-pdf') : $('btn-share-pdf');
         const oldHTML = btn.innerHTML;
         btn.disabled = true;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generando…';
+        showLoading(true);
+
+        const root = $('pdf-root');
 
         try {
             fillPDFTemplate(a);
 
-            // Esperar a que las imágenes carguen (si hay página 2)
-            const pdfImages = document.querySelectorAll('#pdf-root img');
+            // Traer el template al viewport (invisible) para que html2canvas lo capture bien
+            root.classList.add('rendering');
+
+            // Esperar a que fonts y layout estabilicen
+            if (document.fonts?.ready) {
+                try { await document.fonts.ready; } catch { /* ignore */ }
+            }
+
+            // Esperar imágenes (logo + capturas del proxy)
+            const pdfImages = root.querySelectorAll('img');
             await Promise.all(
                 Array.from(pdfImages).map(img => {
-                    if (img.complete) return Promise.resolve();
+                    if (img.complete && img.naturalWidth > 0) return Promise.resolve();
                     return new Promise(resolve => {
-                        img.onload = resolve;
-                        img.onerror = resolve;
-                        setTimeout(resolve, 4000); // timeout si alguna falla
+                        const done = () => resolve();
+                        img.addEventListener('load', done, { once: true });
+                        img.addEventListener('error', done, { once: true });
+                        setTimeout(resolve, 6000);
                     });
                 })
             );
 
-            const root = $('pdf-root');
-            const filename = pdfFilename(a);
+            // Un frame extra para que el browser reflow termine
+            await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
 
+            const filename = pdfFilename(a);
             const opts = {
                 margin: 0,
                 filename,
@@ -835,40 +847,43 @@
                 html2canvas: {
                     scale: 2,
                     useCORS: true,
-                    allowTaint: true,
                     backgroundColor: '#ffffff',
                     logging: false,
+                    letterRendering: true,
+                    // Forzar dimensiones consistentes (A4 @ 96dpi = 794x1123 px)
+                    windowWidth: 794,
                 },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-                pagebreak: { mode: ['css', 'legacy'] },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
+                pagebreak: { mode: ['avoid-all', 'css'], before: '#pdf-page-2' },
             };
 
             if (mode === 'download') {
                 await html2pdf().set(opts).from(root).save();
             } else {
-                // Share mode: genera blob y usa navigator.share si está disponible
-                const worker = html2pdf().set(opts).from(root);
-                const blob = await worker.outputPdf('blob');
+                // Share: genera blob y usa navigator.share si está disponible
+                const blob = await html2pdf().set(opts).from(root).outputPdf('blob');
                 const file = new File([blob], filename, { type: 'application/pdf' });
 
                 if (navigator.canShare && navigator.canShare({ files: [file] })) {
                     await navigator.share({
                         files: [file],
-                        title: `Análisis de piel — ${a.card?.name || a.clientName}`,
-                        text: 'Resultado de tu análisis clínico en Venus Cosmetología.',
+                        title: `Análisis de piel — ${a.card?.name || a.clientName || ''}`,
+                        text: 'Tu análisis clínico de Venus Cosmetología.',
                     });
                 } else {
-                    // Fallback: descargar + abrir WhatsApp Web con texto
+                    // Fallback: descarga + abre WhatsApp Web con mensaje
                     const url = URL.createObjectURL(blob);
                     const link = document.createElement('a');
                     link.href = url;
                     link.download = filename;
+                    document.body.appendChild(link);
                     link.click();
-                    setTimeout(() => URL.revokeObjectURL(url), 1000);
+                    document.body.removeChild(link);
+                    setTimeout(() => URL.revokeObjectURL(url), 1500);
 
                     const phone = (a.card?.phone || a.clientPhone || '').replace(/\D/g, '');
                     if (phone) {
-                        const msg = `Hola ${a.card?.name || a.clientName || ''}, te adjunto tu análisis de piel. Descarga el PDF que acabo de mandarte. — Venus Cosmetología`;
+                        const msg = `Hola ${a.card?.name || a.clientName || ''}, te comparto tu análisis de piel de Venus Cosmetología. Adjunto el PDF que acabo de descargar.`;
                         setTimeout(() => {
                             window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
                         }, 800);
@@ -876,9 +891,10 @@
                 }
             }
         } catch (err) {
-            console.error('[PDF] error:', err);
+            console.error('[PDF] Error generando:', err);
             alert(`No se pudo generar el PDF: ${err.message}`);
         } finally {
+            root.classList.remove('rendering');
             btn.disabled = false;
             btn.innerHTML = oldHTML;
             showLoading(false);

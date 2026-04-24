@@ -1444,9 +1444,9 @@
            ═══════════════════════════════════════════════════════════ */
 
         #pdf-root {
-            position: fixed;
+            position: absolute;
             top: 0;
-            left: -10000px;
+            left: -20000px;
             width: 210mm;
             background: #ffffff;
             color: #1a1a1a;
@@ -1454,7 +1454,15 @@
             font-size: 11pt;
             line-height: 1.5;
             padding: 0;
-            z-index: -1;
+        }
+
+        /* Durante render: ponemos el elemento en viewport pero invisible al usuario */
+        #pdf-root.rendering {
+            left: 0;
+            top: 0;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 9999;
         }
 
         .pdf-page {
