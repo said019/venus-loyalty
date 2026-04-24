@@ -12,6 +12,7 @@ import { sendGoogleMessage } from "./lib/google.js"
 import nodemailer from "nodemailer";
 import { EmailService } from './src/services/emailService.js';
 import fs from "fs";
+import QRCode from "qrcode";
 
 // ⏰ Helper de timezone — SIEMPRE usar esto para fechas en México
 import {
@@ -516,6 +517,26 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(express.static("public"));
+app.get("/api/qr", async (req, res) => {
+  try {
+    const text = String(req.query.text || "");
+    if (!text) return res.status(400).send("Missing text");
+    const width = Math.min(Math.max(Number(req.query.width) || 150, 80), 512);
+    const buffer = await QRCode.toBuffer(text, {
+      type: "png",
+      width,
+      margin: 2,
+      color: {
+        dark: "#000000",
+        light: "#ffffff",
+      },
+    });
+    res.type("png").send(buffer);
+  } catch (error) {
+    console.error("[QR] Error generating QR:", error);
+    res.status(500).send("QR error");
+  }
+});
 
 // ✅ Appointments API
 app.use('/api', appointmentsRouter);

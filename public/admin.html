@@ -739,11 +739,14 @@
 
       .topbar-new {
         padding: 8px 16px;
+        gap: 8px;
       }
 
       .topbar-left {
+        flex: 1 1 auto;
         gap: 12px;
         min-width: 0;
+        max-width: calc(100% - 184px);
       }
 
       .topbar-greeting {
@@ -751,29 +754,67 @@
       }
 
       .topbar-greeting h2 {
-        font-size: 22px;
-        line-height: 1.15;
+        font-size: 19px;
+        line-height: 1.05;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
       .topbar-greeting p {
         font-size: 12px;
         line-height: 1.2;
         margin-top: 2px;
-        overflow-wrap: anywhere;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
       .topbar-right {
-        gap: 8px;
+        flex: 0 0 auto;
+        gap: 6px;
       }
 
       .topbar-btn {
-        width: 38px;
-        height: 38px;
-        padding: 8px;
+        width: 34px;
+        height: 34px;
+        padding: 7px;
+        border-radius: 10px;
+      }
+
+      .topbar-right>a.topbar-btn {
+        display: none;
+      }
+
+      .theme-toggle {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+      }
+
+      .theme-toggle::before {
+        display: none;
+      }
+
+      .theme-toggle-icons {
+        justify-content: center;
+        padding: 0;
+      }
+
+      .theme-icon.sun {
+        display: none;
       }
 
       .topbar-logout {
-        padding: 8px 10px;
+        width: 34px;
+        height: 34px;
+        padding: 0;
+        justify-content: center;
+        border-radius: 10px;
+      }
+
+      .topbar-logout .desktop-only-text {
+        display: none;
       }
 
       .main-content {
@@ -11507,7 +11548,7 @@
 
   <!-- QRCode lib -->
 
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <script src="/vendor/qrcode.min.js"></script>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <!-- Chart.js lib -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>

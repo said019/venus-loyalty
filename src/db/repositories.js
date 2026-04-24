@@ -4,6 +4,53 @@
 
 import { prisma } from './index.js';
 
+// ==================== ADMINS ====================
+export const AdminsRepo = {
+  async findById(id) {
+    return prisma.admin.findUnique({ where: { id } });
+  },
+
+  async findByEmail(email) {
+    return prisma.admin.findUnique({ where: { email } });
+  },
+
+  async create(data) {
+    return prisma.admin.create({ data });
+  },
+
+  async updatePassword(id, pass_hash) {
+    return prisma.admin.update({
+      where: { id },
+      data: { pass_hash, updatedAt: new Date() }
+    });
+  },
+
+  async count() {
+    return prisma.admin.count();
+  }
+};
+
+// ==================== ADMIN RESETS ====================
+export const AdminResetsRepo = {
+  async findByToken(token) {
+    return prisma.adminReset.findUnique({ where: { token } });
+  },
+
+  async create(data) {
+    return prisma.adminReset.create({ data });
+  },
+
+  async delete(token) {
+    return prisma.adminReset.delete({ where: { token } });
+  },
+
+  async deleteExpired() {
+    return prisma.adminReset.deleteMany({
+      where: { expiresAt: { lt: new Date() } }
+    });
+  }
+};
+
 // ==================== CARDS ====================
 export const CardsRepo = {
   async findById(id) {
@@ -118,6 +165,21 @@ export const CardsRepo = {
       const [, m, d] = card.birthday.split('-');
       return parseInt(m) === month && parseInt(d) === day;
     });
+  },
+
+  // Obtener métricas generales
+  async getMetrics() {
+    const total = await prisma.card.count();
+    const active = await prisma.card.count({ where: { status: 'active' } });
+    
+    // Tarjetas llenas (para métricas legacy)
+    // En Prisma esto es más complejo sin raw SQL si la lógica depende de max dinámico
+    // Aproximación: stamps >= 8
+    const full = await prisma.card.count({
+      where: { stamps: { gte: 8 } }
+    });
+
+    return { total, active, full };
   }
 };
 
@@ -341,6 +403,31 @@ export const EventsRepo = {
       where: { timestamp: { gte: since } },
       orderBy: { timestamp: 'desc' }
     });
+  },
+
+  async getMetrics(startDate) {
+    const where = startDate ? { createdAt: { gte: startDate } } : undefined;
+    const events = await prisma.event.findMany({ where });
+    
+    const counts = { stamp: 0, redeem: 0 };
+    events.forEach(e => {
+      const type = (e.type || '').toLowerCase();
+      if (type === 'stamp') counts.stamp++;
+      if (type === 'redeem') counts.redeem++;
+    });
+    
+    return counts;
+  },
+  
+  async getLastStampDate(cardId) {
+    const last = await prisma.event.findFirst({
+      where: { 
+        cardId,
+        type: 'stamp' // asumiendo lowercase
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+    return last ? last.createdAt : null;
   }
 };
 
@@ -649,7 +736,95 @@ export const BlockedSlotsRepo = {
   }
 };
 
+// ==================== GOOGLE DEVICES ====================
+export const GoogleDevicesRepo = {
+  async register(cardId, deviceId) {
+    const id = `google_${cardId}_${deviceId}`;
+    // Upsert para manejar duplicados
+    return prisma.googleDevice.upsert({
+      where: { id },
+      create: {
+        id,
+        cardId,
+        objectId: deviceId, // Mapeo a objectId por ahora
+        createdAt: new Date()
+      },
+      update: {
+        // Nada que actualizar realmente, solo confirmar que existe
+      }
+    });
+  },
+
+  async findByCardId(cardId) {
+    return prisma.googleDevice.findMany({
+      where: { cardId }
+    });
+  }
+};
+
+
+// ==================== APPLE DEVICES ====================
+export const AppleDevicesRepo = {
+  async register(data) {
+    // unique constraint en schema: [deviceId, passTypeId, serialNumber]
+    return prisma.appleDevice.create({ data });
+  },
+  
+  async findByDevice(deviceId) {
+    return prisma.appleDevice.findMany({
+      where: { deviceId }
+    });
+  },
+  
+  async findBySerial(serialNumber) {
+    return prisma.appleDevice.findMany({
+      where: { serialNumber }
+    });
+  },
+  
+  async delete(deviceId, serialNumber) {
+    // Prisma delete requiere ID único o unique constraint completo
+    // Buscamos primero para obtener el ID
+    const device = await prisma.appleDevice.findFirst({
+      where: { deviceId, serialNumber }
+    });
+    
+    if (device) {
+      return prisma.appleDevice.delete({
+        where: { id: device.id }
+      });
+    }
+    return null;
+  }
+};
+
+// ==================== APPLE UPDATES ====================
+export const AppleUpdatesRepo = {
+  async create(serialNumber) {
+    return prisma.appleUpdate.create({
+      data: {
+        serialNumber,
+        updatedAt: new Date()
+      }
+    });
+  },
+  
+  async findSince(serialNumber, since) {
+    // Encontrar actualizaciones posteriores a 'since'
+    // El protocolo Apple pide devolver el lastUpdated tag
+    // Esta lógica es específica, aquí solo devolvemos registros
+    return prisma.appleUpdate.findMany({
+      where: {
+        serialNumber,
+        updatedAt: { gt: since }
+      }
+    });
+  }
+};
+
 export default {
+  admins: AdminsRepo,
+  adminResets: AdminResetsRepo,
   cards: CardsRepo,
   services: ServicesRepo,
   appointments: AppointmentsRepo,
@@ -662,5 +837,7 @@ export default {
   settings: SettingsRepo,
   sales: SalesRepo,
   blockedSlots: BlockedSlotsRepo,
+  googleDevices: GoogleDevicesRepo,
+  appleDevices: AppleDevicesRepo,
+  appleUpdates: AppleUpdatesRepo
 };
-
