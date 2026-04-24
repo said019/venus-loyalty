@@ -9,6 +9,7 @@ let currentMonth = new Date();
 let busySlots = {};
 let whatsappUrl = '';
 let currentCategory = null;
+let expandedServiceList = false;
 
 const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 const DAYS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
@@ -38,7 +39,7 @@ function setupNavigation() {
     if (mobileBtn) {
         mobileBtn.addEventListener('click', () => {
             const links = document.querySelector('.nav-links');
-            links.style.display = links.style.display === 'flex' ? 'none' : 'flex';
+            links.classList.toggle('active');
         });
     }
 
@@ -95,86 +96,43 @@ function renderServicesPreview() {
     const grid = document.getElementById('services-grid');
     if (!grid || services.length === 0) return;
 
-    // Mapeo de categorías a filtros y datos visuales
-    const categoryMap = {
-        'Básicos Venus':  { filter: 'facial',     icon: 'fas fa-spa',           color: '#8C9668' },
-        'Especializados': { filter: 'facial',     icon: 'fas fa-star',           color: '#6b7a4e' },
-        'Corporales':     { filter: 'corporal',   icon: 'fas fa-hand-sparkles',  color: '#C4A77D' },
-        'Holísticos':     { filter: 'holistico',  icon: 'fas fa-yin-yang',       color: '#a8b485' },
-        'Paquetes':       { filter: 'paquetes',   icon: 'fas fa-gift',           color: '#D4C5B9' },
-        'Depilación':     { filter: 'depilacion', icon: 'fas fa-feather-alt',    color: '#8C9668' },
-    };
-
-    const categoryOrder = ['Básicos Venus', 'Especializados', 'Corporales', 'Holísticos', 'Paquetes', 'Depilación'];
-
-    // Agrupar por categoría
-    const grouped = {};
-    services.forEach(s => {
-        const cat = s.category || 'Otros';
-        if (!grouped[cat]) grouped[cat] = [];
-        grouped[cat].push(s);
-    });
-
-    const sortedCategories = Object.keys(grouped).sort((a, b) => {
-        const ia = categoryOrder.indexOf(a), ib = categoryOrder.indexOf(b);
-        if (ia === -1 && ib === -1) return a.localeCompare(b);
-        if (ia === -1) return 1; if (ib === -1) return -1;
-        return ia - ib;
-    });
-
-    // Generar cards
-    let allCards = '';
-    sortedCategories.forEach(cat => {
-        const meta = categoryMap[cat] || { filter: 'otros', icon: 'fas fa-concierge-bell', color: '#8C9668' };
-        const catServices = grouped[cat].sort((a, b) => a.name.localeCompare(b.name));
-
-        catServices.forEach(s => {
-            const price = s.price ? `$${Math.round(s.price)}` : 'Consultar';
-            const duration = s.durationMinutes || s.duration || '';
-            const desc = s.description || '';
-            allCards += `
-                <div class="service-card-new" data-filter="${meta.filter}" onclick="scrollToBooking('${s.id}')">
-                    <div class="service-card-accent" style="background:${meta.color}"></div>
-                    <div class="service-card-icon-wrap" style="background:${meta.color}15;border-color:${meta.color}30">
-                        <i class="${meta.icon}" style="color:${meta.color}"></i>
-                    </div>
-                    <div class="service-card-body">
-                        <span class="service-card-category">${cat}</span>
-                        <h3 class="service-card-name">${s.name}</h3>
-                        ${desc ? `<p class="service-card-description">${desc.length > 80 ? desc.slice(0, 80) + '…' : desc}</p>` : ''}
-                        <div class="service-card-footer">
-                            <div class="service-card-meta">
-                                ${duration ? `<span class="service-meta-pill"><i class="far fa-clock"></i> ${duration} min</span>` : ''}
-                                <span class="service-meta-price">${price}</span>
-                            </div>
-                            <button class="service-card-btn">
-                                Agendar <i class="fas fa-arrow-right"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `;
-        });
-    });
-
-    grid.innerHTML = allCards || '<p style="color:var(--muted);text-align:center;padding:2rem;">No hay servicios disponibles</p>';
-
-    // Activar filtros
-    document.querySelectorAll('.filter-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            const filter = btn.dataset.filter;
-            document.querySelectorAll('.service-card-new').forEach(card => {
-                if (filter === 'all' || card.dataset.filter === filter) {
-                    card.style.display = '';
-                    card.style.animation = 'fadeInUp 0.4s ease both';
-                } else {
-                    card.style.display = 'none';
-                }
-            });
-        });
-    });
+    const groups = getServiceGroups().slice(0, 6);
+    grid.innerHTML = groups.map((group, index) => {
+        const names = group.services.slice(0, 3).map(s => `<li>${escapeHTML(s.name)}</li>`).join('');
+        return `
+        <div class="service-preview-card service-group-card" style="--i:${index}" onclick="scrollToCategory('${escapeAttr(group.category)}')">
+            <div class="service-group-topline">
+                <span>${group.count} opciones</span>
+                <span>${group.priceRange}</span>
+            </div>
+            <h3>${escapeHTML(group.label)}</h3>
+            <p>${escapeHTML(group.description)}</p>
+            <ul>${names}</ul>
+            <div class="meta">
+                <span><i class="far fa-clock"></i> ${group.durationRange}</span>
+                <span class="price">Ver opciones</span>
+            </div>
+        </div>
+        `;
+    }).join('') + `
+        <div class="service-preview-card service-group-card cafe-preview-card" onclick="document.getElementById('cafeteria').scrollIntoView({behavior:'smooth'})">
+            <div class="service-group-topline">
+                <span>Nuevo</span>
+                <span>Venus Café</span>
+            </div>
+            <h3>Cafetería como experiencia</h3>
+            <p>Una pausa breve antes o después de tu cita, pensada para que la visita se sienta más completa.</p>
+            <ul>
+                <li>Bebidas calientes y frías.</li>
+                <li>Paquetes para clientas de lealtad.</li>
+                <li>Espera más cómoda para acompañantes.</li>
+            </ul>
+            <div class="meta">
+                <span><i class="fas fa-mug-hot"></i> Propuesta</span>
+                <span class="price">Ver café</span>
+            </div>
+        </div>
+    `;
 }
 
 function scrollToBooking(serviceId) {
@@ -189,6 +147,13 @@ function scrollToBooking(serviceId) {
     document.getElementById('agendar').scrollIntoView({ behavior: 'smooth' });
 }
 
+function scrollToCategory(category) {
+    currentCategory = category;
+    expandedServiceList = false;
+    renderServices();
+    document.getElementById('agendar')?.scrollIntoView({ behavior: 'smooth' });
+}
+
 function renderServices() {
     const el = document.getElementById('services-list');
     const tabsEl = document.getElementById('category-tabs');
@@ -200,14 +165,7 @@ function renderServices() {
     }
 
     const categories = ['Todos', ...new Set(services.map(s => s.category || 'Otros'))];
-    const catOrder = ['Todos', 'Básicos Venus', 'Especializados', 'Corporales', 'Holísticos', 'Paquetes', 'Depilación', 'Otros'];
-    categories.sort((a, b) => {
-        const ia = catOrder.indexOf(a), ib = catOrder.indexOf(b);
-        if (ia === -1 && ib === -1) return a.localeCompare(b);
-        if (ia === -1) return 1;
-        if (ib === -1) return -1;
-        return ia - ib;
-    });
+    categories.splice(0, categories.length, 'Todos', ...sortCategories(categories.filter(cat => cat !== 'Todos')));
 
     if (!currentCategory) currentCategory = categories[1] || 'Todos';
 
@@ -219,34 +177,135 @@ function renderServices() {
 
     const filtered = currentCategory === 'Todos' ? services : services.filter(s => (s.category || 'Otros') === currentCategory);
     filtered.sort((a, b) => a.name.localeCompare(b.name));
+    const limit = currentCategory === 'Todos' ? 10 : 8;
+    const visible = expandedServiceList ? filtered : filtered.slice(0, limit);
+    const hiddenCount = Math.max(filtered.length - visible.length, 0);
 
-    el.innerHTML = filtered.map(s => `
-        <div class="service-item ${selectedService?.id === s.id ? 'selected' : ''}" onclick="selectService('${s.id}')">
-            <div class="service-name">${s.name}</div>
-            ${s.description ? `<div class="service-desc-booking">${s.description}</div>` : ''}
+    el.innerHTML = `
+        <div class="services-list-summary">
+            <strong>${filtered.length} servicios en ${escapeHTML(currentCategory)}</strong>
+            <span>Mostramos primero las opciones más fáciles de comparar. Puedes abrir la lista completa si ya sabes qué buscar.</span>
+        </div>
+        ${visible.map(s => `
+        <div class="service-item ${selectedService?.id === s.id ? 'selected' : ''}" data-id="${escapeAttr(s.id)}" onclick="selectService('${escapeAttr(s.id)}')">
+            <div class="service-name">${escapeHTML(s.name)}</div>
             <div class="service-meta-row">
                 <span class="service-duration"><i class="far fa-clock"></i> ${s.durationMinutes || s.duration}m</span>
-                <span class="service-price">$${Math.round(s.price)}</span>
+                <span class="service-price">$${s.price}</span>
             </div>
+            ${s.discount ? `<p class="service-note">${escapeHTML(s.discount)}</p>` : ''}
         </div>
-    `).join('');
+        `).join('')}
+        ${hiddenCount ? `<button class="show-more-services" type="button" onclick="toggleServicesList()">Ver ${hiddenCount} servicios más</button>` : ''}
+    `;
 }
 
 window.setCategory = function (cat) {
     currentCategory = cat;
+    expandedServiceList = false;
     renderServices();
 };
 
 window.selectService = function (id) {
     document.querySelectorAll('.service-item').forEach(e => e.classList.remove('selected'));
-    const el = document.querySelector(`.service-item[onclick*="${id}"]`);
+    const el = document.querySelector(`.service-item[data-id="${cssEscape(id)}"]`);
     if (el) el.classList.add('selected');
     selectedService = services.find(s => s.id === id);
     document.getElementById('btn-step1').disabled = false;
     updateSummary();
 };
 
+window.toggleServicesList = function () {
+    expandedServiceList = true;
+    renderServices();
+};
+
 window.scrollToBooking = scrollToBooking;
+window.scrollToCategory = scrollToCategory;
+
+function getServiceGroups() {
+    const map = new Map();
+    services.forEach(service => {
+        const category = service.category || 'Otros';
+        if (!map.has(category)) map.set(category, []);
+        map.get(category).push(service);
+    });
+
+    return sortCategories([...map.keys()]).map(category => {
+        const list = map.get(category).slice().sort((a, b) => a.name.localeCompare(b.name));
+        const prices = list.map(s => Number(s.price)).filter(n => !Number.isNaN(n));
+        const durations = list.map(s => Number(s.durationMinutes || s.duration)).filter(n => !Number.isNaN(n));
+        return {
+            category,
+            label: categoryLabel(category),
+            description: categoryDescription(category),
+            services: list,
+            count: list.length,
+            priceRange: rangeLabel(prices, '$'),
+            durationRange: rangeLabel(durations, '', 'min')
+        };
+    });
+}
+
+function sortCategories(categories) {
+    const catOrder = ['Faciales', 'Corporales', 'Depilación', 'Masajes', 'Paquetes', 'Cafetería', 'Cafe', 'Café', 'Otros'];
+    return categories.sort((a, b) => {
+        const ia = catOrder.indexOf(a), ib = catOrder.indexOf(b);
+        if (ia === -1 && ib === -1) return a.localeCompare(b);
+        if (ia === -1) return 1;
+        if (ib === -1) return -1;
+        return ia - ib;
+    });
+}
+
+function categoryLabel(category) {
+    const normalized = category.toLowerCase();
+    if (normalized.includes('facial')) return 'Piel y faciales';
+    if (normalized.includes('corporal')) return 'Cuerpo y moldeado';
+    if (normalized.includes('depi')) return 'Depilación';
+    if (normalized.includes('masaje')) return 'Masajes y pausa';
+    if (normalized.includes('paquete')) return 'Paquetes Venus';
+    if (normalized.includes('cafe') || normalized.includes('café')) return 'Venus Café';
+    return category;
+}
+
+function categoryDescription(category) {
+    const normalized = category.toLowerCase();
+    if (normalized.includes('facial')) return 'Limpieza, luminosidad, acné, textura y protocolos personalizados.';
+    if (normalized.includes('corporal')) return 'Opciones para zonas específicas, cuidado corporal y seguimiento.';
+    if (normalized.includes('depi')) return 'Servicios claros por zona para elegir sin revisar toda la lista.';
+    if (normalized.includes('masaje')) return 'Tratamientos para bajar tensión y cerrar la visita con calma.';
+    if (normalized.includes('paquete')) return 'Combinaciones listas para decidir rápido y regalar mejor.';
+    if (normalized.includes('cafe') || normalized.includes('café')) return 'Bebidas y pausas para acompañar la experiencia.';
+    return 'Servicios agrupados para comparar por intención, duración y precio.';
+}
+
+function rangeLabel(values, prefix = '', suffix = '') {
+    if (!values.length) return 'Consultar';
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    if (min === max) return `${prefix}${min}${suffix}`;
+    return `${prefix}${min}-${prefix}${max}${suffix}`;
+}
+
+function escapeHTML(value = '') {
+    return String(value).replace(/[&<>"']/g, char => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    }[char]));
+}
+
+function escapeAttr(value = '') {
+    return escapeHTML(value).replace(/`/g, '&#096;');
+}
+
+function cssEscape(value = '') {
+    if (window.CSS && typeof window.CSS.escape === 'function') return window.CSS.escape(value);
+    return String(value).replace(/["\\]/g, '\\$&');
+}
 
 function renderCalendar() {
     const grid = document.getElementById('calendar-grid');
