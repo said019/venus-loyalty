@@ -20,7 +20,37 @@ import { compactForAI } from '../services/ai/compactAnalysis.js';
 import { generateNarrativeSafe } from '../services/ai/claudeNarrative.js';
 
 const router = express.Router();
-router.use(adminAuth);
+
+function serializeAnalysisForReport(analysis) {
+    return {
+        id: analysis.id,
+        cardId: analysis.cardId,
+        clientPhone: analysis.clientPhone,
+        clientName: analysis.clientName,
+        yiyuanShareId: analysis.yiyuanShareId,
+        yiyuanAnalysisId: analysis.yiyuanAnalysisId ? String(analysis.yiyuanAnalysisId) : null,
+        analyzedAt: analysis.analyzedAt,
+        locale: analysis.locale,
+        ageReal: analysis.ageReal,
+        ageBiological: analysis.ageBiological,
+        sex: analysis.sex,
+        skinType: analysis.skinType,
+        skinColor: analysis.skinColor,
+        ita: analysis.ita,
+        overallScore: analysis.overallScore,
+        appearanceScore: analysis.appearanceScore,
+        faceShape: analysis.faceShape,
+        goldenTriangle: analysis.goldenTriangle,
+        aiSummaryEs: analysis.aiSummaryEs,
+        aiRecommendations: analysis.aiRecommendations,
+        treatmentSuggestions: analysis.treatmentSuggestions,
+        createdAt: analysis.createdAt,
+        updatedAt: analysis.updatedAt,
+        card: analysis.card || null,
+        scores: analysis.scores || [],
+        images: analysis.images || [],
+    };
+}
 
 /**
  * POST /api/skin-analysis/import
@@ -30,7 +60,7 @@ router.use(adminAuth);
  * - Si no, usa clientPhone + clientName del body (análisis sin tarjeta).
  * - Si un análisis con el mismo shareId ya existe, lo actualiza (idempotente).
  */
-router.post('/import', async (req, res) => {
+router.post('/import', adminAuth, async (req, res) => {
     try {
         const { shareId: rawShareId, shareUrl, cardId, clientPhone, clientName } = req.body || {};
 
@@ -252,39 +282,7 @@ router.get('/image-proxy', async (req, res) => {
  * GET /api/skin-analysis/:id
  * Devuelve el análisis con scores e imágenes embebidos.
  */
-router.get('/:id', async (req, res) => {
-    try {
-        const analysis = await prisma.skinAnalysis.findUnique({
-            where: { id: req.params.id },
-            include: {
-                scores: { orderBy: { score: 'asc' } },
-                images: { orderBy: { createdAt: 'asc' } },
-                card: { select: { id: true, name: true, phone: true, email: true, birthday: true } },
-            },
-        });
-
-        if (!analysis) {
-            return res.status(404).json({ success: false, error: 'Análisis no encontrado' });
-        }
-
-        // BigInt no serializa nativo en JSON
-        const serialized = {
-            ...analysis,
-            yiyuanAnalysisId: analysis.yiyuanAnalysisId ? String(analysis.yiyuanAnalysisId) : null,
-        };
-
-        return res.json({ success: true, data: serialized });
-    } catch (err) {
-        console.error('[SkinAnalysis /:id] Error:', err);
-        return res.status(500).json({ success: false, error: err.message });
-    }
-});
-
-/**
- * GET /api/skin-analysis/by-card/:cardId
- * Historial completo del cliente, sin scores pesados (solo metadata + top concerns).
- */
-router.get('/by-card/:cardId', async (req, res) => {
+router.get('/by-card/:cardId', adminAuth, async (req, res) => {
     try {
         const analyses = await prisma.skinAnalysis.findMany({
             where: { cardId: req.params.cardId },
@@ -314,11 +312,33 @@ router.get('/by-card/:cardId', async (req, res) => {
     }
 });
 
+router.get('/:id', async (req, res) => {
+    try {
+        const analysis = await prisma.skinAnalysis.findUnique({
+            where: { id: req.params.id },
+            include: {
+                scores: { orderBy: { score: 'asc' } },
+                images: { orderBy: { createdAt: 'asc' } },
+                card: { select: { id: true, name: true, phone: true, email: true, birthday: true } },
+            },
+        });
+
+        if (!analysis) {
+            return res.status(404).json({ success: false, error: 'Análisis no encontrado' });
+        }
+
+        return res.json({ success: true, data: serializeAnalysisForReport(analysis) });
+    } catch (err) {
+        console.error('[SkinAnalysis /:id] Error:', err);
+        return res.status(500).json({ success: false, error: err.message });
+    }
+});
+
 /**
  * GET /api/skin-analysis?phone=...&limit=50
  * Lista paginada. Útil para admin.
  */
-router.get('/', async (req, res) => {
+router.get('/', adminAuth, async (req, res) => {
     try {
         const { phone, limit = 50, offset = 0 } = req.query;
         const take = Math.min(parseInt(limit, 10) || 50, 200);
@@ -358,7 +378,7 @@ router.get('/', async (req, res) => {
  * Regenera la narrativa IA desde el rawResponse guardado. Útil cuando se
  * cambia el menú Venus, se afina el prompt, o el admin quiere otra versión.
  */
-router.post('/:id/regenerate-narrative', async (req, res) => {
+router.post('/:id/regenerate-narrative', adminAuth, async (req, res) => {
     try {
         const existing = await prisma.skinAnalysis.findUnique({
             where: { id: req.params.id },
@@ -399,7 +419,7 @@ router.post('/:id/regenerate-narrative', async (req, res) => {
 /**
  * DELETE /api/skin-analysis/:id
  */
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', adminAuth, async (req, res) => {
     try {
         await prisma.skinAnalysis.delete({ where: { id: req.params.id } });
         return res.json({ success: true });
