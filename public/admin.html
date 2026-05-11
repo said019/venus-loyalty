@@ -17858,13 +17858,18 @@
         const clientName = this.value.trim();
         const client = allClients.find(c => c.name === clientName);
         if (client) {
-          // Guardar el teléfono del cliente seleccionado
           selectedClientPhone = client.phone || '';
           window.selectedClientPhone = selectedClientPhone;
+          this.dataset.phone = client.phone || '';
+          this.dataset.clientId = client.id || '';
           console.log('Cliente seleccionado:', clientName, 'Teléfono:', selectedClientPhone);
         } else {
+          // Nombre editado a mano: descartar cualquier teléfono/card previo
+          // para evitar que el dataset huérfano contamine la cita guardada.
           selectedClientPhone = '';
           window.selectedClientPhone = '';
+          this.dataset.phone = '';
+          this.dataset.clientId = '';
         }
       });
     }
@@ -18181,9 +18186,15 @@
             }
           }
           
-          // Si aún no hay teléfono, verificar data-phone del input
+          // Si aún no hay teléfono, verificar data-phone del input — pero SOLO
+          // si el nombre escrito coincide con un cliente conocido cuyo teléfono
+          // sea ese mismo dataset. Si no coincide, el dataset es huérfano (quedó
+          // de una selección previa) y usarlo manda mensajes al cliente equivocado.
           if (!clientPhone && clientSelect.dataset && clientSelect.dataset.phone) {
-            clientPhone = clientSelect.dataset.phone;
+            const matched = allClients.find(c => c.name === clientName);
+            if (matched && matched.phone === clientSelect.dataset.phone) {
+              clientPhone = clientSelect.dataset.phone;
+            }
           }
           
           // Validar que tengamos nombre y teléfono
