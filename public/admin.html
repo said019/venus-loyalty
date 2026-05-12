@@ -17824,7 +17824,7 @@
     // Modal
     if (btnNewAppt) {
       btnNewAppt.addEventListener('click', () => {
-        loadServices();
+        loadServices(true);
         loadClients();
         generateHourMinuteOptions();
         clearClientSelectedFeedback();
@@ -18601,8 +18601,8 @@
           if (json.success) {
             closeServiceModalFn();
             loadServicesTable();
-            // Recargar dropdowns de citas también
-            loadServices();
+            // Recargar dropdowns de citas también (force: invalida la caché en memoria)
+            loadServices(true);
           } else {
             alert('Error al guardar: ' + json.error);
           }
@@ -18622,7 +18622,7 @@
         const json = await res.json();
         if (json.success) {
           loadServicesTable();
-          loadServices(); // Recargar dropdowns
+          loadServices(true); // Recargar dropdowns (force: invalida la caché en memoria)
         } else {
           alert('Error al eliminar: ' + json.error);
         }
