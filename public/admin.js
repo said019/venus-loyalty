@@ -46,6 +46,10 @@ async function me() {
     return;
   }
   const j = await r.json();
+  if (j.role === "recepcion") {
+    location.replace("/recepcion.html");
+    return;
+  }
   $("#me-line").textContent = `Sesión: ${j.email}`;
 }
 $("#logout").onclick = async () => {
