@@ -12,8 +12,8 @@ function setToast(el, type, msg){
   el.style.display = "block";
 }
 
-function goPanel(){
-  location.href = "/admin";
+function goPanel(role){
+  location.href = role === "recepcion" ? "/recepcion.html" : "/admin";
 }
 
 function selectTab(tab){
@@ -81,9 +81,9 @@ $("#form-login")?.addEventListener("submit", async (e)=>{
   try {
     const email = $("#login-email").value.trim();
     const password = $("#login-pass").value;
-    await postJSON("/api/admin/login", { email, password });
+    const data = await postJSON("/api/admin/login", { email, password });
     setToast(out, "ok", "Acceso correcto. Entrando...");
-    setTimeout(goPanel, 600);
+    setTimeout(() => goPanel(data.role), 600);
   } catch (err){
     setToast(out, "err", err.message || "Credenciales inválidas");
   }
