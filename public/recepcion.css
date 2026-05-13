@@ -1,0 +1,63 @@
+:root {
+  --rec-bg: #3f4037;
+  --rec-accent: #8c9668;
+  --rec-fg: #ffffff;
+  --rec-card-bg: #ffffff;
+  --rec-muted: #6b7280;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; height: 100%; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: #f4f4f1; color: #222; }
+
+.rec-topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 20px; background: var(--rec-bg); color: var(--rec-fg);
+  position: sticky; top: 0; z-index: 10;
+}
+.rec-brand { display: flex; align-items: center; gap: 12px; font-weight: 600; }
+.rec-brand img { width: 36px; height: 36px; border-radius: 50%; background: #fff; }
+.rec-meta { display: flex; align-items: center; gap: 16px; }
+.rec-meta #recClock { font-variant-numeric: tabular-nums; }
+
+.rec-tabs {
+  display: flex; gap: 4px; padding: 12px 20px; background: #ecebe6;
+  position: sticky; top: 60px; z-index: 9;
+}
+.rec-tab {
+  flex: 1; padding: 14px; border: 0; background: #fff; border-radius: 12px;
+  font-weight: 600; font-size: 16px; cursor: pointer; min-height: 56px;
+}
+.rec-tab.active { background: var(--rec-accent); color: #fff; }
+
+.rec-main { padding: 20px; }
+.rec-pane { display: none; }
+.rec-pane.active { display: block; }
+
+.rec-counters {
+  background: #fff; padding: 14px 18px; border-radius: 12px; margin-bottom: 16px;
+  font-weight: 500;
+}
+.rec-list { display: grid; gap: 12px; }
+.rec-card {
+  background: #fff; padding: 18px; border-radius: 14px;
+  display: grid; grid-template-columns: 80px 1fr auto; gap: 14px; align-items: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+.rec-card .hora { font-size: 22px; font-weight: 700; }
+.rec-card .cliente { font-size: 18px; font-weight: 600; }
+.rec-card .servicio { color: var(--rec-muted); }
+.rec-card .estado { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 13px; }
+.rec-card .estado.pendiente { background: #fff3cd; color: #856404; }
+.rec-card .estado.confirmada { background: #d1ecf1; color: #0c5460; }
+.rec-card .estado.llego { background: #d4edda; color: #155724; }
+.rec-card .estado.cobrada { background: #e2e3e5; color: #383d41; }
+.rec-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.rec-actions .btn { min-height: 44px; padding: 8px 14px; }
+.rec-actions .btn-disabled { opacity: 0.5; cursor: not-allowed; }
+
+.rec-frame { width: 100%; height: calc(100vh - 200px); border: 0; border-radius: 12px; background: #fff; }
+
+@media (max-width: 720px) {
+  .rec-tabs { overflow-x: auto; }
+  .rec-tab { flex: 0 0 auto; min-width: 100px; }
+  .rec-card { grid-template-columns: 1fr; }
+}
