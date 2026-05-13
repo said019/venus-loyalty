@@ -825,7 +825,7 @@ app.get('/api/products', adminAuth, async (req, res) => {
 });
 
 // POST /api/products - Crear producto
-app.post('/api/products', adminAuth, async (req, res) => {
+app.post('/api/products', adminAuth, requireRole("admin"), async (req, res) => {
   try {
     const { name, category, presentation, price, cost, stock, minStock, description } = req.body;
 
@@ -856,7 +856,7 @@ app.post('/api/products', adminAuth, async (req, res) => {
 });
 
 // PUT /api/products/:id - Actualizar producto
-app.put('/api/products/:id', adminAuth, async (req, res) => {
+app.put('/api/products/:id', adminAuth, requireRole("admin"), async (req, res) => {
   try {
     const { id } = req.params;
     const { name, category, presentation, price, cost, stock, minStock, description } = req.body;
@@ -883,7 +883,7 @@ app.put('/api/products/:id', adminAuth, async (req, res) => {
 });
 
 // DELETE /api/products/:id - Eliminar producto
-app.delete('/api/products/:id', adminAuth, async (req, res) => {
+app.delete('/api/products/:id', adminAuth, requireRole("admin"), async (req, res) => {
   try {
     const { id } = req.params;
     await firestore.collection('products').doc(id).delete();
@@ -895,7 +895,7 @@ app.delete('/api/products/:id', adminAuth, async (req, res) => {
 });
 
 // PATCH /api/products/:id/stock - Actualizar solo stock (para ventas)
-app.patch('/api/products/:id/stock', adminAuth, async (req, res) => {
+app.patch('/api/products/:id/stock', adminAuth, requireRole("admin"), async (req, res) => {
   try {
     const { id } = req.params;
     const { change } = req.body; // +1 o -1
@@ -3120,7 +3120,7 @@ app.get('/api/services', adminAuth, async (req, res) => {
 });
 
 // POST /api/services - Crear nuevo servicio (admin)
-app.post('/api/services', adminAuth, async (req, res) => {
+app.post('/api/services', adminAuth, requireRole("admin"), async (req, res) => {
   try {
     const { name, category, durationMinutes, price, description, discount } = req.body;
 
@@ -3154,7 +3154,7 @@ app.post('/api/services', adminAuth, async (req, res) => {
 });
 
 // PUT /api/services/:id - Actualizar servicio (admin)
-app.put('/api/services/:id', adminAuth, async (req, res) => {
+app.put('/api/services/:id', adminAuth, requireRole("admin"), async (req, res) => {
   try {
     const { id } = req.params;
     const { name, category, durationMinutes, price, description, discount } = req.body;
@@ -3187,7 +3187,7 @@ app.put('/api/services/:id', adminAuth, async (req, res) => {
 });
 
 // DELETE /api/services/:id - Eliminar servicio (admin)
-app.delete('/api/services/:id', adminAuth, async (req, res) => {
+app.delete('/api/services/:id', adminAuth, requireRole("admin"), async (req, res) => {
   try {
     const { id } = req.params;
 

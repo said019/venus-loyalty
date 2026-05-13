@@ -1,6 +1,6 @@
 import express from 'express';
 import { ClientsController, ServicesController, AppointmentsController } from '../controllers/index.js';
-import { adminAuth } from '../../lib/auth.js';
+import { adminAuth, requireRole } from '../../lib/auth.js';
 
 const router = express.Router();
 
@@ -9,9 +9,9 @@ router.post('/clients', adminAuth, ClientsController.createOrUpdate);
 
 // Services
 router.get('/services', ServicesController.getAll);
-router.post('/services', adminAuth, ServicesController.create);
-router.put('/services/:id', adminAuth, ServicesController.update);
-router.delete('/services/:id', adminAuth, ServicesController.delete);
+router.post('/services', adminAuth, requireRole("admin"), ServicesController.create);
+router.put('/services/:id', adminAuth, requireRole("admin"), ServicesController.update);
+router.delete('/services/:id', adminAuth, requireRole("admin"), ServicesController.delete);
 
 // Appointments
 // NOTA: Todas las rutas de appointments ahora están definidas en server.js con Prisma
