@@ -65,6 +65,7 @@ import {
   signAdmin,
   setAdminCookie,
   clearAdminCookie,
+  requireRole,
 } from "./lib/auth.js";
 
 // 🍎 Apple Wallet Web Service
@@ -1278,7 +1279,7 @@ app.post('/api/direct-sales', adminAuth, async (req, res) => {
 });
 
 // GET /api/transactions - Obtener historial de ventas (directas y mixtas)
-app.get('/api/transactions', adminAuth, async (req, res) => {
+app.get('/api/transactions', adminAuth, requireRole("admin"), async (req, res) => {
   try {
     const { date } = req.query;
     if (!date) return res.json({ success: false, error: 'Fecha requerida' });
@@ -2587,7 +2588,7 @@ app.get("/api/apple/test-pass", async (_req, res) => {
    ========================================================= */
 
 // GET /api/expenses - Listar gastos en un rango de fechas
-app.get('/api/expenses', adminAuth, async (req, res) => {
+app.get('/api/expenses', adminAuth, requireRole("admin"), async (req, res) => {
   try {
     const { from, to } = req.query;
 
@@ -2615,7 +2616,7 @@ app.get('/api/expenses', adminAuth, async (req, res) => {
 });
 
 // GET /api/expenses/:id - Obtener un gasto por ID
-app.get('/api/expenses/:id', adminAuth, async (req, res) => {
+app.get('/api/expenses/:id', adminAuth, requireRole("admin"), async (req, res) => {
   try {
     const { id } = req.params;
     const doc = await firestore.collection('expenses').doc(id).get();
@@ -2632,7 +2633,7 @@ app.get('/api/expenses/:id', adminAuth, async (req, res) => {
 });
 
 // POST /api/expenses - Crear nuevo gasto
-app.post('/api/expenses', adminAuth, async (req, res) => {
+app.post('/api/expenses', adminAuth, requireRole("admin"), async (req, res) => {
   try {
     const { date, category, description, amount } = req.body;
 
@@ -2660,7 +2661,7 @@ app.post('/api/expenses', adminAuth, async (req, res) => {
 });
 
 // PUT /api/expenses/:id - Actualizar gasto
-app.put('/api/expenses/:id', adminAuth, async (req, res) => {
+app.put('/api/expenses/:id', adminAuth, requireRole("admin"), async (req, res) => {
   try {
     const { id } = req.params;
     const { date, category, description, amount } = req.body;
@@ -2688,7 +2689,7 @@ app.put('/api/expenses/:id', adminAuth, async (req, res) => {
 });
 
 // DELETE /api/expenses/:id - Eliminar gasto
-app.delete('/api/expenses/:id', adminAuth, async (req, res) => {
+app.delete('/api/expenses/:id', adminAuth, requireRole("admin"), async (req, res) => {
   try {
     const { id } = req.params;
     await firestore.collection('expenses').doc(id).delete();
@@ -4186,7 +4187,7 @@ app.post('/api/booking-requests/:id/rejected', adminAuth, async (req, res) => {
 /* =========================================================
    MÉTRICAS Y TARJETAS
    ========================================================= */
-app.get("/api/admin/metrics-firebase", adminAuth, async (_req, res) => {
+app.get("/api/admin/metrics-firebase", adminAuth, requireRole("admin"), async (_req, res) => {
   try {
     const m = await fsMetrics();
     res.json({ ...m, source: "firestore" });
@@ -4197,7 +4198,7 @@ app.get("/api/admin/metrics-firebase", adminAuth, async (_req, res) => {
 });
 
 // ⭐ NUEVO: Endpoint para métricas del mes (dashboard)
-app.get("/api/admin/metrics-month", adminAuth, async (_req, res) => {
+app.get("/api/admin/metrics-month", adminAuth, requireRole("admin"), async (_req, res) => {
   try {
     const m = await fsMetricsMonth();
     res.json({ success: true, data: m });
@@ -4208,7 +4209,7 @@ app.get("/api/admin/metrics-month", adminAuth, async (_req, res) => {
 });
 
 // Top clientes (después de /api/admin/metrics-firebase)
-app.get("/api/admin/top-clients", adminAuth, async (req, res) => {
+app.get("/api/admin/top-clients", adminAuth, requireRole("admin"), async (req, res) => {
   try {
     const snap = await firestore
       .collection(COL_CARDS)
@@ -4225,7 +4226,7 @@ app.get("/api/admin/top-clients", adminAuth, async (req, res) => {
 });
 
 // Actividad semanal
-app.get("/api/admin/activity-week", adminAuth, async (req, res) => {
+app.get("/api/admin/activity-week", adminAuth, requireRole("admin"), async (req, res) => {
   try {
     const labels = [];
     const stamps = [];
@@ -4258,7 +4259,7 @@ app.get("/api/admin/activity-week", adminAuth, async (req, res) => {
 });
 
 // Stats de wallets
-app.get("/api/admin/wallet-stats", adminAuth, async (req, res) => {
+app.get("/api/admin/wallet-stats", adminAuth, requireRole("admin"), async (req, res) => {
   try {
     // Contar dispositivos Apple registrados
     const devicesSnap = await firestore.collection(COL_DEVICES).get();
@@ -4279,7 +4280,7 @@ app.get("/api/admin/wallet-stats", adminAuth, async (req, res) => {
   }
 });
 
-app.get("/api/admin/cards-firebase", adminAuth, async (req, res) => {
+app.get("/api/admin/cards-firebase", adminAuth, requireRole("admin"), async (req, res) => {
   try {
     const page = Math.max(1, parseInt(req.query.page || "1", 10));
     const limit = parseInt(req.query.limit || "100", 10);
@@ -4318,7 +4319,7 @@ app.get("/api/admin/cards-firebase", adminAuth, async (req, res) => {
 });
 
 // ⭐ NUEVO: Endpoint para corregir campo lastVisit en tarjetas existentes
-app.post("/api/admin/fix-lastvisit", adminAuth, async (req, res) => {
+app.post("/api/admin/fix-lastvisit", adminAuth, requireRole("admin"), async (req, res) => {
   try {
     console.log('🔧 Iniciando corrección de campo lastVisit...');
 
@@ -4369,7 +4370,7 @@ app.post("/api/admin/fix-lastvisit", adminAuth, async (req, res) => {
   }
 });
 
-app.get("/api/admin/events-firebase", adminAuth, async (req, res) => {
+app.get("/api/admin/events-firebase", adminAuth, requireRole("admin"), async (req, res) => {
   try {
     const { cardId } = req.query || {};
     if (!cardId) return res.status(400).json({ error: "missing_cardId" });
@@ -4382,7 +4383,7 @@ app.get("/api/admin/events-firebase", adminAuth, async (req, res) => {
 });
 
 // ⭐ NUEVO: Endpoint para estadísticas del dashboard (HOY)
-app.get("/api/dashboard/today", adminAuth, async (req, res) => {
+app.get("/api/dashboard/today", adminAuth, requireRole("admin"), async (req, res) => {
   try {
     // Obtener fecha de hoy en formato "YYYY-MM-DD"
     const today = new Date().toISOString().slice(0, 10);
@@ -4431,7 +4432,7 @@ app.get("/api/dashboard/today", adminAuth, async (req, res) => {
 });
 
 // ⭐ NUEVO: Endpoint para historial de actividad (7 días)
-app.get("/api/dashboard/history", adminAuth, async (req, res) => {
+app.get("/api/dashboard/history", adminAuth, requireRole("admin"), async (req, res) => {
   try {
     const history = [];
     const now = new Date();
@@ -5696,7 +5697,7 @@ app.post("/api/admin/redeem", adminAuth, async (req, res) => {
   }
 });
 
-app.get("/api/admin/metrics", adminAuth, async (_req, res) => {
+app.get("/api/admin/metrics", adminAuth, requireRole("admin"), async (_req, res) => {
   try {
     const m = await fsMetrics();
     res.json(m);
