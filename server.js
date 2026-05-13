@@ -135,12 +135,13 @@ async function fsGetAdminByEmail(email) {
   return { id: snap.docs[0].id, ...snap.docs[0].data() };
 }
 
-async function fsInsertAdmin({ id, email, pass_hash }) {
+async function fsInsertAdmin({ id, email, pass_hash, role = "admin" }) {
   const now = new Date().toISOString();
   await firestore.collection(COL_ADMINS).doc(id).set({
     id,
     email,
     pass_hash,
+    role,
     createdAt: now,
     updatedAt: now,
   });
@@ -155,6 +156,23 @@ async function fsUpdateAdminPassword(adminId, pass_hash) {
     },
     { merge: true }
   );
+}
+
+async function fsUpsertAdmin({ email, pass_hash, role }) {
+  const norm = String(email).trim().toLowerCase();
+  const existing = await fsGetAdminByEmail(norm);
+  const now = new Date().toISOString();
+  if (existing) {
+    await firestore.collection(COL_ADMINS).doc(existing.id).update({
+      ...(pass_hash ? { pass_hash } : {}),
+      ...(role ? { role } : {}),
+      updatedAt: now,
+    });
+    return existing.id;
+  }
+  const id = `adm_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  await fsInsertAdmin({ id, email: norm, pass_hash, role: role || "admin" });
+  return id;
 }
 
 // ---------- HELPERS RESET PASSWORD ----------
@@ -5472,10 +5490,11 @@ app.post("/api/admin/login", async (req, res) => {
       return res.status(401).json({ error: "invalid_credentials" });
     }
 
-    const token = signAdmin({ id: admin.id, email: admin.email });
+    const role = admin.role || "admin";
+    const token = signAdmin({ id: admin.id, email: admin.email, role });
     setAdminCookie(res, token);
 
-    res.json({ ok: true });
+    res.json({ ok: true, role });
   } catch (e) {
     console.error("[ADMIN LOGIN]", e);
     res.status(500).json({ error: e.message });
@@ -5488,7 +5507,7 @@ app.post("/api/admin/logout", (_req, res) => {
 });
 
 app.get("/api/admin/me", adminAuth, (req, res) => {
-  res.json({ uid: req.admin.uid, email: req.admin.email });
+  res.json({ uid: req.admin.uid, email: req.admin.email, role: req.admin.role });
 });
 
 app.get("/api/admin/cards", adminAuth, async (req, res) => {
