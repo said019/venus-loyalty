@@ -1790,6 +1790,14 @@ app.patch('/api/appointments/:id/cancel', adminAuth, async (req, res) => {
       return res.status(404).json({ success: false, error: 'Cita no encontrada' });
     }
 
+    // Guardrail: recepción no puede cancelar citas con pago registrado
+    if (req.admin.role === "recepcion" && appointment.totalPaid != null) {
+      return res.status(403).json({
+        success: false,
+        error: "paid_appointment_requires_admin",
+      });
+    }
+
     console.log(`[CANCEL] Eliminando cita ${id} - ${appointment.clientName}`);
 
     // Eliminar de Google Calendar ANTES de eliminar de la base de datos
