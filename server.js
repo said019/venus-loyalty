@@ -164,8 +164,8 @@ async function fsUpsertAdmin({ email, pass_hash, role }) {
   const now = new Date().toISOString();
   if (existing) {
     await firestore.collection(COL_ADMINS).doc(existing.id).update({
-      ...(pass_hash ? { pass_hash } : {}),
-      ...(role ? { role } : {}),
+      ...(pass_hash != null ? { pass_hash } : {}),
+      ...(role != null ? { role } : {}),
       updatedAt: now,
     });
     return existing.id;
