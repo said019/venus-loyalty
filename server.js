@@ -1194,6 +1194,24 @@ app.post('/api/direct-sales', adminAuth, async (req, res) => {
       return res.json({ success: false, error: 'Se requiere al menos un producto' });
     }
 
+    // Guardrail recepción: bloquear descuentos y precios fuera de catálogo
+    if (req.admin.role === "recepcion") {
+      if (Number(discountAmount) > 0 || Number(discountValue) > 0 || discountType) {
+        return res.status(403).json({ success: false, error: "discount_locked" });
+      }
+      for (const item of productsSold) {
+        if (!item.productId) continue;
+        const productDoc = await firestore.collection('products').doc(item.productId).get();
+        if (!productDoc.exists) continue;
+        const catalogPrice = Number(productDoc.data().price || 0);
+        const expectedSubtotal = catalogPrice * Number(item.qty || 0);
+        const actualSubtotal = Number(item.subtotal || 0);
+        if (Math.abs(actualSubtotal - expectedSubtotal) > 0.01) {
+          return res.status(403).json({ success: false, error: "price_locked" });
+        }
+      }
+    }
+
     console.log('[DIRECT SALE] Procesando venta directa:', { clientName, productsAmount, totalAmount });
 
     // Descontar stock de productos vendidos
