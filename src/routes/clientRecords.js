@@ -5,8 +5,12 @@ import { prisma } from '../db/index.js';
 import multer from 'multer';
 import { v2 as cloudinary } from 'cloudinary';
 import { Readable } from 'stream';
+import { adminAuth, requireRole } from '../../lib/auth.js';
 
 const router = express.Router();
+
+// Todas las rutas de expediente requieren autenticación
+router.use(adminAuth);
 
 // Configurar Cloudinary
 cloudinary.config({
@@ -135,7 +139,7 @@ router.get('/card/:cardId', async (req, res) => {
 });
 
 // Actualizar datos del expediente
-router.put('/:recordId', async (req, res) => {
+router.put('/:recordId', requireRole("admin"), async (req, res) => {
   try {
     const { recordId } = req.params;
     const { age, skinType, allergies, medicalHistory, objectives, observations } = req.body;
@@ -227,7 +231,7 @@ router.post('/:recordId/sessions', async (req, res) => {
 });
 
 // Actualizar sesión
-router.put('/sessions/:sessionId', async (req, res) => {
+router.put('/sessions/:sessionId', requireRole("admin"), async (req, res) => {
   try {
     const { sessionId } = req.params;
     const {
@@ -270,7 +274,7 @@ router.put('/sessions/:sessionId', async (req, res) => {
 });
 
 // Eliminar sesión
-router.delete('/sessions/:sessionId', async (req, res) => {
+router.delete('/sessions/:sessionId', requireRole("admin"), async (req, res) => {
   try {
     const { sessionId } = req.params;
 
@@ -373,7 +377,7 @@ router.post('/:recordId/photos/bulk', upload.array('photos', 10), async (req, re
 });
 
 // Actualizar descripción de foto
-router.put('/photos/:photoId', async (req, res) => {
+router.put('/photos/:photoId', requireRole("admin"), async (req, res) => {
   try {
     const { photoId } = req.params;
     const { type, category, area, description } = req.body;
@@ -391,7 +395,7 @@ router.put('/photos/:photoId', async (req, res) => {
 });
 
 // Eliminar foto
-router.delete('/photos/:photoId', async (req, res) => {
+router.delete('/photos/:photoId', requireRole("admin"), async (req, res) => {
   try {
     const { photoId } = req.params;
 
