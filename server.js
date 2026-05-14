@@ -1115,6 +1115,15 @@ app.post('/api/appointments/:id/payment', adminAuth, async (req, res) => {
       productsSold
     } = req.body;
 
+    // Guardrail recepción: no descuentos en cobro de cita
+    if (req.admin.role === "recepcion") {
+      const dAmt = Number(req.body.discountAmount || req.body.discount || 0);
+      const dVal = Number(req.body.discountValue || 0);
+      if (dAmt > 0 || dVal > 0 || req.body.discountType) {
+        return res.status(403).json({ success: false, error: "discount_locked" });
+      }
+    }
+
     // Obtener cita usando Prisma
     const appointment = await AppointmentsRepo.findById(id);
 
@@ -1515,6 +1524,15 @@ app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
   try {
     const { id } = req.params;
 
+    // Guardrail recepción: bloquear edición/finalización con descuento
+    if (req.admin.role === "recepcion") {
+      const dAmt = Number(req.body.discountAmount || req.body.discount || 0);
+      const dVal = Number(req.body.discountValue || 0);
+      if (dAmt > 0 || dVal > 0 || req.body.discountType) {
+        return res.status(403).json({ success: false, error: "discount_locked" });
+      }
+    }
+
     // Manejar completado/pago si viene status='completed' (Fix para completar cita desde admin)
     if (req.body.status === 'completed' && req.body.totalPaid !== undefined) {
       const { totalPaid, paymentMethod, discount, productsSold } = req.body;
@@ -1729,6 +1747,18 @@ app.patch('/api/appointments/:id/status', adminAuth, async (req, res) => {
 
     if (!appointment) {
       return res.status(404).json({ success: false, error: 'Cita no encontrada' });
+    }
+
+    // Guardrail recepción: bloquear cancelación vía status si la cita está pagada
+    if (
+      req.admin.role === "recepcion" &&
+      status === "cancelled" &&
+      appointment.totalPaid != null
+    ) {
+      return res.status(403).json({
+        success: false,
+        error: "paid_appointment_requires_admin",
+      });
     }
 
     const oldStatus = appointment.status;
@@ -3029,7 +3059,7 @@ app.get('/api/settings/business', async (req, res) => {
 });
 
 // POST /api/settings/business - Guardar configuración del negocio
-app.post('/api/settings/business', adminAuth, async (req, res) => {
+app.post('/api/settings/business', adminAuth, requireRole("admin"), async (req, res) => {
   try {
     await firestore.collection('settings').doc('business').set(req.body, { merge: true });
     res.json({ success: true });
@@ -4654,7 +4684,7 @@ app.post("/api/stamp/:cardId", basicAuth, async (req, res) => {
 /* =========================================================
    PUSH NOTIFICATIONS
    ========================================================= */
-app.post("/api/admin/push-notification", adminAuth, sendMassPushNotification);
+app.post("/api/admin/push-notification", adminAuth, requireRole("admin"), sendMassPushNotification);
 app.post("/api/admin/push-test", adminAuth, sendTestPushNotification);
 app.get("/api/admin/notifications", adminAuth, getNotifications);
 
@@ -4745,7 +4775,7 @@ let promoState = {
 };
 
 // 1a) INICIAR análisis en background (no bloquea)
-app.post('/api/admin/promo-2025/analyze', adminAuth, async (req, res) => {
+app.post('/api/admin/promo-2025/analyze', adminAuth, requireRole("admin"), async (req, res) => {
   if (promoAnalysis.status === 'running') {
     return res.json({ success: true, message: 'Análisis ya en curso', status: promoAnalysis.status, processed: promoAnalysis.processed, total: promoAnalysis.total });
   }
@@ -4846,7 +4876,7 @@ app.get('/api/admin/promo-2025/analysis', adminAuth, (req, res) => {
 });
 
 // 2) INICIAR campaña (solo con clientes aprobados del análisis)
-app.post('/api/admin/promo-2025/start', adminAuth, async (req, res) => {
+app.post('/api/admin/promo-2025/start', adminAuth, requireRole("admin"), async (req, res) => {
   if (promoState.running) {
     return res.json({ success: false, error: 'Ya hay una campaña en curso', status: getPromoStatus() });
   }
@@ -4932,7 +4962,7 @@ app.get('/api/admin/promo-2025/status', adminAuth, (req, res) => {
 });
 
 // 4) Detener
-app.post('/api/admin/promo-2025/stop', adminAuth, (req, res) => {
+app.post('/api/admin/promo-2025/stop', adminAuth, requireRole("admin"), (req, res) => {
   if (promoState.intervalId) clearInterval(promoState.intervalId);
   promoState.running = false;
   promoState.intervalId = null;

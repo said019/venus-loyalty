@@ -37,6 +37,8 @@ async function expectStatus(method, path, expected, body) {
 }
 
 async function run() {
+  // NOTA: El guardrail PATCH /api/appointments/:id/status con status=cancelled en citas pagadas
+  // requiere prueba manual con un ID de cita pagada real. No puede automatizarse sin datos de BD.
   await login();
 
   // Bloqueados (403)
@@ -50,6 +52,13 @@ async function run() {
   await expectStatus("POST", "/api/products", 403, { name: "x", price: 1 });
   await expectStatus("POST", "/api/direct-sales", 403, {
     productsSold: [{ productId: "fake", qty: 1 }],
+    discountAmount: 50,
+  });
+
+  // POST /payment con descuento como recepción — debe ser bloqueado (403)
+  await expectStatus("POST", "/api/appointments/test-id-inexistente/payment", 403, {
+    totalPaid: 100,
+    paymentMethod: "efectivo",
     discountAmount: 50,
   });
 

@@ -47,7 +47,7 @@ async function me() {
   }
   const j = await r.json();
   if (j.role === "recepcion") {
-    const embedded = window.self !== window.top || /#.*-embed$/.test(location.hash);
+    const embedded = window.self !== window.top;
     if (!embedded) {
       location.replace("/recepcion.html");
       return;
