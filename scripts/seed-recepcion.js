@@ -19,9 +19,19 @@ const COL_ADMINS = "admins";
 const EMAIL = "recepcion@venus.local";
 
 async function main() {
-  const rl = readline.createInterface({ input: stdin, output: stdout });
-  const pass = await rl.question("Password para recepcion@venus.local: ");
-  rl.close();
+  // Soporta tanto argumento de línea (--password=xxx) como prompt interactivo.
+  // Útil para correr en Render Shell sin TTY interactivo confiable.
+  let pass = null;
+  const argPass = process.argv.find((a) => a.startsWith("--password="));
+  if (argPass) {
+    pass = argPass.slice("--password=".length);
+  } else if (process.env.RECEPCION_PASSWORD) {
+    pass = process.env.RECEPCION_PASSWORD;
+  } else {
+    const rl = readline.createInterface({ input: stdin, output: stdout });
+    pass = await rl.question("Password para recepcion@venus.local: ");
+    rl.close();
+  }
 
   if (!pass || pass.length < 6) {
     console.error("La contraseña debe tener al menos 6 caracteres.");
