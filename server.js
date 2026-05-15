@@ -539,6 +539,23 @@ app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+
+// Guard ANTES del static: si la cookie es de rol "recepcion", redirigir
+// a /recepcion.html cuando intenten cargar /admin.html. Sin esto el
+// express.static lo serviría antes de llegar a los handlers explícitos.
+app.use((req, res, next) => {
+  if (req.path !== '/admin.html' && req.path !== '/admin') return next();
+  try {
+    const raw = req.cookies?.adm;
+    if (!raw) return next();
+    const payload = jwt.verify(raw, process.env.ADMIN_JWT_SECRET);
+    if (payload?.role === 'recepcion') {
+      return res.redirect(302, '/recepcion.html');
+    }
+  } catch { /* token inválido → seguir */ }
+  next();
+});
+
 app.use(express.static("public"));
 app.get("/api/qr", async (req, res) => {
   try {
