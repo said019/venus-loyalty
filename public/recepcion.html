@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Venus · Recepción</title>
+  <link rel="icon" href="/assets/logo.png">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="/recepcion.css" />
+</head>
+<body>
+  <header class="rec-topbar">
+    <div class="rec-brand">
+      <img src="/assets/logo.png" alt="Venus" />
+      <span>Venus · Recepción</span>
+    </div>
+    <div class="rec-meta">
+      <span id="recClock">--:--</span>
+      <button id="recLogout" class="btn btn-sm btn-outline-light">Cerrar sesión</button>
+    </div>
+  </header>
+
+  <nav class="rec-tabs" role="tablist">
+    <button class="rec-tab active" data-tab="hoy">Hoy</button>
+    <button class="rec-tab" data-tab="calendario">Calendario</button>
+    <button class="rec-tab" data-tab="cobrar">Cobrar</button>
+    <button class="rec-tab" data-tab="clientas">Clientas</button>
+    <button class="rec-tab" data-tab="whatsapp">WhatsApp</button>
+  </nav>
+
+  <main class="rec-main">
+    <section data-pane="hoy" class="rec-pane active">
+      <div class="rec-counters" id="recCounters">Cargando…</div>
+      <div class="rec-list" id="recCitasHoy"></div>
+    </section>
+    <section data-pane="calendario" class="rec-pane">
+      <iframe src="/admin.html#appointments" class="rec-frame" title="Calendario"></iframe>
+    </section>
+    <section data-pane="cobrar" class="rec-pane">
+      <iframe src="/coffee-pos.html?role=recepcion" class="rec-frame" title="Cobrar"></iframe>
+    </section>
+    <section data-pane="clientas" class="rec-pane">
+      <iframe src="/admin.html#cards" class="rec-frame" title="Clientas"></iframe>
+    </section>
+    <section data-pane="whatsapp" class="rec-pane">
+      <iframe src="/admin.html#requests" class="rec-frame" title="WhatsApp"></iframe>
+    </section>
+  </main>
+
+  <script src="/recepcion.js" type="module"></script>
+</body>
+</html>

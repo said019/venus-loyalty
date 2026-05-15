@@ -65,6 +65,7 @@ import {
   signAdmin,
   setAdminCookie,
   clearAdminCookie,
+  requireRole,
 } from "./lib/auth.js";
 
 // 🍎 Apple Wallet Web Service
@@ -135,12 +136,13 @@ async function fsGetAdminByEmail(email) {
   return { id: snap.docs[0].id, ...snap.docs[0].data() };
 }
 
-async function fsInsertAdmin({ id, email, pass_hash }) {
+async function fsInsertAdmin({ id, email, pass_hash, role = "admin" }) {
   const now = new Date().toISOString();
   await firestore.collection(COL_ADMINS).doc(id).set({
     id,
     email,
     pass_hash,
+    role,
     createdAt: now,
     updatedAt: now,
   });
@@ -155,6 +157,23 @@ async function fsUpdateAdminPassword(adminId, pass_hash) {
     },
     { merge: true }
   );
+}
+
+async function fsUpsertAdmin({ email, pass_hash, role }) {
+  const norm = String(email).trim().toLowerCase();
+  const existing = await fsGetAdminByEmail(norm);
+  const now = new Date().toISOString();
+  if (existing) {
+    await firestore.collection(COL_ADMINS).doc(existing.id).update({
+      ...(pass_hash != null ? { pass_hash } : {}),
+      ...(role != null ? { role } : {}),
+      updatedAt: now,
+    });
+    return existing.id;
+  }
+  const id = `adm_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  await fsInsertAdmin({ id, email: norm, pass_hash, role: role || "admin" });
+  return id;
 }
 
 // ---------- HELPERS RESET PASSWORD ----------
@@ -806,7 +825,7 @@ app.get('/api/products', adminAuth, async (req, res) => {
 });
 
 // POST /api/products - Crear producto
-app.post('/api/products', adminAuth, async (req, res) => {
+app.post('/api/products', adminAuth, requireRole("admin"), async (req, res) => {
   try {
     const { name, category, presentation, price, cost, stock, minStock, description } = req.body;
 
@@ -837,7 +856,7 @@ app.post('/api/products', adminAuth, async (req, res) => {
 });
 
 // PUT /api/products/:id - Actualizar producto
-app.put('/api/products/:id', adminAuth, async (req, res) => {
+app.put('/api/products/:id', adminAuth, requireRole("admin"), async (req, res) => {
   try {
     const { id } = req.params;
     const { name, category, presentation, price, cost, stock, minStock, description } = req.body;
@@ -864,7 +883,7 @@ app.put('/api/products/:id', adminAuth, async (req, res) => {
 });
 
 // DELETE /api/products/:id - Eliminar producto
-app.delete('/api/products/:id', adminAuth, async (req, res) => {
+app.delete('/api/products/:id', adminAuth, requireRole("admin"), async (req, res) => {
   try {
     const { id } = req.params;
     await firestore.collection('products').doc(id).delete();
@@ -876,7 +895,7 @@ app.delete('/api/products/:id', adminAuth, async (req, res) => {
 });
 
 // PATCH /api/products/:id/stock - Actualizar solo stock (para ventas)
-app.patch('/api/products/:id/stock', adminAuth, async (req, res) => {
+app.patch('/api/products/:id/stock', adminAuth, requireRole("admin"), async (req, res) => {
   try {
     const { id } = req.params;
     const { change } = req.body; // +1 o -1
@@ -1096,6 +1115,15 @@ app.post('/api/appointments/:id/payment', adminAuth, async (req, res) => {
       productsSold
     } = req.body;
 
+    // Guardrail recepción: no descuentos en cobro de cita
+    if (req.admin.role === "recepcion") {
+      const dAmt = Number(req.body.discountAmount || req.body.discount || 0);
+      const dVal = Number(req.body.discountValue || 0);
+      if (dAmt > 0 || dVal > 0 || req.body.discountType) {
+        return res.status(403).json({ success: false, error: "discount_locked" });
+      }
+    }
+
     // Obtener cita usando Prisma
     const appointment = await AppointmentsRepo.findById(id);
 
@@ -1176,6 +1204,24 @@ app.post('/api/direct-sales', adminAuth, async (req, res) => {
       return res.json({ success: false, error: 'Se requiere al menos un producto' });
     }
 
+    // Guardrail recepción: bloquear descuentos y precios fuera de catálogo
+    if (req.admin.role === "recepcion") {
+      if (Number(discountAmount) > 0 || Number(discountValue) > 0 || discountType) {
+        return res.status(403).json({ success: false, error: "discount_locked" });
+      }
+      for (const item of productsSold) {
+        if (!item.productId) continue;
+        const productDoc = await firestore.collection('products').doc(item.productId).get();
+        if (!productDoc.exists) continue;
+        const catalogPrice = Number(productDoc.data().price || 0);
+        const expectedSubtotal = catalogPrice * Number(item.qty || 0);
+        const actualSubtotal = Number(item.subtotal || 0);
+        if (Math.abs(actualSubtotal - expectedSubtotal) > 0.01) {
+          return res.status(403).json({ success: false, error: "price_locked" });
+        }
+      }
+    }
+
     console.log('[DIRECT SALE] Procesando venta directa:', { clientName, productsAmount, totalAmount });
 
     // Descontar stock de productos vendidos
@@ -1242,7 +1288,7 @@ app.post('/api/direct-sales', adminAuth, async (req, res) => {
 });
 
 // GET /api/transactions - Obtener historial de ventas (directas y mixtas)
-app.get('/api/transactions', adminAuth, async (req, res) => {
+app.get('/api/transactions', adminAuth, requireRole("admin"), async (req, res) => {
   try {
     const { date } = req.query;
     if (!date) return res.json({ success: false, error: 'Fecha requerida' });
@@ -1478,6 +1524,15 @@ app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
   try {
     const { id } = req.params;
 
+    // Guardrail recepción: bloquear edición/finalización con descuento
+    if (req.admin.role === "recepcion") {
+      const dAmt = Number(req.body.discountAmount || req.body.discount || 0);
+      const dVal = Number(req.body.discountValue || 0);
+      if (dAmt > 0 || dVal > 0 || req.body.discountType) {
+        return res.status(403).json({ success: false, error: "discount_locked" });
+      }
+    }
+
     // Manejar completado/pago si viene status='completed' (Fix para completar cita desde admin)
     if (req.body.status === 'completed' && req.body.totalPaid !== undefined) {
       const { totalPaid, paymentMethod, discount, productsSold } = req.body;
@@ -1694,6 +1749,18 @@ app.patch('/api/appointments/:id/status', adminAuth, async (req, res) => {
       return res.status(404).json({ success: false, error: 'Cita no encontrada' });
     }
 
+    // Guardrail recepción: bloquear cancelación vía status si la cita está pagada
+    if (
+      req.admin.role === "recepcion" &&
+      status === "cancelled" &&
+      appointment.totalPaid != null
+    ) {
+      return res.status(403).json({
+        success: false,
+        error: "paid_appointment_requires_admin",
+      });
+    }
+
     const oldStatus = appointment.status;
 
     // Actualizar estado usando repositorio
@@ -1770,6 +1837,14 @@ app.patch('/api/appointments/:id/cancel', adminAuth, async (req, res) => {
 
     if (!appointment) {
       return res.status(404).json({ success: false, error: 'Cita no encontrada' });
+    }
+
+    // Guardrail: recepción no puede cancelar citas con pago registrado
+    if (req.admin.role === "recepcion" && appointment.totalPaid != null) {
+      return res.status(403).json({
+        success: false,
+        error: "paid_appointment_requires_admin",
+      });
     }
 
     console.log(`[CANCEL] Eliminando cita ${id} - ${appointment.clientName}`);
@@ -2543,7 +2618,7 @@ app.get("/api/apple/test-pass", async (_req, res) => {
    ========================================================= */
 
 // GET /api/expenses - Listar gastos en un rango de fechas
-app.get('/api/expenses', adminAuth, async (req, res) => {
+app.get('/api/expenses', adminAuth, requireRole("admin"), async (req, res) => {
   try {
     const { from, to } = req.query;
 
@@ -2571,7 +2646,7 @@ app.get('/api/expenses', adminAuth, async (req, res) => {
 });
 
 // GET /api/expenses/:id - Obtener un gasto por ID
-app.get('/api/expenses/:id', adminAuth, async (req, res) => {
+app.get('/api/expenses/:id', adminAuth, requireRole("admin"), async (req, res) => {
   try {
     const { id } = req.params;
     const doc = await firestore.collection('expenses').doc(id).get();
@@ -2588,7 +2663,7 @@ app.get('/api/expenses/:id', adminAuth, async (req, res) => {
 });
 
 // POST /api/expenses - Crear nuevo gasto
-app.post('/api/expenses', adminAuth, async (req, res) => {
+app.post('/api/expenses', adminAuth, requireRole("admin"), async (req, res) => {
   try {
     const { date, category, description, amount } = req.body;
 
@@ -2616,7 +2691,7 @@ app.post('/api/expenses', adminAuth, async (req, res) => {
 });
 
 // PUT /api/expenses/:id - Actualizar gasto
-app.put('/api/expenses/:id', adminAuth, async (req, res) => {
+app.put('/api/expenses/:id', adminAuth, requireRole("admin"), async (req, res) => {
   try {
     const { id } = req.params;
     const { date, category, description, amount } = req.body;
@@ -2644,7 +2719,7 @@ app.put('/api/expenses/:id', adminAuth, async (req, res) => {
 });
 
 // DELETE /api/expenses/:id - Eliminar gasto
-app.delete('/api/expenses/:id', adminAuth, async (req, res) => {
+app.delete('/api/expenses/:id', adminAuth, requireRole("admin"), async (req, res) => {
   try {
     const { id } = req.params;
     await firestore.collection('expenses').doc(id).delete();
@@ -2984,7 +3059,7 @@ app.get('/api/settings/business', async (req, res) => {
 });
 
 // POST /api/settings/business - Guardar configuración del negocio
-app.post('/api/settings/business', adminAuth, async (req, res) => {
+app.post('/api/settings/business', adminAuth, requireRole("admin"), async (req, res) => {
   try {
     await firestore.collection('settings').doc('business').set(req.body, { merge: true });
     res.json({ success: true });
@@ -3075,7 +3150,7 @@ app.get('/api/services', adminAuth, async (req, res) => {
 });
 
 // POST /api/services - Crear nuevo servicio (admin)
-app.post('/api/services', adminAuth, async (req, res) => {
+app.post('/api/services', adminAuth, requireRole("admin"), async (req, res) => {
   try {
     const { name, category, durationMinutes, price, description, discount } = req.body;
 
@@ -3109,7 +3184,7 @@ app.post('/api/services', adminAuth, async (req, res) => {
 });
 
 // PUT /api/services/:id - Actualizar servicio (admin)
-app.put('/api/services/:id', adminAuth, async (req, res) => {
+app.put('/api/services/:id', adminAuth, requireRole("admin"), async (req, res) => {
   try {
     const { id } = req.params;
     const { name, category, durationMinutes, price, description, discount } = req.body;
@@ -3142,7 +3217,7 @@ app.put('/api/services/:id', adminAuth, async (req, res) => {
 });
 
 // DELETE /api/services/:id - Eliminar servicio (admin)
-app.delete('/api/services/:id', adminAuth, async (req, res) => {
+app.delete('/api/services/:id', adminAuth, requireRole("admin"), async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -4142,7 +4217,7 @@ app.post('/api/booking-requests/:id/rejected', adminAuth, async (req, res) => {
 /* =========================================================
    MÉTRICAS Y TARJETAS
    ========================================================= */
-app.get("/api/admin/metrics-firebase", adminAuth, async (_req, res) => {
+app.get("/api/admin/metrics-firebase", adminAuth, requireRole("admin"), async (_req, res) => {
   try {
     const m = await fsMetrics();
     res.json({ ...m, source: "firestore" });
@@ -4153,7 +4228,7 @@ app.get("/api/admin/metrics-firebase", adminAuth, async (_req, res) => {
 });
 
 // ⭐ NUEVO: Endpoint para métricas del mes (dashboard)
-app.get("/api/admin/metrics-month", adminAuth, async (_req, res) => {
+app.get("/api/admin/metrics-month", adminAuth, requireRole("admin"), async (_req, res) => {
   try {
     const m = await fsMetricsMonth();
     res.json({ success: true, data: m });
@@ -4164,7 +4239,7 @@ app.get("/api/admin/metrics-month", adminAuth, async (_req, res) => {
 });
 
 // Top clientes (después de /api/admin/metrics-firebase)
-app.get("/api/admin/top-clients", adminAuth, async (req, res) => {
+app.get("/api/admin/top-clients", adminAuth, requireRole("admin"), async (req, res) => {
   try {
     const snap = await firestore
       .collection(COL_CARDS)
@@ -4181,7 +4256,7 @@ app.get("/api/admin/top-clients", adminAuth, async (req, res) => {
 });
 
 // Actividad semanal
-app.get("/api/admin/activity-week", adminAuth, async (req, res) => {
+app.get("/api/admin/activity-week", adminAuth, requireRole("admin"), async (req, res) => {
   try {
     const labels = [];
     const stamps = [];
@@ -4214,7 +4289,7 @@ app.get("/api/admin/activity-week", adminAuth, async (req, res) => {
 });
 
 // Stats de wallets
-app.get("/api/admin/wallet-stats", adminAuth, async (req, res) => {
+app.get("/api/admin/wallet-stats", adminAuth, requireRole("admin"), async (req, res) => {
   try {
     // Contar dispositivos Apple registrados
     const devicesSnap = await firestore.collection(COL_DEVICES).get();
@@ -4235,7 +4310,7 @@ app.get("/api/admin/wallet-stats", adminAuth, async (req, res) => {
   }
 });
 
-app.get("/api/admin/cards-firebase", adminAuth, async (req, res) => {
+app.get("/api/admin/cards-firebase", adminAuth, requireRole("admin"), async (req, res) => {
   try {
     const page = Math.max(1, parseInt(req.query.page || "1", 10));
     const limit = parseInt(req.query.limit || "100", 10);
@@ -4274,7 +4349,7 @@ app.get("/api/admin/cards-firebase", adminAuth, async (req, res) => {
 });
 
 // ⭐ NUEVO: Endpoint para corregir campo lastVisit en tarjetas existentes
-app.post("/api/admin/fix-lastvisit", adminAuth, async (req, res) => {
+app.post("/api/admin/fix-lastvisit", adminAuth, requireRole("admin"), async (req, res) => {
   try {
     console.log('🔧 Iniciando corrección de campo lastVisit...');
 
@@ -4325,7 +4400,7 @@ app.post("/api/admin/fix-lastvisit", adminAuth, async (req, res) => {
   }
 });
 
-app.get("/api/admin/events-firebase", adminAuth, async (req, res) => {
+app.get("/api/admin/events-firebase", adminAuth, requireRole("admin"), async (req, res) => {
   try {
     const { cardId } = req.query || {};
     if (!cardId) return res.status(400).json({ error: "missing_cardId" });
@@ -4338,7 +4413,7 @@ app.get("/api/admin/events-firebase", adminAuth, async (req, res) => {
 });
 
 // ⭐ NUEVO: Endpoint para estadísticas del dashboard (HOY)
-app.get("/api/dashboard/today", adminAuth, async (req, res) => {
+app.get("/api/dashboard/today", adminAuth, requireRole("admin"), async (req, res) => {
   try {
     // Obtener fecha de hoy en formato "YYYY-MM-DD"
     const today = new Date().toISOString().slice(0, 10);
@@ -4387,7 +4462,7 @@ app.get("/api/dashboard/today", adminAuth, async (req, res) => {
 });
 
 // ⭐ NUEVO: Endpoint para historial de actividad (7 días)
-app.get("/api/dashboard/history", adminAuth, async (req, res) => {
+app.get("/api/dashboard/history", adminAuth, requireRole("admin"), async (req, res) => {
   try {
     const history = [];
     const now = new Date();
@@ -4609,7 +4684,7 @@ app.post("/api/stamp/:cardId", basicAuth, async (req, res) => {
 /* =========================================================
    PUSH NOTIFICATIONS
    ========================================================= */
-app.post("/api/admin/push-notification", adminAuth, sendMassPushNotification);
+app.post("/api/admin/push-notification", adminAuth, requireRole("admin"), sendMassPushNotification);
 app.post("/api/admin/push-test", adminAuth, sendTestPushNotification);
 app.get("/api/admin/notifications", adminAuth, getNotifications);
 
@@ -4700,7 +4775,7 @@ let promoState = {
 };
 
 // 1a) INICIAR análisis en background (no bloquea)
-app.post('/api/admin/promo-2025/analyze', adminAuth, async (req, res) => {
+app.post('/api/admin/promo-2025/analyze', adminAuth, requireRole("admin"), async (req, res) => {
   if (promoAnalysis.status === 'running') {
     return res.json({ success: true, message: 'Análisis ya en curso', status: promoAnalysis.status, processed: promoAnalysis.processed, total: promoAnalysis.total });
   }
@@ -4801,7 +4876,7 @@ app.get('/api/admin/promo-2025/analysis', adminAuth, (req, res) => {
 });
 
 // 2) INICIAR campaña (solo con clientes aprobados del análisis)
-app.post('/api/admin/promo-2025/start', adminAuth, async (req, res) => {
+app.post('/api/admin/promo-2025/start', adminAuth, requireRole("admin"), async (req, res) => {
   if (promoState.running) {
     return res.json({ success: false, error: 'Ya hay una campaña en curso', status: getPromoStatus() });
   }
@@ -4887,7 +4962,7 @@ app.get('/api/admin/promo-2025/status', adminAuth, (req, res) => {
 });
 
 // 4) Detener
-app.post('/api/admin/promo-2025/stop', adminAuth, (req, res) => {
+app.post('/api/admin/promo-2025/stop', adminAuth, requireRole("admin"), (req, res) => {
   if (promoState.intervalId) clearInterval(promoState.intervalId);
   promoState.running = false;
   promoState.intervalId = null;
@@ -5472,10 +5547,11 @@ app.post("/api/admin/login", async (req, res) => {
       return res.status(401).json({ error: "invalid_credentials" });
     }
 
-    const token = signAdmin({ id: admin.id, email: admin.email });
+    const role = admin.role || "admin";
+    const token = signAdmin({ id: admin.id, email: admin.email, role });
     setAdminCookie(res, token);
 
-    res.json({ ok: true });
+    res.json({ ok: true, role });
   } catch (e) {
     console.error("[ADMIN LOGIN]", e);
     res.status(500).json({ error: e.message });
@@ -5488,7 +5564,7 @@ app.post("/api/admin/logout", (_req, res) => {
 });
 
 app.get("/api/admin/me", adminAuth, (req, res) => {
-  res.json({ uid: req.admin.uid, email: req.admin.email });
+  res.json({ uid: req.admin.uid, email: req.admin.email, role: req.admin.role });
 });
 
 app.get("/api/admin/cards", adminAuth, async (req, res) => {
@@ -5651,7 +5727,7 @@ app.post("/api/admin/redeem", adminAuth, async (req, res) => {
   }
 });
 
-app.get("/api/admin/metrics", adminAuth, async (_req, res) => {
+app.get("/api/admin/metrics", adminAuth, requireRole("admin"), async (_req, res) => {
   try {
     const m = await fsMetrics();
     res.json(m);

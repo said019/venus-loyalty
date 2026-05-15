@@ -46,6 +46,15 @@ async function me() {
     return;
   }
   const j = await r.json();
+  if (j.role === "recepcion") {
+    const embedded = window.self !== window.top;
+    if (!embedded) {
+      location.replace("/recepcion.html");
+      return;
+    }
+    // Embebido: dejamos cargar el panel pero marcamos el body para ocultar acciones admin-only via CSS.
+    document.body.classList.add("role-recepcion");
+  }
   $("#me-line").textContent = `Sesión: ${j.email}`;
 }
 $("#logout").onclick = async () => {

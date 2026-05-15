@@ -5446,6 +5446,16 @@
       }
     }
 
+    /* Recepción (rol limitado) — oculta acciones admin-only en vistas embebidas */
+    body.role-recepcion [data-role-hide~="recepcion"] {
+      display: none !important;
+    }
+    body.role-recepcion .pos-price-input,
+    body.role-recepcion .pos-discount-input {
+      pointer-events: none;
+      background: #f1f1f1;
+    }
+
   </style>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
