@@ -67,6 +67,7 @@ import {
   clearAdminCookie,
   requireRole,
 } from "./lib/auth.js";
+import jwt from "jsonwebtoken";
 
 // 🍎 Apple Wallet Web Service
 import appleWebService from './lib/apple-webservice.js';
@@ -2181,7 +2182,25 @@ function basicAuth(req, res, next) {
 /* =========================================================
    Páginas HTML
    ========================================================= */
-app.get("/admin", (_req, res) => {
+// Guard server-side: si la cookie 'adm' tiene rol "recepcion", el server
+// redirige a /recepcion.html ANTES de servir admin.html. Evita que la UI
+// admin se vea aunque el JS del cliente venga cacheado.
+function redirectIfRecepcion(req, res, next) {
+  try {
+    const raw = req.cookies?.adm;
+    if (!raw) return next();
+    const payload = jwt.verify(raw, process.env.ADMIN_JWT_SECRET);
+    if (payload?.role === 'recepcion') {
+      return res.redirect(302, '/recepcion.html');
+    }
+  } catch { /* token inválido → seguir, la página pedirá login */ }
+  next();
+}
+
+app.get("/admin", redirectIfRecepcion, (_req, res) => {
+  res.sendFile(path.join(__dirname, "public", "admin.html"));
+});
+app.get("/admin.html", redirectIfRecepcion, (_req, res) => {
   res.sendFile(path.join(__dirname, "public", "admin.html"));
 });
 app.get("/admin-login.html", (_req, res) => {
