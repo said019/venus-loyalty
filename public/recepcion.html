@@ -4,19 +4,25 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Venus · Recepción</title>
-  <link rel="icon" href="/assets/logo.png">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="icon" href="/assets/logo.png" />
+  <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#8c9668" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/recepcion.css" />
 </head>
 <body>
   <header class="rec-topbar">
     <div class="rec-brand">
       <img src="/assets/logo.png" alt="Venus" />
-      <span>Venus · Recepción</span>
+      <div>
+        <strong>Venus</strong>
+        <span>Recepción</span>
+      </div>
     </div>
     <div class="rec-meta">
       <span id="recClock">--:--</span>
-      <button id="recLogout" class="btn btn-sm btn-outline-light">Cerrar sesión</button>
+      <button id="recLogout" class="rec-btn rec-btn-ghost">Cerrar sesión</button>
     </div>
   </header>
 
@@ -25,27 +31,105 @@
     <button class="rec-tab" data-tab="calendario">Calendario</button>
     <button class="rec-tab" data-tab="cobrar">Cobrar</button>
     <button class="rec-tab" data-tab="clientas">Clientas</button>
-    <button class="rec-tab" data-tab="whatsapp">WhatsApp</button>
+    <button class="rec-tab" data-tab="whatsapp">Solicitudes</button>
   </nav>
 
   <main class="rec-main">
+    <!-- ====================== HOY ====================== -->
     <section data-pane="hoy" class="rec-pane active">
+      <div class="rec-pane-head">
+        <h1>Hoy</h1>
+        <button class="rec-btn rec-btn-primary" data-go="nueva-cita">+ Nueva cita</button>
+      </div>
       <div class="rec-counters" id="recCounters">Cargando…</div>
       <div class="rec-list" id="recCitasHoy"></div>
     </section>
+
+    <!-- ====================== CALENDARIO ====================== -->
     <section data-pane="calendario" class="rec-pane">
-      <iframe src="/admin.html#appointments" class="rec-frame" title="Calendario"></iframe>
+      <div class="rec-pane-head">
+        <h1>Calendario</h1>
+        <button class="rec-btn rec-btn-primary" data-go="nueva-cita">+ Nueva cita</button>
+      </div>
+      <div class="rec-datebar">
+        <button class="rec-btn rec-btn-ghost" id="recDatePrev" aria-label="Día anterior">‹</button>
+        <input type="date" id="recDatePick" class="rec-input" />
+        <button class="rec-btn rec-btn-ghost" id="recDateNext" aria-label="Día siguiente">›</button>
+        <button class="rec-btn rec-btn-ghost" id="recDateToday">Hoy</button>
+      </div>
+      <div class="rec-counters" id="recCalCounters"></div>
+      <div class="rec-list" id="recCitasCal"></div>
     </section>
+
+    <!-- ====================== COBRAR ====================== -->
     <section data-pane="cobrar" class="rec-pane">
-      <iframe src="/coffee-pos.html?role=recepcion" class="rec-frame" title="Cobrar"></iframe>
+      <div class="rec-pane-head">
+        <h1>Cobrar</h1>
+        <span class="rec-hint">Punto de venta de cafetería · ventas rápidas</span>
+      </div>
+      <iframe id="recPosFrame" data-src="/coffee-pos.html?role=recepcion" class="rec-frame" title="Cobrar"></iframe>
     </section>
+
+    <!-- ====================== CLIENTAS ====================== -->
     <section data-pane="clientas" class="rec-pane">
-      <iframe src="/admin.html#cards" class="rec-frame" title="Clientas"></iframe>
+      <div class="rec-pane-head">
+        <h1>Clientas</h1>
+      </div>
+      <div class="rec-searchbar">
+        <input type="search" id="recCardSearch" class="rec-input" placeholder="Buscar por nombre o teléfono…" />
+      </div>
+      <div class="rec-cards-grid" id="recCardsList"></div>
+      <div class="rec-pager">
+        <button class="rec-btn rec-btn-ghost" id="recCardsPrev">‹ Anterior</button>
+        <span id="recCardsPage">—</span>
+        <button class="rec-btn rec-btn-ghost" id="recCardsNext">Siguiente ›</button>
+      </div>
     </section>
+
+    <!-- ====================== SOLICITUDES (WhatsApp) ====================== -->
     <section data-pane="whatsapp" class="rec-pane">
-      <iframe src="/admin.html#requests" class="rec-frame" title="WhatsApp"></iframe>
+      <div class="rec-pane-head">
+        <h1>Solicitudes de cita</h1>
+        <button class="rec-btn rec-btn-ghost" id="recReqRefresh">Actualizar</button>
+      </div>
+      <div class="rec-list" id="recRequests"></div>
     </section>
   </main>
+
+  <!-- ====================== MODAL: NUEVA CITA ====================== -->
+  <dialog id="recApptDialog" class="rec-dialog">
+    <form method="dialog" class="rec-dialog-body" id="recApptForm">
+      <h2>Nueva cita</h2>
+      <label class="rec-field">
+        <span>Nombre de la clienta</span>
+        <input type="text" id="recApptName" class="rec-input" autocomplete="off" required />
+        <div class="rec-suggest" id="recApptSuggest"></div>
+      </label>
+      <label class="rec-field">
+        <span>Teléfono</span>
+        <input type="tel" id="recApptPhone" class="rec-input" inputmode="numeric" required />
+      </label>
+      <label class="rec-field">
+        <span>Servicio</span>
+        <select id="recApptService" class="rec-input" required></select>
+      </label>
+      <div class="rec-field-row">
+        <label class="rec-field">
+          <span>Fecha</span>
+          <input type="date" id="recApptDate" class="rec-input" required />
+        </label>
+        <label class="rec-field">
+          <span>Hora</span>
+          <input type="time" id="recApptTime" class="rec-input" step="900" required />
+        </label>
+      </div>
+      <p class="rec-dialog-err" id="recApptErr" hidden></p>
+      <div class="rec-dialog-actions">
+        <button type="button" class="rec-btn rec-btn-ghost" id="recApptCancel">Cancelar</button>
+        <button type="submit" class="rec-btn rec-btn-primary" id="recApptSave">Agendar</button>
+      </div>
+    </form>
+  </dialog>
 
   <script src="/recepcion.js" type="module"></script>
 </body>
