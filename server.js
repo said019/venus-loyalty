@@ -2246,6 +2246,12 @@ app.get("/admin", redirectIfRecepcion, (_req, res) => {
 app.get("/admin.html", redirectIfRecepcion, (_req, res) => {
   res.sendFile(path.join(__dirname, "public", "admin.html"));
 });
+// Soporta /admin/clientas, /admin/agenda, etc. (deep linking del SPA).
+// El slug NO se valida aquí: el router del cliente decide qué pestaña abrir
+// (cualquier slug desconocido cae en Inicio). Mismo guard de recepción.
+app.get("/admin/:slug", redirectIfRecepcion, (_req, res) => {
+  res.sendFile(path.join(__dirname, "public", "admin.html"));
+});
 app.get("/admin-login.html", (_req, res) => {
   res.sendFile(path.join(__dirname, "public", "admin-login.html"));
 });
