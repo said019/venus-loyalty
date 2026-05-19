@@ -5,7 +5,10 @@
 import fs from 'node:fs';
 import { execSync } from 'node:child_process';
 
-const origLines = execSync('git show HEAD:public/admin.html').toString('utf8').split('\n');
+// Ref del admin.html ORIGINAL (con los <style> inline). Por defecto HEAD;
+// tras commitear la extracción, pasar la ref previa: node verify-admin-css.js HEAD~1
+const BASE = process.argv[2] || 'HEAD';
+const origLines = execSync(`git show ${BASE}:public/admin.html`).toString('utf8').split('\n');
 
 // (1-based) open = línea <style>, close = línea </style>
 const BLOCKS = [

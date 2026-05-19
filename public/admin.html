@@ -3327,6 +3327,7 @@
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <!-- Chart.js lib -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="/js/admin/core/api.js"></script>
 
   <script>
     // ===== FUNCIONES GLOBALES MENÚ MÓVIL =====
@@ -4567,7 +4568,7 @@
         // Fetch ALL cards for Birthdays & Report
         // Note: For large datasets, this should be paginated or a separate endpoint
         try {
-          const cardsResp = await fetch('/api/admin/cards-firebase?limit=1000', { credentials: 'include' });
+          const cardsResp = await apiFetch('/api/admin/cards-firebase?limit=1000');
           if (cardsResp.ok) {
             const cardsData = await cardsResp.json();
             checkOverviewBirthdays(cardsData.items || []);
@@ -5500,7 +5501,7 @@
       const btn = document.getElementById('btn-promo-analyze');
       const status = document.getElementById('promo-analyze-status');
       try {
-        const res = await fetch('/api/admin/promo-2025/analysis', { credentials: 'include' });
+        const res = await apiFetch('/api/admin/promo-2025/analysis');
         const json = await res.json();
 
         if (json.status === 'running') {
@@ -5617,7 +5618,7 @@
 
     async function refreshPromoStatus() {
       try {
-        const res = await fetch('/api/admin/promo-2025/status', { credentials: 'include' });
+        const res = await apiFetch('/api/admin/promo-2025/status');
         const json = await res.json();
         if (json.success) updatePromoUI(json);
       } catch (e) { /* silencio */ }
@@ -7650,7 +7651,7 @@
         let hasMore = true;
 
         while (hasMore) {
-          const res = await fetch(`/api/admin/cards-firebase?page=${page}&limit=100`, { credentials: 'include' });
+          const res = await apiFetch(`/api/admin/cards-firebase?page=${page}&limit=100`);
           const data = await res.json();
 
           if (data.items && data.items.length > 0) {
@@ -9691,7 +9692,7 @@
 
         servicesTbody.innerHTML = '<tr><td colspan="5" class="muted" style="text-align:center;padding:20px;visibility:visible !important;">Cargando...</td></tr>';
 
-        const res = await fetch('/api/services', { credentials: 'include' });
+        const res = await apiFetch('/api/services');
         console.log('[SERVICES] Respuesta recibida:', res.status);
 
         const json = await res.json();
@@ -10016,7 +10017,7 @@
       tbody.innerHTML = '<tr><td colspan="5" class="muted" style="text-align:center;padding:20px;">Cargando...</td></tr>';
 
       try {
-        const res = await fetch('/api/products', { credentials: 'include' });
+        const res = await apiFetch('/api/products');
         const json = await res.json();
 
         if (json.success) {
@@ -10251,7 +10252,7 @@
       if (!select) return;
 
       try {
-        const res = await fetch('/api/services', { credentials: 'include' });
+        const res = await apiFetch('/api/services');
         const json = await res.json();
 
         if (json.success && json.data) {
@@ -10284,7 +10285,7 @@
       list.innerHTML = '<div class="gc-empty"><i class="fas fa-spinner fa-spin"></i><p>Cargando...</p></div>';
 
       try {
-        const res = await fetch('/api/giftcards', { credentials: 'include' });
+        const res = await apiFetch('/api/giftcards');
         const json = await res.json();
 
         if (json.success) {
@@ -10713,7 +10714,7 @@
 
     async function loadProductsForPayment() {
       try {
-        const res = await fetch('/api/products', { credentials: 'include' });
+        const res = await apiFetch('/api/products');
         const json = await res.json();
 
         if (json.success) {
@@ -10778,7 +10779,7 @@
       // Si es edición, obtener datos actuales de la cita
       if (isEdit) {
         try {
-          const res = await fetch(`/api/appointments/${appointmentId}`, { credentials: 'include' });
+          const res = await apiFetch(`/api/appointments/${appointmentId}`);
           const json = await res.json();
           if (json.success && json.data) {
             const appt = json.data;
@@ -10817,7 +10818,7 @@
       if (!servicePrice || servicePrice === 0) {
         console.log('[PAYMENT] Precio no disponible, obteniendo del servidor...');
         try {
-          const res = await fetch(`/api/appointments/${appointmentId}`, { credentials: 'include' });
+          const res = await apiFetch(`/api/appointments/${appointmentId}`);
           const json = await res.json();
 
           if (json.success && json.data) {
@@ -10828,7 +10829,7 @@
             if (!servicePrice || servicePrice === 0) {
               const serviceId = json.data.serviceId;
               if (serviceId) {
-                const servRes = await fetch('/api/services', { credentials: 'include' });
+                const servRes = await apiFetch('/api/services');
                 const servJson = await servRes.json();
                 if (servJson.success) {
                   const service = servJson.data.find(s => s.id === serviceId);
@@ -11162,7 +11163,7 @@
     // ========== VER DETALLE DE PAGO ==========
     async function viewPaymentDetails(appointmentId) {
       try {
-        const res = await fetch(`/api/appointments/${appointmentId}`, { credentials: 'include' });
+        const res = await apiFetch(`/api/appointments/${appointmentId}`);
         const json = await res.json();
         if (!json.success) return alert('Error cargando detalles');
 
@@ -11281,7 +11282,7 @@
 
     async function loadProductsForDirectSale() {
       try {
-        const res = await fetch('/api/products', { credentials: 'include' });
+        const res = await apiFetch('/api/products');
         const json = await res.json();
         if (json.success) {
           const select = document.getElementById('direct-sale-product-select');
@@ -11514,7 +11515,7 @@
     async function loadDashboardStats() {
       try {
         // 1. Cargar métricas del mes desde el servidor (datos reales de eventos)
-        const metricsRes = await fetch('/api/admin/metrics-month', { credentials: 'include' });
+        const metricsRes = await apiFetch('/api/admin/metrics-month');
         const metricsJson = await metricsRes.json();
 
         if (metricsJson.success && metricsJson.data) {
@@ -11532,7 +11533,7 @@
         let hasMore = true;
 
         while (hasMore) {
-          const clientsRes = await fetch(`/api/admin/cards-firebase?page=${page}&limit=100`, { credentials: 'include' });
+          const clientsRes = await apiFetch(`/api/admin/cards-firebase?page=${page}&limit=100`);
           const clientsJson = await clientsRes.json();
 
           if (clientsJson.items && clientsJson.items.length > 0) {
@@ -11577,7 +11578,7 @@
     // Cargar stats de hoy
     async function loadTodayStats() {
       try {
-        const res = await fetch('/api/dashboard/today', { credentials: 'include' });
+        const res = await apiFetch('/api/dashboard/today');
         const json = await res.json();
 
         if (json.success) {
@@ -11614,7 +11615,7 @@
     // Cargar stats de gift cards
     async function loadGiftCardStats() {
       try {
-        const res = await fetch('/api/giftcards', { credentials: 'include' });
+        const res = await apiFetch('/api/giftcards');
         const json = await res.json();
 
         if (json.success) {
@@ -11717,7 +11718,7 @@
     // Cargar y renderizar gráfica de actividad del dashboard
     async function loadDashboardActivityChart() {
       try {
-        const res = await fetch('/api/dashboard/history', { credentials: 'include' });
+        const res = await apiFetch('/api/dashboard/history');
         const json = await res.json();
 
         if (!json.success) return;
@@ -12110,7 +12111,7 @@
           return;
         }
 
-        const res = await fetch(`/api/card/${encodeURIComponent(normalizedCardId)}`, { credentials: 'include' });
+        const res = await apiFetch(`/api/card/${encodeURIComponent(normalizedCardId)}`);
         const json = await res.json();
 
         if (json.success) {
@@ -12131,7 +12132,7 @@
 
     async function handleGiftCardScan(code) {
       try {
-        const res = await fetch(`/api/giftcards/code/${code}`, { credentials: 'include' });
+        const res = await apiFetch(`/api/giftcards/code/${code}`);
         const json = await res.json();
 
         if (json.success) {
@@ -12378,7 +12379,7 @@
     async function loadBookingRequests() {
       try {
         console.log('[REQUESTS] 📥 Cargando solicitudes...');
-        const res = await fetch('/api/booking-requests', { credentials: 'include' });
+        const res = await apiFetch('/api/booking-requests');
         const json = await res.json();
 
         console.log('[REQUESTS] Respuesta:', json);
@@ -12808,7 +12809,7 @@
     // ===== GOOGLE CALENDAR =====
     async function loadGoogleCalendarStatus() {
       try {
-        const res = await fetch('/api/admin/calendar/status', { credentials: 'include' });
+        const res = await apiFetch('/api/admin/calendar/status');
         const json = await res.json();
         const badge = document.getElementById('gcal-status-badge');
         const connDiv = document.getElementById('gcal-connected');
@@ -12833,7 +12834,7 @@
 
     async function connectGoogleCalendar() {
       try {
-        const res = await fetch('/api/admin/calendar/auth', { credentials: 'include' });
+        const res = await apiFetch('/api/admin/calendar/auth');
         const json = await res.json();
         if (json.authUrl) {
           window.open(json.authUrl, '_blank');
@@ -12957,7 +12958,7 @@
     async function loadNotifications() {
       try {
         console.log('[NOTIF] 📥 Cargando notificaciones...');
-        const res = await fetch('/api/notifications?limit=30', { credentials: 'include' });
+        const res = await apiFetch('/api/notifications?limit=30');
         const json = await res.json();
 
         console.log('[NOTIF] Respuesta:', json);
@@ -12979,7 +12980,7 @@
     async function checkNewNotifications() {
       try {
         const lastId = notifications[0]?.id || '';
-        const res = await fetch(`/api/notifications/new?after=${lastId}`, { credentials: 'include' });
+        const res = await apiFetch(`/api/notifications/new?after=${lastId}`);
         const json = await res.json();
 
         if (json.success && json.data?.length > 0) {
@@ -13255,7 +13256,7 @@
 
     async function checkBirthdays() {
       try {
-        const res = await fetch('/api/admin/cards-firebase', { credentials: 'include' });
+        const res = await apiFetch('/api/admin/cards-firebase');
         const json = await res.json();
 
         if (json.success) {
@@ -13412,7 +13413,7 @@
     // Cargar Google Maps API con la key del servidor (usando loading=async)
     async function loadGoogleMapsAPI() {
       try {
-        const res = await fetch('/api/config/maps-key', { credentials: 'include' });
+        const res = await apiFetch('/api/config/maps-key');
         const json = await res.json();
 
         if (json.success && json.apiKey) {
@@ -13485,11 +13486,11 @@
         const hoy = getFechaMexico(); // Hasta hoy, no futuras
 
         // Cargar citas del día seleccionado (para historial de cobros)
-        const resCitasDia = await fetch(`/api/appointments?date=${fecha}`, { credentials: 'include' });
+        const resCitasDia = await apiFetch(`/api/appointments?date=${fecha}`);
         const jsonCitasDia = await resCitasDia.json();
         
         // Cargar citas desde inicio del mes hasta HOY (para pendientes de cobro)
-        const resCitasMes = await fetch(`/api/appointments/range?from=${primerDiaMes}&to=${hoy}`, { credentials: 'include' });
+        const resCitasMes = await apiFetch(`/api/appointments/range?from=${primerDiaMes}&to=${hoy}`);
         const jsonCitasMes = await resCitasMes.json();
         
         let citasDia = jsonCitasDia.success ? (jsonCitasDia.data || []) : [];
@@ -13542,7 +13543,7 @@
 
         // Cargar ventas directas (productos sin cita)
         try {
-          const resVentas = await fetch(`/api/transactions?date=${fecha}`, { credentials: 'include' });
+          const resVentas = await apiFetch(`/api/transactions?date=${fecha}`);
           if (resVentas.ok) {
             const jsonVentas = await resVentas.json();
             if (jsonVentas.success && jsonVentas.data) {
@@ -13778,9 +13779,9 @@
       try {
         // Cargar cita, productos y servicios en paralelo
         const [resCita, resProductos, resServicios] = await Promise.all([
-          fetch(`/api/appointments/${citaId}`, { credentials: 'include' }),
-          fetch('/api/products', { credentials: 'include' }),
-          fetch('/api/services', { credentials: 'include' })
+          apiFetch(`/api/appointments/${citaId}`),
+          apiFetch('/api/products'),
+          apiFetch('/api/services')
         ]);
         
         const jsonCita = await resCita.json();
@@ -14488,7 +14489,7 @@
 
     async function cargarServiciosReporte() {
       try {
-        const res = await fetch('/api/services', { credentials: 'include' });
+        const res = await apiFetch('/api/services');
         const json = await res.json();
 
         if (json.success) {
@@ -14546,7 +14547,7 @@
         console.log('[REPORTS] URL:', `/api/appointments/range?from=${fromISO}&to=${toISO}`);
 
         // Cargar todas las citas completadas en el rango
-        const res = await fetch(`/api/appointments/range?from=${fromISO}&to=${toISO}`, { credentials: 'include' });
+        const res = await apiFetch(`/api/appointments/range?from=${fromISO}&to=${toISO}`);
         console.log('[REPORTS] Fetch completado. Status:', res.status, res.statusText);
 
         const json = await res.json();
@@ -15134,8 +15135,8 @@
 
         // Cargar citas y ventas de cafetería en paralelo
         const [apptRes, coffeeRes] = await Promise.all([
-          fetch(`/api/appointments/range?from=${fromISO}&to=${toISO}`, { credentials: 'include' }),
-          fetch(`/api/pos/sales?from=${firstDay}&to=${lastDayStr}`, { credentials: 'include' })
+          apiFetch(`/api/appointments/range?from=${fromISO}&to=${toISO}`),
+          apiFetch(`/api/pos/sales?from=${firstDay}&to=${lastDayStr}`)
         ]);
 
         const [apptJson, coffeeJson] = await Promise.all([apptRes.json(), coffeeRes.json()]);
@@ -15479,8 +15480,8 @@
         console.log('[REPORTS] Cargando rango:', from, 'a', to);
 
         const [apptRes, coffeeRes] = await Promise.all([
-          fetch(`/api/appointments/range?from=${fromISO}&to=${toISO}`, { credentials: 'include' }),
-          fetch(`/api/pos/sales?from=${from}&to=${to}`, { credentials: 'include' })
+          apiFetch(`/api/appointments/range?from=${fromISO}&to=${toISO}`),
+          apiFetch(`/api/pos/sales?from=${from}&to=${to}`)
         ]);
 
         const [apptJson, coffeeJson] = await Promise.all([apptRes.json(), coffeeRes.json()]);
@@ -15574,7 +15575,7 @@
       try {
         console.log(`[EXPENSES] Cargando gastos del ${from} al ${to}`);
 
-        const res = await fetch(`/api/expenses?from=${from}&to=${to}`, { credentials: 'include' });
+        const res = await apiFetch(`/api/expenses?from=${from}&to=${to}`);
         const json = await res.json();
 
         if (!json.success) {
@@ -15625,7 +15626,7 @@
 
         console.log(`[EXPENSES] Cargando gastos del ${firstDay} al ${lastDayStr}`);
 
-        const res = await fetch(`/api/expenses?from=${firstDay}&to=${lastDayStr}`, { credentials: 'include' });
+        const res = await apiFetch(`/api/expenses?from=${firstDay}&to=${lastDayStr}`);
         const json = await res.json();
 
         if (!json.success) {
@@ -15748,7 +15749,7 @@
 
     window.editExpense = async function (id) {
       try {
-        const res = await fetch(`/api/expenses/${id}`, { credentials: 'include' });
+        const res = await apiFetch(`/api/expenses/${id}`);
         const json = await res.json();
 
         if (!json.success) {
@@ -16058,7 +16059,7 @@
       listEl.innerHTML = '<div style="text-align:center;padding:40px;color:#aaa;"><i class="fas fa-spinner fa-spin" style="font-size:28px;"></i></div>';
 
       try {
-        const r = await fetch('/api/admin/reviews?limit=100', { credentials: 'include' });
+        const r = await apiFetch('/api/admin/reviews?limit=100');
         const d = await r.json();
         if (!d.success) throw new Error(d.error);
 
