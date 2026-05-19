@@ -650,25 +650,49 @@ app.get('/api/evolution/status', adminAuth, async (req, res) => {
 
 // POST /api/evolution/connect - Crear instancia y generar QR
 app.post('/api/evolution/connect', adminAuth, async (req, res) => {
+  const client = getEvolutionClient();
+  let createInfo = null;
+  let createError = null;
+
+  // Intentar crear instancia si no existe. Sólo silenciamos el caso típico
+  // de "ya existe" (403/409); cualquier otro error sí debe surfacearse.
   try {
-    const client = getEvolutionClient();
-
-    // Intentar crear instancia si no existe
-    try {
-      await client.createInstance();
-      console.log('[Evolution] Instancia creada');
-    } catch (e) {
+    await client.createInstance();
+    createInfo = 'created';
+    console.log('[Evolution] Instancia creada');
+  } catch (e) {
+    const status = e.response?.status;
+    const msg = e.response?.data?.message || e.response?.data?.error || e.message;
+    if (status === 403 || status === 409) {
+      createInfo = 'already_exists';
       console.log('[Evolution] Instancia ya existe, conectando...');
+    } else {
+      createError = { status, message: msg };
+      console.warn('[Evolution] createInstance falló:', status, msg);
     }
+  }
 
+  try {
     const result = await client.connectInstance();
-    res.json({
+    return res.json({
       success: true,
-      qrCode: result.base64 || null,
+      qrCode: result.base64 || result.code || null,
+      createInfo,
     });
   } catch (error) {
-    console.error('[Evolution] Error conectando:', error.message);
-    res.status(500).json({ error: 'Error conectando', details: error.message });
+    const status = error.response?.status;
+    const msg = error.response?.data?.message || error.response?.data?.error || error.message;
+    console.error('[Evolution] connectInstance falló:', status, msg);
+    return res.status(status === 404 ? 404 : 500).json({
+      error: 'Error conectando',
+      details: msg,
+      status,
+      createInfo,
+      createError,
+      hint: status === 404
+        ? 'La instancia no existe en el servidor Evolution y no se pudo crear. Revisa EVOLUTION_API_URL, EVOLUTION_API_KEY y que el servidor esté activo.'
+        : undefined,
+    });
   }
 });
 

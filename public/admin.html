@@ -950,6 +950,43 @@
         </div>
       </div>
 
+      <!-- WhatsApp / Evolution API -->
+      <div style="background:rgba(37,211,102,0.08);border:1px solid rgba(37,211,102,0.25);border-radius:12px;padding:14px;margin:12px 0;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <h3 style="margin:0;"><i class="fab fa-whatsapp" style="color:#25d366;"></i> WhatsApp</h3>
+          <span id="wa-status-badge" style="font-size:12px;padding:4px 10px;border-radius:20px;background:#e74c3c20;color:#e74c3c;">Verificando…</span>
+        </div>
+        <p class="muted" style="margin:0 0 12px;font-size:12px;">Estado de la conexión de WhatsApp (Evolution API) para notificaciones automáticas y encuestas de confirmación.</p>
+
+        <div id="wa-status-container">
+          <div id="wa-loading" style="font-size:13px;color:var(--muted);"><i class="fas fa-spinner fa-spin"></i> Verificando…</div>
+
+          <div id="wa-connected" style="display:none;">
+            <div id="wa-details" style="font-size:13px;color:var(--muted);margin-bottom:12px;"></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button class="btn small ghost" onclick="testWhatsApp()"><i class="fas fa-paper-plane"></i> Enviar prueba</button>
+              <button class="btn danger small" onclick="disconnectWhatsApp()"><i class="fas fa-unlink"></i> Desconectar</button>
+            </div>
+          </div>
+
+          <div id="wa-disconnected" style="display:none;">
+            <p class="muted" style="font-size:12px;margin:0 0 12px;">Conecta tu WhatsApp escaneando el código QR. La sesión queda guardada en la instancia.</p>
+            <button class="btn primary" onclick="connectWhatsApp()" style="background:#25d366;border-color:#25d366;">
+              <i class="fab fa-whatsapp"></i> Conectar WhatsApp
+            </button>
+            <div id="wa-qr-container" style="display:none;margin-top:16px;text-align:center;">
+              <img id="wa-qr-img" style="max-width:256px;border-radius:12px;background:#fff;padding:8px;">
+              <p class="muted" style="font-size:12px;margin-top:8px;">Escanea este QR con WhatsApp · se cierra solo al detectar conexión</p>
+            </div>
+            <div id="wa-connect-error" class="muted" style="display:none;margin-top:10px;font-size:12px;color:#e74c3c;"></div>
+          </div>
+
+          <div id="wa-not-configured" style="display:none;">
+            <p class="muted" style="margin:0;font-size:12px;"><i class="fas fa-info-circle"></i> Evolution API no está configurada. Define <code>EVOLUTION_API_URL</code> y <code>EVOLUTION_API_KEY</code> en las variables de entorno de Render.</p>
+          </div>
+        </div>
+      </div>
+
       <p class="muted" style="margin-top:20px;">Envía notificaciones push a todos los pases en Google Wallet.</p>
 
       <div
@@ -12759,6 +12796,125 @@
       } catch (err) { showNotification('Error conectando Google Calendar', 'error'); }
     }
 
+    /* ===================== WHATSAPP / EVOLUTION API ===================== */
+    async function checkWhatsAppStatus() {
+      const loading = document.getElementById('wa-loading');
+      const connected = document.getElementById('wa-connected');
+      const disconnected = document.getElementById('wa-disconnected');
+      const notConfigured = document.getElementById('wa-not-configured');
+      const badge = document.getElementById('wa-status-badge');
+      if (!loading || !badge) return;
+
+      loading.style.display = 'block';
+      connected.style.display = 'none';
+      disconnected.style.display = 'none';
+      notConfigured.style.display = 'none';
+      badge.textContent = 'Verificando…';
+      badge.style.background = '#94a3b820';
+      badge.style.color = '#94a3b8';
+
+      try {
+        const res = await fetch('/api/evolution/status', { credentials: 'include' });
+        const json = await res.json();
+        loading.style.display = 'none';
+
+        if (!json.evolution?.available) {
+          notConfigured.style.display = 'block';
+          badge.textContent = 'No configurado';
+          return;
+        }
+
+        if (json.evolution.connected) {
+          connected.style.display = 'block';
+          badge.textContent = 'Conectado';
+          badge.style.background = '#22c55e20';
+          badge.style.color = '#22c55e';
+          document.getElementById('wa-details').innerHTML = `
+            <div><strong>Proveedor:</strong> Evolution API</div>
+            ${json.evolution.number ? `<div><strong>Número:</strong> ${json.evolution.number}</div>` : ''}
+            ${json.evolution.instanceName ? `<div><strong>Instancia:</strong> ${json.evolution.instanceName}</div>` : ''}
+            <div><strong>Estado:</strong> <span style="color:#22c55e;">${json.evolution.state || 'open'}</span></div>
+          `;
+        } else {
+          disconnected.style.display = 'block';
+          badge.textContent = json.evolution.state === 'error' ? 'Error' : 'Desconectado';
+          badge.style.background = '#e74c3c20';
+          badge.style.color = '#e74c3c';
+        }
+      } catch (e) {
+        loading.style.display = 'none';
+        notConfigured.style.display = 'block';
+        badge.textContent = 'Error';
+      }
+    }
+
+    async function connectWhatsApp() {
+      const errBox = document.getElementById('wa-connect-error');
+      errBox.style.display = 'none';
+      try {
+        const res = await fetch('/api/evolution/connect', { method: 'POST', credentials: 'include' });
+        const json = await res.json();
+        if (!res.ok || !json.qrCode) {
+          errBox.textContent = json.hint || json.details || 'No se pudo generar el QR. Verifica EVOLUTION_API_URL/API_KEY en Render.';
+          errBox.style.display = 'block';
+          return;
+        }
+        const qrContainer = document.getElementById('wa-qr-container');
+        const qrImg = document.getElementById('wa-qr-img');
+        qrImg.src = json.qrCode.startsWith('data:') ? json.qrCode : 'data:image/png;base64,' + json.qrCode;
+        qrContainer.style.display = 'block';
+        // Poll status hasta que conecte (máx 2 min)
+        const poll = setInterval(async () => {
+          try {
+            const st = await fetch('/api/evolution/status', { credentials: 'include' });
+            const sj = await st.json();
+            if (sj.evolution?.connected) {
+              clearInterval(poll);
+              qrContainer.style.display = 'none';
+              checkWhatsAppStatus();
+              if (typeof showNotification === 'function') showNotification('¡WhatsApp conectado!', 'success');
+            }
+          } catch (_) {}
+        }, 5000);
+        setTimeout(() => clearInterval(poll), 120000);
+      } catch (e) {
+        errBox.textContent = 'Error de red: ' + e.message;
+        errBox.style.display = 'block';
+      }
+    }
+
+    async function disconnectWhatsApp() {
+      if (!confirm('¿Desconectar WhatsApp? Tendrás que escanear el QR otra vez para reconectar.')) return;
+      try {
+        await fetch('/api/evolution/logout', { method: 'POST', credentials: 'include' });
+        checkWhatsAppStatus();
+      } catch (e) { alert('Error: ' + e.message); }
+    }
+
+    async function testWhatsApp() {
+      const phone = prompt('Número para prueba (ej: 524271234567):');
+      if (!phone) return;
+      try {
+        const res = await fetch('/api/evolution/test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ phone })
+        });
+        const json = await res.json();
+        if (json.success) {
+          if (typeof showNotification === 'function') showNotification('Mensaje de prueba enviado', 'success');
+        } else {
+          alert('Error: ' + (json.error || json.details));
+        }
+      } catch (e) { alert('Error: ' + e.message); }
+    }
+
+    window.checkWhatsAppStatus = checkWhatsAppStatus;
+    window.connectWhatsApp = connectWhatsApp;
+    window.disconnectWhatsApp = disconnectWhatsApp;
+    window.testWhatsApp = testWhatsApp;
+
     async function syncGoogleCalendar() {
       const resultDiv = document.getElementById('gcal-sync-result');
       resultDiv.style.display = 'block';
@@ -12789,6 +12945,7 @@
 
     // Cargar estado al abrir settings y al detectar callback de Google
     loadGoogleCalendarStatus();
+    if (typeof checkWhatsAppStatus === 'function') checkWhatsAppStatus();
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('calendar') === 'connected') {
       showNotification('Google Calendar conectado exitosamente', 'success');
