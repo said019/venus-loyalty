@@ -604,9 +604,11 @@ app.use('/api/skin-analysis', skinAnalysisRouter);
 // GET /api/evolution/status - Estado de conexión WhatsApp
 app.get('/api/evolution/status', adminAuth, async (req, res) => {
   try {
-    const provider = config.whatsappProvider || 'twilio';
-    const hasEvolution = !!(config.evolution.apiUrl && config.evolution.apiKey);
-    const hasTwilio = !!(config.twilio.accountSid && config.twilio.authToken);
+    // config.twilio fue removido del config — solo Evolution está soportado.
+    // Mantenemos las referencias seguras por compat con el shape de la respuesta.
+    const provider = config.whatsappProvider || 'evolution';
+    const hasEvolution = !!(config.evolution?.apiUrl && config.evolution?.apiKey);
+    const hasTwilio = !!(config.twilio?.accountSid && config.twilio?.authToken);
 
     // If Evolution is configured, always try to get its connection status
     if (hasEvolution) {
