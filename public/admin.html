@@ -12402,84 +12402,77 @@
 
       if (bookingRequests.length === 0) {
         container.innerHTML = `
-          <div style="text-align:center;padding:40px;" class="muted">
-            <i class="fas fa-inbox" style="font-size:32px;margin-bottom:12px;display:block;opacity:0.5;"></i>
-            No hay solicitudes de citas<br>
-            <small style="font-size:12px;">Las solicitudes aparecerán aquí cuando las clientas agenden desde la página pública</small>
+          <div class="req-empty">
+            <i class="fas fa-inbox"></i>
+            <strong>Sin solicitudes pendientes</strong>
+            <span>Aparecerán aquí cuando una clienta agende desde la página pública.</span>
           </div>
         `;
         return;
       }
 
-      container.innerHTML = bookingRequests.map(req => {
-        const createdDate = new Date(req.createdAt);
-        const createdStr = createdDate.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+      const STATUS = {
+        pending:   { cls: 'pending',   label: 'Pendiente'   },
+        contacted: { cls: 'contacted', label: 'Contactada'  },
+        booked:    { cls: 'booked',    label: 'Agendada'    },
+        rejected:  { cls: 'rejected',  label: 'Rechazada'   }
+      };
 
-        const desiredDate = new Date(req.date + 'T00:00:00');
-        const desiredStr = desiredDate.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' });
+      // Ordenar: pending → contacted → booked → rejected, dentro por fecha desc
+      const order = { pending: 0, contacted: 1, booked: 2, rejected: 3 };
+      const sorted = [...bookingRequests].sort((a, b) => {
+        const oa = order[a.status] ?? 99;
+        const ob = order[b.status] ?? 99;
+        if (oa !== ob) return oa - ob;
+        return new Date(b.createdAt) - new Date(a.createdAt);
+      });
+
+      container.innerHTML = sorted.map(req => {
+        const created = new Date(req.createdAt);
+        const createdStr = created.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+
+        const desired = new Date(req.date + 'T00:00:00');
+        const desiredStr = desired.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' });
         const hour = parseInt(req.time.split(':')[0]);
         const timeStr = hour === 12 ? '12:00 PM' : hour > 12 ? `${hour - 12}:00 PM` : `${hour}:00 AM`;
 
-        const statusConfig = {
-          pending: { bg: 'rgba(251,191,36,0.15)', color: '#fbbf24', icon: 'clock', text: 'Pendiente' },
-          contacted: { bg: 'rgba(59,130,246,0.15)', color: '#3b82f6', icon: 'phone', text: 'Contactada' },
-          booked: { bg: 'rgba(34,197,94,0.15)', color: '#22c55e', icon: 'check-circle', text: 'Agendada' },
-          rejected: { bg: 'rgba(239,68,68,0.15)', color: '#ef4444', icon: 'times-circle', text: 'Rechazada' }
-        }[req.status] || { bg: 'rgba(251,191,36,0.15)', color: '#fbbf24', icon: 'clock', text: 'Pendiente' };
+        const s = STATUS[req.status] || STATUS.pending;
+        const wa = req.clientPhone.startsWith('52') ? req.clientPhone : '52' + req.clientPhone;
 
-        const whatsappNum = req.clientPhone.startsWith('52') ? req.clientPhone : '52' + req.clientPhone;
-
-        const actions = req.status === 'pending' ? `
-          <a href="https://wa.me/+${whatsappNum}" target="_blank" class="btn small" style="background:#25D366;border-color:#25D366;" title="Abrir WhatsApp">
-            <i class="fab fa-whatsapp"></i> WhatsApp
-          </a>
-          <button class="btn small" onclick="contactRequest('${req.id}')" title="Marcar como contactada" style="background:#3b82f6;border-color:#3b82f6;color:white;">
-            <i class="fas fa-check"></i> Marcar contactada
-          </button>
-          <button class="btn small ghost" onclick="rejectRequest('${req.id}')" title="Rechazar solicitud" style="color:#ef4444;border-color:#ef4444;">
-            <i class="fas fa-times"></i>
-          </button>
-        ` : req.status === 'contacted' ? `
-          <a href="https://wa.me/+${whatsappNum}" target="_blank" class="btn small" style="background:#25D366;border-color:#25D366;" title="Abrir WhatsApp">
-            <i class="fab fa-whatsapp"></i> WhatsApp
-          </a>
-          <button class="btn small primary" onclick="markAsBooked('${req.id}')" title="Marcar como agendada">
-            <i class="fas fa-calendar-check"></i> Agendada
-          </button>
-          <button class="btn small ghost" onclick="rejectRequest('${req.id}')" title="Rechazar" style="color:#ef4444;border-color:#ef4444;">
-            <i class="fas fa-times"></i>
-          </button>
-        ` : req.status === 'rejected' ? `
-          <span class="muted" style="font-size:12px;"><i class="fas fa-times-circle"></i> Rechazada</span>
-        ` : `
-          <span class="muted" style="font-size:12px;"><i class="fas fa-check-circle"></i> Agendada</span>
-        `;
-
-        const statusBadge = `<span style="background:${statusConfig.bg};color:${statusConfig.color};padding:4px 8px;border-radius:6px;font-size:11px;font-weight:600;"><i class="fas fa-${statusConfig.icon}"></i> ${statusConfig.text}</span>`;
+        let actions = '';
+        if (req.status === 'pending') {
+          actions = `
+            <a href="https://wa.me/+${wa}" target="_blank" class="req-btn req-btn-wa"><i class="fab fa-whatsapp"></i><span>WhatsApp</span></a>
+            <button class="req-btn req-btn-primary" onclick="contactRequest('${req.id}')"><i class="fas fa-phone"></i><span>Contactada</span></button>
+            <button class="req-btn req-btn-danger" onclick="rejectRequest('${req.id}')" title="Rechazar"><i class="fas fa-xmark"></i></button>`;
+        } else if (req.status === 'contacted') {
+          actions = `
+            <a href="https://wa.me/+${wa}" target="_blank" class="req-btn req-btn-wa"><i class="fab fa-whatsapp"></i><span>WhatsApp</span></a>
+            <button class="req-btn req-btn-ok" onclick="markAsBooked('${req.id}')"><i class="fas fa-calendar-check"></i><span>Agendar</span></button>
+            <button class="req-btn req-btn-danger" onclick="rejectRequest('${req.id}')" title="Rechazar"><i class="fas fa-xmark"></i></button>`;
+        } else if (req.status === 'rejected') {
+          actions = `<span class="req-resolved"><i class="fas fa-xmark"></i> Rechazada</span>`;
+        } else {
+          actions = `<span class="req-resolved is-ok"><i class="fas fa-check"></i> Convertida en cita</span>`;
+        }
 
         return `
-          <tr>
-            <td>${createdStr}</td>
-            <td>
-              <strong>${req.clientName}</strong><br>
-              <small class="muted">${req.clientPhone}</small>
-              ${req.isNewClient ? '<br><span style="font-size:10px;color:#22c55e;"><i class="fas fa-star"></i> Nueva</span>' : ''}
-            </td>
-            <td>
-              ${req.serviceName}<br>
-              <small class="muted">$${req.servicePrice || 0}</small>
-            </td>
-            <td>
-              ${desiredStr}<br>
-              <small class="muted">${timeStr}</small>
-            </td>
-            <td>${statusBadge}</td>
-            <td style="white-space:nowrap;">
-              <div style="display:flex;gap:6px;">
-                ${actions}
+          <article class="req-card" data-status="${req.status || 'pending'}">
+            <header class="req-head">
+              <div class="req-name">
+                <span class="req-client">${req.clientName}</span>
+                ${req.isNewClient ? '<span class="req-tag-new"><i class="fas fa-sparkles"></i> Nueva</span>' : ''}
               </div>
-            </td>
-          </tr>
+              <span class="req-status req-status-${s.cls}">${s.label}</span>
+            </header>
+            <dl class="req-meta">
+              <div><dt>Teléfono</dt><dd>${req.clientPhone}</dd></div>
+              <div><dt>Servicio</dt><dd>${req.serviceName} <span class="req-price">· $${req.servicePrice || 0}</span></dd></div>
+              <div><dt>Solicita</dt><dd>${desiredStr} <span class="req-price">· ${timeStr}</span></dd></div>
+              <div><dt>Recibida</dt><dd>${createdStr}</dd></div>
+            </dl>
+            <footer class="req-actions">${actions}</footer>
+          </article>
         `;
       }).join('');
     }

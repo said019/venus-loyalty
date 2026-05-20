@@ -5436,3 +5436,183 @@
       pointer-events: none;
       background: #f1f1f1;
     }
+
+/* ============================================================
+   Solicitudes — vista limpia tipo boutique (admin/solicitudes)
+   ============================================================ */
+#tab-requests .req-empty {
+  text-align: center;
+  padding: 56px 24px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  background: var(--bg-card);
+  border: 1px dashed var(--border-color);
+  border-radius: var(--radius);
+}
+#tab-requests .req-empty i {
+  display: block;
+  font-size: 30px;
+  color: var(--accent-gold);
+  opacity: 0.6;
+  margin-bottom: 14px;
+}
+#tab-requests .req-empty strong {
+  display: block;
+  color: var(--text-primary);
+  font-size: 15.5px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+#tab-requests .req-empty span { color: var(--text-secondary); font-size: 13.5px; }
+
+#requests-list { gap: 14px; }
+
+.req-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  padding: 20px 22px;
+  display: flex; flex-direction: column; gap: 14px;
+  transition: border-color 140ms ease-out;
+}
+.req-card:hover { border-color: var(--border-glow); }
+.req-card[data-status="rejected"] { opacity: 0.62; }
+.req-card[data-status="booked"]   { opacity: 0.82; }
+
+.req-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 14px; flex-wrap: wrap;
+}
+.req-name { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.req-client {
+  font-family: "Playfair Display", serif;
+  font-size: 20px; font-weight: 500; letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+.req-tag-new {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: rgba(140, 150, 104, 0.15);
+  color: var(--accent-gold);
+  border: 1px solid rgba(140, 150, 104, 0.25);
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px; font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.req-tag-new i { font-size: 10px; }
+
+.req-status {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 12px; font-weight: 600;
+  line-height: 1;
+}
+.req-status::before {
+  content: ''; width: 6px; height: 6px; border-radius: 50%;
+  background: currentColor;
+}
+.req-status-pending   { background: rgba(251, 191, 36, 0.14); color: #c98a16; }
+.req-status-contacted { background: rgba(74, 111, 134, 0.14); color: #4a6f86; }
+.req-status-booked    { background: rgba(140, 150, 104, 0.16); color: var(--accent-gold); }
+.req-status-rejected  { background: rgba(180, 82, 74, 0.12);  color: #a8524a; }
+
+[data-theme="dark"] .req-status-pending   { color: #f5c557; }
+[data-theme="dark"] .req-status-contacted { color: #82b1c9; }
+[data-theme="dark"] .req-status-booked    { color: #b8c294; }
+[data-theme="dark"] .req-status-rejected  { color: #e09b94; }
+
+.req-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px 22px;
+  padding: 14px 0;
+  border-top: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
+}
+.req-meta > div { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.req-meta dt {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.req-meta dd {
+  font-size: 14px;
+  color: var(--text-primary);
+  font-weight: 500;
+  margin: 0;
+  word-break: break-word;
+}
+.req-price { color: var(--text-secondary); font-weight: 400; }
+
+.req-actions {
+  display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end;
+}
+.req-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 7px;
+  font-family: inherit; font-size: 13px; font-weight: 600;
+  padding: 9px 14px;
+  min-height: 38px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 140ms, border-color 140ms, color 140ms, transform 80ms;
+}
+.req-btn:active { transform: translateY(1px); }
+.req-btn:hover { border-color: var(--border-glow); background: var(--bg-hover); }
+
+.req-btn-wa {
+  background: rgba(37, 211, 102, 0.10);
+  border-color: rgba(37, 211, 102, 0.30);
+  color: #1f9a4f;
+}
+[data-theme="dark"] .req-btn-wa { color: #4ed586; }
+.req-btn-wa:hover { background: rgba(37, 211, 102, 0.18); border-color: rgba(37, 211, 102, 0.45); }
+
+.req-btn-primary {
+  background: var(--accent-gold);
+  border-color: var(--accent-gold);
+  color: #fff;
+}
+.req-btn-primary:hover { background: var(--accent-rose); border-color: var(--accent-rose); }
+
+.req-btn-ok {
+  background: var(--status-confirmed, #14b8a6);
+  border-color: var(--status-confirmed, #14b8a6);
+  color: #fff;
+}
+.req-btn-ok:hover { filter: brightness(0.95); }
+
+.req-btn-danger {
+  background: transparent;
+  color: #b4524a;
+  border-color: rgba(180, 82, 74, 0.35);
+  padding: 9px 12px;
+  min-width: 38px;
+}
+.req-btn-danger:hover {
+  background: rgba(180, 82, 74, 0.10);
+  border-color: rgba(180, 82, 74, 0.55);
+}
+
+.req-resolved {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 13px; font-weight: 500;
+  color: var(--text-secondary);
+  padding: 9px 12px;
+}
+.req-resolved.is-ok { color: var(--accent-gold); }
+
+@media (max-width: 640px) {
+  .req-card { padding: 18px; }
+  .req-meta { grid-template-columns: 1fr 1fr; gap: 12px 16px; padding: 12px 0; }
+  .req-actions { justify-content: flex-start; }
+  .req-actions .req-btn { flex: 1 1 auto; }
+  .req-actions .req-btn-danger { flex: 0 0 auto; }
+}
