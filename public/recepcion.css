@@ -586,3 +586,268 @@ h2 { font-size: 24px; line-height: 1.15; }
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ============================================================
+   CALENDARIO — toggle Vista, vista Semana, vista Mes
+   ============================================================ */
+
+/* Toggle Día / Semana / Mes */
+.viewbar {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  margin: 0 0 12px;
+}
+.view-btn {
+  padding: 8px 16px;
+  border: 0;
+  background: transparent;
+  color: var(--ink-2);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+.view-btn:hover { color: var(--ink); background: var(--surface-2); }
+.view-btn.active {
+  background: var(--olive);
+  color: oklch(99% 0 0);
+}
+
+/* Etiqueta de rango (Semana / Mes) en la datebar */
+.range-label {
+  flex: 1;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+  padding: 0 12px;
+}
+
+/* Meta extra dentro de cada cita: teléfono + duración */
+.cita-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 6px;
+}
+.cita-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--ink-3);
+}
+.cita-meta-item i { font-size: 11px; }
+.cita-meta-link {
+  color: var(--ink-2);
+  text-decoration: none;
+  border-bottom: 1px dashed transparent;
+  transition: color 120ms ease, border-color 120ms ease;
+}
+.cita-meta-link:hover {
+  color: var(--olive-deep);
+  border-bottom-color: var(--olive-deep);
+}
+
+/* ============== VISTA SEMANA (lun-dom, 7 columnas) ============== */
+.week-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+.week-col {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+}
+.week-col.is-today { border-color: var(--olive); box-shadow: 0 0 0 1px var(--olive); }
+.week-col.is-selected { border-color: var(--olive-deep); }
+.week-col-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-2);
+}
+.week-day {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--ink-3);
+  font-weight: 600;
+}
+.week-num {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.week-col.is-today .week-num { color: var(--olive-deep); }
+.week-count {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-3);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+.week-col-body {
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+}
+.week-cita {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-2);
+  cursor: pointer;
+  font: inherit;
+  transition: border-color 120ms ease, transform 80ms ease;
+}
+.week-cita:hover { border-color: var(--olive); transform: translateY(-1px); }
+.week-cita.status-pendiente { border-left: 3px solid var(--warn); }
+.week-cita.status-confirmada { border-left: 3px solid var(--info); }
+.week-cita.status-llego { border-left: 3px solid var(--ok); }
+.week-cita.status-cobrada { border-left: 3px solid var(--olive); }
+.week-cita-time { font-size: 11.5px; font-weight: 600; color: var(--ink-3); }
+.week-cita-name { font-size: 13px; font-weight: 600; color: var(--ink); }
+.week-cita-svc {
+  font-size: 11.5px;
+  color: var(--ink-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.week-empty {
+  font-size: 12px;
+  color: var(--ink-3);
+  text-align: center;
+  padding: 16px 8px;
+  font-style: italic;
+}
+
+/* ============== VISTA MES (cuadrícula tradicional) ============== */
+.month-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+  margin-top: 8px;
+}
+.month-dow {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+  color: var(--ink-3);
+  text-align: center;
+  padding: 8px 0;
+}
+.month-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  min-height: 100px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  position: relative;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+.month-cell:hover { border-color: var(--olive); }
+.month-cell.is-empty {
+  background: transparent;
+  border-color: transparent;
+  cursor: default;
+  pointer-events: none;
+}
+.month-cell.is-today {
+  border-color: var(--olive);
+  box-shadow: 0 0 0 1px var(--olive);
+}
+.month-cell.is-today .month-num { color: var(--olive-deep); }
+.month-cell.is-selected { background: var(--olive-soft); }
+.month-cell.has-citas { background: var(--surface-2); }
+.month-num {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.month-count {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  background: var(--olive);
+  color: oklch(99% 0 0);
+  padding: 1px 6px;
+  border-radius: 999px;
+  min-width: 18px;
+  text-align: center;
+}
+.month-citas {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.month-cita {
+  display: block;
+  font-size: 10.5px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--surface);
+  border-left: 2px solid var(--ink-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.month-cita.status-pendiente { border-left-color: var(--warn); background: var(--warn-soft); color: var(--warn); }
+.month-cita.status-confirmada { border-left-color: var(--info); background: var(--info-soft); color: var(--info); }
+.month-cita.status-llego { border-left-color: var(--ok); background: var(--ok-soft); color: var(--ok); }
+.month-cita.status-cobrada { border-left-color: var(--olive); background: var(--olive-soft); color: var(--olive-deep); }
+.month-more {
+  font-size: 10px;
+  color: var(--ink-3);
+  font-style: italic;
+  padding: 2px 6px;
+}
+
+/* Responsive: semana se vuelve scroll horizontal, mes encoge */
+@media (max-width: 900px) {
+  .week-grid {
+    grid-auto-flow: column;
+    grid-auto-columns: 78%;
+    grid-template-columns: none;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+  }
+  .week-col { scroll-snap-align: start; }
+  .month-cell { min-height: 70px; padding: 6px; }
+  .month-citas { display: none; }
+  .month-cell.has-citas .month-num { font-weight: 700; }
+}

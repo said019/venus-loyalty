@@ -83,6 +83,17 @@ function stateOf(c) {
 }
 const STATE_LABEL = { pendiente: "Pendiente", confirmada: "Confirmada", llego: "Llegó", cobrada: "Cobrada" };
 
+// Formatea teléfono mexicano "4271234567" → "427 123 4567"
+function fmtPhone(p) {
+  const d = digits(p);
+  if (d.length === 10) return `${d.slice(0,3)} ${d.slice(3,6)} ${d.slice(6)}`;
+  if (d.length === 12 && d.startsWith("52")) {
+    const x = d.slice(2);
+    return `+52 ${x.slice(0,3)} ${x.slice(3,6)} ${x.slice(6)}`;
+  }
+  return p || "—";
+}
+
 function citaItem(c) {
   const st = stateOf(c);
   const paid = c.totalPaid != null;
@@ -102,12 +113,15 @@ function citaItem(c) {
   } else {
     actions = `<button class="btn btn-ghost" data-action="wa" data-phone="${esc(c.clientPhone)}"><i class="fa-brands fa-whatsapp"></i><span>WhatsApp</span></button>`;
   }
+  const duration = c.durationMinutes ? `<span class="cita-meta-item"><i class="fa-regular fa-clock"></i>${c.durationMinutes} min</span>` : "";
+  const phone = c.clientPhone ? `<a class="cita-meta-item cita-meta-link" href="${waLink(c.clientPhone)}" target="_blank" rel="noopener" data-stop><i class="fa-brands fa-whatsapp"></i>${esc(fmtPhone(c.clientPhone))}</a>` : "";
   return `
     <li class="cita">
       <div class="cita-time">${esc(c.time || "—")}</div>
       <div class="cita-body">
         <div class="cita-client">${esc(c.clientName)}</div>
         <div class="cita-svc">${esc(c.serviceName)}</div>
+        <div class="cita-meta">${phone}${duration}</div>
         <span class="cita-status status-${st}">${STATE_LABEL[st]}</span>
       </div>
       <div class="cita-actions">${actions}</div>
@@ -158,25 +172,202 @@ async function loadCitasHoy() {
   }
 }
 
-/* ============== CALENDARIO ============== */
+/* ============== CALENDARIO (Día / Semana / Mes) ============== */
 let calLoaded = false;
 let calDate = todayISO();
-async function loadCalendar() {
+let calView = "day"; // "day" | "week" | "month"
+
+const WEEKDAYS_SHORT = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+const WEEKDAYS_LONG = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"];
+const MONTH_NAMES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+
+function isoToDate(iso) { return new Date(iso + "T12:00:00"); }
+function dateToISO(d) { return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; }
+function startOfWeekISO(iso) {
+  // Semana lunes-domingo
+  const d = isoToDate(iso);
+  const day = d.getDay(); // 0=dom, 1=lun, ... 6=sab
+  const diff = day === 0 ? -6 : 1 - day; // mover hacia lunes
+  d.setDate(d.getDate() + diff);
+  return dateToISO(d);
+}
+
+async function fetchCitasRange(fromISO, toISO) {
+  // /api/appointments/range con YYYY-MM-DD usa el campo `date` (string) directo
+  const r = await fetch(`/api/appointments/range?from=${fromISO}&to=${toISO}`);
+  if (!r.ok) throw new Error("fetch range " + r.status);
+  const p = await r.json();
+  return Array.isArray(p) ? p : (p.data || []);
+}
+
+function loadCalendar() {
+  if (calView === "day") return loadCalendarDay();
+  if (calView === "week") return loadCalendarWeek();
+  return loadCalendarMonth();
+}
+
+async function loadCalendarDay() {
   $("#recDatePick").value = calDate;
+  $("#recDatePick").hidden = false;
+  $("#recRangeLabel").hidden = true;
+  showOnly("recCitasCal");
   try {
     const citas = await fetchCitas(calDate);
     renderKPIs($("#recCalCounters"), citas);
     const sorted = [...citas].sort((a, b) => (a.time || "").localeCompare(b.time || ""));
     $("#recCitasCal").innerHTML = sorted.length ? sorted.map(citaItem).join("") : EMPTY_CITAS;
   } catch (e) {
-    console.error("[recepcion] loadCalendar", e);
+    console.error("[recepcion] loadCalendarDay", e);
     $("#recCitasCal").innerHTML = ERR_CITAS;
   }
 }
+
+async function loadCalendarWeek() {
+  const startISO = startOfWeekISO(calDate);
+  const start = isoToDate(startISO);
+  const end = new Date(start); end.setDate(end.getDate() + 6);
+  const endISO = dateToISO(end);
+
+  $("#recDatePick").hidden = true;
+  const label = $("#recRangeLabel");
+  label.hidden = false;
+  label.textContent = `${start.getDate()} ${MONTH_NAMES[start.getMonth()].slice(0,3)} — ${end.getDate()} ${MONTH_NAMES[end.getMonth()].slice(0,3)} ${end.getFullYear()}`;
+
+  showOnly("recWeekGrid");
+
+  try {
+    const citas = await fetchCitasRange(startISO, endISO);
+    renderKPIs($("#recCalCounters"), citas);
+
+    // Agrupar por fecha
+    const byDate = {};
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(start); d.setDate(d.getDate() + i);
+      byDate[dateToISO(d)] = [];
+    }
+    for (const c of citas) {
+      if (byDate[c.date]) byDate[c.date].push(c);
+    }
+    for (const k in byDate) {
+      byDate[k].sort((a, b) => (a.time || "").localeCompare(b.time || ""));
+    }
+
+    const today = todayISO();
+    const html = Object.entries(byDate).map(([iso, arr], i) => {
+      const d = isoToDate(iso);
+      const isToday = iso === today;
+      const isSelected = iso === calDate;
+      const cards = arr.length
+        ? arr.map((c) => weekCitaCard(c)).join("")
+        : `<div class="week-empty">Sin citas</div>`;
+      return `
+        <div class="week-col${isToday ? " is-today" : ""}${isSelected ? " is-selected" : ""}" data-date="${iso}">
+          <header class="week-col-head">
+            <span class="week-day">${WEEKDAYS_SHORT[i]}</span>
+            <span class="week-num">${d.getDate()}</span>
+            <span class="week-count">${arr.length}</span>
+          </header>
+          <div class="week-col-body">${cards}</div>
+        </div>`;
+    }).join("");
+    $("#recWeekGrid").innerHTML = html;
+  } catch (e) {
+    console.error("[recepcion] loadCalendarWeek", e);
+    $("#recWeekGrid").innerHTML = `<div class="empty">No se pudo cargar la semana.</div>`;
+  }
+}
+
+function weekCitaCard(c) {
+  const st = stateOf(c);
+  const dur = c.durationMinutes ? ` · ${c.durationMinutes}m` : "";
+  return `
+    <button type="button" class="week-cita status-${st}" data-go-day="${esc(c.date)}" title="${esc(c.clientName)} — ${esc(c.serviceName)}">
+      <span class="week-cita-time">${esc(c.time || "")}${dur}</span>
+      <span class="week-cita-name">${esc(c.clientName)}</span>
+      <span class="week-cita-svc">${esc(c.serviceName)}</span>
+    </button>`;
+}
+
+async function loadCalendarMonth() {
+  const d = isoToDate(calDate);
+  const year = d.getFullYear();
+  const monthIdx = d.getMonth(); // 0-11
+  const firstISO = `${year}-${pad(monthIdx + 1)}-01`;
+  const lastDay = new Date(year, monthIdx + 1, 0).getDate();
+  const lastISO = `${year}-${pad(monthIdx + 1)}-${pad(lastDay)}`;
+
+  $("#recDatePick").hidden = true;
+  const label = $("#recRangeLabel");
+  label.hidden = false;
+  label.textContent = `${MONTH_NAMES[monthIdx]} ${year}`;
+
+  showOnly("recMonthGrid");
+
+  try {
+    const citas = await fetchCitasRange(firstISO, lastISO);
+    renderKPIs($("#recCalCounters"), citas);
+
+    const byDate = {};
+    for (const c of citas) {
+      if (!byDate[c.date]) byDate[c.date] = [];
+      byDate[c.date].push(c);
+    }
+
+    // Día de la semana del 1ro: 0=dom..6=sab → convertimos a 0=lun..6=dom
+    const firstDow = new Date(year, monthIdx, 1).getDay();
+    const offset = firstDow === 0 ? 6 : firstDow - 1;
+
+    let html = WEEKDAYS_SHORT.map(d => `<div class="month-dow">${d}</div>`).join("");
+    for (let i = 0; i < offset; i++) html += `<div class="month-cell is-empty"></div>`;
+
+    const today = todayISO();
+    for (let day = 1; day <= lastDay; day++) {
+      const iso = `${year}-${pad(monthIdx + 1)}-${pad(day)}`;
+      const arr = byDate[iso] || [];
+      const isToday = iso === today;
+      const isSelected = iso === calDate;
+      const previewItems = arr.slice(0, 3).map((c) => {
+        const st = stateOf(c);
+        return `<span class="month-cita status-${st}" title="${esc(c.time)} ${esc(c.clientName)}">${esc(c.time || "")} ${esc(c.clientName)}</span>`;
+      }).join("");
+      const more = arr.length > 3 ? `<span class="month-more">+${arr.length - 3} más</span>` : "";
+      html += `
+        <button type="button" class="month-cell${isToday ? " is-today" : ""}${isSelected ? " is-selected" : ""}${arr.length ? " has-citas" : ""}" data-go-day="${iso}">
+          <span class="month-num">${day}</span>
+          ${arr.length ? `<span class="month-count">${arr.length}</span>` : ""}
+          <div class="month-citas">${previewItems}${more}</div>
+        </button>`;
+    }
+    $("#recMonthGrid").innerHTML = html;
+  } catch (e) {
+    console.error("[recepcion] loadCalendarMonth", e);
+    $("#recMonthGrid").innerHTML = `<div class="empty">No se pudo cargar el mes.</div>`;
+  }
+}
+
+function showOnly(id) {
+  ["recCitasCal", "recWeekGrid", "recMonthGrid"].forEach((x) => {
+    const el = $("#" + x);
+    if (el) el.hidden = x !== id;
+  });
+}
+
+function setCalView(view) {
+  calView = view;
+  $$(".view-btn").forEach((b) => {
+    const active = b.dataset.view === view;
+    b.classList.toggle("active", active);
+    b.setAttribute("aria-selected", active ? "true" : "false");
+  });
+  loadCalendar();
+}
+
 function shiftCalDate(days) {
-  const d = new Date(calDate + "T12:00:00");
-  d.setDate(d.getDate() + days);
-  calDate = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const d = isoToDate(calDate);
+  if (calView === "week") d.setDate(d.getDate() + (days > 0 ? 7 : -7));
+  else if (calView === "month") d.setMonth(d.getMonth() + (days > 0 ? 1 : -1));
+  else d.setDate(d.getDate() + days);
+  calDate = dateToISO(d);
   loadCalendar();
 }
 
@@ -441,6 +632,23 @@ function wire() {
   $("#recDateNext").addEventListener("click", () => shiftCalDate(1));
   $("#recDateToday").addEventListener("click", () => { calDate = todayISO(); loadCalendar(); });
   $("#recDatePick").addEventListener("change", (e) => { calDate = e.target.value; loadCalendar(); });
+
+  // Toggle Día / Semana / Mes
+  $$(".view-btn").forEach((b) => b.addEventListener("click", () => setCalView(b.dataset.view)));
+
+  // Drill-down: click en día de semana / celda de mes → ir a vista día
+  $("#recWeekGrid").addEventListener("click", (ev) => {
+    const cita = ev.target.closest("[data-go-day]");
+    if (!cita) return;
+    calDate = cita.dataset.goDay;
+    setCalView("day");
+  });
+  $("#recMonthGrid").addEventListener("click", (ev) => {
+    const cell = ev.target.closest("[data-go-day]");
+    if (!cell) return;
+    calDate = cell.dataset.goDay;
+    setCalView("day");
+  });
 
   let searchTimer = null;
   $("#recCardSearch").addEventListener("input", (e) => {

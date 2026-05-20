@@ -88,15 +88,30 @@
         </button>
       </header>
 
+      <div class="viewbar" role="tablist" aria-label="Modo de vista">
+        <button class="view-btn active" data-view="day" role="tab" aria-selected="true">Día</button>
+        <button class="view-btn" data-view="week" role="tab" aria-selected="false">Semana</button>
+        <button class="view-btn" data-view="month" role="tab" aria-selected="false">Mes</button>
+      </div>
+
       <div class="datebar" role="group" aria-label="Selector de fecha">
-        <button class="icon-btn" id="recDatePrev" aria-label="Día anterior"><i class="fa-solid fa-chevron-left"></i></button>
+        <button class="icon-btn" id="recDatePrev" aria-label="Anterior"><i class="fa-solid fa-chevron-left"></i></button>
         <input type="date" id="recDatePick" class="input input-date" aria-label="Fecha" />
-        <button class="icon-btn" id="recDateNext" aria-label="Día siguiente"><i class="fa-solid fa-chevron-right"></i></button>
+        <span id="recRangeLabel" class="range-label" hidden></span>
+        <button class="icon-btn" id="recDateNext" aria-label="Siguiente"><i class="fa-solid fa-chevron-right"></i></button>
         <button class="btn btn-ghost btn-sm" id="recDateToday">Hoy</button>
       </div>
 
-      <section class="kpis" id="recCalCounters" aria-label="Resumen del día seleccionado"></section>
+      <section class="kpis" id="recCalCounters" aria-label="Resumen del periodo seleccionado"></section>
+
+      <!-- Vista Día -->
       <ol class="list" id="recCitasCal"></ol>
+
+      <!-- Vista Semana (lun-dom, 7 columnas) -->
+      <div class="week-grid" id="recWeekGrid" hidden></div>
+
+      <!-- Vista Mes (cuadrícula tradicional) -->
+      <div class="month-grid" id="recMonthGrid" hidden></div>
     </section>
 
     <!-- ============== COBRAR ============== -->
