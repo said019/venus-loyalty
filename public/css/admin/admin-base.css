@@ -5697,3 +5697,132 @@
   .subnav-btn span,
   .subnav-btn { white-space: nowrap; }
 }
+
+/* ============================================================
+   Polish del light theme (impeccable) — restraint, hairlines, 1 accent.
+   Scoped a [data-theme="light"] para no afectar dark.
+   Aplica DESIGN.md: max 1 accent (olive), hairlines en vez de bg fills.
+   ============================================================ */
+
+/* Header — ícono de sol/cloud-sun/luna deja de ser amarillo saturado */
+[data-theme="light"] #topbar-greeting i {
+  color: var(--accent-gold) !important;
+  opacity: 0.5;
+  font-size: 0.72em;
+  vertical-align: 0.12em;
+  margin-left: 6px;
+}
+
+/* Historial del Mes — solo TOTAL marca acento, resto neutro */
+[data-theme="light"] #stat-total {
+  color: var(--accent-gold) !important;
+}
+[data-theme="light"] #stat-completed,
+[data-theme="light"] #stat-cancelled,
+[data-theme="light"] #stat-pending {
+  color: var(--text-primary) !important;
+  font-weight: 600 !important;
+}
+[data-theme="light"] #stat-cancelled {
+  text-decoration: line-through;
+  text-decoration-color: rgba(180, 82, 74, 0.4);
+  text-decoration-thickness: 1.5px;
+  opacity: 0.7;
+}
+
+/* Ventas del Mes — mismo principio: solo TOTAL acentuado */
+[data-theme="light"] #revenue-total {
+  color: var(--accent-gold) !important;
+}
+[data-theme="light"] #revenue-cash,
+[data-theme="light"] #revenue-card,
+[data-theme="light"] #revenue-transfer {
+  color: var(--text-primary) !important;
+  font-weight: 600 !important;
+}
+
+/* Calendar events — hairline + dot leading en vez de bg saturado.
+   El color del estado se comunica con el dot, no inundando la celda. */
+[data-theme="light"] .calendar-event {
+  background: transparent !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-color);
+  padding: 3px 8px 3px 16px !important;
+  position: relative;
+  border-radius: 7px;
+  font-weight: 500;
+  transition: border-color 140ms ease-out, background 140ms ease-out;
+}
+[data-theme="light"] .calendar-event::before {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-gold);
+}
+[data-theme="light"] .calendar-event:hover {
+  border-color: var(--accent-gold);
+  background: rgba(140, 150, 104, 0.06) !important;
+  filter: none;
+}
+
+/* Status del evento: solo cambia el dot, no el fill */
+[data-theme="light"] .calendar-event.confirmed::before { background: oklch(62% 0.115 155); }
+[data-theme="light"] .calendar-event.pending::before,
+[data-theme="light"] .calendar-event.scheduled::before { background: oklch(70% 0.110 80); }
+[data-theme="light"] .calendar-event.cancelled::before { background: oklch(58% 0.140 28); }
+[data-theme="light"] .calendar-event.cancelled {
+  color: var(--text-muted) !important;
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+  text-decoration-color: rgba(180, 82, 74, 0.4);
+  opacity: 0.65;
+}
+[data-theme="light"] .calendar-event.gold::before  { background: var(--accent-gold); }
+[data-theme="light"] .calendar-event.rose::before  { background: oklch(58% 0.140 28); }
+[data-theme="light"] .calendar-event.sage::before  { background: oklch(62% 0.115 155); }
+[data-theme="light"] .calendar-event.teal::before  { background: oklch(58% 0.090 200); }
+
+/* Today / selected — limpiar el doble énfasis */
+[data-theme="light"] .calendar-day.today,
+[data-theme="light"] .calendar-cell.today {
+  background: var(--bg-secondary) !important;
+}
+[data-theme="light"] .calendar-day.today .day-number,
+[data-theme="light"] .calendar-cell.today .calendar-date {
+  background: var(--accent-gold);
+  color: #fff;
+  border-radius: 8px;
+}
+[data-theme="light"] .calendar-day.selected {
+  background: rgba(140, 150, 104, 0.06) !important;
+  outline: 1px solid var(--accent-gold);
+  outline-offset: -1px;
+}
+
+/* event-more — más sutil, sin chocar con los hairlines */
+[data-theme="light"] .event-more,
+[data-theme="light"] .more-events {
+  color: var(--accent-gold);
+  font-weight: 600;
+  opacity: 0.7;
+}
+[data-theme="light"] .event-more:hover,
+[data-theme="light"] .more-events:hover {
+  opacity: 1;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+/* "Sincronizar respuestas" e iconos de calendario en headers — opacity sutil
+   en lugar de saturado azul/verde de Font Awesome */
+[data-theme="light"] .header-actions i.fa-chart-bar,
+[data-theme="light"] .header-actions i.fa-dollar-sign {
+  color: var(--accent-gold) !important;
+  opacity: 0.55 !important;
+}
