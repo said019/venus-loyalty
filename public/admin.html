@@ -42,14 +42,14 @@
     </div>
 
     <nav class="sidebar-nav">
-      <!-- OPERACIONES -->
+      <!-- HOY — flujo operativo diario -->
       <div class="sidebar-section-label">Hoy</div>
       <button class="sidebar-nav-item is-active" data-tab="overview">
         <i class="fas fa-th-large"></i>
         <span>Inicio</span>
         <small>Resumen del día</small>
       </button>
-      <button class="sidebar-nav-item" data-tab="requests">
+      <button class="sidebar-nav-item" data-tab="requests" id="nav-requests" hidden>
         <i class="fas fa-inbox"></i>
         <span>Solicitudes</span>
         <small>Citas por aprobar</small>
@@ -66,35 +66,17 @@
         <small>Cobros del día</small>
       </button>
 
-      <!-- CLIENTES -->
+      <!-- CLIENTAS — todo lo que va sobre la persona -->
       <div class="sidebar-section-label">Clientas</div>
       <button class="sidebar-nav-item" data-tab="cards">
         <i class="fas fa-id-card"></i>
         <span>Clientas</span>
         <small>Lealtad y datos</small>
       </button>
-      <button class="sidebar-nav-item" data-tab="notifications">
-        <i class="fas fa-paper-plane"></i>
-        <span>Mensajes</span>
-        <small>WhatsApp y avisos</small>
-      </button>
       <button class="sidebar-nav-item" data-tab="events">
         <i class="fas fa-gift"></i>
         <span>Gift Cards</span>
         <small>Regalos vendidos</small>
-      </button>
-
-      <!-- NEGOCIO -->
-      <div class="sidebar-section-label">Negocio</div>
-      <button class="sidebar-nav-item" data-tab="services">
-        <i class="fas fa-spa"></i>
-        <span>Servicios</span>
-        <small>Precios y productos</small>
-      </button>
-      <button class="sidebar-nav-item" data-tab="reports">
-        <i class="fas fa-chart-line"></i>
-        <span>Ventas</span>
-        <small>Ingresos y gastos</small>
       </button>
       <button class="sidebar-nav-item" data-tab="reviews">
         <i class="fas fa-star"></i>
@@ -102,26 +84,45 @@
         <small>Opiniones de clientas</small>
         <span id="reviews-badge" style="display:none;background:#f5a623;color:#fff;font-size:10px;font-weight:700;border-radius:10px;padding:1px 6px;margin-left:auto;">0</span>
       </button>
+
+      <!-- NEGOCIO — configuración + finanzas -->
+      <div class="sidebar-section-label">Negocio</div>
+      <button class="sidebar-nav-item" data-tab="services">
+        <i class="fas fa-spa"></i>
+        <span>Servicios</span>
+        <small>Precios y productos</small>
+      </button>
+      <button class="sidebar-nav-item" data-tab="notifications">
+        <i class="fas fa-paper-plane"></i>
+        <span>Mensajes</span>
+        <small>Automatizaciones de WhatsApp</small>
+      </button>
+      <button class="sidebar-nav-item" data-tab="reports">
+        <i class="fas fa-chart-line"></i>
+        <span>Ventas</span>
+        <small>Ingresos y gastos</small>
+      </button>
       <button class="sidebar-nav-item" data-tab="settings">
         <i class="fas fa-sliders-h"></i>
         <span>Ajustes</span>
         <small>Datos del negocio</small>
       </button>
 
-      <!-- CAFETERIA -->
-      <div class="sidebar-section-label">Cafetería</div>
-      <a href="/coffee-pos.html" class="sidebar-nav-item" style="text-decoration:none;color:inherit;">
-        <i class="fas fa-coffee"></i>
-        <span>Café</span>
-        <small>Punto de venta</small>
-      </a>
-
-      <!-- VENUS SKIN -->
-      <div class="sidebar-section-label">Análisis clínico</div>
-      <a href="/skin-analysis.html" class="sidebar-nav-item" style="text-decoration:none;color:inherit;">
+      <!-- HERRAMIENTAS — links que abren otra página, en pestaña nueva -->
+      <div class="sidebar-section-label">Herramientas</div>
+      <a href="/skin-analysis.html" target="_blank" rel="noopener"
+         class="sidebar-nav-item sidebar-nav-item--external">
         <i class="fas fa-microscope"></i>
         <span>Venus Skin</span>
         <small>Análisis de piel Yiyuan</small>
+        <i class="fas fa-arrow-up-right-from-square nav-external-icon" aria-hidden="true"></i>
+      </a>
+      <a href="/coffee-pos.html" target="_blank" rel="noopener"
+         class="sidebar-nav-item sidebar-nav-item--external">
+        <i class="fas fa-coffee"></i>
+        <span>Café</span>
+        <small>Punto de venta</small>
+        <i class="fas fa-arrow-up-right-from-square nav-external-icon" aria-hidden="true"></i>
       </a>
     </nav>
 
@@ -210,20 +211,25 @@
             class="fas fa-times"></i></button>
       </div>
       <div class="mobile-menu-content">
-        <a href="#overview" class="mobile-nav-link" data-tab="overview"><i class="fas fa-th-large"></i> Resumen</a>
-        <a href="#cards" class="mobile-nav-link" data-tab="cards"><i class="fas fa-credit-card"></i> Tarjetas</a>
-        <a href="#events" class="mobile-nav-link" data-tab="events"><i class="fas fa-gift"></i> Gift Cards</a>
-        <a href="#notifications" class="mobile-nav-link" data-tab="notifications"><i class="fas fa-bell"></i>
-          Notificaciones</a>
+        <!-- HOY -->
+        <a href="#overview" class="mobile-nav-link" data-tab="overview"><i class="fas fa-th-large"></i> Inicio</a>
         <a href="#requests" class="mobile-nav-link" data-tab="requests"><i class="fas fa-inbox"></i> Solicitudes</a>
-        <a href="#appointments" class="mobile-nav-link" data-tab="appointments"><i class="fas fa-calendar"></i>
-          Citas</a>
+        <a href="#appointments" class="mobile-nav-link" data-tab="appointments"><i class="fas fa-calendar"></i> Agenda</a>
         <a href="#caja" class="mobile-nav-link" data-tab="caja"><i class="fas fa-cash-register"></i> Caja</a>
-        <a href="#reports" class="mobile-nav-link" data-tab="reports"><i class="fas fa-chart-line"></i> Reportes</a>
-        <a href="#services" class="mobile-nav-link" data-tab="services"><i class="fas fa-sparkles"></i> Servicios</a>
-        <a href="#settings" class="mobile-nav-link" data-tab="settings"><i class="fas fa-cog"></i> Configuración</a>
+        <!-- CLIENTAS -->
+        <a href="#cards" class="mobile-nav-link" data-tab="cards"><i class="fas fa-id-card"></i> Clientas</a>
+        <a href="#events" class="mobile-nav-link" data-tab="events"><i class="fas fa-gift"></i> Gift Cards</a>
+        <a href="#reviews" class="mobile-nav-link" data-tab="reviews"><i class="fas fa-star"></i> Reseñas</a>
+        <!-- NEGOCIO -->
+        <a href="#services" class="mobile-nav-link" data-tab="services"><i class="fas fa-spa"></i> Servicios</a>
+        <a href="#notifications" class="mobile-nav-link" data-tab="notifications"><i class="fas fa-paper-plane"></i> Mensajes</a>
+        <a href="#reports" class="mobile-nav-link" data-tab="reports"><i class="fas fa-chart-line"></i> Ventas</a>
+        <a href="#settings" class="mobile-nav-link" data-tab="settings"><i class="fas fa-sliders-h"></i> Ajustes</a>
         <hr style="border-color:rgba(255,255,255,0.1);margin:10px 0;">
-        <a href="/" target="_blank" class="mobile-nav-link"><i class="fas fa-external-link-alt"></i> Página clientes</a>
+        <!-- HERRAMIENTAS (abren en nueva pestaña) -->
+        <a href="/skin-analysis.html" target="_blank" rel="noopener" class="mobile-nav-link"><i class="fas fa-microscope"></i> Venus Skin <i class="fas fa-arrow-up-right-from-square" style="font-size:10px;opacity:0.5;margin-left:auto;"></i></a>
+        <a href="/coffee-pos.html" target="_blank" rel="noopener" class="mobile-nav-link"><i class="fas fa-coffee"></i> Café <i class="fas fa-arrow-up-right-from-square" style="font-size:10px;opacity:0.5;margin-left:auto;"></i></a>
+        <a href="/" target="_blank" rel="noopener" class="mobile-nav-link"><i class="fas fa-house"></i> Página de clientas <i class="fas fa-arrow-up-right-from-square" style="font-size:10px;opacity:0.5;margin-left:auto;"></i></a>
         <button id="logout-mobile" class="mobile-nav-link"
           style="width:100%;text-align:left;background:none;border:none;color:var(--ink);font-size:16px;padding:12px;"><i
             class="fas fa-sign-out-alt"></i> Cerrar sesión</button>
@@ -12394,6 +12400,21 @@
       document.getElementById('req-pending').textContent = pending;
       document.getElementById('req-contacted').textContent = contacted;
       document.getElementById('req-booked').textContent = booked;
+
+      // Sidebar: mostrar el item Solicitudes solo si hay pendientes o contactadas;
+      // si todo está cerrado/booked, recede para reducir ruido visual.
+      const navItem = document.getElementById('nav-requests');
+      const badge = document.getElementById('requests-badge');
+      const actionables = pending + contacted;
+      if (navItem) navItem.hidden = actionables === 0;
+      if (badge) {
+        if (actionables > 0) {
+          badge.textContent = String(actionables);
+          badge.style.display = '';
+        } else {
+          badge.style.display = 'none';
+        }
+      }
     }
 
     function renderBookingRequests() {
