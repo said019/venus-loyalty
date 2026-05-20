@@ -1,8 +1,8 @@
-// public/recepcion.js — Panel de recepción Venus (página independiente, sin admin.html embebido)
+// public/recepcion.js — panel de recepción Venus (standalone, alineado al admin redesign)
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
 
-// ---------- Sesión ----------
+/* ============== SESIÓN ============== */
 async function guardSession() {
   const r = await fetch("/api/admin/me");
   if (!r.ok) { location.replace("/admin-login.html"); return null; }
@@ -13,7 +13,7 @@ async function guardSession() {
   return me;
 }
 
-// ---------- Utilidades ----------
+/* ============== UTILIDADES ============== */
 function pad(n) { return String(n).padStart(2, "0"); }
 function todayISO() {
   const d = new Date();
@@ -29,25 +29,48 @@ function waLink(phone) {
   const full = d.length === 10 ? "52" + d : d;
   return `https://wa.me/${full}`;
 }
+function prettyDate(iso) {
+  try {
+    const d = new Date(iso + "T12:00:00");
+    return d.toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" });
+  } catch { return iso; }
+}
 
 function tickClock() {
   const d = new Date();
   $("#recClock").textContent = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+/* ============== THEME ============== */
+function applyTheme(t) {
+  document.documentElement.setAttribute("data-theme", t);
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", t === "dark" ? "#0a0a0f" : "#8c9668");
+}
+function initTheme() {
+  const saved = localStorage.getItem("admin-theme") || "light";
+  applyTheme(saved);
+}
+function toggleTheme() {
+  const cur = document.documentElement.getAttribute("data-theme") || "light";
+  const next = cur === "dark" ? "light" : "dark";
+  applyTheme(next);
+  localStorage.setItem("admin-theme", next);
+}
+
+/* ============== TABS ============== */
 function activateTab(name) {
   $$(".rec-tab").forEach((b) => b.classList.toggle("active", b.dataset.tab === name));
   $$(".rec-pane").forEach((p) => p.classList.toggle("active", p.dataset.pane === name));
   if (name === "cobrar") {
     const f = $("#recPosFrame");
-    if (f && !f.src) f.src = f.dataset.src; // lazy: solo carga el POS cuando se abre
+    if (f && !f.src) f.src = f.dataset.src;
   }
   if (name === "calendario" && !calLoaded) { calLoaded = true; loadCalendar(); }
   if (name === "clientas" && !cardsLoaded) { cardsLoaded = true; loadCards(); }
   if (name === "whatsapp") loadRequests();
 }
 
-// ---------- Estado de cita ----------
+/* ============== ESTADO DE CITA ============== */
 function stateOf(c) {
   if (c.totalPaid != null) return "cobrada";
   if (c.status === "completed") return "llego";
@@ -60,20 +83,20 @@ function citaCard(c) {
   const st = stateOf(c);
   const paid = c.totalPaid != null;
   const cancelBtn = paid
-    ? `<button class="rec-btn rec-btn-danger is-locked" title="Cita pagada — pide al admin">Cancelar</button>`
-    : `<button class="rec-btn rec-btn-danger" data-action="cancel" data-id="${c.id}">Cancelar</button>`;
+    ? `<button class="rec-btn rec-btn-danger is-locked" title="Cita pagada — pide al admin"><i class="fas fa-ban"></i>Cancelar</button>`
+    : `<button class="rec-btn rec-btn-danger" data-action="cancel" data-id="${c.id}"><i class="fas fa-xmark"></i>Cancelar</button>`;
   let actions = "";
   if (st === "pendiente" || st === "confirmada") {
     actions = `
-      <button class="rec-btn rec-btn-ok" data-action="checkin" data-id="${c.id}">Check-in</button>
-      <button class="rec-btn rec-btn-ghost" data-action="wa" data-phone="${esc(c.clientPhone)}">WhatsApp</button>
+      <button class="rec-btn rec-btn-ok" data-action="checkin" data-id="${c.id}"><i class="fas fa-check"></i>Check-in</button>
+      <button class="rec-btn rec-btn-ghost" data-action="wa" data-phone="${esc(c.clientPhone)}"><i class="fab fa-whatsapp"></i>WhatsApp</button>
       ${cancelBtn}`;
   } else if (st === "llego") {
     actions = `
-      <button class="rec-btn rec-btn-primary" data-action="cobrar">Cobrar</button>
-      <button class="rec-btn rec-btn-ghost" data-action="wa" data-phone="${esc(c.clientPhone)}">WhatsApp</button>`;
+      <button class="rec-btn rec-btn-primary" data-action="cobrar"><i class="fas fa-credit-card"></i>Cobrar</button>
+      <button class="rec-btn rec-btn-ghost" data-action="wa" data-phone="${esc(c.clientPhone)}"><i class="fab fa-whatsapp"></i>WhatsApp</button>`;
   } else {
-    actions = `<button class="rec-btn rec-btn-ghost" data-action="wa" data-phone="${esc(c.clientPhone)}">WhatsApp</button>`;
+    actions = `<button class="rec-btn rec-btn-ghost" data-action="wa" data-phone="${esc(c.clientPhone)}"><i class="fab fa-whatsapp"></i>WhatsApp</button>`;
   }
   return `
     <article class="rec-card">
@@ -87,11 +110,14 @@ function citaCard(c) {
     </article>`;
 }
 
-function countersText(citas) {
+function renderKPIs(container, citas) {
   const total = citas.length;
   const llegaron = citas.filter((c) => ["llego", "cobrada"].includes(stateOf(c))).length;
   const pend = citas.filter((c) => stateOf(c) === "pendiente").length;
-  return `Citas: <b>${total}</b> &nbsp;·&nbsp; Llegaron: <b>${llegaron}</b> &nbsp;·&nbsp; Pendientes: <b>${pend}</b>`;
+  container.innerHTML = `
+    <div class="rec-kpi is-accent"><div class="lbl">Citas</div><div class="val">${total}</div></div>
+    <div class="rec-kpi"><div class="lbl">Llegaron</div><div class="val">${llegaron}</div></div>
+    <div class="rec-kpi"><div class="lbl">Pendientes</div><div class="val">${pend}</div></div>`;
 }
 
 async function fetchCitas(dateISO) {
@@ -101,37 +127,44 @@ async function fetchCitas(dateISO) {
   return Array.isArray(p) ? p : (p.data || []);
 }
 
-// ---------- HOY ----------
+const EMPTY_CITAS = `
+  <div class="rec-empty">
+    <i class="fas fa-calendar-check"></i>
+    Sin citas para esta fecha.
+  </div>`;
+const ERR_CITAS = `
+  <div class="rec-empty">
+    <i class="fas fa-triangle-exclamation"></i>
+    No se pudieron cargar las citas.
+  </div>`;
+
+/* ============== HOY ============== */
 async function loadCitasHoy() {
+  $("#recHoyDate").textContent = prettyDate(todayISO());
   try {
     const citas = await fetchCitas(todayISO());
-    $("#recCounters").innerHTML = countersText(citas);
+    renderKPIs($("#recCounters"), citas);
     const sorted = [...citas].sort((a, b) => (a.time || "").localeCompare(b.time || ""));
-    $("#recCitasHoy").innerHTML = sorted.length
-      ? sorted.map(citaCard).join("")
-      : `<div class="rec-empty">Sin citas para hoy.</div>`;
+    $("#recCitasHoy").innerHTML = sorted.length ? sorted.map(citaCard).join("") : EMPTY_CITAS;
   } catch (e) {
     console.error("[recepcion] loadCitasHoy", e);
-    $("#recCitasHoy").innerHTML = `<div class="rec-empty">No se pudieron cargar las citas.</div>`;
+    $("#recCitasHoy").innerHTML = ERR_CITAS;
   }
 }
 
-// ---------- CALENDARIO ----------
+/* ============== CALENDARIO ============== */
 let calLoaded = false;
 let calDate = todayISO();
-
 async function loadCalendar() {
   $("#recDatePick").value = calDate;
   try {
     const citas = await fetchCitas(calDate);
-    $("#recCalCounters").innerHTML = countersText(citas);
+    renderKPIs($("#recCalCounters"), citas);
     const sorted = [...citas].sort((a, b) => (a.time || "").localeCompare(b.time || ""));
-    $("#recCitasCal").innerHTML = sorted.length
-      ? sorted.map(citaCard).join("")
-      : `<div class="rec-empty">Sin citas para esta fecha.</div>`;
+    $("#recCitasCal").innerHTML = sorted.length ? sorted.map(citaCard).join("") : EMPTY_CITAS;
   } catch (e) {
     console.error("[recepcion] loadCalendar", e);
-    $("#recCitasCal").innerHTML = `<div class="rec-empty">No se pudieron cargar las citas.</div>`;
+    $("#recCitasCal").innerHTML = ERR_CITAS;
   }
 }
 function shiftCalDate(days) {
@@ -141,22 +174,20 @@ function shiftCalDate(days) {
   loadCalendar();
 }
 
-// ---------- Acciones de cita (delegadas) ----------
+/* ============== ACCIONES DE CITA ============== */
 async function handleCitaAction(ev) {
   const btn = ev.target.closest("[data-action]");
   if (!btn || btn.classList.contains("is-locked")) return;
   const { action, id, phone } = btn.dataset;
-
   if (action === "wa") { window.open(waLink(phone), "_blank"); return; }
   if (action === "cobrar") { activateTab("cobrar"); return; }
-
   if (action === "checkin") {
     const r = await fetch(`/api/appointments/${id}/status`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: "completed" }),
     });
-    if (r.ok) { refreshCitasViews(); } else { alert("No se pudo hacer check-in."); }
+    if (r.ok) refreshCitasViews(); else alert("No se pudo hacer check-in.");
     return;
   }
   if (action === "cancel") {
@@ -165,7 +196,6 @@ async function handleCitaAction(ev) {
     if (r.status === 403) alert("Esta cita ya está pagada. Solicita al administrador para cancelarla.");
     else if (r.ok) refreshCitasViews();
     else alert("No se pudo cancelar.");
-    return;
   }
 }
 function refreshCitasViews() {
@@ -173,7 +203,7 @@ function refreshCitasViews() {
   if (calLoaded) loadCalendar();
 }
 
-// ---------- CLIENTAS ----------
+/* ============== CLIENTAS ============== */
 let cardsLoaded = false;
 let cardsPage = 1;
 let cardsQuery = "";
@@ -191,7 +221,11 @@ async function loadCards() {
     $("#recCardsPrev").disabled = cardsPage <= 1;
     $("#recCardsNext").disabled = cardsPage >= cardsTotalPages;
     if (!items.length) {
-      $("#recCardsList").innerHTML = `<div class="rec-empty">No se encontraron clientas.</div>`;
+      $("#recCardsList").innerHTML = `
+        <div class="rec-empty" style="grid-column:1/-1;">
+          <i class="fas fa-user-magnifying-glass"></i>
+          No se encontraron clientas.
+        </div>`;
       return;
     }
     $("#recCardsList").innerHTML = items.map((c) => {
@@ -199,23 +233,27 @@ async function loadCards() {
       return `
         <div class="rec-client">
           <div class="name">${esc(c.name || "Sin nombre")}</div>
-          <div class="phone">${esc(c.phone || "—")}</div>
+          <div class="phone"><i class="fas fa-phone" style="font-size:11px;margin-right:6px;opacity:.6;"></i>${esc(c.phone || "—")}</div>
           <div class="meta">
-            <span class="rec-pill">${stamps} sello${stamps === 1 ? "" : "s"}</span>
-            ${c.email ? `<span class="rec-pill">${esc(c.email)}</span>` : ""}
+            <span class="rec-pill"><i class="fas fa-star" style="font-size:10px;"></i>${stamps} sello${stamps === 1 ? "" : "s"}</span>
+            ${c.email ? `<span class="rec-pill"><i class="fas fa-envelope" style="font-size:10px;"></i>${esc(c.email)}</span>` : ""}
           </div>
           <div class="acts">
-            <button class="rec-btn rec-btn-ghost" data-wa="${esc(c.phone)}">WhatsApp</button>
+            <button class="rec-btn rec-btn-ghost" data-wa="${esc(c.phone)}"><i class="fab fa-whatsapp"></i>WhatsApp</button>
           </div>
         </div>`;
     }).join("");
   } catch (e) {
     console.error("[recepcion] loadCards", e);
-    $("#recCardsList").innerHTML = `<div class="rec-empty">No se pudieron cargar las clientas.</div>`;
+    $("#recCardsList").innerHTML = `
+      <div class="rec-empty" style="grid-column:1/-1;">
+        <i class="fas fa-triangle-exclamation"></i>
+        No se pudieron cargar las clientas.
+      </div>`;
   }
 }
 
-// ---------- SOLICITUDES (booking requests) ----------
+/* ============== SOLICITUDES ============== */
 async function loadRequests() {
   try {
     const r = await fetch("/api/booking-requests");
@@ -223,8 +261,15 @@ async function loadRequests() {
     const p = await r.json();
     const list = (Array.isArray(p) ? p : (p.data || p.items || []))
       .filter((x) => !x.status || x.status === "pending" || x.status === "contacted");
+    const badge = $("#recReqBadge");
+    if (list.length) { badge.hidden = false; badge.textContent = String(list.length); }
+    else { badge.hidden = true; }
     if (!list.length) {
-      $("#recRequests").innerHTML = `<div class="rec-empty">No hay solicitudes pendientes.</div>`;
+      $("#recRequests").innerHTML = `
+        <div class="rec-empty">
+          <i class="fas fa-inbox"></i>
+          No hay solicitudes pendientes.
+        </div>`;
       return;
     }
     $("#recRequests").innerHTML = list.map((req) => {
@@ -236,21 +281,25 @@ async function loadRequests() {
             <div class="det">
               ${esc(req.phone || "")}${req.serviceName ? " · " + esc(req.serviceName) : ""}
               ${when ? " · " + esc(when) : ""}
-              ${req.status === "contacted" ? ' · <span class="rec-pill">Contactada</span>' : ""}
+              ${req.status === "contacted" ? ' · <span class="rec-pill" style="padding:2px 8px;">Contactada</span>' : ""}
             </div>
             ${req.notes ? `<div class="det">${esc(req.notes)}</div>` : ""}
           </div>
           <div class="acts">
-            <button class="rec-btn rec-btn-ghost" data-req-wa="${esc(req.phone)}">WhatsApp</button>
-            <button class="rec-btn rec-btn-ghost" data-req-contact="${req.id}">Contactada</button>
-            <button class="rec-btn rec-btn-ok" data-req-book="${req.id}">Agendar</button>
-            <button class="rec-btn rec-btn-danger" data-req-reject="${req.id}">Rechazar</button>
+            <button class="rec-btn rec-btn-ghost" data-req-wa="${esc(req.phone)}"><i class="fab fa-whatsapp"></i>WhatsApp</button>
+            <button class="rec-btn rec-btn-ghost" data-req-contact="${req.id}"><i class="fas fa-phone"></i>Contactada</button>
+            <button class="rec-btn rec-btn-ok" data-req-book="${req.id}"><i class="fas fa-calendar-check"></i>Agendar</button>
+            <button class="rec-btn rec-btn-danger" data-req-reject="${req.id}"><i class="fas fa-xmark"></i>Rechazar</button>
           </div>
         </article>`;
     }).join("");
   } catch (e) {
     console.error("[recepcion] loadRequests", e);
-    $("#recRequests").innerHTML = `<div class="rec-empty">No se pudieron cargar las solicitudes.</div>`;
+    $("#recRequests").innerHTML = `
+      <div class="rec-empty">
+        <i class="fas fa-triangle-exclamation"></i>
+        No se pudieron cargar las solicitudes.
+      </div>`;
   }
 }
 
@@ -271,13 +320,11 @@ async function handleRequestAction(ev) {
     await fetch(`/api/booking-requests/${t.dataset.reqBook}/booked`, { method: "POST" });
     loadRequests();
     activateTab("calendario");
-    return;
   }
 }
 
-// ---------- MODAL NUEVA CITA ----------
+/* ============== MODAL NUEVA CITA ============== */
 let servicesCache = [];
-let apptSelectedPhone = "";
 
 async function loadServicesIntoSelect() {
   if (servicesCache.length) return;
@@ -302,24 +349,22 @@ async function suggestCards(q) {
     if (!items.length) { box.classList.remove("show"); box.innerHTML = ""; return; }
     box.innerHTML = items.map((c) =>
       `<button type="button" data-name="${esc(c.name)}" data-phone="${esc(c.phone)}">
-         ${esc(c.name)}<span class="sub"> · ${esc(c.phone || "sin teléfono")}</span>
+         ${esc(c.name)}<span class="sub">${esc(c.phone || "sin teléfono")}</span>
        </button>`).join("");
     box.classList.add("show");
   } catch { box.classList.remove("show"); }
 }
 
-function openApptModal(prefillDate) {
+function activeCalDateOrToday() {
+  return $('[data-pane="calendario"]').classList.contains("active") ? calDate : todayISO();
+}
+function openApptModal() {
   const dlg = $("#recApptDialog");
   $("#recApptForm").reset();
   $("#recApptErr").hidden = true;
-  apptSelectedPhone = "";
-  $("#recApptDate").value = prefillDate || (activeCalDateOrToday());
+  $("#recApptDate").value = activeCalDateOrToday();
   loadServicesIntoSelect();
   dlg.showModal();
-}
-function activeCalDateOrToday() {
-  const calActive = $('[data-pane="calendario"]').classList.contains("active");
-  return calActive ? calDate : todayISO();
 }
 
 async function submitAppt(ev) {
@@ -337,7 +382,8 @@ async function submitAppt(ev) {
   }
   const svc = servicesCache.find((s) => s.name === serviceName);
   const saveBtn = $("#recApptSave");
-  saveBtn.disabled = true; saveBtn.textContent = "Agendando…";
+  saveBtn.disabled = true;
+  saveBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i><span>Agendando…</span>`;
   try {
     const r = await fetch("/api/appointments", {
       method: "POST",
@@ -354,40 +400,38 @@ async function submitAppt(ev) {
     const j = await r.json().catch(() => ({}));
     if (!r.ok || j.success === false) {
       errEl.textContent = j.error || "No se pudo agendar la cita.";
-      errEl.hidden = false;
-      return;
+      errEl.hidden = false; return;
     }
     $("#recApptDialog").close();
     refreshCitasViews();
-    if (date === calDate && calLoaded) loadCalendar();
-  } catch (e) {
+  } catch {
     errEl.textContent = "Error de red. Intenta de nuevo.";
     errEl.hidden = false;
   } finally {
-    saveBtn.disabled = false; saveBtn.textContent = "Agendar";
+    saveBtn.disabled = false;
+    saveBtn.innerHTML = `<i class="fas fa-calendar-plus"></i><span>Agendar</span>`;
   }
 }
 
-// ---------- Wiring ----------
+/* ============== WIRING ============== */
 function wire() {
   $$(".rec-tab").forEach((b) => b.addEventListener("click", () => activateTab(b.dataset.tab)));
+
+  $("#recThemeToggle").addEventListener("click", toggleTheme);
 
   $("#recLogout").addEventListener("click", async () => {
     await fetch("/api/admin/logout", { method: "POST" });
     location.replace("/admin-login.html");
   });
 
-  // Citas (Hoy + Calendario, delegado)
   $("#recCitasHoy").addEventListener("click", handleCitaAction);
   $("#recCitasCal").addEventListener("click", handleCitaAction);
 
-  // Calendario nav
   $("#recDatePrev").addEventListener("click", () => shiftCalDate(-1));
   $("#recDateNext").addEventListener("click", () => shiftCalDate(1));
   $("#recDateToday").addEventListener("click", () => { calDate = todayISO(); loadCalendar(); });
   $("#recDatePick").addEventListener("change", (e) => { calDate = e.target.value; loadCalendar(); });
 
-  // Clientas
   let searchTimer = null;
   $("#recCardSearch").addEventListener("input", (e) => {
     clearTimeout(searchTimer);
@@ -404,14 +448,13 @@ function wire() {
     if (b) window.open(waLink(b.dataset.wa), "_blank");
   });
 
-  // Solicitudes
   $("#recRequests").addEventListener("click", handleRequestAction);
   $("#recReqRefresh").addEventListener("click", loadRequests);
 
-  // Nueva cita
-  $$('[data-go="nueva-cita"]').forEach((b) =>
-    b.addEventListener("click", () => openApptModal()));
-  $("#recApptCancel").addEventListener("click", () => $("#recApptDialog").close());
+  $$('[data-go="nueva-cita"]').forEach((b) => b.addEventListener("click", openApptModal));
+  const closeDlg = () => $("#recApptDialog").close();
+  $("#recApptCancel").addEventListener("click", closeDlg);
+  $("#recApptCancel2").addEventListener("click", closeDlg);
   $("#recApptForm").addEventListener("submit", submitAppt);
   $("#recApptName").addEventListener("input", (e) => {
     clearTimeout(cardSuggestTimer);
@@ -422,18 +465,20 @@ function wire() {
     if (!b) return;
     $("#recApptName").value = b.dataset.name;
     $("#recApptPhone").value = b.dataset.phone || "";
-    apptSelectedPhone = b.dataset.phone || "";
     $("#recApptSuggest").classList.remove("show");
   });
 }
 
-// ---------- Init ----------
+/* ============== INIT ============== */
+initTheme();
 (async function init() {
   const me = await guardSession();
   if (!me) return;
   tickClock(); setInterval(tickClock, 20000);
   wire();
   loadCitasHoy();
+  // Pre-cargar contador de solicitudes en el tab (badge) sin abrir la pestaña
+  loadRequests();
   setInterval(() => {
     loadCitasHoy();
     if ($('[data-pane="whatsapp"]').classList.contains("active")) loadRequests();
