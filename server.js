@@ -566,7 +566,10 @@ app.use((req, res, next) => {
 app.get('/', (_req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'landing.html'));
 });
-app.get('/mi-tarjeta', (_req, res) => {
+// Alias bonitos para compartir el form de registro de tarjeta por WhatsApp,
+// QR físico en el local, Instagram bio, etc. Todos sirven el mismo index.html
+// que ya tiene tabs "Crear tarjeta" / "Ya tengo tarjeta".
+app.get(['/mi-tarjeta', '/tarjeta', '/unete'], (_req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
@@ -2511,7 +2514,7 @@ app.get("/api/create-card", async (req, res) => {
     const addToAppleUrl = `${base}/api/apple/pass?cardId=${encodeURIComponent(
       cardId
     )}`;
-    const url = `${base}/?cardId=${cardId}`;
+    const url = `${base}/mi-tarjeta?cardId=${cardId}`;
 
     res.json({
       url,
@@ -2564,7 +2567,7 @@ app.post("/api/create-card", async (req, res) => {
     const addToAppleUrl = `${base}/api/apple/pass?cardId=${encodeURIComponent(
       cardId
     )}`;
-    const url = `${base}/?cardId=${cardId}`;
+    const url = `${base}/mi-tarjeta?cardId=${cardId}`;
 
     res.json({
       url,

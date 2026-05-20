@@ -1087,8 +1087,8 @@
           throw new Error(data.error || 'No se encontró ninguna tarjeta con ese teléfono');
         }
         
-        // Redirect to card view
-        window.location.href = `/?cardId=${data.data.id || data.data.cardId}`;
+        // Redirect to card view (/ ahora sirve landing; la tarjeta vive en /mi-tarjeta)
+        window.location.href = `/mi-tarjeta?cardId=${data.data.id || data.data.cardId}`;
       } catch (error) {
         loginError.textContent = error.message || 'No se encontró ninguna tarjeta';
         loginError.classList.remove('hidden');
@@ -1313,7 +1313,7 @@
 
       // Share
       document.getElementById("share").onclick = () => {
-        const shareUrl = `${window.location.origin}?cardId=${cardId}`;
+        const shareUrl = `${window.location.origin}/mi-tarjeta?cardId=${cardId}`;
         if (navigator.share) {
           navigator.share({ title: "Mi tarjeta Venus", text: "Mi tarjeta de lealtad Venus", url: shareUrl });
         } else {

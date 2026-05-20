@@ -5988,7 +5988,7 @@
       document.getElementById('notify-message').value = '';
 
       // Generar QR
-      const url = `${window.location.origin}/?cardId=${encodeURIComponent(card.id)}`;
+      const url = `${window.location.origin}/mi-tarjeta?cardId=${encodeURIComponent(card.id)}`;
       if (typeof QRCode !== 'undefined' && modalQrCanvas) {
         try {
           const ctx = modalQrCanvas.getContext('2d');
@@ -6124,7 +6124,7 @@
     }
 
     function openClientPage(cardId) {
-      const url = `${window.location.origin}/?cardId=${encodeURIComponent(cardId)}`;
+      const url = `${window.location.origin}/mi-tarjeta?cardId=${encodeURIComponent(cardId)}`;
       window.open(url, '_blank');
     }
 
