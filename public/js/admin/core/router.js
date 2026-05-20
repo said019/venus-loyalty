@@ -15,7 +15,6 @@
     'caja':          'caja',
     'clientas':      'cards',
     'mensajes':      'notifications',
-    'gift-cards':    'events',
     'servicios':     'services',
     'ventas':        'reports',
     'resenas':       'reviews',
@@ -24,6 +23,11 @@
   const TAB_TO_SLUG = Object.fromEntries(
     Object.entries(SLUG_TO_TAB).map(function (e) { return [e[1], e[0]]; })
   );
+  // Slugs legacy que ahora viven como sub-tab dentro de otra pestaña.
+  // {slug: { tab: 'parentTab', subtab: 'sub-id' }}.
+  const SUBTAB_REDIRECTS = {
+    'gift-cards': { tab: 'cards', subtab: 'cards-gift' },
+  };
 
   function slugFromPath(p) {
     const m = p.match(/^\/admin(?:\.html)?(?:\/([^\/?#]+))?\/?$/);
@@ -59,8 +63,22 @@
 
   // 3) Initial load: abre pestaña según URL; normaliza /admin, /admin.html
   //    y slugs inválidos a /admin/inicio (sin recarga visible).
+  //    También resuelve slugs legacy que ahora son sub-tabs (ej. /admin/gift-cards
+  //    → /admin/clientas con sub-tab cards-gift activo).
   document.addEventListener('DOMContentLoaded', function () {
     const slug = slugFromPath(location.pathname);
+    const subRedirect = SUBTAB_REDIRECTS[slug];
+    if (subRedirect) {
+      const parentSlug = TAB_TO_SLUG[subRedirect.tab] || 'inicio';
+      history.replaceState({ slug: parentSlug }, '', '/admin/' + parentSlug);
+      if (typeof window.switchTab === 'function') window.switchTab(subRedirect.tab);
+      // El handler de sub-tabs (en ui.js) escucha este custom event para
+      // activar el sub-pane correcto sin requerir click.
+      document.dispatchEvent(new CustomEvent('admin:activate-subtab', {
+        detail: { subtab: subRedirect.subtab }
+      }));
+      return;
+    }
     const validSlug = slug && SLUG_TO_TAB[slug];
     if (!validSlug) {
       history.replaceState({ slug: 'inicio' }, '', '/admin/inicio');

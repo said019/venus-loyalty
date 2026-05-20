@@ -42,8 +42,8 @@
     </div>
 
     <nav class="sidebar-nav">
-      <!-- HOY — flujo operativo diario -->
-      <div class="sidebar-section-label">Hoy</div>
+      <!-- DIARIO — todo lo operativo del día -->
+      <div class="sidebar-section-label">Diario</div>
       <button class="sidebar-nav-item is-active" data-tab="overview">
         <i class="fas fa-th-large"></i>
         <span>Inicio</span>
@@ -65,27 +65,13 @@
         <span>Caja</span>
         <small>Cobros del día</small>
       </button>
-
-      <!-- CLIENTAS — todo lo que va sobre la persona -->
-      <div class="sidebar-section-label">Clientas</div>
       <button class="sidebar-nav-item" data-tab="cards">
         <i class="fas fa-id-card"></i>
         <span>Clientas</span>
-        <small>Lealtad y datos</small>
-      </button>
-      <button class="sidebar-nav-item" data-tab="events">
-        <i class="fas fa-gift"></i>
-        <span>Gift Cards</span>
-        <small>Regalos vendidos</small>
-      </button>
-      <button class="sidebar-nav-item" data-tab="reviews">
-        <i class="fas fa-star"></i>
-        <span>Reseñas</span>
-        <small>Opiniones de clientas</small>
-        <span id="reviews-badge" style="display:none;background:#f5a623;color:#fff;font-size:10px;font-weight:700;border-radius:10px;padding:1px 6px;margin-left:auto;">0</span>
+        <small>Lealtad y gift cards</small>
       </button>
 
-      <!-- NEGOCIO — configuración + finanzas -->
+      <!-- NEGOCIO — configuración, finanzas, reseñas -->
       <div class="sidebar-section-label">Negocio</div>
       <button class="sidebar-nav-item" data-tab="services">
         <i class="fas fa-spa"></i>
@@ -95,17 +81,23 @@
       <button class="sidebar-nav-item" data-tab="notifications">
         <i class="fas fa-paper-plane"></i>
         <span>Mensajes</span>
-        <small>Automatizaciones de WhatsApp</small>
+        <small>Automatizaciones y campañas</small>
       </button>
       <button class="sidebar-nav-item" data-tab="reports">
         <i class="fas fa-chart-line"></i>
         <span>Ventas</span>
         <small>Ingresos y gastos</small>
       </button>
+      <button class="sidebar-nav-item" data-tab="reviews">
+        <i class="fas fa-star"></i>
+        <span>Reseñas</span>
+        <small>Opiniones de clientas</small>
+        <span id="reviews-badge" style="display:none;background:#f5a623;color:#fff;font-size:10px;font-weight:700;border-radius:10px;padding:1px 6px;margin-left:auto;">0</span>
+      </button>
       <button class="sidebar-nav-item" data-tab="settings">
         <i class="fas fa-sliders-h"></i>
         <span>Ajustes</span>
-        <small>Datos del negocio</small>
+        <small>Negocio, integraciones, push</small>
       </button>
 
       <!-- HERRAMIENTAS — links que abren otra página, en pestaña nueva -->
@@ -211,19 +203,17 @@
             class="fas fa-times"></i></button>
       </div>
       <div class="mobile-menu-content">
-        <!-- HOY -->
+        <!-- DIARIO -->
         <a href="#overview" class="mobile-nav-link" data-tab="overview"><i class="fas fa-th-large"></i> Inicio</a>
         <a href="#requests" class="mobile-nav-link" data-tab="requests"><i class="fas fa-inbox"></i> Solicitudes</a>
         <a href="#appointments" class="mobile-nav-link" data-tab="appointments"><i class="fas fa-calendar"></i> Agenda</a>
         <a href="#caja" class="mobile-nav-link" data-tab="caja"><i class="fas fa-cash-register"></i> Caja</a>
-        <!-- CLIENTAS -->
         <a href="#cards" class="mobile-nav-link" data-tab="cards"><i class="fas fa-id-card"></i> Clientas</a>
-        <a href="#events" class="mobile-nav-link" data-tab="events"><i class="fas fa-gift"></i> Gift Cards</a>
-        <a href="#reviews" class="mobile-nav-link" data-tab="reviews"><i class="fas fa-star"></i> Reseñas</a>
         <!-- NEGOCIO -->
         <a href="#services" class="mobile-nav-link" data-tab="services"><i class="fas fa-spa"></i> Servicios</a>
         <a href="#notifications" class="mobile-nav-link" data-tab="notifications"><i class="fas fa-paper-plane"></i> Mensajes</a>
         <a href="#reports" class="mobile-nav-link" data-tab="reports"><i class="fas fa-chart-line"></i> Ventas</a>
+        <a href="#reviews" class="mobile-nav-link" data-tab="reviews"><i class="fas fa-star"></i> Reseñas</a>
         <a href="#settings" class="mobile-nav-link" data-tab="settings"><i class="fas fa-sliders-h"></i> Ajustes</a>
         <hr style="border-color:rgba(255,255,255,0.1);margin:10px 0;">
         <!-- HERRAMIENTAS (abren en nueva pestaña) -->
@@ -462,10 +452,32 @@
 
     <!-- TAB: Cards -->
     <section id="tab-cards" class="tab-content hidden">
+      <div class="header-actions" style="margin-bottom:14px;">
+        <div>
+          <h2 style="margin:0;font-size:24px;font-weight:600;"><i class="fas fa-id-card" style="color:var(--venus-soft);margin-right:10px;"></i>Clientas</h2>
+          <p class="muted" style="margin:4px 0 0;">Lealtad, expedientes y gift cards.</p>
+        </div>
+      </div>
+
+      <!-- Sub-navegación de Clientas -->
+      <div class="subnav" role="tablist" aria-label="Secciones de Clientas">
+        <button class="subnav-btn active" data-subtab="cards-list" role="tab" aria-selected="true">
+          <i class="fas fa-id-card" aria-hidden="true"></i> Tarjetas
+        </button>
+        <button class="subnav-btn" data-subtab="cards-gift" role="tab" aria-selected="false">
+          <i class="fas fa-gift" aria-hidden="true"></i> Gift Cards
+        </button>
+      </div>
+
+      <!-- =============================================================
+           SUB-PANE: TARJETAS DE LEALTAD
+           ============================================================= -->
+      <div class="subpane is-active" data-subpane="cards-list">
+
       <div class="header-actions" style="margin-bottom:20px;">
         <div>
-          <h2 style="margin:0;font-size:24px;font-weight:600;"><i class="fas fa-credit-card" style="color:var(--venus-soft);margin-right:10px;"></i>Tarjetas de lealtad</h2>
-          <p class="muted" style="margin:4px 0 0;">Gestiona todas las tarjetas de tus clientes.</p>
+          <h3 style="margin:0;font-size:18px;font-weight:600;">Tarjetas de lealtad</h3>
+          <p class="muted" style="margin:4px 0 0;font-size:13px;">Gestiona todas las tarjetas de tus clientas.</p>
         </div>
         <div style="display:flex;gap:8px;">
           <button id="btn-reload-cards" class="btn ghost"><i class="fas fa-sync-alt"></i></button>
@@ -548,14 +560,18 @@
         <span id="page-info" class="muted" style="font-size:13px;">Página 1</span>
         <button id="btn-next-page" class="btn small ghost">Siguiente <i class="fas fa-chevron-right"></i></button>
       </div>
-    </section>
 
-    <!-- TAB: Gift Cards -->
-    <section id="tab-events" class="tab-content hidden">
+      </div>
+      <!-- /subpane Tarjetas -->
+
+      <!-- =============================================================
+           SUB-PANE: GIFT CARDS (movido desde tab-events)
+           ============================================================= -->
+      <div class="subpane" data-subpane="cards-gift">
       <div class="header-actions" style="margin-bottom:20px;">
         <div>
-          <h2 style="margin:0;font-size:24px;font-weight:600;"><i class="fas fa-gift" style="color:var(--venus-soft);margin-right:10px;"></i>Gift Cards</h2>
-          <p class="muted" style="margin:4px 0 0;">Crea y gestiona tarjetas de regalo.</p>
+          <h3 style="margin:0;font-size:18px;font-weight:600;">Gift Cards</h3>
+          <p class="muted" style="margin:4px 0 0;font-size:13px;">Crea y gestiona tarjetas de regalo.</p>
         </div>
         <button class="btn primary" id="btn-scan-gift-card">
           <i class="fas fa-qrcode"></i> Escanear QR
@@ -673,7 +689,10 @@
         </div>
 
       </div>
+      </div>
+      <!-- /subpane Gift Cards -->
     </section>
+    <!-- /tab-cards (ahora contiene Tarjetas + Gift Cards) -->
 
     <!-- Modal Ver Gift Card -->
     <div id="modal-giftcard-view" class="modal-backdrop hidden">
@@ -734,7 +753,30 @@
 
     <!-- TAB: Settings - MEJORADO CON DEBUGGING -->
     <section id="tab-settings" class="card hidden">
-      <h2>Configuración</h2>
+      <div class="header-actions" style="margin-bottom:14px;">
+        <div>
+          <h2 style="margin-bottom:4px;"><i class="fas fa-sliders-h"></i> Ajustes</h2>
+          <p class="muted" style="margin:0;font-size:13px;">Configuración del negocio, integraciones y herramientas técnicas.</p>
+        </div>
+      </div>
+
+      <!-- Sub-navegación de Ajustes -->
+      <div class="subnav" role="tablist" aria-label="Secciones de Ajustes">
+        <button class="subnav-btn active" data-subtab="settings-business" role="tab" aria-selected="true">
+          <i class="fas fa-store" aria-hidden="true"></i> Negocio
+        </button>
+        <button class="subnav-btn" data-subtab="settings-integrations" role="tab" aria-selected="false">
+          <i class="fas fa-plug" aria-hidden="true"></i> Integraciones
+        </button>
+        <button class="subnav-btn" data-subtab="settings-advanced" role="tab" aria-selected="false">
+          <i class="fas fa-wrench" aria-hidden="true"></i> Avanzado
+        </button>
+      </div>
+
+      <!-- =============================================================
+           SUB-PANE: NEGOCIO
+           ============================================================= -->
+      <div class="subpane is-active" data-subpane="settings-business">
 
       <!-- Configuración del Negocio -->
       <div
@@ -927,6 +969,14 @@
         </div>
       </div>
 
+      </div>
+      <!-- /subpane Negocio -->
+
+      <!-- =============================================================
+           SUB-PANE: INTEGRACIONES (Google Calendar + WhatsApp + Push)
+           ============================================================= -->
+      <div class="subpane" data-subpane="settings-integrations">
+
       <!-- Google Calendar OAuth -->
       <div style="background:rgba(66,133,244,0.08);border:1px solid rgba(66,133,244,0.25);border-radius:12px;padding:14px;margin:12px 0;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
@@ -1044,114 +1094,15 @@
         </div>
       </div>
 
-      <!-- CAMPAÑA PROMO 2025 -->
-      <div style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:12px;padding:14px;margin:16px 0;">
-        <h3 style="margin:0 0 8px;"><i class="fab fa-whatsapp"></i> Campaña WhatsApp — Clientes 2025</h3>
-        <p class="muted" style="font-size:12px;margin-bottom:10px;">Analiza tus chats de WhatsApp Business, identifica clientes reales y envíales una promo. 1 mensaje cada 5 min.</p>
-
-        <!-- PASO 1: Analizar -->
-        <div style="background:rgba(255,255,255,0.06);border-radius:10px;padding:12px;margin-bottom:12px;">
-          <h4 style="margin:0 0 8px;font-size:14px;"><i class="fas fa-search"></i> Paso 1 — Analizar chats</h4>
-          <p class="muted" style="font-size:11px;margin-bottom:8px;">Lee los mensajes de cada chat para separar clientes reales de spam/proveedores.</p>
-          <button type="button" id="btn-promo-analyze" class="btn ghost" onclick="analyzePromo2025()"><i class="fas fa-microscope"></i> Analizar chats de 2025</button>
-          <span id="promo-analyze-status" class="muted" style="font-size:12px;margin-left:8px;"></span>
-        </div>
-
-        <!-- Resultados del análisis -->
-        <div id="promo-analysis-results" class="hidden" style="margin-bottom:12px;">
-          <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:13px;margin-bottom:8px;">
-            <span style="color:#22c55e;"><i class="fas fa-user-check"></i> Clientes: <b id="promo-a-clients">0</b></span>
-            <span style="color:#ef4444;"><i class="fas fa-user-times"></i> No clientes: <b id="promo-a-not">0</b></span>
-            <span style="color:#f59e0b;"><i class="fas fa-question-circle"></i> Indeterminados: <b id="promo-a-unknown">0</b></span>
-          </div>
-
-          <!-- Tabla de clientes encontrados con checkbox -->
-          <div style="max-height:300px;overflow-y:auto;border:1px solid rgba(255,255,255,0.1);border-radius:8px;">
-            <table style="width:100%;font-size:12px;">
-              <thead style="position:sticky;top:0;background:#1a1a2e;">
-                <tr>
-                  <th style="width:30px;"><input type="checkbox" id="promo-select-all" checked onchange="toggleAllPromo(this.checked)"></th>
-                  <th>Nombre</th>
-                  <th>Teléfono</th>
-                  <th>Tipo</th>
-                  <th>Muestra</th>
-                </tr>
-              </thead>
-              <tbody id="promo-analysis-tbody"></tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- PASO 2: Mensaje y envío -->
-        <div id="promo-step2" class="hidden" style="background:rgba(255,255,255,0.06);border-radius:10px;padding:12px;margin-bottom:12px;">
-          <h4 style="margin:0 0 8px;font-size:14px;"><i class="fas fa-paper-plane"></i> Paso 2 — Escribir mensaje y enviar</h4>
-
-          <label>Mensaje promocional</label>
-          <textarea id="promo-message" rows="4" placeholder="Hola {nombre}, te extrañamos en Venus! Tenemos un descuento especial en nuestros servicios básicos solo para ti. Agenda tu cita hoy." style="width:100%;"></textarea>
-          <small class="muted">Usa <b>{nombre}</b> para personalizar con el nombre de la clienta</small>
-
-          <div style="margin-top:10px;">
-            <label>Cantidad máxima de envíos</label>
-            <input id="promo-limit" type="number" min="1" max="500" value="20" placeholder="20" style="width:100px;">
-            <small class="muted">Déjalo vacío para enviar a todos los seleccionados</small>
-          </div>
-
-          <div class="row" style="margin-top:12px;gap:10px;">
-            <button type="button" id="btn-promo-start" class="btn primary" onclick="startPromo2025()"><i class="fab fa-whatsapp"></i> Enviar a seleccionados</button>
-            <button type="button" id="btn-promo-stop" class="btn ghost" style="color:#ef4444;" onclick="stopPromo2025()" disabled><i class="fas fa-stop"></i> Detener</button>
-            <button type="button" class="btn ghost" onclick="refreshPromoStatus()"><i class="fas fa-sync-alt"></i></button>
-          </div>
-        </div>
-
-        <!-- Estado de envío -->
-        <div id="promo-status" class="hidden" style="padding:10px;background:rgba(255,255,255,0.05);border-radius:8px;">
-          <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:13px;">
-            <span><i class="fas fa-paper-plane" style="color:#22c55e;"></i> Enviados: <b id="promo-sent">0</b></span>
-            <span><i class="fas fa-exclamation-triangle" style="color:#ef4444;"></i> Fallidos: <b id="promo-failed">0</b></span>
-            <span><i class="fas fa-clock" style="color:#f59e0b;"></i> En cola: <b id="promo-remaining">0</b></span>
-            <span><i class="fas fa-users"></i> Total: <b id="promo-total">0</b></span>
-          </div>
-          <div id="promo-running-badge" class="hidden" style="margin-top:8px;font-size:12px;color:#22c55e;"><i class="fas fa-circle fa-xs"></i> Campaña en curso...</div>
-          <div id="promo-done-badge" class="hidden" style="margin-top:8px;font-size:12px;color:#8c8c8c;"><i class="fas fa-check-circle"></i> Campaña finalizada</div>
-        </div>
-
-        <div id="promo-sent-list" class="hidden" style="margin-top:10px;max-height:200px;overflow-y:auto;">
-          <table style="width:100%;font-size:12px;">
-            <thead><tr><th>Nombre</th><th>Teléfono</th><th>Enviado</th></tr></thead>
-            <tbody id="promo-sent-tbody"></tbody>
-          </table>
-        </div>
       </div>
+      <!-- /subpane Integraciones -->
 
-      <div style="margin-top:16px;">
-        <div class="row" style="justify-content:space-between;margin-bottom:8px;">
-          <h3 style="margin:0;"><i class="fas fa-list"></i> Historial</h3>
-          <div style="display:flex;gap:8px;">
-            <button id="refresh-history" class="btn small ghost" title="Refrescar"><i
-                class="fas fa-sync-alt"></i></button>
-            <button id="clear-notif-history" class="btn small ghost" style="color:#ef4444;" title="Borrar historial"><i
-                class="fas fa-trash"></i></button>
-          </div>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Fecha</th>
-                <th>Título</th>
-                <th>Tipo</th>
-                <th>Enviadas</th>
-                <th>Errores</th>
-              </tr>
-            </thead>
-            <tbody id="notifications-history">
-              <tr>
-                <td colspan="5" style="text-align:center;padding:12px;" class="muted">Cargando...</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <!-- (Campaña WhatsApp 2025 e Historial movidos a Mensajes > sub-tabs Campañas y Historial) -->
+
+      <!-- =============================================================
+           SUB-PANE: AVANZADO (Debugging)
+           ============================================================= -->
+      <div class="subpane" data-subpane="settings-advanced">
 
       <!-- NUEVA SECCIÓN: DEBUGGING AVANZADO -->
       <div class="debug-section">
@@ -1181,22 +1132,45 @@
           <!-- Aquí se mostrarán los resultados del debugging -->
         </div>
       </div>
+      </div>
+      <!-- /subpane Avanzado -->
     </section>
 
-    <!-- TAB: Notificaciones -->
+    <!-- TAB: Mensajes (Automatizaciones + Campañas + Historial) -->
     <section id="tab-notifications" class="card hidden">
-      <h2><i class="fas fa-bell"></i> Notificaciones</h2>
-      <p class="muted" style="margin:0 0 20px;font-size:13px;">
-        Configura notificaciones automáticas para diferentes eventos del programa de lealtad.
-      </p>
-
-      <!-- Botón ejecutar todas -->
-      <div style="margin-bottom:24px;">
-        <button id="btn-run-all-automations" class="btn primary">
-          <i class="fas fa-play"></i> Ejecutar Automatizaciones Activas
-        </button>
-        <span class="muted" style="font-size:12px;margin-left:10px;">Procesa todas las reglas activas ahora</span>
+      <div class="header-actions" style="margin-bottom:14px;">
+        <div>
+          <h2 style="margin-bottom:4px;"><i class="fas fa-paper-plane"></i> Mensajes</h2>
+          <p class="muted" style="margin:0;font-size:13px;">Reglas automáticas y campañas manuales por WhatsApp.</p>
+        </div>
       </div>
+
+      <!-- Sub-navegación -->
+      <div class="subnav" role="tablist" aria-label="Secciones de Mensajes">
+        <button class="subnav-btn active" data-subtab="messages-auto" role="tab" aria-selected="true">
+          <i class="fas fa-bolt" aria-hidden="true"></i> Automatizaciones
+        </button>
+        <button class="subnav-btn" data-subtab="messages-campaign" role="tab" aria-selected="false">
+          <i class="fas fa-bullhorn" aria-hidden="true"></i> Campañas
+        </button>
+        <button class="subnav-btn" data-subtab="messages-history" role="tab" aria-selected="false">
+          <i class="fas fa-list" aria-hidden="true"></i> Historial
+        </button>
+      </div>
+
+      <!-- =============================================================
+           SUB-PANE: AUTOMATIZACIONES
+           ============================================================= -->
+      <div class="subpane is-active" data-subpane="messages-auto">
+        <p class="muted" style="margin:0 0 16px;font-size:13px;">
+          Reglas que el sistema dispara solo según el comportamiento de las clientas.
+        </p>
+        <div style="margin-bottom:20px;">
+          <button id="btn-run-all-automations" class="btn primary">
+            <i class="fas fa-play"></i> Ejecutar automatizaciones activas
+          </button>
+          <span class="muted" style="font-size:12px;margin-left:10px;">Procesa todas las reglas activas ahora</span>
+        </div>
 
       <!-- Regla 1: Cumpleaños -->
       <div class="automation-card">
@@ -1297,14 +1271,134 @@
         </div>
       </div>
 
-      <!-- Historial de automatizaciones -->
-      <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line);">
-        <h4 style="margin:0 0 10px;font-size:14px;color:var(--venus-soft);"><i class="fas fa-list"></i> Historial
-          Reciente</h4>
-        <div id="automation-history" class="automation-history">
-          <p class="muted" style="font-size:12px;">No hay envíos recientes</p>
+        <!-- Historial de automatizaciones (reciente, inline) -->
+        <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line);">
+          <h4 style="margin:0 0 10px;font-size:14px;color:var(--venus-soft);"><i class="fas fa-list"></i> Últimos envíos automáticos</h4>
+          <div id="automation-history" class="automation-history">
+            <p class="muted" style="font-size:12px;">No hay envíos recientes</p>
+          </div>
         </div>
       </div>
+      <!-- /subpane Automatizaciones -->
+
+      <!-- =============================================================
+           SUB-PANE: CAMPAÑAS (movido desde Ajustes)
+           ============================================================= -->
+      <div class="subpane" data-subpane="messages-campaign">
+        <p class="muted" style="margin:0 0 16px;font-size:13px;">
+          Envíos manuales y puntuales. Analiza tus chats de WhatsApp Business, identifica clientes reales y envíales una promo en bloque (1 mensaje cada 5 min).
+        </p>
+
+        <!-- CAMPAÑA PROMO 2025 (originalmente en Ajustes) -->
+        <div style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:12px;padding:14px;">
+          <h3 style="margin:0 0 8px;"><i class="fab fa-whatsapp"></i> Campaña WhatsApp — Clientes 2025</h3>
+          <p class="muted" style="font-size:12px;margin-bottom:10px;">Analiza tus chats de WhatsApp Business, identifica clientes reales y envíales una promo. 1 mensaje cada 5 min.</p>
+
+          <!-- PASO 1: Analizar -->
+          <div style="background:rgba(255,255,255,0.06);border-radius:10px;padding:12px;margin-bottom:12px;">
+            <h4 style="margin:0 0 8px;font-size:14px;"><i class="fas fa-search"></i> Paso 1 — Analizar chats</h4>
+            <p class="muted" style="font-size:11px;margin-bottom:8px;">Lee los mensajes de cada chat para separar clientes reales de spam/proveedores.</p>
+            <button type="button" id="btn-promo-analyze" class="btn ghost" onclick="analyzePromo2025()"><i class="fas fa-microscope"></i> Analizar chats de 2025</button>
+            <span id="promo-analyze-status" class="muted" style="font-size:12px;margin-left:8px;"></span>
+          </div>
+
+          <!-- Resultados del análisis -->
+          <div id="promo-analysis-results" class="hidden" style="margin-bottom:12px;">
+            <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:13px;margin-bottom:8px;">
+              <span style="color:#22c55e;"><i class="fas fa-user-check"></i> Clientes: <b id="promo-a-clients">0</b></span>
+              <span style="color:#ef4444;"><i class="fas fa-user-times"></i> No clientes: <b id="promo-a-not">0</b></span>
+              <span style="color:#f59e0b;"><i class="fas fa-question-circle"></i> Indeterminados: <b id="promo-a-unknown">0</b></span>
+            </div>
+            <div style="max-height:300px;overflow-y:auto;border:1px solid rgba(255,255,255,0.1);border-radius:8px;">
+              <table style="width:100%;font-size:12px;">
+                <thead style="position:sticky;top:0;background:#1a1a2e;">
+                  <tr>
+                    <th style="width:30px;"><input type="checkbox" id="promo-select-all" checked onchange="toggleAllPromo(this.checked)"></th>
+                    <th>Nombre</th>
+                    <th>Teléfono</th>
+                    <th>Tipo</th>
+                    <th>Muestra</th>
+                  </tr>
+                </thead>
+                <tbody id="promo-analysis-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- PASO 2: Mensaje y envío -->
+          <div id="promo-step2" class="hidden" style="background:rgba(255,255,255,0.06);border-radius:10px;padding:12px;margin-bottom:12px;">
+            <h4 style="margin:0 0 8px;font-size:14px;"><i class="fas fa-paper-plane"></i> Paso 2 — Escribir mensaje y enviar</h4>
+            <label>Mensaje promocional</label>
+            <textarea id="promo-message" rows="4" placeholder="Hola {nombre}, te extrañamos en Venus! Tenemos un descuento especial en nuestros servicios básicos solo para ti. Agenda tu cita hoy." style="width:100%;"></textarea>
+            <small class="muted">Usa <b>{nombre}</b> para personalizar con el nombre de la clienta</small>
+            <div style="margin-top:10px;">
+              <label>Cantidad máxima de envíos</label>
+              <input id="promo-limit" type="number" min="1" max="500" value="20" placeholder="20" style="width:100px;">
+              <small class="muted">Déjalo vacío para enviar a todos los seleccionados</small>
+            </div>
+            <div class="row" style="margin-top:12px;gap:10px;">
+              <button type="button" id="btn-promo-start" class="btn primary" onclick="startPromo2025()"><i class="fab fa-whatsapp"></i> Enviar a seleccionados</button>
+              <button type="button" id="btn-promo-stop" class="btn ghost" style="color:#ef4444;" onclick="stopPromo2025()" disabled><i class="fas fa-stop"></i> Detener</button>
+              <button type="button" class="btn ghost" onclick="refreshPromoStatus()"><i class="fas fa-sync-alt"></i></button>
+            </div>
+          </div>
+
+          <!-- Estado de envío -->
+          <div id="promo-status" class="hidden" style="padding:10px;background:rgba(255,255,255,0.05);border-radius:8px;">
+            <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:13px;">
+              <span><i class="fas fa-paper-plane" style="color:#22c55e;"></i> Enviados: <b id="promo-sent">0</b></span>
+              <span><i class="fas fa-exclamation-triangle" style="color:#ef4444;"></i> Fallidos: <b id="promo-failed">0</b></span>
+              <span><i class="fas fa-clock" style="color:#f59e0b;"></i> En cola: <b id="promo-remaining">0</b></span>
+              <span><i class="fas fa-users"></i> Total: <b id="promo-total">0</b></span>
+            </div>
+            <div id="promo-running-badge" class="hidden" style="margin-top:8px;font-size:12px;color:#22c55e;"><i class="fas fa-circle fa-xs"></i> Campaña en curso...</div>
+            <div id="promo-done-badge" class="hidden" style="margin-top:8px;font-size:12px;color:#8c8c8c;"><i class="fas fa-check-circle"></i> Campaña finalizada</div>
+          </div>
+
+          <div id="promo-sent-list" class="hidden" style="margin-top:10px;max-height:200px;overflow-y:auto;">
+            <table style="width:100%;font-size:12px;">
+              <thead><tr><th>Nombre</th><th>Teléfono</th><th>Enviado</th></tr></thead>
+              <tbody id="promo-sent-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <!-- /subpane Campañas -->
+
+      <!-- =============================================================
+           SUB-PANE: HISTORIAL (movido desde Ajustes)
+           ============================================================= -->
+      <div class="subpane" data-subpane="messages-history">
+        <div class="row" style="justify-content:space-between;margin-bottom:8px;">
+          <div>
+            <h3 style="margin:0;"><i class="fas fa-list"></i> Historial completo</h3>
+            <p class="muted" style="font-size:12px;margin-top:4px;">Envíos automáticos y campañas combinados.</p>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button id="refresh-history" class="btn small ghost" title="Refrescar"><i class="fas fa-sync-alt"></i></button>
+            <button id="clear-notif-history" class="btn small ghost" style="color:#ef4444;" title="Borrar historial"><i class="fas fa-trash"></i></button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Título</th>
+                <th>Tipo</th>
+                <th>Enviadas</th>
+                <th>Errores</th>
+              </tr>
+            </thead>
+            <tbody id="notifications-history">
+              <tr>
+                <td colspan="5" style="text-align:center;padding:12px;" class="muted">Cargando...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <!-- /subpane Historial -->
     </section>
 
     <!-- TAB: Solicitudes de Citas Online -->

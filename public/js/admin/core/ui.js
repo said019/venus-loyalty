@@ -58,9 +58,16 @@
           if (typeof startDashboardAutoRefresh === 'function') startDashboardAutoRefresh();
         } else if (tabName === 'cards') {
           if (typeof loadCards === 'function') loadCards(1);
-        } else if (tabName === 'events') {
+          // Gift Cards ahora vive como sub-tab dentro de Clientas:
+          // precargamos su data porque el usuario puede saltar al sub-tab.
           if (typeof loadGiftCardServices === 'function') loadGiftCardServices();
           if (typeof loadGiftCards === 'function') loadGiftCards();
+        } else if (tabName === 'events') {
+          // Legacy: alguien llamó switchTab('events'). Redirigimos a cards
+          // y activamos el sub-pane Gift Cards.
+          switchTab('cards');
+          activateSubpane('cards-gift');
+          return;
         } else if (tabName === 'requests') {
           if (typeof loadBookingRequests === 'function') loadBookingRequests();
           if (typeof initAgendarUrl === 'function') initAgendarUrl();
@@ -90,3 +97,46 @@
       window.scrollTo(0, 0);
     }
 
+
+    // ===== SUB-NAVEGACIÓN DENTRO DE UN TAB =====
+    // Cada tab puede contener un grupo .subnav con botones .subnav-btn[data-subtab]
+    // y los paneles correspondientes .subpane[data-subpane]. Solo un sub-pane
+    // activo por grupo. activateSubpane(id) marca el botón y muestra el pane;
+    // los demás del mismo grupo se ocultan.
+    function activateSubpane(subtabId) {
+      // Encontrar el botón objetivo (puede estar en cualquier tab)
+      const btn = document.querySelector('.subnav-btn[data-subtab="' + subtabId + '"]');
+      if (!btn) return;
+      const group = btn.closest('.subnav');
+      const tabSection = btn.closest('[id^="tab-"]');
+      if (!group || !tabSection) return;
+      // Botones del mismo grupo
+      group.querySelectorAll('.subnav-btn').forEach(function (b) {
+        const active = b === btn;
+        b.classList.toggle('active', active);
+        b.setAttribute('aria-selected', active ? 'true' : 'false');
+      });
+      // Panes del mismo tab section
+      tabSection.querySelectorAll(':scope > .subpane, :scope > div > .subpane').forEach(function (p) {
+        p.classList.toggle('is-active', p.getAttribute('data-subpane') === subtabId);
+      });
+    }
+    window.activateSubpane = activateSubpane;
+
+    // Wiring: delegado en document. Al clickear un .subnav-btn dentro de
+    // cualquier tab, activa su sub-pane correspondiente.
+    document.addEventListener('click', function (e) {
+      const b = e.target && e.target.closest && e.target.closest('.subnav-btn[data-subtab]');
+      if (!b) return;
+      activateSubpane(b.dataset.subtab);
+    });
+
+    // Soporte para el router: cuando una URL legacy (ej /admin/gift-cards)
+    // redirige a un tab con sub-tab, despacha 'admin:activate-subtab'.
+    document.addEventListener('admin:activate-subtab', function (e) {
+      const sub = e.detail && e.detail.subtab;
+      if (sub) {
+        // Esperar al siguiente frame para que el tab padre ya esté renderizado.
+        requestAnimationFrame(function () { activateSubpane(sub); });
+      }
+    });
