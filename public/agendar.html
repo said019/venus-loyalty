@@ -150,6 +150,7 @@
             </div>
             <div class="tw-time-slots">
               <h3 class="tw-time-slots-title" id="time-title">Selecciona un día</h3>
+              <p id="time-leadtime-note" class="tw-time-leadtime-note" hidden></p>
               <div class="tw-time-grid" id="time-grid">
                 <p style="grid-column:span 3;text-align:center;color:#7a7a6a;padding:16px;font-size:12px;">
                   Primero elige una fecha
@@ -246,7 +247,9 @@
     let services = [];
     let businessHours = { start: '09:00', end: '20:00', interval: 60, closedDays: [0] };
     let businessConfig = {};
-    let minHoursAdvance = 4;
+    let minHoursAdvance = 4; // legacy fallback — sólo se usa si /config no trae leadTimeRule
+    // Regla condicional de anticipación. Se sobreescribe desde /api/public/config.
+    let leadTimeRule = { eveningCutoffHour: 18, eveningMinHours: 8, dayMinHours: 1 };
     let selectedService = null;
     let selectedDate = null;
     let selectedTime = null;
@@ -287,6 +290,9 @@
           }
           if (json.data.minHoursAdvance !== undefined) {
             minHoursAdvance = json.data.minHoursAdvance;
+          }
+          if (json.data.leadTimeRule) {
+            leadTimeRule = json.data.leadTimeRule;
           }
           updateBusinessInfo();
         }
@@ -508,26 +514,45 @@
       const [endH, endM] = (businessHours.end || '20:00').split(':').map(Number);
       const interval = businessHours.interval || 60;
 
-      // Calcular cutoff por minHoursAdvance para hoy
+      // Lead time condicional: ≥18:00 MX requiere 8h, <18:00 MX requiere 1h.
+      // En fecha futura (mañana o posterior) no aplica.
       const now = new Date();
       const todayStr = now.toLocaleDateString('en-CA'); // YYYY-MM-DD
       const isToday = dateStr === todayStr;
+      const eveningCutoff = (leadTimeRule.eveningCutoffHour ?? 18) * 60;
+      const eveningLeadMin = (leadTimeRule.eveningMinHours ?? 8) * 60;
+      const dayLeadMin = (leadTimeRule.dayMinHours ?? 1) * 60;
       const nowMinutes = now.getHours() * 60 + now.getMinutes();
-      const cutoffMinutes = isToday ? nowMinutes + (minHoursAdvance * 60) : 0;
+
+      function leadInfo(slotMinutes) {
+        if (!isToday) return { tooSoon: false };
+        const isEvening = slotMinutes >= eveningCutoff;
+        const required = isEvening ? eveningLeadMin : dayLeadMin;
+        const tooSoon = slotMinutes - nowMinutes < required;
+        return {
+          tooSoon,
+          branch: isEvening ? 'evening' : 'day',
+          tooltip: isEvening
+            ? 'Las citas a partir de las 6 PM requieren 8 h de anticipación'
+            : 'Las citas requieren 1 h de anticipación',
+        };
+      }
 
       const startMinutes = startH * 60 + startM;
       const endMinutes = endH * 60 + endM;
 
       let html = '';
+      let hasTooSoon = false;
       for (let mins = startMinutes; mins < endMinutes; mins += interval) {
         const h = Math.floor(mins / 60);
         const m = mins % 60;
         const time = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
         const display = h === 12 ? `12:${m.toString().padStart(2,'0')} PM` : h > 12 ? `${h - 12}:${m.toString().padStart(2,'0')} PM` : `${h}:${m.toString().padStart(2,'0')} AM`;
         const isBusy = busy.includes(time);
-        const isTooSoon = isToday && mins < cutoffMinutes;
-
-        html += `<div class="tw-time-slot ${(isBusy || isTooSoon) ? 'disabled' : ''}" data-time="${time}">${display}</div>`;
+        const info = leadInfo(mins);
+        if (info.tooSoon) hasTooSoon = true;
+        const title = isBusy ? 'Horario ocupado' : (info.tooltip || '');
+        html += `<div class="tw-time-slot ${(isBusy || info.tooSoon) ? 'disabled' : ''}" data-time="${time}" title="${title}">${display}</div>`;
       }
 
       if (!html) {
@@ -535,6 +560,17 @@
       }
 
       document.getElementById('time-grid').innerHTML = html;
+
+      // Banner explicativo solo si es hoy y al menos un slot quedó deshabilitado por lead time
+      const noteEl = document.getElementById('time-leadtime-note');
+      if (noteEl) {
+        if (isToday && hasTooSoon) {
+          noteEl.textContent = 'Las citas de tarde (después de las 6 PM) requieren al menos 8 h de anticipación; las del día, 1 h.';
+          noteEl.hidden = false;
+        } else {
+          noteEl.hidden = true;
+        }
+      }
 
       document.querySelectorAll('.tw-time-slot:not(.disabled)').forEach(slot => {
         slot.addEventListener('click', function () {

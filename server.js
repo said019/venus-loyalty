@@ -25,6 +25,7 @@ import {
   mxMonth,
   mxDay,
 } from './src/utils/mexico-time.js';
+import { validateLeadTime, LEAD_TIME_RULE } from './src/utils/leadTime.js';
 
 // Database - Prisma con repositorios
 import { prisma } from './src/db/index.js';
@@ -3625,7 +3626,11 @@ app.get('/api/public/config', async (req, res) => {
           end: businessConfig.closeTime || '19:00',
           interval: 60,
           closedDays: businessConfig.workDays ? [0, 1, 2, 3, 4, 5, 6].filter(d => !businessConfig.workDays.includes(d)) : [0]
-        }
+        },
+        // Regla de anticipación mínima (lead time) — la usa /agendar.html para
+        // deshabilitar slots inválidos en tiempo real. Si cambia aquí, el
+        // frontend la recoge sin redeploy del HTML.
+        leadTimeRule: LEAD_TIME_RULE,
       }
     });
   } catch (error) {
@@ -3903,6 +3908,24 @@ app.post('/api/public/request', async (req, res) => {
     // Validaciones
     if (!serviceName || !date || !time || !clientName || !clientPhone) {
       return res.json({ success: false, error: 'Faltan campos requeridos' });
+    }
+
+    // Validación de lead time (anticipación mínima):
+    //  - Slots ≥18:00 MX requieren 8h, slots <18:00 MX requieren 1h.
+    //  - Slots de mañana o posterior pasan automáticamente.
+    const lead = validateLeadTime({ date, time });
+    if (!lead.ok) {
+      console.log(`[BOOKING REQUEST] ⛔ Rechazada por lead time:`, {
+        date, time, branch: lead.branch,
+        hoursActual: lead.hoursActual?.toFixed(2),
+        hoursRequired: lead.hoursRequired,
+      });
+      return res.status(400).json({
+        success: false,
+        code: 'LEAD_TIME_VIOLATION',
+        branch: lead.branch,
+        error: lead.reason,
+      });
     }
 
     const phoneClean = clientPhone.replace(/\D/g, '');
