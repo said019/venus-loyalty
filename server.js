@@ -67,6 +67,8 @@ import {
   setAdminCookie,
   clearAdminCookie,
   requireRole,
+  integrationAuth,
+  integrationLogger,
 } from "./lib/auth.js";
 import jwt from "jsonwebtoken";
 
@@ -94,6 +96,7 @@ import coffeePosRouter from './lib/api/coffee-pos.js';
 
 // 🧖 Venus Skin - Análisis de piel (Yiyuan Analyzer)
 import skinAnalysisRouter from './src/routes/skinAnalysis.js';
+import integrationsRouter from "./src/routes/integrations.js";
 
 
 // __dirname para ESModules
@@ -599,6 +602,9 @@ app.use('/api/pos', coffeePosRouter);
 
 // 🧖 Venus Skin - Análisis de piel
 app.use('/api/skin-analysis', skinAnalysisRouter);
+
+// 🔌 Integraciones machine-to-machine (Claude / MCP / futuras)
+app.use("/api/integrations", integrationLogger, integrationAuth, integrationsRouter);
 
 // ========== EVOLUTION API ADMIN ROUTES ==========
 
