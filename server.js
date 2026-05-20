@@ -3687,8 +3687,14 @@ app.get('/api/public/availability', async (req, res) => {
 
       if (data.status === 'cancelled') return;
 
-      // Extraer hora directamente del string
-      const timePart = data.startDateTime.split('T')[1] || '';
+      // startDateTime puede venir como string (Firestore legacy) o Date (Prisma).
+      // Normalizamos a string ISO antes de partir.
+      const startStr = typeof data.startDateTime === 'string'
+        ? data.startDateTime
+        : (data.startDateTime instanceof Date
+            ? data.startDateTime.toISOString()
+            : '');
+      const timePart = startStr.split('T')[1] || '';
       const timeMatch = timePart.match(/^(\d{2}):(\d{2})/);
       if (timeMatch) {
         const timeSlot = `${timeMatch[1]}:${timeMatch[2]}`;
