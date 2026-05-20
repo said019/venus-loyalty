@@ -81,11 +81,11 @@
             --accent-gold-light: #8c9668;
             --accent-rose: #5a6a3a;
             --accent-sage: #70a080;
-            --form-accent: #16a34a;
-            --form-accent-glow: rgba(22, 163, 74, 0.18);
-            --status-confirmed: #14b8a6;
-            --status-pending: #f59e0b;
-            --status-cancelled: #ef4444;
+            --form-accent: oklch(62% 0.115 155);
+            --form-accent-glow: rgba(140, 160, 110, 0.18);
+            --status-confirmed: oklch(62% 0.115 155);   /* sage, no teal */
+            --status-pending: oklch(70% 0.110 80);      /* amber cálido, no naranja */
+            --status-cancelled: oklch(58% 0.140 28);    /* rose, no rojo sat */
             --glass-bg: rgba(0, 0, 0, 0.02);
             --glass-border: rgba(0, 0, 0, 0.06);
             --shadow-soft: 0 4px 30px rgba(0, 0, 0, 0.08);
@@ -112,14 +112,14 @@
             --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.05);
             --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
             --shadow-lg: 0 10px 40px rgba(0, 0, 0, 0.12);
-            --success: #14b8a6;
-            --success-bg: rgba(20, 184, 166, 0.15);
-            --warning: #f59e0b;
-            --warning-bg: rgba(245, 158, 11, 0.15);
-            --error: #ef4444;
-            --error-bg: rgba(239, 68, 68, 0.15);
-            --info: #3b82f6;
-            --info-bg: rgba(59, 130, 246, 0.15);
+            --success: oklch(62% 0.115 155);            /* sage */
+            --success-bg: oklch(94% 0.030 155);
+            --warning: oklch(64% 0.090 80);              /* amber tenue */
+            --warning-bg: oklch(94% 0.040 80);
+            --error: oklch(58% 0.140 28);                /* rose, no rojo sat */
+            --error-bg: oklch(95% 0.030 28);
+            --info: oklch(58% 0.080 220);
+            --info-bg: oklch(94% 0.025 220);
             --venus: #6b7a4a;
             --venus-soft: #8c9668;
             --venus-green: #6b7a4a;
@@ -1342,14 +1342,15 @@
     }
 
     .btn.success {
-      background: linear-gradient(135deg, var(--status-confirmed) 0%, #14b8a6 100%);
+      background: var(--status-confirmed);
       border-color: transparent;
-      color: white;
-      box-shadow: 0 8px 24px rgba(45, 212, 191, 0.3);
+      color: #fff;
+      box-shadow: 0 4px 16px rgba(140, 160, 110, 0.28);
     }
 
     .btn.success:hover {
-      box-shadow: 0 12px 32px rgba(45, 212, 191, 0.4);
+      filter: brightness(0.95);
+      box-shadow: 0 6px 22px rgba(140, 160, 110, 0.36);
     }
 
     /* Estilo para días de trabajo */
@@ -5825,4 +5826,187 @@
 [data-theme="light"] .header-actions i.fa-dollar-sign {
   color: var(--accent-gold) !important;
   opacity: 0.55 !important;
+}
+
+/* ============================================================
+   POLISH GLOBAL del LIGHT theme (sweep).
+   Reemplaza colores saturados hardcodeados en inline styles del HTML
+   (que escapan a tokens) por la paleta restraint. Scoped a light.
+   ============================================================ */
+
+/* --- Inline color overrides para los hexes más usados ---
+   Los matches por [style*="..."] son frágiles pero efectivos para HTML
+   que tiene color hardcodeado fuera de clases. Solo afectamos color
+   (no background) para evitar romper layouts. */
+[data-theme="light"] [style*="color:#ef4444"],
+[data-theme="light"] [style*="color: #ef4444"],
+[data-theme="light"] [style*="color:#e74c3c"],
+[data-theme="light"] [style*="color: #e74c3c"] {
+  color: var(--error) !important;
+}
+[data-theme="light"] [style*="color:#22c55e"],
+[data-theme="light"] [style*="color: #22c55e"],
+[data-theme="light"] [style*="color:#10b981"],
+[data-theme="light"] [style*="color: #10b981"] {
+  color: var(--success) !important;
+}
+[data-theme="light"] [style*="color:#f59e0b"],
+[data-theme="light"] [style*="color: #f59e0b"],
+[data-theme="light"] [style*="color:#fbbf24"],
+[data-theme="light"] [style*="color: #fbbf24"] {
+  color: var(--warning) !important;
+}
+[data-theme="light"] [style*="color:#3b82f6"],
+[data-theme="light"] [style*="color: #3b82f6"] {
+  color: var(--info) !important;
+}
+[data-theme="light"] [style*="color:#8b5cf6"],
+[data-theme="light"] [style*="color: #8b5cf6"],
+[data-theme="light"] [style*="color:#a78bfa"],
+[data-theme="light"] [style*="color: #a78bfa"] {
+  color: var(--accent-gold) !important;
+  opacity: 0.85;
+}
+
+/* --- Botones de marca WhatsApp (#25D366): atenuamos a un verde más
+       boutique y compatible con la paleta sin perder identidad. --- */
+[data-theme="light"] [style*="background:#25D366"],
+[data-theme="light"] [style*="background: #25D366"],
+[data-theme="light"] [style*="background:#25d366"],
+[data-theme="light"] [style*="background: #25d366"] {
+  background: oklch(58% 0.115 152) !important;
+  border-color: oklch(58% 0.115 152) !important;
+}
+
+/* --- Estrellas de Reseñas: dorado tenue, no amarillo escolar --- */
+[data-theme="light"] .fa-star,
+[data-theme="light"] .fas.fa-star,
+[data-theme="light"] [class*="star"] i.fa-star {
+  color: var(--accent-gold);
+}
+[data-theme="light"] #reviews-badge {
+  background: var(--warning-bg) !important;
+  color: var(--warning) !important;
+  border: 1px solid color-mix(in oklch, var(--warning) 22%, transparent);
+}
+
+/* --- Badges genéricos por palabra clave (color-text) en inline --- */
+[data-theme="light"] .text-success { color: var(--success) !important; }
+[data-theme="light"] .text-warning { color: var(--warning) !important; }
+[data-theme="light"] .text-danger,
+[data-theme="light"] .text-error   { color: var(--error)   !important; }
+[data-theme="light"] .text-info    { color: var(--info)    !important; }
+
+/* --- Notification badge global (puntito rojo gritón en topbar) --- */
+[data-theme="light"] .notification-badge,
+[data-theme="light"] .badge.danger,
+[data-theme="light"] .badge.pulse {
+  background: var(--error) !important;
+  color: #fff !important;
+}
+
+/* --- Toasts (notificaciones flotantes) más suaves --- */
+[data-theme="light"] .toast.success,
+[data-theme="light"] .toast-success {
+  background: var(--success-bg);
+  border: 1px solid color-mix(in oklch, var(--success) 30%, transparent);
+  color: var(--success);
+}
+[data-theme="light"] .toast.error,
+[data-theme="light"] .toast-error {
+  background: var(--error-bg);
+  border: 1px solid color-mix(in oklch, var(--error) 30%, transparent);
+  color: var(--error);
+}
+[data-theme="light"] .toast.warning,
+[data-theme="light"] .toast-warning {
+  background: var(--warning-bg);
+  border: 1px solid color-mix(in oklch, var(--warning) 30%, transparent);
+  color: var(--warning);
+}
+
+/* --- Inputs con focus en olive consistente --- */
+[data-theme="light"] input:focus,
+[data-theme="light"] textarea:focus,
+[data-theme="light"] select:focus {
+  outline: none;
+  border-color: var(--accent-gold);
+  box-shadow: 0 0 0 3px rgba(140, 150, 104, 0.15);
+}
+
+/* --- Gift Card preview: dorado/olive sutil en vez de gradient teal --- */
+[data-theme="light"] .gc-preview {
+  background: linear-gradient(135deg, oklch(96% 0.020 88) 0%, oklch(92% 0.030 120) 100%);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+[data-theme="light"] .gc-preview-logo {
+  color: var(--accent-gold);
+}
+
+/* --- Cards de "gift card status" (pendiente/canjeada/expirada) --- */
+[data-theme="light"] [id^="gc-stat-pending"],
+[data-theme="light"] [id^="gc-stat-redeemed"],
+[data-theme="light"] [id^="gc-stat-expired"],
+[data-theme="light"] [id^="gc-stat-total"] {
+  color: var(--text-primary) !important;
+}
+[data-theme="light"] #gc-stat-total {
+  color: var(--accent-gold) !important;
+}
+
+/* --- Caja: cobros pendientes, "Sin cobrar" rojo → rose tenue --- */
+[data-theme="light"] .caja-pendiente-row[data-state="pending"],
+[data-theme="light"] [style*="background:#fecaca"],
+[data-theme="light"] [style*="background: #fecaca"] {
+  background: var(--error-bg) !important;
+}
+
+/* --- Sidebar nav badge (Solicitudes/Reseñas) — dorado tenue --- */
+[data-theme="light"] .nav-badge {
+  background: var(--accent-gold) !important;
+  color: #fff !important;
+}
+
+/* --- Servicios: tags de categoría → olive tinted, no azul/rojo --- */
+[data-theme="light"] .service-category,
+[data-theme="light"] .tag,
+[data-theme="light"] .chip {
+  background: rgba(140, 150, 104, 0.10) !important;
+  color: var(--accent-gold) !important;
+  border-color: rgba(140, 150, 104, 0.22) !important;
+}
+
+/* --- Headings "Buenos días/tardes/noches" — quitar el ! gritón --- */
+[data-theme="light"] #topbar-greeting,
+[data-theme="light"] #dash-greeting {
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+
+/* --- Background atmospheric gradient (mesh) más sutil en light --- */
+[data-theme="light"] body::after {
+  opacity: 0.008 !important; /* casi imperceptible */
+}
+
+/* --- Subnav active state usa olive ya tinted, OK; pero el shadow del
+       active button era demasiado fuerte en cream --- */
+[data-theme="light"] .subnav-btn.active {
+  box-shadow: 0 2px 8px rgba(140, 150, 104, 0.18);
+}
+
+/* --- Tablas: hover/zebra más suaves --- */
+[data-theme="light"] table tbody tr:hover {
+  background: rgba(140, 150, 104, 0.04);
+}
+[data-theme="light"] table thead th {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+/* --- Card hover/lifted: shadow tinted a hue brand --- */
+[data-theme="light"] .card:hover,
+[data-theme="light"] .card-hover:hover {
+  box-shadow: 0 4px 16px rgba(140, 150, 104, 0.10);
 }
