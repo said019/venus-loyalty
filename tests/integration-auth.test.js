@@ -60,3 +60,34 @@ test('integrationAuth: con Bearer y key correcta → 200 + next() ejecuta handle
     assert.equal((await res.json()).hit, true);
   } finally { await close(); }
 });
+
+test('integrationLogger: emite 1 línea JSON con kind=integration tras finish', async () => {
+  const lines = [];
+  const orig = console.log;
+  console.log = (msg) => lines.push(msg);
+  let server;
+  try {
+    const { integrationLogger } = await import('../lib/auth.js');
+    const app = express();
+    app.use(integrationLogger);
+    app.get('/test', (_req, res) => res.json({}));
+    await new Promise(r => { server = app.listen(0, r); });
+    const port = server.address().port;
+    await fetch(`http://127.0.0.1:${port}/test`);
+    // Espera al evento 'finish' del response
+    await new Promise(r => setTimeout(r, 50));
+    const parsed = lines
+      .map(l => { try { return JSON.parse(l); } catch { return null; } })
+      .filter(Boolean);
+    const log = parsed.find(p => p.kind === 'integration');
+    assert.ok(log, 'falta línea JSON con kind=integration');
+    assert.equal(log.method, 'GET');
+    assert.equal(log.path, '/test');
+    assert.equal(log.status, 200);
+    assert.equal(typeof log.ms, 'number');
+    assert.ok(log.ts.endsWith('Z'), 'ts debe ser ISO UTC');
+  } finally {
+    console.log = orig;
+    if (server) await new Promise(r => server.close(r));
+  }
+});
