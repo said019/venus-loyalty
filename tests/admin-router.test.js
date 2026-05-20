@@ -31,11 +31,13 @@ test('slugFromPath identifica slugs y rutas legacy', () => {
   assert.equal(r.slugFromPath('/otro'), '');
 });
 
-test('SLUG_TO_TAB cubre las 11 pestañas y es bijectivo con TAB_TO_SLUG', () => {
+test('SLUG_TO_TAB cubre las pestañas del sidebar y es bijectivo con TAB_TO_SLUG', () => {
   const r = loadRouter();
+  // NOTA: actualizar este array cuando se añada/quite una pestaña en
+  // public/js/admin/core/router.js (mismo array SLUG_TO_TAB).
   const expected = [
     'inicio', 'solicitudes', 'agenda', 'caja', 'clientas',
-    'mensajes', 'gift-cards', 'servicios', 'ventas', 'resenas', 'configuracion',
+    'mensajes', 'servicios', 'ventas', 'resenas', 'configuracion',
   ];
   assert.deepEqual(Object.keys(r.SLUG_TO_TAB).sort(), [...expected].sort());
   for (const [slug, tab] of Object.entries(r.SLUG_TO_TAB)) {
