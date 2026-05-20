@@ -1459,65 +1459,43 @@
     <!-- TAB: Citas -->
     <section id="tab-appointments" class="tab-content hidden">
 
-      <!-- 1. Summary Cards Row -->
-      <div id="appts-summary-row" style="display:grid;gap:16px;margin-bottom:24px;">
-        <!-- Monthly History -->
-        <div style="background:var(--glass-bg);border:1px solid var(--border-color);border-radius:16px;padding:24px;transition:transform 0.2s;" onmouseenter="this.style.transform='scale(1.01)'" onmouseleave="this.style.transform='scale(1)'">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;">
-            <div>
-              <h2 style="font-size:18px;font-weight:700;color:var(--venus-soft);margin:0;letter-spacing:-0.3px;">Historial del Mes</h2>
-              <p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin:4px 0 0;" id="calendar-month-title">Abril 2026</p>
-            </div>
-            <i class="fas fa-chart-bar" style="font-size:20px;color:var(--venus);opacity:0.6;"></i>
+      <!-- Header de Agenda — eyebrow con día activo + título + stat strip del día -->
+      <header class="agenda-header">
+        <div class="agenda-head-row">
+          <div class="agenda-head-text">
+            <p class="agenda-eyebrow" id="agenda-eyebrow">— —</p>
+            <h1 class="agenda-title">Agenda</h1>
           </div>
-          <div id="month-stats" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
-            <div style="display:flex;flex-direction:column;">
-              <span style="font-size:28px;font-weight:800;color:var(--ink);" id="stat-total">-</span>
-              <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);">Total</span>
-            </div>
-            <div style="display:flex;flex-direction:column;">
-              <span style="font-size:28px;font-weight:800;color:var(--venus-soft);" id="stat-completed">-</span>
-              <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);">Completadas</span>
-            </div>
-            <div style="display:flex;flex-direction:column;">
-              <span style="font-size:28px;font-weight:800;color:#ef4444;" id="stat-cancelled">-</span>
-              <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);">Canceladas</span>
-            </div>
-            <div style="display:flex;flex-direction:column;">
-              <span style="font-size:28px;font-weight:800;color:#f59e0b;" id="stat-pending">-</span>
-              <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);">Pendientes</span>
-            </div>
+          <div class="agenda-head-actions">
+            <button class="btn small ghost" onclick="clearAppointmentsCache(); loadMonthAppointments(true); loadAppointments(true); loadMonthStats(true);" title="Actualizar">
+              <i class="fas fa-sync"></i>
+            </button>
+            <button class="btn primary agenda-cta" id="btn-new-appointment-header">
+              <i class="fas fa-plus"></i><span>Nueva cita</span>
+            </button>
           </div>
         </div>
+        <ul class="stat-strip" id="today-stat-strip">
+          <li class="stat-strip-item"><span class="ssi-lbl">Citas hoy</span><span class="ssi-val" id="today-stat-total">—</span></li>
+          <li class="stat-strip-item"><span class="ssi-lbl">Por confirmar</span><span class="ssi-val" id="today-stat-pending">—</span></li>
+          <li class="stat-strip-item"><span class="ssi-lbl">Completadas</span><span class="ssi-val" id="today-stat-completed">—</span></li>
+          <li class="stat-strip-item"><span class="ssi-lbl">Ingresos hoy</span><span class="ssi-val" id="today-stat-revenue">—</span></li>
+        </ul>
+      </header>
 
-        <!-- Monthly Sales -->
-        <div style="background:var(--glass-bg);border:1px solid var(--border-color);border-radius:16px;padding:24px;transition:transform 0.2s;" onmouseenter="this.style.transform='scale(1.01)'" onmouseleave="this.style.transform='scale(1)'">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;">
-            <div>
-              <h2 style="font-size:18px;font-weight:700;color:var(--venus-soft);margin:0;letter-spacing:-0.3px;">Ventas del Mes</h2>
-              <p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin:4px 0 0;">Desglose de ingresos</p>
-            </div>
-            <i class="fas fa-dollar-sign" style="font-size:20px;color:var(--venus);opacity:0.6;"></i>
-          </div>
-          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
-            <div style="display:flex;flex-direction:column;">
-              <span style="font-size:22px;font-weight:800;color:var(--ink);" id="revenue-cash">$0</span>
-              <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);">Efectivo</span>
-            </div>
-            <div style="display:flex;flex-direction:column;">
-              <span style="font-size:22px;font-weight:800;color:var(--ink);" id="revenue-card">$0</span>
-              <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);">Tarjeta</span>
-            </div>
-            <div style="display:flex;flex-direction:column;">
-              <span style="font-size:22px;font-weight:800;color:var(--ink);" id="revenue-transfer">$0</span>
-              <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);">Transferencia</span>
-            </div>
-            <div style="background:rgba(140,150,104,0.15);border-radius:10px;padding:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;">
-              <span style="font-size:20px;font-weight:800;color:var(--venus-soft);" id="revenue-total">$0</span>
-              <span style="font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--venus);">Total</span>
-            </div>
-          </div>
+      <!-- Stats mensuales legacy — ocultos pero presentes para no romper loadMonthStats -->
+      <div id="appts-summary-row" hidden aria-hidden="true">
+        <p id="calendar-month-title"></p>
+        <div id="month-stats">
+          <span id="stat-total">-</span>
+          <span id="stat-completed">-</span>
+          <span id="stat-cancelled">-</span>
+          <span id="stat-pending">-</span>
         </div>
+        <span id="revenue-cash">$0</span>
+        <span id="revenue-card">$0</span>
+        <span id="revenue-transfer">$0</span>
+        <span id="revenue-total">$0</span>
       </div>
 
       <!-- 2. Main Grid: Calendar + Daily Appointments -->
@@ -1525,30 +1503,24 @@
 
         <!-- Calendar Section -->
         <div style="min-width:0;overflow:hidden;">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
-            <h2 style="font-size:24px;font-weight:800;color:var(--ink);letter-spacing:-0.5px;margin:0;">Agenda</h2>
-            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-              <button class="btn small ghost" onclick="clearAppointmentsCache(); loadMonthAppointments(true); loadAppointments(true); loadMonthStats(true);" title="Actualizar">
-                <i class="fas fa-sync"></i>
+          <div class="agenda-controls">
+            <div class="agenda-date-nav">
+              <button class="btn-nav" id="btn-prev-month" title="Anterior" aria-label="Anterior">
+                <i class="fas fa-chevron-left"></i>
               </button>
-              <div style="display:flex;align-items:center;gap:4px;background:var(--glass-bg);border:1px solid var(--border-color);padding:4px;border-radius:999px;">
-                <button class="btn-nav" id="btn-prev-month" title="Mes anterior" style="padding:6px 10px;background:none;border:none;color:var(--ink);cursor:pointer;border-radius:999px;transition:background 0.2s;">
-                  <i class="fas fa-chevron-left" style="font-size:12px;"></i>
-                </button>
-                <button class="btn-nav" id="btn-today" title="Ir a hoy" style="padding:6px 12px;background:none;border:none;color:var(--ink);cursor:pointer;font-size:13px;font-weight:700;border-radius:999px;transition:background 0.2s;">Hoy</button>
-                <button class="btn-nav" id="btn-next-month" title="Mes siguiente" style="padding:6px 10px;background:none;border:none;color:var(--ink);cursor:pointer;border-radius:999px;transition:background 0.2s;">
-                  <i class="fas fa-chevron-right" style="font-size:12px;"></i>
-                </button>
-              </div>
-              <div class="view-selector">
-                <button class="view-btn active" data-view="month">Mes</button>
-                <button class="view-btn" data-view="week">Semana</button>
-                <button class="view-btn" data-view="day">Dia</button>
-              </div>
-              <button class="btn primary" id="btn-new-appointment" style="padding:8px 16px;border-radius:12px;font-size:13px;font-weight:700;">
-                <i class="fas fa-plus" style="margin-right:4px;"></i> Nueva Cita
+              <button class="btn-nav agenda-today-btn" id="btn-today" title="Ir a hoy">Hoy</button>
+              <button class="btn-nav" id="btn-next-month" title="Siguiente" aria-label="Siguiente">
+                <i class="fas fa-chevron-right"></i>
               </button>
             </div>
+            <div class="view-selector" role="tablist" aria-label="Vista del calendario">
+              <button class="view-btn active" data-view="day" role="tab">Día</button>
+              <button class="view-btn" data-view="week" role="tab">Semana</button>
+              <button class="view-btn" data-view="month" role="tab">Mes</button>
+            </div>
+            <button class="btn primary" id="btn-new-appointment" style="display:none;" aria-hidden="true">
+              <i class="fas fa-plus"></i> Nueva Cita
+            </button>
           </div>
 
           <div class="google-calendar-container" style="background:var(--glass-bg);border:1px solid var(--border-color);border-radius:16px;padding:24px;">
@@ -7214,7 +7186,11 @@
     currentMonth.setDate(1); // Primer día del mes
     let selectedDate = new Date();
     selectedDate.setHours(0, 0, 0, 0);
-    let currentView = 'month';
+    // Vista por defecto: Día (rediseño 2026-05-20).
+    // Persistimos la selección en sessionStorage para que dentro de la
+    // misma sesión recuerde la última view elegida; al abrir una sesión
+    // nueva siempre arranca en Día (la pantalla más útil para la cosmetóloga).
+    let currentView = (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('agenda-view')) || 'day';
     let monthAppointments = {}; // Cache de citas del mes
     let allAppointments = []; // Todas las citas del mes para el calendario
     const appointmentsMonthCache = new Map();
@@ -7895,7 +7871,37 @@
 
       bodyHTML += '</div></div></div>';
       calendarContainer.innerHTML = `<div class="time-grid-header">${headersHTML}</div>` + bodyHTML;
+
+      // Inyectar línea NOW si selectedDate es hoy
+      injectNowLine();
     }
+
+    // Inserta una línea horizontal indicando la hora actual en la vista Día,
+    // solo si selectedDate === today. Se invoca al render y cada 60s.
+    function injectNowLine() {
+      // Limpia previa
+      document.querySelectorAll('.timeline-now-line').forEach(el => el.remove());
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const sel = new Date(selectedDate); sel.setHours(0, 0, 0, 0);
+      if (sel.getTime() !== today.getTime()) return;
+      const now = new Date();
+      const h = now.getHours();
+      const m = now.getMinutes();
+      if (h < 8 || h > 20) return;
+      const top = ((h - 8) * 60) + m; // 60px/hora como el timeline
+      const body = document.querySelector('#monthly-calendar .time-grid-body .days-grid');
+      if (!body) return;
+      const line = document.createElement('div');
+      line.className = 'timeline-now-line';
+      line.style.top = top + 'px';
+      line.setAttribute('data-label', 'Ahora ' + String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0'));
+      body.appendChild(line);
+    }
+
+    // Actualiza la NOW line cada minuto si estamos en vista Día y hoy seleccionado.
+    setInterval(() => {
+      if (currentView === 'day') injectNowLine();
+    }, 60000);
 
     // Función global para abrir modal desde el calendario
     window.openNewApptDialogWithDate = function (dateIso, timeStr) {
@@ -8096,7 +8102,58 @@
         const options = { weekday: 'long', day: 'numeric', month: 'long' };
         label.textContent = selectedDate.toLocaleDateString('es-MX', options);
       }
+      updateAgendaEyebrow();
+      renderTodayStatStrip();
     }
+
+    // Eyebrow del header de Agenda: "MARTES 20 DE MAYO · HOY" o "JUEVES 22 · EN 2 DÍAS".
+    function updateAgendaEyebrow() {
+      const el = document.getElementById('agenda-eyebrow');
+      if (!el) return;
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const ms = selectedDate.getTime() - today.getTime();
+      const diffDays = Math.round(ms / 86400000);
+      const fmt = selectedDate.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' });
+      let suffix;
+      if (diffDays === 0)       suffix = 'Hoy';
+      else if (diffDays === 1)  suffix = 'Mañana';
+      else if (diffDays === -1) suffix = 'Ayer';
+      else if (diffDays > 0)    suffix = `En ${diffDays} días`;
+      else                      suffix = `Hace ${Math.abs(diffDays)} días`;
+      el.innerHTML = `<span class="ae-date">${fmt}</span><span class="ae-sep">·</span><span class="ae-tag">${suffix}</span>`;
+    }
+
+    // Stat strip del día activo: 4 KPIs operativos.
+    function renderTodayStatStrip() {
+      const yyyy = selectedDate.getFullYear();
+      const mm = String(selectedDate.getMonth() + 1).padStart(2, '0');
+      const dd = String(selectedDate.getDate()).padStart(2, '0');
+      const dateStr = `${yyyy}-${mm}-${dd}`;
+      const list = typeof getCachedAppointmentsForDate === 'function'
+        ? (getCachedAppointmentsForDate(dateStr) || []) : [];
+      const total = list.length;
+      const pending = list.filter(a => a.status === 'scheduled' || a.status === 'rescheduling').length;
+      const completed = list.filter(a => a.status === 'completed').length;
+      const revenue = list.reduce((s, a) => s + (Number(a.totalPaid) || 0), 0);
+      const fmtMoney = revenue > 0 ? '$' + Math.round(revenue).toLocaleString('es-MX') : '—';
+      const elTotal = document.getElementById('today-stat-total');
+      const elPending = document.getElementById('today-stat-pending');
+      const elCompleted = document.getElementById('today-stat-completed');
+      const elRevenue = document.getElementById('today-stat-revenue');
+      if (elTotal)     elTotal.textContent = total || '—';
+      if (elPending)   elPending.textContent = pending || '—';
+      if (elCompleted) elCompleted.textContent = completed || '—';
+      if (elRevenue)   elRevenue.textContent = fmtMoney;
+    }
+
+    // Wire del CTA del header (Nueva cita)
+    document.addEventListener('DOMContentLoaded', () => {
+      const cta = document.getElementById('btn-new-appointment-header');
+      if (cta) cta.addEventListener('click', () => {
+        const dlg = document.getElementById('newApptDialog');
+        if (dlg) dlg.showModal();
+      });
+    });
 
 
     // ========== CARGAR CITAS ==========
@@ -8290,6 +8347,9 @@
         const appointments = monthEntry.appointmentsByDate[dateStr] || [];
         console.log(`   📦 Recibidas ${appointments.length} citas para lista`);
         renderAppointmentsTable(appointments);
+        // Refrescar el stat strip del día activo y el eyebrow del header
+        if (typeof renderTodayStatStrip === 'function') renderTodayStatStrip();
+        if (typeof updateAgendaEyebrow === 'function') updateAgendaEyebrow();
       } catch (e) {
         console.error(e);
         apptsTbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--err-text);">Error cargando citas</td></tr>';
@@ -9144,7 +9204,17 @@
         console.log('Vista seleccionada:', view);
 
         currentView = view;
+        try { sessionStorage.setItem('agenda-view', view); } catch (_) { /* private mode */ }
         renderCalendar();
+      });
+    });
+
+    // Sincronizar el view-btn activo al cargar (la persistencia puede traer
+    // 'week' o 'day' de una sesión anterior; el HTML siempre arranca con
+    // 'day' marcado, así que reasignamos si no coincide).
+    document.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('.view-btn').forEach((b) => {
+        b.classList.toggle('active', b.dataset.view === currentView);
       });
     });
 
@@ -13502,14 +13572,13 @@
 
   <!-- Botones flotantes -->
   <div class="quick-actions">
-    <button class="quick-action-btn scanner" title="Escanear QR" onclick="openScanner()">
+    <button class="quick-action-btn" title="Escanear QR de cliente o gift card" onclick="openScanner()">
       <i class="fas fa-qrcode"></i>
+      <span class="qa-label">Escanear</span>
     </button>
-    <button class="quick-action-btn" style="background:#10b981;" title="Nueva Venta" onclick="openDirectSaleModal()">
-      <i class="fas fa-shopping-cart"></i>
-    </button>
-    <button class="quick-action-btn primary" title="Nueva cita" onclick="openNewAppointmentModal()">
+    <button class="quick-action-btn primary" title="Crear nueva cita" onclick="openNewAppointmentModal()">
       <i class="fas fa-plus"></i>
+      <span class="qa-label">Nueva cita</span>
     </button>
   </div>
 
@@ -16062,9 +16131,19 @@
       const meLineEl  = document.getElementById('me-line');
 
       if (greetingEl) {
-        if (hour < 12)      greetingEl.innerHTML = '¡Buenos días! <i class="fas fa-sun" style="color:#f59e0b;"></i>';
-        else if (hour < 19) greetingEl.innerHTML = '¡Buenas tardes! <i class="fas fa-cloud-sun" style="color:#f59e0b;"></i>';
-        else                greetingEl.innerHTML = '¡Buenas noches! <i class="fas fa-moon" style="color:#a78bfa;"></i>';
+        // En la pantalla Agenda mostramos solo la fecha en tono sobrio;
+        // las demás pantallas mantienen el saludo emocional clásico.
+        const inAgenda = !document.getElementById('tab-appointments')?.classList.contains('hidden');
+        if (inAgenda) {
+          const fmt = now.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' });
+          greetingEl.innerHTML = `<span class="topbar-date">${fmt}</span>`;
+        } else if (hour < 12) {
+          greetingEl.innerHTML = '¡Buenos días! <i class="fas fa-sun greeting-icon"></i>';
+        } else if (hour < 19) {
+          greetingEl.innerHTML = '¡Buenas tardes! <i class="fas fa-cloud-sun greeting-icon"></i>';
+        } else {
+          greetingEl.innerHTML = '¡Buenas noches! <i class="fas fa-moon greeting-icon"></i>';
+        }
       }
 
       // Mostrar fecha actual en español si me-line tiene el texto por defecto

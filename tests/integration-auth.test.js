@@ -91,3 +91,27 @@ test('integrationLogger: emite 1 línea JSON con kind=integration tras finish', 
     if (server) await new Promise(r => server.close(r));
   }
 });
+
+test('GET /api/integrations/ping con auth → 200 {ok, ts, version}', async () => {
+  process.env.INTEGRATION_API_KEY = 'pong-key';
+  const { integrationAuth, integrationLogger } = await import('../lib/auth.js');
+  const { default: router } = await import('../src/routes/integrations.js');
+  const app = express();
+  app.use('/api/integrations', integrationLogger, integrationAuth, router);
+  let server;
+  try {
+    await new Promise(r => { server = app.listen(0, r); });
+    const port = server.address().port;
+    const res = await fetch(
+      `http://127.0.0.1:${port}/api/integrations/ping`,
+      { headers: { Authorization: 'Bearer pong-key' } }
+    );
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.equal(body.ok, true);
+    assert.equal(body.version, '1');
+    assert.ok(!isNaN(new Date(body.ts).getTime()), 'ts debe ser parseable');
+  } finally {
+    if (server) await new Promise(r => server.close(r));
+  }
+});
