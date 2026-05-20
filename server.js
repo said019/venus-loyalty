@@ -563,7 +563,14 @@ app.use((req, res, next) => {
 // Root del sitio: landing es la página de marketing. index.html (legacy
 // "Crea tu tarjeta") se mantiene como atajo /mi-tarjeta para acceso
 // rápido a la propia tarjeta de lealtad.
-app.get('/', (_req, res) => {
+//
+// Compatibilidad hacia atrás: las tarjetas viejas tienen links del tipo
+// `/?cardId=card_xxx` (cuando / era la página de la tarjeta). Si llega
+// uno de esos, redirigir a /mi-tarjeta?cardId=... preservando query.
+app.get('/', (req, res) => {
+  if (req.query.cardId) {
+    return res.redirect(301, `/mi-tarjeta?cardId=${encodeURIComponent(req.query.cardId)}`);
+  }
   res.sendFile(path.join(__dirname, 'public', 'landing.html'));
 });
 // Alias bonitos para compartir el form de registro de tarjeta por WhatsApp,
