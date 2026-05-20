@@ -15,11 +15,15 @@ const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 
 const DAYS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
 document.addEventListener('DOMContentLoaded', async () => {
+    setupNavigation();
+    // Si la sección de booking embebida ya no existe (ahora /agendar.html es la página
+    // dedicada), saltamos toda la lógica de servicios/calendario/form. Mantenemos
+    // solo la navegación smooth scroll arriba.
+    if (!document.getElementById('services-list')) return;
     await loadConfig();
     await loadServices();
     renderCalendar();
     setupEventListeners();
-    setupNavigation();
 });
 
 function setupNavigation() {

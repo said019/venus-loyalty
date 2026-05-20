@@ -105,11 +105,63 @@
       <div class="tw-progress-dot" id="dot-3"></div>
       <div class="tw-progress-dot" id="dot-4"></div>
     </div>
-    <!-- PASO 1: Servicio -->
+    <!-- PASO 1: Teléfono / identificación -->
     <div class="tw-step active" id="step-1">
       <div class="tw-card">
         <div class="tw-card-header">
-          <div class="tw-card-title"><i class="fas fa-sparkles"></i>¿Qué servicio te gustaría?</div>
+          <div class="tw-card-title"><i class="fab fa-whatsapp"></i>¿Cuál es tu WhatsApp?</div>
+        </div>
+        <div class="tw-card-body">
+          <p style="margin:0 0 16px;font-size:13px;color:#7a7a6a;line-height:1.5;">
+            Si ya tienes tarjeta Venus te reconoceremos automáticamente. Si es tu primera vez, te pediremos algunos datos en el siguiente paso.
+          </p>
+          <div class="tw-form-group">
+            <label class="tw-form-label">WhatsApp <span class="required" style="color:#ef4444;">*</span></label>
+            <input type="tel" class="tw-form-input" id="input-phone" placeholder="10 dígitos" maxlength="15" autocomplete="tel" inputmode="numeric">
+          </div>
+          <div id="lookup-status" style="display:none;margin-top:12px;padding:12px;border-radius:10px;background:#eef3e6;color:#3a4d22;font-size:14px;"></div>
+          <div class="tw-buttons-row">
+            <button class="tw-btn tw-btn-primary" id="btn-step1" disabled>Continuar <i class="fas fa-arrow-right"></i></button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- PASO 2: Datos (solo clientes nuevos) -->
+    <div class="tw-step" id="step-2">
+      <div class="tw-card">
+        <div class="tw-card-header">
+          <div class="tw-card-title"><i class="fas fa-user"></i>Cuéntanos un poco de ti</div>
+        </div>
+        <div class="tw-card-body">
+          <p style="margin:0 0 16px;font-size:13px;color:#7a7a6a;line-height:1.5;">
+            Solo necesitamos esto la primera vez para crear tu tarjeta Venus.
+          </p>
+          <div class="tw-form-group">
+            <label class="tw-form-label">Nombre completo <span class="required" style="color:#ef4444;">*</span></label>
+            <input type="text" class="tw-form-input" id="input-name" placeholder="Tu nombre completo" autocomplete="name">
+          </div>
+          <div class="tw-form-row">
+            <div class="tw-form-group">
+              <label class="tw-form-label">Email</label>
+              <input type="email" class="tw-form-input" id="input-email" placeholder="tu@email.com" autocomplete="email">
+            </div>
+            <div class="tw-form-group">
+              <label class="tw-form-label">Cumpleaños</label>
+              <input type="date" class="tw-form-input" id="input-birthday">
+            </div>
+          </div>
+          <div class="tw-buttons-row">
+            <button class="tw-btn tw-btn-ghost" id="btn-back-to-1"><i class="fas fa-arrow-left"></i>Atrás</button>
+            <button class="tw-btn tw-btn-primary" id="btn-step2" disabled>Continuar <i class="fas fa-arrow-right"></i></button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- PASO 3: Servicio -->
+    <div class="tw-step" id="step-3">
+      <div class="tw-card">
+        <div class="tw-card-header">
+          <div class="tw-card-title"><i class="fas fa-sparkles"></i><span id="step3-title">¿Qué servicio te gustaría?</span></div>
         </div>
         <div class="tw-card-body">
           <!-- Tabs Container -->
@@ -123,13 +175,14 @@
             </div>
           </div>
           <div class="tw-buttons-row">
-            <button class="tw-btn tw-btn-primary" id="btn-step1" disabled>Continuar <i class="fas fa-arrow-right"></i></button>
+            <button class="tw-btn tw-btn-ghost" id="btn-back-to-prev"><i class="fas fa-arrow-left"></i>Atrás</button>
+            <button class="tw-btn tw-btn-primary" id="btn-step3" disabled>Continuar <i class="fas fa-arrow-right"></i></button>
           </div>
         </div>
       </div>
     </div>
-    <!-- PASO 2: Fecha y Hora -->
-    <div class="tw-step" id="step-2">
+    <!-- PASO 4: Fecha y Hora -->
+    <div class="tw-step" id="step-4">
       <div class="tw-card">
         <div class="tw-card-header">
           <div class="tw-card-title"><i class="fas fa-calendar"></i>¿Cuándo te gustaría venir?</div>
@@ -158,46 +211,7 @@
               </div>
             </div>
           </div>
-          <div class="tw-buttons-row">
-            <button class="tw-btn tw-btn-ghost" id="btn-back-to-1"><i class="fas fa-arrow-left"></i>Atrás</button>
-            <button class="tw-btn tw-btn-primary" id="btn-step2" disabled>Continuar <i class="fas fa-arrow-right"></i></button>
-          </div>
-        </div>
-      </div>
-    </div>
-    <!-- PASO 3: Datos -->
-    <div class="tw-step" id="step-3">
-      <div class="tw-card">
-        <div class="tw-card-header">
-          <div class="tw-card-title"><i class="fas fa-user"></i>Tus datos</div>
-        </div>
-        <div class="tw-card-body">
-          <div class="tw-form-group">
-            <label class="tw-form-label">Nombre completo <span class="required" style="color:#ef4444;">*</span></label>
-            <input type="text" class="tw-form-input" id="input-name" placeholder="Tu nombre completo">
-          </div>
-          <div class="tw-form-group">
-            <label class="tw-form-label">WhatsApp <span class="required" style="color:#ef4444;">*</span></label>
-            <input type="tel" class="tw-form-input" id="input-phone" placeholder="10 dígitos" maxlength="15">
-          </div>
-          <div class="tw-form-row">
-            <div class="tw-form-group">
-              <label class="tw-form-label">Email</label>
-              <input type="email" class="tw-form-input" id="input-email" placeholder="tu@email.com">
-            </div>
-            <div class="tw-form-group">
-              <label class="tw-form-label">Cumpleaños</label>
-              <input type="date" class="tw-form-input" id="input-birthday">
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="tw-card">
-        <div class="tw-card-header">
-          <div class="tw-card-title"><i class="fas fa-clipboard-list"></i>Tu solicitud</div>
-        </div>
-        <div class="tw-card-body">
-          <div class="tw-summary">
+          <div class="tw-summary" style="margin-top:16px;">
             <div class="tw-summary-row">
               <span class="tw-summary-label">Servicio</span>
               <span class="tw-summary-value" id="sum-service">-</span>
@@ -216,14 +230,14 @@
             </div>
           </div>
           <div class="tw-buttons-row">
-            <button class="tw-btn tw-btn-ghost" id="btn-back-to-2"><i class="fas fa-arrow-left"></i>Atrás</button>
-            <button class="tw-btn tw-btn-primary" id="btn-submit">Solicitar <i class="fas fa-paper-plane"></i></button>
+            <button class="tw-btn tw-btn-ghost" id="btn-back-to-3"><i class="fas fa-arrow-left"></i>Atrás</button>
+            <button class="tw-btn tw-btn-primary" id="btn-submit" disabled>Solicitar <i class="fas fa-paper-plane"></i></button>
           </div>
         </div>
       </div>
     </div>
-    <!-- PASO 4: Confirmación -->
-    <div class="tw-step" id="step-4">
+    <!-- PASO 5: Confirmación -->
+    <div class="tw-step" id="step-5">
       <div class="tw-card">
         <div class="tw-confirmation">
           <div class="tw-confirmation-icon"><i class="fas fa-check-circle"></i></div>
@@ -257,13 +271,18 @@
     let busySlots = {};
     let whatsappUrl = '';
     let currentCategory = null;
+    // Cliente identificado vía /api/public/lookup-card. Si existsClient=true, saltamos paso 2 (datos).
+    let existsClient = false;
+    let clientFirstName = null;
+    let clientCardId = null;
+    let clientPhone = '';
+    let servicesLoaded = false;
 
     const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
     const DAYS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
     document.addEventListener('DOMContentLoaded', async () => {
       await loadConfig();
-      await loadServices();
       renderCalendar();
       setupEventListeners();
     });
@@ -271,12 +290,99 @@
     function setupEventListeners() {
       document.getElementById('btn-prev-month').addEventListener('click', prevMonth);
       document.getElementById('btn-next-month').addEventListener('click', nextMonth);
-      document.getElementById('btn-step1').addEventListener('click', () => goToStep(2));
+
+      // Paso 1: teléfono → lookup
+      const phoneInput = document.getElementById('input-phone');
+      phoneInput.addEventListener('input', onPhoneInput);
+      document.getElementById('btn-step1').addEventListener('click', onSubmitPhone);
+      phoneInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !document.getElementById('btn-step1').disabled) {
+          e.preventDefault();
+          onSubmitPhone();
+        }
+      });
+
+      // Paso 2: datos (cliente nuevo)
+      const nameInput = document.getElementById('input-name');
+      nameInput.addEventListener('input', () => {
+        document.getElementById('btn-step2').disabled = nameInput.value.trim().length < 2;
+      });
       document.getElementById('btn-step2').addEventListener('click', () => goToStep(3));
       document.getElementById('btn-back-to-1').addEventListener('click', () => goToStep(1));
-      document.getElementById('btn-back-to-2').addEventListener('click', () => goToStep(2));
+
+      // Paso 3: servicio
+      document.getElementById('btn-step3').addEventListener('click', () => goToStep(4));
+      document.getElementById('btn-back-to-prev').addEventListener('click', () => {
+        // si es cliente existente, paso 2 está oculto → volvemos al 1
+        goToStep(existsClient ? 1 : 2);
+      });
+
+      // Paso 4: fecha/hora + submit
+      document.getElementById('btn-back-to-3').addEventListener('click', () => goToStep(3));
       document.getElementById('btn-submit').addEventListener('click', submitRequest);
+
+      // Paso 5: WhatsApp
       document.getElementById('btn-whatsapp').addEventListener('click', openWhatsApp);
+    }
+
+    function onPhoneInput(e) {
+      const digits = e.target.value.replace(/\D/g, '');
+      document.getElementById('btn-step1').disabled = digits.length < 10;
+      // Cambió el teléfono → reset del estado del cliente
+      existsClient = false;
+      clientFirstName = null;
+      clientCardId = null;
+      const status = document.getElementById('lookup-status');
+      status.style.display = 'none';
+    }
+
+    async function onSubmitPhone() {
+      const raw = document.getElementById('input-phone').value;
+      const digits = raw.replace(/\D/g, '');
+      if (digits.length < 10) return;
+      clientPhone = digits;
+
+      const btn = document.getElementById('btn-step1');
+      const status = document.getElementById('lookup-status');
+      btn.disabled = true;
+      btn.innerHTML = '<div class="tw-spinner" style="width:16px;height:16px;display:inline-block;margin-right:8px;vertical-align:middle;"></div> Buscando…';
+
+      try {
+        const res = await fetch('/api/public/lookup-card', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: digits }),
+        });
+        const json = await res.json();
+        if (json.exists) {
+          existsClient = true;
+          clientFirstName = json.firstName || 'cliente';
+          clientCardId = json.cardId || null;
+          status.style.display = 'block';
+          status.innerHTML = `¡Hola, <strong>${escapeHtml(clientFirstName)}</strong>! Te reconocimos. Vamos a elegir tu servicio.`;
+          // Pequeño delay para que el usuario alcance a leer el saludo
+          setTimeout(() => goToStep(3), 700);
+        } else {
+          existsClient = false;
+          status.style.display = 'block';
+          status.style.background = '#f4ecdb';
+          status.style.color = '#5a4612';
+          status.innerHTML = 'No encontramos una tarjeta con ese WhatsApp. Te pediremos tus datos en el siguiente paso.';
+          setTimeout(() => goToStep(2), 700);
+        }
+      } catch (err) {
+        console.error('[lookup-card] error:', err);
+        // En caso de error, tratamos como cliente nuevo (paso 2)
+        existsClient = false;
+        goToStep(2);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = 'Continuar <i class="fas fa-arrow-right"></i>';
+      }
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     }
 
     async function loadConfig() {
@@ -432,7 +538,7 @@
       document.querySelectorAll('.tw-service-item').forEach(e => e.classList.remove('selected'));
       el.classList.add('selected');
       selectedService = services.find(s => s.id === id);
-      document.getElementById('btn-step1').disabled = false;
+      document.getElementById('btn-step3').disabled = false;
       updateSummary();
     }
 
@@ -488,7 +594,7 @@
     async function selectDate(dateStr) {
       selectedDate = dateStr;
       selectedTime = null;
-      document.getElementById('btn-step2').disabled = true;
+      document.getElementById('btn-submit').disabled = true;
       renderCalendar();
 
       document.getElementById('time-grid').innerHTML = '<p style="grid-column:span 3;text-align:center;padding:16px;">Cargando...</p>';
@@ -583,7 +689,7 @@
       document.querySelectorAll('.tw-time-slot').forEach(e => e.classList.remove('selected'));
       el.classList.add('selected');
       selectedTime = time;
-      document.getElementById('btn-step2').disabled = false;
+      document.getElementById('btn-submit').disabled = !(selectedService && selectedDate && selectedTime);
       updateSummary();
     }
 
@@ -603,15 +709,20 @@
     }
 
     async function submitRequest() {
-      const name = document.getElementById('input-name').value.trim();
-      const phone = document.getElementById('input-phone').value.trim().replace(/\D/g, '');
-      const email = document.getElementById('input-email').value.trim();
-      const birthday = document.getElementById('input-birthday').value;
+      // Para cliente existente usamos firstName (sufijo apellido lo tiene la tarjeta).
+      // Para cliente nuevo tomamos el input del paso 2.
+      const name = existsClient
+        ? clientFirstName
+        : document.getElementById('input-name').value.trim();
+      const phone = clientPhone || document.getElementById('input-phone').value.trim().replace(/\D/g, '');
+      const email = existsClient ? '' : document.getElementById('input-email').value.trim();
+      const birthday = existsClient ? '' : document.getElementById('input-birthday').value;
 
-      // 🐛 DEBUG: Logs para verificar datos antes de enviar
       console.log('📝 [BOOKING] Datos del formulario:', {
         name,
         phone,
+        existsClient,
+        cardId: clientCardId,
         email: email || 'sin email',
         birthday: birthday || 'sin cumpleaños',
         service: selectedService?.name,
@@ -619,8 +730,10 @@
         time: selectedTime
       });
 
-      if (!name) { alert('Ingresa tu nombre'); return; }
-      if (phone.length < 10) { alert('Ingresa tu WhatsApp (10 dígitos)'); return; }
+      if (!name) { alert('Falta tu nombre'); goToStep(2); return; }
+      if (phone.length < 10) { alert('WhatsApp inválido'); goToStep(1); return; }
+      if (!selectedService) { alert('Elige un servicio'); goToStep(3); return; }
+      if (!selectedDate || !selectedTime) { alert('Elige fecha y hora'); return; }
 
       const btn = document.getElementById('btn-submit');
       btn.disabled = true;
@@ -685,22 +798,46 @@
 
       document.getElementById('conf-datetime').textContent = d.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'short' }) + ', ' + timeStr;
 
-      goToStep(4);
+      goToStep(5);
     }
 
     function openWhatsApp() {
       if (whatsappUrl) window.open(whatsappUrl, '_blank');
     }
 
+    // 4 dots visibles, pero el paso 2 (datos) es opcional según existsClient.
+    // Mapeo paso interno → dot: 1→1, 2→1 (mismo dot que teléfono), 3→2, 4→3, 5→4.
+    function dotForStep(step) {
+      if (step <= 2) return 1;
+      if (step === 3) return 2;
+      if (step === 4) return 3;
+      return 4;
+    }
+
     function goToStep(n) {
       document.querySelectorAll('.tw-step').forEach(el => el.classList.remove('active'));
       document.getElementById(`step-${n}`).classList.add('active');
 
+      // Saludo personalizado en paso 3 si reconocimos al cliente
+      const step3Title = document.getElementById('step3-title');
+      if (step3Title) {
+        step3Title.textContent = (existsClient && clientFirstName && n === 3)
+          ? `${clientFirstName}, ¿qué servicio te gustaría?`
+          : '¿Qué servicio te gustaría?';
+      }
+
+      // Lazy-load de servicios al entrar al paso 3
+      if (n === 3 && !servicesLoaded) {
+        servicesLoaded = true;
+        loadServices();
+      }
+
+      const activeDot = dotForStep(n);
       for (let i = 1; i <= 4; i++) {
         const dot = document.getElementById(`dot-${i}`);
         dot.className = 'tw-progress-dot';
-        if (i < n) dot.classList.add('completed');
-        else if (i === n) dot.classList.add('active');
+        if (i < activeDot) dot.classList.add('completed');
+        else if (i === activeDot) dot.classList.add('active');
       }
       window.scrollTo(0, 0);
     }

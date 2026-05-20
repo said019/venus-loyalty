@@ -560,7 +560,19 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.static("public"));
+// Root del sitio: landing es la página de marketing. index.html (legacy
+// "Crea tu tarjeta") se mantiene como atajo /mi-tarjeta para acceso
+// rápido a la propia tarjeta de lealtad.
+app.get('/', (_req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'landing.html'));
+});
+app.get('/mi-tarjeta', (_req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// { index:false } evita que express.static intercepte / antes de los
+// handlers de arriba.
+app.use(express.static("public", { index: false }));
 app.get("/api/qr", async (req, res) => {
   try {
     const text = String(req.query.text || "");
@@ -3140,6 +3152,31 @@ app.post('/api/settings/business', adminAuth, requireRole("admin"), async (req, 
     res.json({ success: true });
   } catch (error) {
     res.json({ success: false, error: error.message });
+  }
+});
+
+// POST /api/public/lookup-card - Identifica si un teléfono ya tiene tarjeta.
+// Devuelve solo el primer nombre (no apellido, no email, no historial) para
+// que el flujo de agendar pueda saludar y saltar el paso de "crear tarjeta",
+// sin filtrar datos personales si alguien escribe un teléfono ajeno.
+app.post('/api/public/lookup-card', async (req, res) => {
+  try {
+    const { phone } = req.body || {};
+    const digits = String(phone || '').replace(/\D/g, '');
+    if (digits.length < 10) {
+      return res.json({ exists: false });
+    }
+    const normal = digits.length === 10 ? '52' + digits : digits;
+    const card = await prisma.card.findFirst({
+      where: { OR: [{ phone: digits }, { phone: normal }] },
+      select: { id: true, name: true },
+    });
+    if (!card) return res.json({ exists: false });
+    const firstName = String(card.name || '').trim().split(/\s+/)[0] || 'Hola';
+    res.json({ exists: true, cardId: card.id, firstName });
+  } catch (err) {
+    console.error('[lookup-card]', err);
+    res.status(500).json({ exists: false, error: 'lookup_failed' });
   }
 });
 
