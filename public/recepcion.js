@@ -1,4 +1,4 @@
-// public/recepcion.js — panel de recepción Venus (standalone, alineado al admin redesign)
+// public/recepcion.js — Venus Recepción (standalone, spa boutique aesthetic)
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
 
@@ -13,7 +13,7 @@ async function guardSession() {
   return me;
 }
 
-/* ============== UTILIDADES ============== */
+/* ============== UTILS ============== */
 function pad(n) { return String(n).padStart(2, "0"); }
 function todayISO() {
   const d = new Date();
@@ -44,7 +44,8 @@ function tickClock() {
 /* ============== THEME ============== */
 function applyTheme(t) {
   document.documentElement.setAttribute("data-theme", t);
-  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", t === "dark" ? "#0a0a0f" : "#8c9668");
+  const themeColor = t === "dark" ? "#23211c" : "#f3eee2";
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", themeColor);
 }
 function initTheme() {
   const saved = localStorage.getItem("admin-theme") || "light";
@@ -52,15 +53,18 @@ function initTheme() {
 }
 function toggleTheme() {
   const cur = document.documentElement.getAttribute("data-theme") || "light";
-  const next = cur === "dark" ? "light" : "dark";
-  applyTheme(next);
-  localStorage.setItem("admin-theme", next);
+  applyTheme(cur === "dark" ? "light" : "dark");
+  localStorage.setItem("admin-theme", document.documentElement.getAttribute("data-theme"));
 }
 
 /* ============== TABS ============== */
 function activateTab(name) {
-  $$(".rec-tab").forEach((b) => b.classList.toggle("active", b.dataset.tab === name));
-  $$(".rec-pane").forEach((p) => p.classList.toggle("active", p.dataset.pane === name));
+  $$(".tab").forEach((b) => {
+    const active = b.dataset.tab === name;
+    b.classList.toggle("active", active);
+    b.setAttribute("aria-selected", active ? "true" : "false");
+  });
+  $$(".pane").forEach((p) => p.classList.toggle("active", p.dataset.pane === name));
   if (name === "cobrar") {
     const f = $("#recPosFrame");
     if (f && !f.src) f.src = f.dataset.src;
@@ -70,7 +74,7 @@ function activateTab(name) {
   if (name === "whatsapp") loadRequests();
 }
 
-/* ============== ESTADO DE CITA ============== */
+/* ============== CITAS ============== */
 function stateOf(c) {
   if (c.totalPaid != null) return "cobrada";
   if (c.status === "completed") return "llego";
@@ -79,35 +83,35 @@ function stateOf(c) {
 }
 const STATE_LABEL = { pendiente: "Pendiente", confirmada: "Confirmada", llego: "Llegó", cobrada: "Cobrada" };
 
-function citaCard(c) {
+function citaItem(c) {
   const st = stateOf(c);
   const paid = c.totalPaid != null;
   const cancelBtn = paid
-    ? `<button class="rec-btn rec-btn-danger is-locked" title="Cita pagada — pide al admin"><i class="fas fa-ban"></i>Cancelar</button>`
-    : `<button class="rec-btn rec-btn-danger" data-action="cancel" data-id="${c.id}"><i class="fas fa-xmark"></i>Cancelar</button>`;
+    ? `<button class="btn btn-danger is-locked" title="Cita pagada, pide al admin"><i class="fa-solid fa-ban"></i><span>Cancelar</span></button>`
+    : `<button class="btn btn-danger" data-action="cancel" data-id="${c.id}"><i class="fa-solid fa-xmark"></i><span>Cancelar</span></button>`;
   let actions = "";
   if (st === "pendiente" || st === "confirmada") {
     actions = `
-      <button class="rec-btn rec-btn-ok" data-action="checkin" data-id="${c.id}"><i class="fas fa-check"></i>Check-in</button>
-      <button class="rec-btn rec-btn-ghost" data-action="wa" data-phone="${esc(c.clientPhone)}"><i class="fab fa-whatsapp"></i>WhatsApp</button>
+      <button class="btn btn-ok" data-action="checkin" data-id="${c.id}"><i class="fa-solid fa-check"></i><span>Check-in</span></button>
+      <button class="btn btn-ghost" data-action="wa" data-phone="${esc(c.clientPhone)}"><i class="fa-brands fa-whatsapp"></i><span>WhatsApp</span></button>
       ${cancelBtn}`;
   } else if (st === "llego") {
     actions = `
-      <button class="rec-btn rec-btn-primary" data-action="cobrar"><i class="fas fa-credit-card"></i>Cobrar</button>
-      <button class="rec-btn rec-btn-ghost" data-action="wa" data-phone="${esc(c.clientPhone)}"><i class="fab fa-whatsapp"></i>WhatsApp</button>`;
+      <button class="btn btn-primary" data-action="cobrar"><i class="fa-regular fa-credit-card"></i><span>Cobrar</span></button>
+      <button class="btn btn-ghost" data-action="wa" data-phone="${esc(c.clientPhone)}"><i class="fa-brands fa-whatsapp"></i><span>WhatsApp</span></button>`;
   } else {
-    actions = `<button class="rec-btn rec-btn-ghost" data-action="wa" data-phone="${esc(c.clientPhone)}"><i class="fab fa-whatsapp"></i>WhatsApp</button>`;
+    actions = `<button class="btn btn-ghost" data-action="wa" data-phone="${esc(c.clientPhone)}"><i class="fa-brands fa-whatsapp"></i><span>WhatsApp</span></button>`;
   }
   return `
-    <article class="rec-card">
-      <div class="hora">${esc(c.time || "--:--")}</div>
-      <div>
-        <div class="cliente">${esc(c.clientName)}</div>
-        <div class="servicio">${esc(c.serviceName)}</div>
-        <span class="estado ${st}">${STATE_LABEL[st]}</span>
+    <li class="cita">
+      <div class="cita-time">${esc(c.time || "—")}</div>
+      <div class="cita-body">
+        <div class="cita-client">${esc(c.clientName)}</div>
+        <div class="cita-svc">${esc(c.serviceName)}</div>
+        <span class="cita-status status-${st}">${STATE_LABEL[st]}</span>
       </div>
-      <div class="rec-actions">${actions}</div>
-    </article>`;
+      <div class="cita-actions">${actions}</div>
+    </li>`;
 }
 
 function renderKPIs(container, citas) {
@@ -115,9 +119,9 @@ function renderKPIs(container, citas) {
   const llegaron = citas.filter((c) => ["llego", "cobrada"].includes(stateOf(c))).length;
   const pend = citas.filter((c) => stateOf(c) === "pendiente").length;
   container.innerHTML = `
-    <div class="rec-kpi is-accent"><div class="lbl">Citas</div><div class="val">${total}</div></div>
-    <div class="rec-kpi"><div class="lbl">Llegaron</div><div class="val">${llegaron}</div></div>
-    <div class="rec-kpi"><div class="lbl">Pendientes</div><div class="val">${pend}</div></div>`;
+    <div class="kpi"><span class="kpi-lbl">Citas</span><span class="kpi-val">${total}</span></div>
+    <div class="kpi"><span class="kpi-lbl">Llegaron</span><span class="kpi-val">${llegaron}</span></div>
+    <div class="kpi"><span class="kpi-lbl">Pendientes</span><span class="kpi-val">${pend}</span></div>`;
 }
 
 async function fetchCitas(dateISO) {
@@ -128,15 +132,17 @@ async function fetchCitas(dateISO) {
 }
 
 const EMPTY_CITAS = `
-  <div class="rec-empty">
-    <i class="fas fa-calendar-check"></i>
-    Sin citas para esta fecha.
-  </div>`;
+  <li class="empty">
+    <i class="fa-regular fa-calendar-check"></i>
+    <strong>Sin citas para esta fecha</strong>
+    Disfruta el día tranquilo.
+  </li>`;
 const ERR_CITAS = `
-  <div class="rec-empty">
-    <i class="fas fa-triangle-exclamation"></i>
-    No se pudieron cargar las citas.
-  </div>`;
+  <li class="empty">
+    <i class="fa-solid fa-circle-exclamation"></i>
+    <strong>No se pudieron cargar las citas</strong>
+    Revisa tu conexión e intenta de nuevo.
+  </li>`;
 
 /* ============== HOY ============== */
 async function loadCitasHoy() {
@@ -145,7 +151,7 @@ async function loadCitasHoy() {
     const citas = await fetchCitas(todayISO());
     renderKPIs($("#recCounters"), citas);
     const sorted = [...citas].sort((a, b) => (a.time || "").localeCompare(b.time || ""));
-    $("#recCitasHoy").innerHTML = sorted.length ? sorted.map(citaCard).join("") : EMPTY_CITAS;
+    $("#recCitasHoy").innerHTML = sorted.length ? sorted.map(citaItem).join("") : EMPTY_CITAS;
   } catch (e) {
     console.error("[recepcion] loadCitasHoy", e);
     $("#recCitasHoy").innerHTML = ERR_CITAS;
@@ -161,7 +167,7 @@ async function loadCalendar() {
     const citas = await fetchCitas(calDate);
     renderKPIs($("#recCalCounters"), citas);
     const sorted = [...citas].sort((a, b) => (a.time || "").localeCompare(b.time || ""));
-    $("#recCitasCal").innerHTML = sorted.length ? sorted.map(citaCard).join("") : EMPTY_CITAS;
+    $("#recCitasCal").innerHTML = sorted.length ? sorted.map(citaItem).join("") : EMPTY_CITAS;
   } catch (e) {
     console.error("[recepcion] loadCalendar", e);
     $("#recCitasCal").innerHTML = ERR_CITAS;
@@ -193,7 +199,7 @@ async function handleCitaAction(ev) {
   if (action === "cancel") {
     if (!confirm("¿Cancelar esta cita?")) return;
     const r = await fetch(`/api/appointments/${id}/cancel`, { method: "PATCH" });
-    if (r.status === 403) alert("Esta cita ya está pagada. Solicita al administrador para cancelarla.");
+    if (r.status === 403) alert("Esta cita ya está pagada. Pide al administrador para cancelarla.");
     else if (r.ok) refreshCitasViews();
     else alert("No se pudo cancelar.");
   }
@@ -209,6 +215,13 @@ let cardsPage = 1;
 let cardsQuery = "";
 let cardsTotalPages = 1;
 
+const EMPTY_CARDS = `
+  <div class="empty" style="grid-column:1/-1;">
+    <i class="fa-regular fa-address-card"></i>
+    <strong>Sin resultados</strong>
+    Ajusta la búsqueda o registra una nueva clienta desde el admin.
+  </div>`;
+
 async function loadCards() {
   const params = new URLSearchParams({ page: String(cardsPage), q: cardsQuery });
   try {
@@ -220,35 +233,29 @@ async function loadCards() {
     $("#recCardsPage").textContent = `Página ${cardsPage} de ${cardsTotalPages}`;
     $("#recCardsPrev").disabled = cardsPage <= 1;
     $("#recCardsNext").disabled = cardsPage >= cardsTotalPages;
-    if (!items.length) {
-      $("#recCardsList").innerHTML = `
-        <div class="rec-empty" style="grid-column:1/-1;">
-          <i class="fas fa-user-magnifying-glass"></i>
-          No se encontraron clientas.
-        </div>`;
-      return;
-    }
+    if (!items.length) { $("#recCardsList").innerHTML = EMPTY_CARDS; return; }
     $("#recCardsList").innerHTML = items.map((c) => {
       const stamps = c.stamps ?? c.points ?? 0;
       return `
-        <div class="rec-client">
-          <div class="name">${esc(c.name || "Sin nombre")}</div>
-          <div class="phone"><i class="fas fa-phone" style="font-size:11px;margin-right:6px;opacity:.6;"></i>${esc(c.phone || "—")}</div>
-          <div class="meta">
-            <span class="rec-pill"><i class="fas fa-star" style="font-size:10px;"></i>${stamps} sello${stamps === 1 ? "" : "s"}</span>
-            ${c.email ? `<span class="rec-pill"><i class="fas fa-envelope" style="font-size:10px;"></i>${esc(c.email)}</span>` : ""}
+        <div class="clienta">
+          <div class="clienta-name">${esc(c.name || "Sin nombre")}</div>
+          <div class="clienta-phone"><i class="fa-solid fa-phone"></i>${esc(c.phone || "—")}</div>
+          <div class="clienta-meta">
+            <span class="pill"><i class="fa-solid fa-circle"></i>${stamps} sello${stamps === 1 ? "" : "s"}</span>
+            ${c.email ? `<span class="pill"><i class="fa-regular fa-envelope"></i>${esc(c.email)}</span>` : ""}
           </div>
-          <div class="acts">
-            <button class="rec-btn rec-btn-ghost" data-wa="${esc(c.phone)}"><i class="fab fa-whatsapp"></i>WhatsApp</button>
+          <div class="clienta-acts">
+            <button class="btn btn-ghost" data-wa="${esc(c.phone)}"><i class="fa-brands fa-whatsapp"></i><span>WhatsApp</span></button>
           </div>
         </div>`;
     }).join("");
   } catch (e) {
     console.error("[recepcion] loadCards", e);
     $("#recCardsList").innerHTML = `
-      <div class="rec-empty" style="grid-column:1/-1;">
-        <i class="fas fa-triangle-exclamation"></i>
-        No se pudieron cargar las clientas.
+      <div class="empty" style="grid-column:1/-1;">
+        <i class="fa-solid fa-circle-exclamation"></i>
+        <strong>No se pudieron cargar las clientas</strong>
+        Revisa la conexión e intenta de nuevo.
       </div>`;
   }
 }
@@ -261,45 +268,48 @@ async function loadRequests() {
     const p = await r.json();
     const list = (Array.isArray(p) ? p : (p.data || p.items || []))
       .filter((x) => !x.status || x.status === "pending" || x.status === "contacted");
+
     const badge = $("#recReqBadge");
     if (list.length) { badge.hidden = false; badge.textContent = String(list.length); }
     else { badge.hidden = true; }
+
     if (!list.length) {
       $("#recRequests").innerHTML = `
-        <div class="rec-empty">
-          <i class="fas fa-inbox"></i>
-          No hay solicitudes pendientes.
-        </div>`;
+        <li class="empty">
+          <i class="fa-regular fa-envelope-open"></i>
+          <strong>Sin solicitudes pendientes</strong>
+          Todo al día.
+        </li>`;
       return;
     }
     $("#recRequests").innerHTML = list.map((req) => {
       const when = [req.preferredDate, req.preferredTime].filter(Boolean).join(" · ");
       return `
-        <article class="rec-req">
+        <li class="req">
           <div>
-            <div class="who">${esc(req.name || req.clientName || "Sin nombre")}</div>
-            <div class="det">
+            <div class="req-who">${esc(req.name || req.clientName || "Sin nombre")}</div>
+            <div class="req-det">
               ${esc(req.phone || "")}${req.serviceName ? " · " + esc(req.serviceName) : ""}
               ${when ? " · " + esc(when) : ""}
-              ${req.status === "contacted" ? ' · <span class="rec-pill" style="padding:2px 8px;">Contactada</span>' : ""}
+              ${req.status === "contacted" ? ' · <span class="pill">Contactada</span>' : ""}
             </div>
-            ${req.notes ? `<div class="det">${esc(req.notes)}</div>` : ""}
+            ${req.notes ? `<div class="req-det">${esc(req.notes)}</div>` : ""}
           </div>
-          <div class="acts">
-            <button class="rec-btn rec-btn-ghost" data-req-wa="${esc(req.phone)}"><i class="fab fa-whatsapp"></i>WhatsApp</button>
-            <button class="rec-btn rec-btn-ghost" data-req-contact="${req.id}"><i class="fas fa-phone"></i>Contactada</button>
-            <button class="rec-btn rec-btn-ok" data-req-book="${req.id}"><i class="fas fa-calendar-check"></i>Agendar</button>
-            <button class="rec-btn rec-btn-danger" data-req-reject="${req.id}"><i class="fas fa-xmark"></i>Rechazar</button>
+          <div class="req-acts">
+            <button class="btn btn-ghost" data-req-wa="${esc(req.phone)}"><i class="fa-brands fa-whatsapp"></i><span>WhatsApp</span></button>
+            <button class="btn btn-ghost" data-req-contact="${req.id}"><i class="fa-solid fa-phone"></i><span>Contactada</span></button>
+            <button class="btn btn-ok" data-req-book="${req.id}"><i class="fa-regular fa-calendar-check"></i><span>Agendar</span></button>
+            <button class="btn btn-danger" data-req-reject="${req.id}"><i class="fa-solid fa-xmark"></i><span>Rechazar</span></button>
           </div>
-        </article>`;
+        </li>`;
     }).join("");
   } catch (e) {
     console.error("[recepcion] loadRequests", e);
     $("#recRequests").innerHTML = `
-      <div class="rec-empty">
-        <i class="fas fa-triangle-exclamation"></i>
-        No se pudieron cargar las solicitudes.
-      </div>`;
+      <li class="empty">
+        <i class="fa-solid fa-circle-exclamation"></i>
+        <strong>No se pudieron cargar las solicitudes</strong>
+      </li>`;
   }
 }
 
@@ -333,7 +343,7 @@ async function loadServicesIntoSelect() {
     const p = await r.json();
     servicesCache = (p.data || p || []).filter((s) => s.isActive !== false);
     const sel = $("#recApptService");
-    sel.innerHTML = `<option value="" disabled selected>Selecciona…</option>` +
+    sel.innerHTML = `<option value="" disabled selected>Selecciona</option>` +
       servicesCache.map((s) => `<option value="${esc(s.name)}" data-id="${s.id}">${esc(s.name)} — $${Number(s.price || 0).toFixed(0)}</option>`).join("");
   } catch (e) { console.error("[recepcion] services", e); }
 }
@@ -383,7 +393,7 @@ async function submitAppt(ev) {
   const svc = servicesCache.find((s) => s.name === serviceName);
   const saveBtn = $("#recApptSave");
   saveBtn.disabled = true;
-  saveBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i><span>Agendando…</span>`;
+  saveBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i><span>Agendando</span>`;
   try {
     const r = await fetch("/api/appointments", {
       method: "POST",
@@ -409,13 +419,13 @@ async function submitAppt(ev) {
     errEl.hidden = false;
   } finally {
     saveBtn.disabled = false;
-    saveBtn.innerHTML = `<i class="fas fa-calendar-plus"></i><span>Agendar</span>`;
+    saveBtn.innerHTML = `<i class="fa-regular fa-calendar-plus"></i><span>Agendar</span>`;
   }
 }
 
 /* ============== WIRING ============== */
 function wire() {
-  $$(".rec-tab").forEach((b) => b.addEventListener("click", () => activateTab(b.dataset.tab)));
+  $$(".tab").forEach((b) => b.addEventListener("click", () => activateTab(b.dataset.tab)));
 
   $("#recThemeToggle").addEventListener("click", toggleTheme);
 
@@ -477,7 +487,6 @@ initTheme();
   tickClock(); setInterval(tickClock, 20000);
   wire();
   loadCitasHoy();
-  // Pre-cargar contador de solicitudes en el tab (badge) sin abrir la pestaña
   loadRequests();
   setInterval(() => {
     loadCitasHoy();
