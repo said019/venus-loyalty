@@ -1722,36 +1722,38 @@ html, body {
   .tw-maps-btn:hover {
     background: #9aa066;
   }
+  /* Form fields boutique claros (eran dark, chocaban con cards blancos). */
   .tw-form-label {
     display: block;
     font-size: 12px;
     margin-bottom: 6px;
-    color: #dfe6c1;
+    color: #2d2d1f;
     font-weight: 500;
   }
   .tw-form-input {
     width: 100%;
     padding: 10px 12px;
     border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    background: rgba(0, 0, 0, 0.3);
-    color: #fff;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    background: #ffffff;
+    color: #2d2d1f;
     font-size: 14px;
     transition: all 0.2s;
   }
+  .tw-form-input::placeholder { color: #b4b4a8; }
   .tw-form-input:focus {
     outline: none;
     border-color: #8c9668;
-    background: rgba(0, 0, 0, 0.4);
-    box-shadow: 0 0 0 3px rgba(140, 150, 104, 0.1);
+    background: #ffffff;
+    box-shadow: 0 0 0 3px rgba(140, 150, 104, 0.18);
   }
   .tw-form-input:disabled, .tw-form-input:read-only {
-    background: rgba(0, 0, 0, 0.15);
-    color: #9ca3af;
+    background: #f3f1ea;
+    color: #9a9a8a;
     cursor: not-allowed;
   }
   .tw-form-input.readonly {
-    background: rgba(0, 0, 0, 0.2);
+    background: #f3f1ea;
     cursor: not-allowed;
   }
   .tw-form-group {
@@ -1761,9 +1763,9 @@ html, body {
     width: 100%;
     padding: 10px 12px;
     border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    background: rgba(0, 0, 0, 0.3);
-    color: #fff;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    background: #ffffff;
+    color: #2d2d1f;
     font-size: 14px;
     transition: all 0.2s;
     cursor: pointer;
@@ -1771,15 +1773,15 @@ html, body {
   .tw-form-select:focus {
     outline: none;
     border-color: #8c9668;
-    background: rgba(0, 0, 0, 0.4);
+    box-shadow: 0 0 0 3px rgba(140, 150, 104, 0.18);
   }
   .tw-form-textarea {
     width: 100%;
     padding: 10px 12px;
     border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    background: rgba(0, 0, 0, 0.3);
-    color: #fff;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    background: #ffffff;
+    color: #2d2d1f;
     font-size: 14px;
     transition: all 0.2s;
     resize: vertical;
@@ -1788,14 +1790,14 @@ html, body {
   .tw-form-textarea:focus {
     outline: none;
     border-color: #8c9668;
-    background: rgba(0, 0, 0, 0.4);
+    box-shadow: 0 0 0 3px rgba(140, 150, 104, 0.18);
   }
   .tw-form-checkbox {
     width: 16px;
     height: 16px;
     border-radius: 4px;
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(0, 0, 0, 0.18);
+    background: #ffffff;
     cursor: pointer;
   }
   .tw-form-checkbox:checked {
@@ -1806,54 +1808,60 @@ html, body {
     width: 16px;
     height: 16px;
     border-radius: 50%;
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(0, 0, 0, 0.18);
+    background: #ffffff;
     cursor: pointer;
   }
   .tw-form-radio:checked {
     background: #8c9668;
     border-color: #8c9668;
   }
+  /* Botones boutique sobre cards claros. */
   .tw-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 6px;
     border-radius: 999px;
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    background: rgba(255, 255, 255, 0.1);
-    padding: 7px 13px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    background: #ffffff;
+    padding: 10px 18px;
     font-size: 13px;
+    font-weight: 500;
     cursor: pointer;
     text-decoration: none;
-    color: #f9fafb;
+    color: #2d2d1f;
     white-space: nowrap;
-    backdrop-filter: blur(3px);
     transition: all 0.2s ease;
   }
-  .tw-btn:hover {
+  .tw-btn:hover:not(:disabled) {
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  }
+  .tw-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
   .tw-btn-primary {
     background: linear-gradient(135deg, #8c9668 0%, #9aa066 100%);
     color: #fff;
     font-weight: 600;
-    box-shadow: 0 4px 12px rgba(140, 150, 104, 0.3);
+    box-shadow: 0 4px 12px rgba(140, 150, 104, 0.25);
     border: none;
   }
-  .tw-btn-primary:hover {
+  .tw-btn-primary:hover:not(:disabled) {
     background: linear-gradient(135deg, #9aa066 0%, #8c9668 100%);
-    box-shadow: 0 6px 16px rgba(140, 150, 104, 0.4);
+    box-shadow: 0 6px 16px rgba(140, 150, 104, 0.35);
     transform: translateY(-1px);
   }
   .tw-btn-ghost {
     background: transparent;
-    border-color: rgba(255, 255, 255, 0.25);
+    border-color: rgba(0, 0, 0, 0.12);
+    color: #2d2d1f;
   }
-  .tw-btn-ghost:hover {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.3);
+  .tw-btn-ghost:hover:not(:disabled) {
+    background: rgba(140, 150, 104, 0.08);
+    border-color: rgba(140, 150, 104, 0.3);
   }
   .tw-btn-small {
     padding: 5px 10px;
@@ -1912,12 +1920,14 @@ html, body {
   .tw-btn-gradient-red:hover {
     background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
   }
+  /* Cards boutique claros — usados en /agendar.html sobre fondo crema #faf9f6.
+     Antes eran #1a1a1a (dark) y chocaban con la paleta del sitio. */
   .tw-card {
-    background: #1a1a1a;
+    background: #ffffff;
     border-radius: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(0, 0, 0, 0.06);
     padding: 24px;
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
     margin: 0 auto 20px auto;
     position: relative;
     overflow: hidden;
@@ -1935,27 +1945,28 @@ html, body {
     align-items: center;
     margin-bottom: 20px;
     padding-bottom: 16px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
   }
   .tw-card-title {
     font-size: 15px;
     font-weight: 600;
-    color: #fff;
+    color: #2d2d1f;
     display: flex;
     align-items: center;
     gap: 10px;
     line-height: 1.4;
   }
   .tw-card-title i {
-    color: rgba(255, 255, 255, 0.5);
+    color: #8c9668;
     font-size: 14px;
   }
   .tw-card-body {
     padding: 0;
     line-height: 1.5;
+    color: #2d2d1f;
   }
   .tw-card-link {
-    color: rgba(255, 255, 255, 0.5);
+    color: #7a7a6a;
     font-size: 12px;
     text-decoration: none;
     display: flex;
@@ -1964,11 +1975,11 @@ html, body {
     transition: all 0.2s;
     padding: 6px 10px;
     border-radius: 8px;
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(140, 150, 104, 0.08);
   }
   .tw-card-link:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: #fff;
+    background: rgba(140, 150, 104, 0.16);
+    color: #2d2d1f;
   }
   .tw-card-compact {
     padding: 16px;
@@ -1977,8 +1988,8 @@ html, body {
     padding: 0;
   }
   .tw-card-gradient {
-    background: linear-gradient(135deg, #2F3E2B 0%, #4A5D3F 100%);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: linear-gradient(135deg, #f7f9f2 0%, #ebefe0 100%);
+    border: 1px solid rgba(140, 150, 104, 0.18);
   }
   .tw-card-danger {
     background: linear-gradient(135deg, rgba(239, 68, 68, 0.05) 0%, rgba(220, 38, 38, 0.05) 100%);
@@ -1989,15 +2000,15 @@ html, body {
     border: 1px solid rgba(140, 150, 104, 0.2);
   }
   .tw-stat-card {
-    background: #2c2d26;
+    background: #ffffff;
     border-radius: 12px;
     padding: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(0, 0, 0, 0.06);
     margin-bottom: 16px;
   }
   .tw-stat-label {
     font-size: 13px;
-    color: #9ca3af;
+    color: #7a7a6a;
     text-transform: uppercase;
     font-weight: 600;
     margin-bottom: 6px;
@@ -2006,7 +2017,7 @@ html, body {
   .tw-stat-value {
     font-size: 26px;
     font-weight: 700;
-    color: #f9fafb;
+    color: #2d2d1f;
     line-height: 1.2;
   }
   .tw-stat-icon {
@@ -2034,7 +2045,7 @@ html, body {
   }
   .tw-card-list-item {
     padding: 12px 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -2056,12 +2067,12 @@ html, body {
   .tw-card-list-item-title {
     font-size: 14px;
     font-weight: 500;
-    color: #f9fafb;
+    color: #2d2d1f;
     margin-bottom: 2px;
   }
   .tw-card-list-item-subtitle {
     font-size: 12px;
-    color: #9ca3af;
+    color: #7a7a6a;
   }
   .tw-card-list-item-badge {
     padding: 4px 8px;
@@ -2073,7 +2084,7 @@ html, body {
   .tw-card-list-item-number {
     font-size: 16px;
     font-weight: 600;
-    color: #f9fafb;
+    color: #2d2d1f;
     min-width: 32px;
     text-align: right;
   }
