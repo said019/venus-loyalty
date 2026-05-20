@@ -5637,3 +5637,255 @@
 .sidebar-nav-item--external small {
   opacity: 0.78;
 }
+
+/* ============================================================
+   Agenda — header + stat strip + day timeline (rediseño 2026-05-20)
+   ============================================================ */
+
+.agenda-header {
+  margin-bottom: 28px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.agenda-head-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 22px;
+}
+
+.agenda-head-text { min-width: 0; }
+
+.agenda-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent-gold);
+  margin: 0 0 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.agenda-eyebrow .ae-sep { opacity: 0.45; font-weight: 400; }
+.agenda-eyebrow .ae-tag {
+  color: var(--text-secondary);
+  letter-spacing: 0.14em;
+  font-weight: 600;
+}
+
+.agenda-title {
+  font-family: "Playfair Display", serif;
+  font-size: clamp(28px, 3.6vw, 40px);
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  line-height: 1;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.agenda-head-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.agenda-cta {
+  padding: 11px 18px;
+  min-height: 46px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ---- Stat strip del día activo ---- */
+.stat-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.stat-strip-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 4px 22px;
+  border-left: 1px solid var(--border-color);
+}
+.stat-strip-item:first-child {
+  border-left: 0;
+  padding-left: 0;
+}
+.ssi-lbl {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.ssi-val {
+  font-family: "Playfair Display", serif;
+  font-weight: 500;
+  font-size: 28px;
+  line-height: 1;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.stat-strip-item:first-child .ssi-val { color: var(--accent-gold); }
+
+@media (max-width: 720px) {
+  .agenda-head-row { flex-direction: column; align-items: stretch; }
+  .stat-strip { grid-template-columns: 1fr 1fr; gap: 4px 0; }
+  .stat-strip-item {
+    border-left: 0;
+    border-bottom: 1px solid var(--border-color);
+    padding: 14px 0;
+  }
+  .stat-strip-item:nth-last-child(-n+2) { border-bottom: 0; }
+  .ssi-val { font-size: 24px; }
+}
+
+/* ---- Agenda controls (date nav + view selector) ---- */
+.agenda-controls {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+.agenda-date-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--glass-bg);
+  border: 1px solid var(--border-color);
+  padding: 4px;
+  border-radius: 999px;
+}
+.agenda-date-nav .btn-nav {
+  padding: 8px 12px;
+  background: none;
+  border: 0;
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 999px;
+  transition: background 140ms;
+}
+.agenda-date-nav .btn-nav i { font-size: 11px; }
+.agenda-date-nav .btn-nav:hover { background: var(--bg-hover); }
+.agenda-today-btn { letter-spacing: 0.02em; }
+
+/* ---- NOW line en vista Día (se inyecta con JS) ---- */
+.time-grid-container { position: relative; }
+.timeline-now-line {
+  position: absolute;
+  left: 60px;
+  right: 12px;
+  height: 0;
+  border-top: 2px solid var(--accent-gold);
+  pointer-events: none;
+  z-index: 6;
+}
+.timeline-now-line::before {
+  content: '';
+  position: absolute;
+  left: -7px;
+  top: -6px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent-gold);
+  box-shadow: 0 0 0 4px color-mix(in oklch, var(--accent-gold) 18%, transparent);
+}
+.timeline-now-line::after {
+  content: attr(data-label);
+  position: absolute;
+  right: 0;
+  top: -9px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent-gold);
+  background: var(--bg-primary);
+  padding: 1px 6px;
+  border-radius: 6px;
+}
+
+/* ---- Quick action FAB con labels ---- */
+.quick-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-end;
+}
+.quick-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 18px;
+  height: 52px;
+  border-radius: 14px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(140, 150, 104, 0.18);
+  transition: border-color 140ms, background 140ms, transform 80ms;
+}
+.quick-action-btn i {
+  font-size: 16px;
+  color: var(--accent-gold);
+}
+.quick-action-btn:hover {
+  border-color: var(--accent-gold);
+  background: var(--bg-card-hover);
+}
+.quick-action-btn:active { transform: translateY(1px); }
+.quick-action-btn.primary {
+  background: var(--accent-gold);
+  border-color: var(--accent-gold);
+  color: #fff;
+  box-shadow: 0 8px 22px rgba(140, 150, 104, 0.32);
+}
+.quick-action-btn.primary i { color: #fff; }
+.quick-action-btn.primary:hover { background: var(--accent-rose); border-color: var(--accent-rose); }
+
+@media (max-width: 640px) {
+  .quick-action-btn { width: 52px; padding: 0; justify-content: center; }
+  .qa-label { display: none; }
+}
+
+/* ---- Topbar date (cuando estamos en Agenda) ---- */
+.topbar-date {
+  font-family: "DM Sans", system-ui, sans-serif;
+  font-weight: 500;
+  font-size: 15px;
+  color: var(--text-secondary);
+  text-transform: lowercase;
+  letter-spacing: 0.005em;
+}
+.topbar-date::first-letter { text-transform: uppercase; }
+
+/* Icono de greeting en otros tabs queda olive tenue (ya estaba) */
+.greeting-icon {
+  color: var(--accent-gold);
+  opacity: 0.55;
+  font-size: 0.7em;
+  margin-left: 6px;
+  vertical-align: 0.1em;
+}
