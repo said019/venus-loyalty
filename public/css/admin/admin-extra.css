@@ -873,27 +873,28 @@
 
       /* Estilos del calendario movidos a la sección principal */
 
-      /* Time Grid for Week/Day View */
+      /* Time Grid for Week/Day View — usa tokens del tema (light/dark) */
       .time-grid-container {
         display: flex;
         flex-direction: column;
-        height: 600px;
+        height: 640px;
         overflow: hidden;
-        background: #23241f;
-        border: 1px solid var(--line);
-        border-radius: 12px;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        position: relative;
       }
 
       .time-grid-header {
         display: flex;
-        border-bottom: 1px solid var(--line);
-        background: #2c2d26;
+        border-bottom: 1px solid var(--border-color);
+        background: var(--bg-tertiary);
       }
 
       .time-header-spacer {
-        width: 60px;
+        width: 64px;
         flex-shrink: 0;
-        border-right: 1px solid var(--line);
+        border-right: 1px solid var(--border-color);
       }
 
       .day-headers {
@@ -904,16 +905,19 @@
       .day-header-cell {
         flex: 1;
         text-align: center;
-        padding: 10px;
+        padding: 12px 10px;
+        font-family: "DM Sans", sans-serif;
         font-size: 13px;
         font-weight: 600;
-        color: var(--ink);
-        border-right: 1px solid rgba(255, 255, 255, 0.05);
+        color: var(--text-primary);
+        border-right: 1px solid var(--border-color);
+        text-transform: capitalize;
       }
+      .day-header-cell:last-child { border-right: 0; }
 
       .day-header-cell.today {
-        color: var(--venus);
-        background: rgba(140, 150, 104, 0.1);
+        color: var(--accent-gold);
+        background: color-mix(in oklch, var(--accent-gold) 8%, transparent);
       }
 
       .time-grid-body {
@@ -923,19 +927,21 @@
       }
 
       .time-labels {
-        width: 60px;
+        width: 64px;
         flex-shrink: 0;
-        border-right: 1px solid var(--line);
+        border-right: 1px solid var(--border-color);
       }
 
       .time-label {
         height: 60px;
-        /* 1 hour */
         text-align: right;
-        padding-right: 8px;
+        padding: 6px 10px 0;
+        font-family: "DM Sans", sans-serif;
         font-size: 11px;
-        color: var(--muted);
-        transform: translateY(-8px);
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        color: var(--text-muted);
+        font-variant-numeric: tabular-nums;
       }
 
       .days-grid {
@@ -946,50 +952,102 @@
 
       .day-column {
         flex: 1;
-        border-right: 1px solid rgba(255, 255, 255, 0.05);
+        border-right: 1px solid var(--border-color);
         position: relative;
       }
+      .day-column:last-child { border-right: 0; }
 
       .time-slot {
         height: 60px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        border-bottom: 1px solid var(--border-color);
         cursor: pointer;
-        transition: background 0.1s;
+        transition: background 140ms ease-out;
       }
 
-      .time-slot:hover {
-        background: rgba(255, 255, 255, 0.05);
-      }
+      .time-slot:hover { background: var(--bg-hover); }
 
       .time-slot::after {
         content: '+ Agendar';
         display: none;
-        color: var(--venus-soft);
-        font-size: 10px;
-        padding: 4px;
+        color: var(--accent-gold);
+        font-size: 11px;
+        font-weight: 600;
+        padding: 6px 10px;
       }
 
-      .time-slot:hover::after {
-        display: block;
-      }
+      .time-slot:hover::after { display: block; }
 
+      /* ===== Appt block: paleta boutique, sin colores Bootstrap ===== */
       .appt-block {
         position: absolute;
-        left: 2px;
-        right: 2px;
-        padding: 4px;
-        border-radius: 4px;
-        font-size: 11px;
+        left: 4px;
+        right: 4px;
+        padding: 9px 12px;
+        border-radius: 10px;
+        font-family: "DM Sans", sans-serif;
+        font-size: 12px;
+        line-height: 1.35;
         overflow: hidden;
         cursor: pointer;
         z-index: 10;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-        border-left: 3px solid rgba(0, 0, 0, 0.2);
+        background: var(--surface, var(--bg-card));
+        border: 1px solid var(--border-color);
+        border-left: 3px solid var(--accent-gold);
+        color: var(--text-primary);
+        transition: border-color 140ms ease-out, box-shadow 140ms ease-out;
       }
-
       .appt-block:hover {
         z-index: 20;
-        transform: scale(1.02);
+        border-color: var(--border-glow, var(--accent-gold));
+        box-shadow: 0 6px 20px rgba(140, 150, 104, 0.14);
+      }
+      .appt-block .ab-head {
+        font-weight: 600;
+        font-size: 12.5px;
+        color: var(--text-primary);
+      }
+      .appt-block .ab-svc {
+        font-size: 11.5px;
+        color: var(--text-secondary);
+        margin-top: 2px;
+      }
+      .appt-block .ab-meta {
+        font-size: 11px;
+        color: var(--text-muted);
+        margin-top: 2px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* Status colors — solo el border-left + un tinte de fondo muy sutil.
+         Sin bg sólido saturado: el texto se lee siempre, el status comunica
+         por el dot/border, no inundando el bloque. */
+      .appt-block.status-scheduled {
+        border-left-color: var(--accent-gold);
+      }
+      .appt-block.status-confirmed {
+        border-left-color: var(--status-confirmed);
+        background: color-mix(in oklch, var(--status-confirmed) 6%, var(--bg-card));
+      }
+      .appt-block.status-completed {
+        border-left-color: var(--text-muted);
+        opacity: 0.75;
+      }
+      .appt-block.status-rescheduling,
+      .appt-block.status-pending {
+        border-left-color: var(--status-pending);
+        border-left-style: dashed;
+        background: color-mix(in oklch, var(--status-pending) 5%, var(--bg-card));
+      }
+      .appt-block.status-no_show {
+        border-left-color: var(--status-cancelled);
+        background: color-mix(in oklch, var(--status-cancelled) 5%, var(--bg-card));
+        color: var(--text-muted);
+      }
+      .appt-block.status-cancelled {
+        border-left-color: var(--status-cancelled);
+        opacity: 0.5;
+        text-decoration: line-through;
+        text-decoration-thickness: 1px;
       }
 
 

@@ -7798,13 +7798,9 @@
 
           const top = ((apptH - 8) * 60) + (apptM || 0);
           const height = (appt.durationMinutes || 60);
+          const status = appt.status || 'scheduled';
 
-          let bg = '#5c6bc0';
-          if (appt.status === 'confirmed') bg = '#10b981';
-          else if (appt.status === 'completed') bg = '#059669';
-          else if (appt.status === 'no_show') bg = '#ef4444';
-
-          bodyHTML += `<div class="appt-block" style="top:${top}px; height:${height}px; background:${bg}cc; border-left-color:${bg};" 
+          bodyHTML += `<div class="appt-block status-${status}" style="top:${top}px; height:${height}px;"
                           onclick="event.stopPropagation(); editAppointment('${appt.id}')" title="${appt.clientName} - ${appt.serviceName}">
                 <strong>${appt.time}</strong> ${appt.clientName}
             </div>`;
@@ -7856,16 +7852,13 @@
 
         const top = ((apptH - 8) * 60) + (apptM || 0);
         const height = (appt.durationMinutes || 60);
-        let bg = '#5c6bc0';
-        if (appt.status === 'confirmed') bg = '#10b981';
-        else if (appt.status === 'completed') bg = '#059669';
-        else if (appt.status === 'no_show') bg = '#ef4444';
+        const status = appt.status || 'scheduled';
 
-        bodyHTML += `<div class="appt-block" style="top:${top}px; height:${height}px; background:${bg}cc; border-left-color:${bg};" 
+        bodyHTML += `<div class="appt-block status-${status}" style="top:${top}px; height:${height}px;"
                         onclick="event.stopPropagation(); editAppointment('${appt.id}')" title="${appt.clientName}">
-              <div style="font-weight:bold;">${appt.time} - ${appt.clientName}</div>
-              <div style="font-size:0.9em;">${appt.serviceName}</div>
-              <div style="font-size:0.8em;opacity:0.8;">${appt.clientPhone}</div>
+              <div class="ab-head">${appt.time} · ${appt.clientName}</div>
+              <div class="ab-svc">${appt.serviceName}</div>
+              <div class="ab-meta">${appt.clientPhone}</div>
           </div>`;
       });
 
