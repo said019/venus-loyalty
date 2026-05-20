@@ -475,14 +475,19 @@ h2 { font-size: 24px; line-height: 1.15; }
    Dialog
    ============================================================ */
 .dialog {
-  border: 0; padding: 0;
+  /* Recover browser default centering — el reset de margin:0 lo rompe */
+  position: fixed; inset: 0; margin: auto;
+  border: 1px solid var(--line);
+  padding: 0;
   border-radius: var(--radius-lg);
   background: var(--surface);
   color: var(--ink);
   max-width: 500px; width: calc(100% - 32px);
+  max-height: calc(100dvh - 48px);
+  overflow: auto;
   box-shadow: 0 24px 60px oklch(22% 0.012 80 / 0.18);
-  border: 1px solid var(--line);
 }
+.dialog[open] { display: block; }
 .dialog::backdrop {
   background: oklch(22% 0.012 80 / 0.55);
   backdrop-filter: blur(4px);
