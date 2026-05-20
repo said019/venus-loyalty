@@ -10,6 +10,232 @@
         content="Tratamientos faciales, lealtad digital y experiencia Venus Café en San Juan del Río.">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="/css/landing.css">
+    <style>
+      /* ============================================================
+         /landing.html — motion overdrive
+         Aplica scroll-driven reveals + micro-interactions sin tocar
+         la estructura existente. Activado por IntersectionObserver.
+         ============================================================ */
+
+      :root {
+        --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+        --ease-out-expo:  cubic-bezier(0.16, 1, 0.3, 1);
+        --spring:         cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
+
+      /* Reveal base: invisible y empujado abajo. Se activa con .is-in. */
+      .reveal {
+        opacity: 0;
+        transform: translateY(28px);
+        transition:
+          opacity 720ms var(--ease-out-expo),
+          transform 720ms var(--ease-out-expo);
+        will-change: opacity, transform;
+      }
+      .reveal.is-in {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      /* Variantes direccionales */
+      .reveal--left  { transform: translateX(-32px); }
+      .reveal--right { transform: translateX(32px); }
+      .reveal--scale { transform: scale(0.96); }
+      .reveal--left.is-in,
+      .reveal--right.is-in,
+      .reveal--scale.is-in { transform: translate(0,0) scale(1); }
+
+      /* Stagger: aplica delays a hijos directos cuando el padre tiene .reveal-stagger */
+      .reveal-stagger > .reveal:nth-child(1) { transition-delay: 0ms; }
+      .reveal-stagger > .reveal:nth-child(2) { transition-delay: 80ms; }
+      .reveal-stagger > .reveal:nth-child(3) { transition-delay: 160ms; }
+      .reveal-stagger > .reveal:nth-child(4) { transition-delay: 240ms; }
+      .reveal-stagger > .reveal:nth-child(5) { transition-delay: 320ms; }
+      .reveal-stagger > .reveal:nth-child(6) { transition-delay: 400ms; }
+      .reveal-stagger > .reveal:nth-child(7) { transition-delay: 480ms; }
+      .reveal-stagger > .reveal:nth-child(8) { transition-delay: 560ms; }
+
+      /* Hero: animación de entrada premium al cargar */
+      .hero-content > * {
+        opacity: 0;
+        transform: translateY(20px);
+        animation: hero-rise 880ms var(--ease-out-expo) forwards;
+      }
+      .hero-badge   { animation-delay: 100ms; }
+      .hero-content h1 { animation-delay: 200ms; }
+      .hero-content > p { animation-delay: 320ms; }
+      .hero-buttons { animation-delay: 440ms; }
+      .hero-stats   { animation-delay: 560ms; }
+      @keyframes hero-rise {
+        from { opacity: 0; transform: translateY(20px); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
+
+      /* Hero visual: entra con scale + fade */
+      .hero-visual {
+        opacity: 0;
+        transform: scale(0.94) translateY(16px);
+        animation: hero-visual-in 1100ms var(--ease-out-expo) 280ms forwards;
+      }
+      @keyframes hero-visual-in {
+        to { opacity: 1; transform: scale(1) translateY(0); }
+      }
+
+      /* Pass card: float infinito + tilt en hover */
+      .hero-pass-card {
+        animation: pass-float 6s ease-in-out infinite;
+        transition: transform 480ms var(--ease-out-quart);
+      }
+      @keyframes pass-float {
+        0%, 100% { transform: translateY(0) rotate(0deg); }
+        50%      { transform: translateY(-12px) rotate(0.4deg); }
+      }
+      .hero-pass-card:hover {
+        transform: translateY(-8px) rotate(-1deg) scale(1.02);
+        animation-play-state: paused;
+      }
+
+      /* Stamps: hover individual con scale spring */
+      .hero-pass-stamps span,
+      .hero-pass-stamps i {
+        transition: transform 320ms var(--spring);
+      }
+      .hero-pass-card:hover .hero-pass-stamps span:nth-child(odd),
+      .hero-pass-card:hover .hero-pass-stamps i:nth-child(odd) {
+        transform: scale(1.12);
+      }
+
+      /* Service cards: lift + scale + shadow al hover */
+      .services-grid > * {
+        transition: transform 420ms var(--ease-out-quart), box-shadow 420ms var(--ease-out-quart), border-color 320ms ease;
+      }
+      .services-grid > *:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 18px 40px rgba(140, 150, 104, 0.12), 0 4px 10px rgba(0, 0, 0, 0.04);
+      }
+
+      /* Transformation cards: parallax sutil al hover */
+      .featured-transformation .transformation-card,
+      .featured-transformation .transformation-grid > * {
+        transition: transform 520ms var(--ease-out-quart), box-shadow 520ms var(--ease-out-quart);
+      }
+      .featured-transformation .transformation-card:hover,
+      .featured-transformation .transformation-grid > *:hover {
+        transform: translateY(-8px) scale(1.005);
+        box-shadow: 0 24px 50px rgba(0, 0, 0, 0.08);
+      }
+
+      /* Testimonials: tilt sutil */
+      .testimonials-grid > * {
+        transition: transform 420ms var(--ease-out-quart), box-shadow 420ms var(--ease-out-quart);
+      }
+      .testimonials-grid > *:hover {
+        transform: translateY(-4px) rotate(-0.3deg);
+        box-shadow: 0 16px 36px rgba(0, 0, 0, 0.06);
+      }
+
+      /* CTA gigante: shimmer + pulse */
+      .cta-button--large {
+        position: relative;
+        overflow: hidden;
+      }
+      .cta-button--large::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
+        transform: translateX(-100%);
+        transition: transform 900ms var(--ease-out-quart);
+        pointer-events: none;
+      }
+      .cta-button--large:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 16px 40px rgba(140, 150, 104, 0.32);
+      }
+      .cta-button--large:hover::before { transform: translateX(100%); }
+      .cta-button--large:active { transform: translateY(0) scale(0.985); }
+
+      /* CTA breathing pulse cuando está en viewport (subtle) */
+      @keyframes cta-breath {
+        0%, 100% { box-shadow: 0 10px 30px rgba(140, 150, 104, 0.25); }
+        50%      { box-shadow: 0 14px 38px rgba(140, 150, 104, 0.36); }
+      }
+      .booking-cta.is-in .cta-button--large {
+        animation: cta-breath 3.4s ease-in-out infinite;
+      }
+
+      /* Nav reactivo al scroll: sombra y blur más intenso */
+      nav {
+        transition: box-shadow 280ms var(--ease-out-quart), background 280ms ease, backdrop-filter 280ms ease;
+      }
+      nav.is-scrolled {
+        background: rgba(255, 255, 255, 0.92) !important;
+        backdrop-filter: blur(20px) saturate(1.4);
+        -webkit-backdrop-filter: blur(20px) saturate(1.4);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+      }
+
+      /* Nav links underline animado */
+      nav .nav-links a {
+        position: relative;
+      }
+      nav .nav-links a:not(.nav-cta)::after {
+        content: '';
+        position: absolute;
+        left: 50%;
+        bottom: -4px;
+        width: 0;
+        height: 1px;
+        background: #8c9668;
+        transition: width 280ms var(--ease-out-quart), left 280ms var(--ease-out-quart);
+      }
+      nav .nav-links a:not(.nav-cta):hover::after {
+        width: 100%;
+        left: 0;
+      }
+
+      /* Smooth scroll global */
+      html { scroll-behavior: smooth; }
+
+      /* Section titles: subtle slide-in cuando entran */
+      .section-title.reveal,
+      .section-subtitle.reveal { transition-duration: 820ms; }
+
+      /* Location cards stagger */
+      .location-card {
+        transition: transform 420ms var(--ease-out-quart), border-color 320ms ease;
+      }
+      .location-card:hover {
+        transform: translateY(-4px);
+        border-color: #8c9668;
+      }
+
+      /* Hero-stats counter pop al ser visible */
+      .hero-stat-value {
+        display: inline-block;
+        transition: transform 320ms var(--spring);
+      }
+      .hero-stats:hover .hero-stat-value { transform: scale(1.06); }
+
+      /* Logo hover en nav */
+      nav .logo {
+        transition: transform 300ms var(--ease-out-quart);
+      }
+      nav .logo:hover { transform: scale(1.03); }
+
+      /* Footer reveal */
+      footer { opacity: 1; }
+
+      /* Reduce motion */
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+          scroll-behavior: auto !important;
+        }
+        .reveal { opacity: 1; transform: none; }
+      }
+    </style>
 </head>
 
 <body>
@@ -412,6 +638,107 @@
     </footer>
 
     <script src="/js/landing.js"></script>
+    <script>
+      // ============================================================
+      // /landing.html — motion engine
+      // 1. Marca elementos para reveal scroll-driven
+      // 2. IntersectionObserver activa .is-in cuando entran al viewport
+      // 3. Nav reactivo al scroll (sombra + blur al despegar del top)
+      // ============================================================
+      (function () {
+        const prefersReduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (prefersReduced) return;
+
+        // 1) Asignar .reveal a los elementos relevantes.
+        // No tocamos el markup — agregamos clases dinámicamente.
+        const groups = [
+          // [selector, reveal-variant, stagger?]
+          ['.services-preview .section-title', null, false],
+          ['.services-preview .section-subtitle', null, false],
+          ['.services-grid', 'stagger', true],
+          ['.services-grid > *', null, false],
+          ['.cafe-copy', 'left', false],
+          ['.cafe-card', 'right', false],
+          ['.featured-transformation .section-title', null, false],
+          ['.featured-transformation .section-subtitle', null, false],
+          ['.featured-transformation .transformation-card', 'scale', false],
+          ['.transformation-grid', 'stagger', true],
+          ['.transformation-grid > *', null, false],
+          ['.testimonials .section-title', null, false],
+          ['.testimonials .section-subtitle', null, false],
+          ['.testimonials-grid', 'stagger', true],
+          ['.testimonials-grid > *', null, false],
+          ['.booking-cta .section-title', null, false],
+          ['.booking-cta .section-subtitle', null, false],
+          ['.booking-cta .cta-button--large', 'scale', false],
+          ['.booking-cta .booking-cta__note', null, false],
+          ['.booking-cta', null, false], // para el .is-in del pulse del CTA
+          ['.location-section .section-title', null, false],
+          ['.location-section .section-subtitle', null, false],
+          ['.location-info', 'stagger', true],
+          ['.location-card', null, false],
+          ['.location-map', 'right', false],
+        ];
+
+        groups.forEach(([sel, variant, stagger]) => {
+          document.querySelectorAll(sel).forEach((el) => {
+            el.classList.add('reveal');
+            if (variant === 'left')   el.classList.add('reveal--left');
+            if (variant === 'right')  el.classList.add('reveal--right');
+            if (variant === 'scale')  el.classList.add('reveal--scale');
+            if (stagger)              el.classList.add('reveal-stagger');
+          });
+        });
+
+        // 2) IntersectionObserver: activa al entrar el 15% del elemento
+        const io = new IntersectionObserver((entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('is-in');
+              io.unobserve(entry.target);
+            }
+          });
+        }, {
+          threshold: 0.15,
+          rootMargin: '0px 0px -40px 0px',
+        });
+
+        document.querySelectorAll('.reveal').forEach((el) => io.observe(el));
+
+        // 3) Nav reactivo al scroll
+        const nav = document.querySelector('nav');
+        if (nav) {
+          let lastY = 0;
+          const onScroll = () => {
+            const y = window.scrollY;
+            if (y > 12) nav.classList.add('is-scrolled');
+            else nav.classList.remove('is-scrolled');
+            lastY = y;
+          };
+          window.addEventListener('scroll', onScroll, { passive: true });
+          onScroll();
+        }
+
+        // 4) Tilt 3D sutil en la hero-pass-card al mover el mouse
+        const passCard = document.querySelector('.hero-pass-card');
+        if (passCard) {
+          let rafId = null;
+          passCard.addEventListener('mousemove', (e) => {
+            const r = passCard.getBoundingClientRect();
+            const x = (e.clientX - r.left) / r.width - 0.5;
+            const y = (e.clientY - r.top) / r.height - 0.5;
+            cancelAnimationFrame(rafId);
+            rafId = requestAnimationFrame(() => {
+              passCard.style.setProperty('transform', `translateY(-4px) rotateX(${-y * 4}deg) rotateY(${x * 6}deg)`);
+            });
+          });
+          passCard.addEventListener('mouseleave', () => {
+            cancelAnimationFrame(rafId);
+            passCard.style.removeProperty('transform');
+          });
+        }
+      })();
+    </script>
 </body>
 
 </html>
