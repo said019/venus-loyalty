@@ -629,6 +629,180 @@
     @keyframes spin {
       to { transform: rotate(360deg); }
     }
+
+    /* ============================================================
+       /mi-tarjeta — motion overdrive
+       Animaciones para la tarjeta de lealtad del cliente.
+       ============================================================ */
+    :root {
+      --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+      --ease-out-expo:  cubic-bezier(0.16, 1, 0.3, 1);
+      --spring:         cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    /* Entrada de la view-create (form Crear/Login) */
+    #view-create {
+      animation: vc-rise 720ms var(--ease-out-expo) 60ms both;
+    }
+    @keyframes vc-rise {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    #view-create > * > * { animation: vc-stagger 660ms var(--ease-out-expo) both; }
+    #view-create .text-center:nth-child(1) { animation-delay: 120ms; }
+    #view-create [class*="rounded-full"]:nth-child(2) { animation-delay: 200ms; }
+    #view-create #form-create, #view-create #form-login { animation-delay: 320ms; }
+    @keyframes vc-stagger {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Tab switch suave */
+    #form-create, #form-login {
+      transition: opacity 220ms var(--ease-out-quart), transform 220ms var(--ease-out-quart);
+    }
+    #form-create.hidden, #form-login.hidden {
+      display: block !important;
+      opacity: 0;
+      transform: translateY(-8px);
+      pointer-events: none;
+      position: absolute;
+      visibility: hidden;
+    }
+    #tab-create, #tab-login {
+      transition: background 240ms var(--ease-out-quart), color 240ms var(--ease-out-quart), box-shadow 240ms var(--ease-out-quart);
+    }
+
+    /* Wallet card: float + tilt 3D al hover */
+    .wallet-card {
+      transform-style: preserve-3d;
+      transition: transform 480ms var(--ease-out-expo), box-shadow 480ms var(--ease-out-expo);
+      animation: wc-float 7s ease-in-out infinite;
+    }
+    @keyframes wc-float {
+      0%, 100% { transform: translateY(0); }
+      50%      { transform: translateY(-8px); }
+    }
+    .wallet-card:hover {
+      animation-play-state: paused;
+    }
+
+    /* Stamps: stagger pop al cargar */
+    .stamps-grid .stamp {
+      opacity: 0;
+      transform: scale(0.5) rotate(-12deg);
+      animation: stamp-in 540ms var(--spring) forwards;
+      transition: transform 260ms var(--spring);
+    }
+    .stamps-grid .stamp:nth-child(1) { animation-delay: 80ms; }
+    .stamps-grid .stamp:nth-child(2) { animation-delay: 160ms; }
+    .stamps-grid .stamp:nth-child(3) { animation-delay: 240ms; }
+    .stamps-grid .stamp:nth-child(4) { animation-delay: 320ms; }
+    .stamps-grid .stamp:nth-child(5) { animation-delay: 400ms; }
+    .stamps-grid .stamp:nth-child(6) { animation-delay: 480ms; }
+    .stamps-grid .stamp:nth-child(7) { animation-delay: 560ms; }
+    .stamps-grid .stamp:nth-child(8) { animation-delay: 640ms; }
+    @keyframes stamp-in {
+      to { opacity: 1; transform: scale(1) rotate(0deg); }
+    }
+
+    /* Hover sello: pop + ripple */
+    .stamps-grid .stamp.active:hover {
+      transform: scale(1.12) rotate(-3deg);
+    }
+    .stamps-grid .stamp.active {
+      cursor: pointer;
+    }
+    .stamps-grid .stamp.active::before {
+      content: '';
+      position: absolute;
+      inset: -4px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(140, 150, 104, 0.3), transparent 70%);
+      opacity: 0;
+      transition: opacity 320ms var(--ease-out-quart);
+      pointer-events: none;
+    }
+    .stamps-grid .stamp.active:hover::before { opacity: 1; }
+
+    /* Stamps inactive: pulse muy sutil para invitar */
+    .stamps-grid .stamp.inactive {
+      animation: stamp-in 540ms var(--spring) forwards;
+    }
+
+    /* QR toggle: rotate icon + cross-fade entre views */
+    #qr-toggle {
+      transition: background 220ms var(--ease-out-quart), transform 280ms var(--ease-out-quart);
+    }
+    #qr-toggle:hover {
+      transform: rotate(8deg) scale(1.05);
+    }
+    #qr-toggle:active { transform: scale(0.95); }
+    #stamps-view, #qr-view {
+      transition: opacity 320ms var(--ease-out-quart);
+    }
+    #stamps-view.hidden, #qr-view.hidden {
+      display: block !important;
+      opacity: 0;
+      pointer-events: none;
+      position: absolute;
+      visibility: hidden;
+    }
+
+    /* Header: entrada smooth + animar el botón Agendar */
+    header.sticky {
+      transition: box-shadow 320ms var(--ease-out-quart);
+    }
+    header.sticky a[href="/agendar.html"] {
+      transition: transform 220ms var(--ease-out-quart), box-shadow 280ms var(--ease-out-quart);
+      position: relative;
+      overflow: hidden;
+    }
+    header.sticky a[href="/agendar.html"]::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
+      transform: translateX(-100%);
+      transition: transform 720ms var(--ease-out-quart);
+      pointer-events: none;
+    }
+    header.sticky a[href="/agendar.html"]:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 20px rgba(140, 150, 104, 0.3);
+    }
+    header.sticky a[href="/agendar.html"]:hover::after {
+      transform: translateX(100%);
+    }
+
+    /* Botones Wallet (Apple/Google): hover lift */
+    a[href*="apple"], a[href*="google"], button[onclick*="apple"], button[onclick*="google"],
+    button[onclick*="Pass"], a[id*="apple"], a[id*="google"] {
+      transition: transform 240ms var(--ease-out-quart), box-shadow 280ms var(--ease-out-quart);
+    }
+
+    /* Counter / member-info: subtle */
+    #member-info {
+      animation: vc-stagger 720ms var(--ease-out-expo) 280ms both;
+    }
+
+    /* Wallet card content reveal */
+    #view-card {
+      animation: vc-rise 720ms var(--ease-out-expo) 100ms both;
+    }
+    #view-card .animate-fade-in-up {
+      animation: vc-rise 720ms var(--ease-out-expo) both;
+    }
+
+    /* Reduce motion */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+      .stamps-grid .stamp { opacity: 1; transform: none; }
+    }
   </style>
 </head>
 <body class="font-inter bg-venus-forest min-h-screen">
@@ -1455,6 +1629,92 @@
       `;
       document.body.appendChild(iosBanner);
     }
+  </script>
+
+  <script>
+    // ============================================================
+    // /mi-tarjeta — motion engine
+    // Tilt 3D real en wallet-card + ripple en sellos activos.
+    // ============================================================
+    (function () {
+      const prefersReduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (prefersReduced) return;
+
+      // 1) Tilt 3D real en wallet-card siguiendo el mouse
+      const walletCard = document.querySelector('.wallet-card');
+      if (walletCard) {
+        let rafId = null;
+        walletCard.addEventListener('mousemove', (e) => {
+          const r = walletCard.getBoundingClientRect();
+          const x = (e.clientX - r.left) / r.width - 0.5;
+          const y = (e.clientY - r.top) / r.height - 0.5;
+          cancelAnimationFrame(rafId);
+          rafId = requestAnimationFrame(() => {
+            walletCard.style.transform = `perspective(1000px) rotateX(${-y * 3}deg) rotateY(${x * 5}deg) translateY(-6px)`;
+          });
+        });
+        walletCard.addEventListener('mouseleave', () => {
+          cancelAnimationFrame(rafId);
+          walletCard.style.removeProperty('transform');
+        });
+      }
+
+      // 2) Ripple en sellos activos al click (visual feedback)
+      document.addEventListener('click', (e) => {
+        const stamp = e.target.closest('.stamps-grid .stamp.active');
+        if (!stamp) return;
+        const ripple = document.createElement('span');
+        const r = stamp.getBoundingClientRect();
+        const size = Math.max(r.width, r.height) * 2;
+        ripple.style.cssText = `
+          position: absolute;
+          left: ${e.clientX - r.left - size/2}px;
+          top: ${e.clientY - r.top - size/2}px;
+          width: ${size}px;
+          height: ${size}px;
+          border-radius: 50%;
+          background: radial-gradient(circle, rgba(140, 150, 104, 0.45), transparent 70%);
+          pointer-events: none;
+          transform: scale(0);
+          opacity: 1;
+          transition: transform 620ms cubic-bezier(0.25, 1, 0.5, 1), opacity 620ms ease-out;
+        `;
+        if (getComputedStyle(stamp).position === 'static') {
+          stamp.style.position = 'relative';
+        }
+        stamp.style.overflow = 'hidden';
+        stamp.appendChild(ripple);
+        requestAnimationFrame(() => {
+          ripple.style.transform = 'scale(1)';
+          ripple.style.opacity = '0';
+        });
+        setTimeout(() => ripple.remove(), 700);
+      });
+
+      // 3) Counter pop cuando el sello cambia de inactivo a activo
+      // (lo dejamos por si en el futuro hay un live-stamp event)
+      const observeStampChange = new MutationObserver((mutations) => {
+        for (const m of mutations) {
+          if (m.type === 'attributes' && m.attributeName === 'class') {
+            const el = m.target;
+            if (el.classList.contains('active') && !el.dataset.popped) {
+              el.dataset.popped = '1';
+              el.animate(
+                [
+                  { transform: 'scale(1)' },
+                  { transform: 'scale(1.25) rotate(-4deg)', offset: 0.5 },
+                  { transform: 'scale(1)' },
+                ],
+                { duration: 480, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }
+              );
+            }
+          }
+        }
+      });
+      document.querySelectorAll('.stamps-grid .stamp').forEach(s =>
+        observeStampChange.observe(s, { attributes: true })
+      );
+    })();
   </script>
 </body>
 </html>
