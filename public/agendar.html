@@ -4,306 +4,1098 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Agendar Cita - Venus Cosmetología</title>
+  <title>Reserva tu pausa · Venus Cosmetología</title>
   <link rel="icon" href="/assets/logo.png">
-  <link rel="stylesheet" href="/css/tailwind.css?v=3">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;1,500&family=DM+Sans:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="/css/tailwind.css?v=4">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <style>
     /* ============================================================
-       /agendar.html — layout boutique limpio
-       Reemplaza el header oscuro duplicado que solapaba los cards.
+       /agendar.html — Venus Cosmetología · brand register
+       Boutique spa booking. Warm cream + olive, Playfair + DM Sans.
+       Aprobado en shape brief (commit log).
        ============================================================ */
-    body { background: #faf9f6; }
 
-    .agendar-nav {
+    :root {
+      --bg:          oklch(96.5% 0.012 88);
+      --surface:     oklch(99% 0.006 88);
+      --surface-2:   oklch(93.5% 0.014 88);
+      --ink:         oklch(22% 0.012 80);
+      --ink-2:       oklch(45% 0.012 80);
+      --ink-3:       oklch(60% 0.010 80);
+      --line:        oklch(88% 0.014 88);
+      --line-2:      oklch(82% 0.018 88);
+      --olive:       oklch(58% 0.075 120);
+      --olive-deep:  oklch(48% 0.085 120);
+      --olive-soft:  oklch(94% 0.022 120);
+      --olive-ink:   oklch(28% 0.05 120);
+      --ok:          oklch(62% 0.115 155);
+      --warn:        oklch(72% 0.110 80);
+      --err:         oklch(58% 0.140 28);
+
+      --display: 'Playfair Display', Georgia, serif;
+      --body:    'DM Sans', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+
+      --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+      --ease-out-expo:  cubic-bezier(0.16, 1, 0.3, 1);
+      --spring:         cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--body);
+      font-size: 15px;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    /* ============ NAV ============ */
+    .vn-nav {
       position: sticky;
       top: 0;
-      z-index: 100;
-      background: rgba(255, 255, 255, 0.96);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+      z-index: 50;
+      background: oklch(99% 0.006 88 / 0.86);
+      backdrop-filter: blur(14px) saturate(1.4);
+      -webkit-backdrop-filter: blur(14px) saturate(1.4);
+      border-bottom: 1px solid var(--line);
     }
-    .agendar-nav__inner {
+    .vn-nav__inner {
       max-width: 1100px;
       margin: 0 auto;
-      padding: 14px 24px;
+      padding: 16px 28px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 24px;
     }
-    .agendar-nav__brand {
-      font-size: 1.4rem;
-      font-weight: 300;
-      font-style: italic;
-      color: #8c9668;
-      text-decoration: none;
-    }
-    .agendar-nav__links {
-      display: flex;
-      gap: 24px;
-      align-items: center;
-    }
-    .agendar-nav__links a {
-      text-decoration: none;
-      color: #2d2d1f;
-      font-size: 0.9rem;
+    .vn-nav__brand {
+      font-family: var(--display);
+      font-size: 26px;
       font-weight: 500;
-      transition: color 120ms ease;
+      font-style: italic;
+      letter-spacing: -0.02em;
+      color: var(--olive);
+      text-decoration: none;
+      transition: color 180ms var(--ease-out-quart);
     }
-    .agendar-nav__links a:hover { color: #8c9668; }
-    @media (max-width: 720px) {
-      .agendar-nav__links { display: none; }
+    .vn-nav__brand:hover { color: var(--olive-deep); }
+    .vn-nav__links { display: flex; gap: 28px; align-items: center; }
+    .vn-nav__links a {
+      text-decoration: none;
+      color: var(--ink-2);
+      font-size: 14px;
+      font-weight: 500;
+      letter-spacing: 0.005em;
+      transition: color 180ms var(--ease-out-quart);
+      position: relative;
+    }
+    .vn-nav__links a::after {
+      content: '';
+      position: absolute;
+      left: 50%;
+      bottom: -6px;
+      width: 0;
+      height: 1px;
+      background: var(--olive);
+      transition: width 240ms var(--ease-out-quart), left 240ms var(--ease-out-quart);
+    }
+    .vn-nav__links a:hover { color: var(--ink); }
+    .vn-nav__links a:hover::after { width: 100%; left: 0; }
+    @media (max-width: 720px) { .vn-nav__links { display: none; } }
+
+    /* ============ HERO ============ */
+    .vn-hero {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 72px 28px 24px;
+      text-align: center;
+      animation: vn-rise 700ms var(--ease-out-expo) 60ms both;
+    }
+    .vn-hero__eyebrow {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--olive);
+      margin-bottom: 18px;
+      padding: 6px 14px;
+      background: var(--olive-soft);
+      border-radius: 999px;
+    }
+    .vn-hero__title {
+      font-family: var(--display);
+      font-size: clamp(32px, 5.5vw, 56px);
+      font-weight: 500;
+      line-height: 1.06;
+      letter-spacing: -0.025em;
+      color: var(--ink);
+      margin: 0 0 14px;
+      padding: 0 8px;
+    }
+    .vn-hero__title em {
+      font-style: italic;
+      color: var(--olive-deep);
+    }
+    .vn-hero__sub {
+      font-size: 17px;
+      line-height: 1.5;
+      color: var(--ink-2);
+      max-width: 480px;
+      margin: 0 auto;
     }
 
-    .agendar-hero {
-      max-width: 700px;
-      margin: 0 auto;
-      padding: 48px 24px 24px;
+    /* ============ STAT STRIP ============ */
+    .vn-strip {
+      max-width: 760px;
+      margin: 32px auto 0;
+      padding: 0 28px;
+      animation: vn-rise 700ms var(--ease-out-expo) 180ms both;
+    }
+    .vn-strip__inner {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 1px;
+      background: var(--line);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      overflow: hidden;
+    }
+    .vn-strip__cell {
+      background: var(--surface);
+      padding: 18px 16px;
       text-align: center;
     }
-    .agendar-hero__logo {
-      width: 56px;
-      height: 56px;
-      border-radius: 14px;
-      margin-bottom: 16px;
-    }
-    .agendar-hero__title {
-      font-size: 1.9rem;
+    .vn-strip__label {
+      display: block;
+      font-size: 10px;
       font-weight: 600;
-      color: #2d2d1f;
-      margin: 0 0 6px;
-      line-height: 1.2;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--ink-3);
+      margin-bottom: 6px;
     }
-    .agendar-hero__subtitle {
-      font-size: 1rem;
-      color: #7a7a6a;
-      margin: 0;
+    .vn-strip__value {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--ink);
+      line-height: 1.3;
+    }
+    .vn-strip__value i {
+      color: var(--olive);
+      margin-right: 6px;
+      font-size: 12px;
+    }
+    @media (max-width: 560px) {
+      .vn-strip__inner { grid-template-columns: 1fr; }
     }
 
-    .agendar-footer {
-      max-width: 700px;
-      margin: 24px auto 32px;
-      padding: 0 24px;
+    /* ============ PROGRESS (numbered) ============ */
+    .vn-progress {
+      max-width: 760px;
+      margin: 48px auto 24px;
+      padding: 0 28px;
+      animation: vn-rise 700ms var(--ease-out-expo) 280ms both;
+    }
+    .vn-progress__track {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      position: relative;
+    }
+    .vn-progress__step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      position: relative;
+    }
+    .vn-progress__dot {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--surface);
+      border: 1.5px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink-3);
+      transition: all 360ms var(--ease-out-quart);
+      position: relative;
+      z-index: 2;
+    }
+    .vn-progress__step.active .vn-progress__dot {
+      background: var(--olive);
+      border-color: var(--olive);
+      color: oklch(99% 0 0);
+      transform: scale(1.08);
+      box-shadow: 0 0 0 6px var(--olive-soft);
+    }
+    .vn-progress__step.completed .vn-progress__dot {
+      background: var(--olive-deep);
+      border-color: var(--olive-deep);
+      color: oklch(99% 0 0);
+    }
+    .vn-progress__step.completed .vn-progress__dot::before {
+      content: '\f00c';
+      font-family: 'Font Awesome 6 Free';
+      font-weight: 900;
+      font-size: 11px;
+    }
+    .vn-progress__step.completed .vn-progress__dot-num { display: none; }
+    .vn-progress__label {
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      color: var(--ink-3);
+      transition: color 240ms var(--ease-out-quart);
+      text-align: center;
+    }
+    .vn-progress__step.active .vn-progress__label { color: var(--ink); font-weight: 600; }
+    .vn-progress__step.completed .vn-progress__label { color: var(--olive-deep); }
+
+    /* Connector line between dots */
+    .vn-progress__track::before {
+      content: '';
+      position: absolute;
+      top: 16px;
+      left: calc(12.5% + 16px);
+      right: calc(12.5% + 16px);
+      height: 1.5px;
+      background: var(--line);
+      z-index: 1;
+    }
+    .vn-progress[data-step="2"] .vn-progress__track::before,
+    .vn-progress[data-step="3"] .vn-progress__track::before,
+    .vn-progress[data-step="4"] .vn-progress__track::before {
+      background: linear-gradient(to right, var(--olive) 0%, var(--olive) var(--prog, 33%), var(--line) var(--prog, 33%));
+    }
+    @media (max-width: 560px) {
+      .vn-progress__label { font-size: 10px; }
+      .vn-progress__dot { width: 28px; height: 28px; font-size: 12px; }
+      .vn-progress__track::before { top: 14px; }
+    }
+
+    /* ============ MAIN CONTAINER ============ */
+    .vn-main {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 0 28px 64px;
+    }
+
+    /* ============ STEP CARD ============ */
+    .vn-step {
+      display: none;
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    .vn-step.active {
+      display: block;
+      animation: vn-step-in 480ms var(--ease-out-expo) forwards;
+    }
+    @keyframes vn-step-in {
+      from { opacity: 0; transform: translateY(16px) scale(0.99); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .vn-step.leaving {
+      animation: vn-step-out 240ms var(--ease-out-quart) forwards;
+    }
+    @keyframes vn-step-out {
+      to { opacity: 0; transform: translateY(-12px) scale(0.99); }
+    }
+
+    .vn-card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      padding: 36px;
+      position: relative;
+      overflow: hidden;
+    }
+    .vn-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at top right, var(--olive-soft) 0%, transparent 60%);
+      opacity: 0.45;
+      pointer-events: none;
+    }
+    .vn-card > * { position: relative; z-index: 1; }
+    @media (max-width: 560px) {
+      .vn-card { padding: 24px 20px; border-radius: 18px; }
+    }
+
+    .vn-card__eyebrow {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--olive);
+      margin-bottom: 10px;
+    }
+    .vn-card__title {
+      font-family: var(--display);
+      font-size: clamp(24px, 4vw, 32px);
+      font-weight: 500;
+      line-height: 1.15;
+      letter-spacing: -0.015em;
+      color: var(--ink);
+      margin: 0 0 10px;
+    }
+    .vn-card__lede {
+      font-size: 15px;
+      color: var(--ink-2);
+      line-height: 1.55;
+      margin: 0 0 28px;
+      max-width: 50ch;
+    }
+
+    /* ============ FIELDS ============ */
+    .vn-field { margin-bottom: 20px; }
+    .vn-field__label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      color: var(--ink-2);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .vn-field__label .req { color: var(--err); margin-left: 2px; }
+    .vn-input {
+      width: 100%;
+      padding: 18px 20px;
+      border: 1.5px solid var(--line);
+      border-radius: 14px;
+      background: var(--surface);
+      color: var(--ink);
+      font-family: var(--body);
+      font-size: 18px;
+      font-weight: 500;
+      transition: border-color 200ms var(--ease-out-quart), box-shadow 200ms var(--ease-out-quart), background 200ms var(--ease-out-quart);
+    }
+    .vn-input::placeholder { color: var(--ink-3); font-weight: 400; }
+    .vn-input:hover { border-color: var(--line-2); }
+    .vn-input:focus {
+      outline: none;
+      border-color: var(--olive);
+      background: var(--surface);
+      box-shadow: 0 0 0 4px var(--olive-soft);
+    }
+    .vn-input--xl { font-size: 22px; padding: 22px 24px; letter-spacing: 0.01em; }
+    .vn-field-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    @media (max-width: 480px) { .vn-field-row { grid-template-columns: 1fr; } }
+
+    /* ============ BUTTONS ============ */
+    .vn-btns {
+      display: flex;
+      gap: 12px;
+      margin-top: 28px;
+    }
+    .vn-btn {
+      flex: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 18px 28px;
+      border: none;
+      border-radius: 999px;
+      font-family: var(--body);
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 0.005em;
+      cursor: pointer;
+      transition: transform 220ms var(--ease-out-quart), box-shadow 220ms var(--ease-out-quart), background 220ms var(--ease-out-quart);
+      position: relative;
+      overflow: hidden;
+      min-height: 56px;
+    }
+    .vn-btn--primary {
+      background: var(--olive);
+      color: oklch(99% 0 0);
+      box-shadow: 0 10px 30px oklch(58% 0.075 120 / 0.25), 0 2px 6px oklch(58% 0.075 120 / 0.18);
+    }
+    .vn-btn--primary::after {
+      content: '';
+      position: absolute;
+      top: 0; left: -100%;
+      width: 100%; height: 100%;
+      background: linear-gradient(90deg, transparent, oklch(99% 0 0 / 0.18), transparent);
+      transition: left 700ms var(--ease-out-quart);
+    }
+    .vn-btn--primary:hover:not(:disabled) {
+      background: var(--olive-deep);
+      transform: translateY(-2px);
+      box-shadow: 0 14px 38px oklch(58% 0.075 120 / 0.32), 0 3px 8px oklch(58% 0.075 120 / 0.22);
+    }
+    .vn-btn--primary:hover:not(:disabled)::after { left: 100%; }
+    .vn-btn--primary:active:not(:disabled) { transform: translateY(0) scale(0.98); }
+    .vn-btn--primary:disabled {
+      background: var(--surface-2);
+      color: var(--ink-3);
+      box-shadow: none;
+      cursor: not-allowed;
+    }
+    .vn-btn--ghost {
+      background: transparent;
+      color: var(--ink);
+      border: 1.5px solid var(--line);
+      box-shadow: none;
+    }
+    .vn-btn--ghost:hover:not(:disabled) {
+      background: var(--surface-2);
+      border-color: var(--line-2);
+      transform: translateY(-1px);
+    }
+    .vn-btn--success {
+      background: var(--ok);
+      color: oklch(99% 0 0);
+    }
+
+    /* ============ LOOKUP STATUS ============ */
+    .vn-lookup {
+      margin-top: 16px;
+      padding: 16px 18px;
+      border-radius: 14px;
+      font-size: 14px;
+      line-height: 1.5;
+      display: none;
+      animation: vn-pop 500ms var(--spring) both;
+    }
+    @keyframes vn-pop {
+      0%   { opacity: 0; transform: scale(0.95); }
+      60%  { transform: scale(1.02); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+    .vn-lookup.success {
+      display: block;
+      background: var(--olive-soft);
+      color: var(--olive-ink);
+      border: 1px solid oklch(58% 0.075 120 / 0.25);
+    }
+    .vn-lookup.info {
+      display: block;
+      background: oklch(96% 0.020 80);
+      color: var(--ink);
+      border: 1px solid oklch(82% 0.030 80);
+    }
+    .vn-lookup strong { font-weight: 600; }
+
+    /* ============ CATEGORY TABS ============ */
+    .vn-cats {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 0 0 14px;
+      margin: 0 -36px 22px;
+      padding-left: 36px;
+      padding-right: 36px;
+      scrollbar-width: none;
+    }
+    .vn-cats::-webkit-scrollbar { display: none; }
+    .vn-cat {
+      flex-shrink: 0;
+      padding: 9px 16px;
+      border: 1px solid var(--line);
+      background: var(--surface);
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--ink-2);
+      cursor: pointer;
+      transition: all 180ms var(--ease-out-quart);
+      white-space: nowrap;
+    }
+    .vn-cat:hover { border-color: var(--line-2); color: var(--ink); }
+    .vn-cat.active {
+      background: var(--olive);
+      border-color: var(--olive);
+      color: oklch(99% 0 0);
+    }
+    @media (max-width: 560px) {
+      .vn-cats { margin: 0 -20px 20px; padding-left: 20px; padding-right: 20px; }
+    }
+
+    /* ============ SERVICE GRID ============ */
+    .vn-svc-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 12px;
+    }
+    .vn-svc {
+      position: relative;
+      padding: 18px;
+      border: 1.5px solid var(--line);
+      border-radius: 16px;
+      background: var(--surface);
+      cursor: pointer;
+      transition: transform 240ms var(--ease-out-quart), border-color 200ms ease, box-shadow 240ms var(--ease-out-quart);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-height: 96px;
+    }
+    .vn-svc:hover {
+      border-color: var(--olive);
+      transform: translateY(-3px);
+      box-shadow: 0 12px 24px oklch(22% 0.012 80 / 0.06);
+    }
+    .vn-svc.selected {
+      border-color: var(--olive);
+      background: var(--olive-soft);
+      box-shadow: 0 0 0 2px var(--olive), 0 12px 24px oklch(22% 0.012 80 / 0.08);
+    }
+    .vn-svc.selected::after {
+      content: '\f00c';
+      font-family: 'Font Awesome 6 Free';
+      font-weight: 900;
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 22px; height: 22px;
+      background: var(--olive);
+      color: oklch(99% 0 0);
+      border-radius: 50%;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: vn-pop 420ms var(--spring) both;
+    }
+    .vn-svc__name {
+      font-weight: 600;
+      font-size: 15px;
+      color: var(--ink);
+      line-height: 1.3;
+    }
+    .vn-svc__meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: auto;
+    }
+    .vn-svc__dur {
+      font-size: 11px;
+      color: var(--ink-3);
+      background: var(--surface-2);
+      padding: 3px 8px;
+      border-radius: 6px;
+    }
+    .vn-svc__price {
+      color: var(--olive-deep);
+      font-weight: 600;
+      font-size: 16px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ============ CALENDAR ============ */
+    .vn-cal-wrap {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 640px) { .vn-cal-wrap { grid-template-columns: 1fr; } }
+    .vn-cal, .vn-times {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 18px;
+    }
+    .vn-cal__head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+    .vn-cal__title {
+      font-family: var(--display);
+      font-size: 17px;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+      color: var(--ink);
+    }
+    .vn-cal__nav {
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: var(--surface);
+      cursor: pointer;
+      color: var(--ink-2);
+      transition: all 180ms var(--ease-out-quart);
+    }
+    .vn-cal__nav:hover { background: var(--surface-2); color: var(--ink); }
+    .vn-cal__grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+    }
+    .vn-cal__dow {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--ink-3);
+      text-align: center;
+      padding: 6px 0;
+    }
+    .vn-day {
+      aspect-ratio: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--ink);
+      cursor: pointer;
+      transition: transform 200ms var(--ease-out-quart), background 200ms ease, color 200ms ease;
+      user-select: none;
+    }
+    .vn-day:hover:not(.disabled):not(.empty) {
+      background: var(--olive-soft);
+      transform: translateY(-2px);
+    }
+    .vn-day.today { box-shadow: inset 0 0 0 1.5px var(--olive); }
+    .vn-day.selected {
+      background: var(--olive);
+      color: oklch(99% 0 0);
+      transform: scale(1.06);
+      font-weight: 600;
+    }
+    .vn-day.disabled, .vn-day.empty { color: var(--ink-3); opacity: 0.4; cursor: default; pointer-events: none; }
+    .vn-day.empty { opacity: 0; }
+
+    .vn-times__title {
+      font-family: var(--display);
+      font-size: 17px;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+      color: var(--ink);
+      margin: 0 0 12px;
+    }
+    .vn-times__grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+    }
+    .vn-time {
+      padding: 12px 6px;
+      border: 1.5px solid var(--line);
+      border-radius: 10px;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--ink);
+      cursor: pointer;
+      transition: all 180ms var(--ease-out-quart);
+      background: var(--surface);
+    }
+    .vn-time:hover:not(.disabled) { border-color: var(--olive); transform: translateY(-1px); }
+    .vn-time.selected {
+      background: var(--olive);
+      color: oklch(99% 0 0);
+      border-color: var(--olive);
+    }
+    .vn-time.disabled { background: var(--surface-2); color: var(--ink-3); cursor: not-allowed; text-decoration: line-through; opacity: 0.7; }
+    .vn-times__note {
+      font-size: 12px;
+      color: var(--ink-3);
+      background: var(--olive-soft);
+      border-radius: 8px;
+      padding: 8px 10px;
+      margin: 0 0 10px;
+    }
+    .vn-times__placeholder {
+      grid-column: span 3;
+      text-align: center;
+      padding: 24px 8px;
+      color: var(--ink-3);
+      font-size: 13px;
+      font-style: italic;
+    }
+
+    /* ============ SUMMARY ============ */
+    .vn-summary {
+      background: var(--olive-soft);
+      border: 1px solid oklch(58% 0.075 120 / 0.18);
+      border-radius: 14px;
+      padding: 20px 22px;
+      margin-top: 24px;
+    }
+    .vn-summary__row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      font-size: 14px;
+    }
+    .vn-summary__row + .vn-summary__row { border-top: 1px solid oklch(58% 0.075 120 / 0.12); }
+    .vn-summary__label { color: var(--ink-2); }
+    .vn-summary__value { font-weight: 600; color: var(--ink); }
+    .vn-summary__row.total .vn-summary__value {
+      font-family: var(--display);
+      font-size: 22px;
+      color: var(--olive-deep);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ============ CONFIRMATION ============ */
+    .vn-confirm {
+      text-align: center;
+      padding: 16px 0;
+    }
+    .vn-confirm__circle {
+      width: 88px; height: 88px;
+      margin: 0 auto 24px;
+      border-radius: 50%;
+      background: var(--olive-soft);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: vn-pop 600ms var(--spring) 120ms both;
+    }
+    .vn-confirm__check {
+      width: 36px;
+      height: 36px;
+      stroke: var(--olive-deep);
+      stroke-width: 3.5;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .vn-confirm__check path {
+      stroke-dasharray: 60;
+      stroke-dashoffset: 60;
+      animation: vn-draw 580ms var(--ease-out-quart) 480ms forwards;
+    }
+    @keyframes vn-draw { to { stroke-dashoffset: 0; } }
+    .vn-confirm__title {
+      font-family: var(--display);
+      font-size: 30px;
+      font-weight: 500;
+      letter-spacing: -0.015em;
+      color: var(--ink);
+      margin: 0 0 8px;
+    }
+    .vn-confirm__sub {
+      font-size: 15px;
+      color: var(--ink-2);
+      margin: 0 0 28px;
+    }
+    .vn-confirm__box {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 22px;
+      text-align: left;
+      margin-bottom: 24px;
+    }
+    .vn-confirm__line {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 10px 0;
+      font-size: 14px;
+    }
+    .vn-confirm__line + .vn-confirm__line { border-top: 1px solid var(--line); }
+    .vn-confirm__line i { color: var(--olive); width: 18px; text-align: center; }
+
+    /* ============ SPINNER ============ */
+    .vn-spinner {
+      display: inline-block;
+      width: 16px; height: 16px;
+      border: 2px solid oklch(99% 0 0 / 0.4);
+      border-top-color: oklch(99% 0 0);
+      border-radius: 50%;
+      animation: vn-spin 720ms linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+    @keyframes vn-spin { to { transform: rotate(360deg); } }
+
+    /* ============ HERO RISE ANIMATION ============ */
+    @keyframes vn-rise {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ============ FOOTER ============ */
+    .vn-footer {
+      max-width: 760px;
+      margin: 40px auto 48px;
+      padding: 0 28px;
       text-align: center;
       font-size: 12px;
-      color: #9a9a8a;
+      color: var(--ink-3);
+      letter-spacing: 0.02em;
+    }
+    .vn-footer span { color: var(--olive); margin: 0 8px; }
+
+    /* ============ DECORATIVE TEXTURE ============ */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: -1;
+      background:
+        radial-gradient(800px 600px at 100% 0%, oklch(58% 0.075 120 / 0.08), transparent 60%),
+        radial-gradient(600px 500px at 0% 100%, oklch(72% 0.110 80 / 0.05), transparent 70%);
     }
 
-    /* Override del container compilado (tailwind.css usa flex column que
-       confunde el centrado en algunos browsers). Forzamos block + auto. */
-    .tw-booking-container {
-      display: block !important;
-      max-width: 700px;
-      margin: 0 auto !important;
-      padding: 0 24px 24px;
-      width: 100%;
-      box-sizing: border-box;
+    /* ============ OVERRIDE TAILWIND.CSS COMPILED CLASSES STILL IN MARKUP ============ */
+    /* El HTML aún tiene clases tw-* del sistema viejo. Las anulamos aquí para
+       que no inyecten sus colores. La clase nueva tiene precedencia. */
+    .vn-step .tw-card,
+    .vn-step .tw-card-header,
+    .vn-step .tw-card-body { all: unset; display: block; }
+    .vn-step .tw-card { display: block; }
+
+    /* ============ REDUCED MOTION ============ */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
     }
   </style>
 </head>
 
-<body class="bg-venus-bg" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #2d2d1f; min-height: 100vh; margin: 0; padding: 0;">
+<body>
   <!-- Navigation -->
-  <nav class="agendar-nav">
-    <div class="agendar-nav__inner">
-      <a href="/landing.html" class="agendar-nav__brand">Venus</a>
-      <div class="agendar-nav__links">
+  <nav class="vn-nav">
+    <div class="vn-nav__inner">
+      <a href="/landing.html" class="vn-nav__brand">Venus</a>
+      <div class="vn-nav__links">
         <a href="/landing.html#inicio">Inicio</a>
         <a href="/landing.html#servicios">Servicios</a>
-        <a href="/landing.html#transformaciones">Transformaciones</a>
+        <a href="/landing.html#transformaciones">Resultados</a>
         <a href="/landing.html#testimonios">Testimonios</a>
       </div>
     </div>
   </nav>
 
-  <header class="agendar-hero">
-    <img src="/assets/logo.png" alt="Venus" class="agendar-hero__logo">
-    <h1 id="business-name" class="agendar-hero__title">Venus Cosmetología</h1>
-    <p class="agendar-hero__subtitle">Solicita tu cita</p>
+  <!-- Hero -->
+  <header class="vn-hero">
+    <span class="vn-hero__eyebrow">Agenda en línea</span>
+    <h1 class="vn-hero__title">Reserva tu <em>pausa</em></h1>
+    <p class="vn-hero__sub" id="business-name-sub">Tres minutos. Un mensaje de WhatsApp y nos vemos en el estudio.</p>
   </header>
 
-  <main class="tw-booking-container">
-    <!-- Información del negocio -->
-    <div class="tw-business-info">
-      <div class="tw-business-row">
-        <i class="fas fa-map-marker-alt tw-business-icon"></i>
-        <div class="tw-business-content">
-          <div class="tw-business-label">Ubicación</div>
-          <div id="business-address" class="tw-business-text">Cargando...</div>
-        </div>
+  <!-- Stat strip de confianza -->
+  <section class="vn-strip">
+    <div class="vn-strip__inner">
+      <div class="vn-strip__cell">
+        <span class="vn-strip__label">Ubicación</span>
+        <span class="vn-strip__value" id="business-address"><i class="fas fa-location-dot"></i>San Juan del Río</span>
       </div>
-      <div class="tw-business-row">
-        <i class="fas fa-clock tw-business-icon"></i>
-        <div class="tw-business-content">
-          <div class="tw-business-label">Horario de atención</div>
-          <div id="business-hours" class="tw-business-text">Cargando...</div>
-        </div>
+      <div class="vn-strip__cell">
+        <span class="vn-strip__label">Horario</span>
+        <span class="vn-strip__value" id="business-hours"><i class="far fa-clock"></i>Lun–Sáb · 9–19h</span>
       </div>
-      <div id="maps-button-container" style="display: none; margin-top: 8px;">
-        <a id="maps-button" href="#" target="_blank" class="tw-maps-btn">
-          <i class="fas fa-map-marked-alt"></i>Ver en Google Maps
-        </a>
+      <div class="vn-strip__cell">
+        <span class="vn-strip__label">Confirmación</span>
+        <span class="vn-strip__value"><i class="fab fa-whatsapp"></i>Por WhatsApp</span>
       </div>
     </div>
-    <div class="tw-progress">
-      <div class="tw-progress-dot active" id="dot-1"></div>
-      <div class="tw-progress-dot" id="dot-2"></div>
-      <div class="tw-progress-dot" id="dot-3"></div>
-      <div class="tw-progress-dot" id="dot-4"></div>
+    <div id="maps-button-container" style="display:none; margin-top:14px; text-align:center;">
+      <a id="maps-button" href="#" target="_blank" class="vn-btn vn-btn--ghost" style="min-height:auto; padding:10px 18px; font-size:13px;">
+        <i class="fas fa-map-marked-alt"></i>Ver en Google Maps
+      </a>
     </div>
-    <!-- PASO 1: Teléfono / identificación -->
-    <div class="tw-step active" id="step-1">
-      <div class="tw-card">
-        <div class="tw-card-header">
-          <div class="tw-card-title"><i class="fab fa-whatsapp"></i>¿Cuál es tu WhatsApp?</div>
-        </div>
-        <div class="tw-card-body">
-          <p style="margin:0 0 16px;font-size:13px;color:#7a7a6a;line-height:1.5;">
-            Si ya tienes tarjeta Venus te reconoceremos automáticamente. Si es tu primera vez, te pediremos algunos datos en el siguiente paso.
-          </p>
-          <div class="tw-form-group">
-            <label class="tw-form-label">WhatsApp <span class="required" style="color:#ef4444;">*</span></label>
-            <input type="tel" class="tw-form-input" id="input-phone" placeholder="10 dígitos" maxlength="15" autocomplete="tel" inputmode="numeric">
-          </div>
-          <div id="lookup-status" style="display:none;margin-top:12px;padding:12px;border-radius:10px;background:#eef3e6;color:#3a4d22;font-size:14px;"></div>
-          <div class="tw-buttons-row">
-            <button class="tw-btn tw-btn-primary" id="btn-step1" disabled>Continuar <i class="fas fa-arrow-right"></i></button>
-          </div>
-        </div>
+  </section>
+
+  <!-- Progress numbered -->
+  <nav class="vn-progress" id="vn-progress" data-step="1" aria-label="Progreso de reserva">
+    <div class="vn-progress__track">
+      <div class="vn-progress__step active" id="prog-step-1">
+        <div class="vn-progress__dot"><span class="vn-progress__dot-num">1</span></div>
+        <div class="vn-progress__label">Identificación</div>
+      </div>
+      <div class="vn-progress__step" id="prog-step-2">
+        <div class="vn-progress__dot"><span class="vn-progress__dot-num">2</span></div>
+        <div class="vn-progress__label">Servicio</div>
+      </div>
+      <div class="vn-progress__step" id="prog-step-3">
+        <div class="vn-progress__dot"><span class="vn-progress__dot-num">3</span></div>
+        <div class="vn-progress__label">Fecha</div>
+      </div>
+      <div class="vn-progress__step" id="prog-step-4">
+        <div class="vn-progress__dot"><span class="vn-progress__dot-num">4</span></div>
+        <div class="vn-progress__label">Listo</div>
       </div>
     </div>
-    <!-- PASO 2: Datos (solo clientes nuevos) -->
-    <div class="tw-step" id="step-2">
-      <div class="tw-card">
-        <div class="tw-card-header">
-          <div class="tw-card-title"><i class="fas fa-user"></i>Cuéntanos un poco de ti</div>
+  </nav>
+
+  <main class="vn-main">
+    <!-- Compat: el JS aún lee #business-name. Lo dejamos oculto. -->
+    <span id="business-name" hidden>Venus Cosmetología</span>
+    <!-- PASO 1: Identificación por WhatsApp -->
+    <section class="vn-step active" id="step-1">
+      <div class="vn-card">
+        <p class="vn-card__eyebrow">Paso 1 · Identifícate</p>
+        <h2 class="vn-card__title">¿Cuál es tu WhatsApp?</h2>
+        <p class="vn-card__lede">Si ya eres clienta Venus, te reconoceremos. Si es tu primera vez, te pediremos algunos datos en el siguiente paso.</p>
+
+        <div class="vn-field">
+          <label class="vn-field__label" for="input-phone">WhatsApp <span class="req">*</span></label>
+          <input type="tel" class="vn-input vn-input--xl" id="input-phone" placeholder="10 dígitos" maxlength="15" autocomplete="tel" inputmode="numeric">
         </div>
-        <div class="tw-card-body">
-          <p style="margin:0 0 16px;font-size:13px;color:#7a7a6a;line-height:1.5;">
-            Solo necesitamos esto la primera vez para crear tu tarjeta Venus.
-          </p>
-          <div class="tw-form-group">
-            <label class="tw-form-label">Nombre completo <span class="required" style="color:#ef4444;">*</span></label>
-            <input type="text" class="tw-form-input" id="input-name" placeholder="Tu nombre completo" autocomplete="name">
-          </div>
-          <div class="tw-form-row">
-            <div class="tw-form-group">
-              <label class="tw-form-label">Email</label>
-              <input type="email" class="tw-form-input" id="input-email" placeholder="tu@email.com" autocomplete="email">
-            </div>
-            <div class="tw-form-group">
-              <label class="tw-form-label">Cumpleaños</label>
-              <input type="date" class="tw-form-input" id="input-birthday">
-            </div>
-          </div>
-          <div class="tw-buttons-row">
-            <button class="tw-btn tw-btn-ghost" id="btn-back-to-1"><i class="fas fa-arrow-left"></i>Atrás</button>
-            <button class="tw-btn tw-btn-primary" id="btn-step2" disabled>Continuar <i class="fas fa-arrow-right"></i></button>
-          </div>
-        </div>
-      </div>
-    </div>
-    <!-- PASO 3: Servicio -->
-    <div class="tw-step" id="step-3">
-      <div class="tw-card">
-        <div class="tw-card-header">
-          <div class="tw-card-title"><i class="fas fa-sparkles"></i><span id="step3-title">¿Qué servicio te gustaría?</span></div>
-        </div>
-        <div class="tw-card-body">
-          <!-- Tabs Container -->
-          <div class="tw-category-tabs" id="category-tabs">
-            <!-- Rendered by JS -->
-          </div>
-          <div class="tw-services-grid" id="services-list">
-            <div class="tw-booking-loading">
-              <div class="tw-spinner"></div>
-              <p>Cargando servicios...</p>
-            </div>
-          </div>
-          <div class="tw-buttons-row">
-            <button class="tw-btn tw-btn-ghost" id="btn-back-to-prev"><i class="fas fa-arrow-left"></i>Atrás</button>
-            <button class="tw-btn tw-btn-primary" id="btn-step3" disabled>Continuar <i class="fas fa-arrow-right"></i></button>
-          </div>
-        </div>
-      </div>
-    </div>
-    <!-- PASO 4: Fecha y Hora -->
-    <div class="tw-step" id="step-4">
-      <div class="tw-card">
-        <div class="tw-card-header">
-          <div class="tw-card-title"><i class="fas fa-calendar"></i>¿Cuándo te gustaría venir?</div>
-        </div>
-        <div class="tw-card-body">
-          <div class="tw-calendar-wrapper">
-            <div class="tw-calendar">
-              <div class="tw-calendar-header">
-                <div class="tw-calendar-nav">
-                  <button class="tw-calendar-nav-btn" id="btn-prev-month"><i class="fas fa-chevron-left"></i></button>
-                </div>
-                <h3 class="tw-calendar-title" id="calendar-month">Diciembre 2025</h3>
-                <div class="tw-calendar-nav">
-                  <button class="tw-calendar-nav-btn" id="btn-next-month"><i class="fas fa-chevron-right"></i></button>
-                </div>
-              </div>
-              <div class="tw-calendar-grid" id="calendar-grid"></div>
-            </div>
-            <div class="tw-time-slots">
-              <h3 class="tw-time-slots-title" id="time-title">Selecciona un día</h3>
-              <p id="time-leadtime-note" class="tw-time-leadtime-note" hidden></p>
-              <div class="tw-time-grid" id="time-grid">
-                <p style="grid-column:span 3;text-align:center;color:#7a7a6a;padding:16px;font-size:12px;">
-                  Primero elige una fecha
-                </p>
-              </div>
-            </div>
-          </div>
-          <div class="tw-summary" style="margin-top:16px;">
-            <div class="tw-summary-row">
-              <span class="tw-summary-label">Servicio</span>
-              <span class="tw-summary-value" id="sum-service">-</span>
-            </div>
-            <div class="tw-summary-row">
-              <span class="tw-summary-label">Fecha</span>
-              <span class="tw-summary-value" id="sum-date">-</span>
-            </div>
-            <div class="tw-summary-row">
-              <span class="tw-summary-label">Hora</span>
-              <span class="tw-summary-value" id="sum-time">-</span>
-            </div>
-            <div class="tw-summary-row">
-              <span class="tw-summary-label">Precio</span>
-              <span class="tw-summary-value tw-summary-total" id="sum-price">-</span>
-            </div>
-          </div>
-          <div class="tw-buttons-row">
-            <button class="tw-btn tw-btn-ghost" id="btn-back-to-3"><i class="fas fa-arrow-left"></i>Atrás</button>
-            <button class="tw-btn tw-btn-primary" id="btn-submit" disabled>Solicitar <i class="fas fa-paper-plane"></i></button>
-          </div>
-        </div>
-      </div>
-    </div>
-    <!-- PASO 5: Confirmación -->
-    <div class="tw-step" id="step-5">
-      <div class="tw-card">
-        <div class="tw-confirmation">
-          <div class="tw-confirmation-icon"><i class="fas fa-check-circle"></i></div>
-          <h2 class="tw-confirmation-title">¡Solicitud Enviada!</h2>
-          <p class="tw-confirmation-subtitle">Envíanos un WhatsApp para confirmar tu cita</p>
-          <div class="tw-confirmation-box">
-            <div class="tw-confirmation-row"><i class="fas fa-sparkles"></i><span id="conf-service">-</span></div>
-            <div class="tw-confirmation-row"><i class="fas fa-calendar"></i><span id="conf-datetime">-</span></div>
-            <div class="tw-confirmation-row"><i class="fas fa-dollar-sign"></i><span id="conf-price">-</span></div>
-          </div>
-          <button class="tw-btn tw-btn-success" id="btn-whatsapp" style="background:#25D366;">
-            <i class="fab fa-whatsapp"></i>Enviar WhatsApp para confirmar
+
+        <div id="lookup-status" class="vn-lookup"></div>
+
+        <div class="vn-btns">
+          <button class="vn-btn vn-btn--primary" id="btn-step1" disabled>
+            <span>Continuar</span><i class="fas fa-arrow-right"></i>
           </button>
-          <p style="margin-top:16px;font-size:12px;color:#7a7a6a;">Te contactaremos para confirmar disponibilidad</p>
         </div>
       </div>
-    </div>
+    </section>
+
+    <!-- PASO 2: Datos (solo clientes nuevos) -->
+    <section class="vn-step" id="step-2">
+      <div class="vn-card">
+        <p class="vn-card__eyebrow">Paso 2 · Tus datos</p>
+        <h2 class="vn-card__title">Cuéntanos un poco de ti</h2>
+        <p class="vn-card__lede">Solo necesitamos esto la primera vez para crear tu tarjeta Venus de lealtad.</p>
+
+        <div class="vn-field">
+          <label class="vn-field__label" for="input-name">Nombre completo <span class="req">*</span></label>
+          <input type="text" class="vn-input" id="input-name" placeholder="Tu nombre completo" autocomplete="name">
+        </div>
+        <div class="vn-field-row">
+          <div class="vn-field">
+            <label class="vn-field__label" for="input-email">Email</label>
+            <input type="email" class="vn-input" id="input-email" placeholder="tu@email.com" autocomplete="email">
+          </div>
+          <div class="vn-field">
+            <label class="vn-field__label" for="input-birthday">Cumpleaños</label>
+            <input type="date" class="vn-input" id="input-birthday">
+          </div>
+        </div>
+
+        <div class="vn-btns">
+          <button class="vn-btn vn-btn--ghost" id="btn-back-to-1"><i class="fas fa-arrow-left"></i><span>Atrás</span></button>
+          <button class="vn-btn vn-btn--primary" id="btn-step2" disabled>
+            <span>Continuar</span><i class="fas fa-arrow-right"></i>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- PASO 3: Servicio -->
+    <section class="vn-step" id="step-3">
+      <div class="vn-card">
+        <p class="vn-card__eyebrow">Paso 3 · Servicio</p>
+        <h2 class="vn-card__title" id="step3-title">¿Qué te gustaría hoy?</h2>
+        <p class="vn-card__lede">Elige el ritual con el que comenzaremos.</p>
+
+        <div class="vn-cats" id="category-tabs"></div>
+        <div class="vn-svc-grid" id="services-list">
+          <div style="grid-column:1/-1; text-align:center; padding:32px; color:var(--ink-3); font-size:13px;">
+            <div class="vn-spinner" style="border-color: oklch(58% 0.075 120 / 0.2); border-top-color: var(--olive); margin-right:0; display:block; margin: 0 auto 12px;"></div>
+            Cargando servicios…
+          </div>
+        </div>
+
+        <div class="vn-btns">
+          <button class="vn-btn vn-btn--ghost" id="btn-back-to-prev"><i class="fas fa-arrow-left"></i><span>Atrás</span></button>
+          <button class="vn-btn vn-btn--primary" id="btn-step3" disabled>
+            <span>Continuar</span><i class="fas fa-arrow-right"></i>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- PASO 4: Fecha y hora -->
+    <section class="vn-step" id="step-4">
+      <div class="vn-card">
+        <p class="vn-card__eyebrow">Paso 4 · Fecha y hora</p>
+        <h2 class="vn-card__title">¿Cuándo te vemos?</h2>
+        <p class="vn-card__lede">Elige el día y la hora que mejor te queden.</p>
+
+        <div class="vn-cal-wrap">
+          <div class="vn-cal">
+            <div class="vn-cal__head">
+              <button class="vn-cal__nav" id="btn-prev-month" aria-label="Mes anterior"><i class="fas fa-chevron-left"></i></button>
+              <h3 class="vn-cal__title" id="calendar-month">Mayo 2026</h3>
+              <button class="vn-cal__nav" id="btn-next-month" aria-label="Mes siguiente"><i class="fas fa-chevron-right"></i></button>
+            </div>
+            <div class="vn-cal__grid" id="calendar-grid"></div>
+          </div>
+          <div class="vn-times">
+            <h3 class="vn-times__title" id="time-title">Selecciona un día</h3>
+            <p id="time-leadtime-note" class="vn-times__note" hidden></p>
+            <div class="vn-times__grid" id="time-grid">
+              <p class="vn-times__placeholder">Primero elige una fecha.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="vn-summary">
+          <div class="vn-summary__row"><span class="vn-summary__label">Servicio</span><span class="vn-summary__value" id="sum-service">—</span></div>
+          <div class="vn-summary__row"><span class="vn-summary__label">Fecha</span><span class="vn-summary__value" id="sum-date">—</span></div>
+          <div class="vn-summary__row"><span class="vn-summary__label">Hora</span><span class="vn-summary__value" id="sum-time">—</span></div>
+          <div class="vn-summary__row total"><span class="vn-summary__label">Total</span><span class="vn-summary__value" id="sum-price">—</span></div>
+        </div>
+
+        <div class="vn-btns">
+          <button class="vn-btn vn-btn--ghost" id="btn-back-to-3"><i class="fas fa-arrow-left"></i><span>Atrás</span></button>
+          <button class="vn-btn vn-btn--primary" id="btn-submit" disabled>
+            <span>Solicitar cita</span><i class="fas fa-paper-plane"></i>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- PASO 5: Confirmación -->
+    <section class="vn-step" id="step-5">
+      <div class="vn-card">
+        <div class="vn-confirm">
+          <div class="vn-confirm__circle">
+            <svg class="vn-confirm__check" viewBox="0 0 36 36" aria-hidden="true">
+              <path d="M8 18 L15 25 L28 11" />
+            </svg>
+          </div>
+          <h2 class="vn-confirm__title">Tu solicitud está en camino</h2>
+          <p class="vn-confirm__sub">Confírmala por WhatsApp y nos vemos pronto en el estudio.</p>
+
+          <div class="vn-confirm__box">
+            <div class="vn-confirm__line"><i class="fas fa-spa"></i><span id="conf-service">—</span></div>
+            <div class="vn-confirm__line"><i class="far fa-calendar"></i><span id="conf-datetime">—</span></div>
+            <div class="vn-confirm__line"><i class="fas fa-tag"></i><span id="conf-price">—</span></div>
+          </div>
+
+          <button class="vn-btn vn-btn--primary" id="btn-whatsapp" style="background: oklch(58% 0.155 145); width:100%;">
+            <i class="fab fa-whatsapp" style="font-size: 18px;"></i><span>Enviar WhatsApp para confirmar</span>
+          </button>
+          <p style="margin: 18px 0 0; font-size: 12px; color: var(--ink-3);">Te responderemos enseguida con la confirmación.</p>
+        </div>
+      </div>
+    </section>
   </main>
-  <footer class="agendar-footer" id="business-footer">Venus Cosmetología · Sierra del Eje Pte. 7, San Juan del Río</footer>
+
+  <footer class="vn-footer" id="business-footer">
+    Venus Cosmetología <span>·</span> Sierra del Eje Pte. 7, San Juan del Río
+  </footer>
   <script>
     let services = [];
     let businessHours = { start: '09:00', end: '20:00', interval: 60, closedDays: [0] };
@@ -380,7 +1172,8 @@
       clientFirstName = null;
       clientCardId = null;
       const status = document.getElementById('lookup-status');
-      status.style.display = 'none';
+      status.className = 'vn-lookup';
+      status.innerHTML = '';
     }
 
     async function onSubmitPhone() {
@@ -392,7 +1185,7 @@
       const btn = document.getElementById('btn-step1');
       const status = document.getElementById('lookup-status');
       btn.disabled = true;
-      btn.innerHTML = '<div class="tw-spinner" style="width:16px;height:16px;display:inline-block;margin-right:8px;vertical-align:middle;"></div> Buscando…';
+      btn.innerHTML = '<span class="vn-spinner"></span><span>Buscando…</span>';
 
       try {
         const res = await fetch('/api/public/lookup-card', {
@@ -405,17 +1198,15 @@
           existsClient = true;
           clientFirstName = json.firstName || 'cliente';
           clientCardId = json.cardId || null;
-          status.style.display = 'block';
-          status.innerHTML = `¡Hola, <strong>${escapeHtml(clientFirstName)}</strong>! Te reconocimos. Vamos a elegir tu servicio.`;
+          status.className = 'vn-lookup success';
+          status.innerHTML = `<strong>Hola, ${escapeHtml(clientFirstName)}.</strong> Te reconocimos. Vamos a elegir tu ritual.`;
           // Pequeño delay para que el usuario alcance a leer el saludo
-          setTimeout(() => goToStep(3), 700);
+          setTimeout(() => goToStep(3), 900);
         } else {
           existsClient = false;
-          status.style.display = 'block';
-          status.style.background = '#f4ecdb';
-          status.style.color = '#5a4612';
-          status.innerHTML = 'No encontramos una tarjeta con ese WhatsApp. Te pediremos tus datos en el siguiente paso.';
-          setTimeout(() => goToStep(2), 700);
+          status.className = 'vn-lookup info';
+          status.innerHTML = 'No encontramos una tarjeta con ese WhatsApp. Te pediremos tus datos en el siguiente paso para crearla.';
+          setTimeout(() => goToStep(2), 900);
         }
       } catch (err) {
         console.error('[lookup-card] error:', err);
@@ -424,7 +1215,7 @@
         goToStep(2);
       } finally {
         btn.disabled = false;
-        btn.innerHTML = 'Continuar <i class="fas fa-arrow-right"></i>';
+        btn.innerHTML = '<span>Continuar</span><i class="fas fa-arrow-right"></i>';
       }
     }
 
@@ -523,10 +1314,10 @@
 
       // 3. Render Tabs
       tabsEl.innerHTML = categories.map(cat => `
-        <div class="category-tab ${cat === currentCategory ? 'active' : ''}" 
+        <button type="button" class="vn-cat ${cat === currentCategory ? 'active' : ''}"
              onclick="setCategory('${cat}')">
           ${cat}
-        </div>
+        </button>
       `).join('');
 
       // 4. Filter Services
@@ -538,30 +1329,14 @@
       filteredServices.sort((a, b) => a.name.localeCompare(b.name));
 
       el.innerHTML = filteredServices.map(s => {
-        const hasDesc = s.description && s.description.length > 0;
-        const descHtml = hasDesc ? `
-          <div class="service-description" id="desc-${s.id}">
-            <ul style="margin:0;padding:0 0 0 16px;font-size:11px;color:var(--muted);line-height:1.6;">
-              ${s.description.map(d => `<li>${d}</li>`).join('')}
-            </ul>
-            ${s.discount ? `<p style="margin:8px 0 0;font-size:10px;color:var(--venus);font-weight:500;"><i class="fas fa-tag"></i> ${s.discount}</p>` : ''}
-          </div>
-        ` : '';
-
         return `
-          <div class="service-item ${selectedService && selectedService.id === s.id ? 'selected' : ''}" 
-               data-id="${s.id}">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-              <div class="service-name" onclick="selectService(this.parentElement.parentElement, '${s.id}')">${s.name}</div>
-              ${hasDesc ? `<button class="service-info-btn" onclick="toggleServiceDesc(event, '${s.id}')" title="Ver detalles">
-                <i class="fas fa-info-circle"></i>
-              </button>` : ''}
+          <div class="vn-svc ${selectedService && selectedService.id === s.id ? 'selected' : ''}"
+               data-id="${s.id}" onclick="selectService(this, '${s.id}')">
+            <div class="vn-svc__name">${s.name}</div>
+            <div class="vn-svc__meta">
+              <span class="vn-svc__dur"><i class="far fa-clock"></i> ${s.duration} min</span>
+              <span class="vn-svc__price">$${s.price}</span>
             </div>
-            <div class="service-meta-row" onclick="selectService(this.parentElement, '${s.id}')">
-              <span class="service-duration"><i class="far fa-clock"></i> ${s.duration}m</span>
-              <span class="service-price">$${s.price}</span>
-            </div>
-            ${descHtml}
           </div>
         `;
       }).join('');
@@ -572,17 +1347,8 @@
       renderServices();
     }
 
-    function toggleServiceDesc(e, id) {
-      e.stopPropagation();
-      const item = document.querySelector(`.tw-service-item[data-id="${id}"]`);
-      if (item) {
-        item.classList.toggle('show-desc');
-      }
-    }
-
-
     function selectService(el, id) {
-      document.querySelectorAll('.tw-service-item').forEach(e => e.classList.remove('selected'));
+      document.querySelectorAll('.vn-svc').forEach(e => e.classList.remove('selected'));
       el.classList.add('selected');
       selectedService = services.find(s => s.id === id);
       document.getElementById('btn-step3').disabled = false;
@@ -598,9 +1364,9 @@
       const daysInMonth = new Date(year, month + 1, 0).getDate();
       const today = new Date(); today.setHours(0, 0, 0, 0);
 
-      let html = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'].map(d => `<div class="tw-day-name">${d}</div>`).join('');
+      let html = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'].map(d => `<div class="vn-cal__dow">${d}</div>`).join('');
 
-      for (let i = 0; i < firstDay; i++) html += '<div class="tw-day empty"></div>';
+      for (let i = 0; i < firstDay; i++) html += '<div class="vn-day empty"></div>';
 
       for (let d = 1; d <= daysInMonth; d++) {
         const date = new Date(year, month, d);
@@ -610,7 +1376,7 @@
         const isToday = date.toDateString() === today.toDateString();
         const isSelected = selectedDate === dateStr;
 
-        let cls = 'tw-day';
+        let cls = 'vn-day';
         if (isToday) cls += ' today';
         if (isSelected) cls += ' selected';
         if (isPast || isClosed) cls += ' disabled';
@@ -620,7 +1386,7 @@
 
       document.getElementById('calendar-grid').innerHTML = html;
 
-      document.querySelectorAll('.tw-day:not(.disabled):not(.empty)').forEach(day => {
+      document.querySelectorAll('.vn-day:not(.disabled):not(.empty)').forEach(day => {
         day.addEventListener('click', function () {
           const dateStr = this.dataset.date;
           if (dateStr) selectDate(dateStr);
@@ -644,7 +1410,7 @@
       document.getElementById('btn-submit').disabled = true;
       renderCalendar();
 
-      document.getElementById('time-grid').innerHTML = '<p style="grid-column:span 3;text-align:center;padding:16px;">Cargando...</p>';
+      document.getElementById('time-grid').innerHTML = '<p class="vn-times__placeholder">Cargando…</p>';
 
       try {
         const res = await fetch(`/api/public/availability?date=${dateStr}`);
@@ -705,11 +1471,11 @@
         const info = leadInfo(mins);
         if (info.tooSoon) hasTooSoon = true;
         const title = isBusy ? 'Horario ocupado' : (info.tooltip || '');
-        html += `<div class="tw-time-slot ${(isBusy || info.tooSoon) ? 'disabled' : ''}" data-time="${time}" title="${title}">${display}</div>`;
+        html += `<div class="vn-time ${(isBusy || info.tooSoon) ? 'disabled' : ''}" data-time="${time}" title="${title}">${display}</div>`;
       }
 
       if (!html) {
-        html = '<p style="grid-column:span 3;text-align:center;padding:16px;color:var(--muted);">No hay horarios disponibles para este día</p>';
+        html = '<p class="vn-times__placeholder">Sin horarios disponibles este día</p>';
       }
 
       document.getElementById('time-grid').innerHTML = html;
@@ -725,7 +1491,7 @@
         }
       }
 
-      document.querySelectorAll('.tw-time-slot:not(.disabled)').forEach(slot => {
+      document.querySelectorAll('.vn-time:not(.disabled)').forEach(slot => {
         slot.addEventListener('click', function () {
           selectTime(this.dataset.time, this);
         });
@@ -733,7 +1499,7 @@
     }
 
     function selectTime(time, el) {
-      document.querySelectorAll('.tw-time-slot').forEach(e => e.classList.remove('selected'));
+      document.querySelectorAll('.vn-time').forEach(e => e.classList.remove('selected'));
       el.classList.add('selected');
       selectedTime = time;
       document.getElementById('btn-submit').disabled = !(selectedService && selectedDate && selectedTime);
@@ -862,15 +1628,29 @@
     }
 
     function goToStep(n) {
-      document.querySelectorAll('.tw-step').forEach(el => el.classList.remove('active'));
-      document.getElementById(`step-${n}`).classList.add('active');
+      // Animación de salida en el paso actual
+      const current = document.querySelector('.vn-step.active');
+      if (current && current.id !== `step-${n}`) {
+        current.classList.add('leaving');
+        setTimeout(() => {
+          current.classList.remove('active', 'leaving');
+          document.getElementById(`step-${n}`).classList.add('active');
+          afterStep(n);
+        }, 220);
+      } else {
+        document.querySelectorAll('.vn-step').forEach(el => el.classList.remove('active', 'leaving'));
+        document.getElementById(`step-${n}`).classList.add('active');
+        afterStep(n);
+      }
+    }
 
+    function afterStep(n) {
       // Saludo personalizado en paso 3 si reconocimos al cliente
       const step3Title = document.getElementById('step3-title');
       if (step3Title) {
         step3Title.textContent = (existsClient && clientFirstName && n === 3)
-          ? `${clientFirstName}, ¿qué servicio te gustaría?`
-          : '¿Qué servicio te gustaría?';
+          ? `${clientFirstName}, ¿con qué ritual te consentimos hoy?`
+          : '¿Qué te gustaría hoy?';
       }
 
       // Lazy-load de servicios al entrar al paso 3
@@ -879,14 +1659,21 @@
         loadServices();
       }
 
+      // Update progress (4 dots; paso 2 comparte el dot 1)
       const activeDot = dotForStep(n);
-      for (let i = 1; i <= 4; i++) {
-        const dot = document.getElementById(`dot-${i}`);
-        dot.className = 'tw-progress-dot';
-        if (i < activeDot) dot.classList.add('completed');
-        else if (i === activeDot) dot.classList.add('active');
+      const prog = document.getElementById('vn-progress');
+      if (prog) {
+        prog.dataset.step = String(activeDot);
+        prog.style.setProperty('--prog', `${((activeDot - 1) / 3) * 100}%`);
       }
-      window.scrollTo(0, 0);
+      for (let i = 1; i <= 4; i++) {
+        const step = document.getElementById(`prog-step-${i}`);
+        if (!step) continue;
+        step.classList.remove('active', 'completed');
+        if (i < activeDot) step.classList.add('completed');
+        else if (i === activeDot) step.classList.add('active');
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     function formatDateISO(d) {
