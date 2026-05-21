@@ -4,12 +4,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Venus Cosmetología - Tratamientos, lealtad y café</title>
+    <title>Venus Cosmetología - Agenda tu ritual facial en San Juan del Río</title>
     <link rel="icon" href="/assets/logo.png">
     <meta name="description"
-        content="Tratamientos faciales, lealtad digital y experiencia Venus Café en San Juan del Río.">
+        content="Rituales faciales, depilación, masajes, tarjeta de lealtad y Venus Café en San Juan del Río. Agenda una visita pensada para tu piel.">
     <meta name="color-scheme" content="light only">
-    <meta name="theme-color" content="#faf9f6">
+    <meta name="theme-color" content="#8b947d">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="/css/landing.css?v=2">
     <style>
@@ -25,10 +25,10 @@
         --spring:         cubic-bezier(0.34, 1.56, 0.64, 1);
       }
 
-      /* Reveal base: invisible y empujado abajo. Se activa con .is-in. */
+      /* Reveal base: visible por defecto para que la landing nunca quede vacía. */
       .reveal {
-        opacity: 0;
-        transform: translateY(28px);
+        opacity: 1;
+        transform: none;
         transition:
           opacity 720ms var(--ease-out-expo),
           transform 720ms var(--ease-out-expo);
@@ -39,9 +39,9 @@
         transform: translateY(0);
       }
       /* Variantes direccionales */
-      .reveal--left  { transform: translateX(-32px); }
-      .reveal--right { transform: translateX(32px); }
-      .reveal--scale { transform: scale(0.96); }
+      .reveal--left,
+      .reveal--right,
+      .reveal--scale { transform: none; }
       .reveal--left.is-in,
       .reveal--right.is-in,
       .reveal--scale.is-in { transform: translate(0,0) scale(1); }
@@ -252,10 +252,11 @@
                 <li><a href="#inicio">Inicio</a></li>
                 <li><a href="#servicios">Servicios</a></li>
                 <li><a href="#cafeteria">Café</a></li>
+                <li><a href="#lealtad">Lealtad</a></li>
                 <li><a href="#ubicacion">Ubicación</a></li>
                 <li><a href="#transformaciones">Resultados</a></li>
                 <li><a href="#testimonios">Testimonios</a></li>
-                <li><a href="/mi-tarjeta">Mi tarjeta</a></li>
+                <li><a href="/">Pase Venus</a></li>
                 <li><a href="#agendar" class="nav-cta">Agendar Cita</a></li>
             </ul>
             <button class="mobile-menu-btn" id="mobile-menu-btn">
@@ -270,29 +271,28 @@
             <div class="hero-content">
                 <div class="hero-badge">
                     <i class="fas fa-sparkles"></i>
-                    Cosmetología avanzada en San Juan del Río
+                    San Juan del Río
                 </div>
-                <h1>Venus Cosmetología</h1>
-                <p>Tratamientos faciales, depilación y protocolos de cuidado pensados como una pausa completa: piel,
-                    lealtad digital y ahora café de cortesía para disfrutar el momento.</p>
+                <h1>Tu piel merece una visita que se sienta personal.</h1>
+                <p>En Venus cada cita empieza con calma: escuchamos lo que buscas, leemos tu piel y diseñamos un ritual facial, de depilación o relajación para que salgas viéndote natural, descansada y cuidada.</p>
 
                 <div class="hero-buttons">
                     <a href="#agendar" class="cta-button">
                         <i class="fas fa-calendar-check"></i> Agendar cita
                     </a>
-                    <a href="#servicios" class="cta-button cta-button-outline">
-                        Ver rituales
+                    <a href="/" class="cta-button cta-button-outline">
+                        Crear mi tarjeta Venus
                     </a>
                 </div>
 
                 <div class="hero-stats">
                     <div class="hero-stat">
                         <span class="hero-stat-value">8</span>
-                        <span class="hero-stat-label">sellos para canjear</span>
+                        <span class="hero-stat-label">sellos para volver</span>
                     </div>
                     <div class="hero-stat">
                         <span class="hero-stat-value">10:00</span>
-                        <span class="hero-stat-label">inicio de agenda</span>
+                        <span class="hero-stat-label">agenda con calma</span>
                     </div>
                     <div class="hero-stat">
                         <span class="hero-stat-value">Café</span>
@@ -301,7 +301,7 @@
                 </div>
             </div>
             <div class="hero-visual" aria-label="Identidad Venus">
-                <a href="/mi-tarjeta" class="hero-pass-card" aria-label="Ver mi tarjeta de lealtad">
+                <a href="/" class="hero-pass-card" aria-label="Ver mi tarjeta de lealtad">
                     <img src="/assets/logo.png" alt="Logo Venus Cosmetología" class="hero-logo">
                     <span class="hero-pass-eyebrow">Pase de lealtad</span>
                     <strong>Cuida tu piel, suma sellos</strong>
@@ -315,7 +315,7 @@
                         <span></span>
                         <span></span>
                     </div>
-                    <span class="hero-pass-action">Ver mi tarjeta <i class="fas fa-arrow-right"></i></span>
+                    <span class="hero-pass-action">Entrar al pase <i class="fas fa-arrow-right"></i></span>
                 </a>
             </div>
         </div>
@@ -325,9 +325,8 @@
     <section class="services-preview" id="servicios">
         <div class="container">
             <div class="section-kicker">elige por intención</div>
-            <h2 class="section-title">Servicios organizados por ritual</h2>
-            <p class="section-subtitle">Siguen estando todos los servicios, pero se agrupan por necesidad para que la
-                decisión sea más clara y visual.</p>
+            <h2 class="section-title">No son “servicios”, son formas de llegar a cómo quieres verte.</h2>
+            <p class="section-subtitle">Siguen existiendo todos los tratamientos, pero aquí se ven por intención: brillo, calma, limpieza, suavidad o una pausa completa.</p>
             <div class="services-grid" id="services-grid">
                 <div class="loading">
                     <div class="spinner"></div>
@@ -342,11 +341,11 @@
         <div class="container cafe-grid">
             <div class="cafe-copy">
                 <div class="section-kicker">nuevo en Venus</div>
-                <h2 class="section-title">Venus Café</h2>
+                <h2 class="section-title">Venus Café hace que la espera también cuente.</h2>
                 <p class="section-subtitle">La cafetería puede funcionar como una extensión del tratamiento: una bebida
                     antes de pasar, una pausa mientras acompañas a alguien o un cierre tranquilo después de tu cita.</p>
                 <div class="cafe-actions">
-                    <a href="#agendar" class="cta-button"><i class="fas fa-calendar-check"></i> Reservar y llegar con calma</a>
+                    <a href="/agendar.html" class="cta-button"><i class="fas fa-calendar-check"></i> Reservar y llegar con calma</a>
                     <a href="#servicios" class="text-link">Ver servicios por ritual</a>
                 </div>
             </div>
@@ -363,126 +362,81 @@
         </div>
     </section>
 
-    <!-- Featured Transformation -->
+    <!-- Loyalty Experience -->
+    <section class="loyalty-section" id="lealtad">
+        <div class="container loyalty-grid">
+            <div>
+                <div class="section-kicker">pase digital</div>
+                <h2 class="section-title">Que volver también se sienta bonito.</h2>
+                <p class="section-subtitle">Crea tu tarjeta Venus, guarda tus sellos y consulta tu progreso cada vez que vuelvas. Si ya tienes una, entra con tu teléfono y llévala contigo.</p>
+                <div class="loyalty-actions">
+                    <a href="/" class="cta-button"><i class="fas fa-id-card"></i> Crear o ver mi tarjeta</a>
+                    <a href="/agendar.html" class="text-link">Agendar mi próxima visita</a>
+                </div>
+            </div>
+            <div class="loyalty-card" aria-label="Pase de lealtad Venus">
+                <img src="/assets/logo.png" alt="Venus Cosmetología">
+                <span>Pase Venus</span>
+                <strong>8 sellos para volver por tu recompensa.</strong>
+                <div class="loyalty-stamps" aria-hidden="true">
+                    <i></i><i></i><i></i><i></i>
+                    <i></i><i></i><i></i><i></i>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Venus Method -->
     <section class="featured-transformation" id="transformaciones">
         <div class="container">
-            <h2 class="section-title">Transformación Destacada</h2>
-            <p class="section-subtitle">Resultados reales de nuestros tratamientos profesionales</p>
+            <div class="section-kicker">cómo se siente la visita</div>
+            <h2 class="section-title">Llegas con una intención, sales con un plan.</h2>
+            <p class="section-subtitle">La diferencia no está en llenar la página de tratamientos, sino en ayudarte a decidir sin ruido.</p>
 
-            <!-- Featured Hero -->
-            <div class="featured-hero">
+            <div class="featured-hero venus-method">
                 <div class="featured-content">
-                    <div class="featured-before-after">
-                        <div class="featured-image">
-                            📸
-                            <span>ANTES</span>
-                        </div>
-                        <div class="featured-image">
-                            📸
-                            <span>DESPUÉS</span>
-                        </div>
-                    </div>
+                    <div class="method-photo" aria-label="Cabina Venus"></div>
                     <div class="featured-details">
-                        <h3>Tratamiento Anti-Acné Intensivo</h3>
-                        <p>María llegó a nosotros buscando una solución para su acné persistente. Después de 8 semanas
-                            con nuestro protocolo personalizado de tratamiento anti-acné, los resultados hablan por sí
-                            mismos.</p>
-                        <p>Combinamos tecnología láser médico-estético, exfoliaciones químicas controladas y productos
-                            de alta calidad para lograr una transformación increíble.</p>
+                        <h3>Diagnóstico, ritual y seguimiento.</h3>
+                        <p>Primero entendemos tu piel y tu momento. Después elegimos el protocolo que tiene sentido para ti: facial, depilación, masaje o una combinación más completa.</p>
+                        <p>Al terminar, tu pase digital guarda tu progreso. Si llegas antes o vienes acompañada, Venus Café hace que la espera también se sienta cuidada.</p>
                         <div class="featured-stats">
                             <div class="stat-card">
-                                <div class="stat-icon">8</div>
-                                <h4>Semanas</h4>
-                                <p>de tratamiento</p>
+                                <div class="stat-icon">01</div>
+                                <h4>Escuchamos</h4>
+                                <p>qué buscas y cómo viene tu piel</p>
                             </div>
                             <div class="stat-card">
-                                <div class="stat-icon">✓</div>
-                                <h4>Protocolo</h4>
-                                <p>personalizado</p>
+                                <div class="stat-icon">02</div>
+                                <h4>Elegimos</h4>
+                                <p>el ritual sin saturarte de opciones</p>
                             </div>
                             <div class="stat-card">
-                                <div class="stat-icon">💎</div>
-                                <h4>Productos</h4>
-                                <p>premium</p>
+                                <div class="stat-icon">03</div>
+                                <h4>Seguimos</h4>
+                                <p>sellos, citas y recomendaciones</p>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Blog Grid -->
-            <h3 style="text-align:center;font-size:1.5rem;margin-bottom:0.5rem;color:var(--dark);">Últimas
-                Transformaciones</h3>
-            <p style="text-align:center;color:var(--muted);margin-bottom:2rem;">Conoce las historias de nuestras
-                clientas y sus resultados</p>
-
-            <div class="blog-grid">
-                <div class="blog-card">
-                    <div class="blog-image-placeholder">📸</div>
-                    <div class="blog-content">
-                        <span class="blog-category">FACIAL ANTI-ACNÉ</span>
-                        <h3>Piel libre de acné en 6 semanas</h3>
-                        <p>Descubre cómo Laura transformó su piel con nuestro tratamiento intensivo. Una combinación de
-                            láser, exfoliación química y productos específicos.</p>
-                        <div class="blog-date">15 de Diciembre 2024</div>
-                        <a href="#" class="blog-link">Leer más →</a>
-                    </div>
-                </div>
-                <div class="blog-card">
-                    <div class="blog-image-placeholder">📸</div>
-                    <div class="blog-content">
-                        <span class="blog-category">FACIAL PERSONALIZADO</span>
-                        <h3>Reducción de manchas y pigmentación</h3>
-                        <p>Ana comparte su experiencia con nuestro facial personalizado enfocado en hiperpigmentación.
-                            Resultados visibles desde la tercera sesión.</p>
-                        <div class="blog-date">10 de Diciembre 2024</div>
-                        <a href="#" class="blog-link">Leer más →</a>
-                    </div>
-                </div>
-                <div class="blog-card">
-                    <div class="blog-image-placeholder">📸</div>
-                    <div class="blog-content">
-                        <span class="blog-category">DERMAPEN</span>
-                        <h3>Cicatrices de acné: Antes y Después</h3>
-                        <p>El tratamiento con Dermapen ayudó a Carmen a reducir significativamente las cicatrices de
-                            acné. Conoce todo el proceso y los resultados.</p>
-                        <div class="blog-date">5 de Diciembre 2024</div>
-                        <a href="#" class="blog-link">Leer más →</a>
-                    </div>
-                </div>
-                <div class="blog-card">
-                    <div class="blog-image-placeholder">📸</div>
-                    <div class="blog-content">
-                        <span class="blog-category">VITAMINA C</span>
-                        <h3>Rejuvenecimiento facial con Vitamina C</h3>
-                        <p>Patricia nos cuenta cómo el facial de Vitamina C le devolvió la luminosidad y firmeza a su
-                            piel. Resultados increíbles en tiempo récord.</p>
-                        <div class="blog-date">1 de Diciembre 2024</div>
-                        <a href="#" class="blog-link">Leer más →</a>
-                    </div>
-                </div>
-                <div class="blog-card">
-                    <div class="blog-image-placeholder">📸</div>
-                    <div class="blog-content">
-                        <span class="blog-category">LIMPIEZA FACIAL</span>
-                        <h3>Poros minimizados y piel radiante</h3>
-                        <p>La limpieza facial profunda transformó completamente la textura de la piel de Sofía. Descubre
-                            los secretos de este tratamiento.</p>
-                        <div class="blog-date">28 de Noviembre 2024</div>
-                        <a href="#" class="blog-link">Leer más →</a>
-                    </div>
-                </div>
-                <div class="blog-card">
-                    <div class="blog-image-placeholder">📸</div>
-                    <div class="blog-content">
-                        <span class="blog-category">DEPILACIÓN LÁSER</span>
-                        <h3>Piel suave sin vello: Mi experiencia</h3>
-                        <p>Gabriela comparte su experiencia completa con la depilación láser. Desde la primera sesión
-                            hasta los resultados finales.</p>
-                        <div class="blog-date">25 de Noviembre 2024</div>
-                        <a href="#" class="blog-link">Leer más →</a>
-                    </div>
-                </div>
+            <div class="experience-grid">
+                <article class="experience-card">
+                    <span>Para verte luminosa</span>
+                    <h3>Limpieza profunda, hidratación y protocolos faciales.</h3>
+                    <p>Ideal si sientes la piel apagada, con textura, poros visibles o necesitas empezar de cero.</p>
+                </article>
+                <article class="experience-card">
+                    <span>Para verte pulida</span>
+                    <h3>Depilación y detalles que cambian el rostro.</h3>
+                    <p>Cejas, bozo, facial y corporal con un acabado limpio, suave y natural.</p>
+                </article>
+                <article class="experience-card">
+                    <span>Para quedarte un poco más</span>
+                    <h3>Masaje, pausa y café después de tu cita.</h3>
+                    <p>Una experiencia más completa para bajar el ritmo y salir sintiéndote atendida.</p>
+                </article>
             </div>
         </div>
     </section>
@@ -490,8 +444,8 @@
     <!-- Testimonials -->
     <section class="testimonials" id="testimonios">
         <div class="container">
-            <h2 class="section-title">Lo Que Dicen Nuestras Clientas</h2>
-            <p class="section-subtitle">Experiencias reales de quienes confiaron en nosotros</p>
+            <h2 class="section-title">Lo que más se nota es cómo te sientes al salir.</h2>
+            <p class="section-subtitle">La prueba social tiene que sentirse humana: atención, calma, resultados visibles y ganas de volver.</p>
 
             <!-- Google Reviews Badge -->
             <div style="text-align:center;margin-bottom:2rem;">
@@ -506,40 +460,36 @@
             <div class="testimonials-grid">
                 <div class="testimonial-card">
                     <div class="quote-icon">"</div>
-                    <p class="testimonial-text">Después de años luchando contra el acné, finalmente encontré la solución
-                        en Venus. El trato profesional y los resultados increíbles han cambiado mi vida. ¡Totalmente
-                        recomendado!</p>
+                    <p class="testimonial-text">Llegué sin saber qué tratamiento elegir. Me explicaron con calma, cuidaron mi piel y salí sintiéndome mucho más segura.</p>
                     <div class="testimonial-author">
                         <div class="author-avatar">M</div>
                         <div class="author-info">
-                            <h4>María González</h4>
-                            <p>Tratamiento Anti-Acné</p>
+                            <h4>Clienta Venus</h4>
+                            <p>Ritual facial personalizado</p>
                             <div class="rating">★★★★★</div>
                         </div>
                     </div>
                 </div>
                 <div class="testimonial-card">
                     <div class="quote-icon">"</div>
-                    <p class="testimonial-text">El facial de Vitamina C superó todas mis expectativas. Mi piel luce más
-                        joven, luminosa y firme. Las chicas de Venus son expertas en lo que hacen.</p>
+                    <p class="testimonial-text">Me gustó que no intentaron venderme todo. Me recomendaron justo lo que necesitaba y me dieron seguimiento.</p>
                     <div class="testimonial-author">
                         <div class="author-avatar">P</div>
                         <div class="author-info">
-                            <h4>Patricia Hernández</h4>
-                            <p>Facial Vitamina C</p>
+                            <h4>Clienta Venus</h4>
+                            <p>Limpieza y luminosidad</p>
                             <div class="rating">★★★★★</div>
                         </div>
                     </div>
                 </div>
                 <div class="testimonial-card">
                     <div class="quote-icon">"</div>
-                    <p class="testimonial-text">La depilación láser ha sido la mejor inversión. Después de 6 meses,
-                        prácticamente no tengo vello y mi piel está perfecta. Muy profesionales.</p>
+                    <p class="testimonial-text">La visita se siente bonita desde que entras. Ahora con café y tarjeta digital, dan ganas de volver.</p>
                     <div class="testimonial-author">
                         <div class="author-avatar">G</div>
                         <div class="author-info">
-                            <h4>Gabriela Ramírez</h4>
-                            <p>Depilación Láser</p>
+                            <h4>Clienta Venus</h4>
+                            <p>Depilación y pase digital</p>
                             <div class="rating">★★★★★</div>
                         </div>
                     </div>
@@ -552,13 +502,13 @@
     <section class="booking-section" id="agendar">
         <div class="container">
             <div class="booking-cta">
-                <h2 class="section-title">Agenda Tu Cita</h2>
-                <p class="section-subtitle">¿Lista para tu transformación? Reserva en menos de un minuto.</p>
+                <h2 class="section-title">Si ya lo estás pensando, agenda.</h2>
+                <p class="section-subtitle">La mejor cita es la que se aparta antes de que la semana se llene. Elige tu servicio y nosotras te confirmamos.</p>
                 <a href="/agendar.html" class="cta-button cta-button--large">
                     <i class="fas fa-calendar-check"></i>
                     Agendar mi cita
                 </a>
-                <p class="booking-cta__note">Si ya eres cliente, te reconocemos por tu WhatsApp. Sin formularios largos.</p>
+                <p class="booking-cta__note">Si ya eres clienta, te reconocemos por tu WhatsApp. Sin formularios largos.</p>
             </div>
         </div>
     </section>
@@ -587,7 +537,7 @@
                         <div class="location-icon"><i class="fab fa-whatsapp"></i></div>
                         <h3>Contacto</h3>
                         <p>Escríbenos por WhatsApp</p>
-                        <a href="#agendar" class="btn btn-primary">
+                        <a href="/agendar.html" class="btn btn-primary">
                             <i class="fas fa-calendar-check"></i> Agendar Cita
                         </a>
                     </div>
@@ -632,7 +582,7 @@
                 <ul>
                     <li><i class="fas fa-map-marker-alt"></i> San Juan del Río, Qro.</li>
                     <li><i class="fas fa-clock"></i> Lun - Sáb: 10:00 - 20:00</li>
-                    <li><i class="fab fa-whatsapp"></i> <a href="#agendar">Agendar Cita</a></li>
+                    <li><i class="fab fa-whatsapp"></i> <a href="/agendar.html">Agendar Cita</a></li>
                 </ul>
             </div>
         </div>

@@ -16,12 +16,11 @@ const DAYS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
 document.addEventListener('DOMContentLoaded', async () => {
     setupNavigation();
+    await loadServices();
     // Si la sección de booking embebida ya no existe (ahora /agendar.html es la página
-    // dedicada), saltamos toda la lógica de servicios/calendario/form. Mantenemos
-    // solo la navegación smooth scroll arriba.
+    // dedicada), dejamos cargado solo el preview de servicios y saltamos calendario/form.
     if (!document.getElementById('services-list')) return;
     await loadConfig();
-    await loadServices();
     renderCalendar();
     setupEventListeners();
 });
@@ -92,15 +91,17 @@ async function loadServices() {
             renderServices();
         }
     } catch (e) {
-        document.getElementById('services-list').innerHTML = '<p style="color:#ef4444;">Error al cargar</p>';
+        renderServicesPreview();
+        const list = document.getElementById('services-list');
+        if (list) list.innerHTML = '<p style="color:#ef4444;">Error al cargar</p>';
     }
 }
 
 function renderServicesPreview() {
     const grid = document.getElementById('services-grid');
-    if (!grid || services.length === 0) return;
+    if (!grid) return;
 
-    const groups = getServiceGroups().slice(0, 6);
+    const groups = (services.length ? getServiceGroups() : getStaticServiceGroups()).slice(0, 6);
     grid.innerHTML = groups.map((group, index) => {
         const names = group.services.slice(0, 3).map(s => `<li>${escapeHTML(s.name)}</li>`).join('');
         return `
@@ -137,6 +138,38 @@ function renderServicesPreview() {
             </div>
         </div>
     `;
+}
+
+function getStaticServiceGroups() {
+    return [
+        {
+            category: 'Faciales',
+            label: 'Piel y faciales',
+            description: 'Limpieza profunda, luminosidad, acné, textura y protocolos personalizados.',
+            services: [{ name: 'Limpieza profunda' }, { name: 'Facial hidratante' }, { name: 'Análisis de piel' }],
+            count: 3,
+            priceRange: 'Consultar',
+            durationRange: '60-90min'
+        },
+        {
+            category: 'Depilación',
+            label: 'Depilación',
+            description: 'Servicios claros por zona para elegir sin revisar toda la lista.',
+            services: [{ name: 'Cejas' }, { name: 'Bozo' }, { name: 'Facial o corporal' }],
+            count: 3,
+            priceRange: 'Consultar',
+            durationRange: '20-60min'
+        },
+        {
+            category: 'Masajes',
+            label: 'Masajes y pausa',
+            description: 'Tratamientos para bajar tensión y cerrar la visita con calma.',
+            services: [{ name: 'Masaje relajante' }, { name: 'Ritual corporal' }, { name: 'Pausa Venus Café' }],
+            count: 3,
+            priceRange: 'Consultar',
+            durationRange: '45-90min'
+        }
+    ];
 }
 
 function scrollToBooking(serviceId) {
