@@ -2218,6 +2218,12 @@
       document.getElementById("qr").src = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" + encodeURIComponent(cardId);
       document.getElementById("cid").textContent = cardId;
 
+      // Pre-llenar los botones "Agendar" con el cardId para que el flujo de
+      // agenda reconozca al cliente y NO le pida el WhatsApp otra vez.
+      document.querySelectorAll('a[href^="/agendar.html"]').forEach(a => {
+        a.href = `/agendar.html?cardId=${encodeURIComponent(cardId)}`;
+      });
+
       // Google Wallet
       document.getElementById("gwallet").onclick = async (ev) => {
         ev.preventDefault();

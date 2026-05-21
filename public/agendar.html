@@ -1564,7 +1564,67 @@
       await loadConfig();
       renderCalendar();
       setupEventListeners();
+      // Si llega desde la tarjeta de lealtad (?cardId=...), reconocer al
+      // cliente automáticamente y saltar el paso del WhatsApp.
+      autoIdentifyFromCard();
     });
+
+    // Auto-identificación cuando se agenda desde la tarjeta de lealtad.
+    // Lee ?cardId (o ?phone) de la URL, reconoce al cliente y salta al paso 3
+    // (elegir servicio) sin volver a pedir el WhatsApp.
+    async function autoIdentifyFromCard() {
+      const params = new URLSearchParams(window.location.search);
+      const cardId = params.get('cardId');
+      const phoneParam = (params.get('phone') || '').replace(/\D/g, '');
+      if (!cardId && phoneParam.length < 10) return;
+
+      try {
+        let card = null;
+        if (cardId) {
+          const res = await fetch(`/api/card/${encodeURIComponent(cardId)}`);
+          const json = await res.json();
+          card = json && json.success ? json.data : null;
+        }
+        // Fallback: si vino ?phone en vez de cardId, usamos el lookup por teléfono.
+        if (!card && phoneParam.length >= 10) {
+          const res = await fetch('/api/public/lookup-card', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone: phoneParam }),
+          });
+          const json = await res.json();
+          if (json.exists) card = { id: json.cardId, name: json.firstName, phone: phoneParam };
+        }
+        if (!card) return; // cardId inválido → flujo normal (paso 1)
+
+        // Normalizar teléfono a 10 dígitos (igual que el flujo manual).
+        let phone10 = String(card.phone || phoneParam).replace(/\D/g, '');
+        if (phone10.length === 12 && phone10.startsWith('52')) phone10 = phone10.slice(2);
+
+        existsClient = true;
+        clientFirstName = (card.name || '').trim().split(' ')[0] || 'cliente';
+        clientCardId = card.id || cardId || null;
+        clientPhone = phone10;
+
+        // Prefill del paso 1 para que el botón "Atrás" se vea coherente.
+        const phoneInput = document.getElementById('input-phone');
+        if (phoneInput && phone10) {
+          phoneInput.value = phone10;
+          const btn1 = document.getElementById('btn-step1');
+          if (btn1) btn1.disabled = false;
+        }
+        const status = document.getElementById('lookup-status');
+        if (status) {
+          status.className = 'vn-lookup success';
+          status.innerHTML = `<strong>Hola, ${escapeHtml(clientFirstName)}.</strong> Te reconocimos. Vamos a elegir tu ritual.`;
+        }
+
+        goToStep(3);
+      } catch (err) {
+        console.error('[auto-identify] error:', err);
+        // Cualquier fallo → dejamos el flujo normal del paso 1.
+      }
+    }
 
     function setupEventListeners() {
       document.getElementById('btn-prev-month').addEventListener('click', prevMonth);
