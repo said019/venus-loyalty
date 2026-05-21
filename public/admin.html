@@ -969,6 +969,65 @@
         </div>
       </div>
 
+      <!-- Datos bancarios para anticipo de cita -->
+      <div
+        style="background:rgba(140,150,104,0.1);border:1px solid rgba(140,150,104,0.3);border-radius:12px;padding:14px;margin:12px 0;">
+        <h3 style="margin:0 0 12px;"><i class="fas fa-university"></i> Anticipo · Datos bancarios</h3>
+        <p class="muted" style="margin:0 0 16px;font-size:12px;">
+          Se muestran al cliente en /agendar cuando tenga que transferir el anticipo. Si desactivas el anticipo, no se pide comprobante.
+        </p>
+
+        <form id="bank-config-form">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding:10px 12px;background:rgba(140,150,104,0.06);border-radius:8px;">
+            <input type="checkbox" id="bank-enabled" checked style="width:18px;height:18px;cursor:pointer;">
+            <label for="bank-enabled" style="margin:0;cursor:pointer;font-weight:500;">
+              Pedir anticipo al agendar
+            </label>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div>
+              <label>Banco</label>
+              <input id="bank-name" placeholder="BBVA, Banorte, Santander…">
+            </div>
+            <div>
+              <label>Titular de la cuenta</label>
+              <input id="bank-holder" placeholder="Venus Cosmetología">
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
+            <div>
+              <label>CLABE (18 dígitos)</label>
+              <input id="bank-clabe" placeholder="012345678901234567" maxlength="18" inputmode="numeric">
+            </div>
+            <div>
+              <label>Número de cuenta (opcional)</label>
+              <input id="bank-account" placeholder="1234567890" inputmode="numeric">
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-top:12px;">
+            <div>
+              <label>Referencia que debe poner el cliente</label>
+              <input id="bank-reference" placeholder="Tu nombre y fecha de cita">
+            </div>
+            <div>
+              <label>Monto del anticipo ($)</label>
+              <input id="bank-amount" type="number" min="0" placeholder="100" inputmode="numeric">
+            </div>
+          </div>
+
+          <div style="margin-top:14px;">
+            <button type="submit" class="btn primary"><i class="fas fa-save"></i> Guardar datos bancarios</button>
+          </div>
+        </form>
+
+        <div id="bank-success" class="success-message hidden" style="margin-top:12px;">
+          Datos bancarios guardados correctamente
+        </div>
+      </div>
+
       </div>
       <!-- /subpane Negocio -->
 
@@ -4421,6 +4480,7 @@
           if (typeof stopDashboardAutoRefresh === 'function') stopDashboardAutoRefresh();
         } else if (tabName === 'settings') {
           loadBusinessConfig();
+          if (typeof loadBankConfig === 'function') loadBankConfig();
           loadNotificationsHistory();
           if (typeof stopDashboardAutoRefresh === 'function') stopDashboardAutoRefresh();
         } else if (tabName === 'appointments') {
@@ -12463,6 +12523,7 @@
               loadServicesTable();
             } else if (tab === 'settings') {
               loadBusinessConfig();
+              if (typeof loadBankConfig === 'function') loadBankConfig();
               loadNotificationsHistory();
             }
           }
@@ -12617,6 +12678,29 @@
         const s = STATUS[req.status] || STATUS.pending;
         const wa = req.clientPhone.startsWith('52') ? req.clientPhone : '52' + req.clientPhone;
 
+        // Pre-orden de barra (productos apartados al agendar — 5% off al servicio)
+        const preorderItems = Array.isArray(req.preorderItems) ? req.preorderItems : [];
+        const preorderBlock = preorderItems.length > 0 ? `
+          <div class="req-preorder">
+            <div class="req-preorder__head">
+              <span class="req-preorder__title">
+                <i class="fas fa-mug-hot"></i> Apartado en barra
+                <span class="req-preorder__count">${preorderItems.length} ${preorderItems.length === 1 ? 'producto' : 'productos'}</span>
+              </span>
+              <span class="req-preorder__total">$${req.preorderSubtotal || 0}</span>
+            </div>
+            <ul class="req-preorder__list">
+              ${preorderItems.map(it => `
+                <li>
+                  <span class="req-preorder__qty">${it.qty || 1}×</span>
+                  <span class="req-preorder__name">${(it.name || '').replace(/</g, '&lt;')}</span>
+                  <span class="req-preorder__price">$${it.price || 0}</span>
+                </li>
+              `).join('')}
+            </ul>
+            <p class="req-preorder__note">Se cobra al llegar. Servicio con 5% descuento aplicado.</p>
+          </div>` : '';
+
         // Anticipo (transferencia + comprobante)
         const depStatus = req.depositStatus || (req.depositReceiptUrl ? 'awaiting_review' : 'pending');
         const depStatusLabel = {
@@ -12677,6 +12761,7 @@
               <div><dt>Solicita</dt><dd>${desiredStr} <span class="req-price">· ${timeStr}</span></dd></div>
               <div><dt>Recibida</dt><dd>${createdStr}</dd></div>
             </dl>
+            ${preorderBlock}
             ${depositBlock}
             <footer class="req-actions">${actions}</footer>
           </article>
@@ -13223,6 +13308,63 @@
     });
 
     window.loadBusinessConfig = loadBusinessConfig;
+
+    /* =========================================================
+       DATOS BANCARIOS (anticipo) — se guarda en settings/business.bankInfo
+       ========================================================= */
+
+    async function loadBankConfig() {
+      try {
+        const res = await fetch('/api/settings/business');
+        const json = await res.json();
+        const b = (json.success && json.data && json.data.bankInfo) || {};
+        document.getElementById('bank-enabled').checked = b.enabled !== false;
+        document.getElementById('bank-name').value      = b.bankName      || '';
+        document.getElementById('bank-holder').value    = b.accountHolder || '';
+        document.getElementById('bank-clabe').value     = b.clabe         || '';
+        document.getElementById('bank-account').value   = b.accountNumber || '';
+        document.getElementById('bank-reference').value = b.reference     || '';
+        document.getElementById('bank-amount').value    = b.depositAmount || 100;
+      } catch (e) {
+        console.error('[bank-config load]', e);
+      }
+    }
+
+    const bankForm = document.getElementById('bank-config-form');
+    if (bankForm) {
+      bankForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const bankInfo = {
+          enabled:       document.getElementById('bank-enabled').checked,
+          bankName:      document.getElementById('bank-name').value.trim(),
+          accountHolder: document.getElementById('bank-holder').value.trim(),
+          clabe:         document.getElementById('bank-clabe').value.replace(/\s+/g, ''),
+          accountNumber: document.getElementById('bank-account').value.replace(/\s+/g, ''),
+          reference:     document.getElementById('bank-reference').value.trim(),
+          depositAmount: Number(document.getElementById('bank-amount').value) || 100,
+        };
+        try {
+          const res = await fetch('/api/settings/business', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ bankInfo }),
+          });
+          const json = await res.json();
+          if (json.success) {
+            const ok = document.getElementById('bank-success');
+            ok.classList.remove('hidden');
+            setTimeout(() => ok.classList.add('hidden'), 3000);
+          } else {
+            alert('Error: ' + (json.error || 'no se pudo guardar'));
+          }
+        } catch (err) {
+          alert('Error de conexión');
+        }
+      });
+    }
+
+    window.loadBankConfig = loadBankConfig;
 
     /* =========================================================
        SISTEMA DE NOTIFICACIONES - CAMPANA

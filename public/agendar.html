@@ -1771,6 +1771,9 @@
     let bankInfoLoaded = false;
     let depositReceiptUrl = null;
     let depositAmount = 100;
+    // depositRequired empieza true; si el admin lo apagó (bankInfo.enabled=false)
+    // se pone false al cargar /api/public/bank-info.
+    let depositRequired = true;
 
     async function loadBankInfo() {
       if (bankInfoLoaded) return;
@@ -1779,6 +1782,17 @@
         const res = await fetch('/api/public/bank-info');
         const json = await res.json();
         const b = (json.success && json.data) || {};
+
+        // Si el admin apagó el anticipo, ocultamos el card y permitimos
+        // enviar la solicitud sin comprobante.
+        if (b.enabled === false) {
+          document.getElementById('vn-deposit').style.display = 'none';
+          // El submit ya no exige depositReceiptUrl
+          depositRequired = false;
+          updateSubmitEnabled();
+          return;
+        }
+
         depositAmount = Number(b.depositAmount) || 100;
         document.getElementById('dep-amount').textContent = '$' + depositAmount;
         document.getElementById('dep-bank').textContent = b.bankName || '—';
@@ -1871,8 +1885,9 @@
 
     function updateSubmitEnabled() {
       const btn = document.getElementById('btn-submit');
-      const ok = !!(selectedService && selectedDate && selectedTime && depositReceiptUrl);
-      btn.disabled = !ok;
+      const baseOk = !!(selectedService && selectedDate && selectedTime);
+      const depositOk = depositRequired ? !!depositReceiptUrl : true;
+      btn.disabled = !(baseOk && depositOk);
     }
 
     function renderServices() {

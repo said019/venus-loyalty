@@ -3196,20 +3196,34 @@ app.post('/api/public/lookup-card', async (req, res) => {
 });
 
 // GET /api/public/bank-info — datos bancarios públicos para el form de
-// agendar (CLABE, banco, titular, referencia). Sin secretos. Si una env
-// var no está, devuelve "" para que el frontend muestre placeholder.
-app.get('/api/public/bank-info', (_req, res) => {
-  res.json({
-    success: true,
-    data: {
-      bankName: process.env.BANK_NAME || '',
-      accountHolder: process.env.BANK_ACCOUNT_HOLDER || '',
-      clabe: process.env.BANK_CLABE || '',
-      accountNumber: process.env.BANK_ACCOUNT_NUMBER || '',
-      reference: process.env.BANK_REFERENCE || 'Tu nombre y fecha de cita',
-      depositAmount: Number(process.env.DEPOSIT_AMOUNT) || 100,
-    },
-  });
+// agendar. Prioriza lo guardado en Admin → Configuración (Firestore);
+// si no hay nada, cae a env vars. Sin secretos (CLABE es pública para
+// el cliente, no la api_secret de Cloudinary).
+app.get('/api/public/bank-info', async (_req, res) => {
+  try {
+    let bankInfo = {};
+    try {
+      const doc = await firestore.collection('settings').doc('business').get();
+      if (doc.exists) bankInfo = doc.data().bankInfo || {};
+    } catch (e) {
+      console.warn('[bank-info] Firestore read failed, falling back to env:', e.message);
+    }
+    res.json({
+      success: true,
+      data: {
+        bankName:      bankInfo.bankName      || process.env.BANK_NAME           || '',
+        accountHolder: bankInfo.accountHolder || process.env.BANK_ACCOUNT_HOLDER || '',
+        clabe:         bankInfo.clabe         || process.env.BANK_CLABE          || '',
+        accountNumber: bankInfo.accountNumber || process.env.BANK_ACCOUNT_NUMBER || '',
+        reference:     bankInfo.reference     || process.env.BANK_REFERENCE      || 'Tu nombre y fecha de cita',
+        depositAmount: Number(bankInfo.depositAmount) || Number(process.env.DEPOSIT_AMOUNT) || 100,
+        enabled:       bankInfo.enabled !== false,  // si el admin lo apaga, no se pide anticipo
+      },
+    });
+  } catch (err) {
+    console.error('[bank-info]', err);
+    res.json({ success: false, data: {} });
+  }
 });
 
 // POST /api/public/upload-receipt — sube comprobante de transferencia a
