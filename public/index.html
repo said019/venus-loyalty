@@ -809,13 +809,15 @@
     }
 
     :root {
-      --porcelain: #f8f3ed;
-      --linen: #ece2d6;
-      --ink: #243026;
-      --moss: #7f8a62;
-      --moss-deep: #596244;
-      --clay: #b98162;
-      --petal: #e6c8bd;
+      --venus-brand-sage: #8b947d;
+      --venus-brand-cream: #f9ead8;
+      --porcelain: #fbf7ef;
+      --linen: #efe4d6;
+      --ink: #263123;
+      --moss: #8b947d;
+      --moss-deep: #68725c;
+      --clay: #a9826e;
+      --petal: #ead1c4;
     }
 
     html {
@@ -825,8 +827,8 @@
     .venus-landing {
       min-height: 100dvh;
       background:
-        radial-gradient(circle at 16% 9%, rgba(185, 129, 98, 0.16), transparent 32rem),
-        linear-gradient(135deg, #fbf8f3 0%, var(--porcelain) 48%, #e7ddd1 100%);
+        radial-gradient(circle at 16% 9%, rgba(249, 234, 216, 0.22), transparent 32rem),
+        linear-gradient(180deg, var(--venus-brand-cream) 0%, var(--porcelain) 100%);
       color: var(--ink);
       overflow: hidden;
       position: relative;
@@ -839,20 +841,41 @@
       pointer-events: none;
       opacity: 0.34;
       background-image:
-        linear-gradient(rgba(36, 48, 38, 0.035) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(36, 48, 38, 0.03) 1px, transparent 1px);
+        linear-gradient(rgba(249, 234, 216, 0.12) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(249, 234, 216, 0.10) 1px, transparent 1px);
       background-size: 58px 58px;
       mask-image: linear-gradient(to bottom, rgba(0,0,0,.75), transparent 78%);
       z-index: 0;
+    }
+
+    .venus-landing::after {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto;
+      height: clamp(980px, 78vw, 1260px);
+      background: var(--venus-brand-sage);
+      z-index: 0;
+      pointer-events: none;
     }
 
     .venus-nav {
       position: sticky;
       top: 0;
       z-index: 30;
-      background: rgba(248, 243, 237, 0.82);
+      background: rgba(139, 148, 125, 0.92);
       backdrop-filter: blur(18px);
-      border-bottom: 1px solid rgba(36, 48, 38, 0.08);
+      border-bottom: 1px solid rgba(249, 234, 216, 0.22);
+      box-shadow: 0 16px 40px rgba(38, 49, 35, 0.08);
+    }
+
+    .venus-nav .font-playfair,
+    .venus-nav a,
+    .venus-nav .leading-tight div:last-child {
+      color: var(--venus-brand-cream) !important;
+    }
+
+    .venus-nav img {
+      background: rgba(249, 234, 216, 0.92);
     }
 
     .venus-shell {
@@ -869,13 +892,14 @@
       gap: clamp(28px, 5vw, 82px);
       align-items: center;
       padding: clamp(44px, 7vw, 92px) 0 clamp(34px, 6vw, 72px);
+      color: var(--venus-brand-cream);
     }
 
     .venus-kicker {
       display: inline-flex;
       align-items: center;
       gap: 10px;
-      color: var(--moss-deep);
+      color: rgba(249, 234, 216, 0.86);
       font-size: 12px;
       font-weight: 800;
       letter-spacing: 0.16em;
@@ -904,7 +928,7 @@
     .venus-lede {
       max-width: 58ch;
       margin-top: 24px;
-      color: rgba(36, 48, 38, 0.76);
+      color: rgba(249, 234, 216, 0.82);
       font-size: clamp(17px, 1.7vw, 20px);
       line-height: 1.75;
     }
@@ -934,24 +958,24 @@
     }
 
     .venus-btn-primary {
-      background: var(--ink);
-      color: #f8f3ed;
-      box-shadow: 0 18px 42px rgba(36, 48, 38, 0.18);
+      background: var(--venus-brand-cream);
+      color: var(--ink);
+      box-shadow: 0 18px 42px rgba(38, 49, 35, 0.20);
     }
 
     .venus-btn-primary:hover {
-      background: var(--moss-deep);
+      background: #fff2df;
       transform: translateY(-2px);
     }
 
     .venus-btn-secondary {
-      color: var(--ink);
-      border: 1px solid rgba(36, 48, 38, 0.18);
-      background: rgba(255, 255, 255, 0.34);
+      color: var(--venus-brand-cream);
+      border: 1px solid rgba(249, 234, 216, 0.38);
+      background: rgba(249, 234, 216, 0.10);
     }
 
     .venus-btn-secondary:hover {
-      background: rgba(255,255,255,0.72);
+      background: rgba(249,234,216,0.18);
       transform: translateY(-2px);
     }
 
@@ -961,7 +985,7 @@
       overflow: hidden;
       position: relative;
       box-shadow: 0 34px 88px rgba(36, 48, 38, 0.22);
-      background: var(--linen);
+      background: var(--venus-brand-cream);
       isolation: isolate;
     }
 
@@ -1012,12 +1036,12 @@
       grid-template-columns: 1.15fr 0.85fr 1fr;
       gap: 1px;
       margin-top: 8px;
-      border: 1px solid rgba(36, 48, 38, 0.10);
-      background: rgba(36, 48, 38, 0.10);
+      border: 1px solid rgba(104, 114, 92, 0.18);
+      background: rgba(104, 114, 92, 0.18);
     }
 
     .venus-proof div {
-      background: rgba(248, 243, 237, 0.64);
+      background: rgba(249, 234, 216, 0.82);
       padding: clamp(18px, 2.6vw, 30px);
     }
 
@@ -1089,11 +1113,11 @@
     }
 
     .ritual-panel:nth-child(2) {
-      background: #d9c7b7;
+      background: #d7dccd;
     }
 
     .ritual-panel:nth-child(3) {
-      background: #e9dfd2;
+      background: #f3e4d2;
     }
 
     .ritual-panel h3 {
@@ -1139,23 +1163,32 @@
 
     .venus-access-card {
       border-radius: 30px;
-      background: rgba(248, 243, 237, 0.88);
-      border: 1px solid rgba(36, 48, 38, 0.12);
-      box-shadow: 0 28px 70px rgba(36, 48, 38, 0.16);
+      background: rgba(249, 234, 216, 0.92);
+      border: 1px solid rgba(104, 114, 92, 0.18);
+      box-shadow: 0 28px 70px rgba(38, 49, 35, 0.18);
       padding: clamp(22px, 3vw, 34px);
     }
 
+    .venus-access-card .venus-btn-primary {
+      background: var(--ink);
+      color: var(--venus-brand-cream);
+    }
+
+    .venus-access-card .venus-btn-primary:hover {
+      background: var(--moss-deep);
+    }
+
     .venus-form-panel {
-      background: rgba(255,255,255,0.46);
-      border: 1px solid rgba(36,48,38,.10);
+      background: rgba(251,247,239,0.60);
+      border: 1px solid rgba(104,114,92,.16);
       border-radius: 22px;
       padding: 24px;
     }
 
     .venus-input {
       width: 100%;
-      background: rgba(255,255,255,.82);
-      border: 1px solid rgba(36,48,38,.16);
+      background: rgba(251,247,239,.88);
+      border: 1px solid rgba(104,114,92,.22);
       border-radius: 14px;
       padding: 14px 15px;
       color: var(--ink);
@@ -1175,20 +1208,20 @@
       gap: 6px;
       padding: 6px;
       border-radius: 18px;
-      background: rgba(36,48,38,.08);
+      background: rgba(104,114,92,.14);
     }
 
     .venus-tab-active {
-      background: #fbf8f3;
+      background: var(--venus-brand-cream);
       color: var(--ink);
-      box-shadow: 0 8px 22px rgba(36,48,38,.10);
+      box-shadow: 0 8px 22px rgba(38,49,35,.11);
     }
 
     .venus-cta-band {
       margin-top: 52px;
       padding: clamp(26px, 4vw, 42px);
-      background: var(--ink);
-      color: #fbf8f3;
+      background: var(--moss);
+      color: var(--venus-brand-cream);
       display: grid;
       grid-template-columns: 1fr auto;
       gap: 24px;
@@ -1246,6 +1279,10 @@
 
       .venus-form-panel {
         padding: 18px;
+      }
+
+      .venus-landing::after {
+        height: 1460px;
       }
     }
   </style>
