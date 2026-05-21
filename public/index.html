@@ -2225,6 +2225,12 @@
         a.href = `/agendar.html?cardId=${encodeURIComponent(cardId)}`;
       });
 
+      // Recordar la identidad en ESTE dispositivo para que /agendar.html
+      // reconozca al cliente sin pedirle el WhatsApp otra vez.
+      try {
+        localStorage.setItem('venus_card', JSON.stringify({ cardId, name, phone }));
+      } catch (e) { /* localStorage no disponible (modo privado) → ignorar */ }
+
       // Google Wallet
       document.getElementById("gwallet").onclick = async (ev) => {
         ev.preventDefault();
@@ -2284,6 +2290,13 @@
     }
 
     // Load card from URL
+    // "Mi tarjeta" desde otra página llega con ?login=1: abrir la pestaña
+    // "Ya tengo tarjeta" y bajar a la sección de lealtad.
+    if (params.get('login') === '1') {
+      try { showTab('login'); } catch (e) {}
+      document.getElementById('lealtad')?.scrollIntoView({ behavior: 'smooth' });
+    }
+
     if (urlCardId) {
       fetch(`/api/card/${encodeURIComponent(urlCardId)}`)
         .then(res => res.ok ? res.json() : Promise.reject())
