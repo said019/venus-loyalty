@@ -774,13 +774,13 @@
         left: 0;
         z-index: 1000;
         margin-top: 8px;
-        background: #1a1a1a;
-        /* Solid background */
+        background: var(--bg-tertiary, #ffffff);
+        /* Solid background — usa token para respetar light/dark */
         border: 1px solid var(--line);
         border-radius: 12px;
         padding: 16px;
         width: 300px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
         min-width: 280px;
       }
 
@@ -809,20 +809,20 @@
         right: 0;
         z-index: 1001;
         margin-top: 4px;
-        background: #1a1a1a;
+        background: var(--bg-tertiary, #ffffff);
         border: 1px solid var(--line);
         border-radius: 8px;
         max-height: 200px;
         overflow-y: auto;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
       }
 
       .dropdown-item {
         padding: 10px 12px;
         cursor: pointer;
         font-size: 13px;
-        color: var(--ink);
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        color: var(--text-primary, var(--ink));
+        border-bottom: 1px solid var(--line);
         transition: background 0.2s;
       }
 
@@ -831,13 +831,13 @@
       }
 
       .dropdown-item:hover {
-        background: rgba(255, 255, 255, 0.1);
+        background: var(--bg-hover, color-mix(in oklch, var(--venus) 12%, transparent));
       }
 
       .dropdown-item .item-meta {
         display: block;
         font-size: 11px;
-        color: var(--muted);
+        color: var(--text-muted, var(--muted));
         margin-top: 2px;
       }
 
@@ -850,9 +850,9 @@
       }
 
       .calendar-nav-btn {
-        background: rgba(255, 255, 255, 0.1);
+        background: var(--bg-hover, color-mix(in oklch, var(--venus) 8%, transparent));
         border: 1px solid var(--line);
-        color: #fff;
+        color: var(--text-primary, var(--ink));
         padding: 6px 10px;
         border-radius: 6px;
         cursor: pointer;
