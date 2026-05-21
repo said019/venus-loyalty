@@ -3,7 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Venus Lealtad</title>
+  <title>Venus Cosmetología | Agenda tu ritual facial en San Juan del Río</title>
+  <meta name="description" content="Cosmetología facial en San Juan del Río con diagnóstico, rituales personalizados, lealtad digital y atención cálida. Agenda tu cita en Venus.">
+  <meta property="og:title" content="Venus Cosmetología | Piel cuidada con calma">
+  <meta property="og:description" content="Rituales faciales, depilación, masajes y coffee bar para una visita que se siente personal desde que agendas.">
+  <meta property="og:image" content="/assets/logo.png">
   <link rel="icon" href="/assets/logo.png">
   <link rel="manifest" href="/manifest.json">
   <link rel="apple-touch-icon" href="/assets/logo.png">
@@ -14,7 +18,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Prata&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script>
     tailwind.config = {
       theme: {
@@ -28,8 +32,8 @@
             'venus-sage': '#a8b892',
           },
           fontFamily: {
-            'playfair': ['Playfair Display', 'serif'],
-            'inter': ['Inter', 'sans-serif'],
+            'playfair': ['Prata', 'serif'],
+            'inter': ['Manrope', 'sans-serif'],
           },
           boxShadow: {
             'elevated': '0 20px 50px rgba(0, 0, 0, 0.3)',
@@ -39,8 +43,8 @@
     }
   </script>
   <style>
-    .font-playfair { font-family: 'Playfair Display', serif; }
-    .font-inter { font-family: 'Inter', sans-serif; }
+    .font-playfair { font-family: 'Prata', serif; }
+    .font-inter { font-family: 'Manrope', sans-serif; }
     
     /* Custom date input styling */
     input[type="date"]::-webkit-calendar-picker-indicator {
@@ -121,7 +125,7 @@
     }
 
     .wallet-header h3 {
-      font-family: 'Playfair Display', serif;
+      font-family: 'Prata', serif;
       font-size: 20px;
       font-weight: 700;
       color: white;
@@ -631,7 +635,7 @@
     }
 
     /* ============================================================
-       /mi-tarjeta — motion overdrive
+       /mi-tarjeta motion overdrive
        Animaciones para la tarjeta de lealtad del cliente.
        ============================================================ */
     :root {
@@ -803,6 +807,447 @@
       }
       .stamps-grid .stamp { opacity: 1; transform: none; }
     }
+
+    :root {
+      --porcelain: #f8f3ed;
+      --linen: #ece2d6;
+      --ink: #243026;
+      --moss: #7f8a62;
+      --moss-deep: #596244;
+      --clay: #b98162;
+      --petal: #e6c8bd;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    .venus-landing {
+      min-height: 100dvh;
+      background:
+        radial-gradient(circle at 16% 9%, rgba(185, 129, 98, 0.16), transparent 32rem),
+        linear-gradient(135deg, #fbf8f3 0%, var(--porcelain) 48%, #e7ddd1 100%);
+      color: var(--ink);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .venus-landing::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.34;
+      background-image:
+        linear-gradient(rgba(36, 48, 38, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(36, 48, 38, 0.03) 1px, transparent 1px);
+      background-size: 58px 58px;
+      mask-image: linear-gradient(to bottom, rgba(0,0,0,.75), transparent 78%);
+      z-index: 0;
+    }
+
+    .venus-nav {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      background: rgba(248, 243, 237, 0.82);
+      backdrop-filter: blur(18px);
+      border-bottom: 1px solid rgba(36, 48, 38, 0.08);
+    }
+
+    .venus-shell {
+      width: min(1180px, calc(100% - 32px));
+      margin-inline: auto;
+      position: relative;
+      z-index: 1;
+    }
+
+    .venus-hero {
+      min-height: calc(100dvh - 84px);
+      display: grid;
+      grid-template-columns: minmax(0, 1.02fr) minmax(330px, 0.78fr);
+      gap: clamp(28px, 5vw, 82px);
+      align-items: center;
+      padding: clamp(44px, 7vw, 92px) 0 clamp(34px, 6vw, 72px);
+    }
+
+    .venus-kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--moss-deep);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    .venus-kicker::before {
+      content: "";
+      width: 38px;
+      height: 1px;
+      background: currentColor;
+      opacity: 0.45;
+    }
+
+    .venus-title {
+      font-family: 'Prata', serif;
+      font-size: clamp(46px, 8.4vw, 112px);
+      line-height: 0.98;
+      font-weight: 400;
+      letter-spacing: 0;
+      max-width: 10.5ch;
+      margin-top: clamp(20px, 3vw, 34px);
+      text-wrap: balance;
+    }
+
+    .venus-lede {
+      max-width: 58ch;
+      margin-top: 24px;
+      color: rgba(36, 48, 38, 0.76);
+      font-size: clamp(17px, 1.7vw, 20px);
+      line-height: 1.75;
+    }
+
+    .venus-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 32px;
+    }
+
+    .venus-btn {
+      min-height: 50px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 14px 22px;
+      border-radius: 999px;
+      font-weight: 800;
+      font-size: 14px;
+      transition: transform .28s cubic-bezier(0.16, 1, 0.3, 1), background .28s ease, color .28s ease;
+    }
+
+    .venus-btn:active {
+      transform: scale(0.98);
+    }
+
+    .venus-btn-primary {
+      background: var(--ink);
+      color: #f8f3ed;
+      box-shadow: 0 18px 42px rgba(36, 48, 38, 0.18);
+    }
+
+    .venus-btn-primary:hover {
+      background: var(--moss-deep);
+      transform: translateY(-2px);
+    }
+
+    .venus-btn-secondary {
+      color: var(--ink);
+      border: 1px solid rgba(36, 48, 38, 0.18);
+      background: rgba(255, 255, 255, 0.34);
+    }
+
+    .venus-btn-secondary:hover {
+      background: rgba(255,255,255,0.72);
+      transform: translateY(-2px);
+    }
+
+    .venus-photo-frame {
+      min-height: 620px;
+      border-radius: 0 42px 42px 0;
+      overflow: hidden;
+      position: relative;
+      box-shadow: 0 34px 88px rgba(36, 48, 38, 0.22);
+      background: var(--linen);
+      isolation: isolate;
+    }
+
+    .venus-photo-frame img {
+      width: 100%;
+      height: 100%;
+      min-height: 620px;
+      object-fit: cover;
+      filter: saturate(0.82) contrast(0.98);
+      transform: scale(1.02);
+    }
+
+    .venus-photo-frame::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(36, 48, 38, 0.58), transparent 45%);
+      z-index: 1;
+    }
+
+    .venus-hero-note {
+      position: absolute;
+      left: 24px;
+      right: 24px;
+      bottom: 24px;
+      z-index: 2;
+      color: #fbf8f3;
+      display: grid;
+      gap: 8px;
+    }
+
+    .venus-hero-note strong {
+      font-family: 'Prata', serif;
+      font-size: 28px;
+      font-weight: 400;
+      line-height: 1.1;
+    }
+
+    .venus-hero-note span {
+      max-width: 34ch;
+      color: rgba(251, 248, 243, 0.78);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .venus-proof {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr 1fr;
+      gap: 1px;
+      margin-top: 8px;
+      border: 1px solid rgba(36, 48, 38, 0.10);
+      background: rgba(36, 48, 38, 0.10);
+    }
+
+    .venus-proof div {
+      background: rgba(248, 243, 237, 0.64);
+      padding: clamp(18px, 2.6vw, 30px);
+    }
+
+    .venus-proof strong {
+      display: block;
+      font-family: 'Prata', serif;
+      font-weight: 400;
+      font-size: clamp(28px, 3vw, 44px);
+      color: var(--ink);
+    }
+
+    .venus-proof span {
+      display: block;
+      margin-top: 8px;
+      color: rgba(36,48,38,.68);
+      line-height: 1.55;
+      font-size: 14px;
+    }
+
+    .venus-section {
+      padding: clamp(74px, 10vw, 132px) 0;
+    }
+
+    .venus-section-head {
+      display: grid;
+      grid-template-columns: minmax(0, .86fr) minmax(260px, .52fr);
+      gap: clamp(24px, 4vw, 70px);
+      align-items: end;
+      margin-bottom: clamp(28px, 5vw, 58px);
+    }
+
+    .venus-section h2 {
+      font-family: 'Prata', serif;
+      font-size: clamp(34px, 5vw, 70px);
+      font-weight: 400;
+      line-height: 1.04;
+      text-wrap: balance;
+    }
+
+    .venus-section p {
+      color: rgba(36,48,38,.70);
+      line-height: 1.75;
+    }
+
+    .venus-ritual-grid {
+      display: grid;
+      grid-template-columns: 1.1fr .9fr;
+      gap: 18px;
+    }
+
+    .ritual-panel {
+      min-height: 260px;
+      position: relative;
+      overflow: hidden;
+      padding: clamp(24px, 3vw, 38px);
+      background: rgba(255,255,255,.42);
+      border: 1px solid rgba(36,48,38,.10);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .ritual-panel.large {
+      min-height: 430px;
+      background:
+        linear-gradient(to top, rgba(36,48,38,.66), rgba(36,48,38,.10)),
+        url('https://images.pexels.com/photos/3985332/pexels-photo-3985332.jpeg?auto=compress&cs=tinysrgb&w=1600') center / cover;
+      color: #fbf8f3;
+    }
+
+    .ritual-panel:nth-child(2) {
+      background: #d9c7b7;
+    }
+
+    .ritual-panel:nth-child(3) {
+      background: #e9dfd2;
+    }
+
+    .ritual-panel h3 {
+      font-family: 'Prata', serif;
+      font-size: clamp(25px, 3vw, 42px);
+      font-weight: 400;
+      line-height: 1.08;
+    }
+
+    .ritual-panel p {
+      max-width: 34ch;
+      margin-top: 14px;
+      color: rgba(36,48,38,.72);
+    }
+
+    .ritual-panel.large p {
+      color: rgba(251,248,243,.78);
+    }
+
+    .ritual-index {
+      font-weight: 800;
+      letter-spacing: .12em;
+      font-size: 12px;
+      color: rgba(36,48,38,.52);
+      margin-bottom: 36px;
+    }
+
+    .ritual-panel.large .ritual-index {
+      color: rgba(251,248,243,.66);
+    }
+
+    .venus-access {
+      display: grid;
+      grid-template-columns: minmax(0, .75fr) minmax(340px, 430px);
+      gap: clamp(28px, 5vw, 88px);
+      align-items: start;
+      padding-bottom: clamp(72px, 10vw, 128px);
+    }
+
+    .venus-access-copy {
+      padding-top: 24px;
+    }
+
+    .venus-access-card {
+      border-radius: 30px;
+      background: rgba(248, 243, 237, 0.88);
+      border: 1px solid rgba(36, 48, 38, 0.12);
+      box-shadow: 0 28px 70px rgba(36, 48, 38, 0.16);
+      padding: clamp(22px, 3vw, 34px);
+    }
+
+    .venus-form-panel {
+      background: rgba(255,255,255,0.46);
+      border: 1px solid rgba(36,48,38,.10);
+      border-radius: 22px;
+      padding: 24px;
+    }
+
+    .venus-input {
+      width: 100%;
+      background: rgba(255,255,255,.82);
+      border: 1px solid rgba(36,48,38,.16);
+      border-radius: 14px;
+      padding: 14px 15px;
+      color: var(--ink);
+      transition: box-shadow .22s ease, border-color .22s ease, background .22s ease;
+    }
+
+    .venus-input:focus {
+      outline: none;
+      border-color: rgba(127,138,98,.72);
+      background: rgba(255,255,255,.96);
+      box-shadow: 0 0 0 4px rgba(127,138,98,.14);
+    }
+
+    .venus-tabbar {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      padding: 6px;
+      border-radius: 18px;
+      background: rgba(36,48,38,.08);
+    }
+
+    .venus-tab-active {
+      background: #fbf8f3;
+      color: var(--ink);
+      box-shadow: 0 8px 22px rgba(36,48,38,.10);
+    }
+
+    .venus-cta-band {
+      margin-top: 52px;
+      padding: clamp(26px, 4vw, 42px);
+      background: var(--ink);
+      color: #fbf8f3;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 24px;
+      align-items: center;
+    }
+
+    .venus-cta-band p {
+      color: rgba(251,248,243,.72);
+      max-width: 62ch;
+      margin-top: 10px;
+    }
+
+    @media (max-width: 900px) {
+      .venus-hero,
+      .venus-section-head,
+      .venus-access {
+        grid-template-columns: 1fr;
+      }
+
+      .venus-photo-frame,
+      .venus-photo-frame img {
+        min-height: 420px;
+        border-radius: 30px;
+      }
+
+      .venus-proof,
+      .venus-ritual-grid,
+      .venus-cta-band {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 540px) {
+      .venus-shell {
+        width: min(100% - 22px, 1180px);
+      }
+
+      .venus-nav .leading-tight div:last-child {
+        display: none;
+      }
+
+      .venus-title {
+        font-size: clamp(40px, 14vw, 64px);
+      }
+
+      .venus-actions,
+      .venus-btn {
+        width: 100%;
+      }
+
+      .venus-photo-frame,
+      .venus-photo-frame img {
+        min-height: 360px;
+      }
+
+      .venus-form-panel {
+        padding: 18px;
+      }
+    }
   </style>
 </head>
 <body class="font-inter bg-venus-forest min-h-screen">
@@ -812,156 +1257,202 @@
     <div class="spinner"></div>
   </div>
 
-  <!-- VISTA: CREAR TARJETA -->
-  <div id="view-create" class="min-h-screen flex items-center justify-center p-4">
-    <div class="w-full max-w-md animate-fade-in-up">
-      <!-- Card Container -->
-      <div class="bg-gradient-to-br from-venus-cream to-venus-cream-dark rounded-3xl p-8 shadow-elevated">
-        <!-- Logo Header -->
-        <div class="flex items-center justify-center gap-3 mb-8">
-          <img src="/assets/logo.png" alt="Venus" class="w-14 h-14 rounded-xl">
-          <div>
-            <h1 class="font-playfair text-2xl font-bold text-venus-forest">Venus Lealtad</h1>
-            <p class="text-venus-olive-dark text-sm">Programa de Fidelidad</p>
+  <!-- VISTA: LANDING + CREAR TARJETA -->
+  <div id="view-create" class="venus-landing">
+    <nav class="venus-nav">
+      <div class="venus-shell flex items-center justify-between py-4">
+        <a href="/" class="flex items-center gap-3" aria-label="Venus Cosmetología">
+          <img src="/assets/logo.png" alt="Venus Cosmetología" class="h-11 w-11 rounded-xl bg-white/70 p-1">
+          <div class="leading-tight">
+            <div class="font-playfair text-xl text-[var(--ink)]">Venus</div>
+            <div class="text-[10px] font-extrabold tracking-[0.22em] uppercase text-[rgba(36,48,38,.52)]">Cosmetología</div>
+          </div>
+        </a>
+        <div class="hidden md:flex items-center gap-7 text-sm font-bold text-[rgba(36,48,38,.72)]">
+          <a href="#rituales" class="hover:text-[var(--ink)] transition-colors">Rituales</a>
+          <a href="#lealtad" class="hover:text-[var(--ink)] transition-colors">Lealtad</a>
+          <a href="/landing.html#agendar" class="venus-btn venus-btn-primary !min-h-11 !py-2.5">Agendar</a>
+        </div>
+        <a href="/landing.html#agendar" class="md:hidden venus-btn venus-btn-primary !min-h-10 !py-2 !px-4">Agendar</a>
+      </div>
+    </nav>
+
+    <main>
+      <section class="venus-shell venus-hero">
+        <div class="animate-fade-in-up">
+          <span class="venus-kicker">San Juan del Río</span>
+          <h1 class="venus-title">Tu piel merece una visita que se sienta personal.</h1>
+          <p class="venus-lede">
+            En Venus cada cita empieza con calma: escuchamos lo que buscas, leemos tu piel y diseñamos un ritual facial, de depilación o relajación para que salgas viéndote natural, descansada y cuidada.
+          </p>
+          <div class="venus-actions">
+            <a href="/landing.html#agendar" class="venus-btn venus-btn-primary">
+              Quiero agendar mi cita
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14m-6-6 6 6-6 6"/>
+              </svg>
+            </a>
+            <a href="#lealtad" class="venus-btn venus-btn-secondary">Crear mi tarjeta Venus</a>
           </div>
         </div>
 
-        <!-- Intro Badge -->
-        <div class="flex justify-center mb-6">
-          <span class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-venus-olive/20 text-venus-forest text-sm font-medium">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/>
-            </svg>
-            Gana sellos y obtén premios
-          </span>
+        <aside class="venus-photo-frame animate-fade-in-up" style="animation-delay:.12s;">
+          <img src="https://images.pexels.com/photos/7446659/pexels-photo-7446659.jpeg?auto=compress&cs=tinysrgb&w=1600" alt="Tratamiento facial profesional en cabina estética">
+          <div class="venus-hero-note">
+            <strong>Rituales con diagnóstico, manos expertas y seguimiento.</strong>
+            <span>La página no te manda a perderte: te lleva directo a reservar o a recuperar tu tarjeta de lealtad.</span>
+          </div>
+        </aside>
+      </section>
+
+      <section class="venus-shell">
+        <div class="venus-proof" aria-label="Motivos para elegir Venus">
+          <div>
+            <strong>1:1</strong>
+            <span>Atención personalizada, sin tratamientos genéricos ni presión por comprar de más.</span>
+          </div>
+          <div>
+            <strong>8</strong>
+            <span>Sellos en tu tarjeta digital para volver por tu recompensa.</span>
+          </div>
+          <div>
+            <strong>Café</strong>
+            <span>Ahora tu visita también puede cerrar con algo rico en Venus The Coffee Bar.</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="venus-shell venus-section" id="rituales">
+        <div class="venus-section-head">
+          <h2>No son “servicios”, son formas de llegar a cómo quieres verte.</h2>
+          <p>
+            Agrupamos la experiencia para que elegir sea fácil: brillo, calma, limpieza, suavidad o una pausa completa. Tú llegas con una intención; nosotras armamos el plan.
+          </p>
         </div>
 
-        <!-- Tabs -->
-        <div class="flex bg-venus-forest/10 rounded-xl p-1 mb-6">
-          <button id="tab-create" onclick="showTab('create')" class="flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all bg-white text-venus-forest shadow-sm">
-            Nueva Tarjeta
-          </button>
-          <button id="tab-login" onclick="showTab('login')" class="flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all text-venus-forest/60 hover:text-venus-forest">
-            Ya tengo tarjeta
-          </button>
+        <div class="venus-ritual-grid">
+          <article class="ritual-panel large">
+            <div>
+              <div class="ritual-index">01 / Piel luminosa</div>
+              <h3>Faciales, limpieza profunda y análisis de piel.</h3>
+            </div>
+            <p>Para poros, textura, manchas, hidratación o cuando quieres que tu piel vuelva a sentirse viva.</p>
+          </article>
+          <article class="ritual-panel">
+            <div>
+              <div class="ritual-index">02 / Suavidad</div>
+              <h3>Depilación y detalles que cambian el rostro.</h3>
+            </div>
+            <p>Cejas, bozo, facial y corporal con cuidado para que el resultado se vea limpio, no forzado.</p>
+          </article>
+          <article class="ritual-panel">
+            <div>
+              <div class="ritual-index">03 / Pausa</div>
+              <h3>Masajes, rituales corporales y coffee bar.</h3>
+            </div>
+            <p>Ven por tu piel, quédate por el descanso. Una visita que también se siente como respirar.</p>
+          </article>
         </div>
 
-        <!-- Form Card: CREAR -->
-        <div id="form-create" class="bg-venus-forest/5 rounded-2xl p-6">
-          <h2 class="text-venus-forest text-xl font-semibold text-center mb-1">Crea tu tarjeta</h2>
-          <p class="text-venus-olive-dark text-sm text-center mb-6">Ingresa tus datos para comenzar</p>
+        <div class="venus-cta-band">
+          <div>
+            <h3 class="font-playfair text-3xl md:text-5xl leading-tight">Si ya lo estás pensando, agenda.</h3>
+            <p>La mejor cita es la que se aparta antes de que la semana se llene. Elige tu servicio y nosotras te confirmamos.</p>
+          </div>
+          <a href="/landing.html#agendar" class="venus-btn bg-[#fbf8f3] text-[var(--ink)] hover:bg-[var(--linen)]">Reservar ahora</a>
+        </div>
+      </section>
 
-          <!-- Form -->
-          <form id="create-form" class="space-y-5">
-            <!-- Nombre -->
-            <div class="space-y-2">
-              <label class="text-venus-forest/70 text-xs font-semibold tracking-wider block">NOMBRE COMPLETO</label>
-              <input
-                type="text"
-                id="name"
-                name="name"
-                placeholder="Tu nombre"
-                required
-                class="w-full bg-white/80 border border-venus-forest/20 rounded-xl px-4 py-3.5 text-venus-forest placeholder:text-venus-forest/40
-                       focus:outline-none focus:ring-2 focus:ring-venus-olive/50 focus:bg-white focus:border-transparent
-                       transition-all duration-300"
-              />
+      <section class="venus-shell venus-access" id="lealtad">
+        <div class="venus-access-copy">
+          <span class="venus-kicker">Tarjeta digital</span>
+          <h2 class="font-playfair text-[clamp(34px,5vw,72px)] leading-[1.04] mt-7 text-[var(--ink)]">Que volver también se sienta bonito.</h2>
+          <p class="mt-6 text-[rgba(36,48,38,.72)] leading-8 max-w-[62ch]">
+            Crea tu tarjeta Venus, guarda tus sellos y consulta tu progreso cada vez que vuelvas. Si ya tienes una, entra con tu teléfono y llévala contigo.
+          </p>
+          <div class="mt-9 grid gap-4 max-w-xl">
+            <div class="flex gap-4 items-start">
+              <span class="mt-1 h-2.5 w-2.5 rounded-full bg-[var(--moss)]"></span>
+              <p class="text-[rgba(36,48,38,.72)]">Ganas sellos por tus visitas y servicios participantes.</p>
             </div>
-
-            <!-- Teléfono -->
-            <div class="space-y-2">
-              <label class="text-venus-forest/70 text-xs font-semibold tracking-wider block">TELÉFONO</label>
-              <input
-                type="tel"
-                id="phone"
-                name="phone"
-                placeholder="10 dígitos"
-                maxlength="10"
-                pattern="[0-9]{10}"
-                required
-                class="w-full bg-white/80 border border-venus-forest/20 rounded-xl px-4 py-3.5 text-venus-forest placeholder:text-venus-forest/40
-                       focus:outline-none focus:ring-2 focus:ring-venus-olive/50 focus:bg-white focus:border-transparent
-                       transition-all duration-300"
-              />
+            <div class="flex gap-4 items-start">
+              <span class="mt-1 h-2.5 w-2.5 rounded-full bg-[var(--clay)]"></span>
+              <p class="text-[rgba(36,48,38,.72)]">Puedes agregarla a Apple Wallet o Google Wallet cuando esté lista.</p>
             </div>
+          </div>
+        </div>
 
-            <!-- Fecha de Nacimiento -->
-            <div class="space-y-2">
-              <label class="text-venus-forest/70 text-xs font-semibold tracking-wider block">FECHA DE NACIMIENTO</label>
-              <input
-                type="date"
-                id="birthdate"
-                name="birthdate"
-                required
-                class="w-full bg-white/80 border border-venus-forest/20 rounded-xl px-4 py-3.5 text-venus-forest
-                       focus:outline-none focus:ring-2 focus:ring-venus-olive/50 focus:bg-white focus:border-transparent
-                       transition-all duration-300 cursor-pointer"
-                style="color-scheme: light;"
-              />
+        <div class="venus-access-card animate-fade-in-up">
+          <div class="flex items-center gap-3 mb-6">
+            <img src="/assets/logo.png" alt="Venus" class="w-12 h-12 rounded-xl bg-white/70 p-1">
+            <div>
+              <h2 class="text-[var(--ink)] text-xl font-extrabold">Venus Lealtad</h2>
+              <p class="text-[rgba(36,48,38,.58)] text-sm">Tu acceso rápido</p>
             </div>
+          </div>
 
-            <!-- Error Message -->
-            <div id="error-message" class="bg-red-100 border border-red-300 text-red-700 px-4 py-3 rounded-xl text-sm hidden"></div>
-
-            <!-- Submit Button -->
-            <button
-              type="submit"
-              id="submit-btn"
-              class="w-full btn-shimmer text-white font-semibold py-4 rounded-xl mt-6
-                     flex items-center justify-center gap-2
-                     transition-all duration-300 hover:shadow-lg hover:shadow-venus-olive/30
-                     active:scale-[0.98]"
-            >
-              <span class="text-lg">✨</span>
-              <span>Crear mi tarjeta</span>
+          <div class="venus-tabbar mb-6">
+            <button id="tab-create" onclick="showTab('create')" class="venus-tab-active flex-1 py-3 px-4 rounded-xl text-sm font-extrabold transition-all">
+              Nueva tarjeta
             </button>
-          </form>
-        </div>
-
-        <!-- Form Card: LOGIN -->
-        <div id="form-login" class="bg-venus-forest/5 rounded-2xl p-6 hidden">
-          <h2 class="text-venus-forest text-xl font-semibold text-center mb-1">Accede a tu tarjeta</h2>
-          <p class="text-venus-olive-dark text-sm text-center mb-6">Ingresa tu número de teléfono</p>
-
-          <form id="login-form" class="space-y-5">
-            <div class="space-y-2">
-              <label class="text-venus-forest/70 text-xs font-semibold tracking-wider block">TELÉFONO</label>
-              <input
-                type="tel"
-                id="login-phone"
-                name="phone"
-                placeholder="10 dígitos"
-                maxlength="10"
-                pattern="[0-9]{10}"
-                required
-                class="w-full bg-white/80 border border-venus-forest/20 rounded-xl px-4 py-3.5 text-venus-forest placeholder:text-venus-forest/40
-                       focus:outline-none focus:ring-2 focus:ring-venus-olive/50 focus:bg-white focus:border-transparent
-                       transition-all duration-300"
-              />
-            </div>
-
-            <div id="login-error" class="bg-red-100 border border-red-300 text-red-700 px-4 py-3 rounded-xl text-sm hidden"></div>
-
-            <button
-              type="submit"
-              id="login-btn"
-              class="w-full btn-shimmer text-white font-semibold py-4 rounded-xl
-                     flex items-center justify-center gap-2
-                     transition-all duration-300 hover:shadow-lg hover:shadow-venus-olive/30
-                     active:scale-[0.98]"
-            >
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
-              </svg>
-              <span>Ver mi tarjeta</span>
+            <button id="tab-login" onclick="showTab('login')" class="flex-1 py-3 px-4 rounded-xl text-sm font-extrabold transition-all text-[rgba(36,48,38,.58)] hover:text-[var(--ink)]">
+              Ya tengo tarjeta
             </button>
-          </form>
-        </div>
+          </div>
 
-        <!-- Footer -->
-        <p class="text-venus-forest/40 text-xs text-center mt-6">© Venus Cosmetología — Programa de Lealtad</p>
-      </div>
-    </div>
+          <div id="form-create" class="venus-form-panel">
+            <h3 class="text-[var(--ink)] text-xl font-extrabold mb-1">Crea tu tarjeta</h3>
+            <p class="text-[rgba(36,48,38,.62)] text-sm mb-6">Tus datos se usan para identificar tu tarjeta y tus visitas.</p>
+
+            <form id="create-form" class="space-y-5">
+              <div class="space-y-2">
+                <label class="text-[rgba(36,48,38,.70)] text-xs font-extrabold tracking-[0.14em] uppercase block">Nombre completo</label>
+                <input type="text" id="name" name="name" placeholder="Tu nombre" required class="venus-input placeholder:text-[rgba(36,48,38,.36)]" />
+              </div>
+
+              <div class="space-y-2">
+                <label class="text-[rgba(36,48,38,.70)] text-xs font-extrabold tracking-[0.14em] uppercase block">Teléfono</label>
+                <input type="tel" id="phone" name="phone" placeholder="10 dígitos" maxlength="10" pattern="[0-9]{10}" required class="venus-input placeholder:text-[rgba(36,48,38,.36)]" />
+              </div>
+
+              <div class="space-y-2">
+                <label class="text-[rgba(36,48,38,.70)] text-xs font-extrabold tracking-[0.14em] uppercase block">Fecha de nacimiento</label>
+                <input type="date" id="birthdate" name="birthdate" required class="venus-input cursor-pointer" style="color-scheme: light;" />
+              </div>
+
+              <div id="error-message" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm hidden"></div>
+
+              <button type="submit" id="submit-btn" class="w-full venus-btn venus-btn-primary mt-6">
+                <span>Crear mi tarjeta</span>
+              </button>
+            </form>
+          </div>
+
+          <div id="form-login" class="venus-form-panel hidden">
+            <h3 class="text-[var(--ink)] text-xl font-extrabold mb-1">Accede a tu tarjeta</h3>
+            <p class="text-[rgba(36,48,38,.62)] text-sm mb-6">Ingresa tu número para ver tus sellos.</p>
+
+            <form id="login-form" class="space-y-5">
+              <div class="space-y-2">
+                <label class="text-[rgba(36,48,38,.70)] text-xs font-extrabold tracking-[0.14em] uppercase block">Teléfono</label>
+                <input type="tel" id="login-phone" name="phone" placeholder="10 dígitos" maxlength="10" pattern="[0-9]{10}" required class="venus-input placeholder:text-[rgba(36,48,38,.36)]" />
+              </div>
+
+              <div id="login-error" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm hidden"></div>
+
+              <button type="submit" id="login-btn" class="w-full venus-btn venus-btn-primary">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 0 1 2 2m4 0a6 6 0 0 1-7.743 5.743L11 17H9v2H7v2H4a1 1 0 0 1-1-1v-2.586a1 1 0 0 1 .293-.707l5.964-5.964A6 6 0 1 1 21 9Z"/>
+                </svg>
+                <span>Ver mi tarjeta</span>
+              </button>
+            </form>
+          </div>
+
+          <p class="text-[rgba(36,48,38,.44)] text-xs text-center mt-6">Venus Cosmetología, San Juan del Río</p>
+        </div>
+      </section>
+    </main>
   </div>
 
   <!-- VISTA: MI TARJETA (después de crear/cargar) -->
@@ -1189,7 +1680,7 @@
 
     <!-- Footer -->
     <footer class="border-t border-white/10 mt-12 py-6">
-      <p class="text-venus-cream/40 text-xs text-center">© Venus Cosmetología — Programa de Lealtad</p>
+      <p class="text-venus-cream/40 text-xs text-center">© Venus Cosmetología · Programa de Lealtad</p>
     </footer>
   </div>
 
@@ -1215,13 +1706,13 @@
       const formLogin = document.getElementById('form-login');
       
       if (tab === 'create') {
-        tabCreate.className = 'flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all bg-white text-venus-forest shadow-sm';
-        tabLogin.className = 'flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all text-venus-forest/60 hover:text-venus-forest';
+        tabCreate.className = 'venus-tab-active flex-1 py-3 px-4 rounded-xl text-sm font-extrabold transition-all';
+        tabLogin.className = 'flex-1 py-3 px-4 rounded-xl text-sm font-extrabold transition-all text-[rgba(36,48,38,.58)] hover:text-[var(--ink)]';
         formCreate.classList.remove('hidden');
         formLogin.classList.add('hidden');
       } else {
-        tabLogin.className = 'flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all bg-white text-venus-forest shadow-sm';
-        tabCreate.className = 'flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all text-venus-forest/60 hover:text-venus-forest';
+        tabLogin.className = 'venus-tab-active flex-1 py-3 px-4 rounded-xl text-sm font-extrabold transition-all';
+        tabCreate.className = 'flex-1 py-3 px-4 rounded-xl text-sm font-extrabold transition-all text-[rgba(36,48,38,.58)] hover:text-[var(--ink)]';
         formLogin.classList.remove('hidden');
         formCreate.classList.add('hidden');
       }
@@ -1310,7 +1801,7 @@
         submitBtn.innerHTML = '<div class="spinner w-5 h-5"></div><span>Creando...</span>';
       } else {
         submitBtn.disabled = false;
-        submitBtn.innerHTML = '<span class="text-lg">✨</span><span>Crear mi tarjeta</span>';
+        submitBtn.innerHTML = '<span>Crear mi tarjeta</span>';
       }
     }
 
@@ -1416,7 +1907,7 @@
       // Update reward info
       const rewardInfo = document.getElementById("reward-info");
       if (stamps >= max) {
-        rewardInfo.innerHTML = `<p class="text-venus-cream text-sm text-center font-semibold">🎉 ¡Felicidades! Tu próximo servicio es gratis</p>`;
+        rewardInfo.innerHTML = `<p class="text-venus-cream text-sm text-center font-semibold">Felicidades, tu próximo servicio es gratis</p>`;
       } else {
         document.getElementById("stamps-remaining").textContent = `${max - stamps} sellos`;
       }
@@ -1573,7 +2064,7 @@
         <div style="position:fixed;bottom:0;left:0;right:0;z-index:9999;padding:12px 16px;
           background:linear-gradient(135deg,#2d3a2d,#3a4a3a);
           border-top:2px solid #8c9668;display:flex;align-items:center;gap:12px;
-          box-shadow:0 -4px 20px rgba(0,0,0,0.3);font-family:Inter,sans-serif;">
+          box-shadow:0 -4px 20px rgba(0,0,0,0.3);font-family:Manrope,sans-serif;">
           <img src="/assets/logo.png" style="width:44px;height:44px;border-radius:10px;background:white;padding:3px;">
           <div style="flex:1;min-width:0;">
             <div style="color:#f5f0e8;font-weight:600;font-size:14px;">Venus Lealtad</div>
@@ -1613,7 +2104,7 @@
         <div style="position:fixed;bottom:0;left:0;right:0;z-index:9999;padding:16px;
           background:linear-gradient(135deg,#2d3a2d,#3a4a3a);
           border-top:2px solid #8c9668;text-align:center;
-          box-shadow:0 -4px 20px rgba(0,0,0,0.3);font-family:Inter,sans-serif;">
+          box-shadow:0 -4px 20px rgba(0,0,0,0.3);font-family:Manrope,sans-serif;">
           <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:8px;">
             <img src="/assets/logo.png" style="width:36px;height:36px;border-radius:8px;background:white;padding:2px;">
             <span style="color:#f5f0e8;font-weight:600;font-size:14px;">Instala Venus Lealtad</span>
@@ -1633,7 +2124,7 @@
 
   <script>
     // ============================================================
-    // /mi-tarjeta — motion engine
+    // /mi-tarjeta motion engine
     // Tilt 3D real en wallet-card + ripple en sellos activos.
     // ============================================================
     (function () {
