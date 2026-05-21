@@ -4073,7 +4073,7 @@ app.post('/api/public/request', async (req, res) => {
       return res.json({ success: false, error: 'Faltan campos requeridos' });
     }
 
-    // Pre-orden: si trajeron items, calculamos subtotal y aplicamos 5% off
+    // Pre-orden: si trajeron items, calculamos subtotal y aplicamos 10% off SOLO a la bebida
     // sobre el servicio. La pre-orden NO se cobra aquí — solo queda como
     // recordatorio para barra (se cobra al llegar). El descuento se aplica
     // al servicio para incentivar la pre-orden.
@@ -4084,10 +4084,12 @@ app.post('/api/public/request', async (req, res) => {
     const preorderSubtotal = preorderItemsClean.reduce(
       (s, it) => s + (Number(it.price) || 0) * (Number(it.qty) || 1), 0
     );
-    const discountPct = hasPreorder ? 5 : 0;
+    const discountPct = hasPreorder ? 10 : 0;
     const servicePriceNum = Number(servicePrice) || 0;
-    const discountAmount = Math.round(servicePriceNum * (discountPct / 100));
-    const finalServicePrice = servicePriceNum - discountAmount;
+    // Descuento del 10% SOLO sobre la bebida (preorden), no sobre el servicio.
+    const discountAmount = Math.round(preorderSubtotal * (discountPct / 100));
+    // Total = servicio (precio completo) + bebida con su 10% de descuento.
+    const finalServicePrice = servicePriceNum + preorderSubtotal - discountAmount;
 
     // Validación de lead time (anticipación mínima):
     //  - Slots ≥18:00 MX requieren 8h, slots <18:00 MX requieren 1h.
@@ -4240,10 +4242,10 @@ app.post('/api/public/request', async (req, res) => {
     const timeStr = hour === 12 ? '12:00 PM' : hour > 12 ? `${hour - 12}:00 PM` : `${hour}:00 AM`;
 
     const preorderLines = hasPreorder
-      ? `\n*Apartado en barra:*\n${preorderItemsClean.map(it => `· ${it.qty || 1}× ${it.name} — $${it.price}`).join('\n')}\n_Subtotal barra: $${preorderSubtotal} (se cobra al llegar)_\n`
+      ? `\n*Apartado en barra:*\n${preorderItemsClean.map(it => `· ${it.qty || 1}× ${it.name} — $${it.price}`).join('\n')}\n_Bebida $${preorderSubtotal} · 10% off −$${discountAmount}_\n`
       : '';
     const priceLine = hasPreorder
-      ? `*Servicio:* $${servicePriceNum} → *$${finalServicePrice}* (5% off por apartar en barra)`
+      ? `*Precio servicio:* $${servicePriceNum}\n*Total (servicio + bebida con 10% off):* *$${finalServicePrice}*`
       : `*Precio:* $${servicePriceNum}`;
     const depositLines = depositReceiptUrl
       ? `\n*Anticipo:* $${requestData.depositAmount} transferido\n*Comprobante:* ${depositReceiptUrl}\n_Pendiente de validar por admin_\n`

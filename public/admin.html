@@ -12766,7 +12766,7 @@
         const s = STATUS[req.status] || STATUS.pending;
         const wa = req.clientPhone.startsWith('52') ? req.clientPhone : '52' + req.clientPhone;
 
-        // Pre-orden de barra (productos apartados al agendar — 5% off al servicio)
+        // Pre-orden de barra (productos apartados al agendar — 10% off solo sobre la bebida)
         const preorderItems = Array.isArray(req.preorderItems) ? req.preorderItems : [];
         const preorderBlock = preorderItems.length > 0 ? `
           <div class="req-preorder">
@@ -12786,7 +12786,7 @@
                 </li>
               `).join('')}
             </ul>
-            <p class="req-preorder__note">Se cobra al llegar. Servicio con 5% descuento aplicado.</p>
+            <p class="req-preorder__note">Bebida con 10% de descuento aplicado. Se cobra al llegar.</p>
           </div>` : '';
 
         // Anticipo (transferencia + comprobante)

@@ -1465,13 +1465,13 @@
           <div class="vn-deposit__status" id="dep-status" hidden></div>
         </section>
 
-        <!-- Pre-orden de barra (opcional, 5% descuento si apartan algo) -->
+        <!-- Pre-orden de barra (opcional, 10% off solo sobre la bebida) -->
         <details class="vn-preorder" id="vn-preorder">
           <summary class="vn-preorder__summary">
             <div class="vn-preorder__left">
               <i class="fas fa-mug-hot"></i>
               <div>
-                <div class="vn-preorder__title">Aparta algo de barra · <span class="vn-preorder__bonus">5% off</span></div>
+                <div class="vn-preorder__title">Aparta algo de barra · <span class="vn-preorder__bonus">10% off en tu bebida</span></div>
                 <div class="vn-preorder__sub">Llega y disfrútalo recién hecho. Pagas al llegar.</div>
               </div>
             </div>
@@ -1491,10 +1491,10 @@
             <span class="vn-summary__value" id="sum-preorder">—</span>
           </div>
           <div class="vn-summary__row" id="sum-discount-row" hidden>
-            <span class="vn-summary__label">Descuento (5%)</span>
+            <span class="vn-summary__label">Descuento bebida (10%)</span>
             <span class="vn-summary__value" style="color: var(--olive-deep);" id="sum-discount">—</span>
           </div>
-          <div class="vn-summary__row total"><span class="vn-summary__label">Total servicio</span><span class="vn-summary__value" id="sum-price">—</span></div>
+          <div class="vn-summary__row total"><span class="vn-summary__label">Total</span><span class="vn-summary__value" id="sum-price">—</span></div>
         </div>
 
         <div class="vn-btns">
@@ -2144,13 +2144,15 @@
     function updateSummary() {
       const { items, subtotal, hasPreorder } = preorderSummary();
       const servicePrice = selectedService ? Number(selectedService.price) || 0 : 0;
-      const discountAmount = hasPreorder ? Math.round(servicePrice * 0.05) : 0;
-      const finalPrice = servicePrice - discountAmount;
+      // Descuento del 10% SOLO sobre la bebida (preorden), no sobre el servicio.
+      const discountAmount = hasPreorder ? Math.round(subtotal * 0.10) : 0;
+      // Total = servicio (precio completo) + bebida con su 10% de descuento.
+      const finalPrice = servicePrice + subtotal - discountAmount;
 
       if (selectedService) {
         document.getElementById('sum-service').textContent = selectedService.name;
         document.getElementById('sum-price').textContent =
-          hasPreorder ? `$${finalPrice} (antes $${servicePrice})` : `$${servicePrice}`;
+          hasPreorder ? `$${finalPrice} (antes $${servicePrice + subtotal})` : `$${servicePrice}`;
       }
       if (selectedDate) {
         const d = new Date(selectedDate + 'T00:00:00');
@@ -2221,7 +2223,7 @@
         clientPhone: phone,
         clientEmail: email || null,
         clientBirthday: birthday || null,
-        preorderItems,  // [{id, name, qty, price}, ...] — 5% off si len>0
+        preorderItems,  // [{id, name, qty, price}, ...] — 10% off sobre la bebida si len>0
         depositReceiptUrl, // URL Cloudinary del comprobante de anticipo
       };
 
@@ -2264,10 +2266,11 @@
     function showConfirmation(json = {}) {
       document.getElementById('conf-service').textContent = selectedService.name;
 
-      // Si hubo preorden, mostramos precio final con 5% off destacado
+      // Si hubo preorden, mostramos el total (servicio + bebida) con 10% off en la bebida
       const priceEl = document.getElementById('conf-price');
       if (json.hasPreorder) {
-        priceEl.innerHTML = `$${json.finalServicePrice} <span style="color:var(--ink-3); text-decoration: line-through; font-size: 12px; margin-left: 6px;">$${selectedService.price}</span> <span style="color:var(--olive-deep); font-size:11px; font-weight:600; margin-left: 4px;">5% OFF</span>`;
+        const beforeTotal = (Number(selectedService.price) || 0) + (Number(json.preorderSubtotal) || 0);
+        priceEl.innerHTML = `$${json.finalServicePrice} <span style="color:var(--ink-3); text-decoration: line-through; font-size: 12px; margin-left: 6px;">$${beforeTotal}</span> <span style="color:var(--olive-deep); font-size:11px; font-weight:600; margin-left: 4px;">10% OFF bebida</span>`;
       } else {
         priceEl.textContent = '$' + selectedService.price;
       }
