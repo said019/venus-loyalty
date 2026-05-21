@@ -565,22 +565,13 @@ app.use((req, res, next) => {
   next();
 });
 
-// Root del sitio: landing es la página de marketing. index.html (legacy
-// "Crea tu tarjeta") se mantiene como atajo /mi-tarjeta para acceso
-// rápido a la propia tarjeta de lealtad.
-//
-// Compatibilidad hacia atrás: las tarjetas viejas tienen links del tipo
-// `/?cardId=card_xxx` (cuando / era la página de la tarjeta). Si llega
-// uno de esos, redirigir a /mi-tarjeta?cardId=... preservando query.
-app.get('/', (req, res) => {
-  if (req.query.cardId) {
-    return res.redirect(301, `/mi-tarjeta?cardId=${encodeURIComponent(req.query.cardId)}`);
-  }
-  res.sendFile(path.join(__dirname, 'public', 'landing.html'));
+// Root del sitio: index.html es la experiencia principal de Venus.
+// También acepta /?cardId=... para abrir directamente una tarjeta.
+app.get('/', (_req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
-// Alias bonitos para compartir el form de registro de tarjeta por WhatsApp,
-// QR físico en el local, Instagram bio, etc. Todos sirven el mismo index.html
-// que ya tiene tabs "Crear tarjeta" / "Ya tengo tarjeta".
+// Alias de compatibilidad para links antiguos de tarjeta, QR físico, WhatsApp
+// e Instagram. Todos sirven el mismo index.html.
 app.get(['/mi-tarjeta', '/tarjeta', '/unete'], (_req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
@@ -2526,7 +2517,7 @@ app.get("/api/create-card", async (req, res) => {
     const addToAppleUrl = `${base}/api/apple/pass?cardId=${encodeURIComponent(
       cardId
     )}`;
-    const url = `${base}/mi-tarjeta?cardId=${cardId}`;
+    const url = `${base}/?cardId=${cardId}`;
 
     res.json({
       url,
@@ -2579,7 +2570,7 @@ app.post("/api/create-card", async (req, res) => {
     const addToAppleUrl = `${base}/api/apple/pass?cardId=${encodeURIComponent(
       cardId
     )}`;
-    const url = `${base}/mi-tarjeta?cardId=${cardId}`;
+    const url = `${base}/?cardId=${cardId}`;
 
     res.json({
       url,

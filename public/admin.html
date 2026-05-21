@@ -6076,7 +6076,7 @@
       document.getElementById('notify-message').value = '';
 
       // Generar QR
-      const url = `${window.location.origin}/mi-tarjeta?cardId=${encodeURIComponent(card.id)}`;
+      const url = `${window.location.origin}/?cardId=${encodeURIComponent(card.id)}`;
       if (typeof QRCode !== 'undefined' && modalQrCanvas) {
         try {
           const ctx = modalQrCanvas.getContext('2d');
@@ -6212,7 +6212,7 @@
     }
 
     function openClientPage(cardId) {
-      const url = `${window.location.origin}/mi-tarjeta?cardId=${encodeURIComponent(cardId)}`;
+      const url = `${window.location.origin}/?cardId=${encodeURIComponent(cardId)}`;
       window.open(url, '_blank');
     }
 
@@ -7630,7 +7630,7 @@
         row.innerHTML = dots;
 
         // Links: ver tarjeta, copiar, enviar por WhatsApp
-        const cardUrl = `${window.location.origin}/mi-tarjeta?cardId=${encodeURIComponent(card.id)}`;
+        const cardUrl = `${window.location.origin}/?cardId=${encodeURIComponent(card.id)}`;
         document.getElementById('loyalty-open-link').href = cardUrl;
 
         const copyBtn = document.getElementById('loyalty-copy-link');
