@@ -1574,8 +1574,15 @@
     // (elegir servicio) sin volver a pedir el WhatsApp.
     async function autoIdentifyFromCard() {
       const params = new URLSearchParams(window.location.search);
-      const cardId = params.get('cardId');
+      let cardId = params.get('cardId');
       const phoneParam = (params.get('phone') || '').replace(/\D/g, '');
+      // Si no viene en la URL, usar la identidad recordada en este dispositivo.
+      if (!cardId) {
+        try {
+          const saved = JSON.parse(localStorage.getItem('venus_card') || 'null');
+          if (saved && saved.cardId) cardId = saved.cardId;
+        } catch (e) { /* JSON corrupto → ignorar */ }
+      }
       if (!cardId && phoneParam.length < 10) return;
 
       try {
@@ -1595,7 +1602,11 @@
           const json = await res.json();
           if (json.exists) card = { id: json.cardId, name: json.firstName, phone: phoneParam };
         }
-        if (!card) return; // cardId inválido → flujo normal (paso 1)
+        if (!card) {
+          // cardId guardado inválido (p.ej. tarjeta borrada) → limpiar y flujo normal.
+          try { localStorage.removeItem('venus_card'); } catch (e) {}
+          return;
+        }
 
         // Normalizar teléfono a 10 dígitos (igual que el flujo manual).
         let phone10 = String(card.phone || phoneParam).replace(/\D/g, '');
@@ -1698,6 +1709,12 @@
           existsClient = true;
           clientFirstName = json.firstName || 'cliente';
           clientCardId = json.cardId || null;
+          // Recordar al cliente en este dispositivo para la próxima vez.
+          try {
+            localStorage.setItem('venus_card', JSON.stringify({
+              cardId: clientCardId, name: json.firstName || '', phone: clientPhone
+            }));
+          } catch (e) {}
           status.className = 'vn-lookup success';
           status.innerHTML = `<strong>Hola, ${escapeHtml(clientFirstName)}.</strong> Te reconocimos. Vamos a elegir tu ritual.`;
           // Pequeño delay para que el usuario alcance a leer el saludo
