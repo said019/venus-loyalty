@@ -2349,6 +2349,31 @@
                 <span id="client-selected-name"></span>
               </div>
 
+              <!-- Tarjeta de Lealtad del cliente reconocido -->
+              <div id="client-loyalty-panel" class="hidden" style="margin-top:12px;padding:14px 16px;background:var(--bg-tertiary);border:1px solid var(--line);border-radius:12px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;">
+                  <span style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--text-primary);">
+                    <i class="fas fa-id-card" style="color:#8C9668;"></i> Tarjeta de lealtad
+                  </span>
+                  <span id="loyalty-stamps-label" style="font-size:12px;font-weight:700;color:#8C9668;">0 / 8 sellos</span>
+                </div>
+                <div id="loyalty-stamps-row" style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px;"></div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                  <a id="loyalty-open-link" href="#" target="_blank" rel="noopener"
+                     style="flex:1;min-width:120px;text-align:center;padding:9px 12px;background:#8C9668;color:#fff;border-radius:8px;font-size:12px;font-weight:600;text-decoration:none;">
+                    <i class="fas fa-external-link-alt"></i> Ver tarjeta
+                  </a>
+                  <button type="button" id="loyalty-copy-link"
+                     style="flex:1;min-width:120px;padding:9px 12px;background:var(--bg-secondary);border:1px solid var(--line-2);color:var(--text-primary);border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">
+                    <i class="fas fa-link"></i> Copiar link
+                  </button>
+                  <a id="loyalty-wa-link" href="#" target="_blank" rel="noopener"
+                     style="flex:1;min-width:120px;text-align:center;padding:9px 12px;background:#25D366;color:#fff;border-radius:8px;font-size:12px;font-weight:600;text-decoration:none;">
+                    <i class="fab fa-whatsapp"></i> Enviar al cliente
+                  </a>
+                </div>
+              </div>
+
               <!-- Historial de Citas -->
               <div id="client-history-panel" class="client-history-panel hidden" style="margin-top:12px;">
                 <div class="history-header" id="toggle-history" style="padding:10px 14px;background:rgba(140,150,104,0.08);border-radius:10px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;">
@@ -7574,6 +7599,62 @@
     }
 
     // Cargar historial de citas del cliente
+    // Carga y muestra la tarjeta de lealtad del cliente reconocido.
+    async function loadClientLoyalty(clientPhone) {
+      const panel = document.getElementById('client-loyalty-panel');
+      if (!panel) return;
+      if (!clientPhone) { panel.classList.add('hidden'); return; }
+      try {
+        const digits = String(clientPhone).replace(/\D/g, '');
+        const res = await fetch(`/api/card/by-phone/${encodeURIComponent(digits)}`);
+        if (!res.ok) { panel.classList.add('hidden'); return; }
+        const json = await res.json();
+        const card = json.success ? json.data : null;
+        if (!card) { panel.classList.add('hidden'); return; }
+
+        const stamps = Number(card.stamps ?? card.points ?? 0);
+        const max = Number(card.max ?? 8);
+        document.getElementById('loyalty-stamps-label').textContent = `${stamps} / ${max} sellos`;
+
+        // Render de los sellos como puntos
+        const row = document.getElementById('loyalty-stamps-row');
+        let dots = '';
+        for (let i = 0; i < max; i++) {
+          const filled = i < stamps;
+          dots += `<span style="width:20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:10px;${
+            filled
+              ? 'background:#8C9668;color:#fff;'
+              : 'background:var(--bg-secondary);border:1.5px solid var(--line-2);color:var(--text-muted);'
+          }">${filled ? '<i class="fas fa-check"></i>' : ''}</span>`;
+        }
+        row.innerHTML = dots;
+
+        // Links: ver tarjeta, copiar, enviar por WhatsApp
+        const cardUrl = `${window.location.origin}/mi-tarjeta?cardId=${encodeURIComponent(card.id)}`;
+        document.getElementById('loyalty-open-link').href = cardUrl;
+
+        const copyBtn = document.getElementById('loyalty-copy-link');
+        copyBtn.onclick = async () => {
+          try {
+            await navigator.clipboard.writeText(cardUrl);
+            const orig = copyBtn.innerHTML;
+            copyBtn.innerHTML = '<i class="fas fa-check"></i> Copiado';
+            setTimeout(() => { copyBtn.innerHTML = orig; }, 1500);
+          } catch (e) {}
+        };
+
+        let waPhone = digits;
+        if (waPhone.length === 10) waPhone = '52' + waPhone;
+        const waMsg = `Hola ${(card.name || '').split(' ')[0] || ''}, esta es tu tarjeta de lealtad Venus: ${cardUrl}`;
+        document.getElementById('loyalty-wa-link').href = `https://wa.me/${waPhone}?text=${encodeURIComponent(waMsg)}`;
+
+        panel.classList.remove('hidden');
+      } catch (e) {
+        console.error('[loyalty] error:', e);
+        panel.classList.add('hidden');
+      }
+    }
+
     async function loadClientHistory(clientPhone, clientName) {
       if (!clientPhone && !clientName) {
         historyPanel.classList.add('hidden');
@@ -7716,6 +7797,7 @@
             }
             showClientSelectedFeedback(item.label);
             loadClientHistory(item.data.phone, item.label);
+            loadClientLoyalty(item.data.phone);
           }
         );
       }
@@ -9340,6 +9422,9 @@
         if (historyPanel) historyPanel.classList.add('hidden');
         if (historyContent) historyContent.style.display = 'none';
         if (historyHeader) historyHeader.classList.remove('expanded');
+        // Limpiar panel de tarjeta de lealtad
+        const loyaltyPanel = document.getElementById('client-loyalty-panel');
+        if (loyaltyPanel) loyaltyPanel.classList.add('hidden');
       });
     }
 
