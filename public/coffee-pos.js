@@ -52,9 +52,24 @@
 
   // ==================== PRODUCTS ====================
   async function loadProducts() {
-    const r = await api('/api/pos/products');
-    if (r?.success) products = r.data;
-    renderProducts();
+    const grid = document.getElementById('products-grid');
+    try {
+      const r = await api('/api/pos/products');
+      if (r?.success && Array.isArray(r.data)) {
+        products = r.data;
+      } else {
+        products = [];
+      }
+      renderProducts();
+      if (!products.length && grid) {
+        grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:40px;">No hay productos. Configura el menú en el admin.</div>';
+      }
+    } catch (e) {
+      console.error('[POS] Error cargando productos:', e);
+      if (grid) {
+        grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#e74c3c;padding:40px;">No se pudo cargar el menú. Recarga la página.</div>';
+      }
+    }
   }
 
   function renderCategories() {
