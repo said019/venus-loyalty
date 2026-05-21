@@ -3190,6 +3190,22 @@ app.post('/api/public/lookup-card', async (req, res) => {
   }
 });
 
+// GET /api/public/menu - Productos del menú de barra (público, solo activos)
+// Usado por /agendar.html como paso opcional "aparta tu alimento".
+app.get('/api/public/menu', async (_req, res) => {
+  try {
+    const products = await prisma.coffeeProduct.findMany({
+      where: { isActive: true },
+      include: { variants: { where: { isActive: true } } },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+    });
+    res.json({ success: true, data: products });
+  } catch (err) {
+    console.error('[PUBLIC MENU] Error:', err.message);
+    res.json({ success: false, error: err.message, data: [] });
+  }
+});
+
 // GET /api/public/services - Servicios disponibles (público)
 app.get('/api/public/services', async (req, res) => {
   try {
@@ -3961,13 +3977,30 @@ app.post('/api/public/request', async (req, res) => {
       clientName,
       clientPhone,
       clientEmail,
-      clientBirthday
+      clientBirthday,
+      preorderItems = []  // [{ id, name, qty, price }, ...] — items de barra apartados
     } = req.body;
 
     // Validaciones
     if (!serviceName || !date || !time || !clientName || !clientPhone) {
       return res.json({ success: false, error: 'Faltan campos requeridos' });
     }
+
+    // Pre-orden: si trajeron items, calculamos subtotal y aplicamos 5% off
+    // sobre el servicio. La pre-orden NO se cobra aquí — solo queda como
+    // recordatorio para barra (se cobra al llegar). El descuento se aplica
+    // al servicio para incentivar la pre-orden.
+    const preorderItemsClean = Array.isArray(preorderItems)
+      ? preorderItems.filter(it => it && it.name && it.price > 0).slice(0, 10)
+      : [];
+    const hasPreorder = preorderItemsClean.length > 0;
+    const preorderSubtotal = preorderItemsClean.reduce(
+      (s, it) => s + (Number(it.price) || 0) * (Number(it.qty) || 1), 0
+    );
+    const discountPct = hasPreorder ? 5 : 0;
+    const servicePriceNum = Number(servicePrice) || 0;
+    const discountAmount = Math.round(servicePriceNum * (discountPct / 100));
+    const finalServicePrice = servicePriceNum - discountAmount;
 
     // Validación de lead time (anticipación mínima):
     //  - Slots ≥18:00 MX requieren 8h, slots <18:00 MX requieren 1h.
@@ -4059,7 +4092,7 @@ app.post('/api/public/request', async (req, res) => {
     const requestData = {
       serviceId: serviceId || null,
       serviceName,
-      servicePrice: parseFloat(servicePrice) || 0,
+      servicePrice: servicePriceNum,
       serviceDuration: parseInt(serviceDuration) || 60,
       date,
       time,
@@ -4069,7 +4102,13 @@ app.post('/api/public/request', async (req, res) => {
       cardId,
       isNewClient,
       status: 'pending',
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      // Pre-orden de barra (opcional)
+      preorderItems: preorderItemsClean,
+      preorderSubtotal,
+      discountPct,
+      discountAmount,
+      finalServicePrice,
     };
 
     const requestRef = await firestore.collection('booking_requests').add(requestData);
@@ -4106,6 +4145,13 @@ app.post('/api/public/request', async (req, res) => {
     const hour = parseInt(time.split(':')[0]);
     const timeStr = hour === 12 ? '12:00 PM' : hour > 12 ? `${hour - 12}:00 PM` : `${hour}:00 AM`;
 
+    const preorderLines = hasPreorder
+      ? `\n*Apartado en barra:*\n${preorderItemsClean.map(it => `· ${it.qty || 1}× ${it.name} — $${it.price}`).join('\n')}\n_Subtotal barra: $${preorderSubtotal} (se cobra al llegar)_\n`
+      : '';
+    const priceLine = hasPreorder
+      ? `*Servicio:* $${servicePriceNum} → *$${finalServicePrice}* (5% off por apartar en barra)`
+      : `*Precio:* $${servicePriceNum}`;
+
     const message = `*NUEVA SOLICITUD DE CITA*
 
 *Cliente:* ${clientName}
@@ -4113,10 +4159,10 @@ app.post('/api/public/request', async (req, res) => {
 ${clientEmail ? `*Email:* ${clientEmail}` : ''}
 
 *Servicio:* ${serviceName}
-*Precio:* $${servicePrice}
+${priceLine}
 *Fecha:* ${dateStr}
 *Hora:* ${timeStr}
-
+${preorderLines}
 ${isNewClient ? '_Cliente nueva - Ya registrada en tarjetas_' : '_Cliente existente_'}
 
 #${requestRef.id.slice(-6)}`;
@@ -4136,12 +4182,44 @@ ${isNewClient ? '_Cliente nueva - Ya registrada en tarjetas_' : '_Cliente existe
 
     console.log(`[BOOKING REQUEST] Nueva solicitud de ${clientName} para ${serviceName}`);
 
+    // 5. BROADCAST POR WHATSAPP A ADMINS (Evolution API)
+    // ADMIN_NOTIFY_PHONES=524271234567,524277654321 (env var, separadas por coma)
+    // Si falla un envío no falla la request — el admin igual ve la notificación in-app.
+    const adminPhones = (process.env.ADMIN_NOTIFY_PHONES || '')
+      .split(',')
+      .map(p => p.trim().replace(/\D/g, ''))
+      .filter(p => p.length >= 10);
+    if (adminPhones.length > 0) {
+      const adminMsg = `${message}\n\n_Solicitud automática · Venus_`;
+      (async () => {
+        try {
+          const client = getEvolutionClient();
+          for (const adminPhone of adminPhones) {
+            try {
+              await client.sendText(adminPhone, adminMsg);
+              console.log(`[BOOKING REQUEST] 📲 Admin notificado: ${adminPhone}`);
+            } catch (err) {
+              console.warn(`[BOOKING REQUEST] ⚠ No se pudo notificar a ${adminPhone}:`, err.message);
+            }
+          }
+        } catch (err) {
+          console.warn('[BOOKING REQUEST] ⚠ Evolution client no disponible:', err.message);
+        }
+      })();
+    }
+
     res.json({
       success: true,
       requestId: requestRef.id,
       cardId,
       isNewClient,
-      whatsappUrl
+      whatsappUrl,
+      // Pre-orden + descuento aplicado (para confirmation screen)
+      hasPreorder,
+      preorderSubtotal,
+      discountPct,
+      discountAmount,
+      finalServicePrice,
     });
 
   } catch (error) {

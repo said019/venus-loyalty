@@ -6,6 +6,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Reserva tu pausa · Venus Cosmetología</title>
   <link rel="icon" href="/assets/logo.png">
+  <!-- Forzar paleta light: si el browser o el SO está en dark mode, no
+       autodarkenear esta página. La paleta es boutique cream + olive
+       intencionalmente clara. -->
+  <meta name="color-scheme" content="light only">
+  <meta name="theme-color" content="#faf9f6">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;1,500&family=DM+Sans:wght@400;500;600&display=swap">
@@ -17,6 +22,10 @@
        Boutique spa booking. Warm cream + olive, Playfair + DM Sans.
        Aprobado en shape brief (commit log).
        ============================================================ */
+
+    /* Forzar paleta light explícitamente — refuerza el meta color-scheme. */
+    :root { color-scheme: light; }
+    html { color-scheme: light; background: oklch(96.5% 0.012 88); }
 
     :root {
       --bg:          oklch(96.5% 0.012 88);
@@ -119,6 +128,22 @@
       padding: 72px 28px 24px;
       text-align: center;
       animation: vn-rise 700ms var(--ease-out-expo) 60ms both;
+    }
+    .vn-hero__logo {
+      width: 80px;
+      height: 80px;
+      border-radius: 22px;
+      object-fit: cover;
+      margin: 0 auto 22px;
+      display: block;
+      box-shadow: 0 12px 30px oklch(22% 0.012 80 / 0.08), 0 2px 6px oklch(22% 0.012 80 / 0.05);
+      border: 1px solid var(--line);
+      background: var(--surface);
+      animation: vn-logo-in 880ms var(--spring) 60ms both;
+    }
+    @keyframes vn-logo-in {
+      from { opacity: 0; transform: scale(0.6) translateY(-12px); }
+      to   { opacity: 1; transform: scale(1) translateY(0); }
     }
     .vn-hero__eyebrow {
       display: inline-block;
@@ -730,6 +755,146 @@
       font-style: italic;
     }
 
+    /* ============ PREORDER (collapsible barra) ============ */
+    .vn-preorder {
+      margin-top: 24px;
+      background: var(--surface);
+      border: 1.5px solid var(--olive-soft);
+      border-radius: 16px;
+      overflow: hidden;
+      transition: border-color 220ms var(--ease-out-quart);
+    }
+    .vn-preorder[open] { border-color: var(--olive); }
+    .vn-preorder__summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 18px 22px;
+      cursor: pointer;
+      list-style: none;
+      user-select: none;
+    }
+    .vn-preorder__summary::-webkit-details-marker { display: none; }
+    .vn-preorder__summary:hover { background: var(--olive-soft); }
+    .vn-preorder__left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .vn-preorder__left > i {
+      width: 38px; height: 38px;
+      border-radius: 12px;
+      background: var(--olive-soft);
+      color: var(--olive-deep);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+    }
+    .vn-preorder__title {
+      font-weight: 600;
+      font-size: 15px;
+      color: var(--ink);
+      line-height: 1.3;
+    }
+    .vn-preorder__bonus {
+      display: inline-block;
+      background: var(--olive);
+      color: oklch(99% 0 0);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      padding: 2px 8px;
+      border-radius: 999px;
+      margin-left: 4px;
+      vertical-align: 2px;
+    }
+    .vn-preorder__sub {
+      font-size: 12.5px;
+      color: var(--ink-3);
+      margin-top: 2px;
+    }
+    .vn-preorder__chev {
+      color: var(--ink-3);
+      transition: transform 320ms var(--ease-out-quart);
+    }
+    .vn-preorder[open] .vn-preorder__chev { transform: rotate(180deg); }
+    .vn-preorder__body {
+      padding: 0 22px 22px;
+      max-height: 360px;
+      overflow-y: auto;
+      animation: vn-fade-down 320ms var(--ease-out-quart);
+    }
+    @keyframes vn-fade-down {
+      from { opacity: 0; transform: translateY(-6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .vn-preorder__loading {
+      text-align: center;
+      padding: 20px;
+      color: var(--ink-3);
+      font-size: 13px;
+    }
+    .vn-preorder__cat {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--ink-3);
+      margin: 16px 0 8px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--line);
+    }
+    .vn-preorder__cat:first-child { margin-top: 0; }
+    .vn-preorder__item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .vn-preorder__item:last-child { border-bottom: none; }
+    .vn-preorder__item-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .vn-preorder__item-name {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--ink);
+    }
+    .vn-preorder__item-price {
+      font-size: 12px;
+      color: var(--ink-3);
+      margin-top: 2px;
+    }
+    .vn-preorder__qty {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .vn-preorder__qty-btn {
+      width: 30px; height: 30px;
+      border-radius: 50%;
+      border: 1.5px solid var(--line);
+      background: var(--surface);
+      color: var(--ink);
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 180ms var(--ease-out-quart);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .vn-preorder__qty-btn:hover { border-color: var(--olive); color: var(--olive-deep); }
+    .vn-preorder__qty-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .vn-preorder__qty-val {
+      min-width: 18px;
+      text-align: center;
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--ink);
+      font-variant-numeric: tabular-nums;
+    }
+
     /* ============ SUMMARY ============ */
     .vn-summary {
       background: var(--olive-soft);
@@ -895,6 +1060,7 @@
 
   <!-- Hero -->
   <header class="vn-hero">
+    <img src="/assets/logo.png" alt="Venus Cosmetología" class="vn-hero__logo">
     <span class="vn-hero__eyebrow">Agenda en línea</span>
     <h1 class="vn-hero__title">Reserva tu <em>pausa</em></h1>
     <p class="vn-hero__sub" id="business-name-sub">Tres minutos. Un mensaje de WhatsApp y nos vemos en el estudio.</p>
@@ -1050,11 +1216,36 @@
           </div>
         </div>
 
+        <!-- Pre-orden de barra (opcional, 5% descuento si apartan algo) -->
+        <details class="vn-preorder" id="vn-preorder">
+          <summary class="vn-preorder__summary">
+            <div class="vn-preorder__left">
+              <i class="fas fa-mug-hot"></i>
+              <div>
+                <div class="vn-preorder__title">Aparta algo de barra · <span class="vn-preorder__bonus">5% off</span></div>
+                <div class="vn-preorder__sub">Llega y disfrútalo recién hecho. Pagas al llegar.</div>
+              </div>
+            </div>
+            <i class="fas fa-chevron-down vn-preorder__chev"></i>
+          </summary>
+          <div class="vn-preorder__body" id="preorder-list">
+            <div class="vn-preorder__loading">Cargando menú…</div>
+          </div>
+        </details>
+
         <div class="vn-summary">
           <div class="vn-summary__row"><span class="vn-summary__label">Servicio</span><span class="vn-summary__value" id="sum-service">—</span></div>
           <div class="vn-summary__row"><span class="vn-summary__label">Fecha</span><span class="vn-summary__value" id="sum-date">—</span></div>
           <div class="vn-summary__row"><span class="vn-summary__label">Hora</span><span class="vn-summary__value" id="sum-time">—</span></div>
-          <div class="vn-summary__row total"><span class="vn-summary__label">Total</span><span class="vn-summary__value" id="sum-price">—</span></div>
+          <div class="vn-summary__row" id="sum-preorder-row" hidden>
+            <span class="vn-summary__label">Apartado en barra</span>
+            <span class="vn-summary__value" id="sum-preorder">—</span>
+          </div>
+          <div class="vn-summary__row" id="sum-discount-row" hidden>
+            <span class="vn-summary__label">Descuento (5%)</span>
+            <span class="vn-summary__value" style="color: var(--olive-deep);" id="sum-discount">—</span>
+          </div>
+          <div class="vn-summary__row total"><span class="vn-summary__label">Total servicio</span><span class="vn-summary__value" id="sum-price">—</span></div>
         </div>
 
         <div class="vn-btns">
@@ -1284,6 +1475,84 @@
       }
     }
 
+    // ============== PREORDEN DE BARRA ==============
+    // Estado: { [productId]: { id, name, price, qty } }
+    const preorder = {};
+    let menuLoaded = false;
+
+    async function loadMenu() {
+      if (menuLoaded) return;
+      menuLoaded = true;
+      try {
+        const res = await fetch('/api/public/menu');
+        const json = await res.json();
+        const products = (json.success ? json.data : []) || [];
+        renderMenu(products);
+      } catch (err) {
+        document.getElementById('preorder-list').innerHTML =
+          '<p class="vn-preorder__loading">No pudimos cargar el menú ahora.</p>';
+      }
+    }
+
+    function renderMenu(products) {
+      const el = document.getElementById('preorder-list');
+      if (!products.length) {
+        el.innerHTML = '<p class="vn-preorder__loading">Sin productos disponibles en barra ahora.</p>';
+        return;
+      }
+      // Agrupar por categoría
+      const byCat = {};
+      for (const p of products) {
+        const c = p.category || 'Otros';
+        (byCat[c] = byCat[c] || []).push(p);
+      }
+      const html = Object.entries(byCat).map(([cat, items]) => `
+        <div class="vn-preorder__cat">${escapeHtml(cat)}</div>
+        ${items.map(p => `
+          <div class="vn-preorder__item" data-id="${escapeHtml(p.id)}" data-price="${Number(p.price) || 0}" data-name="${escapeHtml(p.name)}">
+            <div class="vn-preorder__item-info">
+              <div class="vn-preorder__item-name">${escapeHtml(p.name)}</div>
+              <div class="vn-preorder__item-price">$${Number(p.price) || 0}</div>
+            </div>
+            <div class="vn-preorder__qty">
+              <button type="button" class="vn-preorder__qty-btn" data-action="minus" disabled>−</button>
+              <span class="vn-preorder__qty-val">0</span>
+              <button type="button" class="vn-preorder__qty-btn" data-action="plus">+</button>
+            </div>
+          </div>
+        `).join('')}
+      `).join('');
+      el.innerHTML = html;
+      el.addEventListener('click', onMenuClick);
+    }
+
+    function onMenuClick(ev) {
+      const btn = ev.target.closest('.vn-preorder__qty-btn');
+      if (!btn) return;
+      const row = btn.closest('.vn-preorder__item');
+      const id = row.dataset.id;
+      const price = Number(row.dataset.price) || 0;
+      const name = row.dataset.name;
+      const valEl = row.querySelector('.vn-preorder__qty-val');
+      const minusBtn = row.querySelector('[data-action="minus"]');
+      const action = btn.dataset.action;
+      let qty = (preorder[id]?.qty) || 0;
+      if (action === 'plus') qty += 1;
+      else qty = Math.max(0, qty - 1);
+      if (qty === 0) delete preorder[id];
+      else preorder[id] = { id, name, price, qty };
+      valEl.textContent = String(qty);
+      minusBtn.disabled = qty === 0;
+      updateSummary();
+    }
+
+    function preorderSummary() {
+      const items = Object.values(preorder);
+      const subtotal = items.reduce((s, it) => s + it.price * it.qty, 0);
+      const hasPreorder = items.length > 0;
+      return { items, subtotal, hasPreorder };
+    }
+
     function renderServices() {
       const el = document.getElementById('services-list');
       const tabsEl = document.getElementById('category-tabs');
@@ -1480,16 +1749,10 @@
 
       document.getElementById('time-grid').innerHTML = html;
 
-      // Banner explicativo solo si es hoy y al menos un slot quedó deshabilitado por lead time
+      // Lead time sigue activo en el backend, pero ya no mostramos el mensaje
+      // explicativo al cliente. Si un slot no está disponible se ve gris.
       const noteEl = document.getElementById('time-leadtime-note');
-      if (noteEl) {
-        if (isToday && hasTooSoon) {
-          noteEl.textContent = 'Las citas de tarde (después de las 6 PM) requieren al menos 8 h de anticipación; las del día, 1 h.';
-          noteEl.hidden = false;
-        } else {
-          noteEl.hidden = true;
-        }
-      }
+      if (noteEl) noteEl.hidden = true;
 
       document.querySelectorAll('.vn-time:not(.disabled)').forEach(slot => {
         slot.addEventListener('click', function () {
@@ -1507,9 +1770,15 @@
     }
 
     function updateSummary() {
+      const { items, subtotal, hasPreorder } = preorderSummary();
+      const servicePrice = selectedService ? Number(selectedService.price) || 0 : 0;
+      const discountAmount = hasPreorder ? Math.round(servicePrice * 0.05) : 0;
+      const finalPrice = servicePrice - discountAmount;
+
       if (selectedService) {
         document.getElementById('sum-service').textContent = selectedService.name;
-        document.getElementById('sum-price').textContent = '$' + selectedService.price;
+        document.getElementById('sum-price').textContent =
+          hasPreorder ? `$${finalPrice} (antes $${servicePrice})` : `$${servicePrice}`;
       }
       if (selectedDate) {
         const d = new Date(selectedDate + 'T00:00:00');
@@ -1518,6 +1787,22 @@
       if (selectedTime) {
         const h = parseInt(selectedTime.split(':')[0]);
         document.getElementById('sum-time').textContent = h === 12 ? '12:00 PM' : h > 12 ? `${h - 12}:00 PM` : `${h}:00 AM`;
+      }
+
+      // Filas de preorden + descuento
+      const preRow = document.getElementById('sum-preorder-row');
+      const disRow = document.getElementById('sum-discount-row');
+      if (hasPreorder) {
+        preRow.hidden = false;
+        disRow.hidden = false;
+        const itemsLabel = items.length === 1
+          ? `1 producto · $${subtotal}`
+          : `${items.length} productos · $${subtotal}`;
+        document.getElementById('sum-preorder').textContent = itemsLabel;
+        document.getElementById('sum-discount').textContent = `−$${discountAmount}`;
+      } else {
+        preRow.hidden = true;
+        disRow.hidden = true;
       }
     }
 
@@ -1552,6 +1837,7 @@
       btn.disabled = true;
       btn.innerHTML = '<div class="spinner" style="width:18px;height:18px;display:inline-block;margin-right:8px;"></div> Enviando...';
 
+      const { items: preorderItems } = preorderSummary();
       const requestData = {
         serviceId: selectedService.id,
         serviceName: selectedService.name,
@@ -1562,7 +1848,8 @@
         clientName: name,
         clientPhone: phone,
         clientEmail: email || null,
-        clientBirthday: birthday || null
+        clientBirthday: birthday || null,
+        preorderItems,  // [{id, name, qty, price}, ...] — 5% off si len>0
       };
 
       console.log('🚀 [BOOKING] Enviando solicitud:', requestData);
@@ -1586,7 +1873,7 @@
             isNewClient: json.isNewClient
           });
           whatsappUrl = json.whatsappUrl;
-          showConfirmation();
+          showConfirmation(json);
         } else {
           console.error('❌ [BOOKING] Error del servidor:', json.error);
           alert('Error al enviar la solicitud:\n' + json.error);
@@ -1601,9 +1888,16 @@
       }
     }
 
-    function showConfirmation() {
+    function showConfirmation(json = {}) {
       document.getElementById('conf-service').textContent = selectedService.name;
-      document.getElementById('conf-price').textContent = '$' + selectedService.price;
+
+      // Si hubo preorden, mostramos precio final con 5% off destacado
+      const priceEl = document.getElementById('conf-price');
+      if (json.hasPreorder) {
+        priceEl.innerHTML = `$${json.finalServicePrice} <span style="color:var(--ink-3); text-decoration: line-through; font-size: 12px; margin-left: 6px;">$${selectedService.price}</span> <span style="color:var(--olive-deep); font-size:11px; font-weight:600; margin-left: 4px;">5% OFF</span>`;
+      } else {
+        priceEl.textContent = '$' + selectedService.price;
+      }
 
       const d = new Date(selectedDate + 'T00:00:00');
       const h = parseInt(selectedTime.split(':')[0]);
@@ -1658,6 +1952,9 @@
         servicesLoaded = true;
         loadServices();
       }
+
+      // Lazy-load del menú de barra al entrar al paso 4
+      if (n === 4) loadMenu();
 
       // Update progress (4 dots; paso 2 comparte el dot 1)
       const activeDot = dotForStep(n);
