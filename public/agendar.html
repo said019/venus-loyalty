@@ -27,6 +27,41 @@
     :root { color-scheme: light; }
     html { color-scheme: light; background: oklch(96.5% 0.012 88); }
 
+    /* Anti force-dark de Chrome / Edge / Android.
+       Chrome's --force-dark-mode y Android Auto Dark inyectan un filtro
+       de inversión sobre la página completa. Estas reglas declaran las
+       superficies con bg/color explícitos para que el motor lo respete.
+       isolation:isolate + filter:none corta la cadena de inversión. */
+    html, body {
+      background-color: #faf9f6 !important;
+      color: #2d2d1f !important;
+      forced-color-adjust: none;
+      filter: none !important;
+    }
+    body {
+      isolation: isolate;
+    }
+    .vn-cal, .vn-times, .vn-card, .vn-strip__inner, .vn-strip__cell,
+    .vn-input, .vn-preorder, .vn-deposit, .vn-summary, .vn-svc,
+    .vn-progress__dot, .vn-cal__nav {
+      background-color: #ffffff !important;
+      forced-color-adjust: none;
+    }
+    .vn-day {
+      background-color: #ffffff !important;
+      color: #2d2d1f !important;
+    }
+    .vn-day.selected, .vn-time.selected, .vn-svc.selected,
+    .vn-progress__step.active .vn-progress__dot,
+    .vn-progress__step.completed .vn-progress__dot {
+      background-color: #8c9668 !important;
+      color: #ffffff !important;
+    }
+    .vn-day.disabled { background-color: #f5f3ed !important; color: #b4b4a8 !important; }
+    .vn-cal__dow { color: #7a7a6a !important; }
+    .vn-time { background-color: #ffffff !important; color: #2d2d1f !important; }
+    .vn-time.disabled { background-color: #f5f3ed !important; color: #b4b4a8 !important; }
+
     :root {
       --bg:          oklch(96.5% 0.012 88);
       --surface:     oklch(99% 0.006 88);
