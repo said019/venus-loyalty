@@ -83,13 +83,90 @@
   function addToCart(productId) {
     const p = products.find(x => x.id === productId);
     if (!p) return;
-    const existing = cart.find(c => c.productId === productId && !c.notes);
+    // Si el producto tiene variantes (leche vegetal), pedir elección primero
+    if (Array.isArray(p.variants) && p.variants.length > 0) {
+      openVariantModal(p);
+      return;
+    }
+    pushToCart(p, null, Number(p.price));
+  }
+
+  // Agrega al carrito respetando variante elegida (extra de precio)
+  function pushToCart(p, variant, unitPrice) {
+    const variantsArr = variant ? [{ id: variant.id, name: variant.name, priceAdj: Number(variant.priceAdj) }] : null;
+    const variantKey = variant ? variant.id : '';
+    // Mismo producto + misma variante + sin nota → solo sube qty
+    const existing = cart.find(c =>
+      c.productId === p.id && !c.notes && (c._variantKey || '') === variantKey
+    );
     if (existing) {
       existing.qty++;
     } else {
-      cart.push({ productId: p.id, name: p.name, unitPrice: Number(p.price), qty: 1, notes: '', variants: null });
+      cart.push({
+        productId: p.id,
+        name: variant ? `${p.name} · ${variant.name}` : p.name,
+        unitPrice,
+        qty: 1,
+        notes: '',
+        variants: variantsArr,
+        _variantKey: variantKey,
+      });
     }
     renderCart();
+  }
+
+  // ==================== VARIANTES (leche vegetal) ====================
+  let pendingVariantProduct = null;
+
+  function openVariantModal(p) {
+    pendingVariantProduct = p;
+    document.getElementById('variant-product-name').textContent = p.name;
+    const box = document.getElementById('variant-options');
+    // Opción "normal" (sin extra) + cada variante
+    const opts = [
+      { id: '', name: 'Leche normal (incluida)', priceAdj: 0 },
+      ...p.variants.map(v => ({ id: v.id, name: v.name, priceAdj: Number(v.priceAdj) })),
+    ];
+    box.innerHTML = opts.map((o, i) => `
+      <label style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border:1.5px solid var(--line,#ddd);border-radius:10px;cursor:pointer;">
+        <span style="display:flex;align-items:center;gap:10px;">
+          <input type="radio" name="variant-opt" value="${o.id}" data-adj="${o.priceAdj}" ${i === 0 ? 'checked' : ''} style="width:18px;height:18px;">
+          <span>${esc(o.name)}</span>
+        </span>
+        <span style="font-weight:600;color:var(--venus,#8c9668);">${o.priceAdj > 0 ? '+$' + o.priceAdj : '—'}</span>
+      </label>
+    `).join('');
+    updateVariantBtn();
+    box.querySelectorAll('input[name="variant-opt"]').forEach(r =>
+      r.addEventListener('change', updateVariantBtn)
+    );
+    openModal('modal-variant');
+  }
+
+  function updateVariantBtn() {
+    const p = pendingVariantProduct;
+    if (!p) return;
+    const sel = document.querySelector('input[name="variant-opt"]:checked');
+    const adj = sel ? Number(sel.dataset.adj) : 0;
+    const total = Number(p.price) + adj;
+    document.getElementById('variant-confirm-btn').textContent = `Agregar · $${total.toFixed(0)}`;
+  }
+
+  function confirmVariant() {
+    const p = pendingVariantProduct;
+    if (!p) { closeModal('modal-variant'); return; }
+    const sel = document.querySelector('input[name="variant-opt"]:checked');
+    const variantId = sel ? sel.value : '';
+    const variant = variantId ? p.variants.find(v => v.id === variantId) : null;
+    const unitPrice = Number(p.price) + (variant ? Number(variant.priceAdj) : 0);
+    pushToCart(p, variant, unitPrice);
+    closeModal('modal-variant');
+    pendingVariantProduct = null;
+  }
+
+  function closeVariant() {
+    closeModal('modal-variant');
+    pendingVariantProduct = null;
   }
 
   function renderCart() {
@@ -548,7 +625,7 @@
   }
 
   // ==================== EXPOSE ====================
-  window.POS = { changeQty, removeItem };
+  window.POS = { changeQty, removeItem, confirmVariant, closeVariant };
 
   // ==================== START ====================
   document.addEventListener('DOMContentLoaded', init);

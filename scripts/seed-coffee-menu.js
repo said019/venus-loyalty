@@ -57,6 +57,15 @@ const MENU = [
   { category: 'bagels', name: 'Sweet Balance',   price: 92 },
 ];
 
+// Variantes de leche vegetal (+$8) — aplican a TODAS las bebidas
+// (café, té/matcha, smoothies). No a bagels.
+const MILK_VARIANTS = [
+  { name: 'Leche de avena',    type: 'extra', priceAdj: 8 },
+  { name: 'Leche de coco',     type: 'extra', priceAdj: 8 },
+  { name: 'Leche de almendra', type: 'extra', priceAdj: 8 },
+];
+const BEVERAGE_CATEGORIES = new Set(['cafe', 'te_matcha', 'smoothies']);
+
 async function main() {
   console.log(`\n=== Seed Venus Coffee Bar ${DRY ? '(DRY RUN)' : ''} ===\n`);
 
@@ -74,14 +83,31 @@ async function main() {
   }
 
   // 2. Crear / reactivar los del menú nuevo
-  let created = 0, reactivated = 0;
+  let created = 0, reactivated = 0, variantsAdded = 0;
   const byKey = new Map(existing.map(p => [`${p.category}|${p.name.toLowerCase()}`, p]));
+
+  // Helper: deja exactamente las MILK_VARIANTS en el producto (idempotente)
+  async function syncMilkVariants(productId, productName) {
+    if (DRY) return MILK_VARIANTS.length;
+    // Borra variantes 'extra' de leche existentes para evitar duplicados en re-runs
+    await prisma.coffeeProductVariant.deleteMany({
+      where: { productId, name: { in: MILK_VARIANTS.map(v => v.name) } },
+    });
+    for (const v of MILK_VARIANTS) {
+      await prisma.coffeeProductVariant.create({
+        data: { productId, name: v.name, type: v.type, priceAdj: v.priceAdj, isActive: true },
+      });
+    }
+    return MILK_VARIANTS.length;
+  }
 
   let sort = 0;
   for (const item of MENU) {
     sort += 1;
     const key = `${item.category}|${item.name.toLowerCase()}`;
     const match = byKey.get(key);
+    const isBeverage = BEVERAGE_CATEGORIES.has(item.category);
+    let productId = match?.id;
 
     if (match) {
       // Ya existía: reactivar + actualizar precio/orden
@@ -95,7 +121,7 @@ async function main() {
       console.log(`  ↻ ${item.name} ($${item.price}) — reactivado`);
     } else {
       if (!DRY) {
-        await prisma.coffeeProduct.create({
+        const p = await prisma.coffeeProduct.create({
           data: {
             name: item.name,
             category: item.category,
@@ -105,15 +131,24 @@ async function main() {
             sortOrder: sort,
           },
         });
+        productId = p.id;
       }
       created += 1;
       console.log(`  + ${item.name} ($${item.price}) — nuevo`);
+    }
+
+    // Variantes de leche vegetal solo en bebidas
+    if (isBeverage && productId) {
+      const n = await syncMilkVariants(productId, item.name);
+      variantsAdded += n;
+      console.log(`      └ +${n} leches vegetales (+$8)`);
     }
   }
 
   console.log(`\n=== Resumen ===`);
   console.log(`Nuevos creados:   ${created}`);
   console.log(`Reactivados:      ${reactivated}`);
+  console.log(`Variantes leche:  ${variantsAdded}`);
   console.log(`Total en menú:    ${MENU.length}`);
   if (DRY) console.log(`\n(DRY RUN — no se escribió nada. Corre sin --dry para aplicar.)`);
 }
