@@ -570,6 +570,10 @@ app.use((req, res, next) => {
 app.get('/', (_req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
+// /landing.html quedó como ruta antigua. La experiencia completa vive en /.
+app.get('/landing.html', (_req, res) => {
+  res.redirect(301, '/');
+});
 // Alias de compatibilidad para links antiguos de tarjeta, QR físico, WhatsApp
 // e Instagram. Todos sirven el mismo index.html.
 app.get(['/mi-tarjeta', '/tarjeta', '/unete'], (_req, res) => {
