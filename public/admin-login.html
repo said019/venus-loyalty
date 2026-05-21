@@ -367,28 +367,48 @@
     }
 
     /* Responsive */
-    @media (max-width:360px) {
-      .card {
-        padding: 20px 16px 16px;
+    @media (max-width:480px) {
+      .card { padding: 22px 18px 18px; }
+      .logo { width: 64px; height: 64px; }
+      .title { font-size: 1.4rem; }
+      /* Tabs en scroll horizontal en lugar de wrap (más legible) */
+      .tabs {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        justify-content: flex-start;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        padding-bottom: 4px;
       }
-
-      .logo {
-        width: 60px;
-        height: 60px;
-      }
-
-      .title {
-        font-size: 1.3rem;
-      }
-
+      .tabs::-webkit-scrollbar { display: none; }
       .tabs button {
-        font-size: 0.75rem;
-        padding: 5px 10px;
+        flex-shrink: 0;
+        font-size: 0.8rem;
+        padding: 8px 14px;
       }
-
+      .top-actions {
+        margin-top: 4px;
+        justify-content: stretch;
+      }
+      .top-actions .btn {
+        width: 100%;
+        min-height: 44px;
+        text-align: center;
+        justify-content: center;
+      }
       input {
-        font-size: 0.85rem;
+        font-size: 16px !important;  /* evita zoom iOS */
+        min-height: 44px;
       }
+      button[type="submit"] {
+        min-height: 48px;
+        width: 100%;
+      }
+    }
+    @media (max-width:360px) {
+      .card { padding: 18px 14px 14px; }
+      .title { font-size: 1.25rem; }
+      .tabs button { font-size: 0.75rem; padding: 7px 12px; }
     }
 
     @media (min-width:768px) {

@@ -1,0 +1,432 @@
+/* ============================================================
+   admin-mobile.css — Sweep responsivo iPad + iPhone
+   Carga DESPUÉS de admin-base, admin-extra y admin-redesign.
+   Solo CSS; no toca markup ni JS.
+
+   Breakpoints:
+     - iPhone:  ≤ 480px  (móvil estrecho)
+     - Phone+:  481–767px
+     - iPad:    768–1024px
+     - Desktop: ≥ 1025px (sin cambios)
+
+   Paleta + tokens importados desde admin-base via :root.
+   ============================================================ */
+
+/* Forzar paleta light en pages publicas/admin para evitar autodark */
+html { color-scheme: light; }
+@media (prefers-color-scheme: dark) {
+  /* admin tiene su propio toggle de tema; no dejamos al SO decidirlo */
+  html { color-scheme: light; }
+}
+
+/* ────────────────────────────────────────────────────────────
+   GLOBAL TAP TARGETS Y TIPOGRAFÍA (todos los breakpoints ≤ iPad)
+   ──────────────────────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  /* iOS no hace zoom en focus si font-size ≥ 16px */
+  .input, input[type="text"], input[type="email"], input[type="tel"],
+  input[type="password"], input[type="number"], input[type="date"],
+  input[type="time"], input[type="search"], textarea, select {
+    font-size: 16px !important;
+    min-height: 44px;
+  }
+
+  /* Buttons cómodos para dedo */
+  .btn, button.btn, .sidebar-nav-item, .mobile-nav-link,
+  .tab, [role="tab"], .icon-btn, .req-btn {
+    min-height: 44px;
+  }
+
+  /* Iconos clicables sueltos (logout, theme, bell) */
+  header button, .topbar button, .header-actions button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+/* ────────────────────────────────────────────────────────────
+   iPad (768 – 1024): sidebar drawer + 2 columnas
+   ──────────────────────────────────────────────────────────── */
+@media (min-width: 768px) and (max-width: 1024px) {
+  /* Sidebar como drawer overlay, escondido por defecto */
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 280px;
+    max-width: 80vw;
+    transform: translateX(-100%);
+    transition: transform 240ms cubic-bezier(0.25, 1, 0.5, 1);
+    z-index: 200;
+    box-shadow: 0 0 40px oklch(22% 0.012 80 / 0.18);
+  }
+  .sidebar.is-open { transform: translateX(0); }
+  .sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    background: oklch(22% 0.012 80 / 0.5);
+    backdrop-filter: blur(4px);
+    z-index: 199;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 240ms ease;
+  }
+  .sidebar-overlay.is-open { opacity: 1; pointer-events: auto; }
+
+  .main-content {
+    margin-left: 0 !important;
+    padding: 16px 20px 100px;
+    max-width: 100%;
+  }
+
+  /* KPIs en 2 columnas iPad */
+  .kpi-grid, .stats-grid, .summary-grid,
+  [class*="grid"][class*="cols-4"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  /* Cards de solicitudes y similares: 2 columnas */
+  .requests-list, .req-list, .cards-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* Mostrar el botón hamburguesa (que ya existe en HTML) */
+  .mobile-menu-btn { display: inline-flex !important; }
+}
+
+/* ────────────────────────────────────────────────────────────
+   iPhone + small phones (≤ 767): bottom-nav + single column
+   ──────────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+
+  /* Sidebar desktop: fuera */
+  .sidebar { display: none !important; }
+  .sidebar-overlay { display: none !important; }
+
+  /* Main content full width, padding chico, deja espacio para bottom-nav */
+  .main-content,
+  main.main-content,
+  .app-shell .main-content {
+    margin-left: 0 !important;
+    padding: 16px 16px calc(76px + env(safe-area-inset-bottom)) !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
+  /* Page header compacto */
+  .page-header, header.topbar, .topbar {
+    padding: 12px 16px !important;
+  }
+  .page-header h1, h1.page-title {
+    font-size: 22px !important;
+    line-height: 1.2 !important;
+  }
+  .page-header .muted, .page-header .subtitle {
+    font-size: 12px !important;
+  }
+
+  /* Mostrar el bottom-nav que ya existe en HTML */
+  .mobile-nav {
+    display: flex !important;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 100;
+    background: oklch(99% 0.006 88 / 0.96);
+    backdrop-filter: blur(14px) saturate(1.4);
+    -webkit-backdrop-filter: blur(14px) saturate(1.4);
+    border-top: 1px solid oklch(88% 0.014 88);
+    padding: 8px 4px calc(8px + env(safe-area-inset-bottom));
+    gap: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .mobile-nav::-webkit-scrollbar { display: none; }
+
+  .mobile-nav-link {
+    flex: 1 0 auto;
+    min-width: 64px;
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 6px 8px !important;
+    border-radius: 10px;
+    text-decoration: none;
+    color: oklch(45% 0.012 80);
+    font-size: 10px;
+    font-weight: 500;
+    line-height: 1.1;
+    text-align: center;
+    transition: background 180ms ease, color 180ms ease;
+  }
+  .mobile-nav-link i {
+    font-size: 18px;
+    line-height: 1;
+  }
+  .mobile-nav-link.is-active,
+  .mobile-nav-link[aria-current="page"] {
+    color: oklch(48% 0.085 120);
+    background: oklch(94% 0.022 120);
+  }
+  .mobile-nav-link:hover {
+    background: oklch(94% 0.022 120 / 0.5);
+  }
+
+  /* Hamburger button no se usa cuando hay bottom-nav */
+  .mobile-menu-btn { display: none !important; }
+
+  /* KPIs y stats: 2 columnas en phone */
+  .kpi-grid, .stats-grid, .summary-grid,
+  [class*="grid"][class*="cols-3"],
+  [class*="grid"][class*="cols-4"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+  .kpi, .kpi-tile, .stat-card {
+    padding: 14px !important;
+  }
+  .kpi-value, .stat-value, .stat-number {
+    font-size: 22px !important;
+  }
+
+  /* Cards de solicitudes, citas, clientas: 1 columna */
+  .requests-list, .req-list, .cards-grid,
+  .clientas-grid, .appointments-list,
+  [class*="grid-cols-3"], [class*="grid-cols-2"] {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  /* Card padding reducido */
+  .card, .panel, .req-card, .clienta, .appt-card {
+    padding: 16px !important;
+    border-radius: 14px !important;
+  }
+
+  /* Forms: single column */
+  .form-grid, .form-row,
+  [style*="grid-template-columns:1fr 1fr"],
+  [style*="grid-template-columns: 1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  /* Tablas → cards apilables. Solo si la tabla tiene <thead> y <td>.
+     Necesita que cada <td> tenga data-label (la mayoría sí lo tiene).
+     Como fallback, usamos scroll horizontal con cue visual. */
+  .data-table-wrap, .table-wrap,
+  .scroll-x, .table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 12px;
+  }
+
+  /* Tablas sin wrapper: las hacemos block + cards */
+  .data-table {
+    display: block;
+    width: 100%;
+    border: none;
+  }
+  .data-table thead {
+    display: none;  /* Headers ocultos en mobile */
+  }
+  .data-table tbody { display: block; }
+  .data-table tr {
+    display: block;
+    background: oklch(99% 0.006 88);
+    border: 1px solid oklch(88% 0.014 88);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+  }
+  .data-table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 0 !important;
+    border: none !important;
+    text-align: right;
+    font-size: 13px;
+  }
+  .data-table td:not(:last-child) {
+    border-bottom: 1px solid oklch(93.5% 0.014 88) !important;
+  }
+  .data-table td::before {
+    content: attr(data-label);
+    color: oklch(60% 0.010 80);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    text-align: left;
+  }
+  /* Si td no tiene data-label: tratamos contenido como bloque normal */
+  .data-table td:not([data-label]) {
+    display: block;
+    text-align: left;
+  }
+  .data-table td:not([data-label])::before { content: none; }
+
+  /* Modales fullscreen sheet en mobile */
+  dialog, .modal, .dialog {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+  }
+  dialog .dialog-body, .modal-body, .dialog-content {
+    padding: 20px 16px calc(20px + env(safe-area-inset-bottom)) !important;
+    max-height: 100%;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  dialog::backdrop, .modal-backdrop {
+    background: oklch(22% 0.012 80 / 0.55);
+  }
+
+  /* Iframe POS fullscreen */
+  .pos-frame, #recPosFrame, iframe[class*="pos"] {
+    width: 100%;
+    min-height: 60vh;
+    border: 0;
+    border-radius: 12px;
+  }
+
+  /* Search bars y filters: full width */
+  .searchbar, .filter-bar, .topbar-filters {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+  }
+  .searchbar input, .filter-bar input, .filter-bar select {
+    width: 100% !important;
+  }
+
+  /* Botones de acción en cita/solicitud: stretch full width */
+  .req-actions, .cita-actions, .card-actions, .appt-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .req-actions .req-btn, .cita-actions .btn,
+  .card-actions .btn, .appt-actions .btn {
+    flex: 1 1 auto;
+    min-height: 44px;
+    justify-content: center;
+  }
+
+  /* Sub-tabs horizontales scrolleables */
+  .sub-tabs, .tabs, [role="tablist"] {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+    gap: 6px;
+    padding: 4px 0;
+  }
+  .sub-tabs::-webkit-scrollbar,
+  .tabs::-webkit-scrollbar,
+  [role="tablist"]::-webkit-scrollbar { display: none; }
+  .sub-tab, .tab {
+    flex-shrink: 0;
+    padding: 10px 14px !important;
+    font-size: 13px;
+  }
+
+  /* Datebar scrolleable */
+  .datebar {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    gap: 8px;
+    padding-bottom: 4px;
+  }
+  .datebar input[type="date"] {
+    min-width: 160px;
+  }
+
+  /* Floating action button safe area sobre el bottom-nav */
+  .fab, [class*="floating-action"], .quick-add-btn {
+    bottom: calc(88px + env(safe-area-inset-bottom)) !important;
+  }
+
+  /* Notificaciones / dropdowns: 90vw, top-aligned */
+  .notification-dropdown, .dropdown-menu {
+    position: fixed !important;
+    top: 64px !important;
+    left: 12px !important;
+    right: 12px !important;
+    width: auto !important;
+    max-width: none !important;
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+
+  /* Toast / snackbar arriba del bottom-nav */
+  .toast, .snackbar, [class*="toast"] {
+    bottom: calc(88px + env(safe-area-inset-bottom)) !important;
+  }
+
+  /* Reduce paddings en sections */
+  .pane, .pane-content, section.pane {
+    padding: 0 !important;
+  }
+  .pane-head, .section-head {
+    padding: 0 0 12px !important;
+    flex-wrap: wrap;
+  }
+  .pane-head h1, .pane-head h2, .section-head h2 {
+    font-size: 22px !important;
+    margin: 0 !important;
+  }
+
+  /* Esconder elementos de pura decoración desktop si los hay */
+  .desktop-only { display: none !important; }
+}
+
+/* ────────────────────────────────────────────────────────────
+   iPhone extra-strict (≤ 380): paddings aún menores
+   ──────────────────────────────────────────────────────────── */
+@media (max-width: 380px) {
+  .main-content {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+  .card, .panel, .req-card {
+    padding: 14px !important;
+  }
+  .mobile-nav-link {
+    min-width: 56px;
+    font-size: 9.5px;
+  }
+  .kpi-value, .stat-value {
+    font-size: 20px !important;
+  }
+  /* Bottom-nav: si tiene 10 items, dejar scroll horizontal mejor */
+  .mobile-nav { justify-content: flex-start; }
+}
+
+/* ────────────────────────────────────────────────────────────
+   Landscape mobile (alto < 500): bottom-nav más bajo, hero más compacto
+   ──────────────────────────────────────────────────────────── */
+@media (max-height: 500px) and (orientation: landscape) {
+  .mobile-nav { padding-top: 4px; padding-bottom: 4px; }
+  .mobile-nav-link { font-size: 9px; }
+  .mobile-nav-link i { font-size: 16px; }
+  .page-header { padding: 8px 12px !important; }
+  .page-header h1 { font-size: 18px !important; }
+}

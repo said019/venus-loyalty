@@ -2887,6 +2887,9 @@
 
     <link rel="stylesheet" href="/css/admin/admin-redesign.css">
 
+    <!-- Sweep mobile: iPhone + iPad (carga al final = máxima especificidad) -->
+    <link rel="stylesheet" href="/css/admin/admin-mobile.css?v=1">
+
     <!-- DIALOG: Escáner QR -->
     <dialog id="scanDialog">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
@@ -16499,6 +16502,34 @@
     };
 
 
+  </script>
+
+  <script>
+    // ============================================================
+    // Mobile bottom-nav sync — mantiene el indicador activo
+    // sincronizado entre sidebar (desktop) y mobile-nav (mobile).
+    // El listener original sólo limpia '.nav a'; aquí también
+    // tocamos .mobile-nav-link y .sidebar-nav-item.
+    // ============================================================
+    (function () {
+      function syncActive(tabName) {
+        document.querySelectorAll('.mobile-nav-link').forEach(a => {
+          a.classList.toggle('is-active', a.dataset.tab === tabName);
+        });
+        document.querySelectorAll('.sidebar-nav-item').forEach(b => {
+          b.classList.toggle('is-active', b.dataset.tab === tabName);
+        });
+      }
+      // Hook al click en cualquier [data-tab]
+      document.addEventListener('click', (e) => {
+        const el = e.target.closest('[data-tab]');
+        if (!el || !el.dataset.tab) return;
+        syncActive(el.dataset.tab);
+      });
+      // Estado inicial: el que ya tiene is-active en el sidebar
+      const initial = document.querySelector('.sidebar-nav-item.is-active');
+      if (initial) syncActive(initial.dataset.tab);
+    })();
   </script>
 
 </body>
