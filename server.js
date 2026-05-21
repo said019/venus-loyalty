@@ -91,6 +91,11 @@ import { getEvolutionClient } from './src/services/whatsapp-evolution.js';
 // 📋 Expedientes de Clientas
 import clientRecordsRouter from './src/routes/clientRecords.js';
 
+// 💸 Upload de comprobantes (anticipo $100 transferencia)
+import multer from 'multer';
+import { v2 as cloudinaryV2 } from 'cloudinary';
+import { Readable as ReadableStream } from 'stream';
+
 // ☕ Venus The Coffee Bar - POS
 import coffeePosRouter from './lib/api/coffee-pos.js';
 
@@ -3190,6 +3195,82 @@ app.post('/api/public/lookup-card', async (req, res) => {
   }
 });
 
+// GET /api/public/bank-info — datos bancarios públicos para el form de
+// agendar (CLABE, banco, titular, referencia). Sin secretos. Si una env
+// var no está, devuelve "" para que el frontend muestre placeholder.
+app.get('/api/public/bank-info', (_req, res) => {
+  res.json({
+    success: true,
+    data: {
+      bankName: process.env.BANK_NAME || '',
+      accountHolder: process.env.BANK_ACCOUNT_HOLDER || '',
+      clabe: process.env.BANK_CLABE || '',
+      accountNumber: process.env.BANK_ACCOUNT_NUMBER || '',
+      reference: process.env.BANK_REFERENCE || 'Tu nombre y fecha de cita',
+      depositAmount: Number(process.env.DEPOSIT_AMOUNT) || 100,
+    },
+  });
+});
+
+// POST /api/public/upload-receipt — sube comprobante de transferencia a
+// Cloudinary y devuelve la URL. Sin auth (público — el cliente está
+// agendando, no tiene sesión). Solo imágenes/PDFs hasta 5MB.
+// (imports al top del archivo)
+
+cloudinaryV2.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+const receiptUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max
+  fileFilter: (_req, file, cb) => {
+    const ok = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
+      .includes(file.mimetype);
+    cb(ok ? null : new Error('Solo imágenes (jpg/png/webp) o PDF'), ok);
+  },
+});
+
+function uploadReceiptToCloudinary(buffer, mimetype) {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinaryV2.uploader.upload_stream(
+      {
+        folder: 'venus-receipts',
+        resource_type: mimetype === 'application/pdf' ? 'raw' : 'image',
+        transformation: mimetype === 'application/pdf' ? undefined : [
+          { width: 1600, height: 1600, crop: 'limit' },
+          { quality: 'auto' },
+        ],
+      },
+      (err, result) => (err ? reject(err) : resolve(result))
+    );
+    const rs = new ReadableStream();
+    rs.push(buffer);
+    rs.push(null);
+    rs.pipe(stream);
+  });
+}
+
+app.post('/api/public/upload-receipt', receiptUpload.single('receipt'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, error: 'No se recibió archivo' });
+    }
+    const result = await uploadReceiptToCloudinary(req.file.buffer, req.file.mimetype);
+    res.json({
+      success: true,
+      url: result.secure_url,
+      publicId: result.public_id,
+      mimetype: req.file.mimetype,
+    });
+  } catch (err) {
+    console.error('[upload-receipt]', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // GET /api/public/menu - Productos del menú de barra (público, solo activos)
 // Usado por /agendar.html como paso opcional "aparta tu alimento".
 app.get('/api/public/menu', async (_req, res) => {
@@ -3978,7 +4059,8 @@ app.post('/api/public/request', async (req, res) => {
       clientPhone,
       clientEmail,
       clientBirthday,
-      preorderItems = []  // [{ id, name, qty, price }, ...] — items de barra apartados
+      preorderItems = [],  // [{ id, name, qty, price }, ...] — items de barra apartados
+      depositReceiptUrl = null,  // URL de Cloudinary del comprobante de transferencia
     } = req.body;
 
     // Validaciones
@@ -4109,6 +4191,13 @@ app.post('/api/public/request', async (req, res) => {
       discountPct,
       discountAmount,
       finalServicePrice,
+      // Anticipo (transferencia $100 + comprobante)
+      // depositStatus: 'awaiting_review' → admin debe validar el comprobante
+      //                'confirmed'      → admin confirmó la transferencia
+      //                'rejected'       → admin rechazó (no llegó o monto incorrecto)
+      depositReceiptUrl: depositReceiptUrl || null,
+      depositAmount: depositReceiptUrl ? (Number(process.env.DEPOSIT_AMOUNT) || 100) : 0,
+      depositStatus: depositReceiptUrl ? 'awaiting_review' : 'pending',
     };
 
     const requestRef = await firestore.collection('booking_requests').add(requestData);
@@ -4151,6 +4240,9 @@ app.post('/api/public/request', async (req, res) => {
     const priceLine = hasPreorder
       ? `*Servicio:* $${servicePriceNum} → *$${finalServicePrice}* (5% off por apartar en barra)`
       : `*Precio:* $${servicePriceNum}`;
+    const depositLines = depositReceiptUrl
+      ? `\n*Anticipo:* $${requestData.depositAmount} transferido\n*Comprobante:* ${depositReceiptUrl}\n_Pendiente de validar por admin_\n`
+      : '';
 
     const message = `*NUEVA SOLICITUD DE CITA*
 
@@ -4162,7 +4254,7 @@ ${clientEmail ? `*Email:* ${clientEmail}` : ''}
 ${priceLine}
 *Fecha:* ${dateStr}
 *Hora:* ${timeStr}
-${preorderLines}
+${preorderLines}${depositLines}
 ${isNewClient ? '_Cliente nueva - Ya registrada en tarjetas_' : '_Cliente existente_'}
 
 #${requestRef.id.slice(-6)}`;
@@ -4220,6 +4312,9 @@ ${isNewClient ? '_Cliente nueva - Ya registrada en tarjetas_' : '_Cliente existe
       discountPct,
       discountAmount,
       finalServicePrice,
+      // Anticipo
+      hasDeposit: !!depositReceiptUrl,
+      depositStatus: requestData.depositStatus,
     });
 
   } catch (error) {
@@ -4257,6 +4352,28 @@ app.post('/api/booking-requests/:id/contacted', adminAuth, async (req, res) => {
     res.json({ success: true });
   } catch (error) {
     res.json({ success: false, error: error.message });
+  }
+});
+
+// PATCH /api/booking-requests/:id/deposit - Validar o rechazar el anticipo
+// Body: { action: 'confirm' | 'reject', reason?: string }
+app.patch('/api/booking-requests/:id/deposit', adminAuth, async (req, res) => {
+  try {
+    const { action, reason } = req.body || {};
+    if (!['confirm', 'reject'].includes(action)) {
+      return res.status(400).json({ success: false, error: 'action debe ser confirm o reject' });
+    }
+    const update = {
+      depositStatus: action === 'confirm' ? 'confirmed' : 'rejected',
+      depositReviewedAt: new Date().toISOString(),
+      depositReviewedBy: req.admin?.email || 'admin',
+    };
+    if (action === 'reject' && reason) update.depositRejectReason = reason;
+    await firestore.collection('booking_requests').doc(req.params.id).update(update);
+    res.json({ success: true, depositStatus: update.depositStatus });
+  } catch (error) {
+    console.error('[deposit review]', error);
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 

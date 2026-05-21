@@ -6262,3 +6262,78 @@
   margin-left: 6px;
   vertical-align: 0.1em;
 }
+
+/* ============================================================
+   Anticipo / comprobante en solicitudes admin
+   ============================================================ */
+.req-deposit {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--line, rgba(0,0,0,0.08));
+  border-radius: 12px;
+  background: var(--surface-2, oklch(94% 0.014 88));
+  font-size: 13px;
+}
+.req-deposit.req-dep-wait {
+  border-color: oklch(72% 0.110 80 / 0.4);
+  background: oklch(96% 0.030 80);
+}
+.req-deposit.req-dep-ok {
+  border-color: oklch(58% 0.075 120 / 0.4);
+  background: oklch(94% 0.022 120);
+}
+.req-deposit.req-dep-rej {
+  border-color: oklch(58% 0.140 28 / 0.4);
+  background: oklch(96% 0.025 28);
+}
+.req-deposit__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.req-deposit__title {
+  font-weight: 600;
+  color: var(--ink, oklch(22% 0.012 80));
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.req-deposit__title i { color: var(--olive, oklch(58% 0.075 120)); }
+.req-deposit__status {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-2, oklch(45% 0.012 80));
+}
+.req-dep-wait .req-deposit__status { color: oklch(50% 0.110 80); }
+.req-dep-ok .req-deposit__status { color: oklch(40% 0.085 120); }
+.req-dep-rej .req-deposit__status { color: oklch(45% 0.140 28); }
+.req-deposit__view {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: oklch(99% 0.006 88);
+  border: 1px solid var(--line, rgba(0,0,0,0.08));
+  border-radius: 8px;
+  text-decoration: none;
+  color: var(--ink, oklch(22% 0.012 80));
+  font-size: 12px;
+  font-weight: 500;
+  transition: background 180ms ease;
+}
+.req-deposit__view:hover { background: oklch(95% 0.020 80); }
+.req-deposit__actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+.req-deposit__reason {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--ink-2, oklch(45% 0.012 80));
+  font-style: italic;
+}

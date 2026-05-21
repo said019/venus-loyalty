@@ -12617,6 +12617,34 @@
         const s = STATUS[req.status] || STATUS.pending;
         const wa = req.clientPhone.startsWith('52') ? req.clientPhone : '52' + req.clientPhone;
 
+        // Anticipo (transferencia + comprobante)
+        const depStatus = req.depositStatus || (req.depositReceiptUrl ? 'awaiting_review' : 'pending');
+        const depStatusLabel = {
+          pending:          { label: 'Sin anticipo',     cls: 'req-dep-none' },
+          awaiting_review:  { label: 'Anticipo por validar', cls: 'req-dep-wait' },
+          confirmed:        { label: 'Anticipo confirmado',  cls: 'req-dep-ok' },
+          rejected:         { label: 'Anticipo rechazado',   cls: 'req-dep-rej' },
+        }[depStatus] || { label: depStatus, cls: '' };
+
+        const depositBlock = req.depositReceiptUrl ? `
+          <div class="req-deposit ${depStatusLabel.cls}">
+            <div class="req-deposit__head">
+              <span class="req-deposit__title">
+                <i class="fas fa-receipt"></i> Anticipo $${req.depositAmount || 100}
+              </span>
+              <span class="req-deposit__status">${depStatusLabel.label}</span>
+            </div>
+            <a href="${req.depositReceiptUrl}" target="_blank" rel="noopener" class="req-deposit__view">
+              <i class="fas fa-magnifying-glass"></i> Ver comprobante
+            </a>
+            ${depStatus === 'awaiting_review' ? `
+              <div class="req-deposit__actions">
+                <button class="req-btn req-btn-ok" onclick="reviewDeposit('${req.id}', 'confirm')"><i class="fas fa-check"></i><span>Validar</span></button>
+                <button class="req-btn req-btn-danger" onclick="reviewDeposit('${req.id}', 'reject')"><i class="fas fa-xmark"></i><span>Rechazar</span></button>
+              </div>` : ''}
+            ${depStatus === 'rejected' && req.depositRejectReason ? `<p class="req-deposit__reason">Motivo: ${req.depositRejectReason}</p>` : ''}
+          </div>` : '';
+
         let actions = '';
         if (req.status === 'pending') {
           actions = `
@@ -12649,11 +12677,37 @@
               <div><dt>Solicita</dt><dd>${desiredStr} <span class="req-price">· ${timeStr}</span></dd></div>
               <div><dt>Recibida</dt><dd>${createdStr}</dd></div>
             </dl>
+            ${depositBlock}
             <footer class="req-actions">${actions}</footer>
           </article>
         `;
       }).join('');
     }
+
+    async function reviewDeposit(id, action) {
+      try {
+        let reason = null;
+        if (action === 'reject') {
+          reason = prompt('Motivo del rechazo (opcional):') || null;
+        }
+        const res = await fetch(`/api/booking-requests/${id}/deposit`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ action, reason }),
+        });
+        const json = await res.json();
+        if (json.success) {
+          loadBookingRequests();
+        } else {
+          alert('Error: ' + (json.error || 'no se pudo procesar'));
+        }
+      } catch (e) {
+        console.error('[reviewDeposit]', e);
+        alert('Error de conexión');
+      }
+    }
+    window.reviewDeposit = reviewDeposit;
 
     async function contactRequest(id) {
       try {
