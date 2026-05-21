@@ -40,6 +40,67 @@ html[data-theme="dark"]  { color-scheme: dark; }
 }
 
 /* ────────────────────────────────────────────────────────────
+   Modal "Registrar Pago" (#modal-cobrar-cita) — estaba 100% en
+   dark hard-coded (#1a1a1a/#252525/#333/#fff inline). En light
+   mode salía negro. Override completo para light theme.
+   ──────────────────────────────────────────────────────────── */
+[data-theme="light"] #modal-cobrar-cita .cobro-modal {
+  background: #ffffff !important;
+  color: #1a1a1f !important;
+}
+[data-theme="light"] #modal-cobrar-cita .cobro-card {
+  background: #f5f2ed !important;
+  border-color: oklch(88% 0.014 88) !important;
+}
+[data-theme="light"] #modal-cobrar-cita .cobro-card[style*="#1f1f1f"] {
+  background: oklch(94% 0.022 120) !important; /* resumen → olive soft */
+}
+[data-theme="light"] #modal-cobrar-cita .cobro-label { color: #6b6b5e !important; }
+[data-theme="light"] #modal-cobrar-cita .cobro-value { color: #1a1a1f !important; }
+[data-theme="light"] #modal-cobrar-cita .cobro-input {
+  background: #ffffff !important;
+  border-color: oklch(82% 0.018 88) !important;
+  color: #1a1a1f !important;
+}
+[data-theme="light"] #modal-cobrar-cita .toggle-btn {
+  border-color: oklch(82% 0.018 88) !important;
+  color: #6b6b5e !important;
+}
+[data-theme="light"] #modal-cobrar-cita .toggle-btn.active {
+  background: #8C9668 !important;
+  color: #ffffff !important;
+}
+/* Overrides de los inline #fff, #888, #333 dentro del modal en light */
+[data-theme="light"] #modal-cobrar-cita h3,
+[data-theme="light"] #modal-cobrar-cita span[style*="color:#fff"],
+[data-theme="light"] #modal-cobrar-cita [style*="color:#fff"] {
+  color: #1a1a1f !important;
+}
+[data-theme="light"] #modal-cobrar-cita [style*="color:#888"],
+[data-theme="light"] #modal-cobrar-cita [style*="color:#666"] {
+  color: #6b6b5e !important;
+}
+[data-theme="light"] #modal-cobrar-cita [style*="border-bottom:1px solid #333"],
+[data-theme="light"] #modal-cobrar-cita [style*="border-top:1px solid #333"],
+[data-theme="light"] #modal-cobrar-cita [style*="border-bottom: 1px solid #333"] {
+  border-color: oklch(88% 0.014 88) !important;
+}
+/* Botones secundarios del modal con fondo #333 inline */
+[data-theme="light"] #modal-cobrar-cita button[style*="background:#333"] {
+  background: #f0ede6 !important;
+  color: #6b6b5e !important;
+}
+
+/* Cualquier otra superficie residual con #1a1a1a/#1f1f1f inline en
+   light theme (badges, listas pequeñas dentro de modales generados). */
+[data-theme="light"] [style*="background:#1a1a1a"],
+[data-theme="light"] [style*="background: #1a1a1a"],
+[data-theme="light"] [style*="background:#1f1f1f"] {
+  background: #f5f2ed !important;
+  color: #1a1a1f;
+}
+
+/* ────────────────────────────────────────────────────────────
    GLOBAL TAP TARGETS Y TIPOGRAFÍA (todos los breakpoints ≤ iPad)
    ──────────────────────────────────────────────────────────── */
 @media (max-width: 1024px) {
