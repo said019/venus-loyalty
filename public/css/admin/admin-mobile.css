@@ -394,6 +394,104 @@ html { color-scheme: light; }
     margin: 0 !important;
   }
 
+  /* ──────────────────────────────────────────────────────────
+     AGENDA · vista Semana/Día (time-grid) — scroll horizontal
+     7 columnas de día no caben en celular y las citas se cortan.
+     Solución: scroll-x con columnas de ancho mínimo legible y la
+     columna de horas + headers sticky para no perder referencia.
+     ────────────────────────────────────────────────────────── */
+  /* El contenedor scrollea en AMBOS ejes como una sola unidad:
+     horizontal para ver los 7 días, vertical para ver las horas.
+     Header (días) y body (horas+citas) se mueven juntos en X. */
+  .time-grid-container {
+    height: 70vh !important;
+    border-radius: 12px;
+    overflow: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  .time-grid-header,
+  .time-grid-body {
+    min-width: max-content;
+  }
+  .time-grid-body { overflow: visible; }
+  /* Header de días sticky arriba al hacer scroll vertical */
+  .time-grid-header {
+    position: sticky;
+    top: 0;
+    z-index: 17;
+    background: var(--bg-tertiary, oklch(93.5% 0.014 88));
+  }
+
+  /* Columna de horas: angosta + pegada a la izquierda al hacer scroll-x */
+  .time-header-spacer {
+    width: 48px !important;
+    position: sticky;
+    left: 0;
+    z-index: 16;
+    background: var(--bg-tertiary, oklch(93.5% 0.014 88));
+  }
+  .time-labels {
+    width: 48px !important;
+    position: sticky;
+    left: 0;
+    z-index: 15;
+    background: var(--bg-secondary, oklch(99% 0.006 88));
+  }
+  .time-label { font-size: 10px; padding: 4px 6px 0; }
+
+  /* Headers de día: ancho fijo legible */
+  .day-headers { min-width: max-content; }
+  .day-header-cell {
+    min-width: 110px;
+    flex: 0 0 110px;
+    padding: 10px 6px;
+    font-size: 12px;
+  }
+
+  /* Grid de días: cada columna 110px, no se aplastan */
+  .days-grid { min-width: max-content; }
+  .day-column {
+    min-width: 110px;
+    flex: 0 0 110px;
+  }
+
+  /* Bloques de cita: usar todo el ancho de la columna, texto legible */
+  .appt-block {
+    left: 3px;
+    right: 3px;
+    padding: 6px 8px;
+    font-size: 11px;
+  }
+  .appt-block .ab-head { font-size: 11.5px; }
+  .appt-block .ab-svc { font-size: 10.5px; }
+  .appt-block .ab-meta { font-size: 10px; }
+
+  /* Hint visual de que se puede deslizar */
+  .time-grid-container::after {
+    content: 'Desliza para ver más días →';
+    display: block;
+    text-align: center;
+    font-size: 10px;
+    color: var(--text-muted, oklch(60% 0.010 80));
+    padding: 6px;
+    background: var(--bg-tertiary, oklch(93.5% 0.014 88));
+    border-top: 1px solid var(--border-color, oklch(88% 0.014 88));
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 16;
+    pointer-events: none;
+  }
+
+  /* La vista MES también: días más chicos pero legibles */
+  .calendar-grid-container { overflow-x: hidden; }
+  .weekdays-header .weekday { font-size: 10px; padding: 6px 2px; }
+  .calendar-grid .calendar-day, .calendar-grid > * {
+    min-height: 56px;
+    font-size: 12px;
+  }
+
   /* Esconder elementos de pura decoración desktop si los hay */
   .desktop-only { display: none !important; }
 }
