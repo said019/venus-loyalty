@@ -1814,7 +1814,7 @@
         </div>
         <div class="table-wrap" style="max-height:500px;overflow-y:auto;">
           <table class="data-table" style="font-size:12px;">
-            <thead style="position:sticky;top:0;background:#2c2d26;z-index:1;">
+            <thead style="position:sticky;top:0;background:var(--bg-tertiary);z-index:1;">
         </div>
 
         <!-- Estadísticas -->
@@ -14302,12 +14302,13 @@
               max-width: 440px;
               width: 100%;
               max-height: 90vh;
-              background: #1a1a1a;
+              background: var(--bg-secondary, #fff);
+              color: var(--text-primary, #1a1a1f);
               border-radius: 16px;
               overflow: hidden;
               display: flex;
               flex-direction: column;
-              box-shadow: 0 25px 60px rgba(0,0,0,0.6);
+              box-shadow: 0 25px 60px rgba(0,0,0,0.35);
               margin: auto;
             }
             #modal-cobrar-cita .cobro-scroll {
@@ -14317,8 +14318,8 @@
               -webkit-overflow-scrolling: touch;
             }
             #modal-cobrar-cita .cobro-card {
-              background: #252525;
-              border: 1px solid #333;
+              background: var(--bg-tertiary, #f5f2ed);
+              border: 1px solid var(--line, rgba(0,0,0,0.08));
               border-radius: 12px;
               padding: 16px;
               margin-bottom: 16px;
@@ -14327,21 +14328,21 @@
               font-size: 10px;
               text-transform: uppercase;
               letter-spacing: 0.5px;
-              color: #888;
+              color: var(--text-muted, #888);
               margin-bottom: 6px;
             }
             #modal-cobrar-cita .cobro-value {
               font-size: 15px;
               font-weight: 600;
-              color: #fff;
+              color: var(--text-primary, #1a1a1f);
             }
             #modal-cobrar-cita .cobro-input {
               width: 100%;
               padding: 12px 14px;
-              background: #2a2a2a;
-              border: 1px solid #444;
+              background: var(--bg-secondary, #fff);
+              border: 1px solid var(--line-2, rgba(0,0,0,0.15));
               border-radius: 8px;
-              color: #fff;
+              color: var(--text-primary, #1a1a1f);
               font-size: 14px;
             }
             #modal-cobrar-cita .cobro-input:focus {
@@ -14350,9 +14351,9 @@
             }
             #modal-cobrar-cita .toggle-btn {
               padding: 10px 16px;
-              border: 1px solid #444;
+              border: 1px solid var(--line-2, rgba(0,0,0,0.15));
               background: transparent;
-              color: #888;
+              color: var(--text-muted, #888);
               cursor: pointer;
               font-size: 13px;
               transition: all 0.2s;
@@ -14388,10 +14389,10 @@
           <div id="modal-cobrar-cita">
             <div class="cobro-modal">
               <!-- Header -->
-              <div style="padding:20px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #333;">
-                <h3 style="margin:0;font-size:18px;font-weight:600;color:#fff;">Registrar Pago</h3>
-                <button onclick="document.getElementById('modal-cobrar-cita').remove()" 
-                  style="width:32px;height:32px;background:#333;border:none;border-radius:8px;color:#888;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;">
+              <div style="padding:20px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);">
+                <h3 style="margin:0;font-size:18px;font-weight:600;color:var(--text-primary);">Registrar Pago</h3>
+                <button onclick="document.getElementById('modal-cobrar-cita').remove()"
+                  style="width:32px;height:32px;background:var(--bg-tertiary);border:1px solid var(--line);border-radius:8px;color:var(--text-muted);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;">
                   <i class="fas fa-times"></i>
                 </button>
               </div>
@@ -14458,7 +14459,7 @@
                 </div>
 
                 <!-- Resumen -->
-                <div class="cobro-card" style="background:#1f1f1f;">
+                <div class="cobro-card" style="background:var(--bg-secondary);">
                   <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #333;">
                     <span style="color:#888;font-size:13px;">Servicio</span>
                     <span id="resumen-servicio" style="color:#fff;font-size:14px;">$${precioServicioGlobal.toFixed(0)}</span>
@@ -14600,15 +14601,15 @@
         container.innerHTML = '<p style="font-size:13px;color:#666;text-align:center;padding:8px 0;">Sin productos adicionales</p>';
       } else {
         container.innerHTML = productosEnCobro.map(p => `
-          <div style="display:flex;align-items:center;gap:10px;padding:10px;background:#1a1a1a;border-radius:8px;margin-bottom:8px;border:1px solid #333;">
+          <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--bg-secondary);border-radius:8px;margin-bottom:8px;border:1px solid var(--line);">
             <div style="flex:1;min-width:0;">
-              <div style="font-size:13px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.nombre}</div>
-              <div style="font-size:11px;color:#666;">$${p.precio.toFixed(0)} c/u</div>
+              <div style="font-size:13px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.nombre}</div>
+              <div style="font-size:11px;color:var(--text-muted);">$${p.precio.toFixed(0)} c/u</div>
             </div>
             <div style="display:flex;align-items:center;gap:6px;">
-              <button onclick="cambiarCantidadProducto('${p.id}', -1)" style="width:28px;height:28px;border:1px solid #444;border-radius:6px;background:#252525;cursor:pointer;font-size:14px;color:#fff;">−</button>
-              <span style="width:28px;text-align:center;font-size:14px;font-weight:600;color:#fff;">${p.cantidad}</span>
-              <button onclick="cambiarCantidadProducto('${p.id}', 1)" style="width:28px;height:28px;border:1px solid #444;border-radius:6px;background:#252525;cursor:pointer;font-size:14px;color:#fff;">+</button>
+              <button onclick="cambiarCantidadProducto('${p.id}', -1)" style="width:28px;height:28px;border:1px solid var(--line-2);border-radius:6px;background:var(--bg-tertiary);cursor:pointer;font-size:14px;color:var(--text-primary);">−</button>
+              <span style="width:28px;text-align:center;font-size:14px;font-weight:600;color:var(--text-primary);">${p.cantidad}</span>
+              <button onclick="cambiarCantidadProducto('${p.id}', 1)" style="width:28px;height:28px;border:1px solid var(--line-2);border-radius:6px;background:var(--bg-tertiary);cursor:pointer;font-size:14px;color:var(--text-primary);">+</button>
             </div>
             <span style="font-weight:700;color:#8C9668;font-size:14px;min-width:55px;text-align:right;">$${(p.precio * p.cantidad).toFixed(0)}</span>
             <button onclick="eliminarProductoCobro('${p.id}')" style="background:none;border:none;color:#e74c3c;cursor:pointer;padding:4px;">
@@ -15560,6 +15561,13 @@
       if (typeof loadExpenses === 'function') loadExpenses();
     }
 
+    // Color del borde de los charts (gap entre segmentos) según el tema activo.
+    // En light usa el fondo del card (cream); en dark usa el charcoal.
+    function getChartBorderColor() {
+      const styles = getComputedStyle(document.documentElement);
+      return (styles.getPropertyValue('--bg-secondary') || '#ffffff').trim() || '#ffffff';
+    }
+
     async function cargarReportesMes() {
       try {
         const { year, month } = currentReportMonth;
@@ -15683,7 +15691,7 @@
           datasets: [{
             data: [ingresos, egresos || 0.01],
             backgroundColor: ['#6B8E23', '#3F4F3A'],
-            borderColor: ['#2c2d26', '#2c2d26'],
+            borderColor: getChartBorderColor(),
             borderWidth: 3
           }]
         },
@@ -15724,7 +15732,7 @@
           datasets: [{
             data: data,
             backgroundColor: colors,
-            borderColor: '#2c2d26',
+            borderColor: getChartBorderColor(),
             borderWidth: 2
           }]
         },
