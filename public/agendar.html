@@ -1580,6 +1580,7 @@
     let clientFirstName = null;
     let clientCardId = null;
     let clientPhone = '';
+    let skipDeposit = false; // true si el cliente tiene >2 citas en su historial → sin anticipo
     let servicesLoaded = false;
 
     const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
@@ -1597,6 +1598,26 @@
     // Auto-identificación cuando se agenda desde la tarjeta de lealtad.
     // Lee ?cardId (o ?phone) de la URL, reconoce al cliente y salta al paso 3
     // (elegir servicio) sin volver a pedir el WhatsApp.
+    // Si el cliente ya tiene más de 2 citas en su historial, no le pedimos
+    // anticipo: ocultamos la sección de transferencia/comprobante.
+    async function checkDepositExemption(phone) {
+      const digits = String(phone || '').replace(/\D/g, '');
+      if (digits.length < 10) return;
+      try {
+        const res = await fetch(`/api/appointments/by-phone/${encodeURIComponent(digits)}`);
+        const json = await res.json();
+        const count = (json && json.success && Array.isArray(json.appointments)) ? json.appointments.length : 0;
+        if (count > 2) {
+          skipDeposit = true;
+          depositRequired = false; // permitir enviar sin comprobante
+          depositReceiptUrl = null;
+          const dep = document.getElementById('vn-deposit');
+          if (dep) dep.style.display = 'none';
+          updateSubmitEnabled();
+        }
+      } catch (e) { /* ante error de red, dejar el anticipo visible */ }
+    }
+
     async function autoIdentifyFromCard() {
       const params = new URLSearchParams(window.location.search);
       let cardId = params.get('cardId');
@@ -1641,6 +1662,7 @@
         clientFirstName = (card.name || '').trim().split(' ')[0] || 'cliente';
         clientCardId = card.id || cardId || null;
         clientPhone = phone10;
+        checkDepositExemption(phone10);
 
         // Prefill del paso 1 para que el botón "Atrás" se vea coherente.
         const phoneInput = document.getElementById('input-phone');
@@ -1734,6 +1756,7 @@
           existsClient = true;
           clientFirstName = json.firstName || 'cliente';
           clientCardId = json.cardId || null;
+          checkDepositExemption(clientPhone);
           // Recordar al cliente en este dispositivo para la próxima vez.
           try {
             localStorage.setItem('venus_card', JSON.stringify({
