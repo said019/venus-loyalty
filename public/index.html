@@ -1297,6 +1297,67 @@
       gap: 18px;
     }
 
+    .venus-google-proof {
+      margin-bottom: 18px;
+      padding: clamp(20px, 3vw, 28px);
+      background: rgba(249, 234, 216, 0.86);
+      border: 1px solid rgba(104, 114, 92, 0.16);
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 20px;
+      align-items: center;
+    }
+
+    .venus-google-proof h3 {
+      font-family: 'Prata', serif;
+      font-size: clamp(28px, 3.4vw, 44px);
+      font-weight: 400;
+      line-height: 1.08;
+      color: var(--ink);
+    }
+
+    .venus-google-proof p {
+      margin-top: 8px;
+      color: rgba(36, 48, 38, 0.68);
+      max-width: 64ch;
+      line-height: 1.7;
+    }
+
+    .venus-google-link {
+      min-height: 54px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 14px 20px;
+      border-radius: 999px;
+      background: var(--porcelain);
+      color: var(--ink);
+      border: 1px solid rgba(104, 114, 92, 0.18);
+      box-shadow: 0 14px 34px rgba(38, 49, 35, 0.10);
+      font-weight: 900;
+      text-decoration: none;
+      white-space: nowrap;
+      transition: transform .24s ease, box-shadow .24s ease, border-color .24s ease;
+    }
+
+    .venus-google-link:hover {
+      transform: translateY(-2px);
+      border-color: rgba(104, 114, 92, 0.34);
+      box-shadow: 0 18px 42px rgba(38, 49, 35, 0.14);
+    }
+
+    .venus-google-link img {
+      width: 20px;
+      height: 20px;
+    }
+
+    .venus-stars {
+      color: #b98a2f;
+      letter-spacing: 0.08em;
+      font-size: 13px;
+    }
+
     .venus-story {
       min-height: 280px;
       padding: 24px;
@@ -1391,10 +1452,16 @@
       .venus-proof,
       .venus-ritual-grid,
       .venus-method,
+      .venus-google-proof,
       .venus-story-grid,
       .venus-location,
       .venus-cta-band {
         grid-template-columns: 1fr;
+      }
+
+      .venus-google-link {
+        width: 100%;
+        white-space: normal;
       }
     }
 
@@ -1616,6 +1683,7 @@
         <div class="venus-nav-links">
           <a href="#rituales" class="hover:text-[var(--ink)] transition-colors">Rituales</a>
           <a href="#experiencia" class="hover:text-[var(--ink)] transition-colors">Experiencia</a>
+          <a href="#testimonios" class="hover:text-[var(--ink)] transition-colors">Reseñas</a>
           <a href="#lealtad" class="hover:text-[var(--ink)] transition-colors">Lealtad</a>
           <a href="#ubicacion" class="hover:text-[var(--ink)] transition-colors">Ubicación</a>
           <a href="#lealtad" onclick="showTab('login')" class="hover:text-[var(--ink)] transition-colors">Mi tarjeta</a>
@@ -1746,6 +1814,19 @@
         <div class="venus-section-head">
           <h2>Lo que más se nota es cómo te sientes al salir.</h2>
           <p>Atención, calma, resultados visibles y ganas de volver. Esa es la prueba social que sí importa para Venus.</p>
+        </div>
+
+        <div class="venus-google-proof">
+          <div>
+            <span class="venus-kicker text-[var(--clay)]">Reseñas de Google</span>
+            <h3>Clientas reales, experiencias que te dan confianza antes de venir.</h3>
+            <p>Lee las reseñas en Google Maps y mira por qué la atención, el trato y el resultado hacen que tantas clientas vuelvan.</p>
+          </div>
+          <a href="https://www.google.com/maps/place/Venus+Cosmetologia" target="_blank" rel="noopener" class="venus-google-link" aria-label="Ver reseñas de Venus Cosmetología en Google Maps">
+            <img src="https://www.google.com/favicon.ico" alt="" aria-hidden="true">
+            Ver reseñas en Google
+            <span class="venus-stars" aria-hidden="true">★★★★★</span>
+          </a>
         </div>
 
         <div class="venus-story-grid">
