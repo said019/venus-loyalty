@@ -1444,6 +1444,39 @@
         height: 1460px;
       }
     }
+
+    /* ============ VISTA DE TARJETA EN TEMA CLARO ============
+       Consistente con el landing/agendar (crema + olivo). Antes esta vista
+       heredaba el fondo oscuro del <body> (bg-venus-forest). Override
+       scopeado a #view-card (mayor especificidad que las utilidades). */
+    #view-card {
+      background:
+        radial-gradient(circle at 16% 9%, rgba(249, 234, 216, 0.30), transparent 32rem),
+        linear-gradient(180deg, var(--venus-brand-cream, #faf7f2) 0%, var(--porcelain, #f1ebe1) 100%);
+      color: var(--ink);
+    }
+    #view-card > header {
+      background: rgba(250, 249, 246, 0.95) !important;
+      border-bottom-color: rgba(36, 48, 38, 0.10) !important;
+    }
+    #view-card .text-venus-cream { color: var(--ink) !important; }
+    #view-card .text-venus-cream\/70 { color: rgba(36, 48, 38, 0.62) !important; }
+    #view-card .text-venus-cream\/60 { color: rgba(36, 48, 38, 0.55) !important; }
+    #view-card .text-venus-cream\/50 { color: rgba(36, 48, 38, 0.45) !important; }
+    #view-card .text-venus-cream\/40 { color: rgba(36, 48, 38, 0.40) !important; }
+    #view-card .info-card {
+      background: #ffffff !important;
+      border-color: rgba(36, 48, 38, 0.08) !important;
+      box-shadow: 0 6px 24px -10px rgba(44, 44, 44, 0.14);
+    }
+    #view-card .bg-white\/5 {
+      background: #ffffff !important;
+      border: 1px solid rgba(36, 48, 38, 0.06);
+    }
+    #view-card .border-white\/10 { border-color: rgba(36, 48, 38, 0.12) !important; }
+    #view-card .hover\:bg-white\/5:hover { background: rgba(36, 48, 38, 0.04) !important; }
+    #view-card footer.border-white\/10,
+    #view-card footer { border-top-color: rgba(36, 48, 38, 0.10) !important; }
   </style>
 </head>
 <body class="font-inter bg-venus-forest min-h-screen">
