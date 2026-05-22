@@ -1255,6 +1255,10 @@
     .vn-step .tw-card-header,
     .vn-step .tw-card-body { all: unset; display: block; }
     .vn-step .tw-card { display: block; }
+    .vn-progress,
+    .vn-step {
+      scroll-margin-top: 104px;
+    }
 
     /* ============================================================
        Venus unified aesthetic + Emil motion pass
@@ -1811,6 +1815,7 @@
     let clientPhone = '';
     let skipDeposit = false; // true si el cliente tiene >2 citas en su historial → sin anticipo
     let servicesLoaded = false;
+    const DEFAULT_SERVICE_CATEGORY = 'Básicos Venus';
 
     const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
     const DAYS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
@@ -2292,7 +2297,7 @@
       const categories = ['Todos', ...new Set(services.map(s => s.category || 'Otros'))];
 
       // Orden personalizado
-      const catOrder = ['Todos', 'Faciales', 'Corporales', 'Depilación', 'Masajes', 'Paquetes', 'Otros'];
+      const catOrder = ['Todos', 'Básicos Venus', 'Faciales', 'Corporales', 'Depilación', 'Paquetes', 'Especiales', 'Masajes', 'Otros'];
       categories.sort((a, b) => {
         const ia = catOrder.indexOf(a);
         const ib = catOrder.indexOf(b);
@@ -2302,9 +2307,10 @@
         return ia - ib;
       });
 
-      // 2. Set default category if none
-      if (!currentCategory) {
-        currentCategory = categories[1] || 'Todos';
+      // 2. Abrir servicios en Básicos Venus para que la elección se sienta corta.
+      if (!currentCategory || !categories.includes(currentCategory)) {
+        const preferredCategory = categories.find(cat => normalizeCategory(cat) === normalizeCategory(DEFAULT_SERVICE_CATEGORY));
+        currentCategory = preferredCategory || categories.find(cat => cat !== 'Todos') || 'Todos';
       }
 
       // 3. Render Tabs
@@ -2708,7 +2714,38 @@
         if (i < activeDot) step.classList.add('completed');
         else if (i === activeDot) step.classList.add('active');
       }
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      queueReservationScroll(n);
+    }
+
+    function normalizeCategory(value) {
+      return String(value || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .trim()
+        .toLowerCase();
+    }
+
+    function keepReservationInView(n) {
+      const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const nav = document.querySelector('.vn-nav');
+      const activeStep = document.getElementById(`step-${n}`);
+      const target = activeStep?.querySelector('.vn-card') || activeStep;
+      if (!target) return;
+
+      const navOffset = nav ? nav.getBoundingClientRect().height : 0;
+      const rect = target.getBoundingClientRect();
+      const top = Math.max(0, rect.top + window.scrollY - navOffset - 18);
+      if (Math.abs(window.scrollY - top) < 8) return;
+
+      window.scrollTo({
+        top,
+        behavior: prefersReduced ? 'auto' : 'smooth'
+      });
+    }
+
+    function queueReservationScroll(n) {
+      requestAnimationFrame(() => keepReservationInView(n));
+      setTimeout(() => keepReservationInView(n), 280);
     }
 
     function formatDateISO(d) {
