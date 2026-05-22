@@ -10,16 +10,16 @@
        autodarkenear esta página. La paleta es boutique cream + olive
        intencionalmente clara. -->
   <meta name="color-scheme" content="light only">
-  <meta name="theme-color" content="#faf9f6">
+  <meta name="theme-color" content="#8b947d">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;1,500&family=Prata&family=DM+Sans:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Prata&family=Manrope:wght@400;500;600;700;800&display=swap">
   <link rel="stylesheet" href="/css/tailwind.css?v=4">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <style>
     /* ============================================================
        /agendar.html — Venus Cosmetología · brand register
-       Boutique spa booking. Warm cream + olive, Playfair + DM Sans.
+       Boutique spa booking. Warm cream + olive, Prata + Manrope.
        Aprobado en shape brief (commit log).
        ============================================================ */
 
@@ -63,28 +63,30 @@
     .vn-time.disabled { background-color: #f5f3ed !important; color: #b4b4a8 !important; }
 
     :root {
-      --bg:          oklch(96.5% 0.012 88);
-      --surface:     oklch(99% 0.006 88);
-      --surface-2:   oklch(93.5% 0.014 88);
-      --ink:         oklch(22% 0.012 80);
+      --venus-brand-sage: #8b947d;
+      --venus-brand-cream: #f9ead8;
+      --bg:          #fbf7ef;
+      --surface:     #f9ead8;
+      --surface-2:   #efe4d6;
+      --ink:         #263123;
       --ink-2:       oklch(45% 0.012 80);
       --ink-3:       oklch(60% 0.010 80);
       --line:        oklch(88% 0.014 88);
       --line-2:      oklch(82% 0.018 88);
-      --olive:       oklch(58% 0.075 120);
-      --olive-deep:  oklch(48% 0.085 120);
-      --olive-soft:  oklch(94% 0.022 120);
+      --olive:       #8b947d;
+      --olive-deep:  #68725c;
+      --olive-soft:  #eef1e5;
       --olive-ink:   oklch(28% 0.05 120);
       --ok:          oklch(62% 0.115 155);
       --warn:        oklch(72% 0.110 80);
       --err:         oklch(58% 0.140 28);
 
-      --display: 'Playfair Display', Georgia, serif;
-      --body:    'DM Sans', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      --display: 'Prata', Georgia, serif;
+      --body:    'Manrope', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
 
       --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
       --ease-out-expo:  cubic-bezier(0.16, 1, 0.3, 1);
-      --spring:         cubic-bezier(0.34, 1.56, 0.64, 1);
+      --ease-emil:      cubic-bezier(0.23, 1, 0.32, 1);
     }
 
     * { box-sizing: border-box; }
@@ -193,10 +195,10 @@
       box-shadow: 0 12px 30px oklch(22% 0.012 80 / 0.08), 0 2px 6px oklch(22% 0.012 80 / 0.05);
       border: 1px solid var(--line);
       background: var(--surface);
-      animation: vn-logo-in 880ms var(--spring) 60ms both;
+      animation: vn-logo-in 520ms var(--ease-emil) 60ms both;
     }
     @keyframes vn-logo-in {
-      from { opacity: 0; transform: scale(0.6) translateY(-12px); }
+      from { opacity: 0; transform: scale(0.94) translateY(-12px); }
       to   { opacity: 1; transform: scale(1) translateY(0); }
     }
     .vn-hero__eyebrow {
@@ -555,11 +557,10 @@
       font-size: 14px;
       line-height: 1.5;
       display: none;
-      animation: vn-pop 500ms var(--spring) both;
+      animation: vn-pop 220ms var(--ease-emil) both;
     }
     @keyframes vn-pop {
       0%   { opacity: 0; transform: scale(0.95); }
-      60%  { transform: scale(1.02); }
       100% { opacity: 1; transform: scale(1); }
     }
     .vn-lookup.success {
@@ -1156,7 +1157,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      animation: vn-pop 600ms var(--spring) 120ms both;
+      animation: vn-pop 260ms var(--ease-emil) 120ms both;
     }
     .vn-confirm__check {
       width: 36px;
@@ -1254,6 +1255,234 @@
     .vn-step .tw-card-header,
     .vn-step .tw-card-body { all: unset; display: block; }
     .vn-step .tw-card { display: block; }
+
+    /* ============================================================
+       Venus unified aesthetic + Emil motion pass
+       Same salvia/crema system as / and short purposeful motion.
+       ============================================================ */
+    html,
+    body {
+      background-color: var(--bg) !important;
+      color: var(--ink) !important;
+    }
+
+    body {
+      background:
+        radial-gradient(circle at 88% 8%, rgba(139, 148, 125, 0.20), transparent 28rem),
+        linear-gradient(90deg, rgba(104, 114, 92, 0.045) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(104, 114, 92, 0.035) 1px, transparent 1px),
+        var(--bg) !important;
+      background-size: auto, 56px 56px, 56px 56px, auto !important;
+    }
+
+    body::before {
+      z-index: 0;
+      background:
+        linear-gradient(180deg, var(--venus-brand-sage) 0 430px, transparent 430px),
+        radial-gradient(circle at 14% 6%, rgba(249, 234, 216, 0.25), transparent 24rem);
+    }
+
+    .vn-nav {
+      background: rgba(139, 148, 125, 0.94);
+      border-bottom-color: rgba(249, 234, 216, 0.22);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+    }
+
+    .vn-nav__brand,
+    .vn-nav__links a {
+      color: var(--venus-brand-cream);
+    }
+
+    .vn-nav__brand:hover,
+    .vn-nav__links a:hover {
+      color: #fff2df;
+    }
+
+    .vn-nav__links a::after {
+      background: var(--venus-brand-cream);
+    }
+
+    .vn-hero {
+      color: var(--venus-brand-cream);
+      padding-top: 84px;
+    }
+
+    .vn-hero__eyebrow {
+      background: rgba(249, 234, 216, 0.14);
+      border: 1px solid rgba(249, 234, 216, 0.20);
+      color: var(--venus-brand-cream);
+      border-radius: 999px;
+    }
+
+    .vn-hero__title,
+    .vn-hero__title em,
+    .vn-hero__sub {
+      color: var(--venus-brand-cream);
+    }
+
+    .vn-hero__title {
+      letter-spacing: 0;
+    }
+
+    .vn-hero__sub {
+      opacity: 0.82;
+    }
+
+    .vn-hero__logo {
+      border-radius: 14px;
+      background: var(--venus-brand-cream);
+      border-color: rgba(249, 234, 216, 0.45);
+      box-shadow: 0 24px 60px rgba(38, 49, 35, 0.22);
+    }
+
+    .vn-strip__inner,
+    .vn-card,
+    .vn-cal,
+    .vn-times,
+    .vn-deposit,
+    .vn-preorder,
+    .vn-summary {
+      border-radius: 8px;
+      border-color: rgba(104, 114, 92, 0.18);
+      box-shadow: 0 24px 60px rgba(38, 49, 35, 0.10);
+    }
+
+    .vn-strip__inner {
+      background: rgba(104, 114, 92, 0.18);
+      overflow: hidden;
+    }
+
+    .vn-strip__cell,
+    .vn-cal,
+    .vn-times,
+    .vn-card,
+    .vn-input,
+    .vn-preorder,
+    .vn-deposit,
+    .vn-summary,
+    .vn-svc,
+    .vn-progress__dot,
+    .vn-cal__nav,
+    .vn-day,
+    .vn-time {
+      background-color: rgba(249, 234, 216, 0.92) !important;
+    }
+
+    .vn-card {
+      overflow: hidden;
+    }
+
+    .vn-card::before {
+      background:
+        radial-gradient(circle at 100% 0%, rgba(139, 148, 125, 0.16), transparent 28rem),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.18), transparent);
+      opacity: 1;
+    }
+
+    .vn-card__eyebrow,
+    .vn-strip__value i,
+    .vn-card__title em,
+    .vn-cal__title,
+    .vn-times__title {
+      color: var(--olive-deep);
+    }
+
+    .vn-btn,
+    .vn-svc,
+    .vn-cat,
+    .vn-day,
+    .vn-time,
+    .vn-cal__nav,
+    .vn-deposit__upload-btn,
+    .vn-preorder__qty-btn {
+      transition:
+        transform 160ms var(--ease-emil),
+        box-shadow 180ms var(--ease-emil),
+        border-color 180ms ease,
+        background 180ms ease,
+        color 180ms ease;
+    }
+
+    .vn-btn:active,
+    .vn-svc:active,
+    .vn-cat:active,
+    .vn-day:active,
+    .vn-time:active,
+    .vn-cal__nav:active,
+    .vn-deposit__upload-btn:active,
+    .vn-preorder__qty-btn:active {
+      transform: scale(0.97);
+    }
+
+    .vn-btn--primary,
+    .vn-cat.active,
+    .vn-day.selected,
+    .vn-time.selected,
+    .vn-svc.selected,
+    .vn-progress__step.active .vn-progress__dot,
+    .vn-progress__step.completed .vn-progress__dot {
+      background: var(--olive) !important;
+      border-color: var(--olive) !important;
+      color: var(--venus-brand-cream) !important;
+    }
+
+    .vn-btn--primary:hover:not(:disabled) {
+      background: var(--olive-deep) !important;
+      transform: translateY(-1px);
+    }
+
+    .vn-svc:hover,
+    .vn-time:hover:not(.disabled),
+    .vn-day:hover:not(.disabled):not(.empty) {
+      transform: translateY(-2px);
+      border-color: var(--olive);
+    }
+
+    .vn-input {
+      border-color: rgba(104, 114, 92, 0.24);
+      color: var(--ink);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28);
+    }
+
+    .vn-input:focus {
+      box-shadow: 0 0 0 4px rgba(139, 148, 125, 0.18);
+    }
+
+    .vn-step.active {
+      animation: vn-step-in 260ms var(--ease-emil) forwards;
+    }
+
+    @keyframes vn-step-in {
+      from { opacity: 0; transform: translateY(10px) scale(0.985); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .vn-progress__dot {
+      transform-origin: center;
+    }
+
+    .vn-progress__step.active .vn-progress__dot {
+      transform: scale(1.04);
+      box-shadow: 0 0 0 5px rgba(139, 148, 125, 0.15);
+    }
+
+    @media (max-width: 560px) {
+      body::before {
+        background:
+          linear-gradient(180deg, var(--venus-brand-sage) 0 520px, transparent 520px),
+          radial-gradient(circle at 14% 6%, rgba(249, 234, 216, 0.22), transparent 22rem);
+      }
+
+      .vn-hero {
+        padding-top: 52px;
+        text-align: left;
+      }
+
+      .vn-hero__logo {
+        margin-left: 0;
+      }
+    }
 
     /* ============ REDUCED MOTION ============ */
     @media (prefers-reduced-motion: reduce) {

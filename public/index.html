@@ -677,26 +677,23 @@
       transition: background 240ms var(--ease-out-quart), color 240ms var(--ease-out-quart), box-shadow 240ms var(--ease-out-quart);
     }
 
-    /* Wallet card: float + tilt 3D al hover */
+    /* Wallet card: entrada suave + tilt 3D al hover */
     .wallet-card {
       transform-style: preserve-3d;
       transition: transform 480ms var(--ease-out-expo), box-shadow 480ms var(--ease-out-expo);
-      animation: wc-float 7s ease-in-out infinite;
+      animation: wc-enter 420ms var(--ease-out-expo) both;
     }
-    @keyframes wc-float {
-      0%, 100% { transform: translateY(0); }
-      50%      { transform: translateY(-8px); }
-    }
-    .wallet-card:hover {
-      animation-play-state: paused;
+    @keyframes wc-enter {
+      from { opacity: 0; transform: translateY(14px) scale(0.985); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
     }
 
     /* Stamps: stagger pop al cargar */
     .stamps-grid .stamp {
       opacity: 0;
-      transform: scale(0.5) rotate(-12deg);
-      animation: stamp-in 540ms var(--spring) forwards;
-      transition: transform 260ms var(--spring);
+      transform: scale(0.92) translateY(6px);
+      animation: stamp-in 260ms var(--ease-out-expo) forwards;
+      transition: transform 160ms var(--ease-out-expo);
     }
     .stamps-grid .stamp:nth-child(1) { animation-delay: 80ms; }
     .stamps-grid .stamp:nth-child(2) { animation-delay: 160ms; }
@@ -707,12 +704,12 @@
     .stamps-grid .stamp:nth-child(7) { animation-delay: 560ms; }
     .stamps-grid .stamp:nth-child(8) { animation-delay: 640ms; }
     @keyframes stamp-in {
-      to { opacity: 1; transform: scale(1) rotate(0deg); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
     }
 
     /* Hover sello: pop + ripple */
     .stamps-grid .stamp.active:hover {
-      transform: scale(1.12) rotate(-3deg);
+      transform: scale(1.045);
     }
     .stamps-grid .stamp.active {
       cursor: pointer;
@@ -1445,38 +1442,157 @@
       }
     }
 
-    /* ============ VISTA DE TARJETA EN TEMA CLARO ============
-       Consistente con el landing/agendar (crema + olivo). Antes esta vista
-       heredaba el fondo oscuro del <body> (bg-venus-forest). Override
-       scopeado a #view-card (mayor especificidad que las utilidades). */
+    /* ============================================================
+       Tarjeta cliente: misma estética Venus + Emil motion pass
+       ============================================================ */
     #view-card {
       background:
-        radial-gradient(circle at 16% 9%, rgba(249, 234, 216, 0.30), transparent 32rem),
-        linear-gradient(180deg, var(--venus-brand-cream, #faf7f2) 0%, var(--porcelain, #f1ebe1) 100%);
+        radial-gradient(circle at 84% 8%, rgba(139,148,125,.18), transparent 28rem),
+        linear-gradient(90deg, rgba(104,114,92,.045) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(104,114,92,.035) 1px, transparent 1px),
+        var(--porcelain);
+      background-size: auto, 56px 56px, 56px 56px, auto;
       color: var(--ink);
     }
-    #view-card > header {
-      background: rgba(250, 249, 246, 0.95) !important;
-      border-bottom-color: rgba(36, 48, 38, 0.10) !important;
+
+    #view-card header.sticky {
+      background: rgba(139,148,125,.94) !important;
+      border-bottom: 1px solid rgba(249,234,216,.22) !important;
+      box-shadow: 0 16px 40px rgba(38,49,35,.08);
+      backdrop-filter: blur(18px);
     }
-    #view-card .text-venus-cream { color: var(--ink) !important; }
-    #view-card .text-venus-cream\/70 { color: rgba(36, 48, 38, 0.62) !important; }
-    #view-card .text-venus-cream\/60 { color: rgba(36, 48, 38, 0.55) !important; }
-    #view-card .text-venus-cream\/50 { color: rgba(36, 48, 38, 0.45) !important; }
-    #view-card .text-venus-cream\/40 { color: rgba(36, 48, 38, 0.40) !important; }
+
+    #view-card header.sticky span,
+    #view-card header.sticky [class*="text-venus-cream"] {
+      color: var(--venus-brand-cream) !important;
+    }
+
+    #view-card header.sticky a[href="/agendar.html"] {
+      background: var(--venus-brand-cream) !important;
+      color: var(--ink) !important;
+      border-radius: 999px;
+      min-height: 42px;
+      transition: transform 160ms var(--ease-out-expo), box-shadow 180ms var(--ease-out-expo);
+    }
+
+    #view-card header.sticky a[href="/agendar.html"] span,
+    #view-card header.sticky a[href="/agendar.html"] svg {
+      color: var(--ink) !important;
+      stroke: currentColor;
+    }
+
+    #view-card header.sticky a[href="/agendar.html"]:active,
+    #view-card button:active,
+    #view-card a:active {
+      transform: scale(.97);
+    }
+
+    #view-card main {
+      color: var(--ink);
+    }
+
+    #view-card main h1,
+    #view-card .info-card h3,
+    #view-card main [class*="font-playfair"] {
+      color: var(--ink) !important;
+      font-weight: 400;
+    }
+
+    #view-card #member-info,
+    #view-card main [class*="text-venus-cream/60"],
+    #view-card main [class*="text-venus-cream/50"],
+    #view-card main [class*="text-venus-cream/40"],
+    #view-card main [class*="text-venus-cream/70"] {
+      color: rgba(36,48,38,.62) !important;
+    }
+
+    #view-card main [class*="text-venus-cream"] {
+      color: var(--ink) !important;
+    }
+
+    #view-card .progress-bar {
+      background: rgba(104,114,92,.16);
+    }
+
+    #view-card .progress-bar-fill {
+      background: var(--moss);
+      transition: width 520ms var(--ease-out-expo);
+    }
+
+    #view-card .wallet-card {
+      border-radius: 8px;
+      background:
+        linear-gradient(180deg, rgba(249,234,216,.98), rgba(251,247,239,.92)),
+        var(--venus-brand-cream);
+      box-shadow: 0 28px 72px rgba(38,49,35,.18);
+      border: 1px solid rgba(104,114,92,.18);
+    }
+
+    #view-card .wallet-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 34px 80px rgba(38,49,35,.22);
+    }
+
+    #view-card .wallet-header,
+    #view-card .wallet-footer {
+      background: var(--moss);
+      color: var(--venus-brand-cream);
+    }
+
+    #view-card .wallet-header h3,
+    #view-card .wallet-footer-label,
+    #view-card .wallet-footer-value {
+      color: var(--venus-brand-cream);
+    }
+
+    #view-card .stamp.active {
+      background: var(--moss);
+      box-shadow: inset 0 0 0 6px rgba(249,234,216,.72), 0 8px 20px rgba(38,49,35,.12);
+    }
+
+    #view-card .stamp.inactive {
+      background: rgba(251,247,239,.68);
+      border-color: rgba(104,114,92,.28);
+    }
+
     #view-card .info-card {
-      background: #ffffff !important;
-      border-color: rgba(36, 48, 38, 0.08) !important;
-      box-shadow: 0 6px 24px -10px rgba(44, 44, 44, 0.14);
+      background: rgba(249,234,216,.72);
+      border: 1px solid rgba(104,114,92,.16);
+      border-radius: 8px;
+      box-shadow: 0 20px 48px rgba(38,49,35,.08);
     }
-    #view-card .bg-white\/5 {
-      background: #ffffff !important;
-      border: 1px solid rgba(36, 48, 38, 0.06);
+
+    #view-card .info-card a,
+    #view-card .info-card button {
+      border-color: rgba(104,114,92,.18) !important;
+      color: var(--ink) !important;
+      border-radius: 8px;
+      transition: transform 160ms var(--ease-out-expo), background 180ms ease, border-color 180ms ease;
     }
-    #view-card .border-white\/10 { border-color: rgba(36, 48, 38, 0.12) !important; }
-    #view-card .hover\:bg-white\/5:hover { background: rgba(36, 48, 38, 0.04) !important; }
-    #view-card footer.border-white\/10,
-    #view-card footer { border-top-color: rgba(36, 48, 38, 0.10) !important; }
+
+    #view-card .info-card a:hover,
+    #view-card .info-card button:hover {
+      background: rgba(139,148,125,.10) !important;
+      border-color: rgba(104,114,92,.32) !important;
+      transform: translateY(-1px);
+    }
+
+    #view-card footer p {
+      color: rgba(36,48,38,.45) !important;
+    }
+
+    #loading-screen {
+      background:
+        linear-gradient(90deg, rgba(104,114,92,.045) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(104,114,92,.035) 1px, transparent 1px),
+        var(--porcelain) !important;
+      background-size: 56px 56px, 56px 56px, auto;
+    }
+
+    #loading-screen .spinner {
+      border-color: rgba(139,148,125,.22);
+      border-top-color: var(--moss);
+    }
   </style>
 </head>
 <body class="font-inter bg-venus-forest min-h-screen">
@@ -2002,8 +2118,14 @@
     const qrView = document.getElementById("qr-view");
     const qrIconOpen = document.getElementById("qr-icon-open");
     const qrIconClose = document.getElementById("qr-icon-close");
+    const loadingScreen = document.getElementById("loading-screen");
     const params = new URLSearchParams(window.location.search);
     const urlCardId = params.get("cardId");
+
+    if (urlCardId) {
+      createView.classList.add("hidden");
+      loadingScreen?.classList.remove("hidden");
+    }
 
     // Tab switching
     function showTab(tab) {
@@ -2186,6 +2308,7 @@
     }
 
     function showCardView(data) {
+      loadingScreen?.classList.add("hidden");
       createView.classList.add("hidden");
       cardView.classList.remove("hidden");
 
@@ -2334,7 +2457,11 @@
       fetch(`/api/card/${encodeURIComponent(urlCardId)}`)
         .then(res => res.ok ? res.json() : Promise.reject())
         .then(response => showCardView(response.success ? response.data : response))
-        .catch(() => showError("No se pudo cargar la tarjeta."));
+        .catch(() => {
+          loadingScreen?.classList.add("hidden");
+          createView.classList.remove("hidden");
+          showError("No se pudo cargar la tarjeta.");
+        });
     }
 
     // Form submit
@@ -2492,7 +2619,7 @@
           border-radius: 50%;
           background: radial-gradient(circle, rgba(140, 150, 104, 0.45), transparent 70%);
           pointer-events: none;
-          transform: scale(0);
+          transform: scale(0.35);
           opacity: 1;
           transition: transform 620ms cubic-bezier(0.25, 1, 0.5, 1), opacity 620ms ease-out;
         `;

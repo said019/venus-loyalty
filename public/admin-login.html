@@ -6,6 +6,9 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Admin — Venus Lealtad</title>
   <link rel="icon" href="/assets/logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prata&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
       --venus: #8c9668;
@@ -445,6 +448,224 @@
       .btn {
         font-size: 0.9rem;
         padding: 11px 20px;
+      }
+    }
+
+    /* Venus unified admin login */
+    :root {
+      --venus: #8b947d;
+      --venus-green: #8b947d;
+      --venus-soft: #f9ead8;
+      --bg: #fbf7ef;
+      --ink: #263123;
+      --muted: rgba(38, 49, 35, 0.66);
+      --line: rgba(139, 148, 125, 0.22);
+      --radius: 8px;
+      --font-display: "Prata", Georgia, serif;
+      --font-body: "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --ease-venus: cubic-bezier(0.23, 1, 0.32, 1);
+    }
+
+    html,
+    body {
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--ink);
+    }
+
+    body::before {
+      background:
+        linear-gradient(90deg, rgba(139, 148, 125, 0.055) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(139, 148, 125, 0.045) 1px, transparent 1px),
+        radial-gradient(circle at 50% 0%, rgba(139, 148, 125, 0.2), transparent 34%),
+        linear-gradient(180deg, #8b947d 0%, #8b947d 44%, #fbf7ef 44%, #fbf7ef 100%);
+      background-size: 48px 48px, 48px 48px, auto, auto;
+      animation: none;
+    }
+
+    .page {
+      padding: 32px 16px;
+    }
+
+    .container {
+      max-width: 540px;
+    }
+
+    .card {
+      background:
+        radial-gradient(circle at 82% 12%, rgba(139, 148, 125, 0.13), transparent 34%),
+        linear-gradient(145deg, rgba(249, 234, 216, 0.98), rgba(251, 247, 239, 0.96));
+      border: 1px solid rgba(139, 148, 125, 0.2);
+      border-radius: 8px;
+      box-shadow: 0 28px 72px rgba(38, 49, 35, 0.18);
+      color: var(--ink);
+      animation: cardSlideIn 420ms var(--ease-venus) both;
+    }
+
+    .card::before {
+      background:
+        linear-gradient(90deg, rgba(139, 148, 125, 0.045) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(139, 148, 125, 0.035) 1px, transparent 1px);
+      background-size: 42px 42px;
+      opacity: 1;
+    }
+
+    .logo {
+      width: 80px;
+      height: 80px;
+      border-radius: 8px;
+      background: #fbf7ef;
+      box-shadow: 0 18px 44px rgba(38, 49, 35, 0.14);
+      animation: none;
+    }
+
+    .title {
+      font-family: var(--font-display);
+      color: var(--ink);
+      font-weight: 400;
+      letter-spacing: 0;
+      font-size: clamp(1.55rem, 3vw, 2rem);
+    }
+
+    .subtitle,
+    .muted,
+    .footer {
+      color: var(--muted);
+    }
+
+    .tabs {
+      background: rgba(251, 247, 239, 0.62);
+      border: 1px solid rgba(139, 148, 125, 0.2);
+      border-radius: 8px;
+      padding: 6px;
+    }
+
+    .tabs button,
+    .btn {
+      border-radius: 8px;
+      transition:
+        transform 180ms var(--ease-venus),
+        background-color 180ms var(--ease-venus),
+        border-color 180ms var(--ease-venus),
+        box-shadow 180ms var(--ease-venus);
+    }
+
+    .tabs button {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--muted);
+      backdrop-filter: none;
+    }
+
+    .tabs button:hover {
+      background: rgba(139, 148, 125, 0.08);
+      border-color: rgba(139, 148, 125, 0.16);
+      color: var(--ink);
+    }
+
+    .tabs button.active {
+      background: var(--venus);
+      color: #f9ead8;
+      border-color: var(--venus);
+      box-shadow: 0 12px 24px rgba(139, 148, 125, 0.22);
+    }
+
+    .section-title {
+      font-family: var(--font-display);
+      color: var(--ink);
+      font-weight: 400;
+    }
+
+    label {
+      color: rgba(38, 49, 35, 0.74);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 0.72rem;
+    }
+
+    input {
+      background: rgba(251, 247, 239, 0.74);
+      border: 1px solid rgba(139, 148, 125, 0.24);
+      border-radius: 8px;
+      color: var(--ink);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    }
+
+    input:focus {
+      border-color: var(--venus);
+      background: #fbf7ef;
+      box-shadow: 0 0 0 4px rgba(139, 148, 125, 0.14);
+      transform: none;
+    }
+
+    .btn-primary {
+      background: var(--venus);
+      color: #f9ead8;
+      box-shadow: 0 16px 34px rgba(139, 148, 125, 0.24);
+    }
+
+    .btn-primary:hover {
+      background: #78836c;
+      box-shadow: 0 18px 38px rgba(139, 148, 125, 0.28);
+      transform: translateY(-1px);
+    }
+
+    .btn-primary:active,
+    .btn-ghost:active,
+    .tabs button:active {
+      transform: scale(0.97);
+    }
+
+    .btn-ghost {
+      background: rgba(251, 247, 239, 0.76);
+      border: 1px solid rgba(139, 148, 125, 0.22);
+      color: var(--ink);
+      backdrop-filter: none;
+    }
+
+    .btn-ghost:hover {
+      background: #fbf7ef;
+      border-color: rgba(139, 148, 125, 0.36);
+      transform: translateY(-1px);
+    }
+
+    .link {
+      color: var(--venus);
+      font-weight: 700;
+    }
+
+    .link:hover {
+      color: #5f694f;
+    }
+
+    @media (max-width: 560px) {
+      .tabs {
+        display: grid;
+        grid-template-columns: 1fr;
+        overflow: visible;
+      }
+
+      .tabs button {
+        width: 100%;
+        min-height: 40px;
+        white-space: normal;
+      }
+
+      .row {
+        align-items: stretch;
+      }
+
+      .row .btn {
+        width: 100%;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 1ms !important;
+        transition-duration: 1ms !important;
       }
     }
   </style>
