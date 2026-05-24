@@ -12,16 +12,34 @@ const {
     GOOGLE_ATTENDEE_1,
     GOOGLE_ATTENDEE_2,
     TIMEZONE,
+    GOOGLE_SA_EMAIL,
+    GOOGLE_SA_PRIVATE_KEY,
 } = process.env;
 
 const calendar = google.calendar("v3");
 
-const auth = new google.auth.GoogleAuth({
-    keyFile:
-        GOOGLE_APPLICATION_CREDENTIALS ||
-        path.join(__dirname, "../../google-sa.json"),
-    scopes: ["https://www.googleapis.com/auth/calendar"],
-});
+const CALENDAR_SCOPES = ["https://www.googleapis.com/auth/calendar"];
+
+// Auth flexible: credenciales inline (Railway: GOOGLE_SA_EMAIL +
+// GOOGLE_SA_PRIVATE_KEY) con fallback al archivo del service account
+// (Render: GOOGLE_APPLICATION_CREDENTIALS). Des-escapa saltos de línea.
+const auth = (GOOGLE_SA_EMAIL && GOOGLE_SA_PRIVATE_KEY)
+    ? new google.auth.GoogleAuth({
+        credentials: {
+            client_email: GOOGLE_SA_EMAIL,
+            private_key: GOOGLE_SA_PRIVATE_KEY
+                .replace(/\\r\\n/g, "\n")
+                .replace(/\\\\n/g, "\n")
+                .replace(/\\n/g, "\n"),
+        },
+        scopes: CALENDAR_SCOPES,
+    })
+    : new google.auth.GoogleAuth({
+        keyFile:
+            GOOGLE_APPLICATION_CREDENTIALS ||
+            path.join(__dirname, "../../google-sa.json"),
+        scopes: CALENDAR_SCOPES,
+    });
 
 async function getAuthClient() {
     return await auth.getClient();
