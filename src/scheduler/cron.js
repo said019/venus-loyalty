@@ -471,7 +471,7 @@ async function checkCompletedCards() {
     try {
         const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-        const redeems = await prisma.cardEvent.findMany({
+        const redeems = await prisma.event.findMany({
             where: { type: 'redeem', timestamp: { gte: yesterday } }
         });
 
