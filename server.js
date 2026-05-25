@@ -6213,20 +6213,47 @@ app.post("/api/admin/forgot", async (req, res) => {
 
     await sendMail({
       to: email,
-      subject: "Restablecer tu contraseña — Venus Lealtad",
-      text: `Hola,
+      subject: "Restablece tu contraseña · Venus Cosmetología",
+      text: `Restablece tu contraseña — Venus Cosmetología
 
-Para restablecer tu contraseña usa este enlace (válido 30 minutos):
+Recibimos una solicitud para restablecer la contraseña de tu cuenta de administrador.
+Abre este enlace para crear una nueva (válido 30 minutos):
+
 ${link}
 
-Si no fuiste tú, ignora este mensaje.`,
+Si no solicitaste este cambio, ignora este correo: tu contraseña seguirá igual.
+
+Venus Cosmetología · San Juan del Río, Querétaro`,
       html: `
-        <div style="font-family:system-ui,Arial,sans-serif">
-          <h2 style="margin:0 0 8px">Restablecer contraseña</h2>
-          <p>Para restablecer tu contraseña usa este enlace (válido 30 minutos):</p>
-          <p><a href="${link}">${link}</a></p>
-          <p style="color:#6b7280">Si no fuiste tú, ignora este mensaje.</p>
-        </div>
+      <div style="margin:0;padding:0;background:#f1ebe1;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f1ebe1;padding:32px 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;">
+          <tr><td align="center">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 8px 30px -12px rgba(38,40,31,0.20);">
+              <tr><td style="background:#8C9668;background:linear-gradient(135deg,#8C9668,#6b7a4e);padding:28px 32px;text-align:center;">
+                <img src="${base}/assets/logo.png" alt="Venus Cosmetología" width="56" height="56" style="display:inline-block;border-radius:12px;background:#ffffff;padding:6px;">
+                <div style="color:#ffffff;font-family:Georgia,'Times New Roman',serif;font-size:22px;font-weight:600;letter-spacing:0.4px;margin-top:10px;">Venus Cosmetología</div>
+              </td></tr>
+              <tr><td style="padding:36px 32px 26px;">
+                <h1 style="margin:0 0 12px;font-family:Georgia,'Times New Roman',serif;font-size:23px;font-weight:600;color:#26281f;">Restablece tu contraseña</h1>
+                <p style="margin:0 0 26px;font-size:15px;line-height:1.6;color:#4a4d3b;">Recibimos una solicitud para restablecer la contraseña de tu cuenta de administrador. Toca el botón para crear una nueva. El enlace es válido por <strong>30 minutos</strong>.</p>
+                <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 26px;">
+                  <tr><td align="center" style="border-radius:999px;background:#8C9668;">
+                    <a href="${link}" style="display:inline-block;padding:14px 34px;font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:999px;">Crear nueva contraseña</a>
+                  </td></tr>
+                </table>
+                <p style="margin:0 0 6px;font-size:13px;color:#7a7a6a;">¿El botón no funciona? Copia y pega este enlace:</p>
+                <p style="margin:0 0 24px;font-size:12px;line-height:1.5;word-break:break-all;"><a href="${link}" style="color:#6b7a4e;">${link}</a></p>
+                <hr style="border:none;border-top:1px solid #ece6da;margin:0 0 16px;">
+                <p style="margin:0;font-size:13px;line-height:1.6;color:#9a9a8a;">Si no solicitaste este cambio, ignora este correo — tu contraseña seguirá igual.</p>
+              </td></tr>
+              <tr><td style="background:#faf9f6;padding:18px 32px;text-align:center;border-top:1px solid #ece6da;">
+                <div style="font-size:12px;color:#9a9a8a;">Venus Cosmetología · San Juan del Río, Querétaro</div>
+              </td></tr>
+            </table>
+            <div style="max-width:480px;margin:14px auto 0;font-size:11px;color:#b4b4a8;text-align:center;">Correo automático, por favor no respondas.</div>
+          </td></tr>
+        </table>
+      </div>
       `,
     });
 
