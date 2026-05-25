@@ -1954,6 +1954,188 @@
       border-color: rgba(139,148,125,.22);
       border-top-color: var(--moss);
     }
+
+    /* Sage-style reference pass: editorial skin/product direction */
+    .venus-landing {
+      background:
+        linear-gradient(180deg, #d9d0c8 0, #f2ece2 280px, var(--porcelain) 100%) !important;
+    }
+
+    .venus-landing::after {
+      display: none;
+    }
+
+    .venus-nav {
+      top: 18px;
+      width: min(1060px, calc(100% - 36px));
+      margin: 0 auto;
+      border-radius: 22px;
+      background: rgba(92, 82, 73, 0.34);
+      border: 1px solid rgba(251, 247, 239, 0.42);
+      box-shadow: none;
+    }
+
+    .venus-nav .venus-shell {
+      width: 100%;
+      padding-inline: clamp(14px, 2vw, 28px);
+    }
+
+    .venus-hero {
+      width: min(1180px, calc(100% - 32px));
+      min-height: min(860px, calc(100dvh - 48px));
+      margin-top: 26px;
+      padding: clamp(30px, 5vw, 58px);
+      display: grid;
+      grid-template-columns: 1fr;
+      align-items: end;
+      color: #fbf7ef;
+      overflow: hidden;
+      border: 1px solid rgba(251, 247, 239, 0.36);
+      background:
+        linear-gradient(to bottom, rgba(58, 43, 36, 0.14), rgba(58, 43, 36, 0.44)),
+        url('https://images.pexels.com/photos/1138531/pexels-photo-1138531.jpeg?auto=compress&cs=tinysrgb&w=1800') center / cover;
+      box-shadow: 0 42px 90px rgba(58, 43, 36, 0.22);
+      isolation: isolate;
+    }
+
+    .venus-hero::before {
+      content: "Venus";
+      position: absolute;
+      left: clamp(20px, 5vw, 72px);
+      right: clamp(20px, 5vw, 72px);
+      top: 42%;
+      transform: translateY(-50%);
+      font-family: 'Prata', Georgia, serif;
+      font-size: clamp(96px, 22vw, 300px);
+      line-height: 0.78;
+      color: #fbf7ef;
+      letter-spacing: -0.035em;
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    .venus-hero > .animate-fade-in-up {
+      max-width: 620px;
+      margin-top: clamp(300px, 38vw, 470px);
+      z-index: 2;
+    }
+
+    .venus-title {
+      max-width: 12ch;
+      font-size: clamp(40px, 5.7vw, 82px);
+      line-height: 0.98;
+    }
+
+    .venus-lede {
+      max-width: 56ch;
+      color: rgba(251, 247, 239, 0.84);
+    }
+
+    .venus-photo-frame {
+      display: none;
+    }
+
+    .venus-btn-primary {
+      background: #fbf7ef;
+      color: var(--espresso);
+      box-shadow: none;
+    }
+
+    .venus-btn-secondary {
+      background: rgba(251, 247, 239, 0.10);
+      border-color: rgba(251, 247, 239, 0.48);
+      color: #fbf7ef;
+    }
+
+    .venus-photo-card,
+    .ritual-panel,
+    .venus-studio-card,
+    .venus-community-card,
+    .venus-membership-card,
+    .venus-shop-card,
+    .venus-story,
+    .venus-google-proof,
+    .venus-access-card {
+      border-radius: 0;
+    }
+
+    .venus-photo-strip {
+      grid-auto-columns: minmax(260px, 28vw);
+    }
+
+    .venus-photo-card span {
+      font-size: clamp(32px, 4.2vw, 62px);
+      max-width: 7ch;
+    }
+
+    .venus-ritual-grid {
+      grid-template-columns: 1.18fr 0.82fr 0.82fr;
+      gap: 0;
+      border: 1px solid rgba(104, 114, 92, 0.18);
+      background: rgba(104, 114, 92, 0.18);
+    }
+
+    .ritual-panel {
+      border: 0;
+      border-right: 1px solid rgba(104, 114, 92, 0.18);
+      border-bottom: 1px solid rgba(104, 114, 92, 0.18);
+    }
+
+    #view-card {
+      background:
+        linear-gradient(180deg, #d9d0c8 0, #f2ece2 260px, var(--porcelain) 100%) !important;
+    }
+
+    #view-card header.sticky {
+      top: 16px !important;
+      width: min(900px, calc(100% - 28px));
+      margin: 0 auto;
+      border-radius: 22px;
+      background: rgba(92, 82, 73, 0.34) !important;
+      border: 1px solid rgba(251, 247, 239, 0.42) !important;
+      box-shadow: none;
+    }
+
+    #view-card main h1 {
+      font-size: clamp(42px, 8vw, 94px) !important;
+      letter-spacing: -0.035em !important;
+      max-width: 8ch;
+    }
+
+    #view-card .wallet-card {
+      border-radius: 0;
+      box-shadow: 0 34px 80px rgba(58, 43, 36, 0.18);
+    }
+
+    #view-card .wallet-header,
+    #view-card .wallet-footer {
+      background: var(--espresso);
+    }
+
+    @media (max-width: 900px) {
+      .venus-nav {
+        top: 10px;
+        width: min(100% - 20px, 1060px);
+      }
+
+      .venus-hero {
+        width: min(100% - 20px, 1180px);
+        min-height: 720px;
+        padding: 24px;
+      }
+
+      .venus-hero > .animate-fade-in-up {
+        margin-top: 350px;
+      }
+
+      .venus-ritual-grid {
+        grid-template-columns: 1fr !important;
+      }
+
+      .ritual-panel {
+        min-height: 220px;
+      }
+    }
   </style>
 </head>
 <body class="font-inter bg-venus-forest min-h-screen">

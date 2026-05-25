@@ -1497,6 +1497,124 @@
         scroll-behavior: auto !important;
       }
     }
+
+    /* Sage-style reservation pass: same editorial skin/product system as main page */
+    body {
+      background:
+        linear-gradient(180deg, #d9d0c8 0, #f2ece2 320px, var(--bg) 100%) !important;
+    }
+
+    body::before {
+      background: none !important;
+    }
+
+    .vn-nav {
+      top: 18px;
+      width: min(1060px, calc(100% - 36px));
+      margin: 0 auto;
+      border-radius: 22px;
+      background: rgba(92, 82, 73, 0.34);
+      border: 1px solid rgba(251, 247, 239, 0.42);
+      box-shadow: none;
+    }
+
+    .vn-nav__inner {
+      max-width: none;
+      padding: 12px 20px;
+    }
+
+    .vn-hero {
+      max-width: min(1180px, calc(100% - 32px));
+      min-height: 520px;
+      margin-top: 26px;
+      padding: clamp(26px, 5vw, 54px);
+      text-align: left;
+      color: #fbf7ef;
+      overflow: hidden;
+      border: 1px solid rgba(251, 247, 239, 0.36);
+      background:
+        linear-gradient(to bottom, rgba(58, 43, 36, 0.12), rgba(58, 43, 36, 0.48)),
+        url('https://images.pexels.com/photos/7446659/pexels-photo-7446659.jpeg?auto=compress&cs=tinysrgb&w=1800') center 34% / cover;
+      box-shadow: 0 42px 90px rgba(58, 43, 36, 0.20);
+      isolation: isolate;
+      position: relative;
+    }
+
+    .vn-hero::after {
+      content: "Venus";
+      position: absolute;
+      left: clamp(18px, 5vw, 72px);
+      right: clamp(18px, 5vw, 72px);
+      top: 44%;
+      transform: translateY(-50%);
+      font-family: 'Prata', Georgia, serif;
+      font-size: clamp(92px, 22vw, 290px);
+      line-height: 0.78;
+      letter-spacing: -0.035em;
+      color: #fbf7ef;
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    .vn-hero__logo {
+      display: none;
+    }
+
+    .vn-hero__eyebrow {
+      background: rgba(251, 247, 239, 0.10);
+      border-color: rgba(251, 247, 239, 0.34);
+      margin-top: clamp(250px, 30vw, 330px);
+    }
+
+    .vn-hero__title {
+      font-size: clamp(46px, 7vw, 96px);
+      line-height: 0.95;
+      max-width: 8ch;
+      letter-spacing: -0.035em;
+    }
+
+    .vn-hero__sub {
+      max-width: 45ch;
+      color: rgba(251, 247, 239, 0.84);
+    }
+
+    .vn-strip__inner,
+    .vn-card,
+    .vn-cal,
+    .vn-times,
+    .vn-deposit,
+    .vn-preorder,
+    .vn-summary,
+    .vn-svc,
+    .vn-day,
+    .vn-time {
+      border-radius: 0 !important;
+    }
+
+    .vn-strip__inner {
+      background: rgba(104, 114, 92, 0.18);
+    }
+
+    .vn-card {
+      box-shadow: none;
+    }
+
+    @media (max-width: 560px) {
+      .vn-nav {
+        top: 10px;
+        width: min(100% - 20px, 1060px);
+      }
+
+      .vn-hero {
+        max-width: min(100% - 20px, 1180px);
+        min-height: 620px;
+        padding: 22px;
+      }
+
+      .vn-hero__eyebrow {
+        margin-top: 340px;
+      }
+    }
   </style>
 </head>
 
