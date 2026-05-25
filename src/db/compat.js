@@ -89,6 +89,14 @@ class DocRef {
 
   async get() {
     try {
+      // El modelo Setting es key/value: el "doc id" es la KEY y el contenido
+      // vive en la columna JSON `value`.
+      if (this.modelName === 'setting') {
+        const rec = await prisma.setting.findUnique({ where: { key: this.id } });
+        const snap = new DocSnapshot(this.id, rec ? {} : null, this.collectionName);
+        if (rec) snap._data = (rec.value && typeof rec.value === 'object') ? rec.value : {};
+        return snap;
+      }
       const data = await prisma[this.modelName].findUnique({
         where: { id: this.id }
       });
@@ -101,6 +109,18 @@ class DocRef {
 
   async set(data, options = {}) {
     try {
+      // Setting key/value: upsert por `key`, guardando el objeto en `value`.
+      if (this.modelName === 'setting') {
+        const current = await prisma.setting.findUnique({ where: { key: this.id } });
+        const base = (options.merge && current && current.value && typeof current.value === 'object') ? current.value : {};
+        const newValue = options.merge ? { ...base, ...data } : data;
+        return await prisma.setting.upsert({
+          where: { key: this.id },
+          update: { value: newValue },
+          create: { key: this.id, value: newValue },
+        });
+      }
+
       // Procesar datos para convertir fechas y eliminar campos inválidos
       const processedData = processDataForUpdate(this.modelName, data);
 
@@ -126,6 +146,18 @@ class DocRef {
 
   async update(data) {
     try {
+      // Setting key/value: merge dentro de `value` (upsert por `key`).
+      if (this.modelName === 'setting') {
+        const current = await prisma.setting.findUnique({ where: { key: this.id } });
+        const base = (current && current.value && typeof current.value === 'object') ? current.value : {};
+        const merged = { ...base, ...data };
+        return await prisma.setting.upsert({
+          where: { key: this.id },
+          update: { value: merged },
+          create: { key: this.id, value: merged },
+        });
+      }
+
       // Convertir campos de fecha si es necesario
       const processedData = processDataForUpdate(this.modelName, data);
 
