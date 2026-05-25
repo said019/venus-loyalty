@@ -2382,7 +2382,7 @@ app.get('/api/debug/apple-devices', async (req, res) => {
 
 // ✅ NUEVO ENDPOINT PARA DEBUG DE RUTAS APPLE
 app.get('/api/debug/apple-routes-test', async (req, res) => {
-  const baseUrl = 'https://venus-loyalty.onrender.com';
+  const baseUrl = process.env.BASE_URL || 'https://venus-loyalty.onrender.com';
   const testResults = [];
 
   // Test rutas /v1
