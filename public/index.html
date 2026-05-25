@@ -2136,6 +2136,157 @@
         min-height: 220px;
       }
     }
+
+    /* Emil Kowalski motion pass: purposeful, fast, interruptible-feeling */
+    :root {
+      --emil-out: cubic-bezier(0.23, 1, 0.32, 1);
+      --emil-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+    }
+
+    .venus-landing .venus-nav {
+      animation: emil-nav-in 520ms var(--emil-out) 80ms both;
+    }
+
+    .venus-hero {
+      animation: emil-hero-in 700ms var(--emil-out) 120ms both;
+    }
+
+    .venus-hero::before {
+      animation: emil-word-in 900ms var(--emil-out) 180ms both;
+      will-change: transform, opacity;
+    }
+
+    .venus-hero .venus-kicker,
+    .venus-hero .venus-title,
+    .venus-hero .venus-lede,
+    .venus-hero .venus-actions {
+      animation: emil-rise 620ms var(--emil-out) both;
+    }
+
+    .venus-hero .venus-title { animation-delay: 120ms; }
+    .venus-hero .venus-lede { animation-delay: 190ms; }
+    .venus-hero .venus-actions { animation-delay: 260ms; }
+
+    .emil-reveal {
+      opacity: 0;
+      transform: translate3d(0, 18px, 0) scale(0.985);
+      transition:
+        opacity 620ms var(--emil-out),
+        transform 620ms var(--emil-out);
+      transition-delay: calc(var(--emil-index, 0) * 42ms);
+      will-change: opacity, transform;
+    }
+
+    .emil-reveal.emil-in-view {
+      opacity: 1;
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+
+    .venus-btn,
+    .venus-google-link,
+    .venus-tabbar button,
+    #view-card a,
+    #view-card button {
+      transition:
+        transform 160ms var(--emil-out),
+        background-color 180ms ease,
+        border-color 180ms ease,
+        box-shadow 220ms var(--emil-out);
+      transform-origin: center;
+    }
+
+    .venus-btn:active,
+    .venus-google-link:active,
+    .venus-tabbar button:active,
+    #view-card a:active,
+    #view-card button:active {
+      transform: scale(0.97);
+    }
+
+    .venus-photo-card,
+    .ritual-panel,
+    .venus-studio-card,
+    .venus-community-card,
+    .venus-membership-card,
+    .venus-shop-card,
+    .venus-story {
+      transition:
+        transform 260ms var(--emil-out),
+        filter 260ms ease,
+        border-color 220ms ease;
+    }
+
+    .venus-photo-card:hover,
+    .ritual-panel:hover,
+    .venus-studio-card:hover,
+    .venus-community-card:hover,
+    .venus-membership-card:hover,
+    .venus-shop-card:hover,
+    .venus-story:hover {
+      transform: translate3d(0, -4px, 0);
+      border-color: rgba(104, 114, 92, 0.30);
+    }
+
+    .venus-photo-strip {
+      scroll-behavior: smooth;
+    }
+
+    .venus-photo-card span {
+      transition: transform 300ms var(--emil-out), opacity 240ms ease;
+    }
+
+    .venus-photo-card:hover span {
+      transform: translate3d(0, -6px, 0);
+    }
+
+    .emil-ripple {
+      position: absolute;
+      border-radius: 999px;
+      pointer-events: none;
+      background: radial-gradient(circle, rgba(251, 247, 239, 0.46), rgba(251, 247, 239, 0) 68%);
+      transform: scale(0.35);
+      opacity: 1;
+      transition:
+        transform 520ms var(--emil-out),
+        opacity 520ms ease;
+      mix-blend-mode: soft-light;
+    }
+
+    @keyframes emil-nav-in {
+      from { opacity: 0; transform: translate3d(0, -12px, 0) scale(0.98); }
+      to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+    }
+
+    @keyframes emil-hero-in {
+      from { opacity: 0; transform: translate3d(0, 16px, 0) scale(0.985); }
+      to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+    }
+
+    @keyframes emil-word-in {
+      from { opacity: 0; transform: translateY(-48%) scale(0.96); }
+      to { opacity: 1; transform: translateY(-50%) scale(1); }
+    }
+
+    @keyframes emil-rise {
+      from { opacity: 0; transform: translate3d(0, 14px, 0); }
+      to { opacity: 1; transform: translate3d(0, 0, 0); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .venus-landing .venus-nav,
+      .venus-hero,
+      .venus-hero::before,
+      .venus-hero .venus-kicker,
+      .venus-hero .venus-title,
+      .venus-hero .venus-lede,
+      .venus-hero .venus-actions,
+      .emil-reveal {
+        animation: none !important;
+        transition: none !important;
+        opacity: 1 !important;
+        transform: none !important;
+      }
+    }
   </style>
 </head>
 <body class="font-inter bg-venus-forest min-h-screen">
@@ -3313,6 +3464,82 @@
       `;
       document.body.appendChild(iosBanner);
     }
+  </script>
+
+  <script>
+    // ============================================================
+    // Index motion layer based on Emil Kowalski principles:
+    // fast reveal, clear feedback, reduced-motion aware.
+    // ============================================================
+    (function () {
+      const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const viewCreate = document.getElementById('view-create');
+      if (!viewCreate || prefersReduced) return;
+
+      const revealTargets = [
+        ...viewCreate.querySelectorAll(
+          [
+            '.venus-proof > div',
+            '.venus-photo-card',
+            '.venus-section-head',
+            '.ritual-panel',
+            '.venus-cta-band',
+            '.venus-philosophy-copy',
+            '.venus-word-grid span',
+            '.venus-studio-card',
+            '.venus-community-card',
+            '.venus-first-visit-panel',
+            '.venus-first-list > div',
+            '.venus-membership-card',
+            '.venus-shop-card',
+            '.venus-google-proof',
+            '.venus-story',
+            '.venus-location-card',
+            '.venus-location-map',
+            '.venus-access-copy',
+            '.venus-access-card',
+          ].join(',')
+        ),
+      ];
+
+      revealTargets.forEach((el, index) => {
+        el.classList.add('emil-reveal');
+        el.style.setProperty('--emil-index', String(Math.min(index % 6, 5)));
+      });
+
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          entry.target.classList.add('emil-in-view');
+          observer.unobserve(entry.target);
+        });
+      }, { rootMargin: '0px 0px -12% 0px', threshold: 0.14 });
+
+      revealTargets.forEach((el) => observer.observe(el));
+
+      document.addEventListener('pointerdown', (event) => {
+        const target = event.target.closest('.venus-btn, .venus-google-link');
+        if (!target || !viewCreate.contains(target)) return;
+        const rect = target.getBoundingClientRect();
+        const ripple = document.createElement('span');
+        const size = Math.max(rect.width, rect.height) * 1.8;
+        ripple.className = 'emil-ripple';
+        ripple.style.width = `${size}px`;
+        ripple.style.height = `${size}px`;
+        ripple.style.left = `${event.clientX - rect.left - size / 2}px`;
+        ripple.style.top = `${event.clientY - rect.top - size / 2}px`;
+        if (getComputedStyle(target).position === 'static') {
+          target.style.position = 'relative';
+        }
+        target.style.overflow = 'hidden';
+        target.appendChild(ripple);
+        requestAnimationFrame(() => {
+          ripple.style.transform = 'scale(1)';
+          ripple.style.opacity = '0';
+        });
+        setTimeout(() => ripple.remove(), 560);
+      });
+    })();
   </script>
 
   <script>
