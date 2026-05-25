@@ -190,11 +190,12 @@ async function fsUpsertAdmin({ email, pass_hash, role }) {
 
 // ---------- HELPERS RESET PASSWORD ----------
 
-async function fsCreateResetToken({ token, adminId, email, expiresAt }) {
+async function fsCreateResetToken({ token, adminId, expiresAt }) {
+  // El modelo AdminReset no tiene `email` (y nunca se lee de vuelta: el reset
+  // usa adminId). El correo se envía al crear el token, no desde aquí.
   await firestore.collection(COL_RESETS).doc(token).set({
     token,
     adminId,
-    email,
     expiresAt,
   });
 }
