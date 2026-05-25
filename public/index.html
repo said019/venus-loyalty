@@ -815,6 +815,10 @@
       --moss-deep: #68725c;
       --clay: #a9826e;
       --petal: #ead1c4;
+      --sand: #d9c7ad;
+      --espresso: #3a2b24;
+      --warm-gray: #8b877c;
+      --wine: #6d2f3a;
     }
 
     html {
@@ -1071,6 +1075,68 @@
       font-size: 14px;
     }
 
+    .venus-photo-strip-wrap {
+      padding-top: clamp(34px, 5vw, 70px);
+    }
+
+    .venus-photo-strip {
+      display: grid;
+      grid-auto-flow: column;
+      grid-auto-columns: minmax(260px, 34vw);
+      gap: 14px;
+      overflow-x: auto;
+      overscroll-behavior-inline: contain;
+      scroll-snap-type: inline mandatory;
+      padding: 0 0 14px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(104, 114, 92, 0.42) transparent;
+    }
+
+    .venus-photo-card {
+      min-height: clamp(310px, 38vw, 520px);
+      position: relative;
+      overflow: hidden;
+      scroll-snap-align: start;
+      border: 1px solid rgba(104, 114, 92, 0.18);
+      background: var(--linen);
+      display: flex;
+      align-items: flex-end;
+      isolation: isolate;
+    }
+
+    .venus-photo-card img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      filter: saturate(0.78) contrast(0.94);
+      transform: scale(1.01);
+      transition: transform 600ms cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: -2;
+    }
+
+    .venus-photo-card::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(38, 49, 35, 0.66), rgba(58, 43, 36, 0.18), transparent 58%);
+      z-index: -1;
+    }
+
+    .venus-photo-card:hover img {
+      transform: scale(1.05);
+    }
+
+    .venus-photo-card span {
+      margin: 22px;
+      color: var(--venus-brand-cream);
+      font-family: 'Prata', serif;
+      font-size: clamp(28px, 3vw, 42px);
+      line-height: 1.05;
+      max-width: 10ch;
+    }
+
     .venus-section {
       padding: clamp(74px, 10vw, 132px) 0;
     }
@@ -1098,7 +1164,7 @@
 
     .venus-ritual-grid {
       display: grid;
-      grid-template-columns: 1.1fr .9fr;
+      grid-template-columns: 1.1fr .9fr .9fr;
       gap: 18px;
     }
 
@@ -1116,6 +1182,7 @@
 
     .ritual-panel.large {
       min-height: 430px;
+      grid-row: span 2;
       background:
         linear-gradient(to top, rgba(36,48,38,.66), rgba(36,48,38,.10)),
         url('https://images.pexels.com/photos/3985332/pexels-photo-3985332.jpeg?auto=compress&cs=tinysrgb&w=1600') center / cover;
@@ -1128,6 +1195,20 @@
 
     .ritual-panel:nth-child(3) {
       background: #f3e4d2;
+    }
+
+    .ritual-panel:nth-child(4) {
+      background: #ded7ca;
+    }
+
+    .ritual-panel:nth-child(5) {
+      background: var(--espresso);
+      color: var(--venus-brand-cream);
+    }
+
+    .ritual-panel:nth-child(5) p,
+    .ritual-panel:nth-child(5) .ritual-index {
+      color: rgba(249, 234, 216, 0.72);
     }
 
     .ritual-panel h3 {
@@ -1157,6 +1238,195 @@
 
     .ritual-panel.large .ritual-index {
       color: rgba(251,248,243,.66);
+    }
+
+    .venus-philosophy {
+      display: grid;
+      grid-template-columns: minmax(0, .78fr) minmax(320px, 1fr);
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .venus-philosophy-copy {
+      padding: clamp(28px, 4vw, 46px);
+      background: var(--espresso);
+      color: var(--venus-brand-cream);
+      min-height: 520px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .venus-philosophy-copy h2 {
+      color: var(--venus-brand-cream);
+      max-width: 9ch;
+    }
+
+    .venus-philosophy-copy p {
+      color: rgba(249, 234, 216, 0.74);
+      max-width: 56ch;
+    }
+
+    .venus-word-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1px;
+      background: rgba(104, 114, 92, 0.18);
+      border: 1px solid rgba(104, 114, 92, 0.18);
+    }
+
+    .venus-word-grid span {
+      min-height: 126px;
+      padding: 22px;
+      background: rgba(249, 234, 216, 0.82);
+      display: flex;
+      align-items: flex-end;
+      color: var(--ink);
+      font-family: 'Prata', serif;
+      font-size: clamp(23px, 2.3vw, 34px);
+      line-height: 1.04;
+    }
+
+    .venus-studio-grid,
+    .venus-community-grid,
+    .venus-first-visit,
+    .venus-membership-grid,
+    .venus-shop-grid {
+      display: grid;
+      gap: 18px;
+    }
+
+    .venus-studio-grid {
+      grid-template-columns: 1.1fr .9fr;
+    }
+
+    .venus-studio-card {
+      min-height: 330px;
+      padding: clamp(24px, 3vw, 38px);
+      border: 1px solid rgba(104,114,92,.16);
+      background: rgba(249, 234, 216, 0.78);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .venus-studio-card.feature {
+      background:
+        linear-gradient(to top, rgba(38,49,35,.62), rgba(38,49,35,.12)),
+        url('https://images.pexels.com/photos/3757942/pexels-photo-3757942.jpeg?auto=compress&cs=tinysrgb&w=1600') center / cover;
+      color: var(--venus-brand-cream);
+    }
+
+    .venus-studio-card h3,
+    .venus-community-card h3,
+    .venus-membership-card h3,
+    .venus-shop-card h3 {
+      font-family: 'Prata', serif;
+      font-size: clamp(28px, 3vw, 44px);
+      font-weight: 400;
+      line-height: 1.06;
+    }
+
+    .venus-studio-card p,
+    .venus-community-card p,
+    .venus-membership-card p,
+    .venus-shop-card p {
+      margin-top: 14px;
+      color: rgba(36,48,38,.70);
+      max-width: 52ch;
+    }
+
+    .venus-studio-card.feature p {
+      color: rgba(249,234,216,.78);
+    }
+
+    .venus-community-grid {
+      grid-template-columns: .8fr 1fr 1fr;
+    }
+
+    .venus-community-card,
+    .venus-membership-card,
+    .venus-shop-card {
+      min-height: 260px;
+      padding: clamp(22px, 3vw, 34px);
+      border: 1px solid rgba(104,114,92,.16);
+      background: rgba(251,247,239,.80);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .venus-community-card.lead {
+      background: var(--wine);
+      color: var(--venus-brand-cream);
+    }
+
+    .venus-community-card.lead p {
+      color: rgba(249,234,216,.76);
+    }
+
+    .venus-first-visit {
+      grid-template-columns: minmax(0, .72fr) minmax(340px, 1fr);
+      align-items: stretch;
+    }
+
+    .venus-first-visit-panel {
+      padding: clamp(28px, 4vw, 46px);
+      background: #d9c7ad;
+      border: 1px solid rgba(104,114,92,.16);
+    }
+
+    .venus-first-list {
+      display: grid;
+      gap: 1px;
+      background: rgba(104,114,92,.18);
+      border: 1px solid rgba(104,114,92,.18);
+    }
+
+    .venus-first-list div {
+      min-height: 96px;
+      padding: 20px;
+      background: rgba(251,247,239,.82);
+      display: grid;
+      align-content: center;
+      gap: 6px;
+    }
+
+    .venus-first-list strong {
+      color: var(--ink);
+      font-weight: 900;
+    }
+
+    .venus-first-list span {
+      color: rgba(36,48,38,.66);
+      line-height: 1.55;
+    }
+
+    .venus-membership-grid {
+      grid-template-columns: minmax(0, .92fr) minmax(300px, .72fr);
+    }
+
+    .venus-membership-grid > .venus-membership-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .venus-membership-card.club {
+      background: var(--moss);
+      color: var(--venus-brand-cream);
+      min-height: 420px;
+    }
+
+    .venus-membership-card.club p {
+      color: rgba(249,234,216,.76);
+    }
+
+    .venus-shop-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .venus-shop-card {
+      min-height: 190px;
+      background: rgba(239,228,214,.74);
     }
 
     .venus-access {
@@ -1439,7 +1709,13 @@
     @media (max-width: 900px) {
       .venus-hero,
       .venus-section-head,
-      .venus-access {
+      .venus-access,
+      .venus-philosophy,
+      .venus-studio-grid,
+      .venus-community-grid,
+      .venus-first-visit,
+      .venus-membership-grid,
+      .venus-shop-grid {
         grid-template-columns: 1fr;
       }
 
@@ -1457,6 +1733,15 @@
       .venus-location,
       .venus-cta-band {
         grid-template-columns: 1fr;
+      }
+
+      .ritual-panel.large,
+      .venus-philosophy-copy {
+        min-height: 380px;
+      }
+
+      .venus-photo-strip {
+        grid-auto-columns: minmax(240px, 82vw);
       }
 
       .venus-google-link {
@@ -1488,6 +1773,15 @@
 
       .venus-title {
         font-size: clamp(40px, 14vw, 64px);
+      }
+
+      .venus-word-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .venus-word-grid span,
+      .venus-first-list div {
+        min-height: 108px;
       }
 
       .venus-actions,
@@ -1681,11 +1975,11 @@
           </div>
         </a>
         <div class="venus-nav-links">
-          <a href="#rituales" class="hover:text-[var(--ink)] transition-colors">Rituales</a>
-          <a href="#experiencia" class="hover:text-[var(--ink)] transition-colors">Experiencia</a>
-          <a href="#testimonios" class="hover:text-[var(--ink)] transition-colors">Reseñas</a>
-          <a href="#lealtad" class="hover:text-[var(--ink)] transition-colors">Lealtad</a>
-          <a href="#ubicacion" class="hover:text-[var(--ink)] transition-colors">Ubicación</a>
+          <a href="#rituales" class="hover:text-[var(--ink)] transition-colors">Servicios</a>
+          <a href="#filosofia" class="hover:text-[var(--ink)] transition-colors">Filosofía</a>
+          <a href="#experiencia" class="hover:text-[var(--ink)] transition-colors">Estudio</a>
+          <a href="#comunidad" class="hover:text-[var(--ink)] transition-colors">Comunidad</a>
+          <a href="#primera-visita" class="hover:text-[var(--ink)] transition-colors">Primera visita</a>
           <a href="#lealtad" onclick="showTab('login')" class="hover:text-[var(--ink)] transition-colors">Mi tarjeta</a>
           <a href="/agendar.html" class="venus-btn venus-btn-primary">Agendar</a>
         </div>
@@ -1697,26 +1991,26 @@
       <section class="venus-shell venus-hero">
         <div class="animate-fade-in-up">
           <span class="venus-kicker">San Juan del Río</span>
-          <h1 class="venus-title">Tu piel merece una visita que se sienta personal.</h1>
+          <h1 class="venus-title">Venus: Un espacio para volver a ti</h1>
           <p class="venus-lede">
-            En Venus cada cita empieza con calma: escuchamos lo que buscas, leemos tu piel y diseñamos un ritual facial, de depilación o relajación para que salgas viéndote natural, descansada y cuidada.
+            Piel, movimiento, barra y comunidad en un estudio pensado para bajar el ritmo. Vienes por un facial, una guía para tu piel o una experiencia Venus; sales con más claridad, descanso y ganas de volver.
           </p>
           <div class="venus-actions">
             <a href="/agendar.html" class="venus-btn venus-btn-primary">
-              Quiero agendar mi cita
+              Reservar mi primera visita
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14m-6-6 6 6-6 6"/>
               </svg>
             </a>
-            <a href="#lealtad" class="venus-btn venus-btn-secondary">Crear mi tarjeta Venus</a>
+            <a href="#filosofia" class="venus-btn venus-btn-secondary">Conocer Venus</a>
           </div>
         </div>
 
         <aside class="venus-photo-frame animate-fade-in-up" style="animation-delay:.12s;">
           <img src="https://images.pexels.com/photos/7446659/pexels-photo-7446659.jpeg?auto=compress&cs=tinysrgb&w=1600" alt="Tratamiento facial profesional en cabina estética">
           <div class="venus-hero-note">
-            <strong>Rituales con diagnóstico, manos expertas y seguimiento.</strong>
-            <span>La página no te manda a perderte: te lleva directo a reservar o a recuperar tu tarjeta de lealtad.</span>
+            <strong>Un estudio para piel, calma y feminidad suave.</strong>
+            <span>Faciales, skin coaching, rituals, movimiento consciente, barra y comunidad Venus.</span>
           </div>
         </aside>
       </section>
@@ -1724,89 +2018,272 @@
       <section class="venus-shell">
         <div class="venus-proof" aria-label="Motivos para elegir Venus">
           <div>
-            <strong>1:1</strong>
-            <span>Atención personalizada, sin tratamientos genéricos ni presión por comprar de más.</span>
+            <strong>Piel</strong>
+            <span>Faciales y skin coaching para entender tu piel como proceso, no como urgencia.</span>
           </div>
           <div>
-            <strong>8</strong>
-            <span>Sellos en tu tarjeta digital para volver por tu recompensa.</span>
+            <strong>Barra</strong>
+            <span>Un momento social y sensorial para llegar, pausar y quedarte un poco más.</span>
           </div>
           <div>
-            <strong>Café</strong>
-            <span>Ahora tu visita también puede cerrar con algo rico en Venus The Coffee Bar.</span>
+            <strong>Club</strong>
+            <span>Membresías, insignias, workshops, mornings y experiencias privadas Venus.</span>
           </div>
+        </div>
+      </section>
+
+      <section class="venus-shell venus-photo-strip-wrap" aria-label="Galería Venus">
+        <div class="venus-photo-strip">
+          <article class="venus-photo-card">
+            <img src="https://images.pexels.com/photos/3757952/pexels-photo-3757952.jpeg?auto=compress&cs=tinysrgb&w=1400" alt="Espacio cálido de bienestar">
+            <span>Espacio</span>
+          </article>
+          <article class="venus-photo-card">
+            <img src="https://images.pexels.com/photos/3985329/pexels-photo-3985329.jpeg?auto=compress&cs=tinysrgb&w=1400" alt="Facial profesional en cabina">
+            <span>Faciales</span>
+          </article>
+          <article class="venus-photo-card">
+            <img src="https://images.pexels.com/photos/302896/pexels-photo-302896.jpeg?auto=compress&cs=tinysrgb&w=1400" alt="Barra de café cálida">
+            <span>Barra</span>
+          </article>
+          <article class="venus-photo-card">
+            <img src="https://images.pexels.com/photos/5938495/pexels-photo-5938495.jpeg?auto=compress&cs=tinysrgb&w=1400" alt="Piel luminosa y natural">
+            <span>Pieles</span>
+          </article>
+          <article class="venus-photo-card">
+            <img src="https://images.pexels.com/photos/3737594/pexels-photo-3737594.jpeg?auto=compress&cs=tinysrgb&w=1400" alt="Productos de skincare en anaquel">
+            <span>Skincare</span>
+          </article>
         </div>
       </section>
 
       <section class="venus-shell venus-section" id="rituales">
         <div class="venus-section-head">
-          <h2>No son “servicios”, son formas de llegar a cómo quieres verte.</h2>
+          <h2>Servicios principales Venus.</h2>
           <p>
-            Agrupamos la experiencia para que elegir sea fácil: brillo, calma, limpieza, suavidad o una pausa completa. Tú llegas con una intención; nosotras armamos el plan.
+            La carta se siente simple desde afuera, pero profunda cuando entras: piel, coaching, rituals, movimiento y experiencias que combinan cuidado, descanso y comunidad.
           </p>
         </div>
 
         <div class="venus-ritual-grid">
           <article class="ritual-panel large">
             <div>
-              <div class="ritual-index">01 / Piel luminosa</div>
-              <h3>Faciales, limpieza profunda y análisis de piel.</h3>
+              <div class="ritual-index">01 / Faciales</div>
+              <h3>Tratamientos para volver a leer tu piel con calma.</h3>
             </div>
-            <p>Para poros, textura, manchas, hidratación o cuando quieres que tu piel vuelva a sentirse viva.</p>
+            <p>Limpieza, hidratación, luminosidad, prevención y seguimiento para que los cambios se noten sesión a sesión.</p>
           </article>
           <article class="ritual-panel">
             <div>
-              <div class="ritual-index">02 / Suavidad</div>
-              <h3>Depilación y detalles que cambian el rostro.</h3>
+              <div class="ritual-index">02 / Skin coaching</div>
+              <h3>Guía honesta para cuidar tu piel fuera del estudio.</h3>
             </div>
-            <p>Cejas, bozo, facial y corporal con cuidado para que el resultado se vea limpio, no forzado.</p>
+            <p>Rutina, hábitos, productos y prevención sin saturarte de pasos que no vas a sostener.</p>
           </article>
           <article class="ritual-panel">
             <div>
-              <div class="ritual-index">03 / Pausa</div>
-              <h3>Masajes, rituales corporales y coffee bar.</h3>
+              <div class="ritual-index">03 / Rituals</div>
+              <h3>Experiencias lentas para piel, cuerpo y sistema nervioso.</h3>
             </div>
-            <p>Ven por tu piel, quédate por el descanso. Una visita que también se siente como respirar.</p>
+            <p>Masaje, aromaterapia, descanso, música suave y un ritmo que te permite soltar.</p>
+          </article>
+          <article class="ritual-panel">
+            <div>
+              <div class="ritual-index">04 / Barre & movement</div>
+              <h3>Movimiento consciente para sentirte presente.</h3>
+            </div>
+            <p>Clases especiales, mornings y sesiones pensadas para habitar el cuerpo sin prisa.</p>
+          </article>
+          <article class="ritual-panel">
+            <div>
+              <div class="ritual-index">05 / Experiencias Venus</div>
+              <h3>La visita completa: piel, barra, comunidad y detalle.</h3>
+            </div>
+            <p>Eventos privados, workshops, journaling nights y momentos diseñados como un club.</p>
           </article>
         </div>
 
         <div class="venus-cta-band">
           <div>
-            <h3 class="font-playfair text-3xl md:text-5xl leading-tight">Si ya lo estás pensando, agenda.</h3>
-            <p>La mejor cita es la que se aparta antes de que la semana se llene. Elige tu servicio y nosotras te confirmamos.</p>
+            <h3 class="font-playfair text-3xl md:text-5xl leading-tight">Si no sabes qué elegir, empieza por una primera visita.</h3>
+            <p>Nosotras te ayudamos a traducir lo que buscas en un ritual concreto, sin mil opciones encima.</p>
           </div>
           <a href="/agendar.html" class="venus-btn bg-[#fbf8f3] text-[var(--ink)] hover:bg-[var(--linen)]">Reservar ahora</a>
         </div>
       </section>
 
+      <section class="venus-shell venus-section" id="filosofia">
+        <div class="venus-philosophy">
+          <article class="venus-philosophy-copy">
+            <span class="venus-kicker">Filosofía Venus</span>
+            <div>
+              <h2>Tu piel no se corrige, se acompaña.</h2>
+              <p class="mt-6">
+                Venus habla de longevidad femenina, belleza natural, prevención y bienestar integral. Creemos en una piel que cambia contigo, en descansar el sistema nervioso y en volver a una feminidad suave, sin presión por verte de una sola forma.
+              </p>
+            </div>
+          </article>
+          <div class="venus-word-grid" aria-label="ADN Venus">
+            <span>Longevidad femenina</span>
+            <span>Belleza natural</span>
+            <span>Prevención</span>
+            <span>Piel como proceso</span>
+            <span>Descanso del sistema nervioso</span>
+            <span>Movimiento consciente</span>
+            <span>Bienestar integral</span>
+            <span>Feminidad suave</span>
+          </div>
+        </div>
+      </section>
+
       <section class="venus-shell venus-section" id="experiencia">
         <div class="venus-section-head">
-          <h2>Llegas con una intención, sales con un plan.</h2>
+          <h2>Experiencia del estudio.</h2>
           <p>
-            La página ya no divide el deseo de agendar y la tarjeta en dos lugares. Todo vive aquí: eliges tu ritual, entiendes la experiencia, creas tu pase y reservas.
+            Venus tiene algo sensorial y social: llegas a un espacio seguro, bajas el ritmo, te reciben por tu nombre y todo se siente más humano que clínico.
           </p>
         </div>
 
-        <div class="venus-method">
-          <article class="venus-method-card">
-            <span class="venus-kicker">Cómo se siente la visita</span>
-            <h3>Diagnóstico, ritual y seguimiento.</h3>
-            <p>Primero entendemos tu piel y tu momento. Después elegimos el protocolo que tiene sentido para ti: facial, depilación, masaje o una combinación más completa.</p>
+        <div class="venus-studio-grid">
+          <article class="venus-studio-card feature">
+            <span class="venus-kicker">Cómo es llegar</span>
+            <div>
+              <h3>Una pausa antes del tratamiento.</h3>
+              <p>La barra, la música, la luz cálida y el ritmo lento preparan la visita desde antes de entrar a cabina.</p>
+            </div>
           </article>
-          <div class="venus-method-steps">
-            <div class="venus-step">
-              <span>01 / Escuchamos</span>
-              <strong>Qué buscas y cómo viene tu piel.</strong>
+          <div class="venus-studio-grid">
+            <article class="venus-studio-card">
+              <span class="ritual-index">01 / Trato humano</span>
+              <h3>Te escuchamos antes de tocar tu piel.</h3>
+              <p>Queremos entender tu momento, tu rutina, tus nervios y lo que sí quieres sostener.</p>
+            </article>
+            <article class="venus-studio-card">
+              <span class="ritual-index">02 / Ritmo lento</span>
+              <h3>No vienes a correr.</h3>
+              <p>La cita tiene tiempo para explicar, respirar, tomar algo y salir sin sentirte empujada.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="venus-shell venus-section" id="comunidad">
+        <div class="venus-section-head">
+          <h2>Comunidad Venus.</h2>
+          <p>El corazón de la marca puede vivir aquí: no solo citas, también pertenencia, acceso y rituales compartidos.</p>
+        </div>
+
+        <div class="venus-community-grid">
+          <article class="venus-community-card lead">
+            <span class="venus-kicker">Club Venus</span>
+            <h3>Una comunidad para cuidarte acompañada.</h3>
+            <p>Membresías, insignias, acceso prioritario y experiencias que hacen que volver se sienta especial.</p>
+          </article>
+          <article class="venus-community-card">
+            <span class="ritual-index">Eventos privados</span>
+            <h3>Workshops, mornings y clases especiales.</h3>
+            <p>Encuentros pequeños para piel, movimiento, journaling, café y conversación.</p>
+          </article>
+          <article class="venus-community-card">
+            <span class="ritual-index">Insignias Venus</span>
+            <h3>Reconocer tu constancia también importa.</h3>
+            <p>Sellos, rewards, regalos, early booking y detalles que vuelven tangible tu proceso.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="venus-shell venus-section" id="primera-visita">
+        <div class="venus-first-visit">
+          <article class="venus-first-visit-panel">
+            <span class="venus-kicker text-[var(--espresso)]">Ritual de primera visita</span>
+            <h2 class="mt-7">Ven sin ansiedad: aquí te decimos qué esperar.</h2>
+            <p class="mt-6">
+              Convertimos las dudas típicas en una experiencia clara: cómo llegar, qué usar, si puedes venir maquillada, cuánto dura, cómo cancelar y cómo cuidar tu piel después.
+            </p>
+            <div class="venus-actions">
+              <a href="/agendar.html" class="venus-btn venus-btn-primary">Agendar primera visita</a>
             </div>
-            <div class="venus-step">
-              <span>02 / Elegimos</span>
-              <strong>El ritual sin saturarte de opciones.</strong>
+          </article>
+          <div class="venus-first-list">
+            <div>
+              <strong>Antes de venir</strong>
+              <span>Llega con tiempo, trae tu piel como venga y comparte si usas activos o medicamentos.</span>
             </div>
-            <div class="venus-step">
-              <span>03 / Seguimos</span>
-              <strong>Sellos, citas y recomendaciones.</strong>
+            <div>
+              <strong>Durante la cita</strong>
+              <span>Revisamos tu piel, elegimos el ritual y te explicamos cada paso antes de hacerlo.</span>
+            </div>
+            <div>
+              <strong>Después</strong>
+              <span>Sales con recomendaciones simples, cuidados posteriores y tu siguiente paso claro.</span>
+            </div>
+            <div>
+              <strong>Cancelaciones</strong>
+              <span>Si necesitas mover tu cita, avísanos con anticipación para cuidar el espacio de todas.</span>
             </div>
           </div>
+        </div>
+      </section>
+
+      <section class="venus-shell venus-section" id="membresia">
+        <div class="venus-membership-grid">
+          <article class="venus-membership-card club">
+            <span class="venus-kicker">Membresía Venus</span>
+            <div>
+              <h2 class="font-playfair text-[clamp(34px,5vw,70px)] leading-[1.04]">Que Venus se sienta como un club.</h2>
+              <p class="mt-6">
+                Una membresía con niveles, beneficios, acceso a eventos, rewards, experiencias especiales, early booking y regalos. No es solo descuento, es pertenencia.
+              </p>
+            </div>
+          </article>
+          <div class="venus-membership-grid">
+            <article class="venus-membership-card">
+              <span class="ritual-index">Niveles</span>
+              <h3>De primera visita a clienta Venus.</h3>
+              <p>Insignias, recompensas y acceso progresivo para reconocer la constancia.</p>
+            </article>
+            <article class="venus-membership-card">
+              <span class="ritual-index">Acceso</span>
+              <h3>Eventos, agenda prioritaria y detalles.</h3>
+              <p>Workshops, mornings, journaling nights y experiencias privadas antes que nadie.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="venus-shell venus-section" id="agenda">
+        <div class="venus-cta-band">
+          <div>
+            <span class="venus-kicker">Agenda / Booking</span>
+            <h3 class="font-playfair text-3xl md:text-5xl leading-tight mt-5">Agenda limpia, sin mil pasos.</h3>
+            <p>Elige servicio, revisa duración, selecciona horario y agrega extras si aplica. Si se requiere anticipo, el flujo lo dirá claro antes de confirmar.</p>
+          </div>
+          <a href="/agendar.html" class="venus-btn bg-[#fbf8f3] text-[var(--ink)] hover:bg-[var(--linen)]">Ir a agenda</a>
+        </div>
+      </section>
+
+      <section class="venus-shell venus-section" id="tienda">
+        <div class="venus-section-head">
+          <h2>Tienda futura.</h2>
+          <p>Dejamos preparado el lenguaje para que cuando Venus venda más online, se sienta curado y no improvisado.</p>
+        </div>
+        <div class="venus-shop-grid">
+          <article class="venus-shop-card">
+            <span class="ritual-index">Skincare curado</span>
+            <h3>Productos que sí tienen sentido.</h3>
+          </article>
+          <article class="venus-shop-card">
+            <span class="ritual-index">Kits rituales</span>
+            <h3>Rutinas para llevar Venus a casa.</h3>
+          </article>
+          <article class="venus-shop-card">
+            <span class="ritual-index">Journals</span>
+            <h3>Proceso, piel y hábitos escritos.</h3>
+          </article>
+          <article class="venus-shop-card">
+            <span class="ritual-index">Barra</span>
+            <h3>Té, café y merch Venus.</h3>
+          </article>
         </div>
       </section>
 
