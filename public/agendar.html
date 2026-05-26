@@ -664,6 +664,17 @@
       color: var(--ink);
       line-height: 1.3;
     }
+    .vn-svc__desc {
+      font-size: 12.5px;
+      line-height: 1.45;
+      color: var(--ink-2);
+      margin-top: 6px;
+      /* Limitar a 2 líneas con ellipsis para que la card no crezca demasiado. */
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
     .vn-svc__meta {
       display: flex;
       justify-content: space-between;
@@ -2448,10 +2459,13 @@
       filteredServices.sort((a, b) => a.name.localeCompare(b.name));
 
       el.innerHTML = filteredServices.map(s => {
+        const desc = typeof s.description === 'string' ? s.description.trim() : '';
+        const descHtml = desc ? `<div class="vn-svc__desc">${escapeHtml(desc)}</div>` : '';
         return `
           <div class="vn-svc ${selectedService && selectedService.id === s.id ? 'selected' : ''}"
                data-id="${s.id}" onclick="selectService(this, '${s.id}')">
             <div class="vn-svc__name">${s.name}</div>
+            ${descHtml}
             <div class="vn-svc__meta">
               <span class="vn-svc__dur"><i class="far fa-clock"></i> ${s.duration} min</span>
               <span class="vn-svc__price">$${s.price}</span>
