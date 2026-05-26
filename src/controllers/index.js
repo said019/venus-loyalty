@@ -118,6 +118,7 @@ export const AppointmentsController = {
                 card = await CardsRepo.create(cardData);
             }
 
+            const force = req.body && (req.body.force === true || req.body.force === 'true');
             // 3. Validar conflictos de horario usando repositorio
             const conflicts = await AppointmentsRepo.findConflicts(
                 date,
@@ -125,16 +126,22 @@ export const AppointmentsController = {
                 durationMinutes || 60
             );
 
-            if (conflicts.length > 0) {
+            if (conflicts.length > 0 && !force) {
                 console.log(`[CONFLICT] Conflicto detectado con ${conflicts.length} cita(s):`);
                 conflicts.forEach(c => {
                     console.log(`   Existente: ${c.date} ${c.time} - ${c.clientName}`);
                 });
 
+                const c0 = conflicts[0];
                 return res.status(409).json({
                     success: false,
-                    error: 'Ya existe una cita agendada en este horario. Por favor elige otro horario.'
+                    error: `Conflicto: ${c0.clientName} tiene cita a las ${c0.time}`,
+                    canForce: true
                 });
+            }
+
+            if (conflicts.length > 0 && force) {
+                console.log(`[CONFLICT] ⚠️ FORZADO por admin (otra persona atiende). En paralelo con: ${conflicts[0].clientName} ${conflicts[0].time}`);
             }
 
             // 4. Preparar datos del appointment

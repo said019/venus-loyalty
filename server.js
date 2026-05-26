@@ -1671,7 +1671,8 @@ app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
       return res.status(404).json({ success: false, error: 'Cita no encontrada' });
     }
 
-    console.log(`[PATCH] Verificando conflictos para ${date} ${time}`);
+    const force = req.body && (req.body.force === true || req.body.force === 'true');
+    console.log(`[PATCH] Verificando conflictos para ${date} ${time}${force ? ' (force=true)' : ''}`);
 
     // Verificar conflictos usando repositorio
     const conflicts = await AppointmentsRepo.findConflicts(
@@ -1681,16 +1682,21 @@ app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
       id  // Excluir la cita actual
     );
 
-    if (conflicts.length > 0) {
+    if (conflicts.length > 0 && !force) {
       const conflict = conflicts[0];
       console.log(`[PATCH] ❌ Conflicto detectado con ${conflict.clientName} a las ${conflict.time}`);
       return res.status(409).json({
         success: false,
-        error: `Conflicto: ${conflict.clientName} tiene cita a las ${conflict.time}`
+        error: `Conflicto: ${conflict.clientName} tiene cita a las ${conflict.time}`,
+        canForce: true
       });
     }
 
-    console.log(`[PATCH] ✅ No hay conflictos, actualizando cita`);
+    if (conflicts.length > 0 && force) {
+      console.log(`[PATCH] ⚠️ Conflicto FORZADO por admin (otra persona atiende). En paralelo con: ${conflicts[0].clientName} ${conflicts[0].time}`);
+    } else {
+      console.log(`[PATCH] ✅ No hay conflictos, actualizando cita`);
+    }
 
     // Preparar datos para actualizar
     const updateData = {

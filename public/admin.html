@@ -8957,13 +8957,27 @@
 
           console.log('📤 Enviando:', body);
 
-          const res = await fetch(`/api/appointments/${editApptId.value}`, {
+          let res = await fetch(`/api/appointments/${editApptId.value}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body)
           });
 
-          const json = await res.json();
+          let json = await res.json();
+
+          // Conflicto: ofrecer forzar si otra persona puede atender en paralelo.
+          if (!json.success && res.status === 409 && json.canForce) {
+            const ok = confirm(`${json.error}\n\n¿Otra persona la atenderá? Forzar agendar en paralelo.`);
+            if (ok) {
+              res = await fetch(`/api/appointments/${editApptId.value}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ...body, force: true })
+              });
+              json = await res.json();
+            }
+          }
+
           if (json.success) {
             alert('Cita actualizada');
             editApptDialog.close();
@@ -9889,20 +9903,29 @@
 
             console.log(`🕐 [APPOINTMENT] Creando cita ${i + 1}/${servicesToBook.length}:`, service.name);
 
-            const res = await fetch('/api/appointments', {
+            let res = await fetch('/api/appointments', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(payload)
             });
 
-            const json = await res.json();
+            let json = await res.json();
+
+            // Conflicto: ofrecer forzar si otra persona puede atender en paralelo.
+            if (!json.success && res.status === 409 && json.canForce) {
+              const ok = confirm(`${json.error}\n\n¿Otra persona la atenderá? Forzar agendar "${service.name}" en paralelo.`);
+              if (ok) {
+                res = await fetch('/api/appointments', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ ...payload, force: true })
+                });
+                json = await res.json();
+              }
+            }
 
             if (!json.success) {
-              if (res.status === 409) {
-                alert(`Error en ${service.name}: ${json.error}`);
-              } else {
-                alert(`Error en ${service.name}: ${json.error}`);
-              }
+              alert(`Error en ${service.name}: ${json.error}`);
               // Si falla una cita, detener el proceso
               btn.disabled = false;
               btn.textContent = originalText;
