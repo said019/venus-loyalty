@@ -36,6 +36,7 @@ class EvolutionAPIClient {
                     'QRCODE_UPDATED',
                     'CONNECTION_UPDATE',
                     'MESSAGES_UPSERT',
+                    'MESSAGES_UPDATE', // respuestas a polls (votos llegan como update del mensaje)
                     'SEND_MESSAGE'
                 ]
             }
