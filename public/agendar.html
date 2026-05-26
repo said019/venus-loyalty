@@ -1059,6 +1059,25 @@
       overflow-y: auto;
       animation: vn-fade-down 320ms var(--ease-out-quart);
     }
+    .vn-preorder__media {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 10px;
+      margin: 0 0 16px;
+    }
+    .vn-preorder__media img {
+      width: 100%;
+      aspect-ratio: 1.45 / 1;
+      object-fit: cover;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: var(--olive-soft);
+      display: block;
+    }
+    .vn-preorder__media img:first-child {
+      grid-row: span 2;
+      aspect-ratio: 1 / 1.08;
+    }
     @keyframes vn-fade-down {
       from { opacity: 0; transform: translateY(-6px); }
       to   { opacity: 1; transform: translateY(0); }
@@ -1089,6 +1108,15 @@
       border-bottom: 1px solid var(--line);
     }
     .vn-preorder__item:last-child { border-bottom: none; }
+    .vn-preorder__thumb {
+      width: 48px;
+      height: 48px;
+      flex: 0 0 48px;
+      border-radius: 13px;
+      object-fit: cover;
+      border: 1px solid var(--line);
+      background: var(--olive-soft);
+    }
     .vn-preorder__item-info {
       flex: 1;
       min-width: 0;
@@ -1545,7 +1573,7 @@
       border: 1px solid rgba(251, 247, 239, 0.36);
       background:
         linear-gradient(to bottom, rgba(58, 43, 36, 0.12), rgba(58, 43, 36, 0.48)),
-        url('https://images.pexels.com/photos/7446659/pexels-photo-7446659.jpeg?auto=compress&cs=tinysrgb&w=1800') center 34% / cover;
+        url('/assets/venus-photos/reserva-hero-cabina.webp') center 36% / cover;
       box-shadow: 0 42px 90px rgba(58, 43, 36, 0.20);
       isolation: isolate;
       position: relative;
@@ -1624,6 +1652,22 @@
 
       .vn-hero__eyebrow {
         margin-top: 340px;
+      }
+
+      .vn-preorder__media {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .vn-preorder__media img:first-child {
+        grid-column: 1 / -1;
+        grid-row: auto;
+        aspect-ratio: 1.7 / 1;
+      }
+
+      .vn-preorder__thumb {
+        width: 44px;
+        height: 44px;
+        flex-basis: 44px;
       }
     }
   </style>
@@ -2216,6 +2260,32 @@
     // Estado: { [productId]: { id, name, price, qty } }
     const preorder = {};
     let menuLoaded = false;
+    const BAR_GALLERY = [
+      { src: '/assets/venus-photos/reserva-bar-matcha.webp', alt: 'Matcha frio de la barra Venus' },
+      { src: '/assets/venus-photos/reserva-bar-berry.webp', alt: 'Smoothie de frutos rojos de la barra Venus' },
+      { src: '/assets/venus-photos/reserva-bar-yellow.webp', alt: 'Bebida amarilla Venus servida en vaso' }
+    ];
+    const BAR_PHOTOS = [
+      { src: '/assets/venus-photos/reserva-bar-matcha.webp', keywords: ['matcha', 'verde', 'green', 'te ', 'tea'] },
+      { src: '/assets/venus-photos/reserva-bar-berry.webp', keywords: ['berry', 'frutos', 'fresa', 'mora', 'frambuesa', 'rojos', 'rosa'] },
+      { src: '/assets/venus-photos/reserva-bar-yellow.webp', keywords: ['mango', 'piña', 'pina', 'tropical', 'amarillo', 'yellow'] },
+      { src: '/assets/venus-photos/reserva-bar-work.webp', keywords: ['combo', 'paquete', 'barra', 'smoothie'] },
+      { src: '/assets/venus-photos/reserva-bar-human.webp', keywords: ['especial', 'venus', 'latte', 'cafe', 'coffee'] }
+    ];
+
+    function renderBarGallery() {
+      return `
+        <div class="vn-preorder__media" aria-label="Bebidas Venus">
+          ${BAR_GALLERY.map(photo => `<img src="${photo.src}" alt="${photo.alt}" loading="lazy">`).join('')}
+        </div>
+      `;
+    }
+
+    function barPhotoFor(product, index) {
+      const text = `${product?.name || ''} ${product?.category || ''}`.toLowerCase();
+      const match = BAR_PHOTOS.find(photo => photo.keywords.some(keyword => text.includes(keyword)));
+      return (match || BAR_PHOTOS[index % BAR_PHOTOS.length]).src;
+    }
 
     async function loadMenu() {
       if (menuLoaded) return;
@@ -2227,14 +2297,14 @@
         renderMenu(products);
       } catch (err) {
         document.getElementById('preorder-list').innerHTML =
-          '<p class="vn-preorder__loading">No pudimos cargar el menú ahora.</p>';
+          `${renderBarGallery()}<p class="vn-preorder__loading">No pudimos cargar el menú ahora.</p>`;
       }
     }
 
     function renderMenu(products) {
       const el = document.getElementById('preorder-list');
       if (!products.length) {
-        el.innerHTML = '<p class="vn-preorder__loading">Sin productos disponibles en barra ahora.</p>';
+        el.innerHTML = `${renderBarGallery()}<p class="vn-preorder__loading">Sin productos disponibles en barra ahora.</p>`;
         return;
       }
       // Agrupar por categoría
@@ -2243,10 +2313,11 @@
         const c = p.category || 'Otros';
         (byCat[c] = byCat[c] || []).push(p);
       }
-      const html = Object.entries(byCat).map(([cat, items]) => `
+      const html = `${renderBarGallery()}${Object.entries(byCat).map(([cat, items]) => `
         <div class="vn-preorder__cat">${escapeHtml(cat)}</div>
-        ${items.map(p => `
+        ${items.map((p, index) => `
           <div class="vn-preorder__item" data-id="${escapeHtml(p.id)}" data-price="${Number(p.price) || 0}" data-name="${escapeHtml(p.name)}">
+            <img class="vn-preorder__thumb" src="${barPhotoFor(p, index)}" alt="" loading="lazy">
             <div class="vn-preorder__item-info">
               <div class="vn-preorder__item-name">${escapeHtml(p.name)}</div>
               <div class="vn-preorder__item-price">$${Number(p.price) || 0}</div>
@@ -2258,7 +2329,7 @@
             </div>
           </div>
         `).join('')}
-      `).join('');
+      `).join('')}`;
       el.innerHTML = html;
       el.addEventListener('click', onMenuClick);
     }
