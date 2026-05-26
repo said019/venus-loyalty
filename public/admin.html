@@ -7903,6 +7903,8 @@
       startOfWeek.setDate(selectedDate.getDate() - selectedDate.getDay());
       startOfWeek.setHours(0, 0, 0, 0);
 
+      const selectedStr = toLocalDateString(selectedDate);
+
       // Generate Headers
       let headersHTML = '<div class="time-header-spacer"></div><div class="day-headers">';
       const days = [];
@@ -7910,8 +7912,11 @@
         const d = new Date(startOfWeek);
         d.setDate(startOfWeek.getDate() + i);
         days.push(d);
+        const dStr = toLocalDateString(d);
         const isToday = (d.toDateString() === new Date().toDateString());
-        headersHTML += `<div class="day-header-cell ${isToday ? 'today' : ''}">
+        const isSelected = dStr === selectedStr;
+        const selBg = isSelected ? 'background:rgba(140,150,104,0.22);' : '';
+        headersHTML += `<div class="day-header-cell ${isToday ? 'today' : ''}${isSelected ? ' selected' : ''}" data-date="${dStr}" style="cursor:pointer;${selBg}">
             ${d.toLocaleDateString('es-MX', { weekday: 'short' })} ${d.getDate()}
          </div>`;
       }
@@ -7956,6 +7961,19 @@
 
       bodyHTML += '</div></div>';
       calendarContainer.innerHTML = `<div class="time-grid-header">${headersHTML}</div>` + bodyHTML;
+
+      // Click en encabezado de día → selecciona ese día (sidebar muestra sus citas).
+      calendarContainer.querySelectorAll('.day-header-cell[data-date]').forEach(cell => {
+        cell.addEventListener('click', () => {
+          const dStr = cell.dataset.date;
+          const [yy, mm, dd] = dStr.split('-').map(Number);
+          selectedDate = new Date(yy, mm - 1, dd);
+          selectedDate.setHours(0, 0, 0, 0);
+          loadAppointments();
+          updateSelectedDateLabel();
+          renderWeeklyCalendar(); // re-render para resaltar el día activo
+        });
+      });
     }
 
     function renderDailyCalendar() {
@@ -9272,10 +9290,21 @@
 
     // Navegación semanal
     // Navegación del calendario (Mes/Semana/Día)
+    // Helper: cuando navegamos meses en vista Mes, traer selectedDate al
+    // nuevo mes (mismo día si existe; si no, último día del mes) para que el
+    // eyebrow del header (tied a selectedDate) refleje el mes visible.
+    function syncSelectedDateToCurrentMonth() {
+      const lastDay = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate();
+      const day = Math.min(selectedDate.getDate(), lastDay);
+      selectedDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
+      selectedDate.setHours(0, 0, 0, 0);
+    }
+
     if (btnPrevMonth) {
       btnPrevMonth.addEventListener('click', () => {
         if (currentView === 'month') {
           currentMonth.setMonth(currentMonth.getMonth() - 1);
+          syncSelectedDateToCurrentMonth();
         } else if (currentView === 'week') {
           selectedDate.setDate(selectedDate.getDate() - 7);
           currentMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
@@ -9294,6 +9323,7 @@
       btnNextMonth.addEventListener('click', () => {
         if (currentView === 'month') {
           currentMonth.setMonth(currentMonth.getMonth() + 1);
+          syncSelectedDateToCurrentMonth();
         } else if (currentView === 'week') {
           selectedDate.setDate(selectedDate.getDate() + 7);
           currentMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
