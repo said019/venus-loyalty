@@ -1141,6 +1141,86 @@
       hyphens: auto;
     }
 
+    .venus-cafe-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-auto-rows: clamp(180px, 22vw, 280px);
+      gap: 14px;
+    }
+
+    .venus-cafe-card {
+      position: relative;
+      overflow: hidden;
+      isolation: isolate;
+      border: 1px solid rgba(104, 114, 92, 0.18);
+      background: var(--linen);
+      margin: 0;
+      display: flex;
+      align-items: flex-end;
+    }
+
+    .venus-cafe-card.tall { grid-row: span 2; }
+    .venus-cafe-card.wide { grid-column: span 2; }
+
+    .venus-cafe-card img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      filter: saturate(0.86) contrast(0.96);
+      transform: scale(1.01);
+      transition: transform 700ms cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: -2;
+    }
+
+    .venus-cafe-card::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(36, 48, 38, 0.62), transparent 55%);
+      z-index: -1;
+    }
+
+    .venus-cafe-card:hover img { transform: scale(1.05); }
+
+    .venus-cafe-card figcaption {
+      margin: 18px;
+      color: var(--venus-brand-cream);
+      font-family: 'Prata', serif;
+      font-size: clamp(18px, 1.7vw, 24px);
+      line-height: 1.1;
+    }
+
+    .venus-cafe-foot {
+      margin-top: clamp(20px, 3vw, 32px);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px 28px;
+      align-items: center;
+      justify-content: space-between;
+      color: rgba(36,48,38,.66);
+      font-size: 14px;
+      letter-spacing: 0.04em;
+    }
+
+    .venus-cafe-foot a {
+      color: var(--ink);
+      font-weight: 700;
+      text-decoration: none;
+      border-bottom: 1px solid rgba(36,48,38,.32);
+      padding-bottom: 2px;
+    }
+
+    @media (max-width: 860px) {
+      .venus-cafe-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-auto-rows: clamp(180px, 42vw, 240px);
+      }
+      .venus-cafe-card.wide { grid-column: span 2; }
+      .venus-cafe-card.tall { grid-row: auto; }
+    }
+
     .venus-section {
       padding: clamp(74px, 10vw, 132px) 0;
     }
@@ -2297,7 +2377,7 @@
         </a>
         <div class="venus-nav-links">
           <a href="#rituales" class="hover:text-[var(--ink)] transition-colors">Servicios</a>
-          <a href="#experiencia" class="hover:text-[var(--ink)] transition-colors">Experiencia</a>
+          <a href="#cafe" class="hover:text-[var(--ink)] transition-colors">Café</a>
           <a href="#testimonios" class="hover:text-[var(--ink)] transition-colors">Reseñas</a>
           <a href="#ubicacion" class="hover:text-[var(--ink)] transition-colors">Ubicación</a>
           <a href="#lealtad" onclick="showTab('login')" class="hover:text-[var(--ink)] transition-colors">Mi tarjeta</a>
@@ -2329,8 +2409,8 @@
         <aside class="venus-photo-frame animate-fade-in-up" style="animation-delay:.12s;">
           <img src="/assets/venus-photos/index-hero-aside-facial.webp" alt="Facial profesional en cabina Venus">
           <div class="venus-hero-note">
-            <strong>Un estudio para piel, calma y feminidad suave.</strong>
-            <span>Faciales, skin coaching, rituals, movimiento consciente, barra y comunidad Venus.</span>
+            <strong>Piel, calma y café.</strong>
+            <span>Estudio boutique en San Juan del Río.</span>
           </div>
         </aside>
       </section>
@@ -2339,15 +2419,15 @@
         <div class="venus-proof" aria-label="Motivos para elegir Venus">
           <div>
             <strong>Piel</strong>
-            <span>Faciales y skin coaching para entender tu piel como proceso, no como urgencia.</span>
+            <span>Faciales con seguimiento, no urgencia.</span>
           </div>
           <div>
             <strong>Barra</strong>
-            <span>Un momento social y sensorial para llegar, pausar y quedarte un poco más.</span>
+            <span>Café incluido antes y después.</span>
           </div>
           <div>
             <strong>Club</strong>
-            <span>Membresías, insignias, workshops, mornings y experiencias privadas Venus.</span>
+            <span>Membresía con eventos privados.</span>
           </div>
         </div>
       </section>
@@ -2379,114 +2459,140 @@
 
       <section class="venus-shell venus-section" id="rituales">
         <div class="venus-section-head">
-          <h2>Servicios principales Venus.</h2>
-          <p>
-            La carta se siente simple desde afuera, pero profunda cuando entras: piel, coaching, rituals, movimiento y experiencias que combinan cuidado, descanso y comunidad.
-          </p>
+          <h2>Servicios.</h2>
+          <p>Piel, cuerpo y pausa. Cinco caminos para tu visita.</p>
         </div>
 
         <div class="venus-ritual-grid">
           <article class="ritual-panel large">
             <div>
               <div class="ritual-index">01 / Faciales</div>
-              <h3>Tratamientos para volver a leer tu piel con calma.</h3>
+              <h3>Lee tu piel con calma.</h3>
             </div>
-            <p>Limpieza, hidratación, luminosidad, prevención y seguimiento para que los cambios se noten sesión a sesión.</p>
+            <p>Limpieza, hidratación, luminosidad y seguimiento sesión a sesión.</p>
           </article>
           <article class="ritual-panel">
             <div>
               <div class="ritual-index">02 / Skin coaching</div>
-              <h3>Guía honesta para cuidar tu piel fuera del estudio.</h3>
+              <h3>Tu rutina, sin pasos de más.</h3>
             </div>
-            <p>Rutina, hábitos, productos y prevención sin saturarte de pasos que no vas a sostener.</p>
+            <p>Guía honesta para tu día a día.</p>
           </article>
           <article class="ritual-panel">
             <div>
               <div class="ritual-index">03 / Rituals</div>
-              <h3>Experiencias lentas para piel, cuerpo y sistema nervioso.</h3>
+              <h3>Masaje, aromaterapia, descanso.</h3>
             </div>
-            <p>Masaje, aromaterapia, descanso, música suave y un ritmo que te permite soltar.</p>
+            <p>Un ritmo que te permite soltar.</p>
           </article>
           <article class="ritual-panel">
             <div>
               <div class="ritual-index">04 / Barre & movement</div>
-              <h3>Movimiento consciente para sentirte presente.</h3>
+              <h3>Habitar el cuerpo sin prisa.</h3>
             </div>
-            <p>Clases especiales, mornings y sesiones pensadas para habitar el cuerpo sin prisa.</p>
+            <p>Clases especiales y mornings.</p>
           </article>
           <article class="ritual-panel">
             <div>
-              <div class="ritual-index">05 / Experiencias Venus</div>
-              <h3>La visita completa: piel, barra, comunidad y detalle.</h3>
+              <div class="ritual-index">05 / Experiencias</div>
+              <h3>Workshops y noches privadas.</h3>
             </div>
-            <p>Eventos privados, workshops, journaling nights y momentos diseñados como un club.</p>
+            <p>La visita Venus en formato evento.</p>
           </article>
         </div>
 
         <div class="venus-cta-band">
           <div>
-            <h3 class="font-playfair text-3xl md:text-5xl leading-tight">Si no sabes qué elegir, empieza por una primera visita.</h3>
-            <p>Nosotras te ayudamos a traducir lo que buscas en un ritual concreto, sin mil opciones encima.</p>
+            <h3 class="font-playfair text-3xl md:text-5xl leading-tight">¿No sabes qué elegir? Empieza por una primera visita.</h3>
           </div>
-          <a href="/agendar.html" class="venus-btn bg-[#fbf8f3] text-[var(--ink)] hover:bg-[var(--linen)]">Reservar ahora</a>
+          <a href="/agendar.html" class="venus-btn bg-[#fbf8f3] text-[var(--ink)] hover:bg-[var(--linen)]">Reservar</a>
         </div>
       </section>
 
       <section class="venus-shell venus-section" id="experiencia">
         <div class="venus-section-head">
-          <h2>La experiencia Venus.</h2>
-          <p>Un estudio para volver a tu piel con calma, con el café que acompaña la pausa y el ritmo que merece tu visita.</p>
+          <h2>La experiencia.</h2>
+          <p>Tu cita, tu pausa, tu nombre.</p>
         </div>
 
         <div class="venus-studio-grid">
           <article class="venus-studio-card feature">
             <span class="venus-kicker">Filosofía</span>
             <div>
-              <h3>Tu piel no se corrige, se acompaña.</h3>
-              <p>Belleza natural, prevención y feminidad suave: tu piel es un proceso, no una urgencia. Te escuchamos antes de tocarla.</p>
+              <h3>La piel no se corrige, se acompaña.</h3>
             </div>
           </article>
           <article class="venus-studio-card">
             <span class="ritual-index">El estudio</span>
-            <h3>Llegas, bajas el ritmo, te recibimos por tu nombre.</h3>
-            <p>Música suave, luz cálida y tiempo para respirar. Tu cita tiene espacio para explicar cada paso y salir sin sentirte empujada.</p>
+            <h3>Música suave, luz cálida, tiempo para respirar.</h3>
           </article>
           <article class="venus-studio-card">
             <span class="ritual-index">Café Venus</span>
-            <h3>Tu pausa con café incluido.</h3>
-            <p>La barra está abierta antes y después de tu cita. Llega 15 min temprano, pide tu café y deja que la visita empiece desde la entrada.</p>
+            <h3>Barra abierta antes y después de tu cita.</h3>
           </article>
+        </div>
+      </section>
+
+      <section class="venus-shell venus-section venus-cafe" id="cafe">
+        <div class="venus-section-head">
+          <h2>El café Venus.</h2>
+          <p>Pasa sin cita. Quédate un rato.</p>
+        </div>
+
+        <div class="venus-cafe-grid">
+          <figure class="venus-cafe-card tall">
+            <img src="/assets/venus-photos/reserva-bar-matcha.webp" alt="Matcha latte de la barra Venus">
+            <figcaption>Matcha</figcaption>
+          </figure>
+          <figure class="venus-cafe-card">
+            <img src="/assets/venus-photos/reserva-bar-berry.webp" alt="Bebida de berries de la barra Venus">
+            <figcaption>Berry</figcaption>
+          </figure>
+          <figure class="venus-cafe-card">
+            <img src="/assets/venus-photos/reserva-bar-yellow.webp" alt="Bebida amarilla de temporada">
+            <figcaption>Temporada</figcaption>
+          </figure>
+          <figure class="venus-cafe-card wide">
+            <img src="/assets/venus-photos/reserva-bar-human.webp" alt="Persona en la barra del café Venus">
+            <figcaption>La barra</figcaption>
+          </figure>
+          <figure class="venus-cafe-card">
+            <img src="/assets/venus-photos/reserva-bar-work.webp" alt="Mesa de trabajo en el café Venus">
+            <figcaption>Quédate</figcaption>
+          </figure>
+          <figure class="venus-cafe-card">
+            <img src="/assets/venus-photos/index-strip-barra.webp" alt="Bebidas servidas en la barra Venus">
+            <figcaption>De la casa</figcaption>
+          </figure>
+        </div>
+
+        <div class="venus-cafe-foot">
+          <span>Lunes a sábado · 10:00 – 19:00</span>
+          <a href="https://www.instagram.com/venus.cosmetology/" target="_blank" rel="noopener">Ver más en Instagram →</a>
         </div>
       </section>
 
       <section class="venus-shell venus-section" id="primera-visita">
         <div class="venus-first-visit">
           <article class="venus-first-visit-panel">
-            <span class="venus-kicker text-[var(--espresso)]">Ritual de primera visita</span>
-            <h2 class="mt-7">Ven sin ansiedad: aquí te decimos qué esperar.</h2>
-            <p class="mt-6">
-              Convertimos las dudas típicas en una experiencia clara: cómo llegar, qué usar, si puedes venir maquillada, cuánto dura, cómo cancelar y cómo cuidar tu piel después.
-            </p>
+            <span class="venus-kicker text-[var(--espresso)]">Primera visita</span>
+            <h2 class="mt-7">Ven sin ansiedad.</h2>
             <div class="venus-actions">
-              <a href="/agendar.html" class="venus-btn venus-btn-primary">Agendar primera visita</a>
+              <a href="/agendar.html" class="venus-btn venus-btn-primary">Agendar</a>
             </div>
           </article>
           <div class="venus-first-list">
             <div>
-              <strong>Antes de venir</strong>
-              <span>Llega con tiempo, trae tu piel como venga y comparte si usas activos o medicamentos.</span>
+              <strong>Antes</strong>
+              <span>Llega 10 min temprano, café incluido.</span>
             </div>
             <div>
-              <strong>Durante la cita</strong>
-              <span>Revisamos tu piel, elegimos el ritual y te explicamos cada paso antes de hacerlo.</span>
+              <strong>Durante</strong>
+              <span>Te explicamos cada paso antes de hacerlo.</span>
             </div>
             <div>
               <strong>Después</strong>
-              <span>Sales con recomendaciones simples, cuidados posteriores y tu siguiente paso claro.</span>
-            </div>
-            <div>
-              <strong>Cancelaciones</strong>
-              <span>Si necesitas mover tu cita, avísanos con anticipación para cuidar el espacio de todas.</span>
+              <span>Sales con tu siguiente paso claro.</span>
             </div>
           </div>
         </div>
@@ -2494,19 +2600,18 @@
 
       <section class="venus-shell venus-section" id="testimonios">
         <div class="venus-section-head">
-          <h2>Lo que más se nota es cómo te sientes al salir.</h2>
-          <p>Atención, calma y resultados que se notan desde la primera visita.</p>
+          <h2>Lo que se nota al salir.</h2>
+          <p>★★★★★ en Google.</p>
         </div>
 
         <div class="venus-google-proof">
           <div>
-            <span class="venus-kicker text-[var(--clay)]">Reseñas de Google</span>
-            <h3>Estas son solo 3 de muchas.</h3>
-            <p>Lee todas las reseñas de Venus en Google Maps.</p>
+            <span class="venus-kicker text-[var(--clay)]">Reseñas</span>
+            <h3>3 de muchas.</h3>
           </div>
           <a href="https://www.google.com/maps/place/Venus+Cosmetologia" target="_blank" rel="noopener" class="venus-google-link" aria-label="Ver reseñas de Venus Cosmetología en Google Maps">
             <img src="https://www.google.com/favicon.ico" alt="" aria-hidden="true">
-            Ver reseñas en Google
+            Ver en Google
             <span class="venus-stars" aria-hidden="true">★★★★★</span>
           </a>
         </div>
@@ -2532,11 +2637,11 @@
           <div class="venus-location-card">
             <div>
               <span class="venus-kicker">Venus Cosmetología</span>
-              <h3>Nuestra ubicación en San Juan del Río.</h3>
-              <p>Agenda tu cita, llega con calma y deja que la visita se sienta completa desde la entrada hasta el café.</p>
+              <h3>San Juan del Río.</h3>
+              <p>Llega con calma — el café te espera.</p>
             </div>
             <div class="venus-actions mt-8">
-              <a href="/agendar.html" class="venus-btn venus-btn-primary">Agendar cita</a>
+              <a href="/agendar.html" class="venus-btn venus-btn-primary">Agendar</a>
               <a href="https://www.instagram.com/venus.cosmetology/" target="_blank" rel="noopener" class="venus-btn bg-transparent border border-[rgba(36,48,38,.18)] text-[var(--ink)]">Instagram</a>
             </div>
           </div>
@@ -2554,20 +2659,20 @@
           <span class="venus-kicker">Membresía Venus</span>
           <h2 class="font-playfair text-[clamp(34px,5vw,72px)] leading-[1.04] mt-7 text-[var(--ink)]">Volver tiene recompensa.</h2>
           <p class="mt-6 text-[rgba(36,48,38,.72)] leading-8 max-w-[62ch]">
-            Crea tu tarjeta digital, suma sellos por cada visita y desbloquea acceso a eventos, workshops y experiencias privadas Venus. No es un descuento — es pertenencia.
+            Suma sellos por cada visita. Acceso a eventos privados. Vive en Apple y Google Wallet.
           </p>
           <div class="mt-9 grid gap-4 max-w-xl">
             <div class="flex gap-4 items-start">
               <span class="mt-1 h-2.5 w-2.5 rounded-full bg-[var(--moss)]"></span>
-              <p class="text-[rgba(36,48,38,.72)]">Sellos por cada visita → servicio gratis al completarlos.</p>
+              <p class="text-[rgba(36,48,38,.72)]">Sellos → servicio gratis.</p>
             </div>
             <div class="flex gap-4 items-start">
               <span class="mt-1 h-2.5 w-2.5 rounded-full bg-[var(--clay)]"></span>
-              <p class="text-[rgba(36,48,38,.72)]">Acceso a mornings, workshops y eventos privados Venus.</p>
+              <p class="text-[rgba(36,48,38,.72)]">Mornings, workshops, eventos privados.</p>
             </div>
             <div class="flex gap-4 items-start">
               <span class="mt-1 h-2.5 w-2.5 rounded-full bg-[var(--moss)]"></span>
-              <p class="text-[rgba(36,48,38,.72)]">Vive en Apple Wallet y Google Wallet — siempre contigo.</p>
+              <p class="text-[rgba(36,48,38,.72)]">Apple Wallet · Google Wallet.</p>
             </div>
           </div>
         </div>
