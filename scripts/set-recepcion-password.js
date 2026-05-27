@@ -26,14 +26,14 @@ try {
   );
   if (existing.length > 0) {
     await prisma.$executeRawUnsafe(
-      "UPDATE admins SET pass_hash = $1, role = 'recepcion' WHERE email = $2",
+      `UPDATE admins SET pass_hash = $1, role = 'recepcion', "updatedAt" = NOW() WHERE email = $2`,
       hash, norm
     );
     console.log(`✓ Actualizado password de ${norm} (role=recepcion)`);
   } else {
     const id = `adm_${Date.now()}`;
     await prisma.$executeRawUnsafe(
-      "INSERT INTO admins (id, email, pass_hash, role) VALUES ($1, $2, $3, 'recepcion')",
+      `INSERT INTO admins (id, email, pass_hash, role, "createdAt", "updatedAt") VALUES ($1, $2, $3, 'recepcion', NOW(), NOW())`,
       id, norm, hash
     );
     console.log(`✓ Creado nuevo usuario recepción: ${norm} (id=${id})`);
