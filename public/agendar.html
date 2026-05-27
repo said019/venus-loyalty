@@ -1103,15 +1103,15 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 12px;
-      padding: 10px 0;
+      gap: 14px;
+      padding: 12px 0;
       border-bottom: 1px solid var(--line);
     }
     .vn-preorder__item:last-child { border-bottom: none; }
     .vn-preorder__thumb {
-      width: 48px;
-      height: 48px;
-      flex: 0 0 48px;
+      width: 54px;
+      height: 54px;
+      flex: 0 0 54px;
       border-radius: 13px;
       object-fit: cover;
       border: 1px solid var(--line);
@@ -1125,6 +1125,13 @@
       font-size: 14px;
       font-weight: 500;
       color: var(--ink);
+    }
+    .vn-preorder__item-desc {
+      max-width: 520px;
+      margin-top: 3px;
+      color: var(--ink-3);
+      font-size: 11.5px;
+      line-height: 1.35;
     }
     .vn-preorder__item-price {
       font-size: 12px;
@@ -1668,6 +1675,11 @@
         width: 44px;
         height: 44px;
         flex-basis: 44px;
+      }
+
+      .vn-preorder__item-desc {
+        font-size: 11px;
+        line-height: 1.3;
       }
     }
   </style>
@@ -2279,15 +2291,65 @@
       { src: '/assets/venus-photos/reserva-bar-yellow.webp', alt: 'Bebida amarilla Venus servida en vaso' }
     ];
     const PRODUCT_BAR_PHOTOS = [
+      { names: ['americano caliente'], src: '/assets/venus-photos/menu-cafe-americano.jpg' },
+      { names: ['americano frio'], src: '/assets/venus-photos/menu-cafe-iced-latte.jpg' },
+      { names: ['espresso'], src: '/assets/venus-photos/menu-cafe-espresso.jpg' },
+      { names: ['latte cremoso caliente'], src: '/assets/venus-photos/menu-cafe-latte-hot.jpg' },
+      { names: ['latte cremoso frio'], src: '/assets/venus-photos/menu-cafe-iced-latte.jpg' },
+      { names: ['moka caliente'], src: '/assets/venus-photos/menu-cafe-mocha-hot.jpg' },
+      { names: ['moka frio'], src: '/assets/venus-photos/menu-cafe-mocha-iced.jpg' },
+      { names: ['frappe'], src: '/assets/venus-photos/menu-cafe-frappe.jpg' },
+      { names: ['dirty horchata'], src: '/assets/venus-photos/menu-cafe-horchata.png' },
+      { names: ['hot cocoa caliente'], src: '/assets/venus-photos/menu-cafe-cocoa-hot.jpg' },
+      { names: ['hot cocoa frio'], src: '/assets/venus-photos/menu-cafe-cocoa-iced.jpg' },
+      { names: ['te de la casa caliente'], src: '/assets/venus-photos/menu-te-caliente.jpg' },
+      { names: ['te de la casa frio'], src: '/assets/venus-photos/menu-te-frio.jpg' },
+      { names: ['matcha latte caliente', 'matcha latte frio', 'matcha latte'], src: '/assets/venus-photos/reserva-bar-matcha.webp' },
+      { names: ['tisana de frutos rojos caliente', 'tisana de frutos rojos frio', 'tisana de frutos rojos', 'costa violeta'], src: '/assets/venus-photos/reserva-bar-berry.webp' },
+      { names: ['tropical venus'], src: '/assets/venus-photos/menu-smoothie-tropical.jpg' },
+      { names: ['mango glow'], src: '/assets/venus-photos/menu-smoothie-mango.jpg' },
+      { names: ['cacao power'], src: '/assets/venus-photos/menu-smoothie-cacao.jpg' },
+      { names: ['jardin dorado'], src: '/assets/venus-photos/menu-smoothie-golden.jpg' },
       { names: ['nordic glow'], src: '/assets/venus-photos/menu-bagel-nordic.jpg' },
       { names: ['bagel clasico'], src: '/assets/venus-photos/menu-bagel-clasico.jpg' },
       { names: ['bagel pepperoni'], src: '/assets/venus-photos/menu-bagel-pepperoni.jpg' },
-      { names: ['sweet balance'], src: '/assets/venus-photos/menu-bagel-sweet.jpg' },
-      { names: ['matcha latte'], src: '/assets/venus-photos/reserva-bar-matcha.webp' },
-      { names: ['tisana de frutos rojos', 'costa violeta'], src: '/assets/venus-photos/reserva-bar-berry.webp' },
-      { names: ['tropical venus', 'mango glow', 'jardin dorado'], src: '/assets/venus-photos/reserva-bar-yellow.webp' },
-      { names: ['cacao power'], src: '/assets/venus-photos/reserva-bar-human.webp' }
+      { names: ['sweet balance'], src: '/assets/venus-photos/menu-bagel-sweet.jpg' }
     ];
+    const PRODUCT_BAR_DESCRIPTIONS = {
+      'americano caliente': 'Espresso con agua caliente.',
+      'americano frio': 'Espresso, agua fria y hielo.',
+      espresso: 'Shot concentrado de cafe.',
+      'latte cremoso caliente': 'Espresso con leche cremosa vaporizada.',
+      'latte cremoso frio': 'Espresso, leche cremosa y hielo.',
+      'moka caliente': 'Espresso, cacao, leche cremosa y toque dulce.',
+      'moka frio': 'Espresso, cacao, leche fria y hielo.',
+      frappe: 'Cafe frio licuado con leche y hielo.',
+      'dirty horchata': 'Horchata cremosa con shot de espresso.',
+      'hot cocoa caliente': 'Cacao caliente con leche cremosa.',
+      'hot cocoa frio': 'Cacao frio con leche y hielo.',
+      'te de la casa caliente': 'Infusion de la casa servida caliente.',
+      'te de la casa frio': 'Infusion de la casa con hielo.',
+      'tisana de frutos rojos caliente': 'Infusion de frutos rojos servida caliente.',
+      'tisana de frutos rojos frio': 'Infusion de frutos rojos con hielo.',
+      'matcha latte caliente': 'Matcha con leche vaporizada.',
+      'matcha latte frio': 'Matcha, leche y hielo.',
+      'tropical venus': 'Mango, pina, platano y base cremosa.',
+      'mango glow': 'Mango, naranja, platano y toque de vainilla.',
+      'cacao power': 'Cacao, platano, crema de cacahuate y leche.',
+      'costa violeta': 'Frutos rojos, platano y base cremosa.',
+      'jardin dorado': 'Pina, mango, curcuma y base cremosa.',
+      'nordic glow': 'Salmon, pepino, queso crema y hojas frescas.',
+      'bagel clasico': 'Bagel tostado con queso crema.',
+      'bagel pepperoni': 'Pepperoni, queso fundido y salsa de tomate.',
+      'sweet balance': 'Queso crema, frutos rojos y toque dulce.'
+    };
+    const CATEGORY_BAR_DESCRIPTIONS = {
+      smoothies: 'Smoothie preparado al momento con fruta y base cremosa.',
+      cafe: 'Cafe preparado al momento en barra Venus.',
+      te_matcha: 'Infusion o matcha preparado al momento.',
+      bagels: 'Bagel preparado al momento en barra Venus.',
+      default: 'Preparado al momento en barra Venus.'
+    };
     const CATEGORY_BAR_PHOTOS = {
       smoothies: [
         '/assets/venus-photos/reserva-bar-yellow.webp',
@@ -2342,6 +2404,12 @@
       return pool[index % pool.length];
     }
 
+    function barDescriptionFor(product) {
+      const name = normalizeMenuText(product?.name);
+      const category = normalizeMenuText(product?.category);
+      return PRODUCT_BAR_DESCRIPTIONS[name] || CATEGORY_BAR_DESCRIPTIONS[category] || CATEGORY_BAR_DESCRIPTIONS.default;
+    }
+
     function barPhotoAlt(product) {
       return `Foto de ${product?.name || 'producto de barra Venus'}`;
     }
@@ -2379,6 +2447,7 @@
             <img class="vn-preorder__thumb" src="${barPhotoFor(p, index)}" alt="${escapeHtml(barPhotoAlt(p))}" loading="lazy">
             <div class="vn-preorder__item-info">
               <div class="vn-preorder__item-name">${escapeHtml(p.name)}</div>
+              <div class="vn-preorder__item-desc">${escapeHtml(barDescriptionFor(p))}</div>
               <div class="vn-preorder__item-price">$${Number(p.price) || 0}</div>
             </div>
             <div class="vn-preorder__qty">
