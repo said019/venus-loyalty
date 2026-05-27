@@ -2005,16 +2005,29 @@
     // Auto-identificación cuando se agenda desde la tarjeta de lealtad.
     // Lee ?cardId (o ?phone) de la URL, reconoce al cliente y salta al paso 3
     // (elegir servicio) sin volver a pedir el WhatsApp.
-    // Si el cliente ya tiene más de 2 citas en su historial, no le pedimos
-    // anticipo: ocultamos la sección de transferencia/comprobante.
+    // Política de exención configurable desde Admin → settings/business.loyalty.
+    // Default: enabled=true, minVisits=2 (≥2 citas previas → sin anticipo).
+    let loyaltyPolicyCache = null;
+    async function getLoyaltyPolicy() {
+      if (loyaltyPolicyCache) return loyaltyPolicyCache;
+      try {
+        const r = await fetch('/api/public/loyalty-policy');
+        const j = await r.json();
+        loyaltyPolicyCache = (j && j.success && j.data) ? j.data : { enabled: true, minVisits: 2 };
+      } catch { loyaltyPolicyCache = { enabled: true, minVisits: 2 }; }
+      return loyaltyPolicyCache;
+    }
+
     async function checkDepositExemption(phone) {
       const digits = String(phone || '').replace(/\D/g, '');
       if (digits.length < 10) return;
+      const policy = await getLoyaltyPolicy();
+      if (!policy.enabled) return; // admin desactivó la exención por historial
       try {
         const res = await fetch(`/api/appointments/by-phone/${encodeURIComponent(digits)}`);
         const json = await res.json();
         const count = (json && json.success && Array.isArray(json.appointments)) ? json.appointments.length : 0;
-        if (count > 2) {
+        if (count >= Number(policy.minVisits || 2)) {
           skipDeposit = true;
           depositRequired = false; // permitir enviar sin comprobante
           depositReceiptUrl = null;

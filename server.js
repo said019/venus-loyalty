@@ -3230,6 +3230,32 @@ app.get('/api/public/bank-info', async (_req, res) => {
   }
 });
 
+// GET /api/public/loyalty-policy — política de exención de anticipo para
+// clientas con historial. Lo lee /agendar para decidir si pedir anticipo.
+// Si enabled=true y la clienta tiene >= minVisits citas previas, no se pide.
+app.get('/api/public/loyalty-policy', async (_req, res) => {
+  try {
+    let loyalty = {};
+    try {
+      const doc = await firestore.collection('settings').doc('business').get();
+      if (doc.exists) loyalty = doc.data().loyalty || {};
+    } catch (e) {
+      console.warn('[loyalty-policy] settings read failed:', e.message);
+    }
+    const policy = loyalty.noDepositForReturning || {};
+    res.json({
+      success: true,
+      data: {
+        enabled:   policy.enabled !== false,           // default ON
+        minVisits: Number(policy.minVisits) || 2,      // default 2 visitas
+      },
+    });
+  } catch (err) {
+    console.error('[loyalty-policy]', err);
+    res.json({ success: false, data: { enabled: true, minVisits: 2 } });
+  }
+});
+
 // POST /api/public/upload-receipt — sube comprobante de transferencia a
 // Cloudinary y devuelve la URL. Sin auth (público — el cliente está
 // agendando, no tiene sesión). Solo imágenes/PDFs hasta 5MB.
