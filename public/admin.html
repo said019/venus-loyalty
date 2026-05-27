@@ -3503,7 +3503,14 @@
 
         <div class="form-group">
           <label class="form-label">Categoría</label>
-          <input type="text" id="service-category" class="form-input" autocomplete="off" placeholder="Ej. Faciales, Corporales, Depilación, Especializados…">
+          <div style="position:relative;">
+            <input type="text" id="service-category" class="form-input" autocomplete="off" placeholder="Elige una existente o escribe una nueva" style="padding-right:34px;">
+            <button type="button" id="service-category-toggle" aria-label="Mostrar categorías"
+              style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:transparent;border:0;cursor:pointer;color:var(--muted);padding:6px;line-height:0;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
+            <div id="service-category-dropdown" class="custom-dropdown-list" style="display:none;"></div>
+          </div>
         </div>
 
         <div class="row" style="gap:15px;">
@@ -10226,9 +10233,65 @@
     }
 
     // Cerrar modal
-    const closeServiceModalFn = () => modalService.classList.add('hidden');
+    const closeServiceModalFn = () => {
+      modalService.classList.add('hidden');
+      const dd = document.getElementById('service-category-dropdown');
+      if (dd) dd.style.display = 'none';
+    };
     if (closeModalService) closeModalService.addEventListener('click', closeServiceModalFn);
     if (btnCancelService) btnCancelService.addEventListener('click', closeServiceModalFn);
+
+    /* Dropdown de categorías del modal Servicio:
+       muestra categorías ya en uso + sugerencias por defecto, filtra al tipear.
+       No bloquea la entrada — el input acepta cualquier categoría nueva. */
+    (function initServiceCategoryDropdown() {
+      const input  = document.getElementById('service-category');
+      const toggle = document.getElementById('service-category-toggle');
+      const list   = document.getElementById('service-category-dropdown');
+      if (!input || !list) return;
+
+      const DEFAULTS = ['Faciales','Corporales','Depilación','Masajes','Paquetes','Diagnóstico','Especializados','Otros'];
+
+      function uniqueCategories() {
+        const fromData = Array.isArray(window.allServicesData)
+          ? window.allServicesData.map(s => (s.category || '').trim()).filter(Boolean)
+          : [];
+        return [...new Set([...fromData, ...DEFAULTS])]
+          .sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
+      }
+
+      function render(filter = '') {
+        const q = filter.trim().toLowerCase();
+        const items = uniqueCategories().filter(c => !q || c.toLowerCase().includes(q));
+        if (!items.length) { list.style.display = 'none'; return; }
+        list.innerHTML = items.map(c =>
+          `<div class="dropdown-item" data-value="${c.replace(/"/g, '&quot;')}">${c}</div>`
+        ).join('');
+        list.style.display = 'block';
+      }
+
+      input.addEventListener('focus', () => render(input.value));
+      input.addEventListener('input', () => render(input.value));
+      if (toggle) {
+        toggle.addEventListener('click', (e) => {
+          e.preventDefault();
+          if (list.style.display === 'block') { list.style.display = 'none'; }
+          else { input.focus(); render(''); }
+        });
+      }
+      list.addEventListener('mousedown', (e) => {
+        const item = e.target.closest('.dropdown-item');
+        if (!item) return;
+        e.preventDefault();
+        input.value = item.dataset.value;
+        list.style.display = 'none';
+      });
+      document.addEventListener('click', (e) => {
+        if (!list.contains(e.target) && e.target !== input && e.target !== toggle && !toggle.contains(e.target)) {
+          list.style.display = 'none';
+        }
+      });
+    })();
 
     // Guardar servicio
     if (formService) {
