@@ -2265,13 +2265,47 @@
       { src: '/assets/venus-photos/reserva-bar-berry.webp', alt: 'Smoothie de frutos rojos de la barra Venus' },
       { src: '/assets/venus-photos/reserva-bar-yellow.webp', alt: 'Bebida amarilla Venus servida en vaso' }
     ];
-    const BAR_PHOTOS = [
-      { src: '/assets/venus-photos/reserva-bar-matcha.webp', keywords: ['matcha', 'verde', 'green', 'te ', 'tea'] },
-      { src: '/assets/venus-photos/reserva-bar-berry.webp', keywords: ['berry', 'frutos', 'fresa', 'mora', 'frambuesa', 'rojos', 'rosa'] },
-      { src: '/assets/venus-photos/reserva-bar-yellow.webp', keywords: ['mango', 'piña', 'pina', 'tropical', 'amarillo', 'yellow'] },
-      { src: '/assets/venus-photos/reserva-bar-work.webp', keywords: ['combo', 'paquete', 'barra', 'smoothie'] },
-      { src: '/assets/venus-photos/reserva-bar-human.webp', keywords: ['especial', 'venus', 'latte', 'cafe', 'coffee'] }
+    const PRODUCT_BAR_PHOTOS = [
+      { names: ['nordic glow'], src: '/assets/venus-photos/menu-bagel-nordic.jpg' },
+      { names: ['bagel clasico'], src: '/assets/venus-photos/menu-bagel-clasico.jpg' },
+      { names: ['bagel pepperoni'], src: '/assets/venus-photos/menu-bagel-pepperoni.jpg' },
+      { names: ['sweet balance'], src: '/assets/venus-photos/menu-bagel-sweet.jpg' },
+      { names: ['matcha latte'], src: '/assets/venus-photos/reserva-bar-matcha.webp' },
+      { names: ['tisana de frutos rojos', 'costa violeta'], src: '/assets/venus-photos/reserva-bar-berry.webp' },
+      { names: ['tropical venus', 'mango glow', 'jardin dorado'], src: '/assets/venus-photos/reserva-bar-yellow.webp' },
+      { names: ['cacao power'], src: '/assets/venus-photos/reserva-bar-human.webp' }
     ];
+    const CATEGORY_BAR_PHOTOS = {
+      smoothies: [
+        '/assets/venus-photos/reserva-bar-yellow.webp',
+        '/assets/venus-photos/reserva-bar-berry.webp',
+        '/assets/venus-photos/reserva-bar-matcha.webp',
+        '/assets/venus-photos/reserva-bar-work.webp',
+        '/assets/venus-photos/reserva-bar-human.webp'
+      ],
+      cafe: [
+        '/assets/venus-photos/reserva-bar-human.webp',
+        '/assets/venus-photos/reserva-bar-work.webp',
+        '/assets/venus-photos/reserva-bar-yellow.webp',
+        '/assets/venus-photos/reserva-bar-matcha.webp'
+      ],
+      te_matcha: [
+        '/assets/venus-photos/reserva-bar-matcha.webp',
+        '/assets/venus-photos/reserva-bar-berry.webp',
+        '/assets/venus-photos/reserva-bar-yellow.webp'
+      ],
+      bagels: [
+        '/assets/venus-photos/menu-bagel-nordic.jpg',
+        '/assets/venus-photos/menu-bagel-clasico.jpg',
+        '/assets/venus-photos/menu-bagel-pepperoni.jpg',
+        '/assets/venus-photos/menu-bagel-sweet.jpg'
+      ],
+      default: [
+        '/assets/venus-photos/reserva-bar-work.webp',
+        '/assets/venus-photos/reserva-bar-human.webp',
+        '/assets/venus-photos/reserva-bar-matcha.webp'
+      ]
+    };
 
     function renderBarGallery() {
       return `
@@ -2281,10 +2315,22 @@
       `;
     }
 
+    function normalizeMenuText(value) {
+      return `${value || ''}`.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    }
+
     function barPhotoFor(product, index) {
-      const text = `${product?.name || ''} ${product?.category || ''}`.toLowerCase();
-      const match = BAR_PHOTOS.find(photo => photo.keywords.some(keyword => text.includes(keyword)));
-      return (match || BAR_PHOTOS[index % BAR_PHOTOS.length]).src;
+      const name = normalizeMenuText(product?.name);
+      const category = normalizeMenuText(product?.category);
+      const exact = PRODUCT_BAR_PHOTOS.find(photo => photo.names.some(item => name.includes(item)));
+      if (exact) return exact.src;
+
+      const pool = CATEGORY_BAR_PHOTOS[category] || CATEGORY_BAR_PHOTOS.default;
+      return pool[index % pool.length];
+    }
+
+    function barPhotoAlt(product) {
+      return `Foto de ${product?.name || 'producto de barra Venus'}`;
     }
 
     async function loadMenu() {
@@ -2317,7 +2363,7 @@
         <div class="vn-preorder__cat">${escapeHtml(cat)}</div>
         ${items.map((p, index) => `
           <div class="vn-preorder__item" data-id="${escapeHtml(p.id)}" data-price="${Number(p.price) || 0}" data-name="${escapeHtml(p.name)}">
-            <img class="vn-preorder__thumb" src="${barPhotoFor(p, index)}" alt="" loading="lazy">
+            <img class="vn-preorder__thumb" src="${barPhotoFor(p, index)}" alt="${escapeHtml(barPhotoAlt(p))}" loading="lazy">
             <div class="vn-preorder__item-info">
               <div class="vn-preorder__item-name">${escapeHtml(p.name)}</div>
               <div class="vn-preorder__item-price">$${Number(p.price) || 0}</div>
