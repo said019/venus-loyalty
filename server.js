@@ -4635,6 +4635,45 @@ app.get("/api/admin/metrics-month", adminAuth, requireRole("admin"), async (_req
   }
 });
 
+// GET /api/admin/appointments/sources-this-month — cuenta citas del mes
+// agrupadas por la etiqueta de marketing (facebook-ads, instagram-ads, …).
+// Las cancelled se excluyen. null queda agrupado como "untagged".
+app.get("/api/admin/appointments/sources-this-month", adminAuth, async (_req, res) => {
+  try {
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const monthStart = `${yyyy}-${mm}-01`;
+    const monthEnd   = `${yyyy}-${mm}-31`;
+
+    const appts = await prisma.appointment.findMany({
+      where: {
+        date: { gte: monthStart, lte: monthEnd },
+        status: { notIn: ['cancelled'] },
+      },
+      select: { source: true },
+    });
+
+    const counts = {};
+    for (const a of appts) {
+      const key = a.source || 'untagged';
+      counts[key] = (counts[key] || 0) + 1;
+    }
+
+    res.json({
+      success: true,
+      data: {
+        month: `${yyyy}-${mm}`,
+        total: appts.length,
+        counts,
+      },
+    });
+  } catch (e) {
+    console.error("[sources-this-month]", e);
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
 // Top clientes (después de /api/admin/metrics-firebase)
 app.get("/api/admin/top-clients", adminAuth, requireRole("admin"), async (req, res) => {
   try {
