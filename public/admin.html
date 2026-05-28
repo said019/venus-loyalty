@@ -2538,6 +2538,23 @@
               </div>
             </section>
 
+            <!-- SECTION: Fuente / origen (marketing) -->
+            <section style="padding:20px;background:rgba(140,150,104,0.04);border:1px solid rgba(140,150,104,0.18);border-radius:16px;">
+              <div style="display:flex;flex-direction:column;gap:10px;">
+                <div>
+                  <h3 style="font-size:13px;font-weight:700;color:var(--venus-soft);margin:0;display:flex;align-items:center;gap:8px;">
+                    <i class="fas fa-bullhorn"></i> ¿Cómo llegó la clienta?
+                  </h3>
+                  <p style="font-size:11px;color:var(--muted);margin:4px 0 0;">Opcional. Sirve para medir el rendimiento de publicidad.</p>
+                </div>
+                <select id="new-appt-source" class="form-input" style="width:100%;padding:12px 14px;background:var(--glass-bg);border:1px solid rgba(140,150,104,0.3);border-radius:10px;font-size:13px;color:var(--ink);">
+                  <option value="">— Sin etiqueta —</option>
+                  <option value="facebook-ads">Facebook Ads</option>
+                  <option value="instagram-ads">Instagram Ads</option>
+                </select>
+              </div>
+            </section>
+
             <!-- SECTION: Gift Card -->
             <section style="padding:20px;background:rgba(140,150,104,0.08);border:1px solid rgba(140,150,104,0.2);border-radius:16px;">
               <div style="display:flex;flex-direction:column;gap:12px;">
@@ -2637,6 +2654,18 @@
                 <label class="form-label">Termina</label>
                 <input type="text" id="edit-appt-end-time" class="form-input" readonly>
               </div>
+            </div>
+
+            <!-- Fuente / origen (marketing) -->
+            <div class="form-group" style="grid-column:1/3;">
+              <label class="form-label" style="display:flex;align-items:center;gap:8px;">
+                <i class="fas fa-bullhorn" style="color:var(--venus-soft);"></i> ¿Cómo llegó la clienta? <span class="muted" style="font-weight:400;font-size:11px;">(opcional)</span>
+              </label>
+              <select id="edit-appt-source" class="form-input" style="width:100%;">
+                <option value="">— Sin etiqueta —</option>
+                <option value="facebook-ads">Facebook Ads</option>
+                <option value="instagram-ads">Instagram Ads</option>
+              </select>
             </div>
 
             <!-- Botones -->
@@ -8827,6 +8856,8 @@
         editApptId.value = id;
         editClientName.value = appt.clientName;
         editServiceInput.value = appt.serviceName;
+        const editSourceSelect = document.getElementById('edit-appt-source');
+        if (editSourceSelect) editSourceSelect.value = appt.source || '';
 
         // Find service to get price and duration
         const service = allServices.find(s => s.name === appt.serviceName);
@@ -8985,7 +9016,8 @@
             serviceName: service.name,
             date: dateValue,
             time: time,
-            durationMinutes: parseInt(service.durationMinutes)
+            durationMinutes: parseInt(service.durationMinutes),
+            source: (document.getElementById('edit-appt-source')?.value || '').trim() || null
           };
 
           console.log('📤 Enviando:', body);
@@ -9873,6 +9905,7 @@
           const sendWhatsApp24h = document.getElementById('check-whatsapp-24h').checked;
           const sendWhatsApp2h = document.getElementById('check-whatsapp-2h').checked;
           const giftCardCode = document.getElementById('new-appt-giftcard').value.trim() || null;
+          const apptSource = (document.getElementById('new-appt-source')?.value || '').trim() || null;
 
           // Determinar qué servicios agendar
           let servicesToBook = [];
@@ -9929,6 +9962,7 @@
               sendWhatsApp24h: sendWhatsApp24h,
               sendWhatsApp2h: sendWhatsApp2h,
               giftCardCode: i === 0 ? giftCardCode : null, // Solo aplicar gift card a la primera
+              source: apptSource, // Etiqueta de marketing (facebook-ads, instagram-ads, …)
               isMultiService: servicesToBook.length > 1,
               multiServiceIndex: i,
               multiServiceTotal: servicesToBook.length

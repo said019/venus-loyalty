@@ -1415,7 +1415,8 @@ app.post('/api/appointments', adminAuth, async (req, res) => {
       durationMinutes,
       sendWhatsAppConfirmation,
       sendWhatsApp24h,
-      sendWhatsApp2h
+      sendWhatsApp2h,
+      source
     } = req.body;
 
     // Validaciones
@@ -1469,7 +1470,10 @@ app.post('/api/appointments', adminAuth, async (req, res) => {
       durationMinutes: parseInt(durationMinutes) || 60,
       status: 'scheduled',
       location: 'Venus Cosmetología',
-      source: 'admin-panel',
+      // source: etiqueta de marketing/origen (facebook-ads, instagram-ads, …).
+      // Vacío = sin etiqueta (no es default 'admin-panel' porque queremos
+      // poder filtrar "citas con campaña conocida" vs "sin etiqueta").
+      source: source || null,
       // Flags para recordatorios WhatsApp automáticos
       sendWhatsApp24h: sendWhatsApp24h !== false, // Por defecto true
       sendWhatsApp2h: sendWhatsApp2h !== false    // Por defecto true
@@ -1707,6 +1711,8 @@ app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
 
     if (serviceId) updateData.serviceId = serviceId;
     if (serviceName) updateData.serviceName = serviceName;
+    // source viene como string o null explícito para limpiar la etiqueta.
+    if (req.body.source !== undefined) updateData.source = req.body.source || null;
 
     // Actualizar en BD usando repositorio
     await AppointmentsRepo.update(id, updateData);
