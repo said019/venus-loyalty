@@ -76,11 +76,18 @@ async function saveIncomingMessage(phone, name, body, messageId = null) {
     }
 }
 
+// Normaliza el nombre del evento para tolerar variaciones de Evolution:
+//   "MESSAGES_UPDATE" / "messages.update" / "messages-update" → "messages.update"
+function normalizeEventName(ev) {
+    return String(ev || '').toLowerCase().replace(/[_-]/g, '.');
+}
+
 router.post('/', async (req, res) => {
     try {
         const { event, data, instance } = req.body;
-        console.log(`[Evolution Webhook] Evento: ${event} | Instancia: ${instance}`);
-        switch (event) {
+        const ev = normalizeEventName(event);
+        console.log(`[Evolution Webhook] Evento: ${event} (norm: ${ev}) | Instancia: ${instance}`);
+        switch (ev) {
             case 'qrcode.updated':
                 console.log('[Evolution] QR Code actualizado');
                 break;
@@ -96,11 +103,12 @@ router.post('/', async (req, res) => {
                 await handleIncomingMessage(data);
                 break;
             case 'poll.response':
-                console.log('[Evolution] poll.response recibido:', JSON.stringify(data).substring(0, 500));
+            case 'poll.update':
+                console.log(`[Evolution] ${ev} recibido:`, JSON.stringify(data).substring(0, 500));
                 await handleIncomingMessage(data);
                 break;
             default:
-                console.log(`[Evolution Webhook] Evento no manejado: ${event}`);
+                console.log(`[Evolution Webhook] Evento no manejado: ${event} (norm: ${ev})`);
         }
         res.status(200).json({ received: true });
     } catch (error) {

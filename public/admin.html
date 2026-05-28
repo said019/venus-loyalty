@@ -1142,8 +1142,12 @@
             <div id="wa-details" style="font-size:13px;color:var(--muted);margin-bottom:12px;"></div>
             <div style="display:flex;gap:8px;flex-wrap:wrap;">
               <button class="btn small ghost" onclick="testWhatsApp()"><i class="fas fa-paper-plane"></i> Enviar prueba</button>
+              <button class="btn small ghost" onclick="reconcilePolls()" title="Escanea respuestas de WhatsApp de las últimas 48h y aplica confirmaciones/cancelaciones que no llegaron al webhook">
+                <i class="fas fa-sync"></i> Reconciliar respuestas
+              </button>
               <button class="btn danger small" onclick="disconnectWhatsApp()"><i class="fas fa-unlink"></i> Desconectar</button>
             </div>
+            <div id="reconcile-result" style="margin-top:10px;font-size:12px;display:none;"></div>
           </div>
 
           <div id="wa-disconnected" style="display:none;">
@@ -13557,6 +13561,39 @@
     window.connectWhatsApp = connectWhatsApp;
     window.disconnectWhatsApp = disconnectWhatsApp;
     window.testWhatsApp = testWhatsApp;
+
+    // Reconcilia respuestas perdidas de polls: escanea mensajes recientes
+    // de WhatsApp y aplica confirmaciones/cancelaciones a citas pendientes.
+    // Útil cuando el webhook no procesó un voto (red, formato de evento, etc.).
+    async function reconcilePolls() {
+      const resultDiv = document.getElementById('reconcile-result');
+      resultDiv.style.display = 'block';
+      resultDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Buscando respuestas perdidas…';
+      try {
+        const res = await fetch('/api/admin/reconcile-polls', {
+          method: 'POST',
+          credentials: 'include'
+        });
+        const json = await res.json();
+        if (!json.success) {
+          resultDiv.innerHTML = `<span style="color:#e74c3c;"><i class="fas fa-exclamation-triangle"></i> ${json.error || 'Error reconciliando'}</span>`;
+          return;
+        }
+        const items = json.reconciled || [];
+        if (items.length === 0) {
+          resultDiv.innerHTML = `<span style="color:var(--muted);"><i class="fas fa-check"></i> ${json.message || 'Sin respuestas nuevas para reconciliar'}</span>`;
+          return;
+        }
+        const lines = items.map(r => `  • ${r.client} — ${r.service} → <strong>${r.newStatus}</strong>`).join('<br>');
+        resultDiv.innerHTML = `<div style="color:#22c55e;"><i class="fas fa-check-circle"></i> ${items.length} cita(s) reconciliada(s):</div><div style="margin-top:6px;">${lines}</div>`;
+        if (typeof clearAppointmentsCache === 'function') clearAppointmentsCache();
+        if (typeof loadMonthAppointments === 'function') loadMonthAppointments(true);
+        if (typeof loadAppointments === 'function') loadAppointments(true);
+      } catch (e) {
+        resultDiv.innerHTML = `<span style="color:#e74c3c;"><i class="fas fa-exclamation-triangle"></i> ${e.message}</span>`;
+      }
+    }
+    window.reconcilePolls = reconcilePolls;
 
     async function syncGoogleCalendar() {
       const resultDiv = document.getElementById('gcal-sync-result');
