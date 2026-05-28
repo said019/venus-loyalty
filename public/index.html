@@ -1326,6 +1326,148 @@
       color: rgba(251,248,243,.66);
     }
 
+    /* ---------- Básicos Venus ---------- */
+    .venus-basics-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 18px;
+    }
+
+    .basic-card {
+      background: rgba(255,255,255,.42);
+      border: 1px solid rgba(36,48,38,.10);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .basic-card-photo {
+      aspect-ratio: 4 / 5;
+      overflow: hidden;
+      background: #ded7ca;
+    }
+
+    .basic-card-photo img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform .6s ease;
+    }
+
+    .basic-card:hover .basic-card-photo img {
+      transform: scale(1.04);
+    }
+
+    .basic-card-body {
+      padding: clamp(18px, 2vw, 24px);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      flex: 1;
+    }
+
+    .basic-card-name {
+      font-family: 'Prata', serif;
+      font-size: clamp(20px, 1.6vw, 26px);
+      line-height: 1.12;
+      font-weight: 400;
+    }
+
+    .basic-card-desc {
+      font-size: 13px;
+      line-height: 1.55;
+      color: rgba(36,48,38,.72);
+    }
+
+    .basic-card-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-top: auto;
+      padding-top: 14px;
+      border-top: 1px solid rgba(36,48,38,.12);
+    }
+
+    .basic-card-price {
+      font-family: 'Prata', serif;
+      font-size: clamp(20px, 1.6vw, 24px);
+    }
+
+    .basic-card-duration {
+      font-size: 11px;
+      letter-spacing: .12em;
+      color: rgba(36,48,38,.6);
+      text-transform: uppercase;
+    }
+
+    /* ---------- Depilación Láser Diodo ---------- */
+    .venus-laser {
+      display: grid;
+      grid-template-columns: 1.15fr 1fr;
+      gap: 18px;
+      min-height: 420px;
+    }
+
+    .laser-photo {
+      background:
+        linear-gradient(120deg, rgba(36,48,38,.18), rgba(36,48,38,0) 60%),
+        url('/assets/venus-photos/index-strip-aparatologia.webp') center / cover;
+      min-height: 360px;
+    }
+
+    .laser-body {
+      background: #d7dccd;
+      padding: clamp(28px, 4vw, 52px);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 18px;
+    }
+
+    .laser-body h3 {
+      font-family: 'Prata', serif;
+      font-size: clamp(28px, 3vw, 44px);
+      line-height: 1.08;
+      font-weight: 400;
+    }
+
+    .laser-body p {
+      max-width: 38ch;
+      color: rgba(36,48,38,.74);
+      line-height: 1.55;
+    }
+
+    .laser-pricing {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    .laser-pricing strong {
+      font-family: 'Prata', serif;
+      font-size: clamp(24px, 2.4vw, 32px);
+      font-weight: 400;
+    }
+
+    .laser-pricing span {
+      font-size: 11px;
+      letter-spacing: .12em;
+      color: rgba(36,48,38,.6);
+      text-transform: uppercase;
+    }
+
+    @media (max-width: 900px) {
+      .venus-basics-grid { grid-template-columns: repeat(2, 1fr); }
+      .venus-laser { grid-template-columns: 1fr; }
+      .laser-photo { min-height: 280px; }
+    }
+
+    @media (max-width: 540px) {
+      .venus-basics-grid { grid-template-columns: 1fr; }
+    }
+
     .venus-philosophy {
       display: grid;
       grid-template-columns: minmax(0, .78fr) minmax(320px, 1fr);
@@ -2508,6 +2650,94 @@
             <h3 class="font-playfair text-3xl md:text-5xl leading-tight">¿No sabes qué elegir? Empieza por una primera visita.</h3>
           </div>
           <a href="/agendar.html" class="venus-btn bg-[#fbf8f3] text-[var(--ink)] hover:bg-[var(--linen)]">Reservar</a>
+        </div>
+      </section>
+
+      <section class="venus-shell venus-section" id="basicos">
+        <div class="venus-section-head">
+          <h2>Básicos Venus.</h2>
+          <p>Lo más pedido. Para darte una idea de cómo se siente entrar a Venus.</p>
+        </div>
+
+        <div class="venus-basics-grid">
+          <article class="basic-card">
+            <div class="basic-card-photo">
+              <img src="/assets/venus-photos/index-strip-facial.webp" alt="Limpieza profunda Venus en cabina" loading="lazy">
+            </div>
+            <div class="basic-card-body">
+              <h3 class="basic-card-name">Limpieza profunda</h3>
+              <p class="basic-card-desc">Extracción, hidratación y oxígeno para reiniciar tu piel.</p>
+              <div class="basic-card-meta">
+                <span class="basic-card-price">$700</span>
+                <span class="basic-card-duration">60 min</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="basic-card">
+            <div class="basic-card-photo">
+              <img src="/assets/venus-photos/index-hero-aside-facial.webp" alt="Facial anti-edad aplicado en cabina Venus" loading="lazy">
+            </div>
+            <div class="basic-card-body">
+              <h3 class="basic-card-name">Facial Anti-edad</h3>
+              <p class="basic-card-desc">Firmeza, luz y descanso para los rasgos que se acumulan.</p>
+              <div class="basic-card-meta">
+                <span class="basic-card-price">$500</span>
+                <span class="basic-card-duration">60 min</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="basic-card">
+            <div class="basic-card-photo">
+              <img src="/assets/venus-photos/index-strip-piel.webp" alt="Facial de colágeno Venus aplicado en cabina" loading="lazy">
+            </div>
+            <div class="basic-card-body">
+              <h3 class="basic-card-name">Facial Colágeno</h3>
+              <p class="basic-card-desc">Hidratación profunda y rebote para una piel descansada.</p>
+              <div class="basic-card-meta">
+                <span class="basic-card-price">$700</span>
+                <span class="basic-card-duration">60 min</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="basic-card">
+            <div class="basic-card-photo">
+              <img src="/assets/venus-photos/reserva-hero-cabina.webp" alt="Drenaje linfático en cabina Venus" loading="lazy">
+            </div>
+            <div class="basic-card-body">
+              <h3 class="basic-card-name">Drenaje Linfático</h3>
+              <p class="basic-card-desc">Ritmo manual que destensa, desinflama y reordena.</p>
+              <div class="basic-card-meta">
+                <span class="basic-card-price">$650</span>
+                <span class="basic-card-duration">60 min</span>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="venus-shell venus-section" id="laser">
+        <div class="venus-section-head">
+          <h2>Depilación láser diodo.</h2>
+          <p>Sesiones progresivas, sin urgencia, con resultados reales.</p>
+        </div>
+
+        <div class="venus-laser">
+          <div class="laser-photo" role="img" aria-label="Aparatología de depilación láser diodo en cabina Venus"></div>
+          <div class="laser-body">
+            <div class="ritual-index">Tecnología diodo</div>
+            <h3>Reducción progresiva, piel cómoda.</h3>
+            <p>Láser de diodo apto para distintos tonos de piel y tipos de vello. Diseñamos un plan por zona y te acompañamos sesión a sesión.</p>
+            <div class="laser-pricing">
+              <strong>Desde $580</strong>
+              <span>Plan personalizado</span>
+            </div>
+            <div>
+              <a href="/agendar.html" class="venus-btn bg-[var(--ink)] text-[#fbf8f3]">Agendar valoración</a>
+            </div>
+          </div>
         </div>
       </section>
 
