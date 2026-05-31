@@ -299,6 +299,13 @@
         </div>
         <div class="hero-stat">
           <div class="hero-stat-icon">
+            <i class="fas fa-user-check"></i>
+          </div>
+          <div class="hero-stat-value" id="stat-attended-clients">0</div>
+          <div class="hero-stat-label">Clientes atendidos este mes</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-icon">
             <i class="fas fa-trophy"></i>
           </div>
           <div class="hero-stat-value" id="stat-return-rate">0%</div>
@@ -12013,12 +12020,15 @@
         const metricsJson = await metricsRes.json();
 
         if (metricsJson.success && metricsJson.data) {
-          const { total, activeClients, stampsThisMonth, redeemsThisMonth, returnRate } = metricsJson.data;
+          const { total, activeClients, stampsThisMonth, redeemsThisMonth, returnRate, attendedClients } = metricsJson.data;
 
           document.getElementById('stat-total-clients').textContent = activeClients || total;
           document.getElementById('stat-stamps-month').textContent = stampsThisMonth;
           document.getElementById('stat-redeems-month').textContent = redeemsThisMonth;
           document.getElementById('stat-return-rate').textContent = returnRate + '%';
+
+          const attendedEl = document.getElementById('stat-attended-clients');
+          if (attendedEl) attendedEl.textContent = attendedClients ?? 0;
         }
 
         // 2. Cargar TODAS las tarjetas para top clientes y cumpleaños
