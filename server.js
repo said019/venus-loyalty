@@ -495,12 +495,34 @@ async function fsMetricsMonth() {
   });
   const returnRate = total > 0 ? Math.round((returningClients / total) * 100) : 0;
 
+  // Clientes atendidos este mes: citas completadas en el mes actual,
+  // contando clientes únicos (por teléfono, o por nombre si no hay teléfono).
+  const [yyyy, mm] = todayMexicoStr().split('-');
+  const monthStart = `${yyyy}-${mm}-01`;
+  const monthEnd = `${yyyy}-${mm}-31`;
+
+  const apptSnap = await firestore
+    .collection('appointments')
+    .where('date', '>=', monthStart)
+    .where('date', '<=', monthEnd)
+    .get();
+
+  const attendedKeys = new Set();
+  apptSnap.forEach((doc) => {
+    const a = doc.data();
+    if (a.status !== 'completed') return;
+    const key = (a.clientPhone || '').trim() || (a.clientName || '').trim().toLowerCase();
+    if (key) attendedKeys.add(key);
+  });
+  const attendedClients = attendedKeys.size;
+
   return {
     total,
     activeClients,
     stampsThisMonth: counts.stamp,
     redeemsThisMonth: counts.redeem,
-    returnRate
+    returnRate,
+    attendedClients,
   };
 }
 
