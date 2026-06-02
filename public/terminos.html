@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Políticas y Términos — Venus Cosmetología</title>
+  <meta name="description" content="Políticas de cita, anticipos, cancelaciones y vigencias de Venus Cosmetología en San Juan del Río.">
+
+  <link rel="icon" type="image/png" href="/assets/logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prata&family=Inter:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --espresso: #2b2520;
+      --espresso-soft: #3a322c;
+      --cream: #fbf7ef;
+      --cream-soft: rgba(251, 247, 239, 0.78);
+      --cream-mute: rgba(251, 247, 239, 0.55);
+      --hairline: rgba(251, 247, 239, 0.14);
+      --venus: #8C9668;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      background: var(--espresso);
+      color: var(--cream);
+      font-family: 'Inter', system-ui, sans-serif;
+      font-weight: 300;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100%;
+    }
+
+    .terms-shell {
+      width: min(820px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: clamp(28px, 4vw, 48px) 0;
+    }
+
+    /* Top bar */
+    .terms-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 0 32px;
+    }
+
+    .terms-nav a.brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--cream);
+    }
+
+    .terms-nav a.brand img {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: rgba(251, 247, 239, 0.92);
+      padding: 4px;
+    }
+
+    .terms-nav a.brand .name {
+      font-family: 'Prata', serif;
+      font-size: 19px;
+      letter-spacing: 0.01em;
+    }
+
+    .terms-nav a.brand .sub {
+      display: block;
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--cream-mute);
+      margin-top: 2px;
+    }
+
+    .terms-back {
+      font-size: 12px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--cream-mute);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .terms-back:hover { color: var(--cream); }
+
+    /* Hero */
+    .terms-hero {
+      padding: clamp(40px, 7vw, 80px) 0 clamp(36px, 5vw, 60px);
+      border-bottom: 1px solid var(--hairline);
+      margin-bottom: clamp(36px, 5vw, 56px);
+    }
+
+    .terms-kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      color: var(--cream-mute);
+      margin-bottom: 22px;
+    }
+
+    .terms-kicker::before {
+      content: "";
+      width: 28px;
+      height: 1px;
+      background: var(--cream-mute);
+    }
+
+    .terms-title {
+      font-family: 'Prata', serif;
+      font-size: clamp(40px, 7vw, 76px);
+      line-height: 0.96;
+      font-weight: 400;
+      letter-spacing: -0.01em;
+    }
+
+    .terms-lede {
+      max-width: 56ch;
+      margin-top: 18px;
+      color: var(--cream-soft);
+      font-size: clamp(15px, 1.4vw, 17px);
+      line-height: 1.55;
+    }
+
+    /* Items */
+    .term {
+      padding: clamp(28px, 4vw, 44px) 0;
+      border-bottom: 1px solid var(--hairline);
+    }
+
+    .term:last-of-type { border-bottom: none; }
+
+    .term-number {
+      font-family: 'Prata', serif;
+      font-size: clamp(48px, 6vw, 68px);
+      line-height: 1;
+      color: var(--cream);
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+    }
+
+    .term-title {
+      font-family: 'Prata', serif;
+      font-size: clamp(20px, 2vw, 24px);
+      line-height: 1.2;
+      margin-bottom: 12px;
+      color: var(--cream);
+      font-weight: 400;
+    }
+
+    .term-body {
+      max-width: 62ch;
+      color: var(--cream-soft);
+      font-size: clamp(14px, 1.3vw, 16px);
+      line-height: 1.65;
+    }
+
+    .term-body p + p {
+      margin-top: 10px;
+    }
+
+    .term-body strong {
+      color: var(--cream);
+      font-weight: 500;
+    }
+
+    /* Footer */
+    .terms-foot {
+      margin-top: clamp(48px, 6vw, 72px);
+      padding: 26px 0;
+      border-top: 1px solid var(--hairline);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 14px;
+    }
+
+    .terms-foot p {
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--cream-mute);
+    }
+
+    .terms-foot a {
+      color: var(--cream-soft);
+      text-decoration: none;
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      transition: color 0.2s;
+    }
+
+    .terms-foot a:hover { color: var(--cream); }
+
+    @media (max-width: 540px) {
+      .terms-nav { padding-bottom: 20px; }
+      .terms-nav a.brand .sub { display: none; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="terms-shell">
+
+    <nav class="terms-nav">
+      <a href="/" class="brand" aria-label="Volver al inicio Venus">
+        <img src="/assets/logo.png" alt="Venus Cosmetología">
+        <div>
+          <span class="name">Venus</span>
+          <span class="sub">Cosmetología</span>
+        </div>
+      </a>
+      <a href="/" class="terms-back">← Inicio</a>
+    </nav>
+
+    <header class="terms-hero">
+      <span class="terms-kicker">Términos · Vigentes</span>
+      <h1 class="terms-title">Conoce nuestras políticas.</h1>
+      <p class="terms-lede">
+        Para que tu visita sea fluida y todas las clientas tengan su espacio reservado, te compartimos las reglas que aplicamos al agendar, reagendar y cancelar.
+      </p>
+    </header>
+
+    <section aria-labelledby="t1" class="term">
+      <div class="term-number">01.</div>
+      <h2 id="t1" class="term-title">Cita previa y anticipo obligatorio.</h2>
+      <div class="term-body">
+        <p>Los tratamientos requieren de una cita previa y están sujetos a disponibilidad, por lo cual es obligatorio realizar un anticipo mediante depósito, transferencia o efectivo.</p>
+      </div>
+    </section>
+
+    <section aria-labelledby="t2" class="term">
+      <div class="term-number">02.</div>
+      <h2 id="t2" class="term-title">Inasistencia sin previo aviso.</h2>
+      <div class="term-body">
+        <p>En caso de no asistir a la cita sin previo aviso, se solicitará el pago total del tratamiento en tu siguiente cita.</p>
+      </div>
+    </section>
+
+    <section aria-labelledby="t3" class="term">
+      <div class="term-number">03.</div>
+      <h2 id="t3" class="term-title">Vigencia del anticipo.</h2>
+      <div class="term-body">
+        <p>El anticipo realizado para agendar una cita es válido únicamente durante el mes en curso en el que fue programada dicha cita.</p>
+        <p>En caso de reprogramación, el nuevo día deberá estar dentro del mismo mes. Si la nueva fecha solicitada corresponde a un mes diferente, será necesario realizar un nuevo anticipo.</p>
+      </div>
+    </section>
+
+    <section aria-labelledby="t4" class="term">
+      <div class="term-number">04.</div>
+      <h2 id="t4" class="term-title">Llegadas tardías.</h2>
+      <div class="term-body">
+        <p>Las llegadas tardías concluirán de acuerdo con el tiempo de tratamiento pactado, y la tarifa del servicio no sufrirá cambios.</p>
+      </div>
+    </section>
+
+    <section aria-labelledby="t5" class="term">
+      <div class="term-number">05.</div>
+      <h2 id="t5" class="term-title">Pago completo y vigencia de reposición.</h2>
+      <div class="term-body">
+        <p>Si decides <strong>liquidar el costo total del tratamiento</strong> al momento de agendar, contarás con una <strong>vigencia de 30 días naturales</strong> contados a partir de la fecha original de tu cita para cancelar y reponerla sin perder el monto pagado.</p>
+        <p>Pasado ese periodo, el importe se considera consumido y no será reembolsable ni transferible a otro servicio.</p>
+      </div>
+    </section>
+
+    <footer class="terms-foot">
+      <p>© Venus Cosmetología · San Juan del Río</p>
+      <a href="/">Volver al inicio</a>
+    </footer>
+
+  </div>
+</body>
+</html>
