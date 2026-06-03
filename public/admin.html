@@ -4668,6 +4668,7 @@
           loadNotificationsHistory();
           if (typeof stopDashboardAutoRefresh === 'function') stopDashboardAutoRefresh();
         } else if (tabName === 'appointments') {
+          if (typeof loadStaffOnce === 'function') loadStaffOnce();
           if (typeof loadMonthAppointments === 'function') loadMonthAppointments();
           if (typeof loadAppointments === 'function') loadAppointments();
           if (typeof loadMonthStats === 'function') loadMonthStats();
@@ -8488,6 +8489,19 @@
     }
     window.formatApptSourceBadge = formatApptSourceBadge;
 
+    // Badge inline para mostrar a quién está asignada la cita.
+    // Recibe assignedAdminId y se apoya en _staffCache (poblado por loadStaffOnce).
+    function formatApptAssignedBadge(assignedAdminId) {
+      if (!assignedAdminId) return '';
+      const staff = (typeof _staffCache !== 'undefined' && Array.isArray(_staffCache)) ? _staffCache : [];
+      const a = staff.find(s => s.id === assignedAdminId);
+      const name = a ? a.name : 'Asignada';
+      return `<span title="Atiende: ${name}" style="display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:999px;font-size:10px;font-weight:700;color:#8C9668;background:#8C96681A;border:1px solid #8C966833;letter-spacing:.3px;">
+        <i class="fas fa-user-tag" style="font-size:9px;"></i>→ ${name}
+      </span>`;
+    }
+    window.formatApptAssignedBadge = formatApptAssignedBadge;
+
     // Stat strip del día activo: 4 KPIs operativos.
     function renderTodayStatStrip() {
       const yyyy = selectedDate.getFullYear();
@@ -8547,6 +8561,7 @@
                       <p style="font-weight:700;font-size:13px;color:var(--ink);margin:0;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
                         ${appt.clientName}
                         ${formatApptSourceBadge(appt.source)}
+                        ${formatApptAssignedBadge(appt.assignedAdminId)}
                       </p>
                       <div style="display:flex;align-items:center;gap:4px;">
                         <i class="fas fa-clock" style="font-size:9px;color:var(--muted);"></i>
@@ -8615,6 +8630,7 @@
               <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                 <span style="font-weight:600;color:#f3f4f6;">${appt.clientName}</span>
                 ${formatApptSourceBadge(appt.source)}
+                ${formatApptAssignedBadge(appt.assignedAdminId)}
               </div>
               <div style="font-size:0.85em;color:#9ca3af;">${appt.clientPhone}</div>
             </td>

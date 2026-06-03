@@ -1596,15 +1596,22 @@ app.post('/api/appointments', adminAuth, async (req, res) => {
             console.warn(`[APPOINTMENT] assignedAdminId ${assignedAdminId} no existe — skip`);
             return;
           }
-          const { createEventForAdmin } = await import('./src/services/adminGoogleCalendar.js');
-          const enriched = {
-            ...appointment,
-            assignedAdminName: assignedAdmin.name || assignedAdmin.email,
-          };
-          await createEventForAdmin(assignedAdminId, enriched);
-          // El email de notificación al admin asignado se envía en el commit D.
+          // 1) Evento en su calendar personal (si tiene OAuth conectado).
+          //    createEventForAdmin retorna null sin tirar si no está conectado.
+          try {
+            const { createEventForAdmin } = await import('./src/services/adminGoogleCalendar.js');
+            const enriched = {
+              ...appointment,
+              assignedAdminName: assignedAdmin.name || assignedAdmin.email,
+            };
+            await createEventForAdmin(assignedAdminId, enriched);
+          } catch (e) {
+            console.warn('[APPOINTMENT] evento en cal del asignado falló:', e.message);
+          }
+          // 2) Email Resend al admin asignado con detalles de la cita.
+          await sendAppointmentAssignedEmail(appointment, assignedAdmin);
         } catch (e) {
-          console.warn('[APPOINTMENT] crear evento en cal del asignado falló (no crítico):', e.message);
+          console.warn('[APPOINTMENT] flujo asignación falló (no crítico):', e.message);
         }
       });
     }
@@ -2302,6 +2309,75 @@ async function sendMail({ to, subject, text, html }) {
   const from = process.env.SMTP_FROM || `Venus Admin <${process.env.SMTP_USER}>`;
   const info = await transporter.sendMail({ from, to, subject, text, html });
   return { channel: "smtp", id: info?.messageId || null };
+}
+
+/* =========================================================
+   📧 Email a recepcionista asignada cuando se le agenda una cita
+   ========================================================= */
+async function sendAppointmentAssignedEmail(appointment, admin) {
+  if (!admin?.email) return;
+  const fecha = appointment.date || (appointment.startDateTime ? new Date(appointment.startDateTime).toISOString().slice(0, 10) : '');
+  const hora  = appointment.time || (appointment.startDateTime ? new Date(appointment.startDateTime).toISOString().slice(11, 16) : '');
+  const cliente  = appointment.clientName || 'Cliente';
+  const telefono = appointment.clientPhone || '';
+  const servicio = appointment.serviceName || 'Servicio';
+  const dur      = appointment.durationMinutes || 60;
+  const adminName = admin.name || admin.email.split('@')[0];
+
+  const subject = `Nueva cita asignada · ${cliente} · ${fecha} ${hora}`;
+  const text =
+`Hola ${adminName},
+
+Te asignaron una cita:
+
+· Cliente:  ${cliente}
+· Teléfono: ${telefono}
+· Servicio: ${servicio}
+· Fecha:    ${fecha}
+· Hora:     ${hora}
+· Duración: ${dur} min
+
+${admin.email ? 'También deberías ver este evento en tu Google Calendar si conectaste tu Gmail.' : ''}
+
+Venus Cosmetología`;
+
+  const html = `
+  <div style="margin:0;padding:0;background:#f1ebe1;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f1ebe1;padding:32px 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;">
+      <tr><td align="center">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 8px 30px -12px rgba(38,40,31,0.20);">
+          <tr><td style="background:linear-gradient(135deg,#8C9668,#6b7a4e);padding:24px 28px;text-align:center;color:#ffffff;">
+            <div style="font-family:Georgia,'Times New Roman',serif;font-size:13px;letter-spacing:0.24em;text-transform:uppercase;opacity:0.86;">Cita asignada</div>
+            <div style="font-family:Georgia,'Times New Roman',serif;font-size:22px;margin-top:6px;">Venus Cosmetología</div>
+          </td></tr>
+          <tr><td style="padding:28px 32px 8px;">
+            <p style="margin:0 0 14px;font-size:15px;color:#26281f;">Hola <strong>${adminName}</strong>, te asignaron una cita:</p>
+            <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;font-size:14px;color:#4a4d3b;border-collapse:separate;border-spacing:0 4px;">
+              <tr><td style="padding:6px 0;color:#9a9a8a;width:90px;">Cliente</td><td style="padding:6px 0;color:#26281f;font-weight:600;">${cliente}</td></tr>
+              <tr><td style="padding:6px 0;color:#9a9a8a;">Teléfono</td><td style="padding:6px 0;color:#26281f;">${telefono}</td></tr>
+              <tr><td style="padding:6px 0;color:#9a9a8a;">Servicio</td><td style="padding:6px 0;color:#26281f;">${servicio}</td></tr>
+              <tr><td style="padding:6px 0;color:#9a9a8a;">Fecha</td><td style="padding:6px 0;color:#26281f;font-weight:600;">${fecha}</td></tr>
+              <tr><td style="padding:6px 0;color:#9a9a8a;">Hora</td><td style="padding:6px 0;color:#26281f;font-weight:600;">${hora}</td></tr>
+              <tr><td style="padding:6px 0;color:#9a9a8a;">Duración</td><td style="padding:6px 0;color:#26281f;">${dur} min</td></tr>
+            </table>
+          </td></tr>
+          <tr><td style="padding:18px 32px 28px;font-size:13px;color:#7a7a6a;line-height:1.6;">
+            Si conectaste tu Gmail desde Ajustes → Mi Google Calendar, este evento también aparece en tu calendario personal.
+          </td></tr>
+          <tr><td style="background:#faf9f6;padding:14px 32px;text-align:center;border-top:1px solid #ece6da;">
+            <div style="font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:#9a9a8a;">Venus Cosmetología · San Juan del Río</div>
+          </td></tr>
+        </table>
+      </td></tr>
+    </table>
+  </div>`;
+
+  try {
+    await sendMail({ to: admin.email, subject, text, html });
+    console.log(`[APPOINTMENT] ✉️  Email asignación enviado a ${admin.email}`);
+  } catch (e) {
+    console.warn('[APPOINTMENT] Email asignación falló:', e.message);
+  }
 }
 
 /* =========================================================
