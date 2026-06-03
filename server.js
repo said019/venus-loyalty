@@ -1439,7 +1439,8 @@ app.post('/api/appointments', adminAuth, async (req, res) => {
       sendWhatsAppConfirmation,
       sendWhatsApp24h,
       sendWhatsApp2h,
-      source
+      source,
+      assignedAdminId
     } = req.body;
 
     // Validaciones
@@ -1497,6 +1498,10 @@ app.post('/api/appointments', adminAuth, async (req, res) => {
       // Vacío = sin etiqueta (no es default 'admin-panel' porque queremos
       // poder filtrar "citas con campaña conocida" vs "sin etiqueta").
       source: source || null,
+      // Asignación manual a recepcionista/admin. Si está presente y el admin
+      // tiene Gmail conectado vía OAuth multi-cuenta, la cita también se
+      // crea en su calendar personal y le llega por correo.
+      assignedAdminId: assignedAdminId || null,
       // Flags para recordatorios WhatsApp automáticos
       sendWhatsApp24h: sendWhatsApp24h !== false, // Por defecto true
       sendWhatsApp2h: sendWhatsApp2h !== false    // Por defecto true
@@ -1576,8 +1581,33 @@ app.post('/api/appointments', adminAuth, async (req, res) => {
 
     console.log('[APPOINTMENT] ✅ Cita creada y vinculada a tarjeta:', appointment.id, 'cardId:', card.id, {
       sendWhatsApp24h: appointmentData.sendWhatsApp24h,
-      sendWhatsApp2h: appointmentData.sendWhatsApp2h
+      sendWhatsApp2h: appointmentData.sendWhatsApp2h,
+      assignedAdminId: appointmentData.assignedAdminId
     });
+
+    // ── Asignación: crear evento en el calendar PERSONAL del admin asignado
+    //    y mandarle un email de notificación. Background — no bloquea la
+    //    respuesta del POST si Gmail/Resend están caídos.
+    if (assignedAdminId) {
+      setImmediate(async () => {
+        try {
+          const assignedAdmin = await prisma.admin.findUnique({ where: { id: assignedAdminId } });
+          if (!assignedAdmin) {
+            console.warn(`[APPOINTMENT] assignedAdminId ${assignedAdminId} no existe — skip`);
+            return;
+          }
+          const { createEventForAdmin } = await import('./src/services/adminGoogleCalendar.js');
+          const enriched = {
+            ...appointment,
+            assignedAdminName: assignedAdmin.name || assignedAdmin.email,
+          };
+          await createEventForAdmin(assignedAdminId, enriched);
+          // El email de notificación al admin asignado se envía en el commit D.
+        } catch (e) {
+          console.warn('[APPOINTMENT] crear evento en cal del asignado falló (no crítico):', e.message);
+        }
+      });
+    }
 
     // Enviar confirmación WhatsApp si está activado
     if (sendWhatsAppConfirmation) {
@@ -1736,6 +1766,8 @@ app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
     if (serviceName) updateData.serviceName = serviceName;
     // source viene como string o null explícito para limpiar la etiqueta.
     if (req.body.source !== undefined) updateData.source = req.body.source || null;
+    // assignedAdminId también admite null explícito para limpiar la asignación.
+    if (req.body.assignedAdminId !== undefined) updateData.assignedAdminId = req.body.assignedAdminId || null;
 
     // Actualizar en BD usando repositorio
     await AppointmentsRepo.update(id, updateData);
@@ -6024,6 +6056,33 @@ app.post("/api/admin/logout", (_req, res) => {
 
 app.get("/api/admin/me", adminAuth, (req, res) => {
   res.json({ uid: req.admin.uid, email: req.admin.email, role: req.admin.role });
+});
+
+// GET /api/admin/staff — lista de admins disponibles para asignar citas.
+// Devuelve {id, email, name, role, hasCalendar} ordenado por nombre.
+// hasCalendar = true si el admin ya conectó su Gmail vía OAuth multi-cuenta.
+app.get("/api/admin/staff", adminAuth, async (_req, res) => {
+  try {
+    const admins = await prisma.admin.findMany({
+      orderBy: [{ name: 'asc' }, { email: 'asc' }],
+      select: {
+        id: true, email: true, name: true, role: true,
+        googleCalendar: { select: { isConnected: true, email: true } },
+      },
+    });
+    const data = admins.map(a => ({
+      id: a.id,
+      email: a.email,
+      name: a.name || a.email.split('@')[0],
+      role: a.role,
+      hasCalendar: !!a.googleCalendar?.isConnected,
+      calendarEmail: a.googleCalendar?.email || null,
+    }));
+    res.json({ success: true, data });
+  } catch (e) {
+    console.error('[admin/staff]', e);
+    res.status(500).json({ success: false, error: e.message });
+  }
 });
 
 app.get("/api/admin/cards", adminAuth, async (req, res) => {
