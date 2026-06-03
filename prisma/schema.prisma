@@ -116,6 +116,11 @@ model Appointment {
   serviceId String?
   // Removemos la relación estricta con Service para permitir citas con servicios eliminados
 
+  // Asignación manual a recepcionista/terapeuta. Si no se asigna queda null y
+  // la cita solo va a los calendarios globales legacy (calendarOwner1/2).
+  assignedAdminId String?
+  assignedAdmin   Admin?  @relation(fields: [assignedAdminId], references: [id], onDelete: SetNull)
+
   // Google Calendar mapping (OAuth2)
   calendarMappings GoogleCalendarMapping[]
 
@@ -123,6 +128,7 @@ model Appointment {
   @@index([startDateTime])
   @@index([status, startDateTime])
   @@index([clientPhone, startDateTime])
+  @@index([assignedAdminId])
   @@map("appointments")
 }
 
@@ -272,10 +278,38 @@ model Admin {
   email     String   @unique
   pass_hash String
   role      String   @default("admin")
+  // Nombre legible para mostrar (dropdown asignación, badges en citas, email subject)
+  name      String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // OAuth multi-cuenta: cada admin puede conectar su propio Gmail/Calendar
+  googleCalendar       AdminGoogleCalendar?
+  // Citas que este admin atenderá (asignación manual al agendar)
+  assignedAppointments Appointment[]
+
   @@map("admins")
+}
+
+// Calendar OAuth por admin individual.
+// Coexiste con GoogleCalendarConfig (singleton legacy) — no lo reemplaza.
+// El singleton sigue manejando el "calendar global" del negocio; este modelo
+// agrega calendarios personales por cada admin que conecte su Gmail.
+model AdminGoogleCalendar {
+  id           String    @id @default(cuid())
+  adminId      String    @unique
+  admin        Admin     @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  email        String    // email Gmail conectado (puede diferir del email del admin)
+  refreshToken String
+  accessToken  String?
+  tokenExpiry  DateTime?
+  calendarId   String    @default("primary")
+  isConnected  Boolean   @default(true)
+  lastSyncAt   DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@map("admin_google_calendars")
 }
 
 // Reset de contraseñas de admin
