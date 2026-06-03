@@ -8,8 +8,11 @@ import {
     deleteEvent,
 } from '../services/googleCalendarService.js';
 
-// OAuth2 service (nueva integración)
+// OAuth2 service singleton (legacy: calendar global del negocio)
 import oauthService from '../services/googleCalendarOAuth.js';
+
+// OAuth2 service multi-cuenta (cada admin conecta su propio Gmail)
+import adminGCal from '../services/adminGoogleCalendar.js';
 
 // Auth guard (importado del mismo lugar que el resto del servidor)
 import { adminAuth } from '../../lib/auth.js';
@@ -41,12 +44,14 @@ router.get('/auth', adminAuth, (req, res) => {
 });
 
 /**
- * GET /api/admin/calendar/callback?code=...
+ * GET /api/admin/calendar/callback?code=...&state=...
  * Google redirige aquí después de que el admin autoriza el acceso.
- * Intercambia el code por tokens y los persiste en BD.
+ * - Si state empieza con "adm_<id>" → guarda tokens en AdminGoogleCalendar
+ *   (multi-cuenta). Caso de uso: cada recepcionista conecta su propio Gmail.
+ * - Sin state (o cualquier otro valor) → flujo legacy singleton id=1.
  */
 router.get('/callback', async (req, res) => {
-    const { code, error } = req.query;
+    const { code, state, error } = req.query;
 
     if (error) {
         console.error('[Calendar /callback] Google rechazó la autorización:', error);
@@ -58,12 +63,77 @@ router.get('/callback', async (req, res) => {
     }
 
     try {
+        // Detectar flujo multi-cuenta por state
+        if (typeof state === 'string' && state.startsWith('adm_')) {
+            const adminId = state.substring(4);
+            await adminGCal.handleAdminCallback(code, adminId);
+            return res.redirect('/admin.html?calendar=connected&scope=me');
+        }
+        // Flujo singleton legacy
         await oauthService.handleCallback(code);
-        // Redirigir de vuelta al admin con bandera de éxito
         res.redirect('/admin.html?calendar=connected');
     } catch (err) {
         console.error('[Calendar /callback]', err);
         res.redirect('/admin.html?calendar=error&reason=' + encodeURIComponent(err.message));
+    }
+});
+
+// ─────────────────────────────────────────────────────────
+//  RUTAS /me/* — Calendar OAuth del admin logueado
+// ─────────────────────────────────────────────────────────
+
+/**
+ * GET /api/admin/calendar/me/auth
+ * URL de autorización para que el admin logueado conecte SU Gmail.
+ */
+router.get('/me/auth', adminAuth, (req, res) => {
+    try {
+        if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+            return res.status(503).json({
+                success: false,
+                error: 'oauth_not_configured',
+                message: 'Configura GOOGLE_CLIENT_ID y GOOGLE_CLIENT_SECRET en las variables de entorno.',
+            });
+        }
+        const adminId = req.admin?.uid;
+        if (!adminId) return res.status(401).json({ success: false, error: 'unauthenticated' });
+        const url = adminGCal.getAuthUrlForAdmin(adminId);
+        res.json({ success: true, authUrl: url });
+    } catch (err) {
+        console.error('[Calendar /me/auth]', err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+/**
+ * GET /api/admin/calendar/me/status
+ * Estado de OAuth del admin logueado.
+ */
+router.get('/me/status', adminAuth, async (req, res) => {
+    try {
+        const adminId = req.admin?.uid;
+        if (!adminId) return res.status(401).json({ success: false, error: 'unauthenticated' });
+        const status = await adminGCal.getStatusForAdmin(adminId);
+        res.json({ success: true, ...status });
+    } catch (err) {
+        console.error('[Calendar /me/status]', err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+/**
+ * POST /api/admin/calendar/me/disconnect
+ * Revoca tokens y borra el registro AdminGoogleCalendar del admin logueado.
+ */
+router.post('/me/disconnect', adminAuth, async (req, res) => {
+    try {
+        const adminId = req.admin?.uid;
+        if (!adminId) return res.status(401).json({ success: false, error: 'unauthenticated' });
+        await adminGCal.disconnectForAdmin(adminId);
+        res.json({ success: true });
+    } catch (err) {
+        console.error('[Calendar /me/disconnect]', err);
+        res.status(500).json({ success: false, error: err.message });
     }
 });
 

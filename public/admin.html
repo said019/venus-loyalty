@@ -1134,6 +1134,34 @@
         </div>
       </div>
 
+      <!-- Mi Google Calendar (multi-cuenta, OAuth por admin) -->
+      <div style="background:rgba(140,150,104,0.10);border:1px solid rgba(140,150,104,0.30);border-radius:12px;padding:14px;margin:12px 0;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <h3 style="margin:0;"><i class="fab fa-google" style="color:#8C9668;"></i> Mi Google Calendar</h3>
+          <span id="my-gcal-status-badge" style="font-size:12px;padding:4px 10px;border-radius:20px;background:#e74c3c20;color:#e74c3c;">Desconectado</span>
+        </div>
+        <p class="muted" style="margin:0 0 12px;font-size:12px;">
+          Conecta <strong>tu cuenta personal de Gmail</strong>. Las citas que se te asignen al agendar te llegarán a tu calendario y por correo.
+        </p>
+
+        <div id="my-gcal-disconnected" style="display:flex;gap:8px;">
+          <button class="btn primary" onclick="connectMyGoogleCalendar()" style="background:#8C9668;border-color:#8C9668;">
+            <i class="fab fa-google"></i> Conectar mi Gmail
+          </button>
+        </div>
+        <div id="my-gcal-connected" style="display:none;">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">
+            <div>Conectado como: <strong id="my-gcal-email">-</strong></div>
+            <div>Última actividad: <strong id="my-gcal-last-sync">-</strong></div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn danger small" onclick="disconnectMyGoogleCalendar()">
+              <i class="fas fa-unlink"></i> Desconectar
+            </button>
+          </div>
+        </div>
+      </div>
+
       <!-- WhatsApp / Evolution API -->
       <div style="background:rgba(37,211,102,0.08);border:1px solid rgba(37,211,102,0.25);border-radius:12px;padding:14px;margin:12px 0;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
@@ -4610,6 +4638,7 @@
           loadBusinessConfig();
           if (typeof loadBankConfig === 'function') loadBankConfig();
           if (typeof loadLoyaltyPolicy === 'function') loadLoyaltyPolicy();
+          if (typeof loadMyGoogleCalendarStatus === 'function') loadMyGoogleCalendarStatus();
           loadNotificationsHistory();
           if (typeof stopDashboardAutoRefresh === 'function') stopDashboardAutoRefresh();
         } else if (tabName === 'appointments') {
@@ -13453,6 +13482,81 @@
       } catch (err) { showNotification('Error conectando Google Calendar', 'error'); }
     }
 
+    /* ===================== MI GOOGLE CALENDAR (multi-cuenta por admin) ===================== */
+    async function loadMyGoogleCalendarStatus() {
+      try {
+        const res = await apiFetch('/api/admin/calendar/me/status');
+        const json = await res.json();
+        const badge   = document.getElementById('my-gcal-status-badge');
+        const connDiv = document.getElementById('my-gcal-connected');
+        const discDiv = document.getElementById('my-gcal-disconnected');
+        if (!badge || !connDiv || !discDiv) return;
+        if (json.connected) {
+          badge.textContent = 'Conectado';
+          badge.style.background = '#22c55e20';
+          badge.style.color = '#22c55e';
+          connDiv.style.display = 'block';
+          discDiv.style.display = 'none';
+          const emailEl = document.getElementById('my-gcal-email');
+          if (emailEl) emailEl.textContent = json.email || '(sin email)';
+          const lastSync = json.lastSyncAt ? new Date(json.lastSyncAt).toLocaleString('es-MX') : 'Sin actividad aún';
+          document.getElementById('my-gcal-last-sync').textContent = lastSync;
+        } else {
+          badge.textContent = 'Desconectado';
+          badge.style.background = '#e74c3c20';
+          badge.style.color = '#e74c3c';
+          connDiv.style.display = 'none';
+          discDiv.style.display = 'flex';
+        }
+      } catch (err) { console.warn('[MyGCal] Error cargando estado:', err); }
+    }
+
+    async function connectMyGoogleCalendar() {
+      try {
+        const res = await apiFetch('/api/admin/calendar/me/auth');
+        const json = await res.json();
+        if (json.authUrl) {
+          // Misma ventana — al volver del consent, el callback redirige con
+          // ?calendar=connected&scope=me y recargamos el estado.
+          window.location.href = json.authUrl;
+        } else {
+          showNotification(json.message || 'No se pudo obtener URL de autorización', 'error');
+        }
+      } catch (err) { showNotification('Error conectando tu Gmail', 'error'); }
+    }
+
+    async function disconnectMyGoogleCalendar() {
+      if (!confirm('¿Desconectar tu Gmail? Las próximas citas que se te asignen NO llegarán a tu calendar ni correo.')) return;
+      try {
+        const res = await apiFetch('/api/admin/calendar/me/disconnect', { method: 'POST' });
+        const json = await res.json();
+        if (json.success) {
+          showNotification('Tu Gmail fue desconectado', 'success');
+          loadMyGoogleCalendarStatus();
+        } else {
+          showNotification(json.error || 'No se pudo desconectar', 'error');
+        }
+      } catch (err) { showNotification('Error desconectando', 'error'); }
+    }
+
+    window.connectMyGoogleCalendar    = connectMyGoogleCalendar;
+    window.disconnectMyGoogleCalendar = disconnectMyGoogleCalendar;
+    window.loadMyGoogleCalendarStatus = loadMyGoogleCalendarStatus;
+
+    // Si el callback redirigió con scope=me, mostrar notificación y refrescar.
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('calendar') === 'connected' && params.get('scope') === 'me') {
+        setTimeout(() => {
+          if (typeof showNotification === 'function') showNotification('Tu Gmail quedó conectado', 'success');
+          loadMyGoogleCalendarStatus();
+          // limpiar query string sin recargar
+          const cleanUrl = window.location.pathname + window.location.hash;
+          window.history.replaceState({}, '', cleanUrl);
+        }, 200);
+      }
+    } catch (e) { /* ignore */ }
+
     /* ===================== WHATSAPP / EVOLUTION API ===================== */
     async function checkWhatsAppStatus() {
       const loading = document.getElementById('wa-loading');
@@ -13635,6 +13739,7 @@
 
     // Cargar estado al abrir settings y al detectar callback de Google
     loadGoogleCalendarStatus();
+    if (typeof loadMyGoogleCalendarStatus === 'function') loadMyGoogleCalendarStatus();
     if (typeof checkWhatsAppStatus === 'function') checkWhatsAppStatus();
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('calendar') === 'connected') {
