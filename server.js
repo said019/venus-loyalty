@@ -3943,6 +3943,19 @@ app.get('/api/public/config', async (req, res) => {
       }
     };
 
+    // Compone businessHours base (global) y SIEMPRE incluye dayHours
+    // (overrides por día, vacío = sin overrides). dayHours puede vivir
+    // en root del doc o anidado en businessHours; aceptamos ambos.
+    const baseBH = businessConfig.businessHours || {
+      start: businessConfig.openTime || '09:00',
+      end: businessConfig.closeTime || '19:00',
+      interval: 60,
+      closedDays: businessConfig.workDays ? [0, 1, 2, 3, 4, 5, 6].filter(d => !businessConfig.workDays.includes(d)) : [0]
+    };
+    const dayHours = (businessConfig.businessHours && businessConfig.businessHours.dayHours)
+      || businessConfig.dayHours
+      || {};
+
     res.json({
       success: true,
       data: {
@@ -3952,12 +3965,7 @@ app.get('/api/public/config', async (req, res) => {
         openTime: businessConfig.openTime || '09:00',
         closeTime: businessConfig.closeTime || '19:00',
         workDays: businessConfig.workDays || [1, 2, 3, 4, 5, 6],
-        businessHours: businessConfig.businessHours || {
-          start: businessConfig.openTime || '09:00',
-          end: businessConfig.closeTime || '19:00',
-          interval: 60,
-          closedDays: businessConfig.workDays ? [0, 1, 2, 3, 4, 5, 6].filter(d => !businessConfig.workDays.includes(d)) : [0]
-        },
+        businessHours: { ...baseBH, dayHours },
         // Regla de anticipación mínima (lead time) — la usa /agendar.html para
         // deshabilitar slots inválidos en tiempo real. Si cambia aquí, el
         // frontend la recoge sin redeploy del HTML.

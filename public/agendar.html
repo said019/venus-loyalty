@@ -2761,8 +2761,16 @@
       const date = new Date(dateStr + 'T00:00:00');
       document.getElementById('time-title').textContent = date.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'short' });
 
-      const [startH, startM] = (businessHours.start || '09:00').split(':').map(Number);
-      const [endH, endM] = (businessHours.end || '20:00').split(':').map(Number);
+      // Override por día de la semana (admin → Settings → Horarios personalizados).
+      // dayHours puede llegar como objeto con claves "0".."6" o numéricas.
+      const dow = date.getDay();
+      const dayOverrides = businessHours.dayHours || {};
+      const override = dayOverrides[dow] || dayOverrides[String(dow)] || null;
+      const effectiveStart = (override && override.start) || businessHours.start || '09:00';
+      const effectiveEnd   = (override && override.end)   || businessHours.end   || '20:00';
+
+      const [startH, startM] = effectiveStart.split(':').map(Number);
+      const [endH, endM] = effectiveEnd.split(':').map(Number);
       const interval = businessHours.interval || 60;
 
       // Lead time condicional: ≥18:00 MX requiere 8h, <18:00 MX requiere 1h.

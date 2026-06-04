@@ -994,6 +994,19 @@
             </label>
           </div>
 
+          <!-- Horarios personalizados por día (opcional, overrides al horario general) -->
+          <div style="margin-top:18px;background:rgba(140,150,104,0.05);border:1px solid rgba(140,150,104,0.20);border-radius:10px;padding:14px;">
+            <h4 style="margin:0 0 4px;font-size:13px;font-weight:700;color:var(--venus-soft);">
+              <i class="fas fa-clock" style="margin-right:6px;"></i>Horarios personalizados por día (opcional)
+            </h4>
+            <p class="muted" style="margin:0 0 12px;font-size:11px;">
+              Deja en blanco un día para usar el horario general de arriba. Útil si sábados o algún día cierras antes.
+            </p>
+            <div id="biz-day-hours-grid" style="display:grid;grid-template-columns:64px 1fr 8px 1fr;gap:8px 10px;align-items:center;font-size:12px;">
+              <!-- generado por JS desde renderDayHoursGrid() -->
+            </div>
+          </div>
+
           <div style="margin-top:14px;">
             <button type="submit" class="btn primary"><i class="fas fa-save"></i> Guardar configuración</button>
           </div>
@@ -13451,11 +13464,89 @@
             const cb = document.getElementById(`biz-day-${i}`);
             if (cb) cb.checked = workDays.includes(i);
           }
+
+          // Horarios por día (override opcional). Se persiste dentro de
+          // businessHours.dayHours en el doc, pero se acepta también en root.
+          const stored = (d.businessHours && d.businessHours.dayHours) || d.dayHours || {};
+          renderDayHoursGrid(stored);
+        } else {
+          // Doc no existe aún: igual renderizamos la grilla vacía para que
+          // el operador pueda llenar horarios sin tener que guardar primero.
+          renderDayHoursGrid({});
         }
       } catch (error) {
         console.error('Error loading business config:', error);
+        renderDayHoursGrid({});
       }
     }
+
+    /* =========================================================
+       HORARIOS POR DÍA — grilla dinámica de overrides
+       ========================================================= */
+    const DAY_LABELS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+    const HALF_HOUR_OPTIONS = (() => {
+      const arr = [];
+      for (let h = 0; h < 24; h++) {
+        for (const m of ['00', '30']) {
+          arr.push(`${String(h).padStart(2, '0')}:${m}`);
+        }
+      }
+      return arr;
+    })();
+
+    function timeSelectHTML(id, value) {
+      const opts = ['<option value="">— usar general —</option>']
+        .concat(HALF_HOUR_OPTIONS.map(t => `<option value="${t}" ${t === value ? 'selected' : ''}>${t}</option>`));
+      return `<select id="${id}" class="form-input" style="padding:6px 8px;font-size:12px;">${opts.join('')}</select>`;
+    }
+
+    function renderDayHoursGrid(stored) {
+      const grid = document.getElementById('biz-day-hours-grid');
+      if (!grid) return;
+      const rows = [];
+      // Orden Lun → Dom para que coincida visualmente con los checkboxes
+      const order = [1, 2, 3, 4, 5, 6, 0];
+      for (const d of order) {
+        const cb = document.getElementById(`biz-day-${d}`);
+        const isActive = cb && cb.checked;
+        const override = stored[d] || stored[String(d)] || {};
+        const dimStyle = isActive ? '' : 'opacity:.42;pointer-events:none;';
+        rows.push(`
+          <div style="font-weight:700;color:var(--ink);${dimStyle}">${DAY_LABELS[d]}</div>
+          <div style="${dimStyle}">${timeSelectHTML(`day-hours-${d}-start`, override.start || '')}</div>
+          <div style="text-align:center;color:var(--muted);${dimStyle}">→</div>
+          <div style="${dimStyle}">${timeSelectHTML(`day-hours-${d}-end`, override.end || '')}</div>
+        `);
+      }
+      grid.innerHTML = rows.join('');
+    }
+
+    function collectDayHoursFromGrid() {
+      const out = {};
+      for (let d = 0; d <= 6; d++) {
+        const cb = document.getElementById(`biz-day-${d}`);
+        if (!cb || !cb.checked) continue; // solo días activos
+        const s = document.getElementById(`day-hours-${d}-start`);
+        const e = document.getElementById(`day-hours-${d}-end`);
+        if (!s || !e) continue;
+        const start = s.value.trim();
+        const end   = e.value.trim();
+        // Solo guardamos override si AMBOS están llenos. Uno solo no tiene
+        // sentido y rompería el cálculo de slots.
+        if (start && end) out[d] = { start, end };
+      }
+      return out;
+    }
+
+    // Re-render cuando se activa/desactiva un día: el override de un día
+    // desactivado debe verse atenuado/inservible.
+    document.addEventListener('change', (ev) => {
+      if (ev.target && ev.target.classList && ev.target.classList.contains('day-checkbox')) {
+        // Preservar valores existentes al re-renderizar
+        const current = collectDayHoursFromGrid();
+        renderDayHoursGrid(current);
+      }
+    });
 
     // Inicializar Google Places Autocomplete con el nuevo componente web
     let autocompleteInitialized = false;
@@ -13871,6 +13962,10 @@
         if (cb && cb.checked) workDays.push(i);
       }
 
+      // Override por día (solo se incluyen los días con horario llenado).
+      // Vacío ({}) significa "ningún override" — todos los días usan el global.
+      const dayHours = (typeof collectDayHoursFromGrid === 'function') ? collectDayHoursFromGrid() : {};
+
       const data = {
         businessName: document.getElementById('biz-name').value,
         whatsappBusiness: document.getElementById('biz-whatsapp').value,
@@ -13878,7 +13973,17 @@
         mapsUrl: document.getElementById('biz-maps-url').value,
         openTime: document.getElementById('biz-open').value,
         closeTime: document.getElementById('biz-close').value,
-        workDays
+        workDays,
+        dayHours,
+        // También dentro de businessHours para que /api/public/config lo
+        // sirva sin que haya que tocar el merge legacy.
+        businessHours: {
+          start: document.getElementById('biz-open').value,
+          end: document.getElementById('biz-close').value,
+          interval: 60,
+          closedDays: [0, 1, 2, 3, 4, 5, 6].filter(d => !workDays.includes(d)),
+          dayHours,
+        }
       };
 
       try {
