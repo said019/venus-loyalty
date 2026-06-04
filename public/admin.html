@@ -10040,22 +10040,46 @@
           }
 
           const clientName = clientSelect.value.trim();
-          let clientPhone = selectedClientPhone || window.selectedClientPhone || ''; // Usar el teléfono guardado del cliente seleccionado
-          
-          // Si no hay teléfono guardado, verificar si estamos creando un nuevo cliente
+          let clientPhone = '';
+
+          // selectedClientPhone arrastra el teléfono del último cliente seleccionado.
+          // BUG previo: si el operador seleccionaba a Alondra y luego escribía
+          // encima "María …", el phone seguía siendo el de Alondra → los
+          // mensajes llegaban al chat equivocado. Validamos que el clientName
+          // actual y el phone arrastrado correspondan al MISMO cliente registrado.
+          const stashedPhone = selectedClientPhone || window.selectedClientPhone || '';
+          if (stashedPhone) {
+            const owner = (allClients || []).find(c => c.phone === stashedPhone);
+            const nameMatchesOwner = owner && String(owner.name || '').trim().toLowerCase() === clientName.toLowerCase();
+            if (nameMatchesOwner) {
+              clientPhone = stashedPhone;
+            } else {
+              console.warn('[NewAppt] selectedClientPhone descartado: el nombre actual no coincide con el cliente registrado a ese teléfono.');
+              // Reset para no propagar el huérfano a próximos intentos
+              selectedClientPhone = '';
+              window.selectedClientPhone = '';
+              if (clientSelect.dataset) {
+                clientSelect.dataset.phone = '';
+                clientSelect.dataset.clientId = '';
+              }
+            }
+          }
+
+          // Si no hay teléfono validado, verificar si estamos creando un nuevo cliente
           if (!clientPhone) {
             const newClientPhoneInput = document.getElementById('new-client-phone');
             if (newClientPhoneInput && newClientPhoneInput.value.trim()) {
               clientPhone = newClientPhoneInput.value.trim();
             }
           }
-          
-          // Si aún no hay teléfono, verificar data-phone del input — pero SOLO
-          // si el nombre escrito coincide con un cliente conocido cuyo teléfono
-          // sea ese mismo dataset. Si no coincide, el dataset es huérfano (quedó
-          // de una selección previa) y usarlo manda mensajes al cliente equivocado.
+
+          // Si aún no hay teléfono, último fallback: data-phone del input — pero
+          // SOLO si el nombre escrito coincide exactamente con un cliente conocido
+          // cuyo phone sea ese dataset.
           if (!clientPhone && clientSelect.dataset && clientSelect.dataset.phone) {
-            const matched = allClients.find(c => c.name === clientName);
+            const matched = (allClients || []).find(c =>
+              String(c.name || '').trim().toLowerCase() === clientName.toLowerCase()
+            );
             if (matched && matched.phone === clientSelect.dataset.phone) {
               clientPhone = clientSelect.dataset.phone;
             }
