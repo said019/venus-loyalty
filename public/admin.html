@@ -8538,10 +8538,19 @@
       if (elRevenue)   elRevenue.textContent = fmtMoney;
     }
 
-    // Wire del CTA del header (Nueva cita)
+    // Wire del CTA del header (Nueva cita).
+    // Antes solo hacía showModal() y los dropdowns quedaban vacíos. Ahora
+    // usa openNewAppointmentModal() que ya carga servicios, clientes, horas,
+    // staff y resetea el form. Fallback al showModal crudo si por algún
+    // motivo la función global no está disponible aún.
     document.addEventListener('DOMContentLoaded', () => {
       const cta = document.getElementById('btn-new-appointment-header');
-      if (cta) cta.addEventListener('click', () => {
+      if (!cta) return;
+      cta.addEventListener('click', () => {
+        if (typeof window.openNewAppointmentModal === 'function') {
+          window.openNewAppointmentModal();
+          return;
+        }
         const dlg = document.getElementById('newApptDialog');
         if (dlg) dlg.showModal();
       });
