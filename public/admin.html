@@ -9881,15 +9881,29 @@
 
           if (json.success) {
             alert('Cliente guardado exitosamente');
-            await loadClients();
+
+            // Insertar el cliente recién creado en la lista cacheada para
+            // que aparezca de inmediato en el dropdown aunque el refetch
+            // tenga latencia (paginación, indexado del backend, etc.).
+            if (json.client && Array.isArray(allClients)) {
+              if (!allClients.find(c => c.id === json.client.id)) {
+                allClients.push(json.client);
+              }
+            }
+            // Refetch forzado: salta el guard "clientsLoaded && length > 0"
+            // que antes mantenía la lista vieja sin el cliente nuevo.
+            await loadClients(true);
 
             // Seleccionar el nuevo cliente en el dropdown de búsqueda
             const newClientId = json.client?.id || '';
             const newClientInput = document.getElementById('new-appt-client-select');
             if (newClientInput) {
               newClientInput.value = name;  // Usar el nombre ingresado
+              // Dataset también: el submit lo lee como fallback de phone
+              newClientInput.dataset.phone = phone;
+              newClientInput.dataset.clientId = newClientId;
             }
-            
+
             // Guardar el teléfono del nuevo cliente
             selectedClientPhone = phone;
             window.selectedClientPhone = phone;
