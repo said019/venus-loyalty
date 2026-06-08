@@ -6023,16 +6023,34 @@ app.get("/api/export.csv", basicAuth, async (_req, res) => {
 /* =========================================================
    ACTUALIZAR TARJETA
    ========================================================= */
+// GET /api/cards/:cardId/edits — historial de cambios de la card (audit log).
+// Útil para diagnosticar incidentes tipo "alguien cambió el phone y no
+// sabemos quién". Devuelve hasta 50 cambios más recientes.
+app.get("/api/cards/:cardId/edits", adminAuth, async (req, res) => {
+  try {
+    const { cardId } = req.params;
+    const edits = await prisma.cardEdit.findMany({
+      where: { cardId },
+      orderBy: { changedAt: 'desc' },
+      take: 50,
+    });
+    res.json({ success: true, edits });
+  } catch (e) {
+    console.error('[CARD edits]', e);
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
 app.patch("/api/cards/:cardId", adminAuth, async (req, res) => {
   try {
     const { cardId } = req.params;
-    const { phone, name, email, birthday, notes } = req.body;
+    const { phone, name, email, birthday, notes, confirmPhoneChange } = req.body;
 
     if (!cardId) return res.status(400).json({ success: false, error: "Falta cardId" });
 
     // Construir objeto de actualización solo con campos proporcionados
     const updateData = {};
-    if (phone !== undefined) updateData.phone = phone.replace(/\D/g, '');
+    if (phone !== undefined) updateData.phone = String(phone).replace(/\D/g, '');
     if (name !== undefined) updateData.name = name;
     if (email !== undefined) updateData.email = email;
     if (birthday !== undefined) updateData.birthday = birthday;
@@ -6042,10 +6060,85 @@ app.patch("/api/cards/:cardId", adminAuth, async (req, res) => {
       return res.status(400).json({ success: false, error: "No hay datos para actualizar" });
     }
 
+    // Estado actual de la card (para audit log + guard de phone change)
+    const current = await prisma.card.findUnique({
+      where: { id: cardId },
+      select: { id: true, name: true, phone: true, email: true, birthday: true, notes: true }
+    });
+    if (!current) return res.status(404).json({ success: false, error: "Card no encontrada" });
+
+    // ── (A) GUARD: cambio de phone con citas activas exige confirmación ──
+    // Por qué: un typo silencioso (ej. 4271167545 → 4271167645) hace que TODAS
+    // las notificaciones futuras vayan al phone equivocado. Lo vivimos el
+    // 4 de junio 2026. Mejor exigir un OK explícito desde el frontend.
+    if (updateData.phone !== undefined && updateData.phone !== current.phone) {
+      const activeCount = await prisma.appointment.count({
+        where: {
+          cardId,
+          status: { in: ['scheduled', 'confirmed', 'rescheduling'] }
+        }
+      });
+      if (activeCount > 0 && confirmPhoneChange !== true) {
+        return res.status(409).json({
+          success: false,
+          error: 'phone_change_needs_confirmation',
+          currentPhone: current.phone,
+          newPhone: updateData.phone,
+          activeAppointments: activeCount,
+          message: `Esta clienta tiene ${activeCount} cita(s) activa(s). Cambiar el teléfono propagará el cambio a todas ellas. Confirma para continuar.`
+        });
+      }
+    }
+
+    // Aplicar update a la card
     const updated = await CardsRepo.update(cardId, updateData);
 
+    // ── (C) AUDIT LOG: una entrada por cada campo cambiado ──
+    try {
+      const adminWho = req.admin?.email || req.admin?.uid || 'unknown';
+      const edits = [];
+      for (const field of Object.keys(updateData)) {
+        const oldVal = current[field];
+        const newVal = updateData[field];
+        if (String(oldVal ?? '') !== String(newVal ?? '')) {
+          edits.push({
+            cardId,
+            field,
+            oldValue: oldVal != null ? String(oldVal) : null,
+            newValue: newVal != null ? String(newVal) : null,
+            changedBy: adminWho,
+          });
+        }
+      }
+      if (edits.length > 0) {
+        await prisma.cardEdit.createMany({ data: edits });
+      }
+    } catch (auditErr) {
+      console.warn('[CARD audit] no se pudo registrar audit:', auditErr.message);
+    }
+
+    // ── (B) PROPAGATE: si cambió el phone, actualizar citas activas ──
+    let propagatedAppts = 0;
+    if (updateData.phone !== undefined && updateData.phone !== current.phone) {
+      try {
+        const r = await prisma.appointment.updateMany({
+          where: {
+            cardId,
+            status: { in: ['scheduled', 'confirmed', 'rescheduling'] }
+          },
+          data: { clientPhone: updateData.phone }
+        });
+        propagatedAppts = r.count;
+        if (propagatedAppts > 0) {
+          console.log(`[CARD] Propagado phone a ${propagatedAppts} cita(s) activa(s)`);
+        }
+      } catch (propErr) {
+        console.warn('[CARD propagate] no se pudo propagar phone a citas:', propErr.message);
+      }
+    }
+
     console.log(`[CARD] Tarjeta ${cardId} actualizada:`, updateData);
-    res.json({ success: true, card: updated });
+    res.json({ success: true, card: updated, propagatedAppts });
   } catch (e) {
     console.error("[PATCH CARD ERROR]", e);
     res.status(500).json({ success: false, error: e.message });

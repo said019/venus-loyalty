@@ -6353,30 +6353,51 @@
 
     document.getElementById('cm-phone-save').addEventListener('click', async () => {
       const newPhone = document.getElementById('cm-phone-input').value.replace(/\D/g, '');
-      
+
       if (!newPhone || newPhone.length < 10) {
         alert('Por favor ingresa un número de teléfono válido (10 dígitos)');
         return;
       }
 
-      try {
+      // Función interna porque puede llamarse 2 veces: primera sin confirm,
+      // segunda con confirmPhoneChange tras la advertencia del backend.
+      async function attemptSave(confirmPhoneChange = false) {
         const res = await fetch(`/api/cards/${currentCardId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phone: newPhone })
+          body: JSON.stringify({ phone: newPhone, ...(confirmPhoneChange ? { confirmPhoneChange: true } : {}) })
         });
-
         const json = await res.json();
-        
+
+        if (res.status === 409 && json.error === 'phone_change_needs_confirmation') {
+          const ok = confirm(
+            `⚠️ Esta clienta tiene ${json.activeAppointments} cita(s) activa(s).\n\n` +
+            `Si cambias el teléfono ahora, TODAS esas citas se actualizarán al nuevo número (${json.newPhone}).\n` +
+            `Las notificaciones futuras también irán al nuevo número.\n\n` +
+            `Actual: ${json.currentPhone}\nNuevo:  ${json.newPhone}\n\n` +
+            `¿Confirmar el cambio?`
+          );
+          if (!ok) return;
+          // Reintentar con confirmación explícita
+          return attemptSave(true);
+        }
+
         if (json.success || res.ok) {
           document.getElementById('cm-phone-display').textContent = newPhone;
           document.getElementById('cm-phone-display').classList.remove('hidden');
           document.getElementById('cm-phone-edit').classList.add('hidden');
-          alert('Teléfono actualizado');
-          loadCards(); // Recargar lista de tarjetas
+          const propagated = json.propagatedAppts || 0;
+          alert(propagated > 0
+            ? `Teléfono actualizado. ${propagated} cita(s) activa(s) también se actualizó(aron).`
+            : 'Teléfono actualizado.');
+          loadCards();
         } else {
           alert('Error: ' + (json.error || 'No se pudo actualizar'));
         }
+      }
+
+      try {
+        await attemptSave(false);
       } catch (error) {
         console.error('Error actualizando teléfono:', error);
         alert('Error de conexión');

@@ -312,6 +312,24 @@ model AdminGoogleCalendar {
   @@map("admin_google_calendars")
 }
 
+// Audit log de cambios en cards. Sirve para rastrear quién editó qué
+// campo y cuándo. Útil para diagnosticar incidentes como el bug del
+// phone corrupto (4 jun 2026: alguien cambió el phone de Angeles Mendez
+// silenciosamente y todos los mensajes futuros le llegaron a otra persona).
+model CardEdit {
+  id        String   @id @default(cuid())
+  cardId    String
+  field     String   // 'phone' | 'name' | 'email' | 'birthday' | 'notes'
+  oldValue  String?
+  newValue  String?
+  changedBy String?  // admin uid o email
+  changedAt DateTime @default(now())
+
+  @@index([cardId, changedAt])
+  @@index([changedAt])
+  @@map("card_edits")
+}
+
 // Reset de contraseñas de admin
 model AdminReset {
   id        String   @id @default(cuid())
