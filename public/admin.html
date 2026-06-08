@@ -3763,30 +3763,42 @@
       const clientName = client.name || '';
       const clientPhone = client.phone || '';
       const clientCardId = cardId;
-      
+
+      // Asegurar que el cliente esté en allClients ANTES del submit. Sin
+      // esto, si loadClients() todavía no terminó, la validación de
+      // name↔phone descarta el phone y aparece "Selecciona cliente válido".
+      if (typeof allClients !== 'undefined' && Array.isArray(allClients)) {
+        if (!allClients.find(c => c.id === clientCardId || c.phone === clientPhone)) {
+          allClients.push({ id: clientCardId, name: clientName, phone: clientPhone });
+        }
+      }
+
       // Cerrar el modal del cliente primero
       if (typeof closeCardModal === 'function') closeCardModal();
-      
+
       // Cambiar a la pestaña de Agenda
       switchTab('appointments');
-      
+
       // Esperar un momento para que la pestaña se active
       setTimeout(() => {
         const newApptDialog = document.getElementById('newApptDialog');
         const clientSelectInput = document.getElementById('new-appt-client-select');
         const dateInput = document.getElementById('new-appt-date');
-        
+
         if (newApptDialog && clientSelectInput) {
           // Cargar datos necesarios
           if (typeof loadServices === 'function') loadServices();
           if (typeof loadClients === 'function') loadClients();
           if (typeof generateHourMinuteOptions === 'function') generateHourMinuteOptions();
           if (typeof populateStaffSelect === 'function') populateStaffSelect('new-appt-assigned', '');
-          
+
           // Prellenar nombre del cliente
           clientSelectInput.value = clientName;
-          
-          // Guardar teléfono globalmente y en data attribute
+
+          // Guardar teléfono en las fuentes que lee el submit. La variable
+          // local `selectedClientPhone` del módulo no se toca aquí (TDZ
+          // risk con typeof sobre let); el submit hace fallback explícito
+          // a window.selectedClientPhone, así que con esto basta.
           window.selectedClientPhone = clientPhone;
           clientSelectInput.dataset.phone = clientPhone;
           clientSelectInput.dataset.clientId = clientCardId;
