@@ -1752,8 +1752,10 @@
             </table>
           </div>
 
-          <!-- Add New Button -->
-          <button onclick="document.getElementById('newApptDialog').showModal()" style="width:100%;margin-top:12px;padding:16px;border-radius:12px;border:2px dashed var(--border-color);background:none;cursor:pointer;transition:all 0.2s;display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--muted);" onmouseenter="this.style.borderColor='var(--venus)';this.style.color='var(--venus-soft)'" onmouseleave="this.style.borderColor='var(--border-color)';this.style.color='var(--muted)'">
+          <!-- Add New Button — usa openNewAppointmentModal() para que cargue
+               servicios/clientes/horas/staff antes de mostrar el dialog. Antes
+               hacía showModal() directo y dejaba los dropdowns vacíos. -->
+          <button onclick="(typeof openNewAppointmentModal==='function' ? openNewAppointmentModal() : document.getElementById('newApptDialog').showModal())" style="width:100%;margin-top:12px;padding:16px;border-radius:12px;border:2px dashed var(--border-color);background:none;cursor:pointer;transition:all 0.2s;display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--muted);" onmouseenter="this.style.borderColor='var(--venus)';this.style.color='var(--venus-soft)'" onmouseleave="this.style.borderColor='var(--border-color)';this.style.color='var(--muted)'">
             <i class="fas fa-plus-circle" style="font-size:20px;"></i>
             <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:2px;">Agendar Nueva</span>
           </button>
@@ -8298,10 +8300,11 @@
       if (currentView === 'day') injectNowLine();
     }, 60000);
 
-    // Función global para abrir modal desde el calendario
+    // Función global para abrir modal desde el calendario.
+    // Antes hacía showModal() PRIMERO y los loads después → el modal abría
+    // con dropdowns vacíos durante el primer paint. Ahora cargamos catálogos,
+    // sembramos fecha/hora, y SOLO al final abrimos el dialog.
     window.openNewApptDialogWithDate = function (dateIso, timeStr) {
-      if (newApptDialog) newApptDialog.showModal();
-
       loadServices();
       loadClients();
       generateHourMinuteOptions();
@@ -8319,6 +8322,8 @@
       const minuteSelect = document.getElementById('new-appt-minute');
       if (hourSelect) hourSelect.value = h;
       if (minuteSelect) minuteSelect.value = m;
+
+      if (newApptDialog) newApptDialog.showModal();
     }
     function renderMonthlyCalendar() {
       if (!monthlyCalendar) return;
@@ -8584,6 +8589,13 @@
           window.openNewAppointmentModal();
           return;
         }
+        // Fallback defensivo: si la función global no se inicializó (raro),
+        // al menos cargamos catálogos manualmente para no abrir un modal
+        // con dropdowns vacíos.
+        try { if (typeof loadServices === 'function') loadServices(); } catch (_) {}
+        try { if (typeof loadClients === 'function') loadClients(); } catch (_) {}
+        try { if (typeof generateHourMinuteOptions === 'function') generateHourMinuteOptions(); } catch (_) {}
+        try { if (typeof populateStaffSelect === 'function') populateStaffSelect('new-appt-assigned', ''); } catch (_) {}
         const dlg = document.getElementById('newApptDialog');
         if (dlg) dlg.showModal();
       });
