@@ -9106,10 +9106,14 @@
           editDurationInput.value = service.durationMinutes;
         }
 
-        // Extract date and time from startDateTime
-        const startDate = new Date(appt.startDateTime);
-        const isoDate = appt.startDateTime.split('T')[0];
-        editDateInput.value = isoDate;
+        // Fecha y hora desde las columnas date/time (ya en hora de México), NO
+        // desde startDateTime (UTC). Antes se hacía startDateTime.split('T')[0]:
+        // en citas de la tarde/noche MX el instante UTC cae el día siguiente, así
+        // que el modal precargaba la fecha corrida un día y, al GUARDAR, la cita
+        // saltaba al día siguiente aunque no tocaras la fecha → "se movió/borró".
+        // date y time son NOT NULL en el modelo, siempre vienen.
+        const isoDate = appt.date || (appt.startDateTime || '').split('T')[0];
+        const [apptHour, apptMin] = String(appt.time || '').split(':');
 
         // Initialize calendar with existing date
         editApptCalendar.selectedDate = isoDate;
@@ -9120,8 +9124,8 @@
         editDateInput.value = `${day}/${month}/${year}`;
         editDateInput.dataset.isoDate = isoDate;
 
-        editHourSelect.value = String(startDate.getHours()).padStart(2, '0');
-        editMinuteSelect.value = String(startDate.getMinutes()).padStart(2, '0');
+        editHourSelect.value = String(apptHour || '').padStart(2, '0');
+        editMinuteSelect.value = String(apptMin || '00').padStart(2, '0');
 
         // Calculate end time
         calculateEditEndTime();
