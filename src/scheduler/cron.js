@@ -250,10 +250,31 @@ export function startScheduler() {
             const pendingAlerts = await AppointmentModel.getPendingConfirmationAlert(rangeStart, rangeEnd);
 
             if (pendingAlerts.length > 0) {
-                console.log(`⚠️ [4h-alert] ${pendingAlerts.length} citas sin confirmar — enviando alerta`);
+                console.log(`⚠️ [4h-alert] ${pendingAlerts.length} citas sin confirmar — pre-reconcile + envío`);
             }
 
+            // PRE-RECONCILE: antes de molestar a la clienta con
+            // "Confirmación pendiente", verificamos si ya respondió la encuesta
+            // y el webhook no detectó su voto (pasó con Mónica García 11 jun).
+            // Si el reconcile encuentra una respuesta, actualizamos la cita y
+            // saltamos el envío.
+            const { reconcileAppointment } = await import('../services/pollReconciler.js');
+
             for (const appt of pendingAlerts) {
+                try {
+                    const rescued = await reconcileAppointment(appt);
+                    if (rescued) {
+                        console.log(`✅ [4h-alert] Pre-reconcile rescató cita ${appt.id} (${appt.clientName}) → ${rescued} — skip alerta`);
+                        // Marcar la alerta como "enviada" para que el siguiente
+                        // tick no la vuelva a intentar (la cita ya cambió de status,
+                        // pero por idempotencia explícita).
+                        await AppointmentModel.markConfirmationAlertSent(appt.id);
+                        continue;
+                    }
+                } catch (recErr) {
+                    console.warn(`[4h-alert] reconcile falló para ${appt.id} (sigue al envío):`, recErr.message);
+                }
+
                 const result = await WhatsAppService.sendAlertaCancelacion(appt);
                 if (result.success) {
                     await AppointmentModel.markConfirmationAlertSent(appt.id);
