@@ -183,7 +183,7 @@ model GiftCard {
   code            String    @unique
   amount          Decimal   @db.Decimal(10, 2)
   remainingAmount Decimal   @db.Decimal(10, 2)
-  status          String    @default("pending") // pending, active, used, expired
+  status          String    @default("pending") // pending, active, used, expired, redeemed
   purchaserName   String?
   purchaserPhone  String?
   recipientName   String?
@@ -191,6 +191,15 @@ model GiftCard {
   message         String?
   expiresAt       DateTime?
   usedAt          DateTime?
+  // Modelo basado en servicio (las gift cards de Venus son por servicio, no monto libre).
+  // amount/remainingAmount se conservan por compatibilidad y reflejan servicePrice.
+  serviceId       String?
+  serviceName     String?
+  servicePrice    Decimal?  @db.Decimal(10, 2)
+  validityDays    Int?
+  redeemedAt      DateTime?
+  redeemedBy      String?
+  appointmentId   String?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
