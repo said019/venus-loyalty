@@ -10392,6 +10392,42 @@
     }
 
     // Función para renderizar la tabla de servicios
+    // Color por categoría de servicio. Categorías conocidas tienen su paleta;
+    // cualquier otra cae a un color estable derivado de su nombre (hash), así
+    // dos servicios de la misma categoría siempre comparten color.
+    function categoryColor(cat) {
+      const map = {
+        'básicos venus':            { bg:'#e2ecd2', fg:'#4f6b34' },
+        'basicos venus':            { bg:'#e2ecd2', fg:'#4f6b34' },
+        'faciales':                 { bg:'#e7ecd6', fg:'#5c6b3c' },
+        'facial':                   { bg:'#e7ecd6', fg:'#5c6b3c' },
+        'corporales':               { bg:'#e3e9f0', fg:'#3d5a78' },
+        'depilación':               { bg:'#f3e2d4', fg:'#9a5a32' },
+        'depilacion':               { bg:'#f3e2d4', fg:'#9a5a32' },
+        'depilación láser diodo':   { bg:'#efdcdc', fg:'#9a3b3b' },
+        'depilacion laser diodo':   { bg:'#efdcdc', fg:'#9a3b3b' },
+        'masajes':                  { bg:'#e6e0ef', fg:'#5e4a86' },
+        'paquetes':                 { bg:'#f5e6c8', fg:'#8a6d2f' },
+        'diagnóstico':              { bg:'#d8e8e4', fg:'#356b5e' },
+        'diagnostico':              { bg:'#d8e8e4', fg:'#356b5e' },
+        'especializados':           { bg:'#f0dde8', fg:'#8a3f66' },
+        'otros':                    { bg:'#e8e6e1', fg:'#6b6b60' },
+        'sin categoría':            { bg:'#e8e6e1', fg:'#6b6b60' },
+      };
+      const key = String(cat || 'otros').toLowerCase().trim();
+      if (map[key]) return map[key];
+      // Fallback estable por hash sobre una paleta distinguible
+      const palette = [
+        { bg:'#e7ecd6', fg:'#5c6b3c' }, { bg:'#e3e9f0', fg:'#3d5a78' },
+        { bg:'#f3e2d4', fg:'#9a5a32' }, { bg:'#e6e0ef', fg:'#5e4a86' },
+        { bg:'#f5e6c8', fg:'#8a6d2f' }, { bg:'#d8e8e4', fg:'#356b5e' },
+        { bg:'#f0dde8', fg:'#8a3f66' }, { bg:'#efdcdc', fg:'#9a3b3b' },
+      ];
+      let h = 0;
+      for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
+      return palette[h % palette.length];
+    }
+
     function renderServicesTable(services) {
       console.log('[RENDER] Renderizando tabla con', services.length, 'servicios');
 
@@ -10405,18 +10441,22 @@
         return;
       }
 
-      const html = services.map(s => `
+      const html = services.map(s => {
+        const cc = categoryColor(s.category);
+        return `
         <tr>
           <td data-label="Nombre">${s.name}</td>
           <td data-label="Categoría">
             <span style="
               display:inline-block;
               padding:4px 10px;
-              border-radius:6px;
+              border-radius:999px;
               font-size:11px;
-              font-weight:500;
-              background:var(--venus-light);
-              color:var(--venus);
+              font-weight:600;
+              letter-spacing:0.02em;
+              background:${cc.bg};
+              color:${cc.fg};
+              border:1px solid ${cc.fg}22;
             ">${s.category || 'Sin categoría'}</span>
           </td>
           <td data-label="Duración">${s.durationMinutes} min</td>
@@ -10432,7 +10472,8 @@
             </div>
           </td>
         </tr>
-      `).join('');
+      `;
+      }).join('');
 
       console.log('[RENDER] HTML generado, longitud:', html.length);
       servicesTbody.innerHTML = html;

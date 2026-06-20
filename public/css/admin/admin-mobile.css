@@ -358,14 +358,20 @@ html[data-theme="dark"]  { color-scheme: dark; }
     margin-bottom: 10px;
   }
   .data-table td {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-    padding: 6px 0 !important;
+    /* grid label|valor: el label queda fijo a la izquierda y el VALOR
+       (segunda columna 1fr) hace wrap en vez de cortarse/desbordarse.
+       Antes era flex+space-between+text-align:right y los nombres largos
+       (ej. "Aparatología Despigmentante") se cortaban en pantallas chicas. */
+    display: grid;
+    grid-template-columns: minmax(64px, auto) 1fr;
+    gap: 4px 12px;
+    align-items: baseline;
+    padding: 7px 0 !important;
     border: none !important;
     text-align: right;
     font-size: 13px;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
   .data-table td:not(:last-child) {
     border-bottom: 1px solid oklch(93.5% 0.014 88) !important;
@@ -379,6 +385,38 @@ html[data-theme="dark"]  { color-scheme: dark; }
     text-transform: uppercase;
     text-align: left;
   }
+
+  /* Primera celda = NOMBRE del registro: título de la card a todo lo ancho,
+     con el label arriba y el nombre completo debajo (wrap, sin corte). */
+  .data-table td:first-child {
+    display: block;
+    text-align: left;
+    margin-bottom: 2px;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+  .data-table td:first-child::before {
+    display: block;
+    margin-bottom: 3px;
+  }
+  .data-table td:first-child {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--ink, #2b2520);
+    line-height: 1.25;
+  }
+
+  /* Celda de acciones: botones alineados a la izquierda, ancho cómodo. */
+  .data-table td[data-label="Acciones"] {
+    display: block;
+    text-align: left;
+    margin-top: 4px;
+  }
+  .data-table td[data-label="Acciones"]::before {
+    display: block;
+    margin-bottom: 4px;
+  }
+
   /* Si td no tiene data-label: tratamos contenido como bloque normal */
   .data-table td:not([data-label]) {
     display: block;
