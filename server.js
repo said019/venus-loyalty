@@ -6928,6 +6928,18 @@ app.post('/api/admin/reconcile-polls', adminAuth, async (req, res) => {
                         });
                     }
 
+                    // Acuse a la clienta — antes el reconcile cambiaba el status
+                    // pero nunca respondía, así que quien confirmaba/reagendaba
+                    // por encuesta se quedaba sin contestación. No crítico: el
+                    // status ya quedó actualizado aunque el envío falle.
+                    try {
+                        if (found === 'confirmed')        await WhatsAppService.sendConfirmacionRecibida(appt);
+                        else if (found === 'rescheduling') await WhatsAppService.sendSolicitudReprogramacion(appt);
+                        else if (found === 'cancelled')    await WhatsAppService.sendCancelacionConfirmada(appt);
+                    } catch (sendErr) {
+                        console.warn(`[Reconcile] acuse WhatsApp falló para ${appt.id}:`, sendErr.message);
+                    }
+
                     reconciled.push({ id: appt.id, client: appt.clientName, service: appt.serviceName, newStatus: found });
                     console.log(`✅ [Reconcile] Cita ${appt.id} de ${appt.clientName} → ${found}`);
                 }

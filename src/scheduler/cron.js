@@ -444,6 +444,50 @@ export function startScheduler() {
             console.error('❌ Error en notificaciones automáticas:', error);
         }
     });
+
+    // ========================================================================
+    // RECONCILE FRECUENTE — cada 20 min
+    // El webhook de Evolution no procesa los votos de poll en vivo de forma
+    // fiable, así que las clientas que confirman/reagendan por encuesta no
+    // recibían acuse hasta ~4h antes de su cita (el pre-reconcile de la alerta).
+    // Este cron escanea seguido las citas con encuesta enviada y aún en
+    // 'scheduled', rescata el voto y envía el acuse (reconcileAppointment ya
+    // manda el mensaje). Reduce la latencia de horas a ~20 min.
+    // ========================================================================
+    cron.schedule('*/20 * * * *', async () => {
+        try {
+            const { reconcileAppointment } = await import('../services/pollReconciler.js');
+            // Citas con encuesta 24h enviada, aún sin confirmar, en las próximas 48h.
+            const now = new Date();
+            const horizon = new Date(now.getTime() + 48 * 60 * 60 * 1000);
+            const pending = await prisma.appointment.findMany({
+                where: {
+                    sent24hAt: { not: null },
+                    status: 'scheduled',
+                    startDateTime: { gte: now, lte: horizon },
+                },
+                orderBy: { startDateTime: 'asc' },
+                take: 100,
+            });
+            if (pending.length === 0) return;
+
+            let rescued = 0;
+            for (const appt of pending) {
+                try {
+                    const r = await reconcileAppointment(appt);
+                    if (r) {
+                        rescued++;
+                        console.log(`✅ [reconcile-20min] ${appt.clientName} → ${r} (acuse enviado)`);
+                    }
+                } catch (e) {
+                    console.warn(`[reconcile-20min] falló ${appt.id}:`, e.message);
+                }
+            }
+            if (rescued > 0) console.log(`[reconcile-20min] ${rescued}/${pending.length} cita(s) rescatada(s)`);
+        } catch (error) {
+            console.error('❌ Error en reconcile frecuente:', error);
+        }
+    });
 }
 
 // ========== CUMPLEAÑOS (próximos 7 días) ==========

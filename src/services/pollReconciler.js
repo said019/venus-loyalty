@@ -11,6 +11,7 @@
 //
 import { prisma } from '../db/index.js';
 import { matchOptionByHash } from '../routes/webhookEvolution.js';
+import { WhatsAppService } from './whatsapp-v2.js';
 
 function normalizePhone(rawPhone) {
   let phone = String(rawPhone || '').replace(/\D/g, '');
@@ -133,6 +134,20 @@ export async function reconcileAppointment(appointment) {
         data: { status: 'rescheduling', rescheduleRequestedAt: new Date(), updatedAt: new Date() }
       });
     }
+
+    // Responder a la clienta. ESTE era el bug: el reconcile cambiaba el
+    // status pero nunca enviaba el acuse. Como el webhook no procesa votos
+    // de poll en vivo de forma fiable, el reconcile es el path dominante y
+    // las clientas se quedaban sin respuesta al confirmar/reagendar/cancelar.
+    // El envío es no crítico: si falla, el rescate del status ya se aplicó.
+    try {
+      if (found === 'confirmed')        await WhatsAppService.sendConfirmacionRecibida(appointment);
+      else if (found === 'rescheduling') await WhatsAppService.sendSolicitudReprogramacion(appointment);
+      else if (found === 'cancelled')    await WhatsAppService.sendCancelacionConfirmada(appointment);
+    } catch (sendErr) {
+      console.warn(`[pollReconciler] acuse WhatsApp falló para ${appointment.id}:`, sendErr.message);
+    }
+
     return found;
   } catch (e) {
     console.warn(`[pollReconciler] update falló para ${appointment.id}:`, e.message);
