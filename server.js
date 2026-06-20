@@ -2105,12 +2105,23 @@ app.post('/api/giftcards', adminAuth, async (req, res) => {
     const now = new Date();
     const expiresAt = new Date(now.getTime() + (validityDays || 30) * 24 * 60 * 60 * 1000);
 
+    const price = parseFloat(servicePrice);
+    if (!Number.isFinite(price) || price < 0) {
+      return res.json({ success: false, error: 'Precio inválido' });
+    }
+
     const giftcardData = {
       code: generateGiftCardCode(),
       recipientName: recipientName || null,
-      serviceId,
+      serviceId: serviceId || null,
       serviceName,
-      servicePrice: parseFloat(servicePrice),
+      servicePrice: price,
+      // amount/remainingAmount son NOT NULL en el schema; en el modelo por
+      // servicio reflejan el precio del servicio (canje todo-o-nada). Sin
+      // estos dos campos, prisma.giftCard.create() falla con "Argument
+      // `amount` is missing" — era la causa del error al generar gift cards.
+      amount: price,
+      remainingAmount: price,
       message: message || null,
       validityDays: validityDays || 30,
       status: 'pending',
