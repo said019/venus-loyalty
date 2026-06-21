@@ -435,14 +435,35 @@
         background: rgba(239, 107, 104, 0.86);
       }
 
+      /* FAB flotantes (Escanear / Nueva cita). Tres CSS los redefinían en
+         conflicto; aquí — el último que carga — fijamos el diseño final:
+         botones CIRCULARES icon-only. Ocultar el label evita que textos como
+         "Nueva cita" se corten en pantallas anchas (antes el botón era 52px
+         cuadrado pero el label seguía visible y no cabía). El title de cada
+         botón da el tooltip al pasar el cursor. */
       .quick-actions {
-        right: 18px;
-        bottom: 18px;
+        right: 22px;
+        bottom: 22px;
+        gap: 12px;
       }
 
       .quick-action-btn {
-        width: 52px;
-        height: 52px;
+        width: 56px;
+        height: 56px;
+        min-width: 56px;
+        border-radius: 50%;
+        padding: 0;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;
+      }
+
+      .quick-action-btn .qa-label {
+        display: none;
+      }
+
+      .quick-action-btn i {
+        font-size: 20px;
       }
 
       @media (max-width: 1000px) {
