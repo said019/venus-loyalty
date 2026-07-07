@@ -2649,6 +2649,28 @@ app.get("/api/create-card", async (req, res) => {
       return res.status(400).json({ error: "Faltan datos" });
     }
 
+    // Idempotencia por teléfono: una tarjeta por número. Si ya existe, devolverla
+    // en vez de intentar crear otra (antes reventaba con P2002 unique en `phone`).
+    const existingCard = await CardsRepo.findByPhone(phone);
+    if (existingCard) {
+      const base = process.env.BASE_URL || "https://venus-loyalty.onrender.com";
+      return res.json({
+        url: `${base}/?cardId=${existingCard.id}`,
+        cardId: existingCard.id,
+        name: existingCard.name,
+        stamps: existingCard.stamps,
+        max: existingCard.max,
+        gwallet: buildGoogleSaveUrl({
+          cardId: existingCard.id,
+          name: existingCard.name,
+          stamps: existingCard.stamps,
+          max: existingCard.max,
+        }),
+        applewallet: `${base}/api/apple/pass?cardId=${encodeURIComponent(existingCard.id)}`,
+        existing: true,
+      });
+    }
+
     const maxVal = parseInt(max, 10) || 8;
     const cardId = `card_${Date.now()}`;
     const cleanName = String(name).trim();
@@ -2700,6 +2722,28 @@ app.post("/api/create-card", async (req, res) => {
     const { name, phone, max, birthdate } = req.body || {};  // <- Agregar birthdate
     if (!name || !phone) {
       return res.status(400).json({ error: "Faltan datos" });
+    }
+
+    // Idempotencia por teléfono: una tarjeta por número. Si ya existe, devolverla
+    // en vez de intentar crear otra (antes reventaba con P2002 unique en `phone`).
+    const existingCard = await CardsRepo.findByPhone(phone);
+    if (existingCard) {
+      const base = process.env.BASE_URL || "https://venus-loyalty.onrender.com";
+      return res.json({
+        url: `${base}/?cardId=${existingCard.id}`,
+        cardId: existingCard.id,
+        name: existingCard.name,
+        stamps: existingCard.stamps,
+        max: existingCard.max,
+        gwallet: buildGoogleSaveUrl({
+          cardId: existingCard.id,
+          name: existingCard.name,
+          stamps: existingCard.stamps,
+          max: existingCard.max,
+        }),
+        applewallet: `${base}/api/apple/pass?cardId=${encodeURIComponent(existingCard.id)}`,
+        existing: true,
+      });
     }
 
     const maxVal = parseInt(max, 10) || 8;
