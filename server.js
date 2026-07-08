@@ -94,6 +94,27 @@ import { getEvolutionClient } from './src/services/whatsapp-evolution.js';
 import clientRecordsRouter from './src/routes/clientRecords.js';
 import expedientesRouter from './src/routes/expedientes.js';
 
+// Si la clienta aún no tiene ficha clínica firmada (y no le hemos mandado el link
+// en los últimos 7 días), enviarle el link al confirmar su cita.
+async function maybeSendFichaLink(appointment) {
+  try {
+    if (!appointment?.clientPhone) return;
+    const card = await CardsRepo.findByPhone(appointment.clientPhone);
+    if (!card) return;
+    const record = await prisma.clientRecord.findUnique({ where: { cardId: card.id }, include: { intake: true } });
+    if (record?.intake?.status === 'signed') return;
+    const last = record?.fichaLinkSentAt ? Date.now() - new Date(record.fichaLinkSentAt).getTime() : Infinity;
+    if (last < 7 * 24 * 60 * 60 * 1000) return;
+    const { signFichaToken } = await import('./src/services/fichaTokens.js');
+    const token = signFichaToken(card.id, 'ficha');
+    const base = process.env.BASE_URL || 'https://venuscosmetologia.com.mx';
+    await WhatsAppService.sendFichaClinicaLink(card, `${base}/ficha/${token}`);
+    const rec = record ?? await prisma.clientRecord.create({ data: { cardId: card.id } });
+    await prisma.clientRecord.update({ where: { id: rec.id }, data: { fichaLinkSentAt: new Date() } });
+    console.log(`📋 [ficha] Link de ficha enviado a ${card.name}`);
+  } catch (e) { console.warn('[ficha] no se pudo enviar link:', e.message); }
+}
+
 // 💸 Upload de comprobantes (anticipo $100 transferencia)
 import multer from 'multer';
 import { v2 as cloudinaryV2 } from 'cloudinary';
@@ -1630,6 +1651,7 @@ app.post('/api/appointments', adminAuth, async (req, res) => {
           startDateTime: appointment.startDateTime
         });
         const result = await WhatsAppService.sendConfirmation(appointment);
+        maybeSendFichaLink(appointment); // fire-and-forget: no bloquear la respuesta
         if (result.success) {
           console.log('[APPOINTMENT] ✅ WhatsApp confirmación enviado:', result.messageSid);
         } else {
@@ -4740,6 +4762,7 @@ app.post('/api/booking-requests/:id/booked', adminAuth, async (req, res) => {
     try {
       const appointment = { id: appointmentRef.id, ...appointmentData };
       const whatsappResult = await WhatsAppService.sendConfirmation(appointment);
+      maybeSendFichaLink(appointment); // fire-and-forget: no bloquear la respuesta
 
       if (whatsappResult.success) {
         console.log('[BOOKING] ✅ WhatsApp enviado:', whatsappResult.messageSid);

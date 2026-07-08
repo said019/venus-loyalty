@@ -261,6 +261,20 @@ export const WhatsAppService = {
         return await sendViaEvolution(appt.clientPhone, mensaje);
     },
 
+    /** Link para que la clienta llene su Ficha Clínica desde el celular */
+    async sendFichaClinicaLink(card, url) {
+        const nombre = sanitizeForWhatsApp(card.name || 'bonita');
+        const mensaje = `🌸 Hola ${nombre}, para darte una atención más personalizada en *Venus Cosmetología* te pedimos llenar tu *Ficha Clínica* digital (te toma ~3 minutos):\n\n${url}\n\nTus datos son confidenciales y solo los usamos para cuidar tu piel. ✨`;
+        return await sendViaEvolution(card.phone, mensaje);
+    },
+
+    /** Link para firmar el consentimiento informado de depilación láser */
+    async sendConsentimientoLink(card, url) {
+        const nombre = sanitizeForWhatsApp(card.name || 'bonita');
+        const mensaje = `📋 Hola ${nombre}, antes de tu sesión de *depilación láser* necesitamos que leas y firmes el *consentimiento informado*:\n\n${url}\n\nCualquier duda, respóndenos por aquí. 🌸`;
+        return await sendViaEvolution(card.phone, mensaje);
+    },
+
     /** UN solo mensaje que confirma TODAS las citas (caso encuesta consolidada del mismo día). */
     async sendConfirmacionRecibidaMultiple(citas) {
         if (!Array.isArray(citas) || citas.length === 0) return { success: false };
