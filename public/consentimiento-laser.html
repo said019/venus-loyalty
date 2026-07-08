@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5">
+  <title>Consentimiento láser — Venus</title>
+  <link rel="icon" href="/assets/logo.png">
+  <!-- Forzar paleta light: la página es boutique cream + sage, intencionalmente clara. -->
+  <meta name="color-scheme" content="light only">
+  <meta name="theme-color" content="#a8bfa0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Prata&family=Manrope:wght@400;500;600;700;800&display=swap">
+  <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js" defer></script>
+  <style>
+    /* ============================================================
+       /consentimiento-laser.html — Venus Cosmetología
+       Consentimiento informado público de depilación láser diodo.
+       Mismo register visual que /ficha-clinica.html: cream + sage,
+       Prata + Manrope, pills, tarjetas blancas 16px, sombras suaves.
+       ============================================================ */
+
+    :root { color-scheme: light; }
+    html { color-scheme: light; background: #fbf7ef; }
+
+    /* Anti force-dark de Chrome / Android — declarar superficies explícitas. */
+    html, body { background-color: #fbf7ef !important; color: #243026 !important; forced-color-adjust: none; filter: none !important; }
+    body { isolation: isolate; }
+    .fc-card, .fc-input, .fc-sig-canvas, .fc-check__box {
+      background-color: #ffffff !important; forced-color-adjust: none;
+    }
+    .fc-btn--primary {
+      background-color: #a8bfa0 !important; color: #ffffff !important;
+    }
+
+    :root {
+      --sage:       #a8bfa0;
+      --sage-deep:  #8fa17f;
+      --sage-soft:  #eef1e5;
+      --ink:        #243026;
+      --ink-2:      #4a574e;
+      --ink-3:      #7a8a7e;
+      --cream:      #fbf7ef;
+      --linen:      #f3ecdf;
+      --line:       #e8e0cf;
+      --line-2:     #d8d0bd;
+      --white:      #ffffff;
+      --err:        #b9544a;
+
+      --display: 'Prata', Georgia, serif;
+      --body:    'Manrope', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+
+      --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+      --ease-out-expo:  cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-emil:      cubic-bezier(0.23, 1, 0.32, 1);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+    body {
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      background: var(--cream);
+      color: var(--ink);
+      font-family: var(--body);
+      font-size: 16px;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+      overflow-x: hidden;
+    }
+
+    /* ============ NAV / HEADER ============ */
+    .fc-nav {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: oklch(99% 0.006 88 / 0.86);
+      backdrop-filter: blur(14px) saturate(1.4);
+      -webkit-backdrop-filter: blur(14px) saturate(1.4);
+      border-bottom: 1px solid var(--line);
+    }
+    .fc-nav__inner {
+      max-width: 620px;
+      margin: 0 auto;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .fc-nav__brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .fc-nav__logo {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: #fff; padding: 3px; object-fit: contain;
+      box-shadow: 0 2px 10px oklch(58% 0.075 120 / 0.12);
+    }
+    .fc-nav__name {
+      font-family: var(--display);
+      font-size: 20px;
+      font-weight: 400;
+      color: var(--sage-deep);
+      letter-spacing: 0;
+    }
+
+    /* ============ HERO ============ */
+    .fc-hero {
+      max-width: 620px;
+      margin: 0 auto;
+      padding: 40px 20px 12px;
+      text-align: center;
+      animation: fc-rise 600ms var(--ease-out-expo) 60ms both;
+    }
+    .fc-hero__logo {
+      width: 64px; height: 64px; border-radius: 18px; object-fit: contain;
+      margin: 0 auto 16px; display: block;
+      box-shadow: 0 10px 26px oklch(22% 0.012 80 / 0.08), 0 2px 6px oklch(22% 0.012 80 / 0.05);
+      border: 1px solid var(--line); background: #fff; padding: 4px;
+    }
+    .fc-hero__eyebrow {
+      display: inline-block;
+      font-size: 11px; font-weight: 600; letter-spacing: 0.18em;
+      text-transform: uppercase; color: var(--sage-deep);
+      margin-bottom: 12px; padding: 6px 14px;
+      background: var(--sage-soft); border-radius: 999px;
+    }
+    .fc-hero__title {
+      font-family: var(--display);
+      font-size: clamp(26px, 5.4vw, 34px);
+      font-weight: 500; line-height: 1.12; letter-spacing: -0.015em;
+      color: var(--ink); margin: 0 0 8px;
+    }
+    .fc-hero__sub {
+      font-size: 15px; line-height: 1.5; color: var(--ink-2);
+      max-width: 42ch; margin: 0 auto;
+    }
+    @keyframes fc-rise {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ============ MAIN ============ */
+    .fc-main {
+      max-width: 620px;
+      margin: 0 auto;
+      padding: 0 20px 72px;
+    }
+
+    /* ============ CARD ============ */
+    .fc-card {
+      background: var(--white);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 24px 20px;
+      box-shadow: 0 8px 24px oklch(22% 0.012 80 / 0.05);
+      position: relative;
+    }
+    .fc-card + .fc-card { margin-top: 14px; }
+    .fc-card__eyebrow {
+      font-size: 11px; font-weight: 600; letter-spacing: 0.14em;
+      text-transform: uppercase; color: var(--sage-deep);
+      margin-bottom: 8px;
+    }
+    .fc-card__title {
+      font-family: var(--display);
+      font-size: clamp(22px, 5vw, 28px);
+      font-weight: 500; line-height: 1.12; letter-spacing: -0.015em;
+      color: var(--ink); margin: 0 0 8px;
+    }
+    .fc-card__lede {
+      font-size: 14.5px; color: var(--ink-2); line-height: 1.55;
+      margin: 0 0 22px;
+    }
+
+    /* ============ DOCUMENTO (texto legal) ============ */
+    .fc-doc { margin-top: 4px; }
+    .fc-doc__section { margin: 0 0 22px; }
+    .fc-doc__section:last-child { margin-bottom: 0; }
+    .fc-doc__heading {
+      font-family: var(--body);
+      font-size: 13px; font-weight: 800;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--sage-deep);
+      margin: 0 0 10px;
+      line-height: 1.3;
+    }
+    .fc-doc__line {
+      font-size: 15px; line-height: 1.6; color: var(--ink);
+      margin: 0 0 10px;
+    }
+    .fc-doc__line:last-child { margin-bottom: 0; }
+    .fc-doc__line--bullet {
+      padding-left: 1.1em;
+      text-indent: -1.1em;
+    }
+
+    /* ============ CHECKBOX ============ */
+    .fc-check {
+      display: flex; align-items: flex-start; gap: 14px;
+      padding: 18px 18px;
+      background: var(--sage-soft);
+      border: 1.5px solid transparent;
+      border-radius: 14px;
+      cursor: pointer;
+      transition: border-color 180ms var(--ease-out-quart), background 180ms var(--ease-out-quart);
+      margin: 6px 0 4px;
+    }
+    .fc-check:hover { border-color: var(--sage); }
+    .fc-check__box {
+      flex-shrink: 0;
+      width: 26px; height: 26px; border-radius: 8px;
+      border: 2px solid var(--line-2); background: var(--white);
+      display: flex; align-items: center; justify-content: center;
+      transition: all 180ms var(--ease-out-quart);
+      margin-top: 1px;
+    }
+    .fc-check__box::after {
+      content: '✓'; color: #fff; font-size: 15px; font-weight: 700;
+      opacity: 0; transform: scale(0.6);
+      transition: opacity 160ms var(--ease-emil), transform 160ms var(--ease-emil);
+    }
+    .fc-check__input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
+    .fc-check.on .fc-check__box { border-color: var(--sage-deep); background: var(--sage-deep); }
+    .fc-check.on .fc-check__box::after { opacity: 1; transform: scale(1); }
+    .fc-check__label {
+      font-size: 15.5px; font-weight: 700; line-height: 1.4; color: var(--ink);
+      user-select: none;
+    }
+    .fc-check:focus-within { outline: none; box-shadow: 0 0 0 3px var(--sage-soft); border-color: var(--sage); }
+
+    /* ============ FIRMA (signature canvas) ============ */
+    .fc-field { margin-bottom: 18px; }
+    .fc-field:last-child { margin-bottom: 0; }
+    .fc-field__label {
+      display: block; font-size: 12px; font-weight: 600;
+      letter-spacing: 0.04em; color: var(--ink-2);
+      text-transform: uppercase; margin-bottom: 7px;
+    }
+    .fc-sig-wrap {
+      position: relative; width: 100%; height: 200px;
+      border: 1.5px solid var(--line); border-radius: 12px;
+      background: var(--white); overflow: hidden;
+    }
+    .fc-sig-canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
+    .fc-sig-baseline {
+      position: absolute; left: 16px; right: 16px; bottom: 28px;
+      height: 1px; background: var(--line-2); pointer-events: none;
+    }
+    .fc-sig-hint {
+      position: absolute; left: 16px; bottom: 8px; font-size: 11px;
+      color: var(--ink-3); letter-spacing: 0.1em; text-transform: uppercase;
+      pointer-events: none;
+    }
+    .fc-sig-clear {
+      margin-top: 10px;
+      background: transparent; color: var(--ink-2);
+      border: 1.5px solid var(--line); border-radius: 999px;
+      padding: 9px 18px; font-size: 13px; font-weight: 600; cursor: pointer;
+      transition: all 180ms var(--ease-out-quart); min-height: 40px;
+    }
+    .fc-sig-clear:hover { background: var(--linen); border-color: var(--line-2); }
+
+    /* ============ BUTTONS ============ */
+    .fc-btns {
+      display: flex; gap: 10px; margin-top: 22px;
+    }
+    .fc-btn {
+      flex: 1;
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 16px 22px; border: none; border-radius: 999px;
+      font-family: var(--body); font-size: 15px; font-weight: 600;
+      letter-spacing: 0.005em; cursor: pointer; min-height: 54px;
+      transition: transform 200ms var(--ease-out-quart), box-shadow 200ms var(--ease-out-quart), background 200ms var(--ease-out-quart);
+      position: relative; overflow: hidden;
+    }
+    .fc-btn:disabled { cursor: not-allowed; opacity: 0.55; }
+    .fc-btn--primary {
+      background: var(--sage); color: #fff;
+      box-shadow: 0 8px 24px oklch(58% 0.075 120 / 0.22), 0 2px 6px oklch(58% 0.075 120 / 0.16);
+    }
+    .fc-btn--primary:hover:not(:disabled) {
+      background: var(--sage-deep); transform: translateY(-2px);
+      box-shadow: 0 12px 30px oklch(58% 0.075 120 / 0.30), 0 3px 8px oklch(58% 0.075 120 / 0.20);
+    }
+    .fc-btn--primary:active:not(:disabled) { transform: translateY(0) scale(0.98); }
+    .fc-err {
+      display: none; margin-top: 14px; padding: 12px 14px;
+      background: oklch(96% 0.030 28); color: var(--err);
+      border: 1px solid oklch(82% 0.060 28); border-radius: 12px;
+      font-size: 13.5px; line-height: 1.45;
+    }
+    .fc-err.show { display: block; animation: fc-pop 200ms var(--ease-emil) both; }
+    @keyframes fc-pop {
+      0%   { opacity: 0; transform: scale(0.95); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    /* ============ FULLSCREEN STATUS SCREENS ============ */
+    .fc-screen {
+      display: none; text-align: center;
+      max-width: 460px; margin: 0 auto; padding: 80px 24px 40px;
+      animation: fc-rise 500ms var(--ease-out-expo) both;
+    }
+    .fc-screen.show { display: block; }
+    .fc-screen__logo {
+      width: 80px; height: 80px; border-radius: 22px; object-fit: contain;
+      margin: 0 auto 22px; display: block;
+      box-shadow: 0 12px 30px oklch(22% 0.012 80 / 0.08);
+      border: 1px solid var(--line); background: #fff; padding: 5px;
+    }
+    .fc-screen__emoji { font-size: 52px; margin: 0 0 16px; line-height: 1; }
+    .fc-screen__title {
+      font-family: var(--display); font-size: clamp(26px, 6vw, 34px);
+      font-weight: 500; line-height: 1.12; letter-spacing: -0.02em;
+      color: var(--ink); margin: 0 0 12px;
+    }
+    .fc-screen__text {
+      font-size: 16px; line-height: 1.55; color: var(--ink-2);
+      max-width: 40ch; margin: 0 auto 28px;
+    }
+    .fc-screen__meta {
+      font-size: 13px; color: var(--ink-3); margin: -18px 0 28px;
+      letter-spacing: 0.02em;
+    }
+    .fc-screen .fc-btn { display: inline-flex; flex: 0 0 auto; padding: 16px 30px; }
+
+    /* ============ LOADING ============ */
+    .fc-loading {
+      display: flex; flex-direction: column; align-items: center; gap: 16px;
+      padding: 80px 24px; max-width: 460px; margin: 0 auto; text-align: center;
+    }
+    .fc-spinner {
+      width: 34px; height: 34px; border-radius: 50%;
+      border: 3px solid var(--line); border-top-color: var(--sage-deep);
+      animation: fc-spin 800ms linear infinite;
+    }
+    @keyframes fc-spin { to { transform: rotate(360deg); } }
+    .fc-loading p { font-size: 14px; color: var(--ink-3); margin: 0; }
+
+    /* ============ MISC ============ */
+    .fc-soft { font-size: 12px; color: var(--ink-3); margin: 14px 0 0; text-align: center; }
+    @media (max-width: 380px) {
+      .fc-main, .fc-hero { padding-left: 16px; padding-right: 16px; }
+      .fc-card { padding: 20px 16px; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ============ NAV ============ -->
+  <header class="fc-nav">
+    <div class="fc-nav__inner">
+      <a class="fc-nav__brand" href="/" aria-label="Venus Cosmetología">
+        <img class="fc-nav__logo" src="/assets/logo.png" alt="Venus">
+        <span class="fc-nav__name">Venus</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- ============ LOADING ============ -->
+  <div id="loading" class="fc-loading">
+    <div class="fc-spinner" aria-hidden="true"></div>
+    <p>Abriendo tu consentimiento…</p>
+  </div>
+
+  <!-- ============ INVALID LINK SCREEN ============ -->
+  <section id="screenInvalid" class="fc-screen">
+    <div class="fc-screen__emoji">🌸</div>
+    <h1 class="fc-screen__title">Este link ya no es válido</h1>
+    <p class="fc-screen__text">Pídenos uno nuevo por WhatsApp y con gusto te lo mandamos.</p>
+    <a class="fc-btn fc-btn--primary" href="https://wa.me/525500000000?text=Hola%20Venus%2C%20mi%20link%20de%20consentimiento%20l%C3%A1ser%20ya%20no%20funciona%2C%20%C2%BFme%20lo%20pueden%20reenviar%3F" target="_blank" rel="noopener">Pedir link nuevo por WhatsApp</a>
+  </section>
+
+  <!-- ============ SIGNED SCREEN (ya firmado al cargar) ============ -->
+  <section id="screenSigned" class="fc-screen">
+    <img class="fc-screen__logo" src="/assets/logo.png" alt="Venus">
+    <div class="fc-screen__emoji">✅</div>
+    <h1 class="fc-screen__title">Ya firmaste este consentimiento</h1>
+    <p class="fc-screen__text">Quedó registrado en tu expediente. Nos vemos pronto en Venus. 🌸</p>
+    <p class="fc-screen__meta" id="signedMeta"></p>
+    <a class="fc-btn fc-btn--primary" href="/">Ir al sitio de Venus</a>
+  </section>
+
+  <!-- ============ ALREADY SIGNED SCREEN (409 al firmar) ============ -->
+  <section id="screenAlreadySigned" class="fc-screen">
+    <img class="fc-screen__logo" src="/assets/logo.png" alt="Venus">
+    <div class="fc-screen__emoji">✅</div>
+    <h1 class="fc-screen__title">Este consentimiento ya fue firmado</h1>
+    <p class="fc-screen__text">No necesitas volver a firmarlo. Si tienes dudas, escríbenos por WhatsApp. 🌸</p>
+    <a class="fc-btn fc-btn--primary" href="/">Ir al sitio de Venus</a>
+  </section>
+
+  <!-- ============ GRACIAS SCREEN (post-submit exitoso) ============ -->
+  <section id="screenGracias" class="fc-screen">
+    <img class="fc-screen__logo" src="/assets/logo.png" alt="Venus">
+    <div class="fc-screen__emoji">🌸</div>
+    <h1 class="fc-screen__title">¡Gracias por firmar!</h1>
+    <p class="fc-screen__text">Guardamos tu consentimiento en tu expediente. Nos vemos pronto en Venus.</p>
+    <a class="fc-btn fc-btn--primary" href="/">Ir al sitio de Venus</a>
+  </section>
+
+  <!-- ============ FORM / DOCUMENTO ============ -->
+  <div id="formWrap" style="display:none;">
+
+    <section class="fc-hero">
+      <img class="fc-hero__logo" src="/assets/logo.png" alt="Venus">
+      <span class="fc-hero__eyebrow">Consentimiento informado</span>
+      <h1 class="fc-hero__title" id="docTitle">Consentimiento láser</h1>
+      <p class="fc-hero__sub" id="docSub">Lee con calma y firma al final. 🌸</p>
+    </section>
+
+    <main class="fc-main">
+
+      <!-- ===== TARJETA: DOCUMENTO LEGAL ===== -->
+      <div class="fc-card">
+        <div class="fc-card__eyebrow">Depilación láser diodo</div>
+        <h2 class="fc-card__title" id="docCardTitle">Información y consentimiento informado</h2>
+        <p class="fc-card__lede">Tómate tu tiempo para leerlo completo. Es importante que lo entiendas antes de firmar.</p>
+
+        <div class="fc-doc" id="docBody"><!-- secciones inyectadas por JS --></div>
+      </div>
+
+      <!-- ===== TARJETA: ACEPTACIÓN + FIRMA ===== -->
+      <div class="fc-card">
+        <div class="fc-card__eyebrow">Para firmar</div>
+        <h2 class="fc-card__title">Tu aceptación y firma</h2>
+        <p class="fc-card__lede">Marca la casilla y firma con el dedo o el ratón. 🌸</p>
+
+        <div class="fc-field">
+          <label class="fc-check" id="checkWrap">
+            <input type="checkbox" id="checkRead" class="fc-check__input" aria-describedby="checkLabel">
+            <span class="fc-check__box" aria-hidden="true"></span>
+            <span class="fc-check__label" id="checkLabel">He leído y comprendo toda la información anterior</span>
+          </label>
+        </div>
+
+        <div class="fc-field">
+          <label class="fc-field__label" for="sigCanvas">Tu firma</label>
+          <div class="fc-sig-wrap">
+            <canvas class="fc-sig-canvas" id="sigCanvas"></canvas>
+            <div class="fc-sig-baseline" aria-hidden="true"></div>
+            <div class="fc-sig-hint" aria-hidden="true">Firma aquí</div>
+          </div>
+          <button type="button" class="fc-sig-clear" id="sigClear">Limpiar</button>
+        </div>
+
+        <div class="fc-btns">
+          <button type="button" class="fc-btn fc-btn--primary" id="btnSubmit" disabled>Firmar consentimiento</button>
+        </div>
+        <div class="fc-err" id="formErr"></div>
+        <p class="fc-soft">Al firmar, guardamos tu consentimiento en tu expediente de Venus.</p>
+      </div>
+
+    </main>
+  </div>
+
+  <script>
+  (function () {
+    'use strict';
+
+    /* ============================================================
+       1. ESTADO
+       ============================================================ */
+    let token = null;
+    let signaturePad = null;
+    let submitting = false;
+
+    /* ============================================================
+       2. DOM refs
+       ============================================================ */
+    const $ = (s) => document.querySelector(s);
+    const loading = $('#loading');
+    const formWrap = $('#formWrap');
+    const screenInvalid = $('#screenInvalid');
+    const screenSigned = $('#screenSigned');
+    const screenAlreadySigned = $('#screenAlreadySigned');
+    const screenGracias = $('#screenGracias');
+    const signedMeta = $('#signedMeta');
+    const docTitle = $('#docTitle');
+    const docSub = $('#docSub');
+    const docCardTitle = $('#docCardTitle');
+    const docBody = $('#docBody');
+    const checkWrap = $('#checkWrap');
+    const checkRead = $('#checkRead');
+    const sigClear = $('#sigClear');
+    const btnSubmit = $('#btnSubmit');
+    const formErr = $('#formErr');
+
+    /* ============================================================
+       3. TOKEN + API
+       ============================================================ */
+    function getToken() {
+      const parts = location.pathname.split('/'); // ['', 'consentimiento', '<token>']
+      return parts[2] || '';
+    }
+    async function apiGet(url) {
+      const r = await fetch(url, { headers: { 'Accept': 'application/json' } });
+      if (!r.ok) throw Object.assign(new Error('HTTP ' + r.status), { status: r.status });
+      return r.json();
+    }
+    async function apiPost(url, body) {
+      const r = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      let payload = null;
+      try { payload = await r.json(); } catch (_) {}
+      if (!r.ok) {
+        const code = (payload && payload.error) || null;
+        throw Object.assign(new Error('HTTP ' + r.status), { status: r.status, code });
+      }
+      return payload;
+    }
+
+    /* ============================================================
+       4. CARGA INICIAL
+       ============================================================ */
+    async function init() {
+      token = getToken();
+      if (!token) { showInvalid(); return; }
+      try {
+        const data = await apiGet('/api/expedientes/public/consent/' + encodeURIComponent(token));
+        if (data.consent && data.consent.status === 'signed') {
+          showSigned(data.consent.signedAt);
+          return;
+        }
+        renderDoc(data);
+        hideLoading();
+        formWrap.style.display = '';
+        initSignaturePad();
+        bindControls();
+        window.scrollTo(0, 0);
+      } catch (e) {
+        showInvalid();
+      }
+    }
+
+    function showInvalid() { hideLoading(); screenInvalid.classList.add('show'); }
+    function showSigned(signedAt) {
+      hideLoading();
+      if (signedAt) {
+        const f = formatFecha(signedAt);
+        if (f) signedMeta.textContent = 'Firmado el ' + f;
+      }
+      screenSigned.classList.add('show');
+    }
+    function showAlreadySigned() { hideLoading(); screenAlreadySigned.classList.add('show'); }
+    function showGracias() { hideLoading(); screenGracias.classList.add('show'); }
+    function hideLoading() { loading.style.display = 'none'; }
+
+    /* ============================================================
+       5. RENDER DEL DOCUMENTO
+       ============================================================ */
+    function renderDoc(data) {
+      const ct = data.consentText || {};
+      const card = data.card || {};
+      const name = card.name ? card.name.split(' ')[0] : '';
+
+      // Título de la página + hero.
+      const title = ct.title || 'Consentimiento informado de depilación láser diodo';
+      docTitle.textContent = title;
+      document.title = title + ' — Venus';
+      docCardTitle.textContent = title;
+      docSub.textContent = name
+        ? 'Hola ' + name + ', lee con calma y firma al final. Es necesario antes de tu sesión de depilación láser. 🌸'
+        : 'Lee con calma y firma al final. Es necesario antes de tu sesión de depilación láser. 🌸';
+
+      // Secciones.
+      docBody.innerHTML = '';
+      const sections = Array.isArray(ct.sections) ? ct.sections : [];
+      sections.forEach((sec) => {
+        const wrap = document.createElement('div');
+        wrap.className = 'fc-doc__section';
+        if (sec.heading && String(sec.heading).trim()) {
+          const h = document.createElement('h3');
+          h.className = 'fc-doc__heading';
+          h.textContent = sec.heading;
+          wrap.appendChild(h);
+        }
+        const body = sec.body || '';
+        const lines = String(body).split('\n');
+        lines.forEach((line) => {
+          if (line.trim() === '') return; // saltar líneas vacías
+          const p = document.createElement('p');
+          const isBullet = /^\s*•/.test(line);
+          p.className = 'fc-doc__line' + (isBullet ? ' fc-doc__line--bullet' : '');
+          p.textContent = line;
+          wrap.appendChild(p);
+        });
+        docBody.appendChild(wrap);
+      });
+    }
+
+    function formatFecha(iso) {
+      try {
+        const d = new Date(iso);
+        if (isNaN(d.getTime())) return '';
+        return new Intl.DateTimeFormat('es-MX', {
+          day: 'numeric', month: 'long', year: 'numeric',
+        }).format(d);
+      } catch (e) { return ''; }
+    }
+
+    /* ============================================================
+       6. FIRMA — signature_pad
+       ============================================================ */
+    function initSignaturePad() {
+      const canvas = $('#sigCanvas');
+      if (signaturePad) { resizeSigCanvas(); return; }
+      if (typeof SignaturePad === 'undefined') {
+        return requestAnimationFrame(initSignaturePad);
+      }
+      signaturePad = new SignaturePad(canvas, {
+        backgroundColor: 'rgba(255,255,255,0)',
+        penColor: '#243026',
+        minWidth: 0.8, maxWidth: 2.2,
+      });
+      resizeSigCanvas();
+      signaturePad.addEventListener('endStroke', updateSubmitState);
+      signaturePad.addEventListener('beginStroke', updateSubmitState);
+      window.addEventListener('resize', debounce(resizeSigCanvas, 200));
+      sigClear.addEventListener('click', () => {
+        signaturePad.clear();
+        updateSubmitState();
+      });
+      updateSubmitState();
+    }
+    function resizeSigCanvas() {
+      const canvas = $('#sigCanvas');
+      if (!canvas || !signaturePad) return;
+      const ratio = Math.max(window.devicePixelRatio || 1, 1);
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = Math.floor(rect.width * ratio);
+      canvas.height = Math.floor(rect.height * ratio);
+      canvas.getContext('2d').scale(ratio, ratio);
+      signaturePad.clear();
+      updateSubmitState();
+    }
+
+    /* ============================================================
+       7. GATING DEL BOTÓN
+       ============================================================ */
+    function updateSubmitState() {
+      const checked = !!(checkRead && checkRead.checked);
+      const hasSig = !!(signaturePad && !signaturePad.isEmpty());
+      btnSubmit.disabled = !(checked && hasSig);
+    }
+
+    function bindControls() {
+      checkRead.addEventListener('change', () => {
+        checkWrap.classList.toggle('on', checkRead.checked);
+        updateSubmitState();
+      });
+      // Click en el wrapper también conmuta (área más grande).
+      checkWrap.addEventListener('click', (e) => {
+        if (e.target === checkRead) return; // el input ya lo maneja
+        e.preventDefault();
+        checkRead.checked = !checkRead.checked;
+        checkWrap.classList.toggle('on', checkRead.checked);
+        updateSubmitState();
+      });
+      btnSubmit.addEventListener('click', submitConsent);
+    }
+
+    /* ============================================================
+       8. SUBMIT
+       ============================================================ */
+    async function submitConsent() {
+      if (submitting) return;
+      hideErr();
+      if (!checkRead.checked) {
+        return showErr('Por favor confirma que leíste y comprendiste la información.');
+      }
+      if (!signaturePad || signaturePad.isEmpty()) {
+        return showErr('Necesitamos tu firma para terminar. ✨');
+      }
+      submitting = true;
+      btnSubmit.disabled = true;
+      btnSubmit.textContent = 'Guardando…';
+      try {
+        const signature = signaturePad.toDataURL('image/png');
+        await apiPost('/api/expedientes/public/consent/' + encodeURIComponent(token) + '/submit', { signature });
+        showGracias();
+      } catch (e) {
+        const status = e && e.status;
+        const code = e && e.code;
+        if (status === 409 || code === 'consentimiento_ya_firmado') showAlreadySigned();
+        else if (status === 401) showInvalid();
+        else if (status === 400) showErr('Necesitamos tu firma para terminar. ✨');
+        else showErr('No pudimos enviar tu consentimiento. Revisa tu conexión e inténtalo de nuevo.');
+      } finally {
+        submitting = false;
+        btnSubmit.disabled = false;
+        btnSubmit.textContent = 'Firmar consentimiento';
+        // Tras un error recuperable, recalcular el gate.
+        updateSubmitState();
+      }
+    }
+
+    function showErr(msg) { formErr.textContent = msg; formErr.classList.add('show'); }
+    function hideErr() { formErr.classList.remove('show'); formErr.textContent = ''; }
+
+    /* ============================================================
+       9. HELPERS
+       ============================================================ */
+    function debounce(fn, ms) {
+      let t = null;
+      return function () { clearTimeout(t); t = setTimeout(fn, ms); };
+    }
+
+    // Arranque cuando el DOM esté listo.
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+  })();
+  </script>
+</body>
+</html>
