@@ -2470,6 +2470,15 @@ app.get("/staff.html", basicAuth, (_req, res) => {
   res.sendFile(path.join(__dirname, "public", "staff.html"));
 });
 
+// Páginas públicas de expedientes (Ficha Clínica + Consentimiento láser).
+// Se sirven por token JWT; la validez del token la valida la API, no la ruta HTML.
+app.get('/ficha/:token', (_req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'ficha-clinica.html'));
+});
+app.get('/consentimiento/:token', (_req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'consentimiento-laser.html'));
+});
+
 /* =========================================================
    RUTAS GOOGLE WALLET
    ========================================================= */

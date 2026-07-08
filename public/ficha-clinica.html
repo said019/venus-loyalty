@@ -1,0 +1,1435 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5">
+  <title>Ficha Clínica — Venus</title>
+  <link rel="icon" href="/assets/logo.png">
+  <!-- Forzar paleta light: la ficha es boutique cream + sage, intencionalmente clara. -->
+  <meta name="color-scheme" content="light only">
+  <meta name="theme-color" content="#a8bfa0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Prata&family=Manrope:wght@400;500;600;700;800&display=swap">
+  <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js" defer></script>
+  <style>
+    /* ============================================================
+       /ficha-clinica.html — Venus Cosmetología
+       Ficha clínica pública, mobile-first. Mismo register visual
+       que /agendar.html: cream + sage, Prata + Manrope, pills.
+       ============================================================ */
+
+    :root { color-scheme: light; }
+    html { color-scheme: light; background: #fbf7ef; }
+
+    /* Anti force-dark de Chrome / Android — declarar superficies explícitas. */
+    html, body { background-color: #fbf7ef !important; color: #243026 !important; forced-color-adjust: none; filter: none !important; }
+    body { isolation: isolate; }
+    .fc-card, .fc-input, .fc-toggle__opt, .fc-chip, .fc-radio, .fc-sig-canvas {
+      background-color: #ffffff !important; forced-color-adjust: none;
+    }
+    .fc-toggle__opt.on, .fc-chip.on, .fc-radio.on, .fc-btn--primary {
+      background-color: #a8bfa0 !important; color: #ffffff !important;
+    }
+
+    :root {
+      --sage:       #a8bfa0;
+      --sage-deep:  #8fa17f;
+      --sage-soft:  #eef1e5;
+      --ink:        #243026;
+      --ink-2:      #4a574e;
+      --ink-3:      #7a8a7e;
+      --cream:      #fbf7ef;
+      --linen:      #f3ecdf;
+      --line:       #e8e0cf;
+      --line-2:     #d8d0bd;
+      --white:      #ffffff;
+      --err:        #b9544a;
+
+      --display: 'Prata', Georgia, serif;
+      --body:    'Manrope', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+
+      --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+      --ease-out-expo:  cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-emil:      cubic-bezier(0.23, 1, 0.32, 1);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+    body {
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      background: var(--cream);
+      color: var(--ink);
+      font-family: var(--body);
+      font-size: 16px;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+      overflow-x: hidden;
+    }
+
+    /* ============ NAV / HEADER ============ */
+    .fc-nav {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: oklch(99% 0.006 88 / 0.86);
+      backdrop-filter: blur(14px) saturate(1.4);
+      -webkit-backdrop-filter: blur(14px) saturate(1.4);
+      border-bottom: 1px solid var(--line);
+    }
+    .fc-nav__inner {
+      max-width: 620px;
+      margin: 0 auto;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .fc-nav__brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .fc-nav__logo {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: #fff; padding: 3px; object-fit: contain;
+      box-shadow: 0 2px 10px oklch(58% 0.075 120 / 0.12);
+    }
+    .fc-nav__name {
+      font-family: var(--display);
+      font-size: 20px;
+      font-weight: 400;
+      color: var(--sage-deep);
+      letter-spacing: 0;
+    }
+    .fc-save {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 12px; font-weight: 600; color: var(--sage-deep);
+      background: var(--sage-soft); padding: 6px 12px; border-radius: 999px;
+      opacity: 0; transform: translateY(-4px);
+      transition: opacity 240ms var(--ease-out-quart), transform 240ms var(--ease-out-quart);
+      pointer-events: none;
+    }
+    .fc-save.show { opacity: 1; transform: translateY(0); }
+    .fc-save .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--sage-deep); }
+
+    /* ============ HERO ============ */
+    .fc-hero {
+      max-width: 620px;
+      margin: 0 auto;
+      padding: 40px 20px 12px;
+      text-align: center;
+      animation: fc-rise 600ms var(--ease-out-expo) 60ms both;
+    }
+    .fc-hero__logo {
+      width: 64px; height: 64px; border-radius: 18px; object-fit: contain;
+      margin: 0 auto 16px; display: block;
+      box-shadow: 0 10px 26px oklch(22% 0.012 80 / 0.08), 0 2px 6px oklch(22% 0.012 80 / 0.05);
+      border: 1px solid var(--line); background: #fff; padding: 4px;
+    }
+    .fc-hero__eyebrow {
+      display: inline-block;
+      font-size: 11px; font-weight: 600; letter-spacing: 0.18em;
+      text-transform: uppercase; color: var(--sage-deep);
+      margin-bottom: 12px; padding: 6px 14px;
+      background: var(--sage-soft); border-radius: 999px;
+    }
+    .fc-hero__title {
+      font-family: var(--display);
+      font-size: clamp(28px, 6vw, 38px);
+      font-weight: 500; line-height: 1.08; letter-spacing: -0.02em;
+      color: var(--ink); margin: 0 0 8px;
+    }
+    .fc-hero__sub {
+      font-size: 15px; line-height: 1.5; color: var(--ink-2);
+      max-width: 38ch; margin: 0 auto;
+    }
+    @keyframes fc-rise {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ============ PROGRESS ============ */
+    .fc-progress {
+      max-width: 620px;
+      margin: 28px auto 18px;
+      padding: 0 20px;
+    }
+    .fc-progress__head {
+      display: flex; justify-content: space-between; align-items: baseline;
+      margin-bottom: 10px;
+    }
+    .fc-progress__label {
+      font-size: 11px; font-weight: 600; letter-spacing: 0.14em;
+      text-transform: uppercase; color: var(--ink-2);
+    }
+    .fc-progress__count {
+      font-family: var(--display); font-size: 15px; color: var(--ink);
+      font-variant-numeric: tabular-nums;
+    }
+    .fc-progress__track {
+      display: flex; gap: 5px;
+    }
+    .fc-progress__seg {
+      flex: 1; height: 5px; border-radius: 999px;
+      background: var(--line); overflow: hidden;
+      transition: background 360ms var(--ease-out-quart);
+    }
+    .fc-progress__seg.done { background: var(--sage-deep); }
+    .fc-progress__seg.active { background: var(--sage); }
+
+    /* ============ MAIN ============ */
+    .fc-main {
+      max-width: 620px;
+      margin: 0 auto;
+      padding: 0 20px 72px;
+    }
+
+    /* ============ STEP ============ */
+    .fc-step { display: none; }
+    .fc-step.active {
+      display: block;
+      animation: fc-step-in 420ms var(--ease-out-expo) both;
+    }
+    @keyframes fc-step-in {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .fc-card {
+      background: var(--white);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 24px 20px;
+      box-shadow: 0 8px 24px oklch(22% 0.012 80 / 0.05);
+      position: relative;
+    }
+    .fc-card + .fc-card { margin-top: 14px; }
+    .fc-card__eyebrow {
+      font-size: 11px; font-weight: 600; letter-spacing: 0.14em;
+      text-transform: uppercase; color: var(--sage-deep);
+      margin-bottom: 8px;
+    }
+    .fc-card__title {
+      font-family: var(--display);
+      font-size: clamp(22px, 5vw, 28px);
+      font-weight: 500; line-height: 1.12; letter-spacing: -0.015em;
+      color: var(--ink); margin: 0 0 8px;
+    }
+    .fc-card__lede {
+      font-size: 14.5px; color: var(--ink-2); line-height: 1.55;
+      margin: 0 0 22px;
+    }
+
+    /* ============ FIELDS ============ */
+    .fc-field { margin-bottom: 18px; }
+    .fc-field:last-child { margin-bottom: 0; }
+    .fc-field__label {
+      display: block; font-size: 12px; font-weight: 600;
+      letter-spacing: 0.04em; color: var(--ink-2);
+      text-transform: uppercase; margin-bottom: 7px;
+    }
+    .fc-field__hint {
+      font-size: 12px; color: var(--ink-3); margin-top: 6px;
+      font-weight: 400; text-transform: none; letter-spacing: 0;
+    }
+    .fc-input, .fc-textarea {
+      width: 100%;
+      padding: 15px 16px;
+      border: 1.5px solid var(--line);
+      border-radius: 12px;
+      background: var(--white);
+      color: var(--ink);
+      font-family: var(--body);
+      font-size: 16px;
+      font-weight: 500;
+      transition: border-color 200ms var(--ease-out-quart), box-shadow 200ms var(--ease-out-quart);
+      -webkit-appearance: none; appearance: none;
+    }
+    .fc-textarea { min-height: 96px; resize: vertical; line-height: 1.5; font-weight: 400; }
+    .fc-input::placeholder, .fc-textarea::placeholder { color: var(--ink-3); font-weight: 400; }
+    .fc-input:hover, .fc-textarea:hover { border-color: var(--line-2); }
+    .fc-input:focus, .fc-textarea:focus {
+      outline: none; border-color: var(--sage);
+      box-shadow: 0 0 0 4px var(--sage-soft);
+    }
+    .fc-field-row {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+    }
+    @media (max-width: 420px) { .fc-field-row { grid-template-columns: 1fr; } }
+
+    /* ============ TOGGLE Sí/No ============ */
+    .fc-toggle {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+      margin-top: 2px;
+    }
+    .fc-toggle__opt {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 13px 12px;
+      border: 1.5px solid var(--line);
+      border-radius: 12px;
+      background: var(--white);
+      color: var(--ink);
+      font-family: var(--body); font-size: 15px; font-weight: 600;
+      cursor: pointer;
+      transition: all 180ms var(--ease-out-quart);
+      min-height: 48px;
+    }
+    .fc-toggle__opt:hover { border-color: var(--line-2); transform: translateY(-1px); }
+    .fc-toggle__opt.on {
+      border-color: var(--sage); box-shadow: 0 0 0 2px var(--sage-soft);
+    }
+    .fc-toggle__opt.no.on { background-color: var(--linen) !important; color: var(--ink) !important; border-color: var(--line-2); box-shadow: 0 0 0 2px var(--linen); }
+    .fc-toggle__opt .ico { font-size: 13px; }
+
+    /* ============ RADIO PILLS (ciclo menstrual) ============ */
+    .fc-pills { display: flex; flex-wrap: wrap; gap: 8px; }
+    .fc-pill {
+      padding: 11px 16px; border: 1.5px solid var(--line); border-radius: 999px;
+      background: var(--white); color: var(--ink); cursor: pointer;
+      font-size: 14px; font-weight: 600;
+      transition: all 180ms var(--ease-out-quart); min-height: 44px;
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .fc-pill:hover { border-color: var(--line-2); transform: translateY(-1px); }
+    .fc-pill.on {
+      background: var(--sage); border-color: var(--sage); color: #fff;
+      box-shadow: 0 0 0 2px var(--sage-soft);
+    }
+    .fc-pill small { font-weight: 500; opacity: 0.8; font-size: 12px; }
+
+    /* ============ CHIPS (cuestionario) ============ */
+    .fc-chips {
+      display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px;
+    }
+    .fc-chip {
+      padding: 10px 14px; border: 1.5px solid var(--line); border-radius: 999px;
+      background: var(--white); color: var(--ink-2); cursor: pointer;
+      font-size: 13.5px; font-weight: 600;
+      transition: all 180ms var(--ease-out-quart); min-height: 40px;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .fc-chip:hover { border-color: var(--line-2); color: var(--ink); transform: translateY(-1px); }
+    .fc-chip.on {
+      background: var(--sage); border-color: var(--sage); color: #fff;
+      box-shadow: 0 0 0 2px var(--sage-soft);
+    }
+    .fc-cond {
+      margin-top: 18px; padding-top: 18px;
+      border-top: 1px dashed var(--line);
+    }
+    .fc-cond:first-of-type { border-top: none; margin-top: 0; padding-top: 0; }
+    .fc-cond__title {
+      font-family: var(--display); font-size: 18px; font-weight: 500;
+      color: var(--ink); margin: 0 0 12px; letter-spacing: -0.01em;
+    }
+
+    /* ============ RUTINA (dynamic lists) ============ */
+    .fc-routine { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    @media (max-width: 480px) { .fc-routine { grid-template-columns: 1fr; } }
+    .fc-routine__col h4 {
+      margin: 0 0 10px; font-size: 13px; font-weight: 700;
+      letter-spacing: 0.06em; text-transform: uppercase; color: var(--sage-deep);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .fc-routine__add {
+      display: flex; gap: 6px; margin-bottom: 8px;
+    }
+    .fc-routine__add input {
+      flex: 1; padding: 11px 12px; border: 1.5px solid var(--line);
+      border-radius: 10px; background: var(--white); color: var(--ink);
+      font-family: var(--body); font-size: 14px; font-weight: 500;
+      transition: border-color 200ms var(--ease-out-quart);
+    }
+    .fc-routine__add input:focus { outline: none; border-color: var(--sage); box-shadow: 0 0 0 3px var(--sage-soft); }
+    .fc-routine__add button {
+      width: 44px; height: 44px; flex-shrink: 0;
+      border: none; border-radius: 10px; background: var(--sage); color: #fff;
+      font-size: 20px; font-weight: 600; cursor: pointer;
+      transition: background 180ms var(--ease-out-quart), transform 180ms var(--ease-out-quart);
+    }
+    .fc-routine__add button:hover { background: var(--sage-deep); transform: translateY(-1px); }
+    .fc-routine__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+    .fc-routine__list li {
+      display: flex; align-items: center; gap: 8px;
+      padding: 9px 12px; background: var(--linen); border-radius: 10px;
+      font-size: 14px; color: var(--ink); line-height: 1.35;
+      animation: fc-pop 200ms var(--ease-emil) both;
+    }
+    .fc-routine__list li button {
+      margin-left: auto; flex-shrink: 0;
+      width: 24px; height: 24px; border: none; border-radius: 50%;
+      background: rgba(0,0,0,0.06); color: var(--ink-2); cursor: pointer;
+      font-size: 13px; line-height: 1; transition: background 160ms ease;
+    }
+    .fc-routine__list li button:hover { background: var(--err); color: #fff; }
+    .fc-routine__empty {
+      font-size: 12.5px; color: var(--ink-3); font-style: italic;
+      padding: 6px 2px;
+    }
+    @keyframes fc-pop {
+      0%   { opacity: 0; transform: scale(0.95); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    /* ============ FOTO AUTORIZACIÓN ============ */
+    .fc-legal {
+      background: var(--linen); border-radius: 12px; padding: 16px 16px;
+      font-size: 13.5px; line-height: 1.6; color: var(--ink);
+      margin-bottom: 18px; white-space: pre-line;
+    }
+    .fc-radios { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .fc-radio {
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      padding: 18px 14px; border: 1.5px solid var(--line); border-radius: 14px;
+      background: var(--white); color: var(--ink); cursor: pointer;
+      font-size: 16px; font-weight: 700; letter-spacing: 0.02em;
+      transition: all 180ms var(--ease-out-quart); min-height: 60px;
+    }
+    .fc-radio:hover { border-color: var(--line-2); transform: translateY(-1px); }
+    .fc-radio.on { border-color: var(--sage); box-shadow: 0 0 0 2px var(--sage-soft); }
+    .fc-radio.no.on { background-color: var(--linen) !important; color: var(--ink) !important; border-color: var(--line-2); box-shadow: 0 0 0 2px var(--linen); }
+    .fc-radio .bubble {
+      width: 22px; height: 22px; border-radius: 50%;
+      border: 2px solid var(--line-2); flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 180ms var(--ease-out-quart);
+    }
+    .fc-radio.on .bubble { border-color: var(--sage-deep); background: var(--sage-deep); }
+    .fc-radio.on .bubble::after { content: '✓'; color: #fff; font-size: 13px; font-weight: 700; }
+    .fc-radio.no.on .bubble { border-color: var(--ink-3); background: var(--ink-3); }
+
+    /* ============ FIRMA (signature canvas) ============ */
+    .fc-sig-wrap {
+      position: relative; width: 100%; height: 200px;
+      border: 1.5px solid var(--line); border-radius: 12px;
+      background: var(--white); overflow: hidden;
+    }
+    .fc-sig-canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
+    .fc-sig-baseline {
+      position: absolute; left: 16px; right: 16px; bottom: 28px;
+      height: 1px; background: var(--line-2); pointer-events: none;
+    }
+    .fc-sig-hint {
+      position: absolute; left: 16px; bottom: 8px; font-size: 11px;
+      color: var(--ink-3); letter-spacing: 0.1em; text-transform: uppercase;
+      pointer-events: none;
+    }
+    .fc-sig-clear {
+      margin-top: 10px;
+      background: transparent; color: var(--ink-2);
+      border: 1.5px solid var(--line); border-radius: 999px;
+      padding: 9px 18px; font-size: 13px; font-weight: 600; cursor: pointer;
+      transition: all 180ms var(--ease-out-quart); min-height: 40px;
+    }
+    .fc-sig-clear:hover { background: var(--linen); border-color: var(--line-2); }
+
+    /* ============ BUTTONS ============ */
+    .fc-btns {
+      display: flex; gap: 10px; margin-top: 22px;
+    }
+    .fc-btn {
+      flex: 1;
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 16px 22px; border: none; border-radius: 999px;
+      font-family: var(--body); font-size: 15px; font-weight: 600;
+      letter-spacing: 0.005em; cursor: pointer; min-height: 54px;
+      transition: transform 200ms var(--ease-out-quart), box-shadow 200ms var(--ease-out-quart), background 200ms var(--ease-out-quart);
+      position: relative; overflow: hidden;
+    }
+    .fc-btn:disabled { cursor: not-allowed; opacity: 0.55; }
+    .fc-btn--primary {
+      background: var(--sage); color: #fff;
+      box-shadow: 0 8px 24px oklch(58% 0.075 120 / 0.22), 0 2px 6px oklch(58% 0.075 120 / 0.16);
+    }
+    .fc-btn--primary:hover:not(:disabled) {
+      background: var(--sage-deep); transform: translateY(-2px);
+      box-shadow: 0 12px 30px oklch(58% 0.075 120 / 0.30), 0 3px 8px oklch(58% 0.075 120 / 0.20);
+    }
+    .fc-btn--primary:active:not(:disabled) { transform: translateY(0) scale(0.98); }
+    .fc-btn--ghost {
+      background: transparent; color: var(--ink);
+      border: 1.5px solid var(--line); flex: 0 0 auto; padding: 16px 22px;
+    }
+    .fc-btn--ghost:hover:not(:disabled) { background: var(--linen); border-color: var(--line-2); transform: translateY(-1px); }
+    .fc-err {
+      display: none; margin-top: 14px; padding: 12px 14px;
+      background: oklch(96% 0.030 28); color: var(--err);
+      border: 1px solid oklch(82% 0.060 28); border-radius: 12px;
+      font-size: 13.5px; line-height: 1.45;
+    }
+    .fc-err.show { display: block; animation: fc-pop 200ms var(--ease-emil) both; }
+
+    /* ============ FULLSCREEN STATUS SCREENS ============ */
+    .fc-screen {
+      display: none; text-align: center;
+      max-width: 460px; margin: 0 auto; padding: 80px 24px 40px;
+      animation: fc-rise 500ms var(--ease-out-expo) both;
+    }
+    .fc-screen.show { display: block; }
+    .fc-screen__logo {
+      width: 80px; height: 80px; border-radius: 22px; object-fit: contain;
+      margin: 0 auto 22px; display: block;
+      box-shadow: 0 12px 30px oklch(22% 0.012 80 / 0.08);
+      border: 1px solid var(--line); background: #fff; padding: 5px;
+    }
+    .fc-screen__emoji { font-size: 52px; margin: 0 0 16px; line-height: 1; }
+    .fc-screen__title {
+      font-family: var(--display); font-size: clamp(26px, 6vw, 34px);
+      font-weight: 500; line-height: 1.12; letter-spacing: -0.02em;
+      color: var(--ink); margin: 0 0 12px;
+    }
+    .fc-screen__text {
+      font-size: 16px; line-height: 1.55; color: var(--ink-2);
+      max-width: 40ch; margin: 0 auto 28px;
+    }
+    .fc-screen .fc-btn { display: inline-flex; flex: 0 0 auto; padding: 16px 30px; }
+
+    /* ============ LOADING ============ */
+    .fc-loading {
+      display: flex; flex-direction: column; align-items: center; gap: 16px;
+      padding: 80px 24px; max-width: 460px; margin: 0 auto; text-align: center;
+    }
+    .fc-spinner {
+      width: 34px; height: 34px; border-radius: 50%;
+      border: 3px solid var(--line); border-top-color: var(--sage-deep);
+      animation: fc-spin 800ms linear infinite;
+    }
+    @keyframes fc-spin { to { transform: rotate(360deg); } }
+    .fc-loading p { font-size: 14px; color: var(--ink-3); margin: 0; }
+
+    /* ============ MISC ============ */
+    .fc-asterisk { color: var(--err); margin-left: 2px; }
+    .fc-soft { font-size: 12px; color: var(--ink-3); margin: 14px 0 0; }
+    @media (max-width: 380px) {
+      .fc-main, .fc-hero, .fc-progress { padding-left: 16px; padding-right: 16px; }
+      .fc-card { padding: 20px 16px; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ============ NAV ============ -->
+  <header class="fc-nav">
+    <div class="fc-nav__inner">
+      <a class="fc-nav__brand" href="/" aria-label="Venus Cosmetología">
+        <img class="fc-nav__logo" src="/assets/logo.png" alt="Venus">
+        <span class="fc-nav__name">Venus</span>
+      </a>
+      <span id="saveIndicator" class="fc-save" aria-live="polite">
+        <span class="dot"></span> Guardado ✓
+      </span>
+    </div>
+  </header>
+
+  <!-- ============ LOADING ============ -->
+  <div id="loading" class="fc-loading">
+    <div class="fc-spinner" aria-hidden="true"></div>
+    <p>Abriendo tu ficha…</p>
+  </div>
+
+  <!-- ============ INVALID LINK SCREEN ============ -->
+  <section id="screenInvalid" class="fc-screen">
+    <div class="fc-screen__emoji">🌸</div>
+    <h1 class="fc-screen__title">Este link ya no es válido</h1>
+    <p class="fc-screen__text">Pídenos uno nuevo por WhatsApp y con gusto te lo mandamos.</p>
+    <a class="fc-btn fc-btn--primary" href="https://wa.me/525500000000?text=Hola%20Venus%2C%20mi%20link%20de%20ficha%20clínica%20ya%20no%20funciona%2C%20¿me%20lo%20pueden%20reenviar%3F" target="_blank" rel="noopener">Pedir link nuevo por WhatsApp</a>
+  </section>
+
+  <!-- ============ SIGNED / GRACIAS SCREEN ============ -->
+  <section id="screenSigned" class="fc-screen">
+    <img class="fc-screen__logo" src="/assets/logo.png" alt="Venus">
+    <div class="fc-screen__emoji">✅</div>
+    <h1 class="fc-screen__title">¡Tu ficha ya está completa, gracias!</h1>
+    <p class="fc-screen__text">Guardamos todo con la confidencialidad que mereces. Nos vemos pronto en Venus.</p>
+    <a class="fc-btn fc-btn--primary" href="/">Ir al sitio de Venus</a>
+  </section>
+
+  <!-- ============ FORM (wizard) ============ -->
+  <div id="formWrap" style="display:none;">
+
+    <section class="fc-hero">
+      <img class="fc-hero__logo" src="/assets/logo.png" alt="Venus">
+      <span class="fc-hero__eyebrow">Ficha Clínica</span>
+      <h1 class="fc-hero__title">Conozcamos tu piel a fondo</h1>
+      <p class="fc-hero__sub">Tómate tu tiempo, va paso a paso y se guarda solito. Tus datos son confidenciales. ✨</p>
+    </section>
+
+    <div class="fc-progress">
+      <div class="fc-progress__head">
+        <span class="fc-progress__label">Paso <span id="stepNum">1</span> de 7</span>
+        <span class="fc-progress__count" id="stepName">Tus datos</span>
+      </div>
+      <div class="fc-progress__track" id="progressTrack" aria-hidden="true"></div>
+    </div>
+
+    <main class="fc-main">
+
+      <!-- ===== STEP 1: TUS DATOS ===== -->
+      <section class="fc-step" data-step="1">
+        <div class="fc-card">
+          <div class="fc-card__eyebrow">Paso 1 · Datos personales</div>
+          <h2 class="fc-card__title">Tus datos</h2>
+          <p class="fc-card__lede">Lo básico para conocerte y poder darte seguimiento.</p>
+
+          <div class="fc-field">
+            <label class="fc-field__label" for="f-fullName">Nombre completo</label>
+            <input class="fc-input" id="f-fullName" type="text" data-bind="fullName" placeholder="Tu nombre" autocomplete="name">
+          </div>
+
+          <div class="fc-field-row">
+            <div class="fc-field">
+              <label class="fc-field__label" for="f-birthDate">Fecha de nacimiento</label>
+              <input class="fc-input" id="f-birthDate" type="text" data-bind="birthDate" placeholder="Ej. 31-Enero-1995">
+            </div>
+            <div class="fc-field">
+              <label class="fc-field__label" for="f-age">Edad</label>
+              <input class="fc-input" id="f-age" type="number" inputmode="numeric" min="0" max="120" data-bind="age" placeholder="Años">
+            </div>
+          </div>
+
+          <div class="fc-field">
+            <label class="fc-field__label" for="f-phone">Teléfono</label>
+            <input class="fc-input" id="f-phone" type="tel" data-bind="phone" placeholder="Tu teléfono" autocomplete="tel">
+          </div>
+
+          <div class="fc-field">
+            <label class="fc-field__label" for="f-profession">Profesión</label>
+            <input class="fc-input" id="f-profession" type="text" data-bind="profession" placeholder="A qué te dedicas">
+          </div>
+
+          <div class="fc-field">
+            <label class="fc-field__label" for="f-address">Dirección</label>
+            <input class="fc-input" id="f-address" type="text" data-bind="address" placeholder="Calle, número, colonia, ciudad">
+          </div>
+
+          <div class="fc-field">
+            <label class="fc-field__label" for="f-socialMedia">Redes sociales</label>
+            <input class="fc-input" id="f-socialMedia" type="text" data-bind="socialMedia" placeholder="@tu_usuario o enlace a tu perfil">
+          </div>
+
+          <div class="fc-field">
+            <label class="fc-field__label" for="f-referralSource">¿Cómo te enteraste de nosotros?</label>
+            <input class="fc-input" id="f-referralSource" type="text" data-bind="referralSource" placeholder="Amiga, Instagram, Facebook, al pasar…">
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== STEP 2: DATOS DE INTERÉS ===== -->
+      <section class="fc-step" data-step="2">
+        <div class="fc-card">
+          <div class="fc-card__eyebrow">Paso 2 · Datos de interés</div>
+          <h2 class="fc-card__title">Datos de interés</h2>
+          <p class="fc-card__lede">Esto nos ayuda a cuidar tu piel y evitar contraindicaciones. Todo es confidencial.</p>
+
+          <div class="fc-field">
+            <label class="fc-field__label">Ciclo menstrual</label>
+            <div class="fc-pills" id="cicloPills">
+              <button type="button" class="fc-pill" data-ciclo="R">R <small>Regular</small></button>
+              <button type="button" class="fc-pill" data-ciclo="IR">IR <small>Irregular</small></button>
+              <button type="button" class="fc-pill" data-ciclo="NP">NP <small>No presente</small></button>
+            </div>
+          </div>
+
+          <!-- Toggles se inyectan por JS en #togglesWrap -->
+          <div id="togglesWrap"></div>
+        </div>
+      </section>
+
+      <!-- ===== STEP 3: TU PIEL ===== -->
+      <section class="fc-step" data-step="3">
+        <div class="fc-card">
+          <div class="fc-card__eyebrow">Paso 3 · Tu piel</div>
+          <h2 class="fc-card__title">Tu piel</h2>
+          <p class="fc-card__lede">Cuéntanos qué buscas mejorar y qué has probado.</p>
+
+          <div class="fc-field">
+            <label class="fc-field__label" for="f-skinCondition">Condición que buscas mejorar</label>
+            <textarea class="fc-textarea" id="f-skinCondition" data-bind="skinCondition" placeholder="¿Qué te gustaría tratar?"></textarea>
+          </div>
+
+          <div class="fc-field">
+            <label class="fc-field__label" for="f-conditionSince">¿Desde cuándo?</label>
+            <input class="fc-input" id="f-conditionSince" type="text" data-bind="conditionSince" placeholder="Ej. hace 2 años">
+          </div>
+
+          <div class="fc-field">
+            <label class="fc-field__label" for="f-previousTreatments">Tratamientos anteriores</label>
+            <textarea class="fc-textarea" id="f-previousTreatments" data-bind="previousTreatments" placeholder="¿Qué te has hecho antes?"></textarea>
+          </div>
+
+          <div class="fc-field">
+            <label class="fc-field__label" for="f-treatmentReactions">Reacciones tras tratamientos</label>
+            <textarea class="fc-textarea" id="f-treatmentReactions" data-bind="treatmentReactions" placeholder="¿Tuviste alguna reacción positiva o negativa?"></textarea>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== STEP 4: CUESTIONARIO ===== -->
+      <section class="fc-step" data-step="4">
+        <div class="fc-card">
+          <div class="fc-card__eyebrow">Paso 4 · Cuestionario</div>
+          <h2 class="fc-card__title">¿Qué condiciones aplican a ti?</h2>
+          <p class="fc-card__lede">Selecciona todas las que apliquen y responde las preguntas que salgan.</p>
+
+          <div class="fc-chips" id="condChips">
+            <button type="button" class="fc-chip" data-cond="acne">Acné</button>
+            <button type="button" class="fc-chip" data-cond="cicatrices">Cicatrices atróficas</button>
+            <button type="button" class="fc-chip" data-cond="pigmentaciones">Pigmentaciones</button>
+            <button type="button" class="fc-chip" data-cond="envejecimiento">Envejecimiento</button>
+            <button type="button" class="fc-chip" data-cond="ojerasInflamadas">Ojeras inflamadas</button>
+            <button type="button" class="fc-chip" data-cond="ojerasPigmentadas">Ojeras pigmentadas</button>
+            <button type="button" class="fc-chip" data-cond="pielSensible">Piel sensible</button>
+          </div>
+
+          <div id="condQuestions"></div>
+        </div>
+      </section>
+
+      <!-- ===== STEP 5: TU RUTINA ===== -->
+      <section class="fc-step" data-step="5">
+        <div class="fc-card">
+          <div class="fc-card__eyebrow">Paso 5 · Rutina skincare</div>
+          <h2 class="fc-card__title">Tu rutina</h2>
+          <p class="fc-card__lede">Anota los productos que usas de día y de noche. Toca + para agregar, y un producto para quitarlo.</p>
+
+          <div class="fc-routine">
+            <div class="fc-routine__col">
+              <h4>🌅 Día</h4>
+              <div class="fc-routine__add">
+                <input type="text" id="routineDayInput" placeholder="Agregar producto de día" autocomplete="off">
+                <button type="button" data-add="Day" aria-label="Agregar producto de día">+</button>
+              </div>
+              <ul class="fc-routine__list" id="routineDayList"></ul>
+              <p class="fc-routine__empty" id="routineDayEmpty">Aún no agregas productos de día.</p>
+            </div>
+            <div class="fc-routine__col">
+              <h4>🌙 Noche</h4>
+              <div class="fc-routine__add">
+                <input type="text" id="routineNightInput" placeholder="Agregar producto de noche" autocomplete="off">
+                <button type="button" data-add="Night" aria-label="Agregar producto de noche">+</button>
+              </div>
+              <ul class="fc-routine__list" id="routineNightList"></ul>
+              <p class="fc-routine__empty" id="routineNightEmpty">Aún no agregas productos de noche.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== STEP 6: AUTORIZACIÓN DE FOTOS ===== -->
+      <section class="fc-step" data-step="6">
+        <div class="fc-card">
+          <div class="fc-card__eyebrow">Paso 6 · Autorización de fotografías</div>
+          <h2 class="fc-card__title">Tu autorización</h2>
+          <p class="fc-card__lede">Lee con calma y elige si autorizas.</p>
+
+          <div class="fc-legal">DECLARO QUE TODA LA INFORMACIÓN DADA ANTERIORMENTE ES VERÍDICA. Y AUTORIZO QUE CONSULTORIO COSMETOLÓGICO VENUS TOME FOTOGRAFÍAS CONFIDENCIALES DE MI PROCEDIMIENTO ESTÉTICO CON EL ÚNICO FIN DE OBSERVAR LOS RESULTADOS Y EL AVANCE DE MI TRATAMIENTO. En caso de que CONSULTORIO COSMETOLÓGICO VENUS tenga la intención de publicar las fotos como evidencia de un buen resultado, tendrá la obligación de pedirle autorización previa al paciente para dicha publicación; en caso de ser así se mantendrá en todo momento la confidencialidad del paciente.</div>
+
+          <div class="fc-radios" id="photoRadios">
+            <button type="button" class="fc-radio" data-photo="yes">SÍ AUTORIZO <span class="bubble"></span></button>
+            <button type="button" class="fc-radio no" data-photo="no">NO AUTORIZO <span class="bubble"></span></button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== STEP 7: FIRMA ===== -->
+      <section class="fc-step" data-step="7">
+        <div class="fc-card">
+          <div class="fc-card__eyebrow">Paso 7 · Firma</div>
+          <h2 class="fc-card__title">Firma para terminar</h2>
+          <p class="fc-card__lede">Con tu firma confirmas que todo lo que escribiste es verídico.</p>
+
+          <div class="fc-field">
+            <label class="fc-field__label" for="sigCanvas">Tu firma</label>
+            <div class="fc-sig-wrap">
+              <canvas class="fc-sig-canvas" id="sigCanvas"></canvas>
+              <div class="fc-sig-baseline" aria-hidden="true"></div>
+              <div class="fc-sig-hint" aria-hidden="true">Firma aquí</div>
+            </div>
+            <button type="button" class="fc-sig-clear" id="sigClear">Limpiar</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ NAV BUTTONS ============ -->
+      <div class="fc-btns" id="navBtns">
+        <button type="button" class="fc-btn fc-btn--ghost" id="btnBack">Atrás</button>
+        <button type="button" class="fc-btn fc-btn--primary" id="btnNext">Siguiente</button>
+      </div>
+      <div class="fc-err" id="formErr"></div>
+      <p class="fc-soft">Se guarda automáticamente. Puedes cerrar y volver después con el mismo link.</p>
+    </main>
+  </div>
+
+  <script>
+  (function () {
+    'use strict';
+
+    /* ============================================================
+       1. CONSTANTES — preguntas oficiales (textos verbatim del PDF)
+       ============================================================ */
+    const QUESTIONS = {
+      acne: [
+        '¿Cómo es tu ingesta de lácteos, embutidos, azúcares y/o comida chatarra?',
+        '¿Utilizas base de maquillaje todos los días?',
+        '¿Con qué frecuencia lavas tus brochas?',
+        '¿Compartes tu maquillaje con amigos o familiares?',
+        '¿Con qué te desmaquillas el rostro?',
+        '¿Con qué frecuencia cambias las fundas de tus almohadas?',
+        '¿Cómo es tu nivel de estrés?',
+        '¿Tiendes a manipular, pellizcar o rascar las lesiones del acné?',
+      ],
+      cicatrices: [
+        '¿Padeciste acné en alguna etapa de tu vida? ¿Cuánto tiempo?',
+        '¿Presentaban inflamación o lesiones muy grandes?',
+        '¿Cómo trataste tu acné?',
+        '¿Manipulabas, pellizcabas o rascabas tus lesiones?',
+      ],
+      pigmentaciones: [
+        '¿Cuánto tiempo llevas con la pigmentación en tu piel?',
+        '¿Te expones mucho tiempo al sol?',
+        'Describe el ambiente climático en el que te encuentras en tu trabajo',
+        '¿Pasas mucho tiempo frente a la radiación de luz azul?',
+        '¿Tomas o has tomado medicamentos que puedan sensibilizar tu piel?',
+      ],
+      envejecimiento: [
+        '¿Cuánto tiempo tienes usando protector solar?',
+        '¿A partir de qué edad empezaste a cuidar tu piel?',
+        '¿En qué posición duermes?',
+        '¿Fumas?',
+        '¿Te expones mucho al sol? ¿Cuánto?',
+      ],
+      ojerasInflamadas: [
+        '¿Ingieres alimentos muy condimentados y con mucha sal?',
+        '¿Cómo es la calidad de tu sueño al dormir?',
+        '¿Tu familia tiene o presenta inflamación en el contorno de ojos?',
+      ],
+      ojerasPigmentadas: [
+        '¿Cómo es tu técnica de desmaquillado?',
+        '¿Frotas constantemente tus ojos?',
+        '¿Cuántas horas estás durmiendo por las noches? ¿Y a qué hora te duermes?',
+        '¿Tu familia tiene o presenta pigmentación en las ojeras?',
+        '¿Presentas alguna alergia que afecte tus ojos?',
+      ],
+      pielSensible: [
+        '¿Recientemente te has realizado algún tratamiento invasivo? ¿Cuál?',
+        '¿Tu piel no tolera muy bien todos los productos para la piel?',
+        '¿Normalmente tu piel tiene una temperatura alta?',
+        '¿En tu familia hay enfermedades o condiciones de la piel como piel sensible, reactiva, con cáncer de piel o rosácea?',
+      ],
+    };
+
+    const COND_TITLES = {
+      acne: 'Acné',
+      cicatrices: 'Cicatrices atróficas',
+      pigmentaciones: 'Pigmentaciones',
+      envejecimiento: 'Envejecimiento',
+      ojerasInflamadas: 'Ojeras inflamadas',
+      ojerasPigmentadas: 'Ojeras pigmentadas',
+      pielSensible: 'Piel sensible',
+    };
+
+    // Llaves de interés que son Sí/No puro (sin detalle).
+    const YESNO_PLAIN = ['embarazo', 'lactancia', 'anticonceptivos'];
+    // Llaves de interés que muestran detalle cuando el valor es Sí.
+    const YESNO_WITH_DETAIL = ['alergias', 'vitaminas', 'medicamentos', 'implantes', 'intervenciones', 'protectorSolar'];
+    const INTEREST_LABELS = {
+      embarazo: 'Embarazo',
+      lactancia: 'Lactancia',
+      alergias: 'Alergias',
+      vitaminas: 'Vitaminas / Suplementos',
+      medicamentos: 'Medicamentos',
+      implantes: 'Implantes o dispositivos',
+      anticonceptivos: 'Anticonceptivos',
+      intervenciones: 'Intervenciones estéticas o quirúrgicas',
+      protectorSolar: 'Protector solar',
+    };
+
+    const STEP_NAMES = ['', 'Tus datos', 'Datos de interés', 'Tu piel', 'Cuestionario', 'Tu rutina', 'Autorización', 'Firma'];
+
+    /* ============================================================
+       2. ESTADO — espejo de IntakeForm (campos que acepta el PUT)
+       ============================================================ */
+    function blankYesNo() { return { value: false, detail: '' }; }
+    function freshState() {
+      return {
+        fullName: '', birthDate: '', age: null, phone: '',
+        profession: '', address: '', socialMedia: '', referralSource: '',
+        interestData: {
+          cicloMenstrual: null,
+          embarazo: blankYesNo(), lactancia: blankYesNo(), alergias: blankYesNo(),
+          vitaminas: blankYesNo(), medicamentos: blankYesNo(), implantes: blankYesNo(),
+          anticonceptivos: blankYesNo(), intervenciones: blankYesNo(), protectorSolar: blankYesNo(),
+        },
+        skinCondition: '', conditionSince: '', previousTreatments: '', treatmentReactions: '',
+        questionnaires: {},
+        routineDay: [], routineNight: [],
+        photoConsent: null,
+      };
+    }
+    let state = freshState();
+    let currentStep = 1;
+    let token = null;
+    let signaturePad = null;
+    let saveTimer = null;
+    let lastSavePromise = Promise.resolve();
+    let submitting = false;
+
+    /* ============================================================
+       3. DOM refs
+       ============================================================ */
+    const $ = (s) => document.querySelector(s);
+    const $$ = (s) => Array.from(document.querySelectorAll(s));
+    const loading = $('#loading');
+    const formWrap = $('#formWrap');
+    const screenInvalid = $('#screenInvalid');
+    const screenSigned = $('#screenSigned');
+    const saveIndicator = $('#saveIndicator');
+    const formErr = $('#formErr');
+    const btnBack = $('#btnBack');
+    const btnNext = $('#btnNext');
+    const navBtns = $('#navBtns');
+
+    /* ============================================================
+       4. TOKEN + API
+       ============================================================ */
+    function getToken() {
+      const parts = location.pathname.split('/'); // ['', 'ficha', '<token>']
+      return parts[2] || '';
+    }
+    async function apiGet(url) {
+      const r = await fetch(url, { headers: { 'Accept': 'application/json' } });
+      if (!r.ok) throw Object.assign(new Error('HTTP ' + r.status), { status: r.status });
+      return r.json();
+    }
+    async function apiPut(url, body) {
+      const r = await fetch(url, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!r.ok) throw Object.assign(new Error('HTTP ' + r.status), { status: r.status });
+      return r.json();
+    }
+    async function apiPost(url, body) {
+      const r = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!r.ok) throw Object.assign(new Error('HTTP ' + r.status), { status: r.status });
+      return r.json();
+    }
+
+    /* ============================================================
+       5. CARGA INICIAL
+       ============================================================ */
+    async function init() {
+      token = getToken();
+      if (!token) { showInvalid(); return; }
+      try {
+        const data = await apiGet('/api/expedientes/public/ficha/' + encodeURIComponent(token));
+        if (data.intake && data.intake.status === 'signed') { showSigned(); return; }
+        prefillState(data);
+        hideLoading();
+        formWrap.style.display = '';
+        buildProgress();
+        renderStep2Toggles();
+        bindAllInputs();
+        bindControls();
+        renderStep(currentStep);
+        window.scrollTo(0, 0);
+      } catch (e) {
+        if (e && e.status === 401) showInvalid();
+        else showInvalid();
+      }
+    }
+
+    function prefillState(data) {
+      const i = data.intake || {};
+      const c = data.card || {};
+      // Campos planos.
+      for (const k of ['fullName','birthDate','phone','profession','address','socialMedia','referralSource',
+                       'skinCondition','conditionSince','previousTreatments','treatmentReactions']) {
+        if (typeof i[k] === 'string') state[k] = i[k];
+      }
+      if (i.age != null) state.age = i.age;
+      // fullName/phone: si vienen vacíos en el intake, usar los de la card.
+      if (!state.fullName && c.name) state.fullName = c.name;
+      if (!state.phone && c.phone) state.phone = c.phone;
+      // interestData: conservar defaults y pisar con lo guardado.
+      if (i.interestData && typeof i.interestData === 'object') {
+        const id = i.interestData;
+        if (id.cicloMenstrual) state.interestData.cicloMenstrual = id.cicloMenstrual;
+        for (const k of YESNO_PLAIN.concat(YESNO_WITH_DETAIL)) {
+          if (id[k] && typeof id[k] === 'object') {
+            state.interestData[k] = { value: !!id[k].value, detail: id[k].detail || '' };
+          }
+        }
+      }
+      // questionnaires.
+      if (i.questionnaires && typeof i.questionnaires === 'object') {
+        for (const cond of Object.keys(i.questionnaires)) {
+          if (!QUESTIONS[cond]) continue;
+          state.questionnaires[cond] = Object.assign({}, i.questionnaires[cond]);
+        }
+      }
+      // rutinas.
+      if (Array.isArray(i.routineDay)) state.routineDay = i.routineDay.slice();
+      if (Array.isArray(i.routineNight)) state.routineNight = i.routineNight.slice();
+      // photoConsent.
+      if (i.photoConsent === true || i.photoConsent === false) state.photoConsent = i.photoConsent;
+    }
+
+    function showInvalid() { hideLoading(); screenInvalid.classList.add('show'); }
+    function showSigned() { hideLoading(); screenSigned.classList.add('show'); }
+    function hideLoading() { loading.style.display = 'none'; }
+
+    /* ============================================================
+       6. RENDER DE PASOS
+       ============================================================ */
+    function buildProgress() {
+      const track = $('#progressTrack');
+      track.innerHTML = '';
+      for (let s = 1; s <= 7; s++) {
+        const seg = document.createElement('div');
+        seg.className = 'fc-progress__seg';
+        seg.dataset.step = s;
+        track.appendChild(seg);
+      }
+    }
+    function updateProgress() {
+      $$('#progressTrack .fc-progress__seg').forEach((seg) => {
+        const s = Number(seg.dataset.step);
+        seg.classList.toggle('done', s < currentStep);
+        seg.classList.toggle('active', s === currentStep);
+      });
+      $('#stepNum').textContent = String(currentStep);
+      $('#stepName').textContent = STEP_NAMES[currentStep] || '';
+    }
+    function renderStep(n) {
+      currentStep = n;
+      $$('.fc-step').forEach((el) => {
+        el.classList.toggle('active', Number(el.dataset.step) === n);
+      });
+      updateProgress();
+      // Botones.
+      btnBack.style.display = n === 1 ? 'none' : '';
+      if (n === 7) {
+        btnNext.textContent = 'Firmar y enviar ✨';
+        btnNext.setAttribute('type', 'button');
+      } else {
+        btnNext.textContent = 'Siguiente';
+      }
+      hideErr();
+      // El paso 7 inicializa el canvas cuando se muestra.
+      if (n === 7) initSignaturePad();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    /* ============================================================
+       7. STEP 2 — toggles Sí/No (con detalle condicional)
+       ============================================================ */
+    function renderStep2Toggles() {
+      const wrap = $('#togglesWrap');
+      wrap.innerHTML = '';
+      const keys = YESNO_PLAIN.concat(YESNO_WITH_DETAIL);
+      keys.forEach((k) => {
+        const withDetail = YESNO_WITH_DETAIL.indexOf(k) !== -1;
+        const field = document.createElement('div');
+        field.className = 'fc-field';
+        field.innerHTML =
+          '<label class="fc-field__label">' + INTEREST_LABELS[k] + '</label>' +
+          '<div class="fc-toggle" data-key="' + k + '">' +
+            '<button type="button" class="fc-toggle__opt yes" data-val="true"><span class="ico">✓</span> Sí</button>' +
+            '<button type="button" class="fc-toggle__opt no" data-val="false"><span class="ico">✕</span> No</button>' +
+          '</div>' +
+          (withDetail ? '<div class="fc-detail" data-detail="' + k + '" style="display:none;margin-top:10px;">' +
+            '<input class="fc-input" type="text" placeholder="Cuéntanos en detalle…" data-detail-input="' + k + '"></div>' : '');
+        wrap.appendChild(field);
+      });
+      // Estado inicial desde state.
+      keys.forEach((k) => paintToggle(k));
+      // Eventos.
+      wrap.addEventListener('click', (e) => {
+        const opt = e.target.closest('.fc-toggle__opt');
+        if (!opt) return;
+        const field = opt.closest('.fc-toggle');
+        const key = field.dataset.key;
+        const val = opt.dataset.val === 'true';
+        state.interestData[key].value = val;
+        if (!val) state.interestData[key].detail = '';
+        paintToggle(key);
+        // Limpiar input de detalle si se desactiva.
+        const di = wrap.querySelector('[data-detail-input="' + key + '"]');
+        if (di) di.value = '';
+        scheduleSave();
+      });
+      wrap.addEventListener('input', (e) => {
+        const di = e.target.closest('[data-detail-input]');
+        if (!di) return;
+        const key = di.dataset.detailInput;
+        state.interestData[key].detail = di.value;
+        scheduleSave();
+      });
+    }
+    function paintToggle(key) {
+      const field = document.querySelector('.fc-toggle[data-key="' + key + '"]');
+      if (!field) return;
+      const val = state.interestData[key].value;
+      field.querySelector('[data-val="true"]').classList.toggle('on', val === true);
+      field.querySelector('[data-val="false"]').classList.toggle('on', val === false);
+      const detailBox = document.querySelector('[data-detail="' + key + '"]');
+      if (detailBox) detailBox.style.display = val ? '' : 'none';
+      const di = document.querySelector('[data-detail-input="' + key + '"]');
+      if (di) di.value = state.interestData[key].detail || '';
+    }
+
+    /* ============================================================
+       8. STEP 4 — cuestionario (chips + preguntas dinámicas)
+       ============================================================ */
+    function bindChips() {
+      const chipsWrap = $('#condChips');
+      chipsWrap.addEventListener('click', (e) => {
+        const chip = e.target.closest('.fc-chip');
+        if (!chip) return;
+        const cond = chip.dataset.cond;
+        if (state.questionnaires[cond]) {
+          delete state.questionnaires[cond];
+        } else {
+          // Inicializa respuestas vacías.
+          const ans = {};
+          QUESTIONS[cond].forEach((_, idx) => { ans['q' + (idx + 1)] = ''; });
+          state.questionnaires[cond] = ans;
+        }
+        paintChips();
+        renderCondQuestions();
+        scheduleSave();
+      });
+      const qWrap = $('#condQuestions');
+      qWrap.addEventListener('input', (e) => {
+        const ta = e.target.closest('[data-qkey]');
+        if (!ta) return;
+        const cond = ta.dataset.cond;
+        const qkey = ta.dataset.qkey;
+        if (!state.questionnaires[cond]) state.questionnaires[cond] = {};
+        state.questionnaires[cond][qkey] = ta.value;
+        scheduleSave();
+      });
+    }
+    function paintChips() {
+      $$('#condChips .fc-chip').forEach((chip) => {
+        chip.classList.toggle('on', !!state.questionnaires[chip.dataset.cond]);
+      });
+    }
+    function renderCondQuestions() {
+      const wrap = $('#condQuestions');
+      wrap.innerHTML = '';
+      const selected = Object.keys(state.questionnaires);
+      if (selected.length === 0) {
+        const p = document.createElement('p');
+        p.className = 'fc-routine__empty';
+        p.textContent = 'Selecciona arriba las que apliquen para ver sus preguntas.';
+        wrap.appendChild(p);
+        return;
+      }
+      selected.forEach((cond) => {
+        const block = document.createElement('div');
+        block.className = 'fc-cond';
+        block.innerHTML = '<h3 class="fc-cond__title">' + COND_TITLES[cond] + '</h3>';
+        QUESTIONS[cond].forEach((q, idx) => {
+          const qkey = 'q' + (idx + 1);
+          const f = document.createElement('div');
+          f.className = 'fc-field';
+          f.innerHTML =
+            '<label class="fc-field__label">' + (idx + 1) + '. ' + escapeHtml(q) + '</label>' +
+            '<textarea class="fc-textarea" data-cond="' + cond + '" data-qkey="' + qkey + '" placeholder="Tu respuesta"></textarea>';
+          block.appendChild(f);
+          const ta = f.querySelector('textarea');
+          ta.value = (state.questionnaires[cond] && state.questionnaires[cond][qkey]) || '';
+        });
+        wrap.appendChild(block);
+      });
+    }
+
+    /* ============================================================
+       9. STEP 5 — rutina (listas dinámicas Día / Noche)
+       ============================================================ */
+    function bindRoutine() {
+      const root = document.querySelector('.fc-step[data-step="5"]');
+      root.addEventListener('click', (e) => {
+        const addBtn = e.target.closest('[data-add]');
+        if (addBtn) {
+          const which = addBtn.dataset.add; // 'Day' | 'Night'
+          const input = $('#routine' + which + 'Input');
+          const val = (input.value || '').trim();
+          if (!val) return;
+          state['routine' + which].push(val);
+          input.value = '';
+          renderRoutine(which);
+          scheduleSave();
+          return;
+        }
+        const li = e.target.closest('.fc-routine__list li');
+        if (li) {
+          const which = li.dataset.which;
+          const idx = Number(li.dataset.idx);
+          state['routine' + which].splice(idx, 1);
+          renderRoutine(which);
+          scheduleSave();
+        }
+      });
+      // Enter en el input agrega el producto.
+      ['Day', 'Night'].forEach((which) => {
+        const input = $('#routine' + which + 'Input');
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') { e.preventDefault(); input.closest('.fc-routine__add').querySelector('button').click(); }
+        });
+      });
+    }
+    function renderRoutine(which) {
+      const list = $('#routine' + which + 'List');
+      const empty = $('#routine' + which + 'Empty');
+      const arr = state['routine' + which];
+      list.innerHTML = '';
+      if (arr.length === 0) { empty.style.display = ''; return; }
+      empty.style.display = 'none';
+      arr.forEach((prod, idx) => {
+        const li = document.createElement('li');
+        li.dataset.which = which; li.dataset.idx = String(idx);
+        li.innerHTML = '<span>' + escapeHtml(prod) + '</span><button type="button" aria-label="Quitar">✕</button>';
+        list.appendChild(li);
+      });
+    }
+
+    /* ============================================================
+       10. STEP 6 — autorización de fotos
+       ============================================================ */
+    function bindPhoto() {
+      const radios = $('#photoRadios');
+      radios.addEventListener('click', (e) => {
+        const r = e.target.closest('.fc-radio');
+        if (!r) return;
+        state.photoConsent = (r.dataset.photo === 'yes');
+        paintPhoto();
+        scheduleSave();
+      });
+    }
+    function paintPhoto() {
+      $$('#photoRadios .fc-radio').forEach((r) => {
+        const on = (r.dataset.photo === 'yes' && state.photoConsent === true) ||
+                   (r.dataset.photo === 'no' && state.photoConsent === false);
+        r.classList.toggle('on', on);
+      });
+    }
+
+    /* ============================================================
+       11. STEP 2 — ciclo menstrual
+       ============================================================ */
+    function bindCiclo() {
+      const pills = $('#cicloPills');
+      pills.addEventListener('click', (e) => {
+        const p = e.target.closest('.fc-pill');
+        if (!p) return;
+        const val = p.dataset.ciclo;
+        state.interestData.cicloMenstrual = (state.interestData.cicloMenstrual === val) ? null : val;
+        paintCiclo();
+        scheduleSave();
+      });
+    }
+    function paintCiclo() {
+      $$('#cicloPills .fc-pill').forEach((p) => {
+        p.classList.toggle('on', state.interestData.cicloMenstrual === p.dataset.ciclo);
+      });
+    }
+
+    /* ============================================================
+       12. STEP 1, 3 — inputs planos (data-bind)
+       ============================================================ */
+    function bindPlainInputs() {
+      document.addEventListener('input', (e) => {
+        const el = e.target.closest('[data-bind]');
+        if (!el) return;
+        const k = el.dataset.bind;
+        if (k === 'age') {
+          const n = el.value === '' ? null : parseInt(el.value, 10);
+          state.age = Number.isFinite(n) ? n : null;
+        } else {
+          state[k] = el.value;
+        }
+        scheduleSave();
+      });
+    }
+    function paintPlainInputs() {
+      $$('[data-bind]').forEach((el) => {
+        const k = el.dataset.bind;
+        const v = state[k];
+        el.value = (v == null) ? '' : String(v);
+      });
+    }
+
+    /* ============================================================
+       13. FIRMA — signature_pad
+       ============================================================ */
+    function initSignaturePad() {
+      const canvas = $('#sigCanvas');
+      if (signaturePad) { resizeSigCanvas(); return; }
+      if (typeof SignaturePad === 'undefined') {
+        // El CDN cargó con defer; reintentar en el próximo frame.
+        return requestAnimationFrame(initSignaturePad);
+      }
+      signaturePad = new SignaturePad(canvas, {
+        backgroundColor: 'rgba(255,255,255,0)',
+        penColor: '#243026',
+        minWidth: 0.8, maxWidth: 2.2,
+      });
+      resizeSigCanvas();
+      // Re-resize al girar el celular.
+      window.addEventListener('resize', debounce(resizeSigCanvas, 200));
+      $('#sigClear').addEventListener('click', () => { signaturePad.clear(); });
+    }
+    function resizeSigCanvas() {
+      const canvas = $('#sigCanvas');
+      if (!canvas || !signaturePad) return;
+      const ratio = Math.max(window.devicePixelRatio || 1, 1);
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = Math.floor(rect.width * ratio);
+      canvas.height = Math.floor(rect.height * ratio);
+      canvas.getContext('2d').scale(ratio, ratio);
+      signaturePad.clear();
+    }
+
+    /* ============================================================
+       14. AUTOGUARDADO — PUT debounced 800ms + en cambio de paso
+       ============================================================ */
+    function scheduleSave() {
+      if (saveTimer) clearTimeout(saveTimer);
+      saveTimer = setTimeout(saveNow, 800);
+    }
+    function saveNow() {
+      if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+      if (!token || submitting) { lastSavePromise = Promise.resolve(); return lastSavePromise; }
+      const p = apiPut('/api/expedientes/public/ficha/' + encodeURIComponent(token), snapshotState())
+        .then(() => { flashSaved(); })
+        .catch((e) => {
+          // 409 = ya firmada → mostrar gracias; 401 = link inválido.
+          if (e && e.status === 409) { showSigned(); }
+          else if (e && e.status === 401) { showInvalid(); }
+          else { /* error de red: no rompemos el flujo */ console.warn('autoguardado falló', e); }
+        });
+      lastSavePromise = p;
+      return p;
+    }
+    function snapshotState() {
+      // Enviamos exactamente los campos del allow-list del PUT.
+      return {
+        fullName: state.fullName, birthDate: state.birthDate, age: state.age,
+        phone: state.phone, profession: state.profession, address: state.address,
+        socialMedia: state.socialMedia, referralSource: state.referralSource,
+        interestData: state.interestData,
+        skinCondition: state.skinCondition, conditionSince: state.conditionSince,
+        previousTreatments: state.previousTreatments, treatmentReactions: state.treatmentReactions,
+        questionnaires: state.questionnaires,
+        routineDay: state.routineDay, routineNight: state.routineNight,
+        photoConsent: state.photoConsent,
+      };
+    }
+    function flashSaved() {
+      saveIndicator.classList.add('show');
+      clearTimeout(flashSaved._t);
+      flashSaved._t = setTimeout(() => saveIndicator.classList.remove('show'), 1800);
+    }
+
+    /* ============================================================
+       15. NAVEGACIÓN + SUBMIT
+       ============================================================ */
+    function bindControls() {
+      btnBack.addEventListener('click', async () => {
+        await saveNow(); // persistir antes de cambiar de paso.
+        if (currentStep > 1) renderStep(currentStep - 1);
+      });
+      btnNext.addEventListener('click', onNext);
+    }
+    async function onNext() {
+      if (currentStep < 7) {
+        await saveNow();
+        renderStep(currentStep + 1);
+        return;
+      }
+      // Step 7 → submit.
+      await submitFicha();
+    }
+    async function submitFicha() {
+      if (submitting) return;
+      hideErr();
+      // Validación local.
+      if (!signaturePad || signaturePad.isEmpty()) {
+        return showErr('Necesitamos tu firma para terminar. ✨');
+      }
+      if (state.photoConsent === null) {
+        return showErr('Por favor elige si autorizas o no las fotografías (Paso 6).');
+      }
+      submitting = true;
+      btnNext.disabled = true; btnBack.disabled = true;
+      btnNext.textContent = 'Guardando…';
+      try {
+        // 1. PUT final para persistir el estado más reciente.
+        await apiPut('/api/expedientes/public/ficha/' + encodeURIComponent(token), snapshotState());
+        // 2. POST submit con la firma.
+        const signature = signaturePad.toDataURL('image/png');
+        await apiPost('/api/expedientes/public/ficha/' + encodeURIComponent(token) + '/submit', { signature });
+        showSigned();
+      } catch (e) {
+        if (e && e.status === 401) showInvalid();
+        else if (e && e.status === 409) showSigned();
+        else showErr('No pudimos enviar tu ficha. Revisa tu conexión e inténtalo de nuevo.');
+      } finally {
+        submitting = false;
+        btnNext.disabled = false; btnBack.disabled = false;
+        btnNext.textContent = 'Firmar y enviar ✨';
+      }
+    }
+    function showErr(msg) { formErr.textContent = msg; formErr.classList.add('show'); }
+    function hideErr() { formErr.classList.remove('show'); formErr.textContent = ''; }
+
+    /* ============================================================
+       16. WIRING GENERAL
+       ============================================================ */
+    function bindAllInputs() {
+      paintPlainInputs();
+      paintCiclo();
+      paintChips();
+      renderCondQuestions();
+      renderRoutine('Day');
+      renderRoutine('Night');
+      paintPhoto();
+      bindCiclo();
+      bindChips();
+      bindRoutine();
+      bindPhoto();
+      bindPlainInputs();
+    }
+
+    /* ============================================================
+       17. HELPERS
+       ============================================================ */
+    function debounce(fn, ms) {
+      let t = null;
+      return function () { clearTimeout(t); t = setTimeout(fn, ms); };
+    }
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+    }
+
+    // Arranque cuando el DOM esté listo.
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+  })();
+  </script>
+</body>
+</html>
