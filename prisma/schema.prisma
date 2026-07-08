@@ -92,6 +92,7 @@ model Appointment {
   sent30hAt               DateTime?
   sent24hAt               DateTime?
   sent2hAt                DateTime?
+  sent48hAt               DateTime?
   sentConfirmationAlertAt DateTime?
 
   // Confirmación
@@ -404,6 +405,13 @@ model ClientRecord {
   // Relaciones
   sessions TreatmentSession[]
   photos   ClientPhoto[]
+  fichaLinkSentAt DateTime?
+
+  intake        IntakeForm?
+  consents      ConsentDoc[]
+  diagnoses     FacialDiagnosis[]
+  laserSessions LaserSessionLog[]
+  documents     ClientDocument[]
 
   @@map("client_records")
 }
@@ -465,6 +473,141 @@ model ClientPhoto {
   createdAt DateTime @default(now())
 
   @@map("client_photos")
+}
+
+// Ficha Clínica digital (la llena la clienta desde su celular)
+model IntakeForm {
+  id       String       @id @default(cuid())
+  recordId String       @unique
+  record   ClientRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
+
+  status String @default("draft") // draft | signed
+
+  // Datos personales (nombre/teléfono se precargan de Card pero son editables)
+  fullName       String?
+  birthDate      String?
+  age            Int?
+  phone          String?
+  profession     String?
+  address        String?
+  socialMedia    String?
+  referralSource String? // "Medio por el cual se enteró de nosotros"
+
+  // Datos de interés: { cicloMenstrual:'R'|'IR'|'NP', embarazo:{value,detail}, lactancia:{...},
+  //  alergias:{...}, vitaminas:{...}, medicamentos:{...}, implantes:{...},
+  //  anticonceptivos:{...}, intervenciones:{...}, protectorSolar:{...} }
+  interestData Json?
+
+  // Condiciones, padecimientos y enfermedades de la piel
+  skinCondition      String? // "Condición de la piel que se busca mejorar"
+  conditionSince     String?
+  previousTreatments String?
+  treatmentReactions String?
+
+  // Cuestionarios por condición: { acne:{...}, cicatrices:{...}, pigmentaciones:{...},
+  //  envejecimiento:{...}, ojerasInflamadas:{...}, ojerasPigmentadas:{...}, pielSensible:{...} }
+  questionnaires Json?
+
+  routineDay   Json? // array de strings
+  routineNight Json?
+
+  photoConsent    Boolean? // SÍ/NO AUTORIZO fotografías
+  signatureClient String?  // dataURL PNG
+  signatureStaff  String?
+  signedAt        DateTime?
+
+  pdfDriveFileId     String?
+  pdfWebViewLink     String?
+  driveUploadPending Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("intake_forms")
+}
+
+// Consentimientos firmados (hoy solo depilación láser diodo)
+model ConsentDoc {
+  id       String       @id @default(cuid())
+  recordId String
+  record   ClientRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
+
+  type        String @default("laser-diodo")
+  textVersion String @default("2026-07")
+  status      String @default("pending") // pending | signed
+
+  signatureClient String?
+  signedAt        DateTime?
+
+  pdfDriveFileId     String?
+  pdfWebViewLink     String?
+  driveUploadPending Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("consent_docs")
+}
+
+// Diagnóstico facial (lo llena la cosmetóloga en el admin)
+model FacialDiagnosis {
+  id       String       @id @default(cuid())
+  recordId String
+  record   ClientRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
+
+  skinType   String?
+  alteration String? // Alteración y/o condición de piel
+  causes     String?
+  cosmeticTx String? // TX cosmético
+  prognosis  String?
+  cost       String?
+  staffName  String?
+
+  pdfDriveFileId String?
+  pdfWebViewLink String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("facial_diagnoses")
+}
+
+// Ficha de seguimiento fotodepilación láser (una fila por sesión)
+model LaserSessionLog {
+  id       String       @id @default(cuid())
+  recordId String
+  record   ClientRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
+
+  date           DateTime @default(now())
+  staffName      String?
+  zone           String?
+  frequency      String?
+  fluence        String?
+  laserIntensity String?
+  observations   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("laser_session_logs")
+}
+
+// Archivos del expediente en Google Drive (escaneados importados y PDFs generados)
+model ClientDocument {
+  id       String       @id @default(cuid())
+  recordId String
+  record   ClientRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
+
+  name        String
+  mimeType    String?
+  driveFileId String
+  webViewLink String?
+  source      String @default("scan-import") // scan-import | generated
+  sizeBytes   Int?
+
+  uploadedAt DateTime @default(now())
+
+  @@map("client_documents")
 }
 
 // Mensajes WhatsApp (historial entrante y saliente)
