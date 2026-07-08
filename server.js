@@ -92,6 +92,7 @@ import { getEvolutionClient } from './src/services/whatsapp-evolution.js';
 
 // 📋 Expedientes de Clientas
 import clientRecordsRouter from './src/routes/clientRecords.js';
+import expedientesRouter from './src/routes/expedientes.js';
 
 // 💸 Upload de comprobantes (anticipo $100 transferencia)
 import multer from 'multer';
@@ -644,6 +645,8 @@ app.use('/api/webhook/evolution', webhookEvolution);
 
 // ✅ Expedientes de Clientas
 app.use('/api/client-records', clientRecordsRouter);
+// 📋 Expedientes digitales (fichas, consentimientos, diagnóstico, láser, documentos Drive)
+app.use('/api/expedientes', expedientesRouter);
 
 // ☕ Venus The Coffee Bar - POS
 app.use('/api/pos', coffeePosRouter);
