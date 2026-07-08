@@ -204,6 +204,17 @@ export const WhatsAppService = {
         return await sendViaEvolution(appt.clientPhone, mensaje);
     },
 
+    /** Avisa a la clienta que su cita fue reagendada al nuevo horario */
+    async sendReagendamientoConfirmado(appt) {
+        const fecha = formatearFechaLegible(appt.date || appt.startDateTime);
+        const hora = appt.time || formatearHora(appt.startDateTime);
+        const nombre = sanitizeForWhatsApp(appt.clientName);
+        const servicio = sanitizeForWhatsApp(appt.serviceName);
+
+        const mensaje = `📅 *Cita reagendada*\n\nHola ${nombre}, tu cita de *${servicio}* quedó reagendada para el *${fecha}* a las *${hora}*.\n\n📍 *Lugar:* ${config.venus.location}\n\n¡Te esperamos! ✨`;
+        return await sendViaEvolution(appt.clientPhone, mensaje);
+    },
+
     /** Envía recordatorio 2 horas antes */
     async sendReminder2h(appt) {
         const hora = appt.time || formatearHora(appt.startDateTime);
@@ -248,6 +259,23 @@ export const WhatsAppService = {
 
         const mensaje = `✅ ¡Gracias ${appt.clientName}! Tu cita ha sido confirmada para el ${fecha} a las ${hora}. Te esperamos en Venus Cosmetología.`;
         return await sendViaEvolution(appt.clientPhone, mensaje);
+    },
+
+    /** UN solo mensaje que confirma TODAS las citas (caso encuesta consolidada del mismo día). */
+    async sendConfirmacionRecibidaMultiple(citas) {
+        if (!Array.isArray(citas) || citas.length === 0) return { success: false };
+        if (citas.length === 1) return this.sendConfirmacionRecibida(citas[0]);
+
+        const nombre = sanitizeForWhatsApp(citas[0].clientName);
+        const fecha = formatearFechaLegible(citas[0].date || citas[0].startDateTime);
+        const lineas = citas
+            .slice()
+            .sort((a, b) => (a.time || formatearHora(a.startDateTime)).localeCompare(b.time || formatearHora(b.startDateTime)))
+            .map(c => `  • *${sanitizeForWhatsApp(c.serviceName)}* a las *${c.time || formatearHora(c.startDateTime)}*`)
+            .join('\n');
+
+        const mensaje = `✅ ¡Gracias ${nombre}! Confirmamos tus citas para el *${fecha}*:\n\n${lineas}\n\nTe esperamos en Venus Cosmetología. 🌸`;
+        return await sendViaEvolution(citas[0].clientPhone, mensaje);
     },
 
     async sendSolicitudReprogramacion(appt) {

@@ -4,6 +4,7 @@ import { WhatsAppService } from '../services/whatsapp-v2.js';
 import { prisma } from '../db/index.js';
 import { NotificationsRepo } from '../db/repositories.js';
 import { config } from '../config/config.js';
+import { reconcilePollVotes } from '../services/pollVotes.js';
 
 /**
  * Obtiene la fecha de mañana en formato YYYY-MM-DD en hora de México
@@ -50,6 +51,34 @@ export function startScheduler() {
         const localDate = new Date(ts - mexicoOffset);
         return localDate.toISOString().replace('Z', '-06:00');
     };
+
+    // ========================================================================
+    // RECONCILIACIÓN DE VOTOS DE ENCUESTA — cada 3 min
+    // Evolution descifra y guarda los votos en su store pero NO los empuja al
+    // webhook de forma confiable. Barremos el store y confirmamos/cancelamos/
+    // reagendamos según el voto. Idempotente y sin enviar mensajes a clientas.
+    // ========================================================================
+    cron.schedule('*/3 * * * *', async () => {
+        try {
+            const { changes } = await reconcilePollVotes({ apply: true });
+            if (changes.length > 0) {
+                console.log(`🗳️ [reconcile] ${changes.length} cita(s) actualizada(s) por voto de encuesta:`,
+                    changes.map(c => `${c.client}→${c.to}`).join(', '));
+                for (const c of changes) {
+                    const tipo = c.to === 'confirmed' ? 'cita' : 'alerta';
+                    const icon = c.to === 'confirmed' ? 'calendar-check' : (c.to === 'cancelled' ? 'calendar-times' : 'calendar-alt');
+                    const title = c.to === 'confirmed' ? 'Cita confirmada' : (c.to === 'cancelled' ? 'Cita cancelada' : 'Solicitud de reagendamiento');
+                    await NotificationsRepo.create({
+                        type: tipo, icon, title,
+                        message: `${c.client} ${c.to === 'confirmed' ? 'confirmó' : (c.to === 'cancelled' ? 'canceló' : 'quiere reagendar')} ${c.service} (encuesta)`,
+                        read: false, entityId: c.appointmentId
+                    }).catch(() => {});
+                }
+            }
+        } catch (err) {
+            console.error('❌ [reconcile] Error reconciliando votos:', err.message);
+        }
+    });
 
     // ========================================================================
     // ENCUESTA DE CONFIRMACIÓN — 9:00 AM hora México para citas de MAÑANA
@@ -250,31 +279,10 @@ export function startScheduler() {
             const pendingAlerts = await AppointmentModel.getPendingConfirmationAlert(rangeStart, rangeEnd);
 
             if (pendingAlerts.length > 0) {
-                console.log(`⚠️ [4h-alert] ${pendingAlerts.length} citas sin confirmar — pre-reconcile + envío`);
+                console.log(`⚠️ [4h-alert] ${pendingAlerts.length} citas sin confirmar — enviando alerta`);
             }
 
-            // PRE-RECONCILE: antes de molestar a la clienta con
-            // "Confirmación pendiente", verificamos si ya respondió la encuesta
-            // y el webhook no detectó su voto (pasó con Mónica García 11 jun).
-            // Si el reconcile encuentra una respuesta, actualizamos la cita y
-            // saltamos el envío.
-            const { reconcileAppointment } = await import('../services/pollReconciler.js');
-
             for (const appt of pendingAlerts) {
-                try {
-                    const rescued = await reconcileAppointment(appt);
-                    if (rescued) {
-                        console.log(`✅ [4h-alert] Pre-reconcile rescató cita ${appt.id} (${appt.clientName}) → ${rescued} — skip alerta`);
-                        // Marcar la alerta como "enviada" para que el siguiente
-                        // tick no la vuelva a intentar (la cita ya cambió de status,
-                        // pero por idempotencia explícita).
-                        await AppointmentModel.markConfirmationAlertSent(appt.id);
-                        continue;
-                    }
-                } catch (recErr) {
-                    console.warn(`[4h-alert] reconcile falló para ${appt.id} (sigue al envío):`, recErr.message);
-                }
-
                 const result = await WhatsAppService.sendAlertaCancelacion(appt);
                 if (result.success) {
                     await AppointmentModel.markConfirmationAlertSent(appt.id);
@@ -442,50 +450,6 @@ export function startScheduler() {
             await checkExpiringGiftCards();
         } catch (error) {
             console.error('❌ Error en notificaciones automáticas:', error);
-        }
-    });
-
-    // ========================================================================
-    // RECONCILE FRECUENTE — cada 20 min
-    // El webhook de Evolution no procesa los votos de poll en vivo de forma
-    // fiable, así que las clientas que confirman/reagendan por encuesta no
-    // recibían acuse hasta ~4h antes de su cita (el pre-reconcile de la alerta).
-    // Este cron escanea seguido las citas con encuesta enviada y aún en
-    // 'scheduled', rescata el voto y envía el acuse (reconcileAppointment ya
-    // manda el mensaje). Reduce la latencia de horas a ~20 min.
-    // ========================================================================
-    cron.schedule('*/20 * * * *', async () => {
-        try {
-            const { reconcileAppointment } = await import('../services/pollReconciler.js');
-            // Citas con encuesta 24h enviada, aún sin confirmar, en las próximas 48h.
-            const now = new Date();
-            const horizon = new Date(now.getTime() + 48 * 60 * 60 * 1000);
-            const pending = await prisma.appointment.findMany({
-                where: {
-                    sent24hAt: { not: null },
-                    status: 'scheduled',
-                    startDateTime: { gte: now, lte: horizon },
-                },
-                orderBy: { startDateTime: 'asc' },
-                take: 100,
-            });
-            if (pending.length === 0) return;
-
-            let rescued = 0;
-            for (const appt of pending) {
-                try {
-                    const r = await reconcileAppointment(appt);
-                    if (r) {
-                        rescued++;
-                        console.log(`✅ [reconcile-20min] ${appt.clientName} → ${r} (acuse enviado)`);
-                    }
-                } catch (e) {
-                    console.warn(`[reconcile-20min] falló ${appt.id}:`, e.message);
-                }
-            }
-            if (rescued > 0) console.log(`[reconcile-20min] ${rescued}/${pending.length} cita(s) rescatada(s)`);
-        } catch (error) {
-            console.error('❌ Error en reconcile frecuente:', error);
         }
     });
 }

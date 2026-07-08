@@ -6,6 +6,7 @@ import { prisma } from '../db/index.js';
 import { AppointmentsRepo, NotificationsRepo } from '../db/repositories.js';
 import { WhatsAppService } from '../services/whatsapp-v2.js';
 import { toMexicoCityISO } from '../utils/mexico-time.js';
+import { decodePollUpdate, realPhoneFromKey } from '../services/pollVotes.js';
 
 // Calcula SHA-256 hex de una string (usado para decodificar votos de polls de Evolution API)
 function sha256Hex(s) {
@@ -76,18 +77,11 @@ async function saveIncomingMessage(phone, name, body, messageId = null) {
     }
 }
 
-// Normaliza el nombre del evento para tolerar variaciones de Evolution:
-//   "MESSAGES_UPDATE" / "messages.update" / "messages-update" → "messages.update"
-function normalizeEventName(ev) {
-    return String(ev || '').toLowerCase().replace(/[_-]/g, '.');
-}
-
 router.post('/', async (req, res) => {
     try {
         const { event, data, instance } = req.body;
-        const ev = normalizeEventName(event);
-        console.log(`[Evolution Webhook] Evento: ${event} (norm: ${ev}) | Instancia: ${instance}`);
-        switch (ev) {
+        console.log(`[Evolution Webhook] Evento: ${event} | Instancia: ${instance}`);
+        switch (event) {
             case 'qrcode.updated':
                 console.log('[Evolution] QR Code actualizado');
                 break;
@@ -103,12 +97,11 @@ router.post('/', async (req, res) => {
                 await handleIncomingMessage(data);
                 break;
             case 'poll.response':
-            case 'poll.update':
-                console.log(`[Evolution] ${ev} recibido:`, JSON.stringify(data).substring(0, 500));
+                console.log('[Evolution] poll.response recibido:', JSON.stringify(data).substring(0, 500));
                 await handleIncomingMessage(data);
                 break;
             default:
-                console.log(`[Evolution Webhook] Evento no manejado: ${event} (norm: ${ev})`);
+                console.log(`[Evolution Webhook] Evento no manejado: ${event}`);
         }
         res.status(200).json({ received: true });
     } catch (error) {
@@ -120,9 +113,10 @@ router.post('/', async (req, res) => {
 async function handleIncomingMessage(data) {
     try {
         const message = data?.messages?.[0] || data;
-        const from = message?.key?.remoteJid?.replace('@s.whatsapp.net', '')
-            || data?.remoteJid?.replace('@s.whatsapp.net', '')
-            || data?.key?.remoteJid?.replace('@s.whatsapp.net', '') || '';
+        // WhatsApp usa @lid: el teléfono real está en key.remoteJidAlt. realPhoneFromKey lo prioriza.
+        const msgKey = message?.key || data?.key || data;
+        const from = realPhoneFromKey(msgKey)
+            || (data?.remoteJid || '').replace('@s.whatsapp.net', '') || '';
         const profileName = data?.pushName || message?.pushName || 'Cliente';
 
         // Detectar poll response ANTES del filtro fromMe
@@ -182,10 +176,10 @@ async function handlePollResponse(phone, payload, profileName) {
     const msg0 = payload?.messages?.[0];
     const pum = msg0?.message?.pollUpdateMessage || payload?.message?.pollUpdateMessage;
     if (!selectedOption && pum) {
-        if (Array.isArray(pum?.votes)) {
-            selectedOption = pum.votes[0]?.optionName || pum.votes[0]?.name;
-        }
-        // Evolution API v2: pum.vote.selectedOptions = [hash1, hash2, ...]
+        // Formato actual de Evolution: vote.selectedOptions trae el TEXTO PLANO de la opción.
+        // decodePollUpdate maneja texto plano y, como fallback, hashes contra opciones estándar.
+        selectedOption = decodePollUpdate(pum) || selectedOption;
+        // Legacy: si quedaron hashes sin resolver, guardarlos para matchear contra las opciones guardadas del poll.
         if (!selectedOption && Array.isArray(pum?.vote?.selectedOptions)) {
             voteHashes = pum.vote.selectedOptions.map(x => typeof x === 'string' ? x : (x?.buffer || x));
         }
@@ -265,19 +259,8 @@ async function handlePollResponse(phone, payload, profileName) {
 
     const opt = selectedOption.toLowerCase();
 
-    // Si hay múltiples citas mapeadas (poll consolidado), confirmar todas
-    if (opt.includes('confirmar') && pollRows.length > 1) {
-        let envioMensaje = false;
-        for (const pr of pollRows) {
-            const c = await AppointmentsRepo.findById(pr.appointmentId);
-            if (c) {
-                await procesarConfirmacion(c, !envioMensaje);
-                envioMensaje = true;
-            }
-        }
-        return;
-    }
-
+    // processClientResponse confirma TODAS las citas activas del teléfono (cubre el
+    // caso de encuesta consolidada) y envía un solo mensaje consolidado.
     if (opt.includes('confirmar')) await processClientResponse(phone, 'confirmar', citaDirecta);
     else if (opt.includes('reagendar') || opt.includes('cambio') || opt.includes('reprogramar')) await processClientResponse(phone, 'reagendar', citaDirecta);
     else if (opt.includes('cancelar')) await processClientResponse(phone, 'cancelar', citaDirecta);
@@ -289,16 +272,18 @@ async function processClientResponse(telefono, respuesta, citaDirecta = null) {
     if (!cita) { console.log(`⚠️ No se encontró cita activa para ${telefono}`); return; }
 
     if (respuesta.includes('confirmo') || respuesta.includes('confirmar') || respuesta === '1') {
-        // Confirmar TODAS las citas activas del mismo teléfono (por si tiene citas seguidas)
+        // Confirmar TODAS las citas activas del mismo teléfono (encuesta consolidada),
+        // luego enviar UN SOLO mensaje: consolidado si son varias, simple si es una.
         const todasCitas = await buscarTodasCitasActivas(telefono);
-        if (todasCitas.length > 0) {
-            let envioConfirmacion = false;
-            for (const c of todasCitas) {
-                await procesarConfirmacion(c, !envioConfirmacion);
-                envioConfirmacion = true; // Solo enviar mensaje de confirmación 1 vez
-            }
-        } else {
-            await procesarConfirmacion(cita, true);
+        const citas = todasCitas.length > 0 ? todasCitas : [cita];
+        let nuevas = 0;
+        for (const c of citas) {
+            const ok = await procesarConfirmacion(c, false); // no enviar mensaje individual
+            if (ok) nuevas++;
+        }
+        if (nuevas > 0) {
+            if (citas.length === 1) await WhatsAppService.sendConfirmacionRecibida(citas[0]);
+            else await WhatsAppService.sendConfirmacionRecibidaMultiple(citas);
         }
     }
     else if (respuesta.includes('reagendar') || respuesta.includes('reprogramar') || respuesta.includes('cambio') || respuesta === '2') await procesarReagendamiento(cita);
@@ -365,7 +350,7 @@ async function procesarConfirmacion(cita, enviarMensaje = true) {
     console.log(`✅ Procesando confirmación para cita ${cita.id} (status actual: ${cita.status})`);
     if (cita.status === 'confirmed') {
         console.log(`⏭️ Cita ${cita.id} ya estaba confirmada`);
-        return;
+        return false;
     }
     try {
         await prisma.appointment.update({
@@ -377,7 +362,8 @@ async function procesarConfirmacion(cita, enviarMensaje = true) {
             await WhatsAppService.sendConfirmacionRecibida(cita);
         }
         console.log(`✅ Cita ${cita.id} confirmada exitosamente`);
-    } catch (error) { console.error('Error procesando confirmación:', error); }
+        return true;
+    } catch (error) { console.error('Error procesando confirmación:', error); return false; }
 }
 
 async function procesarReagendamiento(cita) {

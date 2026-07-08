@@ -2,6 +2,17 @@
 import axios from 'axios';
 import { config } from '../config/config.js';
 
+// Eventos que la instancia debe enviar al webhook.
+// MESSAGES_UPDATE es OBLIGATORIO: los votos de las encuestas (polls) llegan
+// como update del mensaje original, no como mensaje nuevo.
+export const EVOLUTION_EVENTS = [
+    'QRCODE_UPDATED',
+    'CONNECTION_UPDATE',
+    'MESSAGES_UPSERT',
+    'MESSAGES_UPDATE', // ← votos de encuestas
+    'SEND_MESSAGE'
+];
+
 class EvolutionAPIClient {
     constructor() {
         const baseURL = config.evolution.apiUrl;
@@ -22,6 +33,11 @@ class EvolutionAPIClient {
         });
     }
 
+    // URL a la que Evolution debe mandar los eventos del webhook
+    buildWebhookUrl() {
+        return `${config.baseUrl}/api/webhook/evolution`;
+    }
+
     // Crear instancia
     async createInstance() {
         const response = await this.client.post('/instance/create', {
@@ -29,19 +45,40 @@ class EvolutionAPIClient {
             qrcode: true,
             integration: 'WHATSAPP-BAILEYS',
             webhook: {
-                url: `${config.baseUrl}/api/webhook/evolution`,
+                url: this.buildWebhookUrl(),
                 enabled: true,
                 webhookByEvents: false,
-                events: [
-                    'QRCODE_UPDATED',
-                    'CONNECTION_UPDATE',
-                    'MESSAGES_UPSERT',
-                    'MESSAGES_UPDATE', // respuestas a polls (votos llegan como update del mensaje)
-                    'SEND_MESSAGE'
-                ]
+                events: EVOLUTION_EVENTS
             }
         });
         return response.data;
+    }
+
+    // Leer la configuración actual del webhook (qué URL y qué eventos están registrados)
+    async getWebhook() {
+        try {
+            const response = await this.client.get(`/webhook/find/${this.instanceName}`);
+            return response.data;
+        } catch (error) {
+            return { error: error.response?.data || error.message };
+        }
+    }
+
+    // (Re)registrar el webhook en una instancia YA existente.
+    // Evolution v2 usa el shape anidado { webhook: {...} }; v1 usa el shape plano.
+    // Probamos v2 y caemos a v1 si responde 400/404.
+    async setWebhook(url = this.buildWebhookUrl(), events = EVOLUTION_EVENTS) {
+        const nested = {
+            webhook: { enabled: true, url, webhookByEvents: false, webhookBase64: false, events }
+        };
+        try {
+            const response = await this.client.post(`/webhook/set/${this.instanceName}`, nested);
+            return { shape: 'v2', data: response.data };
+        } catch (errV2) {
+            const flat = { enabled: true, url, webhookByEvents: false, events };
+            const response = await this.client.post(`/webhook/set/${this.instanceName}`, flat);
+            return { shape: 'v1', data: response.data };
+        }
     }
 
     // Conectar y obtener QR
@@ -91,6 +128,20 @@ class EvolutionAPIClient {
             console.error('[Evolution] Error fetchChats:', error.message);
             return [];
         }
+    }
+
+    // Obtener mensajes recientes de TODO el store (sin filtrar por chat).
+    // Usado por la reconciliación de votos de encuestas.
+    async findRecentMessages(limit = 300) {
+        const response = await this.client.post(`/chat/findMessages/${this.instanceName}`, {
+            where: {},
+            limit,
+        });
+        const data = response.data;
+        if (Array.isArray(data)) return data;
+        if (Array.isArray(data?.messages?.records)) return data.messages.records;
+        if (Array.isArray(data?.messages)) return data.messages;
+        return [];
     }
 
     // Obtener mensajes de un chat específico
