@@ -4,7 +4,7 @@
 
 **Goal:** Digitalizar los 4 formatos del consultorio (Ficha Clínica, Consentimiento láser, Diagnóstico Facial, Seguimiento láser) con firma en pantalla, PDF con formato Venus subido a Google Drive por clienta, e importación de escaneados históricos.
 
-**Architecture:** La clienta llena Ficha/Consentimiento en páginas públicas mobile accesibles por token JWT (sin login); la cosmetóloga captura Diagnóstico/Láser en el modal de expediente del admin. Postgres (Prisma) es la fuente de verdad; al firmar se genera un PDF (pdf-lib) y se sube a Drive (googleapis, service account ya configurada para Calendar) a la carpeta de la clienta. Router nuevo `src/routes/expedientes.js`; servicios nuevos `fichaTokens.js`, `driveService.js`, `expedientePdf.js`, `consentTexts.js`.
+**Architecture:** La clienta llena Ficha/Consentimiento en páginas públicas mobile accesibles por token JWT (sin login); la cosmetóloga captura Diagnóstico/Láser en la **vista completa de expediente** del admin (el modal actual se retira — ver design brief `docs/superpowers/specs/2026-07-08-expediente-ui-brief.md`). Postgres (Prisma) es la fuente de verdad; al firmar se genera un PDF (pdf-lib) y se sube a Drive (googleapis, service account ya configurada para Calendar) a la carpeta de la clienta. Router nuevo `src/routes/expedientes.js`; servicios nuevos `fichaTokens.js`, `driveService.js`, `expedientePdf.js`, `consentTexts.js`.
 
 **Tech Stack:** Node 18+ ESM, Express, Prisma/Postgres, googleapis@166 (ya instalada), pdf-lib (nueva dep), jsonwebtoken (ya instalada), signature_pad via CDN, multer memoria (patrón existente), Evolution API WhatsApp (existente).
 
@@ -1310,45 +1310,50 @@ git commit -m "feat(expedientes): página pública de consentimiento láser con 
 
 ---
 
-### Task 10: Admin — pestañas nuevas del modal expediente
+### Task 10: Admin — vista completa de Expediente (reemplaza el modal)
+
+> **Fuente de diseño OBLIGATORIA:** leer completo `docs/superpowers/specs/2026-07-08-expediente-ui-brief.md` ANTES de escribir una línea. Ese brief define contenedor, 6 secciones, encabezado con alertas de salud, estados, copy y TODA la sección móvil (que es requisito de aceptación, no opcional). Tokens visuales: `DESIGN.md` en la raíz del repo (paleta avena/oliva OKLCH, Playfair solo para el nombre, DM Sans para UI, hairlines en vez de cards, sin sombras).
 
 **Files:**
-- Modify: `public/admin.html` (modal `#expediente-modal`: HTML de tabs + JS)
+- Modify: `public/admin.html` (nueva vista `#expediente-view` + retiro del modal `#expediente-modal`)
 
 **Interfaces:**
-- Consumes: todos los endpoints admin de Task 6 (`/api/expedientes/:cardId...`), con `credentials:'include'` como el resto del admin. La variable JS `currentExpedienteCardId` ya existe y contiene el `card.id` al abrir el modal (verificar con grep `currentExpedienteCardId`).
+- Consumes: endpoints admin de Task 6 (`/api/expedientes/:cardId...`) + los existentes de `clientRecords.js` (sesiones `/api/client-records/:recordId/sessions`, fotos `.../photos`) — todos con `credentials:'include'`. La función `openClientRecord()` y la variable `currentExpedienteCardId` existentes indican el `card.id` activo (localizar con grep).
 
-- [ ] **Step 1: Agregar tabs al HTML del modal**
+- [ ] **Step 1: Estructura de la vista (sustituye al modal)**
 
-Localizar `class="expediente-tabs"` en `public/admin.html`. Junto a los botones de tab existentes, agregar cuatro nuevos siguiendo EXACTAMENTE el patrón de los existentes (mismas clases y mecanismo de switching — leer el JS actual del modal antes de escribir):
+En `public/admin.html`:
 
-- `📋 Ficha` (tab id `exp-tab-ficha`)
-- `✍️ Consentimientos` (tab id `exp-tab-consents`)
-- `🔬 Diagnóstico` (tab id `exp-tab-diagnosis`)
-- `⚡ Láser` (tab id `exp-tab-laser`)
-- `📁 Documentos` (tab id `exp-tab-documents`)
+1. Crear `<section id="expediente-view" class="hidden">` como hermana de la vista de lista de clientas (localizar cómo se estructura `/admin/clientas` con grep de `clientas`).
+2. `openClientRecord()` deja de abrir `#expediente-modal` y ahora: oculta la lista, muestra `#expediente-view`, hace `history.pushState({view:'expediente', cardId}, '', '/admin/clientas/' + cardId)` y llama `loadExpedienteDigital(cardId)`. Escuchar `popstate` para regresar a la lista (restaurando scroll). El swipe-back de iOS y el botón atrás del navegador deben funcionar.
+3. El markup del modal `#expediente-modal` y su apertura se retiran (dejar el HTML viejo comentado NO: eliminarlo; git conserva la historia). Cualquier referencia rota se limpia.
+4. Encabezado de la vista según brief §4: fila `← Clientas` + acciones (`Enviar ficha` primario/ghost según estado, `WhatsApp` ghost); identidad (nombre Playfair — `textContent` SOLO con el nombre, icono en elemento aparte: esto elimina el bug del título escapado); **franja de chips de alerta de salud** desde `intake.interestData` firmado (alergias con detalle, embarazo, lactancia, medicamentos) en ámbar `--warn`, siempre visible (sticky compacto al scrollear, según brief §5).
+5. Barra de 6 secciones-pill: `Resumen · Ficha · Tratamientos · Láser · Fotos · Documentos` (48px, activa = oliva; scroll horizontal con fade y snap en celular).
 
-Y sus 5 paneles de contenido dentro de `class="expediente-content"`:
+- [ ] **Step 2: Contenido de las 6 secciones**
 
-- **Ficha**: badge de estado (`Sin enviar` gris / `Enviada` amarillo / `Borrador` azul / `Firmada ✅` verde) + botón `Enviar ficha por WhatsApp` (`POST /send-ficha`, confirm antes) + link al PDF si `pdfWebViewLink` + tabla de solo-lectura con todas las respuestas (datos personales, datos de interés con Sí/No+detalle, condición, cuestionarios respondidos, rutina, autorización de fotos).
-- **Consentimientos**: lista de `consents` (tipo, fecha de firma, estado, link PDF) + botón `Enviar consentimiento láser` (`POST /send-consent`).
-- **Diagnóstico**: formulario editable (tipo de piel, alteración, causas, tx cosmético, pronóstico, costo, cosmetóloga) con `Guardar` (`PUT /diagnosis`) y `Exportar PDF a Drive` (`POST /diagnosis/:id/pdf`); lista de diagnósticos previos.
-- **Láser**: tabla (Fecha, Cosmetóloga, Zona, Frecuencia, Fluencia, Intensidad, Observaciones, acciones) + fila de captura rápida al final (`POST /laser-sessions`); editar inline (`PUT`) y borrar con confirm (`DELETE`).
-- **Documentos**: dropzone (input file multiple + drag&drop) → `POST /documents` con `FormData` campo `files`; lista con icono por tipo, nombre → abre `webViewLink` en pestaña nueva, badge `Importado`/`Generado`, botón borrar (confirm; borra el registro, NO el archivo de Drive).
+Render dentro de `#expediente-view`, cada sección según brief §4-§8 (grupos con hairline + título 13px caps, no cards; copy es-MX del brief §8):
 
-- [ ] **Step 2: JS del modal**
+- **Resumen** (solo lectura — sustituye la vieja pestaña "Datos" editable): Alertas de salud; Datos clave (edad, tipo de piel, condición buscada — desde la ficha firmada, con nota "Se llena con la Ficha Clínica" si no hay); Estado de documentos (ficha + consentimiento con badges `Sin enviar/Enviada/Borrador/Firmada` y CTA de envío); Visitas (última sesión, sellos de lealtad).
+- **Ficha**: badge de estado + fecha, `Enviar/Reenviar ficha por WhatsApp` (`POST /send-ficha`, mostrar teléfono destino al confirmar), link `Ver PDF` si existe, chip ámbar `PDF pendiente de respaldo` si `driveUploadPending`, y las respuestas completas agrupadas (datos personales, datos de interés Sí/No+detalle, condición, cuestionarios respondidos, rutina, autorización de fotos).
+- **Tratamientos**: formulario de Diagnóstico (tipo de piel, alteración, causas, tx cosmético, pronóstico, costo, cosmetóloga) con `Guardar diagnóstico` (`PUT /diagnosis`) + `Exportar a Drive` (`POST /diagnosis/:id/pdf`), diagnóstico más reciente expandido y previos colapsados; debajo, las Sesiones existentes (reusar la lógica actual de sessions del modal, movida aquí).
+- **Láser**: sesiones como renglones apilados (brief §5: fecha+zona / parámetros como meta / observaciones truncadas; NUNCA tabla con scroll horizontal en cel) + formulario de captura `Registrar sesión` (`POST /laser-sessions`; `inputmode=numeric` en frecuencia/fluencia/intensidad, `type=date` nativo), editar al tap (`PUT`), borrar con confirmación nombrando la sesión (`DELETE`).
+- **Fotos**: mover la galería existente + "Comparar" pasa a ser modo interno (seleccionar 2 → lado a lado en tablet+, apiladas en cel); subir con `capture="environment"` en cel.
+- **Documentos**: arriba el estado del consentimiento láser (badge + `Enviar consentimiento` `POST /send-consent`, link PDF si firmado); debajo subir archivos (`POST /documents`, FormData `files`): dropzone drag&drop SOLO escritorio, botón grande `Subir documentos` en cel; lista de `documents` como filas hairline (icono, nombre truncado, badge `Importado/Generado`, fecha humana) → tap abre `webViewLink`; borrar tras `⋯` con confirmación (borra registro, NO el archivo de Drive).
 
-En la sección `// ===== SISTEMA DE EXPEDIENTE DE CLIENTA =====`, agregar `loadExpedienteDigital(cardId)` que haga `GET /api/expedientes/${cardId}` y pinte los 5 paneles; llamarla desde `openClientRecord()` (localizar el punto donde ya carga datos y añadir la llamada). Todos los fetch con `credentials: 'include'` y manejo de error con el helper de toast/alert que ya use el modal (grep para ver cuál usa).
+- [ ] **Step 3: Estados y móvil (aceptación)**
 
-- [ ] **Step 3: Verificar manualmente**
+Implementar los estados del brief §6 (skeleton shimmer por sección, empty states que enseñan, toast rosa cálido de error conservando lo escrito) y pasar el **checklist móvil del brief §5** completo: viewport 375px sin scroll horizontal en ninguna sección; teclado abierto sin tapar campo/`Guardar` sticky; chips de alerta visibles siempre; tabs alcanzables al rotar; subir fotos desde cámara y PDFs desde Archivos en un teléfono real o simulador.
 
-Server local + admin logueado: abrir expediente de una clienta → se ven las 5 pestañas nuevas; `Enviar ficha` responde `{success:true}` y llega el WhatsApp (o queda registrado el intento en logs si Evolution no está conectada en local); capturar un diagnóstico y una sesión láser y verificar persistencia recargando; subir un PDF de prueba (NO uno real de clienta) a Documentos y abrir su link de Drive.
+- [ ] **Step 4: Verificar manualmente**
 
-- [ ] **Step 4: Commit**
+Server local + admin logueado: abrir una clienta desde la lista → URL cambia a `/admin/clientas/{id}`, botón atrás regresa a la lista con su scroll; título muestra el nombre SIN HTML escapado; capturar diagnóstico y sesión láser y verificar persistencia recargando la URL directa; `Enviar ficha` responde `{success:true}`; subir un PDF de prueba (NO uno real de clienta) y abrirlo en Drive; repetir todo en DevTools móvil 375px.
+
+- [ ] **Step 5: Commit**
 
 ```bash
 git add public/admin.html
-git commit -m "feat(expedientes): pestañas Ficha/Consentimientos/Diagnóstico/Láser/Documentos en el admin"
+git commit -m "feat(expedientes): vista completa de expediente (6 secciones, mobile-first) reemplaza al modal"
 ```
 
 ---
