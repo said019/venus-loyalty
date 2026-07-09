@@ -3949,9 +3949,11 @@
       // haya quedado en otra pestaña (Fotos, Documentos, etc.).
       if (typeof expActivateSection === 'function') expActivateSection('resumen');
 
-      // Cerrar cualquier modal de cliente abierto.
-      const clientModal = document.getElementById('client-modal');
-      if (clientModal) clientModal.classList.add('hidden');
+      // Cerrar el modal de la clienta (se abre desde su botón "Expediente").
+      // El id real es card-modal-backdrop; closeCardModal() hace la limpieza completa.
+      if (typeof closeCardModal === 'function') closeCardModal();
+      const cardBackdrop = document.getElementById('card-modal-backdrop');
+      if (cardBackdrop) cardBackdrop.classList.add('hidden');
 
       // Identidad: textContent SOLO con el nombre (corrige el bug del HTML escapado).
       const card = window.cardsCache ? window.cardsCache[cardId] : null;
