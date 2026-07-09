@@ -541,17 +541,20 @@
       }
     }
 
-    function showInvalid() { hideLoading(); screenInvalid.classList.add('show'); }
+    // Ocultar el formulario y subir el scroll al mostrar cualquier pantalla final:
+    // si no, aparece arriba pero el usuario (abajo, en la firma) no la ve → "no pasó nada".
+    function hideForm() { if (formWrap) formWrap.style.display = 'none'; window.scrollTo(0, 0); }
+    function showInvalid() { hideLoading(); hideForm(); screenInvalid.classList.add('show'); }
     function showSigned(signedAt) {
-      hideLoading();
+      hideLoading(); hideForm();
       if (signedAt) {
         const f = formatFecha(signedAt);
         if (f) signedMeta.textContent = 'Firmado el ' + f;
       }
       screenSigned.classList.add('show');
     }
-    function showAlreadySigned() { hideLoading(); screenAlreadySigned.classList.add('show'); }
-    function showGracias() { hideLoading(); screenGracias.classList.add('show'); }
+    function showAlreadySigned() { hideLoading(); hideForm(); screenAlreadySigned.classList.add('show'); }
+    function showGracias() { hideLoading(); hideForm(); screenGracias.classList.add('show'); }
     function hideLoading() { loading.style.display = 'none'; }
 
     /* ============================================================

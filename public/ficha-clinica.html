@@ -1001,8 +1001,10 @@
       if (i.photoConsent === true || i.photoConsent === false) state.photoConsent = i.photoConsent;
     }
 
-    function showInvalid() { hideLoading(); screenInvalid.classList.add('show'); }
-    function showSigned() { hideLoading(); screenSigned.classList.add('show'); }
+    // Ocultar el formulario y subir el scroll: si no, la pantalla de éxito/inválido
+    // aparece arriba pero la clienta (parada en la firma, abajo) no la ve → "no pasó nada".
+    function showInvalid() { hideLoading(); formWrap.style.display = 'none'; screenInvalid.classList.add('show'); window.scrollTo(0, 0); }
+    function showSigned() { hideLoading(); formWrap.style.display = 'none'; screenSigned.classList.add('show'); window.scrollTo(0, 0); }
     function hideLoading() { loading.style.display = 'none'; }
 
     /* ============================================================
