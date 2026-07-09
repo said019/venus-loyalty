@@ -3288,6 +3288,11 @@
           <button class="exp-tab" data-exp-tab="sessions"><i class="fas fa-spa"></i> Sesiones</button>
           <button class="exp-tab" data-exp-tab="photos"><i class="fas fa-camera"></i> Fotos</button>
           <button class="exp-tab" data-exp-tab="compare"><i class="fas fa-exchange-alt"></i> Comparar</button>
+          <button class="exp-tab" data-exp-tab="ficha"><i class="fas fa-clipboard-list"></i> Ficha</button>
+          <button class="exp-tab" data-exp-tab="consents"><i class="fas fa-file-signature"></i> Consentimientos</button>
+          <button class="exp-tab" data-exp-tab="diagnosis"><i class="fas fa-microscope"></i> Diagnóstico</button>
+          <button class="exp-tab" data-exp-tab="laser"><i class="fas fa-bolt"></i> Láser</button>
+          <button class="exp-tab" data-exp-tab="documents"><i class="fas fa-folder"></i> Documentos</button>
         </div>
 
         <!-- Contenido -->
@@ -3407,6 +3412,114 @@
                 </div>
               </div>
             </div>
+          </div>
+
+          <!-- Tab: Ficha clínica digital -->
+          <div id="exp-tab-ficha" class="exp-tab-content">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:13px;color:var(--muted,#888);">Estado:</span>
+                <span id="exp-ficha-status" class="exp-badge">—</span>
+              </div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <a id="exp-ficha-pdf-link" href="#" target="_blank" rel="noopener" style="display:none;" class="btn small ghost"><i class="fas fa-file-pdf"></i> Ver PDF</a>
+                <button class="btn small primary" onclick="expSendFicha()"><i class="fab fa-whatsapp"></i> Enviar ficha por WhatsApp</button>
+              </div>
+            </div>
+            <div id="exp-ficha-body"></div>
+          </div>
+
+          <!-- Tab: Consentimientos -->
+          <div id="exp-tab-consents" class="exp-tab-content">
+            <div style="margin-bottom:12px;">
+              <button class="btn small primary" onclick="expSendConsent()"><i class="fab fa-whatsapp"></i> Enviar consentimiento láser</button>
+            </div>
+            <div id="exp-consents-list"></div>
+          </div>
+
+          <!-- Tab: Diagnóstico facial -->
+          <div id="exp-tab-diagnosis" class="exp-tab-content">
+            <form id="exp-diagnosis-form" class="exp-form" onsubmit="return expSaveDiagnosis(event)">
+              <input type="hidden" id="exp-diag-id">
+              <div class="exp-form-grid">
+                <div class="exp-form-group">
+                  <label>Tipo de piel</label>
+                  <select id="exp-diag-skinType" class="form-input">
+                    <option value="">Seleccionar...</option>
+                    <option value="normal">Normal</option>
+                    <option value="grasa">Grasa</option>
+                    <option value="seca">Seca</option>
+                    <option value="mixta">Mixta</option>
+                    <option value="sensible">Sensible</option>
+                  </select>
+                </div>
+                <div class="exp-form-group">
+                  <label>Cosmetóloga</label>
+                  <input type="text" id="exp-diag-staffName" class="form-input" placeholder="Nombre de la cosmetóloga">
+                </div>
+              </div>
+              <div class="exp-form-group"><label>Alteración y/o condición de piel</label><textarea id="exp-diag-alteration" class="form-input" rows="2"></textarea></div>
+              <div class="exp-form-group"><label>Causas</label><textarea id="exp-diag-causes" class="form-input" rows="2"></textarea></div>
+              <div class="exp-form-group"><label>TX cosmético</label><textarea id="exp-diag-cosmeticTx" class="form-input" rows="2"></textarea></div>
+              <div class="exp-form-group"><label>Pronóstico</label><textarea id="exp-diag-prognosis" class="form-input" rows="2"></textarea></div>
+              <div class="exp-form-group"><label>Costo</label><input type="text" id="exp-diag-cost" class="form-input" placeholder="Ej: $1,500"></div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+                <button type="submit" class="btn primary"><i class="fas fa-save"></i> Guardar diagnóstico</button>
+                <button type="button" class="btn ghost" onclick="expExportDiagnosisPdf()"><i class="fas fa-file-export"></i> Exportar PDF a Drive</button>
+              </div>
+            </form>
+            <hr style="margin:16px 0;border:0;border-top:1px solid var(--border,#eee);">
+            <h4 style="font-size:14px;font-weight:600;margin:0 0 10px;">Diagnósticos anteriores</h4>
+            <div id="exp-diagnosis-list"></div>
+          </div>
+
+          <!-- Tab: Láser -->
+          <div id="exp-tab-laser" class="exp-tab-content">
+            <h3 style="margin:0 0 12px;font-size:15px;font-weight:600;color:var(--ink,#111);">Sesiones de láser</h3>
+            <div style="overflow-x:auto;">
+              <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                <thead>
+                  <tr style="text-align:left;border-bottom:2px solid var(--border,#eee);">
+                    <th style="padding:6px 8px;">Fecha</th>
+                    <th style="padding:6px 8px;">Cosmetóloga</th>
+                    <th style="padding:6px 8px;">Zona</th>
+                    <th style="padding:6px 8px;">Frecuencia</th>
+                    <th style="padding:6px 8px;">Fluencia</th>
+                    <th style="padding:6px 8px;">Intensidad</th>
+                    <th style="padding:6px 8px;">Observaciones</th>
+                    <th style="padding:6px 8px;">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="exp-laser-tbody"></tbody>
+              </table>
+            </div>
+            <form id="exp-laser-form" class="exp-form" style="margin-top:14px;" onsubmit="return expSaveLaserSession(event)">
+              <input type="hidden" id="exp-laser-id">
+              <div class="exp-form-grid">
+                <div class="exp-form-group"><label>Fecha</label><input type="date" id="exp-laser-date" class="form-input"></div>
+                <div class="exp-form-group"><label>Cosmetóloga</label><input type="text" id="exp-laser-staffName" class="form-input"></div>
+                <div class="exp-form-group"><label>Zona</label><input type="text" id="exp-laser-zone" class="form-input"></div>
+                <div class="exp-form-group"><label>Frecuencia</label><input type="text" id="exp-laser-frequency" class="form-input"></div>
+                <div class="exp-form-group"><label>Fluencia</label><input type="text" id="exp-laser-fluence" class="form-input"></div>
+                <div class="exp-form-group"><label>Intensidad</label><input type="text" id="exp-laser-laserIntensity" class="form-input"></div>
+              </div>
+              <div class="exp-form-group"><label>Observaciones</label><textarea id="exp-laser-observations" class="form-input" rows="2"></textarea></div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <button type="submit" class="btn primary"><i class="fas fa-save"></i> <span id="exp-laser-save-label">Agregar sesión</span></button>
+                <button type="button" class="btn ghost" onclick="expResetLaserForm()">Cancelar</button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Tab: Documentos -->
+          <div id="exp-tab-documents" class="exp-tab-content">
+            <div id="exp-docs-dropzone" style="border:2px dashed var(--border,#ccc);border-radius:10px;padding:18px;text-align:center;cursor:pointer;margin-bottom:14px;transition:background .15s;">
+              <i class="fas fa-cloud-upload-alt" style="font-size:26px;color:var(--muted,#999);"></i>
+              <p style="margin:8px 0 4px;font-weight:600;">Arrastra archivos aquí o haz clic para subir</p>
+              <p style="margin:0;font-size:12px;color:var(--muted,#999);">PDF, imágenes, recetas… (máx. 10 archivos)</p>
+              <input type="file" id="exp-docs-input" multiple style="display:none;" onchange="expUploadDocuments(this.files)">
+            </div>
+            <div id="exp-docs-list"></div>
           </div>
         </div>
 
@@ -3877,6 +3990,8 @@
       
       // Cargar datos del expediente
       await loadExpedienteData(cardId);
+      // Cargar expediente digital (ficha, consentimientos, diagnóstico, láser, documentos)
+      try { await loadExpedienteDigital(cardId); } catch (e) { console.error('[Expediente digital] Error al cargar:', e); }
     }
 
     // Cerrar modal de expediente
@@ -4354,6 +4469,509 @@
       }
     });
 
+    // ===== EXPEDIENTE DIGITAL (Ficha / Consentimientos / Diagnóstico / Láser / Documentos) =====
+    // Consumes /api/expedientes/* (router con adminAuth por cookie adm → credentials:'include').
+    let expedienteDigitalCache = null;
+    const expApi = window.apiFetch || ((u, o) => fetch(u, Object.assign({ credentials: 'include' }, o || {})));
+
+    // Etiquetas para render de la ficha (espejo de ficha-clinica.html)
+    const EXP_INTEREST_LABELS = { embarazo:'Embarazo', lactancia:'Lactancia', alergias:'Alergias', vitaminas:'Vitaminas / Suplementos', medicamentos:'Medicamentos', implantes:'Implantes o dispositivos', anticonceptivos:'Anticonceptivos', intervenciones:'Intervenciones estéticas o quirúrgicas', protectorSolar:'Protector solar' };
+    const EXP_YESNO_PLAIN = ['embarazo','lactancia','anticonceptivos'];
+    const EXP_YESNO_WITH_DETAIL = ['alergias','vitaminas','medicamentos','implantes','intervenciones','protectorSolar'];
+    const EXP_CICLO_LABELS = { R:'Regular', IR:'Irregular', NP:'No presente' };
+    const EXP_COND_TITLES = { acne:'Acné', cicatrices:'Cicatrices atróficas', pigmentaciones:'Pigmentaciones', envejecimiento:'Envejecimiento', ojerasInflamadas:'Ojeras inflamadas', ojerasPigmentadas:'Ojeras pigmentadas', pielSensible:'Piel sensible' };
+    const EXP_QUESTIONS = {
+      acne: ['¿Cómo es tu ingesta de lácteos, embutidos, azúcares y/o comida chatarra?','¿Utilizas base de maquillaje todos los días?','¿Con qué frecuencia lavas tus brochas?','¿Compartes tu maquillaje con amigos o familiares?','¿Con qué te desmaquillas el rostro?','¿Con qué frecuencia cambias las fundas de tus almohadas?','¿Cómo es tu nivel de estrés?','¿Tiendes a manipular, pellizcar o rascar las lesiones del acné?'],
+      cicatrices: ['¿Padeciste acné en alguna etapa de tu vida? ¿Cuánto tiempo?','¿Presentaban inflamación o lesiones muy grandes?','¿Cómo trataste tu acné?','¿Manipulabas, pellizcabas o rascabas tus lesiones?'],
+      pigmentaciones: ['¿Cuánto tiempo llevas con la pigmentación en tu piel?','¿Te expones mucho tiempo al sol?','Describe el ambiente climático en el que te encuentras en tu trabajo','¿Pasas mucho tiempo frente a la radiación de luz azul?','¿Tomas o has tomado medicamentos que puedan sensibilizar tu piel?'],
+      envejecimiento: ['¿Cuánto tiempo tienes usando protector solar?','¿A partir de qué edad empezaste a cuidar tu piel?','¿En qué posición duermes?','¿Fumas?','¿Te expones mucho al sol? ¿Cuánto?'],
+      ojerasInflamadas: ['¿Ingieres alimentos muy condimentados y con mucha sal?','¿Cómo es la calidad de tu sueño al dormir?','¿Tu familia tiene o presenta inflamación en el contorno de ojos?'],
+      ojerasPigmentadas: ['¿Cómo es tu técnica de desmaquillado?','¿Frotas constantemente tus ojos?','¿Cuántas horas estás durmiendo por las noches? ¿Y a qué hora te duermes?','¿Tu familia tiene o presenta pigmentación en las ojeras?','¿Presentas alguna alergia que afecte tus ojos?'],
+      pielSensible: ['¿Recientemente te has realizado algún tratamiento invasivo? ¿Cuál?','¿Tu piel no tolera muy bien todos los productos para la piel?','¿Normalmente tu piel tiene una temperatura alta?','¿En tu familia hay enfermedades o condiciones de la piel como piel sensible, reactiva, con cáncer de piel o rosácea?']
+    };
+
+    function expEsc(s) {
+      return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+        return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c];
+      });
+    }
+    function expFormatBytes(b) {
+      if (!b) return '';
+      if (b < 1024) return b + ' B';
+      if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
+      return (b / 1048576).toFixed(1) + ' MB';
+    }
+    function expEmptyState(icon, msg) {
+      return '<div class="exp-empty-state"><i class="fas ' + icon + '"></i><p>' + expEsc(msg) + '</p></div>';
+    }
+
+    // Carga todo el expediente digital y pinta las 5 pestañas.
+    async function loadExpedienteDigital(cardId) {
+      try {
+        const res = await expApi('/api/expedientes/' + encodeURIComponent(cardId));
+        if (!res.ok) throw new Error('Error al cargar expediente digital');
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Error al cargar expediente digital');
+        expedienteDigitalCache = data;
+        renderFichaPanel(data.intake, data.record);
+        renderConsentsPanel(data.consents || []);
+        renderDiagnosisPanel(data.diagnoses || []);
+        renderLaserPanel(data.laserSessions || []);
+        renderDocumentsPanel(data.documents || []);
+      } catch (e) {
+        console.error('[Expediente digital] Error:', e);
+        alert('No se pudo cargar el expediente digital');
+      }
+    }
+
+    // ----- Ficha -----
+    function renderFichaPanel(intake, record) {
+      const badge = document.getElementById('exp-ficha-status');
+      const pdfLink = document.getElementById('exp-ficha-pdf-link');
+      const body = document.getElementById('exp-ficha-body');
+      if (!badge || !body) return;
+      intake = intake || null;
+      record = record || {};
+
+      let label = 'Sin enviar', color = '#9ca3af'; // gris
+      if (intake && intake.status === 'signed') { label = 'Firmada ✅'; color = '#16a34a'; }      // verde
+      else if (record.fichaLinkSentAt) { label = 'Enviada'; color = '#d97706'; }                   // amarillo/naranja
+      else if (intake) { label = 'Borrador'; color = '#2563eb'; }                                  // azul
+      badge.textContent = label;
+      badge.style.cssText = 'display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600;color:#fff;background:' + color + ';';
+
+      if (intake && intake.pdfWebViewLink) {
+        pdfLink.href = intake.pdfWebViewLink;
+        pdfLink.style.display = '';
+      } else {
+        pdfLink.style.display = 'none';
+      }
+
+      if (!intake) {
+        body.innerHTML = expEmptyState('fa-clipboard', 'La clienta aún no ha llenado su ficha clínica. Envíale el link por WhatsApp.');
+        return;
+      }
+
+      const rows = [];
+      const sec = (title, items) => {
+        rows.push('<h4 style="margin:14px 0 6px;font-size:13px;font-weight:700;color:var(--ink,#111);">' + expEsc(title) + '</h4>');
+        if (!items || items.length === 0) { rows.push('<p style="margin:0 0 8px;font-size:13px;color:var(--muted,#888);">Sin datos</p>'); return; }
+        rows.push('<table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:8px;">');
+        items.forEach(function (it) {
+          const k = it[0], v = it[1];
+          const shown = (v === null || v === '' || v === undefined) ? '<span style="color:#bbb;">Sin datos</span>' : v;
+          rows.push('<tr><td style="padding:4px 8px 4px 0;color:var(--muted,#888);white-space:nowrap;width:40%;vertical-align:top;">' + expEsc(k) + '</td><td style="padding:4px 0;vertical-align:top;">' + shown + '</td></tr>');
+        });
+        rows.push('</table>');
+      };
+
+      // Datos personales
+      sec('Datos personales', [
+        ['Nombre', expEsc(intake.fullName)],
+        ['Fecha de nacimiento', expEsc(intake.birthDate)],
+        ['Edad', intake.age != null ? expEsc(intake.age) : ''],
+        ['Teléfono', expEsc(intake.phone)],
+        ['Profesión', expEsc(intake.profession)],
+        ['Dirección', expEsc(intake.address)],
+        ['Redes sociales', expEsc(intake.socialMedia)],
+        ['¿Cómo se enteró de nosotros?', expEsc(intake.referralSource)]
+      ]);
+
+      // Datos de interés
+      const idata = intake.interestData || {};
+      const interRows = [];
+      if (idata.cicloMenstrual) interRows.push(['Ciclo menstrual', expEsc(EXP_CICLO_LABELS[idata.cicloMenstrual] || idata.cicloMenstrual)]);
+      EXP_YESNO_PLAIN.concat(EXP_YESNO_WITH_DETAIL).forEach(function (k) {
+        const item = idata[k];
+        if (item && typeof item === 'object') {
+          const val = item.value ? 'Sí' : 'No';
+          const detail = item.detail ? ' — ' + expEsc(item.detail) : '';
+          interRows.push([EXP_INTEREST_LABELS[k], val + detail]);
+        }
+      });
+      sec('Datos de interés', interRows);
+
+      // Condición
+      sec('Condición de la piel', [
+        ['Condición que busca mejorar', expEsc(intake.skinCondition)],
+        ['¿Desde cuándo?', expEsc(intake.conditionSince)],
+        ['Tratamientos previos', expEsc(intake.previousTreatments)],
+        ['Reacciones a tratamientos', expEsc(intake.treatmentReactions)]
+      ]);
+
+      // Cuestionarios respondidos
+      const q = intake.questionnaires || {};
+      const qKeys = Object.keys(q);
+      rows.push('<h4 style="margin:14px 0 6px;font-size:13px;font-weight:700;color:var(--ink,#111);">Cuestionarios respondidos</h4>');
+      if (qKeys.length === 0) {
+        rows.push('<p style="margin:0 0 8px;font-size:13px;color:var(--muted,#888);">Sin datos</p>');
+      } else {
+        qKeys.forEach(function (cond) {
+          const title = EXP_COND_TITLES[cond] || cond;
+          rows.push('<div style="margin:0 0 10px;padding:10px;border:1px solid var(--border,#eee);border-radius:8px;"><div style="font-weight:600;margin-bottom:4px;">' + expEsc(title) + '</div>');
+          const ans = q[cond] || {};
+          const qs = EXP_QUESTIONS[cond] || [];
+          Object.keys(ans).sort().forEach(function (qkey) {
+            const idx = parseInt(qkey.replace('q', ''), 10) - 1;
+            const qtext = qs[idx] || ('Pregunta ' + (idx + 1));
+            rows.push('<div style="font-size:12px;color:var(--muted,#888);margin-top:6px;">' + (idx + 1) + '. ' + expEsc(qtext) + '</div>');
+            rows.push('<div style="font-size:13px;margin:0 0 4px;">' + (ans[qkey] ? expEsc(ans[qkey]) : '<span style="color:#bbb;">Sin responder</span>') + '</div>');
+          });
+          rows.push('</div>');
+        });
+      }
+
+      // Rutina
+      const day = Array.isArray(intake.routineDay) ? intake.routineDay : [];
+      const night = Array.isArray(intake.routineNight) ? intake.routineNight : [];
+      rows.push('<h4 style="margin:14px 0 6px;font-size:13px;font-weight:700;color:var(--ink,#111);">Rutina</h4>');
+      rows.push('<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">');
+      rows.push('<div><div style="font-weight:600;font-size:12px;margin-bottom:4px;">Día</div>' + (day.length ? day.map(function (p) { return '<div style="font-size:13px;">• ' + expEsc(p) + '</div>'; }).join('') : '<span style="color:#bbb;font-size:13px;">Sin productos</span>') + '</div>');
+      rows.push('<div><div style="font-weight:600;font-size:12px;margin-bottom:4px;">Noche</div>' + (night.length ? night.map(function (p) { return '<div style="font-size:13px;">• ' + expEsc(p) + '</div>'; }).join('') : '<span style="color:#bbb;font-size:13px;">Sin productos</span>') + '</div>');
+      rows.push('</div>');
+
+      // Autorización de fotografías
+      rows.push('<h4 style="margin:14px 0 6px;font-size:13px;font-weight:700;color:var(--ink,#111);">Autorización de fotografías</h4>');
+      const pc = intake.photoConsent === true ? 'SÍ AUTORIZO' : (intake.photoConsent === false ? 'NO AUTORIZO' : '');
+      rows.push('<p style="margin:0;font-size:13px;">' + (pc || '<span style="color:#bbb;">Sin datos</span>') + '</p>');
+
+      body.innerHTML = rows.join('');
+    }
+
+    async function expSendFicha() {
+      const cardId = currentExpedienteCardId;
+      if (!cardId) { alert('No hay expediente cargado'); return; }
+      if (!confirm('¿Enviar el link de la ficha clínica por WhatsApp a la clienta?')) return;
+      try {
+        const res = await expApi('/api/expedientes/' + encodeURIComponent(cardId) + '/send-ficha', { method: 'POST' });
+        if (!res.ok) { let m = 'Error al enviar la ficha'; try { const j = await res.json(); if (j && j.error) m = j.error; } catch (_) {} throw new Error(m); }
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Error al enviar la ficha');
+        let msg = 'Ficha enviada por WhatsApp ✅';
+        if (data.url) msg += '\n\nLink: ' + data.url;
+        alert(msg);
+        await loadExpedienteDigital(cardId);
+      } catch (err) {
+        console.error('[Ficha] Error:', err);
+        alert(err.message || 'Error al enviar la ficha');
+      }
+    }
+
+    // ----- Consentimientos -----
+    function renderConsentsPanel(consents) {
+      const c = document.getElementById('exp-consents-list');
+      if (!c) return;
+      if (!consents || consents.length === 0) {
+        c.innerHTML = expEmptyState('fa-file-signature', 'No hay consentimientos registrados. Puedes enviar el link de firma por WhatsApp.');
+        return;
+      }
+      c.innerHTML = consents.map(function (co) {
+        const type = co.type === 'laser-diodo' ? 'Depilación láser (diodo)' : (co.type || '—');
+        const status = co.status === 'signed' ? 'Firmado' : 'Pendiente';
+        const statusColor = co.status === 'signed' ? '#16a34a' : '#d97706';
+        const fecha = co.signedAt ? new Date(co.signedAt).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
+        const pdf = co.pdfWebViewLink ? '<a href="' + expEsc(co.pdfWebViewLink) + '" target="_blank" rel="noopener" class="btn small ghost"><i class="fas fa-file-pdf"></i> Ver PDF</a>' : '';
+        return '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border,#eee);">' +
+          '<div><div style="font-weight:600;font-size:13px;">' + expEsc(type) + '</div><div style="font-size:12px;color:var(--muted,#888);">Firmado: ' + expEsc(fecha) + '</div></div>' +
+          '<div style="display:flex;align-items:center;gap:8px;"><span style="padding:3px 8px;border-radius:999px;font-size:11px;font-weight:600;color:#fff;background:' + statusColor + ';">' + expEsc(status) + '</span>' + pdf + '</div>' +
+          '</div>';
+      }).join('');
+    }
+
+    async function expSendConsent() {
+      const cardId = currentExpedienteCardId;
+      if (!cardId) { alert('No hay expediente cargado'); return; }
+      if (!confirm('¿Enviar el link del consentimiento láser por WhatsApp a la clienta?')) return;
+      try {
+        const res = await expApi('/api/expedientes/' + encodeURIComponent(cardId) + '/send-consent', { method: 'POST' });
+        if (!res.ok) { let m = 'Error al enviar el consentimiento'; try { const j = await res.json(); if (j && j.error) m = j.error; } catch (_) {} throw new Error(m); }
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Error al enviar el consentimiento');
+        let msg = 'Consentimiento enviado por WhatsApp ✅';
+        if (data.url) msg += '\n\nLink: ' + data.url;
+        alert(msg);
+        await loadExpedienteDigital(cardId);
+      } catch (err) {
+        console.error('[Consent] Error:', err);
+        alert(err.message || 'Error al enviar el consentimiento');
+      }
+    }
+
+    // ----- Diagnóstico -----
+    function renderDiagnosisPanel(diagnoses) {
+      const list = document.getElementById('exp-diagnosis-list');
+      if (!list) return;
+      if (!diagnoses || diagnoses.length === 0) {
+        list.innerHTML = '<p style="font-size:13px;color:var(--muted,#888);">No hay diagnósticos previos.</p>';
+        return;
+      }
+      list.innerHTML = diagnoses.map(function (d) {
+        const fecha = d.createdAt ? new Date(d.createdAt).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
+        const pdf = d.pdfWebViewLink ? '<a href="' + expEsc(d.pdfWebViewLink) + '" target="_blank" rel="noopener" class="btn small ghost" onclick="event.stopPropagation();"><i class="fas fa-file-pdf"></i> PDF</a>' : '';
+        return '<div style="padding:10px;border:1px solid var(--border,#eee);border-radius:8px;margin-bottom:8px;cursor:pointer;" onclick="expLoadDiagnosis(' + "'" + d.id + "'" + ')">' +
+          '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">' +
+          '<div><div style="font-weight:600;font-size:13px;">' + expEsc(d.skinType || '—') + ' · ' + expEsc(d.alteration || '—') + '</div>' +
+          '<div style="font-size:12px;color:var(--muted,#888);">' + expEsc(fecha) + (d.staffName ? ' · ' + expEsc(d.staffName) : '') + '</div></div>' + pdf +
+          '</div></div>';
+      }).join('');
+    }
+
+    function expLoadDiagnosis(id) {
+      const arr = (expedienteDigitalCache && expedienteDigitalCache.diagnoses) || [];
+      const d = arr.find(function (x) { return x.id === id; });
+      if (!d) return;
+      document.getElementById('exp-diag-id').value = d.id || '';
+      document.getElementById('exp-diag-skinType').value = d.skinType || '';
+      document.getElementById('exp-diag-alteration').value = d.alteration || '';
+      document.getElementById('exp-diag-causes').value = d.causes || '';
+      document.getElementById('exp-diag-cosmeticTx').value = d.cosmeticTx || '';
+      document.getElementById('exp-diag-prognosis').value = d.prognosis || '';
+      document.getElementById('exp-diag-cost').value = d.cost || '';
+      document.getElementById('exp-diag-staffName').value = d.staffName || '';
+      const panel = document.getElementById('exp-tab-diagnosis');
+      if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    async function expSaveDiagnosis(e) {
+      e.preventDefault();
+      const cardId = currentExpedienteCardId;
+      if (!cardId) { alert('No hay expediente cargado'); return false; }
+      const id = document.getElementById('exp-diag-id').value || null;
+      const body = {
+        id: id || undefined,
+        skinType: document.getElementById('exp-diag-skinType').value || null,
+        alteration: document.getElementById('exp-diag-alteration').value || null,
+        causes: document.getElementById('exp-diag-causes').value || null,
+        cosmeticTx: document.getElementById('exp-diag-cosmeticTx').value || null,
+        prognosis: document.getElementById('exp-diag-prognosis').value || null,
+        cost: document.getElementById('exp-diag-cost').value || null,
+        staffName: document.getElementById('exp-diag-staffName').value || null
+      };
+      try {
+        const res = await expApi('/api/expedientes/' + encodeURIComponent(cardId) + '/diagnosis', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        if (!res.ok) throw new Error('Error al guardar diagnóstico');
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Error al guardar diagnóstico');
+        alert('Diagnóstico guardado correctamente');
+        await loadExpedienteDigital(cardId);
+        if (data.diagnosis && data.diagnosis.id) expLoadDiagnosis(data.diagnosis.id);
+      } catch (err) {
+        console.error('[Diagnóstico] Error:', err);
+        alert('Error al guardar el diagnóstico');
+      }
+      return false;
+    }
+
+    async function expExportDiagnosisPdf() {
+      const cardId = currentExpedienteCardId;
+      const id = document.getElementById('exp-diag-id').value;
+      if (!cardId || !id) { alert('Selecciona o guarda un diagnóstico primero'); return; }
+      if (!confirm('¿Exportar este diagnóstico a PDF en Google Drive?')) return;
+      try {
+        const res = await expApi('/api/expedientes/' + encodeURIComponent(cardId) + '/diagnosis/' + encodeURIComponent(id) + '/pdf', { method: 'POST' });
+        if (!res.ok) throw new Error('Error al exportar PDF');
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Error al exportar PDF');
+        if (data.pending) {
+          alert('PDF generado. La subida a Drive está pendiente (se completará automáticamente).');
+        } else if (data.webViewLink) {
+          alert('PDF exportado correctamente.');
+          window.open(data.webViewLink, '_blank', 'noopener');
+        } else {
+          alert('PDF exportado.');
+        }
+        await loadExpedienteDigital(cardId);
+      } catch (err) {
+        console.error('[Diagnóstico PDF] Error:', err);
+        alert('Error al exportar el PDF');
+      }
+    }
+
+    // ----- Láser -----
+    function renderLaserPanel(sessions) {
+      const tb = document.getElementById('exp-laser-tbody');
+      if (!tb) return;
+      if (!sessions || sessions.length === 0) {
+        tb.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:16px;color:var(--muted,#888);">No hay sesiones de láser registradas.</td></tr>';
+        return;
+      }
+      tb.innerHTML = sessions.map(function (s) {
+        const fecha = s.date ? new Date(s.date).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
+        return '<tr style="border-bottom:1px solid var(--border,#eee);">' +
+          '<td style="padding:6px 8px;white-space:nowrap;">' + expEsc(fecha) + '</td>' +
+          '<td style="padding:6px 8px;">' + expEsc(s.staffName || '—') + '</td>' +
+          '<td style="padding:6px 8px;">' + expEsc(s.zone || '—') + '</td>' +
+          '<td style="padding:6px 8px;">' + expEsc(s.frequency || '—') + '</td>' +
+          '<td style="padding:6px 8px;">' + expEsc(s.fluence || '—') + '</td>' +
+          '<td style="padding:6px 8px;">' + expEsc(s.laserIntensity || '—') + '</td>' +
+          '<td style="padding:6px 8px;">' + expEsc(s.observations || '—') + '</td>' +
+          '<td style="padding:6px 8px;white-space:nowrap;">' +
+            '<button class="btn small ghost" onclick="expEditLaserSession(' + "'" + s.id + "'" + ')">Editar</button> ' +
+            '<button class="btn small ghost" style="color:#dc2626;" onclick="expDeleteLaserSession(' + "'" + s.id + "'" + ')">Eliminar</button>' +
+          '</td></tr>';
+      }).join('');
+    }
+
+    function expEditLaserSession(id) {
+      const arr = (expedienteDigitalCache && expedienteDigitalCache.laserSessions) || [];
+      const s = arr.find(function (x) { return x.id === id; });
+      if (!s) return;
+      document.getElementById('exp-laser-id').value = s.id;
+      document.getElementById('exp-laser-date').value = s.date ? new Date(s.date).toISOString().slice(0, 10) : '';
+      document.getElementById('exp-laser-staffName').value = s.staffName || '';
+      document.getElementById('exp-laser-zone').value = s.zone || '';
+      document.getElementById('exp-laser-frequency').value = s.frequency || '';
+      document.getElementById('exp-laser-fluence').value = s.fluence || '';
+      document.getElementById('exp-laser-laserIntensity').value = s.laserIntensity || '';
+      document.getElementById('exp-laser-observations').value = s.observations || '';
+      const lbl = document.getElementById('exp-laser-save-label');
+      if (lbl) lbl.textContent = 'Guardar cambios';
+      const f = document.getElementById('exp-laser-form');
+      if (f) f.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function expResetLaserForm() {
+      const f = document.getElementById('exp-laser-form');
+      if (f) f.reset();
+      const idEl = document.getElementById('exp-laser-id');
+      if (idEl) idEl.value = '';
+      const lbl = document.getElementById('exp-laser-save-label');
+      if (lbl) lbl.textContent = 'Agregar sesión';
+    }
+
+    async function expSaveLaserSession(e) {
+      e.preventDefault();
+      const cardId = currentExpedienteCardId;
+      if (!cardId) { alert('No hay expediente cargado'); return false; }
+      const id = document.getElementById('exp-laser-id').value || null;
+      const body = {
+        date: document.getElementById('exp-laser-date').value || null,
+        staffName: document.getElementById('exp-laser-staffName').value || null,
+        zone: document.getElementById('exp-laser-zone').value || null,
+        frequency: document.getElementById('exp-laser-frequency').value || null,
+        fluence: document.getElementById('exp-laser-fluence').value || null,
+        laserIntensity: document.getElementById('exp-laser-laserIntensity').value || null,
+        observations: document.getElementById('exp-laser-observations').value || null
+      };
+      try {
+        const url = id
+          ? '/api/expedientes/' + encodeURIComponent(cardId) + '/laser-sessions/' + encodeURIComponent(id)
+          : '/api/expedientes/' + encodeURIComponent(cardId) + '/laser-sessions';
+        const method = id ? 'PUT' : 'POST';
+        const res = await expApi(url, { method: method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        if (!res.ok) throw new Error('Error al guardar la sesión');
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Error al guardar la sesión');
+        expResetLaserForm();
+        alert('Sesión ' + (id ? 'actualizada' : 'agregada') + ' correctamente');
+        await loadExpedienteDigital(cardId);
+      } catch (err) {
+        console.error('[Láser] Error:', err);
+        alert('Error al guardar la sesión de láser');
+      }
+      return false;
+    }
+
+    async function expDeleteLaserSession(id) {
+      const cardId = currentExpedienteCardId;
+      if (!cardId || !id) return;
+      if (!confirm('¿Eliminar esta sesión de láser?')) return;
+      try {
+        const res = await expApi('/api/expedientes/' + encodeURIComponent(cardId) + '/laser-sessions/' + encodeURIComponent(id), { method: 'DELETE' });
+        if (!res.ok) throw new Error('Error al eliminar');
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Error al eliminar');
+        alert('Sesión eliminada');
+        await loadExpedienteDigital(cardId);
+      } catch (err) {
+        console.error('[Láser] Error al eliminar:', err);
+        alert('Error al eliminar la sesión');
+      }
+    }
+
+    // ----- Documentos -----
+    function renderDocumentsPanel(docs) {
+      const c = document.getElementById('exp-docs-list');
+      if (!c) return;
+      if (!docs || docs.length === 0) {
+        c.innerHTML = expEmptyState('fa-folder-open', 'No hay documentos en el expediente.');
+        return;
+      }
+      c.innerHTML = docs.map(function (d) {
+        const mt = d.mimeType || '';
+        const icon = mt.indexOf('pdf') !== -1 ? 'fa-file-pdf' : (mt.indexOf('image/') === 0 ? 'fa-file-image' : 'fa-file');
+        const size = d.sizeBytes ? expFormatBytes(d.sizeBytes) : '';
+        const fecha = d.uploadedAt ? new Date(d.uploadedAt).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+        const isGen = d.source === 'generated';
+        const badge = '<span style="padding:3px 8px;border-radius:999px;font-size:11px;font-weight:600;color:#fff;background:' + (isGen ? '#2563eb' : '#9ca3af') + ';">' + (isGen ? 'Generado' : 'Importado') + '</span>';
+        const link = d.webViewLink
+          ? '<a href="' + expEsc(d.webViewLink) + '" target="_blank" rel="noopener" style="color:var(--ink,#111);text-decoration:none;font-weight:600;">' + expEsc(d.name) + '</a>'
+          : '<span style="font-weight:600;">' + expEsc(d.name) + '</span>';
+        return '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border,#eee);">' +
+          '<div style="display:flex;align-items:center;gap:10px;min-width:0;">' +
+            '<i class="fas ' + icon + '" style="font-size:18px;color:var(--muted,#888);"></i>' +
+            '<div style="min-width:0;"><div style="font-size:13px;overflow:hidden;text-overflow:ellipsis;">' + link + '</div>' +
+            '<div style="font-size:12px;color:var(--muted,#888);">' + expEsc(fecha) + (size ? ' · ' + expEsc(size) : '') + '</div></div></div>' +
+          '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">' + badge +
+            '<button class="btn small ghost" style="color:#dc2626;" title="Elimina el registro del expediente (no borra el archivo en Google Drive)" onclick="expDeleteDocument(' + "'" + d.id + "'" + ')"><i class="fas fa-trash"></i></button></div>' +
+          '</div>';
+      }).join('');
+    }
+
+    async function expUploadDocuments(files) {
+      const cardId = currentExpedienteCardId;
+      if (!cardId || !files || !files.length) return;
+      const fd = new FormData();
+      for (let i = 0; i < files.length; i++) fd.append('files', files[i]);
+      try {
+        const res = await expApi('/api/expedientes/' + encodeURIComponent(cardId) + '/documents', { method: 'POST', body: fd });
+        if (!res.ok) { let m = 'Error al subir documentos'; try { const j = await res.json(); if (j && j.error) m = j.error; } catch (_) {} throw new Error(m); }
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Error al subir documentos');
+        const input = document.getElementById('exp-docs-input');
+        if (input) input.value = '';
+        alert((data.documents ? data.documents.length : files.length) + ' documento(s) subido(s) correctamente');
+        await loadExpedienteDigital(cardId);
+      } catch (err) {
+        console.error('[Documentos] Error:', err);
+        alert(err.message || 'Error al subir los documentos');
+      }
+    }
+
+    async function expDeleteDocument(docId) {
+      const cardId = currentExpedienteCardId;
+      if (!cardId || !docId) return;
+      if (!confirm('¿Eliminar este documento del expediente?\n\nNota: solo se elimina el registro del expediente; el archivo en Google Drive no se borra.')) return;
+      try {
+        const res = await expApi('/api/expedientes/' + encodeURIComponent(cardId) + '/documents/' + encodeURIComponent(docId), { method: 'DELETE' });
+        if (!res.ok) throw new Error('Error al eliminar');
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Error al eliminar');
+        alert('Documento eliminado del expediente');
+        await loadExpedienteDigital(cardId);
+      } catch (err) {
+        console.error('[Documentos] Error al eliminar:', err);
+        alert('Error al eliminar el documento');
+      }
+    }
+
+    // Dropzone drag & drop (click + arrastrar/soltar)
+    (function () {
+      const dz = document.getElementById('exp-docs-dropzone');
+      const input = document.getElementById('exp-docs-input');
+      if (!dz || !input) return;
+      dz.addEventListener('click', function () { input.click(); });
+      ['dragenter', 'dragover'].forEach(function (ev) {
+        dz.addEventListener(ev, function (e) { e.preventDefault(); dz.style.background = 'rgba(0,0,0,0.04)'; });
+      });
+      ['dragleave', 'drop'].forEach(function (ev) {
+        dz.addEventListener(ev, function (e) { e.preventDefault(); dz.style.background = ''; });
+      });
+      dz.addEventListener('drop', function (e) {
+        if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) expUploadDocuments(e.dataTransfer.files);
+      });
+    })();
+
     // Hacer funciones globales para onclick en HTML
     window.openClientRecord = openClientRecord;
     window.closeExpedienteModal = closeExpedienteModal;
@@ -4365,6 +4983,19 @@
     window.closeLightbox = closeLightbox;
     window.filterExpPhotos = filterExpPhotos;
     window.loadComparePhotos = loadComparePhotos;
+    // Expediente digital (Ficha / Consentimientos / Diagnóstico / Láser / Documentos)
+    window.loadExpedienteDigital = loadExpedienteDigital;
+    window.expSendFicha = expSendFicha;
+    window.expSendConsent = expSendConsent;
+    window.expLoadDiagnosis = expLoadDiagnosis;
+    window.expSaveDiagnosis = expSaveDiagnosis;
+    window.expExportDiagnosisPdf = expExportDiagnosisPdf;
+    window.expEditLaserSession = expEditLaserSession;
+    window.expResetLaserForm = expResetLaserForm;
+    window.expSaveLaserSession = expSaveLaserSession;
+    window.expDeleteLaserSession = expDeleteLaserSession;
+    window.expUploadDocuments = expUploadDocuments;
+    window.expDeleteDocument = expDeleteDocument;
 
     function updateModalScrollLock() {
       const modals = document.querySelectorAll('.modal-backdrop');
