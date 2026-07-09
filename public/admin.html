@@ -95,6 +95,12 @@
         <small>Opiniones de clientas</small>
         <span id="reviews-badge" style="display:none;background:#f5a623;color:#fff;font-size:10px;font-weight:700;border-radius:10px;padding:1px 6px;margin-left:auto;">0</span>
       </button>
+      <button class="sidebar-nav-item" data-tab="marketing">
+        <i class="fas fa-bullhorn"></i>
+        <span>Marketing</span>
+        <small>Checklist diario y campaña</small>
+        <span id="marketing-badge" style="display:none;background:#8C9668;color:#fff;font-size:10px;font-weight:700;border-radius:10px;padding:1px 6px;margin-left:auto;">0</span>
+      </button>
       <button class="sidebar-nav-item" data-tab="settings">
         <i class="fas fa-sliders-h"></i>
         <span>Ajustes</span>
@@ -215,6 +221,7 @@
         <a href="#notifications" class="mobile-nav-link" data-tab="notifications"><i class="fas fa-paper-plane"></i> Mensajes</a>
         <a href="#reports" class="mobile-nav-link" data-tab="reports"><i class="fas fa-chart-line"></i> Ventas</a>
         <a href="#reviews" class="mobile-nav-link" data-tab="reviews"><i class="fas fa-star"></i> Reseñas</a>
+        <a href="#marketing" class="mobile-nav-link" data-tab="marketing"><i class="fas fa-bullhorn"></i> Marketing</a>
         <a href="#settings" class="mobile-nav-link" data-tab="settings"><i class="fas fa-sliders-h"></i> Ajustes</a>
         <hr style="border-color:rgba(255,255,255,0.1);margin:10px 0;">
         <!-- HERRAMIENTAS (abren en nueva pestaña) -->
@@ -2339,6 +2346,31 @@
       </div>
     </section>
 
+    <!-- ===== MARKETING — checklist diario ===== -->
+    <section id="tab-marketing" class="card hidden">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+        <h2 style="margin:0;"><i class="fas fa-bullhorn"></i> Marketing</h2>
+        <span id="mkt-progress" class="muted" style="font-weight:600;"></span>
+      </div>
+      <p class="muted" style="margin:6px 0 4px;">
+        Campaña <strong>NUEVA</strong> · 14 jul – 2 ago · $100/día en Meta.
+        Las tareas <strong>diarias</strong> se reinician cada día; las demás tienen fecha.
+      </p>
+      <p class="muted" style="margin:0 0 14px;font-size:12px;">
+        Objetivo del mes: 50–80 conversaciones de WhatsApp → 15–25 clientas nuevas para la agenda de las dos cabinas.
+      </p>
+      <div id="mkt-checklist"><p class="muted">Cargando…</p></div>
+      <div style="margin-top:18px;padding-top:14px;border-top:1px solid rgba(0,0,0,0.08);display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <input id="mkt-new-title" placeholder="Agregar tarea…" style="flex:1;min-width:200px;padding:8px 10px;border:1px solid rgba(0,0,0,0.15);border-radius:8px;">
+        <select id="mkt-new-freq" style="padding:8px 10px;border:1px solid rgba(0,0,0,0.15);border-radius:8px;">
+          <option value="once">Una vez</option>
+          <option value="daily">Diaria</option>
+        </select>
+        <input id="mkt-new-date" type="date" style="padding:7px 10px;border:1px solid rgba(0,0,0,0.15);border-radius:8px;">
+        <button class="btn small primary" onclick="addMarketingTask()"><i class="fas fa-plus"></i> Agregar</button>
+      </div>
+    </section>
+
     <!-- Modal Nuevo/Editar Producto -->
     <div id="modal-product" class="modal-backdrop hidden">
       <div class="modal-card">
@@ -3870,17 +3902,17 @@
       return null;
     }
 
-    function handleWhatsAppClick() {
+    async function handleWhatsAppClick() {
       const cardId = getCurrentCardId();
       console.log('[WhatsApp Click] cardId:', cardId);
       if (!cardId) {
-        alert('No hay tarjeta seleccionada');
+        await venusAlert('No hay tarjeta seleccionada');
         return;
       }
 
       const card = window.cardsCache ? window.cardsCache[cardId] : null;
       if (!card) {
-        alert('No se encontró información del cliente');
+        await venusAlert('No se encontró información del cliente');
         return;
       }
 
@@ -3888,7 +3920,7 @@
       const name = card.name || 'Cliente';
       
       if (!phone) {
-        alert('Este cliente no tiene teléfono registrado');
+        await venusAlert('Este cliente no tiene teléfono registrado');
         return;
       }
       
@@ -3902,18 +3934,18 @@
       window.open(`https://wa.me/${cleanPhone}?text=${message}`, '_blank');
     }
 
-    function handleScheduleClick() {
+    async function handleScheduleClick() {
       const cardId = getCurrentCardId();
       console.log('[Agendar Click] cardId:', cardId);
 
       if (!cardId) {
-        alert('No hay tarjeta seleccionada');
+        await venusAlert('No hay tarjeta seleccionada');
         return;
       }
 
       const client = window.cardsCache ? window.cardsCache[cardId] : null;
       if (!client) {
-        alert('No se encontró información del cliente');
+        await venusAlert('No se encontró información del cliente');
         return;
       }
       
@@ -3938,7 +3970,7 @@
       switchTab('appointments');
 
       // Esperar un momento para que la pestaña se active
-      setTimeout(() => {
+      setTimeout(async () => {
         const newApptDialog = document.getElementById('newApptDialog');
         const clientSelectInput = document.getElementById('new-appt-client-select');
         const dateInput = document.getElementById('new-appt-date');
@@ -3975,7 +4007,7 @@
           // Mostrar el modal
           newApptDialog.showModal();
         } else {
-          alert('No se pudo abrir el formulario de cita. Intenta desde la pestaña Citas.');
+          await venusAlert('No se pudo abrir el formulario de cita. Intenta desde la pestaña Citas.');
         }
       }, 200);
     }
@@ -3984,14 +4016,14 @@
       const cardId = getCurrentCardId();
       console.log('[Canjear Click] cardId:', cardId);
       if (!cardId) {
-        alert('No hay tarjeta seleccionada');
+        await venusAlert('No hay tarjeta seleccionada');
         return;
       }
 
       if (typeof redeemCard === 'function') {
         await redeemCard(cardId);
       } else {
-        alert('Función de canje no disponible');
+        await venusAlert('Función de canje no disponible');
       }
     }
 
@@ -4011,7 +4043,7 @@
       console.log('[Expediente] Abriendo para cardId:', cardId);
 
       if (!cardId) {
-        alert('No hay tarjeta seleccionada');
+        await venusAlert('No hay tarjeta seleccionada');
         return;
       }
 
@@ -4142,7 +4174,7 @@
       } catch (error) {
         console.error('[Expediente] Error al cargar:', error);
         showExpedienteLoading(false);
-        alert('Error al cargar el expediente');
+        await venusAlert('Error al cargar el expediente');
       }
     }
 
@@ -4344,7 +4376,7 @@
       e.preventDefault();
       
       if (!currentExpedienteRecordId) {
-        alert('No hay expediente cargado');
+        await venusAlert('No hay expediente cargado');
         return;
       }
       
@@ -4388,10 +4420,10 @@
         document.getElementById('newSessionDialog').close();
         await loadExpedienteData(currentExpedienteCardId);
         
-        alert('Sesión guardada correctamente');
+        await venusAlert('Sesión guardada correctamente');
       } catch (error) {
         console.error('[Expediente] Error al guardar sesión:', error);
-        alert('Error al guardar la sesión');
+        await venusAlert('Error al guardar la sesión');
       }
     });
 
@@ -4460,10 +4492,10 @@
         // Recargar datos
         await loadExpedienteData(currentExpedienteCardId);
         
-        alert('Fotos subidas correctamente');
+        await venusAlert('Fotos subidas correctamente');
       } catch (error) {
         console.error('[Expediente] Error al subir fotos:', error);
-        alert('Error al subir las fotos');
+        await venusAlert('Error al subir las fotos');
       }
     }
 
@@ -4486,15 +4518,15 @@
         renderExpedientePhotos();
         updateExpedienteSummary({});
         
-        alert('Foto eliminada');
+        await venusAlert('Foto eliminada');
       } catch (error) {
         console.error('[Expediente] Error al eliminar foto:', error);
-        alert('Error al eliminar la foto');
+        await venusAlert('Error al eliminar la foto');
       }
     }
 
     // Ver detalle de sesión
-    function viewSessionDetail(sessionId) {
+    async function viewSessionDetail(sessionId) {
       const session = expedienteSessionsCache.find(s => s.id === sessionId);
       if (!session) return;
       
@@ -4516,7 +4548,7 @@
         ${session.recommendations ? `<strong>Recomendaciones:</strong> ${session.recommendations}` : ''}
       `;
       
-      alert(detailHtml.trim());
+      await venusAlert(detailHtml.trim());
     }
 
     // Cloudinary: entregar en formato web (f_auto) para que las fotos HEIC de iPhone
@@ -4645,17 +4677,17 @@
 
     async function expSaveQuestionnaires() {
       const cardId = currentExpedienteCardId;
-      if (!cardId) { alert('No hay expediente cargado'); return; }
+      if (!cardId) { await venusAlert('No hay expediente cargado'); return; }
       try {
         const res = await expApi('/api/expedientes/' + encodeURIComponent(cardId) + '/questionnaires', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ questionnaires: expQuestionnairesState }) });
         if (!res.ok) throw new Error('Error al guardar el cuestionario');
         const data = await res.json();
         if (!data.success) throw new Error(data.error || 'Error al guardar el cuestionario');
-        alert('Cuestionario guardado correctamente');
+        await venusAlert('Cuestionario guardado correctamente');
         await loadExpedienteDigital(cardId);
       } catch (err) {
         console.error('[Cuestionario] Error:', err);
-        alert('Error al guardar el cuestionario');
+        await venusAlert('Error al guardar el cuestionario');
       }
     }
 
@@ -4799,7 +4831,7 @@
           expCloseSignaturePad();
         } catch (err) {
           console.error('[Firma] Error al guardar:', err);
-          alert(err && err.message ? err.message : 'No se pudo guardar la firma');
+          await venusAlert(err && err.message ? err.message : 'No se pudo guardar la firma');
           saveBtn.disabled = false;
           saveBtn.textContent = originalLabel;
         }
@@ -4834,7 +4866,7 @@
         adjustHeaderActions(data.intake, data.record, data.consents);
       } catch (e) {
         console.error('[Expediente digital] Error:', e);
-        alert('No se pudo cargar el expediente digital');
+        await venusAlert('No se pudo cargar el expediente digital');
       }
     }
 
@@ -5103,7 +5135,7 @@
 
     async function expSendFicha() {
       const cardId = currentExpedienteCardId;
-      if (!cardId) { alert('No hay expediente cargado'); return; }
+      if (!cardId) { await venusAlert('No hay expediente cargado'); return; }
       if (!(await venusConfirm('¿Enviar el link de la ficha clínica por WhatsApp a la clienta?', { title: 'Confirmar', okLabel: 'Enviar' }))) return;
       try {
         const res = await expApi('/api/expedientes/' + encodeURIComponent(cardId) + '/send-ficha', { method: 'POST' });
@@ -5112,11 +5144,11 @@
         if (!data.success) throw new Error(data.error || 'Error al enviar la ficha');
         let msg = 'Ficha enviada por WhatsApp ✅';
         if (data.url) msg += '\n\nLink: ' + data.url;
-        alert(msg);
+        await venusAlert(msg);
         await loadExpedienteDigital(cardId);
       } catch (err) {
         console.error('[Ficha] Error:', err);
-        alert(err.message || 'Error al enviar la ficha');
+        await venusAlert(err.message || 'Error al enviar la ficha');
       }
     }
 
@@ -5143,7 +5175,7 @@
 
     async function expSendConsent() {
       const cardId = currentExpedienteCardId;
-      if (!cardId) { alert('No hay expediente cargado'); return; }
+      if (!cardId) { await venusAlert('No hay expediente cargado'); return; }
       if (!(await venusConfirm('¿Enviar el link del consentimiento láser por WhatsApp a la clienta?', { title: 'Confirmar', okLabel: 'Enviar' }))) return;
       try {
         const res = await expApi('/api/expedientes/' + encodeURIComponent(cardId) + '/send-consent', { method: 'POST' });
@@ -5152,11 +5184,11 @@
         if (!data.success) throw new Error(data.error || 'Error al enviar el consentimiento');
         let msg = 'Consentimiento enviado por WhatsApp ✅';
         if (data.url) msg += '\n\nLink: ' + data.url;
-        alert(msg);
+        await venusAlert(msg);
         await loadExpedienteDigital(cardId);
       } catch (err) {
         console.error('[Consent] Error:', err);
-        alert(err.message || 'Error al enviar el consentimiento');
+        await venusAlert(err.message || 'Error al enviar el consentimiento');
       }
     }
 
@@ -5164,7 +5196,7 @@
     // y firma ahí mismo, sin depender de un link por WhatsApp.
     async function expSignConsent() {
       const cardId = currentExpedienteCardId;
-      if (!cardId) { alert('No hay expediente cargado'); return; }
+      if (!cardId) { await venusAlert('No hay expediente cargado'); return; }
 
       let ct;
       try {
@@ -5175,7 +5207,7 @@
         ct = data.consentText || {};
       } catch (err) {
         console.error('[Consentimiento] Error al cargar texto:', err);
-        alert('No se pudo cargar el texto del consentimiento. Intenta de nuevo.');
+        await venusAlert('No se pudo cargar el texto del consentimiento. Intenta de nuevo.');
         return;
       }
 
@@ -5253,7 +5285,7 @@
     async function expSaveDiagnosis(e) {
       e.preventDefault();
       const cardId = currentExpedienteCardId;
-      if (!cardId) { alert('No hay expediente cargado'); return false; }
+      if (!cardId) { await venusAlert('No hay expediente cargado'); return false; }
       const id = document.getElementById('exp-diag-id').value || null;
       const body = {
         id: id || undefined,
@@ -5270,12 +5302,12 @@
         if (!res.ok) throw new Error('Error al guardar diagnóstico');
         const data = await res.json();
         if (!data.success) throw new Error(data.error || 'Error al guardar diagnóstico');
-        alert('Diagnóstico guardado correctamente');
+        await venusAlert('Diagnóstico guardado correctamente');
         await loadExpedienteDigital(cardId);
         if (data.diagnosis && data.diagnosis.id) expLoadDiagnosis(data.diagnosis.id);
       } catch (err) {
         console.error('[Diagnóstico] Error:', err);
-        alert('Error al guardar el diagnóstico');
+        await venusAlert('Error al guardar el diagnóstico');
       }
       return false;
     }
@@ -5283,7 +5315,7 @@
     async function expExportDiagnosisPdf() {
       const cardId = currentExpedienteCardId;
       const id = document.getElementById('exp-diag-id').value;
-      if (!cardId || !id) { alert('Selecciona o guarda un diagnóstico primero'); return; }
+      if (!cardId || !id) { await venusAlert('Selecciona o guarda un diagnóstico primero'); return; }
       if (!(await venusConfirm('¿Exportar este diagnóstico a PDF en Google Drive?', { title: 'Confirmar', okLabel: 'Exportar' }))) return;
       try {
         const res = await expApi('/api/expedientes/' + encodeURIComponent(cardId) + '/diagnosis/' + encodeURIComponent(id) + '/pdf', { method: 'POST' });
@@ -5291,17 +5323,17 @@
         const data = await res.json();
         if (!data.success) throw new Error(data.error || 'Error al exportar PDF');
         if (data.pending) {
-          alert('PDF generado. La subida a Drive está pendiente (se completará automáticamente).');
+          await venusAlert('PDF generado. La subida a Drive está pendiente (se completará automáticamente).');
         } else if (data.webViewLink) {
-          alert('PDF exportado correctamente.');
+          await venusAlert('PDF exportado correctamente.');
           window.open(data.webViewLink, '_blank', 'noopener');
         } else {
-          alert('PDF exportado.');
+          await venusAlert('PDF exportado.');
         }
         await loadExpedienteDigital(cardId);
       } catch (err) {
         console.error('[Diagnóstico PDF] Error:', err);
-        alert('Error al exportar el PDF');
+        await venusAlert('Error al exportar el PDF');
       }
     }
 
@@ -5417,9 +5449,9 @@
     async function expSaveLaserSession(e) {
       e.preventDefault();
       const cardId = currentExpedienteCardId;
-      if (!cardId) { alert('No hay expediente cargado'); return false; }
+      if (!cardId) { await venusAlert('No hay expediente cargado'); return false; }
       if (!expLaserSignatureDataUrl && !expLaserEditingHasServerSignature) {
-        alert('La clienta debe firmar esta sesión');
+        await venusAlert('La clienta debe firmar esta sesión');
         return false;
       }
       const id = document.getElementById('exp-laser-id').value || null;
@@ -5443,11 +5475,11 @@
         const data = await res.json();
         if (!data.success) throw new Error(data.error || 'Error al guardar la sesión');
         expResetLaserForm();
-        alert('Sesión ' + (id ? 'actualizada' : 'agregada') + ' correctamente');
+        await venusAlert('Sesión ' + (id ? 'actualizada' : 'agregada') + ' correctamente');
         await loadExpedienteDigital(cardId);
       } catch (err) {
         console.error('[Láser] Error:', err);
-        alert('Error al guardar la sesión de láser');
+        await venusAlert('Error al guardar la sesión de láser');
       }
       return false;
     }
@@ -5461,11 +5493,11 @@
         if (!res.ok) throw new Error('Error al eliminar');
         const data = await res.json();
         if (!data.success) throw new Error(data.error || 'Error al eliminar');
-        alert('Sesión eliminada');
+        await venusAlert('Sesión eliminada');
         await loadExpedienteDigital(cardId);
       } catch (err) {
         console.error('[Láser] Error al eliminar:', err);
-        alert('Error al eliminar la sesión');
+        await venusAlert('Error al eliminar la sesión');
       }
     }
 
@@ -5510,11 +5542,11 @@
         if (!data.success) throw new Error(data.error || 'Error al subir documentos');
         const input = document.getElementById('exp-docs-input');
         if (input) input.value = '';
-        alert((data.documents ? data.documents.length : files.length) + ' documento(s) subido(s) correctamente');
+        await venusAlert((data.documents ? data.documents.length : files.length) + ' documento(s) subido(s) correctamente');
         await loadExpedienteDigital(cardId);
       } catch (err) {
         console.error('[Documentos] Error:', err);
-        alert(err.message || 'Error al subir los documentos');
+        await venusAlert(err.message || 'Error al subir los documentos');
       }
     }
 
@@ -5527,11 +5559,11 @@
         if (!res.ok) throw new Error('Error al eliminar');
         const data = await res.json();
         if (!data.success) throw new Error(data.error || 'Error al eliminar');
-        alert('Documento eliminado del expediente');
+        await venusAlert('Documento eliminado del expediente');
         await loadExpedienteDigital(cardId);
       } catch (err) {
         console.error('[Documentos] Error al eliminar:', err);
-        alert('Error al eliminar el documento');
+        await venusAlert('Error al eliminar el documento');
       }
     }
 
@@ -5697,9 +5729,9 @@
       closeGiftScanner();
     });
 
-    function openGiftScanner() {
+    async function openGiftScanner() {
       if (typeof Html5Qrcode === 'undefined') {
-        alert('Librería de scanner no disponible');
+        await venusAlert('Librería de scanner no disponible');
         return;
       }
 
@@ -5772,7 +5804,7 @@
         // Verificar si ya fue canjeada
         if (giftCard.redeemed) {
           giftScanStatus.textContent = ' Esta gift card ya fue canjeada';
-          alert(` Gift card ya canjeada\n\nCanjeada por: ${giftCard.redeemedBy || 'No disponible'}\nFecha: ${new Date(giftCard.redeemedAt).toLocaleString('es-MX')}`);
+          await venusAlert(` Gift card ya canjeada\n\nCanjeada por: ${giftCard.redeemedBy || 'No disponible'}\nFecha: ${new Date(giftCard.redeemedAt).toLocaleString('es-MX')}`);
           setTimeout(() => {
             closeGiftScanner();
           }, 2000);
@@ -5802,7 +5834,7 @@
         }
 
         giftScanStatus.textContent = ' Gift card canjeada correctamente';
-        alert('Gift card canjeada exitosamente');
+        await venusAlert('Gift card canjeada exitosamente');
 
         // Recargar lista de gift cards si estamos en ese tab
         if (!document.getElementById('tab-events').classList.contains('hidden')) {
@@ -5816,7 +5848,7 @@
       } catch (error) {
         console.error('Error procesando gift card:', error);
         giftScanStatus.textContent = ` ${error.message}`;
-        alert(` Error: ${error.message}`);
+        await venusAlert(` Error: ${error.message}`);
         setTimeout(() => {
           closeGiftScanner();
         }, 2000);
@@ -5920,6 +5952,9 @@
         } else if (tabName === 'reports') {
           if (typeof initReportsTab === 'function') initReportsTab();
           if (typeof stopDashboardAutoRefresh === 'function') stopDashboardAutoRefresh();
+        } else if (tabName === 'marketing') {
+          if (typeof loadMarketingChecklist === 'function') loadMarketingChecklist();
+          if (typeof stopDashboardAutoRefresh === 'function') stopDashboardAutoRefresh();
         } else {
           // Detener auto-refresh cuando se sale de los tabs
           if (typeof stopAppointmentsAutoRefresh === 'function') stopAppointmentsAutoRefresh();
@@ -5937,9 +5972,9 @@
     //   loadMetrics(e.target.value);
     // });
 
-    function downloadCSV() {
+    async function downloadCSV() {
       if (!globalStatsData.clientsToExport || globalStatsData.clientsToExport.length === 0) {
-        alert('No hay datos para exportar. Espera a que carguen las métricas.');
+        await venusAlert('No hay datos para exportar. Espera a que carguen las métricas.');
         return;
       }
 
@@ -6979,7 +7014,7 @@
       }
 
       if (!card) {
-        alert('Tarjeta no encontrada');
+        await venusAlert('Tarjeta no encontrada');
         return;
       }
 
@@ -7002,7 +7037,7 @@
         // Hacer polling cada 3 segundos
         window._analyzeInterval = setInterval(pollAnalysis, 3000);
       } catch (e) {
-        alert('Error de conexión');
+        await venusAlert('Error de conexión');
         btn.disabled = false;
         status.textContent = '';
       }
@@ -7024,7 +7059,7 @@
         clearInterval(window._analyzeInterval);
 
         if (json.status === 'error') {
-          alert('Error en análisis: ' + (json.error || 'desconocido'));
+          await venusAlert('Error en análisis: ' + (json.error || 'desconocido'));
           btn.disabled = false;
           status.textContent = '';
           return;
@@ -7065,7 +7100,7 @@
         tbody.innerHTML = rows;
         btn.disabled = false;
       } catch (e) {
-        alert('Error de conexión');
+        await venusAlert('Error de conexión');
         btn.disabled = false;
         status.textContent = '';
       }
@@ -7078,14 +7113,14 @@
     // PASO 2: Enviar a seleccionados
     async function startPromo2025() {
       const message = document.getElementById('promo-message').value.trim();
-      if (!message) { alert('Escribe el mensaje promocional'); return; }
+      if (!message) { await venusAlert('Escribe el mensaje promocional'); return; }
 
       // Obtener los seleccionados
       const selected = [];
       document.querySelectorAll('.promo-check:checked').forEach(cb => {
         selected.push({ phone: cb.dataset.phone, name: cb.dataset.name });
       });
-      if (selected.length === 0) { alert('No hay contactos seleccionados'); return; }
+      if (selected.length === 0) { await venusAlert('No hay contactos seleccionados'); return; }
 
       const limit = parseInt(document.getElementById('promo-limit').value) || 0;
       const count = limit > 0 ? Math.min(limit, selected.length) : selected.length;
@@ -7106,11 +7141,11 @@
           updatePromoUI(json.status);
           window._promoInterval = setInterval(refreshPromoStatus, 30000);
         } else {
-          alert(json.error || 'Error al iniciar');
+          await venusAlert(json.error || 'Error al iniciar');
           document.getElementById('btn-promo-start').disabled = false;
         }
       } catch (e) {
-        alert('Error de conexión');
+        await venusAlert('Error de conexión');
         document.getElementById('btn-promo-start').disabled = false;
       }
     }
@@ -7124,7 +7159,7 @@
         document.getElementById('btn-promo-start').disabled = false;
         document.getElementById('btn-promo-stop').disabled = true;
         if (window._promoInterval) clearInterval(window._promoInterval);
-      } catch (e) { alert('Error al detener'); }
+      } catch (e) { await venusAlert('Error al detener'); }
     }
 
     async function refreshPromoStatus() {
@@ -7249,7 +7284,7 @@
       const message = document.getElementById('push-message').value;
 
       if (!title || !message) {
-        alert('Completa título y mensaje primero');
+        await venusAlert('Completa título y mensaje primero');
         return;
       }
 
@@ -7274,12 +7309,12 @@
         const data = await response.json();
 
         if (data.success) {
-          alert(` Prueba enviada a: ${data.cardId}`);
+          await venusAlert(` Prueba enviada a: ${data.cardId}`);
         } else {
           throw new Error(data.error);
         }
       } catch (error) {
-        alert('Error: ' + error.message);
+        await venusAlert('Error: ' + error.message);
       } finally {
         this.textContent = originalText;
         this.disabled = false;
@@ -7344,15 +7379,15 @@
         });
 
         if (response.ok) {
-          alert('✓ Historial borrado correctamente');
+          await venusAlert('✓ Historial borrado correctamente');
           loadNotificationsHistory();
         } else {
           const data = await response.json();
-          alert('Error: ' + (data.error || 'No se pudo borrar el historial'));
+          await venusAlert('Error: ' + (data.error || 'No se pudo borrar el historial'));
         }
       } catch (error) {
         console.error('Error:', error);
-        alert('Error de red al borrar historial');
+        await venusAlert('Error de red al borrar historial');
       }
     });
 
@@ -7571,7 +7606,7 @@
       const newPhone = document.getElementById('cm-phone-input').value.replace(/\D/g, '');
 
       if (!newPhone || newPhone.length < 10) {
-        alert('Por favor ingresa un número de teléfono válido (10 dígitos)');
+        await venusAlert('Por favor ingresa un número de teléfono válido (10 dígitos)');
         return;
       }
 
@@ -7604,12 +7639,12 @@
           document.getElementById('cm-phone-display').classList.remove('hidden');
           document.getElementById('cm-phone-edit').classList.add('hidden');
           const propagated = json.propagatedAppts || 0;
-          alert(propagated > 0
+          await venusAlert(propagated > 0
             ? `Teléfono actualizado. ${propagated} cita(s) activa(s) también se actualizó(aron).`
             : 'Teléfono actualizado.');
           loadCards();
         } else {
-          alert('Error: ' + (json.error || 'No se pudo actualizar'));
+          await venusAlert('Error: ' + (json.error || 'No se pudo actualizar'));
         }
       }
 
@@ -7617,7 +7652,7 @@
         await attemptSave(false);
       } catch (error) {
         console.error('Error actualizando teléfono:', error);
-        alert('Error de conexión');
+        await venusAlert('Error de conexión');
       }
     });
 
@@ -7625,9 +7660,9 @@
     async function copyCardId(cardId) {
       try {
         await navigator.clipboard.writeText(cardId);
-        alert('ID copiado al portapapeles');
+        await venusAlert('ID copiado al portapapeles');
       } catch (e) {
-        alert('No se pudo copiar el ID');
+        await venusAlert('No se pudo copiar el ID');
       }
     }
 
@@ -7722,17 +7757,17 @@
         const data = await response.json();
 
         if (response.ok) {
-          alert('Información guardada correctamente');
+          await venusAlert('Información guardada correctamente');
           // Actualizar cache
           if (cardsCache[currentCardId]) {
             cardsCache[currentCardId].notes = notes;
           }
         } else {
-          alert(` Error: ${data.error || 'No se pudo guardar'}`);
+          await venusAlert(` Error: ${data.error || 'No se pudo guardar'}`);
         }
       } catch (error) {
         console.error('Error guardando información:', error);
-        alert('Error al guardar información');
+        await venusAlert('Error al guardar información');
       }
     }
 
@@ -7775,9 +7810,9 @@
           const updated = cardsCache[cardId];
           if (updated) openCardModal(updated);
         }
-        alert('Sello agregado y Google Wallet actualizado');
+        await venusAlert('Sello agregado y Google Wallet actualizado');
       } catch (e) {
-        alert('Error: ' + e.message);
+        await venusAlert('Error: ' + e.message);
       }
     }
 
@@ -7789,7 +7824,7 @@
       const phone = card.phone ? card.phone.replace(/[^0-9]/g, '') : '';
 
       if (!phone) {
-        alert('⚠️ La clienta no tiene teléfono registrado.');
+        await venusAlert('⚠️ La clienta no tiene teléfono registrado.');
         return;
       }
 
@@ -7820,7 +7855,7 @@
           throw new Error(data.error || 'No se pudo enviar');
         }
       } catch (e) {
-        alert('❌ Error: ' + e.message);
+        await venusAlert('❌ Error: ' + e.message);
       }
     }
 
@@ -7851,9 +7886,9 @@
         const msg = isGift
           ? `🎁 ¡Sesión ${data.massageStamps} de masaje! Regalo desbloqueado.`
           : `💆 Sesión de masaje registrada (${data.massageStamps}/${data.massageMax})`;
-        alert(msg);
+        await venusAlert(msg);
       } catch (e) {
-        alert('Error: ' + e.message);
+        await venusAlert('Error: ' + e.message);
       }
     }
 
@@ -7919,7 +7954,7 @@
             throw new Error(waData.error || 'Membresía creada pero no se pudo enviar el WhatsApp');
           }
         } else {
-          alert('⚠️ Membresía emitida, pero la clienta no tiene teléfono registrado.\n\nLink: ' + cardLink);
+          await venusAlert('⚠️ Membresía emitida, pero la clienta no tiene teléfono registrado.\n\nLink: ' + cardLink);
         }
 
         btn.innerHTML = '<i class="fas fa-check"></i> ¡Membresía emitida!';
@@ -7931,7 +7966,7 @@
         }, 3000);
 
       } catch (e) {
-        alert('❌ Error: ' + e.message + '\n\nVerifica que Evolution API esté conectada en Ajustes.');
+        await venusAlert('❌ Error: ' + e.message + '\n\nVerifica que Evolution API esté conectada en Ajustes.');
         btn.innerHTML = originalHtml;
         btn.disabled = false;
       }
@@ -7949,12 +7984,12 @@
         const data = await r.json();
         if (!r.ok || !data.success) throw new Error(data.error || 'Error generando wallet');
 
-        alert('✅ Google Wallet de masajes generado. Recarga la tarjeta del cliente.');
+        await venusAlert('✅ Google Wallet de masajes generado. Recarga la tarjeta del cliente.');
         await loadCards(currentPage);
         const updated = cardsCache[cardId];
         if (updated) openCardModal(updated);
       } catch (e) {
-        alert('Error: ' + e.message);
+        await venusAlert('Error: ' + e.message);
       }
     }
 
@@ -7989,9 +8024,9 @@
           const updated = cardsCache[cardId];
           if (updated) openCardModal(updated);
         }
-        alert('Canje realizado y Google Wallet actualizado');
+        await venusAlert('Canje realizado y Google Wallet actualizado');
       } catch (e) {
-        alert('Error: ' + e.message);
+        await venusAlert('Error: ' + e.message);
       }
     }
 
@@ -8008,9 +8043,9 @@
         }
         closeCardModal();
         await loadCards(currentPage);
-        alert('Tarjeta eliminada');
+        await venusAlert('Tarjeta eliminada');
       } catch (e) {
-        alert('Error: ' + e.message);
+        await venusAlert('Error: ' + e.message);
       }
     }
 
@@ -8071,7 +8106,7 @@
       const message = document.getElementById('notify-message').value;
 
       if (!title || !message) {
-        alert('Por favor completa el título y el mensaje');
+        await venusAlert('Por favor completa el título y el mensaje');
         return;
       }
 
@@ -8099,12 +8134,12 @@
           throw new Error(data.error || 'No se pudo enviar la notificación');
         }
 
-        alert('Notificación enviada exitosamente');
+        await venusAlert('Notificación enviada exitosamente');
         document.getElementById('notify-form-container').classList.add('hidden');
         document.getElementById('notify-message').value = ''; // Limpiar mensaje
 
       } catch (e) {
-        alert('Error: ' + e.message);
+        await venusAlert('Error: ' + e.message);
       } finally {
         btn.textContent = originalText;
         btn.disabled = false;
@@ -8116,9 +8151,9 @@
       if (currentCardId) {
         const success = await registerGoogleDevice(currentCardId);
         if (success) {
-          alert('Dispositivo Google registrado exitosamente');
+          await venusAlert('Dispositivo Google registrado exitosamente');
         } else {
-          alert('Error registrando dispositivo Google');
+          await venusAlert('Error registrando dispositivo Google');
         }
       }
     });
@@ -8140,13 +8175,13 @@
         const data = await res.json();
 
         if (data.ok) {
-          alert(` Pase actualizado!\nSellos: ${data.stamps}\nCiclos: ${data.cycles}`);
+          await venusAlert(` Pase actualizado!\nSellos: ${data.stamps}\nCiclos: ${data.cycles}`);
         } else {
-          alert('Error: ' + (data.error || 'No se pudo actualizar'));
+          await venusAlert('Error: ' + (data.error || 'No se pudo actualizar'));
         }
       } catch (error) {
         console.error('Error:', error);
-        alert('Error de conexión');
+        await venusAlert('Error de conexión');
       }
     });
 
@@ -8202,7 +8237,7 @@
 
     // ===== Botón WhatsApp =====
     if (btnWhatsApp) {
-      btnWhatsApp.addEventListener('click', () => {
+      btnWhatsApp.addEventListener('click', async () => {
         console.log('[WhatsApp Click] currentCardId:', currentCardId, 'cardsCache:', cardsCache[currentCardId]);
         if (!currentCardId) return;
 
@@ -8210,7 +8245,7 @@
         const name = cardsCache[currentCardId]?.name || 'Cliente';
 
         if (!phone) {
-          alert('Este cliente no tiene teléfono registrado');
+          await venusAlert('Este cliente no tiene teléfono registrado');
           return;
         }
 
@@ -8526,9 +8561,9 @@
         if (!r.ok || !data.success) {
           throw new Error(data.error || 'No se pudo enviar');
         }
-        alert('Felicitación enviada exitosamente');
+        await venusAlert('Felicitación enviada exitosamente');
       } catch (e) {
-        alert('Error: ' + e.message);
+        await venusAlert('Error: ' + e.message);
       }
     };
 
@@ -8630,7 +8665,7 @@
 
         if (!title || !message) {
           console.warn('⚠️ Faltan datos');
-          return alert("Faltan datos: Escribe título y mensaje.");
+          return await venusAlert("Faltan datos: Escribe título y mensaje.");
         }
 
         if (!(await venusConfirm(`¿ENVIAR A TODOS?\n\n"${title}"`, { title: 'Confirmar', okLabel: 'Enviar a todos' }))) {
@@ -8660,17 +8695,17 @@
             const apple = data.results?.apple || 0;
             const google = data.results?.google || 0;
             console.log('Éxito! Apple:', apple, 'Google:', google);
-            alert(`Enviado!\n\nApple: ${apple}\nGoogle: ${google}`);
+            await venusAlert(`Enviado!\n\nApple: ${apple}\nGoogle: ${google}`);
             // Limpiar campos
             document.getElementById('push-title').value = "";
             document.getElementById('push-message').value = "";
           } else {
             console.error('❌ Error en respuesta:', data.error);
-            alert('Error: ' + (data.error || "Desconocido"));
+            await venusAlert('Error: ' + (data.error || "Desconocido"));
           }
         } catch (e) {
           console.error('💥 Error de conexión:', e);
-          alert('Error de conexión: ' + e.message);
+          await venusAlert('Error de conexión: ' + e.message);
         } finally {
           btnGlobal.textContent = originalText;
           btnGlobal.disabled = false;
@@ -10110,7 +10145,7 @@
         const res = await fetch(`/api/appointments/${id}/cancel`, { method: 'PATCH', credentials: 'include' });
         const json = await res.json();
         if (!json.success) {
-          alert('Error al eliminar: ' + (json.error || 'Error desconocido'));
+          await venusAlert('Error al eliminar: ' + (json.error || 'Error desconocido'));
           return;
         }
         showNotification('Cita eliminada', 'success');
@@ -10118,7 +10153,7 @@
         loadMonthAppointments(true);
         loadAppointments(true);
         loadMonthStats(true);
-      } catch (e) { alert('Error: ' + e.message); }
+      } catch (e) { await venusAlert('Error: ' + e.message); }
     };
 
     window.sendWhatsAppAttendanceSurvey = async (id) => {
@@ -10136,7 +10171,7 @@
             ? 'Encuesta enviada por WhatsApp.'
             : 'Mensaje de asistencia enviado por WhatsApp.';
           if (window.showNotification) showNotification(message, 'success');
-          else alert(message);
+          else await venusAlert(message);
           return;
         }
 
@@ -10152,7 +10187,7 @@
       } catch (error) {
         console.error('Error enviando encuesta de asistencia:', error);
         if (window.showNotification) showNotification('No se pudo enviar la encuesta de asistencia', 'error');
-        else alert('No se pudo enviar la encuesta de asistencia');
+        else await venusAlert('No se pudo enviar la encuesta de asistencia');
       }
     };
 
@@ -10162,7 +10197,7 @@
     async function updateAppointmentStatus(id, newStatus) {
       // Prevenir cambio a 'completed' sin registrar pago
       if (newStatus === 'completed') {
-        alert('Para completar una cita debes registrar el pago.\n\nUsa el botón verde "Pagar" para registrar el pago y completar la cita.');
+        await venusAlert('Para completar una cita debes registrar el pago.\n\nUsa el botón verde "Pagar" para registrar el pago y completar la cita.');
         loadAppointments(); // Revertir selección visualmente
         return;
       }
@@ -10188,12 +10223,12 @@
           loadAppointments(true);
           loadMonthStats(true);
         } else {
-          alert('Error al actualizar estado: ' + json.error);
+          await venusAlert('Error al actualizar estado: ' + json.error);
           loadAppointments();
         }
       } catch (e) {
         console.error(e);
-        alert('Error de conexión');
+        await venusAlert('Error de conexión');
         loadAppointments();
       }
     }
@@ -10235,7 +10270,7 @@
         const json = await res.json();
 
         if (!json.success) {
-          alert('Error cargando datos de la cita');
+          await venusAlert('Error cargando datos de la cita');
           return;
         }
 
@@ -10267,7 +10302,7 @@
 
         openPaymentModal(apptId, appt.clientName, appt.serviceName, price);
       } catch (e) {
-        alert('Error: ' + e.message);
+        await venusAlert('Error: ' + e.message);
       }
     };
 
@@ -10294,7 +10329,7 @@
         const json = await res.json();
 
         if (!json.success) {
-          alert('Error cargando cita');
+          await venusAlert('Error cargando cita');
           return;
         }
 
@@ -10349,7 +10384,7 @@
         // Show modal
         editApptDialog.showModal();
       } catch (e) {
-        alert('Error: ' + e.message);
+        await venusAlert('Error: ' + e.message);
       }
     };
 
@@ -10429,7 +10464,7 @@
           const minute = editMinuteSelect.value;
 
           if (!hour || !minute) {
-            alert('Por favor selecciona hora y minutos');
+            await venusAlert('Por favor selecciona hora y minutos');
             btn.disabled = false;
             btn.textContent = originalText;
             return;
@@ -10440,7 +10475,7 @@
           const service = allServices.find(s => s.name === serviceName);
 
           if (!service) {
-            alert('Por favor selecciona un servicio válido');
+            await venusAlert('Por favor selecciona un servicio válido');
             btn.disabled = false;
             btn.textContent = originalText;
             return;
@@ -10465,7 +10500,7 @@
           console.log('📅 Input value:', editDateInput.value);
 
           if (!dateValue) {
-            alert('Por favor selecciona una fecha');
+            await venusAlert('Por favor selecciona una fecha');
             btn.disabled = false;
             btn.textContent = originalText;
             return;
@@ -10505,7 +10540,7 @@
           }
 
           if (json.success) {
-            alert('Cita actualizada');
+            await venusAlert('Cita actualizada');
             editApptDialog.close();
             formEditAppt.reset();
             clearAppointmentsCache();
@@ -10520,13 +10555,13 @@
               if (json.debug) {
                 msg += `\n\nDetalles:\n- Tu cita: ${json.debug.newTime}\n- Cita existente: ${json.debug.existingClient} (${json.debug.existingTime})\n- Status: ${json.debug.existingStatus}\n- ID: ${json.debug.existingId}`;
               }
-              alert(msg);
+              await venusAlert(msg);
             } else {
-              alert('Error: ' + json.error);
+              await venusAlert('Error: ' + json.error);
             }
           }
         } catch (e) {
-          alert('Error de conexión');
+          await venusAlert('Error de conexión');
         } finally {
           btn.disabled = false;
           btn.textContent = originalText;
@@ -11118,7 +11153,7 @@
         const phone = document.getElementById('new-client-phone').value.trim();
 
         if (!name || !phone) {
-          alert('Por favor completa nombre y teléfono');
+          await venusAlert('Por favor completa nombre y teléfono');
           return;
         }
 
@@ -11132,7 +11167,7 @@
               body: JSON.stringify({ name, phone })
             });
           } catch (netErr) {
-            alert('Error de Red: No se pudo conectar con el servidor.');
+            await venusAlert('Error de Red: No se pudo conectar con el servidor.');
             console.error(netErr);
             return;
           }
@@ -11144,17 +11179,17 @@
             json = JSON.parse(text);
           } catch (e) {
             console.error('Respuesta no JSON:', text);
-            alert(`Error del Servidor (${res.status}): ${text.substring(0, 100)}`);
+            await venusAlert(`Error del Servidor (${res.status}): ${text.substring(0, 100)}`);
             return;
           }
 
           if (!res.ok) {
-            alert(`Error (${res.status}): ${json.error || json.message || 'Error desconocido'}`);
+            await venusAlert(`Error (${res.status}): ${json.error || json.message || 'Error desconocido'}`);
             return;
           }
 
           if (json.success) {
-            alert('Cliente guardado exitosamente');
+            await venusAlert('Cliente guardado exitosamente');
 
             // Insertar el cliente recién creado en la lista cacheada para
             // que aparezca de inmediato en el dropdown aunque el refetch
@@ -11190,11 +11225,11 @@
             document.getElementById('new-client-name').value = '';
             document.getElementById('new-client-phone').value = '';
           } else {
-            alert('Error: ' + (json.error || 'No se pudo guardar'));
+            await venusAlert('Error: ' + (json.error || 'No se pudo guardar'));
           }
         } catch (e) {
           console.error(e);
-          alert('Error Inesperado: ' + e.message);
+          await venusAlert('Error Inesperado: ' + e.message);
         }
       });
     }
@@ -11206,24 +11241,24 @@
     const selectedServicesList = document.getElementById('selected-services-list');
     const servicesListContainer = document.getElementById('services-list-container');
 
-    function addServiceToList() {
+    async function addServiceToList() {
       const serviceName = serviceSelect.value.trim();
       const price = parseFloat(priceInput.value) || 0;
 
       if (!serviceName) {
-        alert('Por favor selecciona un servicio');
+        await venusAlert('Por favor selecciona un servicio');
         return;
       }
 
       const service = allServices.find(s => s.name === serviceName);
       if (!service) {
-        alert('Por favor selecciona un servicio válido');
+        await venusAlert('Por favor selecciona un servicio válido');
         return;
       }
 
       // Verificar si ya está agregado
       if (selectedServices.find(s => s.id === service.id)) {
-        alert('Este servicio ya está agregado');
+        await venusAlert('Este servicio ya está agregado');
         return;
       }
 
@@ -11324,7 +11359,7 @@
           const minute = minuteSelect.value;
 
           if (!hour || !minute) {
-            alert('Por favor selecciona hora y minutos');
+            await venusAlert('Por favor selecciona hora y minutos');
             btn.disabled = false;
             btn.textContent = originalText;
             return;
@@ -11334,7 +11369,7 @@
           const isoDate = newApptCalendar.getISODate();
 
           if (!isoDate) {
-            alert('Por favor selecciona una fecha del calendario');
+            await venusAlert('Por favor selecciona una fecha del calendario');
             btn.disabled = false;
             btn.textContent = originalText;
             return;
@@ -11388,14 +11423,14 @@
           
           // Validar que tengamos nombre y teléfono
           if (!clientName) {
-            alert('Por favor ingresa el nombre del cliente');
+            await venusAlert('Por favor ingresa el nombre del cliente');
             btn.disabled = false;
             btn.textContent = originalText;
             return;
           }
           
           if (!clientPhone) {
-            alert('Por favor selecciona un cliente existente o registra uno nuevo con teléfono');
+            await venusAlert('Por favor selecciona un cliente existente o registra uno nuevo con teléfono');
             btn.disabled = false;
             btn.textContent = originalText;
             return;
@@ -11436,7 +11471,7 @@
 
           // Validar que hay al menos un servicio
           if (servicesToBook.length === 0) {
-            alert('Por favor selecciona al menos un servicio');
+            await venusAlert('Por favor selecciona al menos un servicio');
             btn.disabled = false;
             btn.textContent = originalText;
             return;
@@ -11494,7 +11529,7 @@
             }
 
             if (!json.success) {
-              alert(`Error en ${service.name}: ${json.error}`);
+              await venusAlert(`Error en ${service.name}: ${json.error}`);
               // Si falla una cita, detener el proceso
               btn.disabled = false;
               btn.textContent = originalText;
@@ -11518,7 +11553,7 @@
 
           console.log('Citas creadas exitosamente:', createdAppointments.length);
 
-          alert(`${servicesToBook.length === 1 ? 'Cita agendada' : servicesToBook.length + ' citas agendadas'} correctamente`);
+          await venusAlert(`${servicesToBook.length === 1 ? 'Cita agendada' : servicesToBook.length + ' citas agendadas'} correctamente`);
           newApptDialog.close();
           formNewAppt.reset();
           selectedServices = [];
@@ -11529,7 +11564,7 @@
           loadMonthStats(true);
         } catch (e) {
           console.error('Error al agendar:', e);
-          alert('Error de conexión: ' + (e.message || 'Intenta de nuevo'));
+          await venusAlert('Error de conexión: ' + (e.message || 'Intenta de nuevo'));
         } finally {
           if (btn) { btn.disabled = false; btn.textContent = originalText; }
         }
@@ -11708,7 +11743,7 @@
         const json = await res.json();
 
         if (!json.success || !json.data) {
-          alert('Error al cargar servicios');
+          await venusAlert('Error al cargar servicios');
           return;
         }
 
@@ -11767,13 +11802,13 @@
         }
 
         console.log(`[AUTO-CAT] Completado: ${updated} actualizados, ${errors} errores`);
-        alert(` Organización completa!\n\n${updated} servicios reorganizados\n${errors} errores`);
+        await venusAlert(` Organización completa!\n\n${updated} servicios reorganizados\n${errors} errores`);
 
         // Recargar la tabla
         await loadServicesTable();
       } catch (error) {
         console.error('[AUTO-CAT] Error general:', error);
-        alert('Error al organizar servicios');
+        await venusAlert('Error al organizar servicios');
       }
     }
 
@@ -11903,11 +11938,11 @@
             // Recargar dropdowns de citas también (force: invalida la caché en memoria)
             loadServices(true);
           } else {
-            alert('Error al guardar: ' + json.error);
+            await venusAlert('Error al guardar: ' + json.error);
           }
         } catch (error) {
           console.error(error);
-          alert('Error de conexión');
+          await venusAlert('Error de conexión');
         }
       });
     }
@@ -11923,11 +11958,11 @@
           loadServicesTable();
           loadServices(true); // Recargar dropdowns (force: invalida la caché en memoria)
         } else {
-          alert('Error al eliminar: ' + json.error);
+          await venusAlert('Error al eliminar: ' + json.error);
         }
       } catch (error) {
         console.error(error);
-        alert('Error de conexión');
+        await venusAlert('Error de conexión');
       }
     };
 
@@ -12154,10 +12189,10 @@
         if (json.success) {
           loadProductsTable();
         } else {
-          alert('Error: ' + json.error);
+          await venusAlert('Error: ' + json.error);
         }
       } catch (error) {
-        alert('Error de conexión');
+        await venusAlert('Error de conexión');
       }
     };
 
@@ -12208,11 +12243,11 @@
           loadProductsTable();
           // Optional: Show success toast if available, or just reload grid which tells usage
         } else {
-          alert('Error: ' + json.error);
+          await venusAlert('Error: ' + json.error);
         }
       } catch (error) {
         console.error(error);
-        alert('Error de conexión');
+        await venusAlert('Error de conexión');
       } finally {
         if (submitBtn) {
           submitBtn.disabled = false;
@@ -12461,7 +12496,7 @@
         const serviceOption = serviceSelect.options[serviceSelect.selectedIndex];
 
         if (!serviceSelect.value) {
-          alert('Selecciona un servicio');
+          await venusAlert('Selecciona un servicio');
           return;
         }
 
@@ -12492,11 +12527,11 @@
             await loadGiftCards();
             viewGiftCard(json.id);
           } else {
-            alert('Error: ' + json.error);
+            await venusAlert('Error: ' + json.error);
           }
         } catch (error) {
           console.error('[GC] Error:', error);
-          alert('Error de conexión');
+          await venusAlert('Error de conexión');
         }
       });
     }
@@ -12586,7 +12621,7 @@
         link.click();
       } catch (error) {
         console.error('Error generando imagen:', error);
-        alert('Error al generar la imagen');
+        await venusAlert('Error al generar la imagen');
       }
     }
 
@@ -12625,19 +12660,19 @@
       }
     }
 
-    function copyGiftCardLink() {
+    async function copyGiftCardLink() {
       if (!selectedGiftCard) return;
       const url = `${window.location.origin}/giftcard/${selectedGiftCard.code}`;
       navigator.clipboard.writeText(url);
-      alert('Link copiado');
+      await venusAlert('Link copiado');
     }
 
-    function copyGiftCardLinkById(id) {
+    async function copyGiftCardLinkById(id) {
       const gc = allGiftCards.find(g => g.id === id);
       if (!gc) return;
       const url = `${window.location.origin}/giftcard/${gc.code}`;
       navigator.clipboard.writeText(url);
-      alert('Link copiado');
+      await venusAlert('Link copiado');
     }
 
     function sendGiftCardWhatsApp() {
@@ -12667,10 +12702,10 @@
         if (json.success) {
           loadGiftCards();
         } else {
-          alert('Error: ' + json.error);
+          await venusAlert('Error: ' + json.error);
         }
       } catch (error) {
-        alert('Error de conexión');
+        await venusAlert('Error de conexión');
       }
     }
 
@@ -12689,10 +12724,10 @@
           loadGiftCards();
           loadDashboardStats();
         } else {
-          alert('Error: ' + json.error);
+          await venusAlert('Error: ' + json.error);
         }
       } catch (error) {
-        alert('Error de conexión');
+        await venusAlert('Error de conexión');
       }
     }
 
@@ -12916,12 +12951,12 @@
       calculateTotals();
     }
 
-    function addProductToPayment() {
+    async function addProductToPayment() {
       const select = document.getElementById('payment-product-select');
       const qtyInput = document.getElementById('payment-product-qty');
 
       if (!select.value) {
-        alert('Selecciona un producto');
+        await venusAlert('Selecciona un producto');
         return;
       }
 
@@ -12930,7 +12965,7 @@
       const stock = parseInt(option.dataset.stock) || 0;
 
       if (qty > stock) {
-        alert(`Solo hay ${stock} unidades disponibles`);
+        await venusAlert(`Solo hay ${stock} unidades disponibles`);
         return;
       }
 
@@ -13057,7 +13092,7 @@
 
         if (!appointmentId) {
           if (window.showNotification) showNotification('Error: ID de cita perdido. Cierra y abre de nuevo.', 'error');
-          else alert('Error: ID de cita perdido. Cierra y abre de nuevo.');
+          else await venusAlert('Error: ID de cita perdido. Cierra y abre de nuevo.');
           return;
         }
 
@@ -13125,19 +13160,19 @@
           if (window.showNotification) 
             showNotification('¡Pago registrado correctamente!', 'success');
           else 
-            alert('¡Pago registrado correctamente!');
+            await venusAlert('¡Pago registrado correctamente!');
         } else {
           if (window.showNotification)
             showNotification('Error: ' + json.error, 'error');
           else
-            alert('Error: ' + json.error);
+            await venusAlert('Error: ' + json.error);
         }
       } catch (error) {
         console.error('🔴 Error saving payment:', error);
         if (window.showNotification)
           showNotification('Error de conexión o datos inválidos', 'error');
         else
-          alert('Error de conexión: ' + error.message);
+          await venusAlert('Error de conexión: ' + error.message);
       } finally {
         const btn = document.getElementById('btn-save-payment');
         if (btn) {
@@ -13175,7 +13210,7 @@
       try {
         const res = await apiFetch(`/api/appointments/${appointmentId}`);
         const json = await res.json();
-        if (!json.success) return alert('Error cargando detalles');
+        if (!json.success) return await venusAlert('Error cargando detalles');
 
         const appt = json.data;
         const productsSold = appt.productsSold || [];
@@ -13254,7 +13289,7 @@
         document.getElementById('paymentDetailDialog').showModal();
       } catch (error) {
         console.error('Error viewing payment details:', error);
-        alert('Error cargando detalles del pago');
+        await venusAlert('Error cargando detalles del pago');
       }
     }
 
@@ -13396,7 +13431,7 @@
 
     async function saveDirectSale() {
       if (directSaleProducts.length === 0) {
-        return alert('Agrega al menos un producto');
+        return await venusAlert('Agrega al menos un producto');
       }
 
       const clientName = document.getElementById('direct-sale-client').value.trim() || 'Venta directa';
@@ -13448,13 +13483,13 @@
           closeDirectSaleModal();
           if (typeof loadMonthStats === 'function') loadMonthStats();
           if (typeof loadProducts === 'function') loadProducts();
-          alert('✓ Venta registrada: $' + grandTotal.toLocaleString());
+          await venusAlert('✓ Venta registrada: $' + grandTotal.toLocaleString());
         } else {
-          alert('Error: ' + json.error);
+          await venusAlert('Error: ' + json.error);
         }
       } catch (error) {
         console.error('Error saving direct sale:', error);
-        alert('Error de conexión');
+        await venusAlert('Error de conexión');
       } finally {
         btn.disabled = false;
         btn.innerHTML = '<i class="fas fa-check-circle"></i> Cobrar <span id="btn-ds-total">$' + grandTotal.toLocaleString() + '</span>';
@@ -13492,17 +13527,17 @@
         });
 
         if (res.ok) {
-          alert('Webhook simulado correctamente. Revisa la consola del servidor y el estado de la cita.');
+          await venusAlert('Webhook simulado correctamente. Revisa la consola del servidor y el estado de la cita.');
           clearAppointmentsCache();
           loadMonthAppointments(true);
           loadAppointments(true);
           loadMonthStats(true);
         } else {
-          alert('Error al simular webhook');
+          await venusAlert('Error al simular webhook');
         }
       } catch (e) {
         console.error(e);
-        alert('Error de red al simular webhook');
+        await venusAlert('Error de red al simular webhook');
       }
     }
 
@@ -14234,7 +14269,7 @@
       try {
         const normalizedCardId = extractCardId(cardId);
         if (!normalizedCardId) {
-          alert('QR de tarjeta inválido');
+          await venusAlert('QR de tarjeta inválido');
           return;
         }
 
@@ -14254,14 +14289,14 @@
           // Crear notificación
           notifySello(clientName, stamps, maxStamps);
 
-          alert('✓ Sello agregado correctamente');
+          await venusAlert('✓ Sello agregado correctamente');
           closeScanner();
           loadDashboardStats();
         } else {
-          alert('Error: ' + json.error);
+          await venusAlert('Error: ' + json.error);
         }
       } catch (error) {
-        alert('Error de conexión');
+        await venusAlert('Error de conexión');
       }
     }
 
@@ -14276,14 +14311,14 @@
         const json = await res.json();
 
         if (json.success) {
-          alert('✓ Gift Card canjeada correctamente');
+          await venusAlert('✓ Gift Card canjeada correctamente');
           closeScanner();
           loadDashboardStats();
         } else {
-          alert('Error: ' + json.error);
+          await venusAlert('Error: ' + json.error);
         }
       } catch (error) {
-        alert('Error de conexión');
+        await venusAlert('Error de conexión');
       }
     }
 
@@ -14640,11 +14675,11 @@
         if (json.success) {
           loadBookingRequests();
         } else {
-          alert('Error: ' + (json.error || 'no se pudo procesar'));
+          await venusAlert('Error: ' + (json.error || 'no se pudo procesar'));
         }
       } catch (e) {
         console.error('[reviewDeposit]', e);
-        alert('Error de conexión');
+        await venusAlert('Error de conexión');
       }
     }
     window.reviewDeposit = reviewDeposit;
@@ -14659,10 +14694,10 @@
         if (json.success) {
           loadBookingRequests();
         } else {
-          alert('Error: ' + json.error);
+          await venusAlert('Error: ' + json.error);
         }
       } catch (error) {
-        alert('Error de conexión');
+        await venusAlert('Error de conexión');
       }
     }
 
@@ -14707,9 +14742,9 @@
             loadMonthStats(true);
           }
 
-          alert('Cita agendada correctamente');
+          await venusAlert('Cita agendada correctamente');
         } else {
-          alert('Error: ' + json.error);
+          await venusAlert('Error: ' + json.error);
           // Re-habilitar botón en caso de error
           if (btn) {
             btn.disabled = false;
@@ -14717,7 +14752,7 @@
           }
         }
       } catch (error) {
-        alert('Error de conexión');
+        await venusAlert('Error de conexión');
         // Re-habilitar botón en caso de error
         if (btn) {
           btn.disabled = false;
@@ -14738,10 +14773,10 @@
         if (json.success) {
           loadBookingRequests();
         } else {
-          alert('Error: ' + json.error);
+          await venusAlert('Error: ' + json.error);
         }
       } catch (error) {
-        alert('Error de conexión');
+        await venusAlert('Error de conexión');
       }
     }
 
@@ -14774,13 +14809,13 @@
         });
         const json = await res.json();
         if (json.success) {
-          alert('Todas las solicitudes han sido eliminadas');
+          await venusAlert('Todas las solicitudes han sido eliminadas');
           loadBookingRequests();
         } else {
-          alert('Error: ' + json.error);
+          await venusAlert('Error: ' + json.error);
         }
       } catch (error) {
-        alert('Error de conexión');
+        await venusAlert('Error de conexión');
       }
     }
 
@@ -14986,11 +15021,11 @@
     }
 
     // Botón de búsqueda manual (fallback si no funciona autocomplete)
-    document.getElementById('btn-search-address')?.addEventListener('click', () => {
+    document.getElementById('btn-search-address')?.addEventListener('click', async () => {
       const address = document.getElementById('biz-address').value.trim();
 
       if (!address) {
-        alert('Por favor escribe una dirección');
+        await venusAlert('Por favor escribe una dirección');
         return;
       }
 
@@ -14999,7 +15034,7 @@
       const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
       document.getElementById('biz-maps-url').value = mapsUrl;
 
-      alert('URL de Maps generada. Recuerda guardar la configuración.');
+      await venusAlert('URL de Maps generada. Recuerda guardar la configuración.');
     });
 
     // ===== GOOGLE CALENDAR =====
@@ -15207,7 +15242,7 @@
       try {
         await fetch('/api/evolution/logout', { method: 'POST', credentials: 'include' });
         checkWhatsAppStatus();
-      } catch (e) { alert('Error: ' + e.message); }
+      } catch (e) { await venusAlert('Error: ' + e.message); }
     }
 
     async function testWhatsApp() {
@@ -15224,9 +15259,9 @@
         if (json.success) {
           if (typeof showNotification === 'function') showNotification('Mensaje de prueba enviado', 'success');
         } else {
-          alert('Error: ' + (json.error || json.details));
+          await venusAlert('Error: ' + (json.error || json.details));
         }
-      } catch (e) { alert('Error: ' + e.message); }
+      } catch (e) { await venusAlert('Error: ' + e.message); }
     }
 
     window.checkWhatsAppStatus = checkWhatsAppStatus;
@@ -15356,10 +15391,10 @@
           successEl.classList.remove('hidden');
           setTimeout(() => successEl.classList.add('hidden'), 3000);
         } else {
-          alert('Error: ' + json.error);
+          await venusAlert('Error: ' + json.error);
         }
       } catch (error) {
-        alert('Error de conexión');
+        await venusAlert('Error de conexión');
       }
     });
 
@@ -15412,10 +15447,10 @@
             ok.classList.remove('hidden');
             setTimeout(() => ok.classList.add('hidden'), 3000);
           } else {
-            alert('Error: ' + (json.error || 'no se pudo guardar'));
+            await venusAlert('Error: ' + (json.error || 'no se pudo guardar'));
           }
         } catch (err) {
-          alert('Error de conexión');
+          await venusAlert('Error de conexión');
         }
       });
     }
@@ -15462,10 +15497,10 @@
             ok.classList.remove('hidden');
             setTimeout(() => ok.classList.add('hidden'), 3000);
           } else {
-            alert('Error: ' + (json.error || 'no se pudo guardar'));
+            await venusAlert('Error: ' + (json.error || 'no se pudo guardar'));
           }
         } catch (err) {
-          alert('Error de conexión');
+          await venusAlert('Error de conexión');
         }
       });
     }
@@ -17080,7 +17115,7 @@
         const dateTo = getReportField('filter-date-to', 'report-date-to')?.value;
 
         if (!dateFrom || !dateTo) {
-          alert('Por favor selecciona un rango de fechas');
+          await venusAlert('Por favor selecciona un rango de fechas');
           return;
         }
 
@@ -17101,7 +17136,7 @@
 
         if (!json.success) {
           console.error('[REPORTS] Error en respuesta:', json.error);
-          alert('Error cargando datos: ' + (json.error || 'Desconocido'));
+          await venusAlert('Error cargando datos: ' + (json.error || 'Desconocido'));
           return;
         }
 
@@ -17168,7 +17203,7 @@
         console.error('[REPORTS] Error name:', error.name);
         console.error('[REPORTS] Error message:', error.message);
         console.error('[REPORTS] Error stack:', error.stack);
-        alert('Error al cargar el reporte: ' + error.message);
+        await venusAlert('Error al cargar el reporte: ' + error.message);
       }
     }
 
@@ -17365,9 +17400,9 @@
 
     window.toggleProductosDetail = toggleProductosDetail;
 
-    function exportarVentas() {
+    async function exportarVentas() {
       if (reportData.length === 0) {
-        alert('No hay datos para exportar. Primero aplica los filtros.');
+        await venusAlert('No hay datos para exportar. Primero aplica los filtros.');
         return;
       }
 
@@ -17416,14 +17451,14 @@
         console.log('[REPORTS] CSV exportado correctamente');
       } catch (error) {
         console.error('[REPORTS] Error exportando:', error);
-        alert('Error al exportar: ' + error.message);
+        await venusAlert('Error al exportar: ' + error.message);
       }
     }
 
     // ===== EXPORTAR A EXCEL FORMATO VENTAS VENUS =====
     async function exportarVentasExcel() {
       if (reportData.length === 0) {
-        alert('No hay datos para exportar. Primero selecciona un mes.');
+        await venusAlert('No hay datos para exportar. Primero selecciona un mes.');
         return;
       }
 
@@ -17609,11 +17644,11 @@
         XLSX.writeFile(wb, fileName);
 
         console.log('[REPORTS] Excel exportado correctamente:', fileName);
-        alert('Archivo Excel generado: ' + fileName);
+        await venusAlert('Archivo Excel generado: ' + fileName);
 
       } catch (error) {
         console.error('[REPORTS] Error exportando Excel:', error);
-        alert('Error al exportar: ' + error.message);
+        await venusAlert('Error al exportar: ' + error.message);
       }
     }
 
@@ -17958,12 +17993,12 @@
     // ========== FILTRO POR FECHAS PERSONALIZADO ==========
     let customDateFilter = { from: null, to: null };
 
-    function filtrarReportePorFechas() {
+    async function filtrarReportePorFechas() {
       const fromInput = document.getElementById('report-date-from');
       const toInput = document.getElementById('report-date-to');
 
       if (!fromInput.value || !toInput.value) {
-        alert('Por favor selecciona ambas fechas');
+        await venusAlert('Por favor selecciona ambas fechas');
         return;
       }
 
@@ -17971,7 +18006,7 @@
       const to = toInput.value;
 
       if (from > to) {
-        alert('La fecha "Desde" no puede ser mayor que "Hasta"');
+        await venusAlert('La fecha "Desde" no puede ser mayor que "Hasta"');
         return;
       }
 
@@ -18306,7 +18341,7 @@
         const json = await res.json();
 
         if (!json.success) {
-          alert('Error cargando gasto');
+          await venusAlert('Error cargando gasto');
           return;
         }
 
@@ -18321,7 +18356,7 @@
         expenseDialog.showModal();
       } catch (error) {
         console.error('Error:', error);
-        alert('Error cargando gasto');
+        await venusAlert('Error cargando gasto');
       }
     };
 
@@ -18337,14 +18372,14 @@
         const json = await res.json();
 
         if (json.success) {
-          alert('Gasto eliminado');
+          await venusAlert('Gasto eliminado');
           loadExpenses();
         } else {
-          alert('Error: ' + json.error);
+          await venusAlert('Error: ' + json.error);
         }
       } catch (error) {
         console.error('Error:', error);
-        alert('Error eliminando gasto');
+        await venusAlert('Error eliminando gasto');
       }
     };
 
@@ -18373,15 +18408,15 @@
           const json = await res.json();
 
           if (json.success) {
-            alert(currentExpenseId ? 'Gasto actualizado' : 'Gasto registrado');
+            await venusAlert(currentExpenseId ? 'Gasto actualizado' : 'Gasto registrado');
             closeExpenseModal();
             loadExpenses();
           } else {
-            alert('Error: ' + json.error);
+            await venusAlert('Error: ' + json.error);
           }
         } catch (error) {
           console.error('Error:', error);
-          alert('Error guardando gasto');
+          await venusAlert('Error guardando gasto');
         }
       });
     }
@@ -18846,6 +18881,11 @@
       var vdLastFocused = null;
       var vdMouseDownOnBackdrop = false;
       var vdQueue = Promise.resolve();
+      // Se incrementa cada vez que se abre o cierra un diálogo. La limpieza
+      // retrasada de vdSettle() usa esto para no borrar el contenido de un
+      // diálogo NUEVO que ya se haya abierto mientras esperaba (encolados
+      // rápidos: cerrar uno y abrir el siguiente casi al mismo tiempo).
+      var vdGen = 0;
 
       function vdEsc(s) {
         return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -18946,7 +18986,12 @@
         vdRoot.classList.remove('vd-open');
         var toFocus = vdLastFocused;
         vdLastFocused = null;
+        var myGen = ++vdGen;
         setTimeout(function () {
+          // Si ya se abrió otro diálogo desde entonces (vdGen avanzó), este
+          // cleanup quedó obsoleto: no tocar el DOM ni robar el foco del
+          // diálogo nuevo.
+          if (vdGen !== myGen) return;
           if (vdRoot) vdRoot.innerHTML = '';
           if (toFocus && typeof toFocus.focus === 'function') {
             try { toFocus.focus(); } catch (e2) {}
@@ -18973,6 +19018,7 @@
         return vdEnqueue(function () {
           return new Promise(function (resolve) {
             vdBuildRoot();
+            vdGen++; // invalida cualquier limpieza retrasada de un diálogo anterior
             vdLastFocused = document.activeElement;
             vdRoot.innerHTML = vdCardShell(
               vdEsc(opts.title || 'Venus'),
@@ -18998,6 +19044,7 @@
         return vdEnqueue(function () {
           return new Promise(function (resolve) {
             vdBuildRoot();
+            vdGen++; // invalida cualquier limpieza retrasada de un diálogo anterior
             vdLastFocused = document.activeElement;
             var actions =
               '<button type="button" class="vd-btn vd-ghost" data-vd-cancel>' + vdEsc(opts.cancelLabel || 'Cancelar') + '</button>' +
@@ -19027,6 +19074,7 @@
         return vdEnqueue(function () {
           return new Promise(function (resolve) {
             vdBuildRoot();
+            vdGen++; // invalida cualquier limpieza retrasada de un diálogo anterior
             vdLastFocused = document.activeElement;
             var body =
               (message ? '<div class="vd-message">' + vdNl2br(message) + '</div>' : '') +
@@ -19059,6 +19107,7 @@
         return vdEnqueue(function () {
           return new Promise(function (resolve) {
             vdBuildRoot();
+            vdGen++; // invalida cualquier limpieza retrasada de un diálogo anterior
             vdLastFocused = document.activeElement;
             var choicesHtml = choices.map(function (c, i) {
               return '<button type="button" class="vd-choice-btn" data-vd-choice="' + i + '">' +
@@ -19081,6 +19130,157 @@
           });
         });
       };
+    })();
+  </script>
+
+  <!-- ===== MARKETING CHECKLIST ===== -->
+  <script>
+    (function () {
+      let mktTasks = [];
+      let mktDate = null;
+
+      function mktEsc(s) {
+        return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({
+          '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        }[c]));
+      }
+
+      function mktTodayLocal() {
+        return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Mexico_City' }).format(new Date());
+      }
+
+      window.loadMarketingChecklist = async function () {
+        const box = document.getElementById('mkt-checklist');
+        try {
+          const res = await fetch('/api/admin/marketing/checklist', { credentials: 'same-origin' });
+          const data = await res.json();
+          if (!data.success) throw new Error(data.error || 'error');
+          mktTasks = data.tasks || [];
+          mktDate = data.date;
+          renderMkt();
+        } catch (e) {
+          if (box) box.innerHTML = '<p class="muted">No se pudo cargar el checklist. Intenta de nuevo.</p>';
+          console.error('marketing checklist', e);
+        }
+      };
+
+      function renderMkt() {
+        const box = document.getElementById('mkt-checklist');
+        if (!box) return;
+        const today = mktDate || mktTodayLocal();
+
+        // Relevantes hoy: diarias + con fecha vencida/de hoy no hechas
+        const dueToday = mktTasks.filter(t =>
+          t.frequency === 'daily' || (t.due_date && t.due_date <= today && !t.done));
+        const doneToday = dueToday.filter(t => t.done).length;
+        const prog = document.getElementById('mkt-progress');
+        if (prog) prog.textContent = 'Hoy: ' + doneToday + ' de ' + dueToday.length + ' ✓';
+        const badge = document.getElementById('marketing-badge');
+        if (badge) {
+          const pending = dueToday.length - doneToday;
+          badge.style.display = pending > 0 ? '' : 'none';
+          badge.textContent = pending;
+        }
+
+        const sections = [];
+        mktTasks.forEach(t => { if (!sections.includes(t.section)) sections.push(t.section); });
+
+        let html = '';
+        sections.forEach(sec => {
+          const items = mktTasks.filter(t => t.section === sec)
+            .sort((a, b) => (a.due_date || '9999') < (b.due_date || '9999') ? -1 :
+                            (a.due_date || '9999') > (b.due_date || '9999') ? 1 : a.sort - b.sort);
+          html += '<h3 style="margin:18px 0 8px;font-size:14px;letter-spacing:.5px;text-transform:uppercase;color:#8C9668;">' + mktEsc(sec) + '</h3>';
+          items.forEach(t => {
+            const overdue = t.due_date && t.due_date < today && !t.done;
+            const isToday = t.due_date === today;
+            let badgeHtml = '';
+            if (t.frequency === 'daily') {
+              badgeHtml = '<span style="font-size:11px;background:#8C966822;color:#6b7a4e;border-radius:8px;padding:1px 8px;">diaria</span>';
+            } else if (t.due_date) {
+              const d = new Date(t.due_date + 'T12:00:00');
+              const label = d.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' });
+              badgeHtml = '<span style="font-size:11px;border-radius:8px;padding:1px 8px;' +
+                (overdue ? 'background:#c0392b1a;color:#c0392b;font-weight:700;' :
+                 isToday ? 'background:#C4A77D33;color:#8a6d3b;font-weight:700;' :
+                 'background:rgba(0,0,0,0.06);color:#666;') + '">' +
+                (overdue ? '⚠ ' : '') + label + '</span>';
+            }
+            html += '<label style="display:flex;gap:10px;align-items:flex-start;padding:9px 10px;border-radius:10px;cursor:pointer;' +
+              (t.done ? 'opacity:.55;' : '') + 'transition:background .15s;" ' +
+              'onmouseover="this.style.background=\'rgba(140,150,104,0.07)\'" onmouseout="this.style.background=\'\'">' +
+              '<input type="checkbox" ' + (t.done ? 'checked' : '') +
+              ' onchange="toggleMarketingTask(' + t.id + ')" style="margin-top:3px;width:17px;height:17px;accent-color:#8C9668;flex:none;">' +
+              '<span style="flex:1;">' +
+              '<span style="font-weight:600;' + (t.done ? 'text-decoration:line-through;' : '') + '">' + mktEsc(t.title) + '</span> ' + badgeHtml +
+              (t.detail ? '<br><span class="muted" style="font-size:12px;">' + mktEsc(t.detail) + '</span>' : '') +
+              '</span>' +
+              '<button class="btn small ghost" title="Eliminar tarea" onclick="event.preventDefault();deleteMarketingTask(' + t.id + ')" style="flex:none;padding:2px 8px;"><i class="fas fa-times"></i></button>' +
+              '</label>';
+          });
+        });
+        box.innerHTML = html || '<p class="muted">Sin tareas. Agrega la primera abajo.</p>';
+      }
+
+      window.toggleMarketingTask = async function (id) {
+        try {
+          const res = await fetch('/api/admin/marketing/checklist/' + id + '/toggle', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ date: mktDate || mktTodayLocal() })
+          });
+          const data = await res.json();
+          if (data.success) {
+            const t = mktTasks.find(x => x.id === id);
+            if (t) t.done = data.done;
+            renderMkt();
+          }
+        } catch (e) { console.error('toggle marketing task', e); }
+      };
+
+      window.deleteMarketingTask = async function (id) {
+        if (!confirm('¿Eliminar esta tarea del checklist?')) return;
+        try {
+          const res = await fetch('/api/admin/marketing/tasks/' + id, { method: 'DELETE', credentials: 'same-origin' });
+          const data = await res.json();
+          if (data.success) {
+            mktTasks = mktTasks.filter(t => t.id !== id);
+            renderMkt();
+          }
+        } catch (e) { console.error('delete marketing task', e); }
+      };
+
+      window.addMarketingTask = async function () {
+        const titleEl = document.getElementById('mkt-new-title');
+        const freqEl = document.getElementById('mkt-new-freq');
+        const dateEl = document.getElementById('mkt-new-date');
+        const title = (titleEl.value || '').trim();
+        if (!title) { titleEl.focus(); return; }
+        try {
+          const res = await fetch('/api/admin/marketing/tasks', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              title,
+              frequency: freqEl.value,
+              due_date: freqEl.value === 'once' ? (dateEl.value || null) : null,
+              section: freqEl.value === 'daily' ? 'Diario' : 'Otras'
+            })
+          });
+          const data = await res.json();
+          if (data.success) {
+            titleEl.value = ''; dateEl.value = '';
+            loadMarketingChecklist();
+          }
+        } catch (e) { console.error('add marketing task', e); }
+      };
+
+      // Badge de pendientes al abrir el admin (sin entrar al tab)
+      document.addEventListener('DOMContentLoaded', function () {
+        setTimeout(function () { window.loadMarketingChecklist(); }, 1200);
+      });
     })();
   </script>
 
