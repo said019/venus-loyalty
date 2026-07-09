@@ -4418,19 +4418,24 @@
       if (!files.length || !currentExpedienteRecordId) return;
       
       // Pedir tipo de foto
-      const type = prompt('¿Qué tipo de foto es?\n\n1 = Antes\n2 = Después\n3 = Progreso', '3');
+      const type = await venusPrompt('¿Qué tipo de foto es?\n\n1 = Antes\n2 = Después\n3 = Progreso', { defaultValue: '3' });
       const typeMap = { '1': 'before', '2': 'after', '3': 'progress' };
       const photoType = typeMap[type] || 'progress';
       
       // Pedir categoría
-      const category = prompt('¿Categoría?\n\n1 = Facial\n2 = Corporal\n3 = Depilación', '1');
+      const category = await venusChoice('¿A qué categoría pertenece?', [
+        { value: '1', label: 'Facial' },
+        { value: '2', label: 'Corporal' },
+        { value: '3', label: 'Depilación' }
+      ], { title: 'Categoría' });
+      if (category === null) return; // canceló el selector de categoría
       const catMap = { '1': 'facial', '2': 'corporal', '3': 'depilacion' };
       const photoCategory = catMap[category] || 'facial';
       
       // Pedir área si es antes/después
       let area = '';
       if (photoType === 'before' || photoType === 'after') {
-        area = prompt('¿Qué área se fotografió? (ej: rostro, abdomen, piernas)') || '';
+        area = (await venusPrompt('¿Qué área se fotografió? (ej: rostro, abdomen, piernas)')) || '';
       }
       
       try {
@@ -4464,7 +4469,7 @@
 
     // Eliminar foto
     async function deleteExpPhoto(photoId) {
-      if (!confirm('¿Eliminar esta foto?')) return;
+      if (!(await venusConfirm('¿Eliminar esta foto?', { title: 'Confirmar', danger: true, okLabel: 'Eliminar' }))) return;
       
       try {
         const response = await fetch(`/api/client-records/photos/${photoId}`, {
@@ -5099,7 +5104,7 @@
     async function expSendFicha() {
       const cardId = currentExpedienteCardId;
       if (!cardId) { alert('No hay expediente cargado'); return; }
-      if (!confirm('¿Enviar el link de la ficha clínica por WhatsApp a la clienta?')) return;
+      if (!(await venusConfirm('¿Enviar el link de la ficha clínica por WhatsApp a la clienta?', { title: 'Confirmar', okLabel: 'Enviar' }))) return;
       try {
         const res = await expApi('/api/expedientes/' + encodeURIComponent(cardId) + '/send-ficha', { method: 'POST' });
         if (!res.ok) { let m = 'Error al enviar la ficha'; try { const j = await res.json(); if (j && j.error) m = j.error; } catch (_) {} throw new Error(m); }
@@ -5139,7 +5144,7 @@
     async function expSendConsent() {
       const cardId = currentExpedienteCardId;
       if (!cardId) { alert('No hay expediente cargado'); return; }
-      if (!confirm('¿Enviar el link del consentimiento láser por WhatsApp a la clienta?')) return;
+      if (!(await venusConfirm('¿Enviar el link del consentimiento láser por WhatsApp a la clienta?', { title: 'Confirmar', okLabel: 'Enviar' }))) return;
       try {
         const res = await expApi('/api/expedientes/' + encodeURIComponent(cardId) + '/send-consent', { method: 'POST' });
         if (!res.ok) { let m = 'Error al enviar el consentimiento'; try { const j = await res.json(); if (j && j.error) m = j.error; } catch (_) {} throw new Error(m); }
@@ -5279,7 +5284,7 @@
       const cardId = currentExpedienteCardId;
       const id = document.getElementById('exp-diag-id').value;
       if (!cardId || !id) { alert('Selecciona o guarda un diagnóstico primero'); return; }
-      if (!confirm('¿Exportar este diagnóstico a PDF en Google Drive?')) return;
+      if (!(await venusConfirm('¿Exportar este diagnóstico a PDF en Google Drive?', { title: 'Confirmar', okLabel: 'Exportar' }))) return;
       try {
         const res = await expApi('/api/expedientes/' + encodeURIComponent(cardId) + '/diagnosis/' + encodeURIComponent(id) + '/pdf', { method: 'POST' });
         if (!res.ok) throw new Error('Error al exportar PDF');
@@ -5450,7 +5455,7 @@
     async function expDeleteLaserSession(id) {
       const cardId = currentExpedienteCardId;
       if (!cardId || !id) return;
-      if (!confirm('¿Eliminar esta sesión de láser?')) return;
+      if (!(await venusConfirm('¿Eliminar esta sesión de láser?', { title: 'Confirmar', danger: true, okLabel: 'Eliminar' }))) return;
       try {
         const res = await expApi('/api/expedientes/' + encodeURIComponent(cardId) + '/laser-sessions/' + encodeURIComponent(id), { method: 'DELETE' });
         if (!res.ok) throw new Error('Error al eliminar');
@@ -5516,7 +5521,7 @@
     async function expDeleteDocument(docId) {
       const cardId = currentExpedienteCardId;
       if (!cardId || !docId) return;
-      if (!confirm('¿Eliminar este documento del expediente?\n\nNota: solo se elimina el registro del expediente; el archivo en Google Drive no se borra.')) return;
+      if (!(await venusConfirm('¿Eliminar este documento del expediente?\n\nNota: solo se elimina el registro del expediente; el archivo en Google Drive no se borra.', { title: 'Confirmar', danger: true, okLabel: 'Eliminar' }))) return;
       try {
         const res = await expApi('/api/expedientes/' + encodeURIComponent(cardId) + '/documents/' + encodeURIComponent(docId), { method: 'DELETE' });
         if (!res.ok) throw new Error('Error al eliminar');
@@ -5775,7 +5780,7 @@
         }
 
         // Confirmar canje
-        const confirmed = confirm(`¿Canjear gift card?\n\nServicio: ${giftCard.service}\nCliente: ${giftCard.clientName || 'Anónimo'}\n\n¿Marcar como canjeada?`);
+        const confirmed = await venusConfirm(`¿Canjear gift card?\n\nServicio: ${giftCard.service}\nCliente: ${giftCard.clientName || 'Anónimo'}\n\n¿Marcar como canjeada?`, { title: 'Confirmar', okLabel: 'Canjear' });
 
         if (!confirmed) {
           giftScanStatus.textContent = 'Canje cancelado';
@@ -7084,7 +7089,7 @@
 
       const limit = parseInt(document.getElementById('promo-limit').value) || 0;
       const count = limit > 0 ? Math.min(limit, selected.length) : selected.length;
-      if (!confirm(`¿Enviar a ${count} contactos? (1 cada 5 min)`)) return;
+      if (!(await venusConfirm(`¿Enviar a ${count} contactos? (1 cada 5 min)`, { title: 'Confirmar', okLabel: 'Enviar' }))) return;
 
       document.getElementById('btn-promo-start').disabled = true;
       try {
@@ -7330,7 +7335,7 @@
 
     // Borrar historial de notificaciones
     document.getElementById('clear-notif-history').addEventListener('click', async () => {
-      if (!confirm('¿Estás seguro de borrar todo el historial de notificaciones enviadas?')) return;
+      if (!(await venusConfirm('¿Estás seguro de borrar todo el historial de notificaciones enviadas?', { title: 'Confirmar', danger: true, okLabel: 'Borrar historial' }))) return;
 
       try {
         const response = await fetch('/api/admin/notifications/clear', {
@@ -7581,12 +7586,13 @@
         const json = await res.json();
 
         if (res.status === 409 && json.error === 'phone_change_needs_confirmation') {
-          const ok = confirm(
+          const ok = await venusConfirm(
             `⚠️ Esta clienta tiene ${json.activeAppointments} cita(s) activa(s).\n\n` +
             `Si cambias el teléfono ahora, TODAS esas citas se actualizarán al nuevo número (${json.newPhone}).\n` +
             `Las notificaciones futuras también irán al nuevo número.\n\n` +
             `Actual: ${json.currentPhone}\nNuevo:  ${json.newPhone}\n\n` +
-            `¿Confirmar el cambio?`
+            `¿Confirmar el cambio?`,
+            { title: 'Confirmar', okLabel: 'Confirmar cambio' }
           );
           if (!ok) return;
           // Reintentar con confirmación explícita
@@ -7735,7 +7741,7 @@
 
     /* ===== STAMP CARD - CORREGIDO PARA ACTUALIZAR GOOGLE WALLET ===== */
     async function stampCard(cardId) {
-      if (!confirm('¿Agregar 1 sello a esta tarjeta?')) return;
+      if (!(await venusConfirm('¿Agregar 1 sello a esta tarjeta?', { title: 'Confirmar', okLabel: 'Agregar' }))) return;
       try {
         const r = await fetch('/api/admin/stamp', {
           method: 'POST',
@@ -7787,7 +7793,7 @@
         return;
       }
 
-      if (!confirm(`¿Enviar link de membresía de masajes a ${name} por WhatsApp?`)) return;
+      if (!(await venusConfirm(`¿Enviar link de membresía de masajes a ${name} por WhatsApp?`, { title: 'Confirmar', okLabel: 'Enviar' }))) return;
 
       const cardLink = `${window.location.origin}/card/${cardId}`;
       const message =
@@ -7822,7 +7828,7 @@
     async function massageStampCard(cardId) {
       const card = cardsCache[cardId];
       const name = card?.name || 'la clienta';
-      if (!confirm(`¿Agregar 1 sesión de masaje a ${name}?`)) return;
+      if (!(await venusConfirm(`¿Agregar 1 sesión de masaje a ${name}?`, { title: 'Confirmar', okLabel: 'Agregar' }))) return;
       try {
         const r = await fetch('/api/admin/massage-stamp', {
           method: 'POST',
@@ -7859,7 +7865,7 @@
       const name = card?.name || 'la clienta';
       const phone = card?.phone;
 
-      if (!confirm(`¿Emitir membresía de masajes a ${name}?\n\n• 10 sesiones de masaje\n• Fondo terracota en Wallet\n• Se enviará el link por WhatsApp vía Evolution`)) return;
+      if (!(await venusConfirm(`¿Emitir membresía de masajes a ${name}?\n\n• 10 sesiones de masaje\n• Fondo terracota en Wallet\n• Se enviará el link por WhatsApp vía Evolution`, { title: 'Confirmar', okLabel: 'Emitir' }))) return;
 
       const btn = document.getElementById('cm-issue-massage');
       const originalHtml = btn.innerHTML;
@@ -7933,7 +7939,7 @@
 
     /* ===== GENERAR GOOGLE WALLET MASAJES ===== */
     async function generateMassageWallet(cardId) {
-      if (!confirm('¿Generar pase de Google Wallet para masajes?')) return;
+      if (!(await venusConfirm('¿Generar pase de Google Wallet para masajes?', { title: 'Confirmar', okLabel: 'Generar' }))) return;
       try {
         const r = await fetch(`/api/admin/cards/${cardId}/generate-massage-wallet`, {
           method: 'POST',
@@ -7953,7 +7959,7 @@
     }
 
     async function redeemCard(cardId) {
-      if (!confirm('¿Canjear esta tarjeta? Se reiniciarán los sellos.')) return;
+      if (!(await venusConfirm('¿Canjear esta tarjeta? Se reiniciarán los sellos.', { title: 'Confirmar', okLabel: 'Canjear' }))) return;
       try {
         const r = await fetch('/api/admin/redeem', {
           method: 'POST',
@@ -7990,7 +7996,7 @@
     }
 
     async function deleteCard(cardId) {
-      if (!confirm('Esto eliminará la tarjeta de la base de datos, eventos y Firestore. ¿Continuar?')) return;
+      if (!(await venusConfirm('Esto eliminará la tarjeta de la base de datos, eventos y Firestore. ¿Continuar?', { title: 'Confirmar', danger: true, okLabel: 'Eliminar' }))) return;
       try {
         const r = await fetch(`/api/admin/card/${encodeURIComponent(cardId)}`, {
           method: 'DELETE',
@@ -8121,7 +8127,7 @@
     document.getElementById('cm-force-update')?.addEventListener('click', async () => {
       if (!currentCardId) return;
 
-      if (!confirm('¿Forzar actualización del pase en Apple/Google Wallet?')) return;
+      if (!(await venusConfirm('¿Forzar actualización del pase en Apple/Google Wallet?', { title: 'Confirmar', okLabel: 'Actualizar' }))) return;
 
       try {
         const res = await fetch('/api/admin/force-update-pass', {
@@ -8223,7 +8229,7 @@
 
     // Test Apple Push
     document.getElementById('btn-test-apple-push')?.addEventListener('click', async function () {
-      const cardId = prompt('ID de la tarjeta para prueba:');
+      const cardId = await venusPrompt('ID de la tarjeta para prueba:');
       if (!cardId) return;
 
       const output = document.getElementById('debug-output');
@@ -8251,7 +8257,7 @@
 
     // Test Google Push
     document.getElementById('btn-test-google-push')?.addEventListener('click', async function () {
-      const cardId = prompt('ID de la tarjeta para prueba:');
+      const cardId = await venusPrompt('ID de la tarjeta para prueba:');
       if (!cardId) return;
 
       const output = document.getElementById('debug-output');
@@ -8279,7 +8285,7 @@
 
     // Reparar Google Wallet
     document.getElementById('btn-fix-google-wallet')?.addEventListener('click', async function () {
-      const cardId = prompt('ID de la tarjeta a reparar:');
+      const cardId = await venusPrompt('ID de la tarjeta a reparar:');
       if (!cardId) return;
 
       const output = document.getElementById('debug-output');
@@ -8501,7 +8507,7 @@
     }
 
     window.sendBirthdayPush = async function (cardId, name) {
-      if (!confirm(`¿Enviar felicitación de cumpleaños a ${name}?`)) return;
+      if (!(await venusConfirm(`¿Enviar felicitación de cumpleaños a ${name}?`, { title: 'Confirmar', okLabel: 'Enviar' }))) return;
 
       try {
         const r = await fetch('/api/admin/push-one', {
@@ -8528,7 +8534,7 @@
 
     // Ver dispositivos
     document.getElementById('btn-check-devices')?.addEventListener('click', async function () {
-      const cardId = prompt('ID de la tarjeta para ver dispositivos:');
+      const cardId = await venusPrompt('ID de la tarjeta para ver dispositivos:');
       if (!cardId) return;
 
       const output = document.getElementById('debug-output');
@@ -8627,7 +8633,7 @@
           return alert("Faltan datos: Escribe título y mensaje.");
         }
 
-        if (!confirm(`¿ENVIAR A TODOS?\n\n"${title}"`)) {
+        if (!(await venusConfirm(`¿ENVIAR A TODOS?\n\n"${title}"`, { title: 'Confirmar', okLabel: 'Enviar a todos' }))) {
           console.log('❌ Usuario canceló');
           return;
         }
@@ -10099,7 +10105,7 @@
 
     // ========== CANCELAR CITA ==========
     window.cancelAppointment = async (id) => {
-      if (!confirm('¿Eliminar esta cita? Se eliminará también de Google Calendar.')) return;
+      if (!(await venusConfirm('¿Eliminar esta cita? Se eliminará también de Google Calendar.', { title: 'Confirmar', danger: true, okLabel: 'Eliminar cita' }))) return;
       try {
         const res = await fetch(`/api/appointments/${id}/cancel`, { method: 'PATCH', credentials: 'include' });
         const json = await res.json();
@@ -10116,7 +10122,7 @@
     };
 
     window.sendWhatsAppAttendanceSurvey = async (id) => {
-      if (!confirm('¿Enviar encuesta de asistencia por WhatsApp?')) return;
+      if (!(await venusConfirm('¿Enviar encuesta de asistencia por WhatsApp?', { title: 'Confirmar', okLabel: 'Enviar' }))) return;
 
       try {
         const res = await fetch(`/api/appointments/${id}/attendance-survey`, {
@@ -10135,7 +10141,7 @@
         }
 
         if (json.manualUrl) {
-          const openManual = confirm('No se pudo enviar automáticamente. ¿Abrir WhatsApp con el mensaje listo para enviarlo manualmente?');
+          const openManual = await venusConfirm('No se pudo enviar automáticamente. ¿Abrir WhatsApp con el mensaje listo para enviarlo manualmente?', { title: 'Confirmar', okLabel: 'Abrir WhatsApp' });
           if (openManual) {
             window.open(json.manualUrl, '_blank');
           }
@@ -10161,7 +10167,8 @@
         return;
       }
 
-      if (!confirm(`¿Cambiar estado a "${newStatus}"?`)) {
+      const isCancelling = newStatus === 'cancelled';
+      if (!(await venusConfirm(`¿Cambiar estado a "${newStatus}"?`, { title: 'Confirmar', danger: isCancelling, okLabel: isCancelling ? 'Sí, cancelar cita' : 'Cambiar' }))) {
         loadAppointments(); // Revertir selección visualmente
         return;
       }
@@ -10486,7 +10493,7 @@
 
           // Conflicto: ofrecer forzar si otra persona puede atender en paralelo.
           if (!json.success && res.status === 409 && json.canForce) {
-            const ok = confirm(`${json.error}\n\n¿Otra persona la atenderá? Forzar agendar en paralelo.`);
+            const ok = await venusConfirm(`${json.error}\n\n¿Otra persona la atenderá? Forzar agendar en paralelo.`, { title: 'Confirmar', okLabel: 'Forzar agendar' });
             if (ok) {
               res = await fetch(`/api/appointments/${editApptId.value}`, {
                 method: 'PATCH',
@@ -11475,7 +11482,7 @@
 
             // Conflicto: ofrecer forzar si otra persona puede atender en paralelo.
             if (!json.success && res.status === 409 && json.canForce) {
-              const ok = confirm(`${json.error}\n\n¿Otra persona la atenderá? Forzar agendar "${service.name}" en paralelo.`);
+              const ok = await venusConfirm(`${json.error}\n\n¿Otra persona la atenderá? Forzar agendar "${service.name}" en paralelo.`, { title: 'Confirmar', okLabel: 'Forzar agendar' });
               if (ok) {
                 res = await fetch('/api/appointments', {
                   method: 'POST',
@@ -11691,7 +11698,7 @@
 
     // Auto-categorizar servicios según palabras clave
     async function autoCategorizarServicios() {
-      if (!confirm('¿Quieres organizar automáticamente todos los servicios en categorías?\n\n• Depilación\n• Faciales\n• Masajes\n• Corporales\n• Diagnóstico')) {
+      if (!(await venusConfirm('¿Quieres organizar automáticamente todos los servicios en categorías?\n\n• Depilación\n• Faciales\n• Masajes\n• Corporales\n• Diagnóstico', { title: 'Confirmar', okLabel: 'Organizar' }))) {
         return;
       }
 
@@ -11907,7 +11914,7 @@
 
     // Eliminar servicio
     window.deleteService = async (id) => {
-      if (!confirm('¿Estás seguro de eliminar este servicio?')) return;
+      if (!(await venusConfirm('¿Estás seguro de eliminar este servicio?', { title: 'Confirmar', danger: true, okLabel: 'Eliminar' }))) return;
 
       try {
         const res = await fetch(`/api/services/${id}`, { method: 'DELETE' });
@@ -12135,7 +12142,7 @@
 
     // Eliminar producto
     window.deleteProduct = async (id) => {
-      if (!confirm('¿Eliminar este producto?')) return;
+      if (!(await venusConfirm('¿Eliminar este producto?', { title: 'Confirmar', danger: true, okLabel: 'Eliminar' }))) return;
 
       try {
         const res = await fetch(`/api/products/${id}`, {
@@ -12647,7 +12654,7 @@
     }
 
     async function renewGiftCard(id) {
-      if (!confirm('¿Renovar esta gift card por 30 días más?')) return;
+      if (!(await venusConfirm('¿Renovar esta gift card por 30 días más?', { title: 'Confirmar', okLabel: 'Renovar' }))) return;
 
       try {
         const res = await fetch(`/api/giftcards/${id}/renew`, {
@@ -12668,7 +12675,7 @@
     }
 
     async function deleteGiftCard(id) {
-      if (!confirm('¿Eliminar esta gift card? Esta acción no se puede deshacer.')) return;
+      if (!(await venusConfirm('¿Eliminar esta gift card? Esta acción no se puede deshacer.', { title: 'Confirmar', danger: true, okLabel: 'Eliminar' }))) return;
 
       try {
         const res = await fetch(`/api/giftcards/${id}`, {
@@ -13465,7 +13472,7 @@
 
     // --- SIMULATE WEBHOOK ---
     async function simulateWebhook(action) {
-      const phone = prompt("Ingresa el teléfono del cliente (10 dígitos):", "4271657595");
+      const phone = await venusPrompt("Ingresa el teléfono del cliente (10 dígitos):", { defaultValue: "4271657595" });
       if (!phone) return;
 
       let payload = {};
@@ -14280,8 +14287,8 @@
       }
     }
 
-    function showManualCodeInput() {
-      const code = prompt('Ingresa el código de la tarjeta o gift card:');
+    async function showManualCodeInput() {
+      const code = await venusPrompt('Ingresa el código de la tarjeta o gift card:');
       if (code && code.trim()) {
         handleScannedCode(code.trim().toUpperCase());
       }
@@ -14621,7 +14628,7 @@
       try {
         let reason = null;
         if (action === 'reject') {
-          reason = prompt('Motivo del rechazo (opcional):') || null;
+          reason = (await venusPrompt('Motivo del rechazo (opcional):')) || null;
         }
         const res = await fetch(`/api/booking-requests/${id}/deposit`, {
           method: 'PATCH',
@@ -14720,7 +14727,7 @@
     }
 
     async function rejectRequest(id) {
-      if (!confirm('¿Rechazar esta solicitud?')) return;
+      if (!(await venusConfirm('¿Rechazar esta solicitud?', { title: 'Confirmar', danger: true, okLabel: 'Rechazar' }))) return;
 
       try {
         const res = await fetch(`/api/booking-requests/${id}/rejected`, {
@@ -14747,17 +14754,17 @@
 
     function copyAgendarUrl() {
       const url = window.location.origin + '/agendar.html';
-      navigator.clipboard.writeText(url).then(() => {
-        alert('URL copiada al portapapeles');
-      }).catch(() => {
-        prompt('Copia esta URL:', url);
+      navigator.clipboard.writeText(url).then(async () => {
+        await venusAlert('URL copiada al portapapeles');
+      }).catch(async () => {
+        await venusPrompt('Copia esta URL:', { defaultValue: url });
       });
     }
 
     async function deleteAllRequests() {
-      if (!confirm('¿Estás seguro de que quieres BORRAR TODAS las solicitudes?\n\nEsta acción no se puede deshacer.')) return;
+      if (!(await venusConfirm('¿Estás seguro de que quieres BORRAR TODAS las solicitudes?\n\nEsta acción no se puede deshacer.', { title: 'Confirmar', danger: true, okLabel: 'Borrar todo' }))) return;
 
-      const code = prompt('Para confirmar, escribe "BORRAR":');
+      const code = await venusPrompt('Para confirmar, escribe "BORRAR":', { placeholder: 'BORRAR' });
       if (code !== 'BORRAR') return;
 
       try {
@@ -15077,7 +15084,7 @@
     }
 
     async function disconnectMyGoogleCalendar() {
-      if (!confirm('¿Desconectar tu Gmail? Las próximas citas que se te asignen NO llegarán a tu calendar ni correo.')) return;
+      if (!(await venusConfirm('¿Desconectar tu Gmail? Las próximas citas que se te asignen NO llegarán a tu calendar ni correo.', { title: 'Confirmar', danger: true, okLabel: 'Desconectar' }))) return;
       try {
         const res = await apiFetch('/api/admin/calendar/me/disconnect', { method: 'POST' });
         const json = await res.json();
@@ -15196,7 +15203,7 @@
     }
 
     async function disconnectWhatsApp() {
-      if (!confirm('¿Desconectar WhatsApp? Tendrás que escanear el QR otra vez para reconectar.')) return;
+      if (!(await venusConfirm('¿Desconectar WhatsApp? Tendrás que escanear el QR otra vez para reconectar.', { title: 'Confirmar', danger: true, okLabel: 'Desconectar' }))) return;
       try {
         await fetch('/api/evolution/logout', { method: 'POST', credentials: 'include' });
         checkWhatsAppStatus();
@@ -15204,7 +15211,7 @@
     }
 
     async function testWhatsApp() {
-      const phone = prompt('Número para prueba (ej: 524271234567):');
+      const phone = await venusPrompt('Número para prueba (ej: 524271234567):');
       if (!phone) return;
       try {
         const res = await fetch('/api/evolution/test', {
@@ -15280,7 +15287,7 @@
     }
 
     async function disconnectGoogleCalendar() {
-      if (!confirm('¿Desconectar Google Calendar? Las citas seguirán en tu calendario pero ya no se sincronizarán.')) return;
+      if (!(await venusConfirm('¿Desconectar Google Calendar? Las citas seguirán en tu calendario pero ya no se sincronizarán.', { title: 'Confirmar', danger: true, okLabel: 'Desconectar' }))) return;
       try {
         await fetch('/api/admin/calendar/disconnect', { method: 'POST', credentials: 'include' });
         showNotification('Google Calendar desconectado', 'success');
@@ -15711,7 +15718,7 @@
     }
 
     async function clearAllNotifications() {
-      if (!confirm('¿Eliminar todas las notificaciones?')) return;
+      if (!(await venusConfirm('¿Eliminar todas las notificaciones?', { title: 'Confirmar', danger: true, okLabel: 'Eliminar todas' }))) return;
 
       try {
         await fetch('/api/notifications/clear', { method: 'DELETE', credentials: 'include' });
@@ -16195,7 +16202,7 @@
     }
 
     async function descartarPendienteCaja(citaId, clientName) {
-      if (!confirm(`¿Eliminar el pago pendiente de ${clientName}? La cita se marcará como cancelada.`)) return;
+      if (!(await venusConfirm(`¿Eliminar el pago pendiente de ${clientName}? La cita se marcará como cancelada.`, { title: 'Confirmar', danger: true, okLabel: 'Eliminar pago' }))) return;
       try {
         const res = await fetch(`/api/appointments/${citaId}/cancel`, {
           method: 'PATCH',
@@ -16614,8 +16621,8 @@
     }
 
     // Editar precio del servicio
-    function editarPrecioServicio() {
-      const nuevoP = prompt('Nuevo precio del servicio:', precioServicioGlobal);
+    async function editarPrecioServicio() {
+      const nuevoP = await venusPrompt('Nuevo precio del servicio:', { defaultValue: precioServicioGlobal, inputType: 'number' });
       if (nuevoP !== null && !isNaN(parseFloat(nuevoP))) {
         precioServicioGlobal = parseFloat(nuevoP);
         document.getElementById('precio-servicio').value = precioServicioGlobal;
@@ -18319,7 +18326,7 @@
     };
 
     window.deleteExpense = async function (id) {
-      if (!confirm('¿Eliminar este gasto?')) return;
+      if (!(await venusConfirm('¿Eliminar este gasto?', { title: 'Confirmar', danger: true, okLabel: 'Eliminar' }))) return;
 
       try {
         const res = await fetch(`/api/expenses/${id}`, {
