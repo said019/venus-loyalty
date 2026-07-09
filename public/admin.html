@@ -3270,175 +3270,88 @@
       </div>
     </div>
 
-    <!-- ========== MODAL EXPEDIENTE DE CLIENTA ========== -->
-    <div id="expediente-modal" class="modal-backdrop hidden" style="z-index:99999;position:fixed;top:0;left:0;right:0;bottom:0;">
-      <div class="expediente-container">
-        <!-- Header -->
-        <div class="expediente-header">
-          <div class="expediente-client-info">
-            <h2 id="exp-client-name"><i class="fas fa-clipboard-list"></i> Expediente</h2>
-            <span id="exp-client-phone" class="muted"></span>
+    <!-- ============================================================
+         VISTA COMPLETA DE EXPEDIENTE (sustituye al modal)
+         Mobile-first · 6 secciones · token DESIGN.md (olive/cream/hairline)
+         Se monta como hermana de #tab-cards y se muestra con pushState.
+         ============================================================ -->
+    <section id="expediente-view" class="hidden" aria-label="Expediente de clienta">
+      <!-- Encabezado (fijo, compacto al hacer scroll) -->
+      <header id="exp-header" class="exp-view-header">
+        <div class="exp-view-header-row">
+          <button type="button" class="exp-back-btn" onclick="closeExpedienteView()" aria-label="Volver a Clientas">
+            <i class="fas fa-arrow-left"></i> <span class="exp-back-label">Clientas</span>
+          </button>
+          <div class="exp-view-actions">
+            <button type="button" id="exp-action-ficha" class="btn small primary" onclick="expSendFicha()">
+              <i class="fab fa-whatsapp"></i> <span>Enviar ficha</span>
+            </button>
+            <button type="button" class="btn small ghost" id="exp-action-wa" onclick="handleWhatsAppClick()">
+              <i class="fab fa-whatsapp"></i> <span>WhatsApp</span>
+            </button>
+            <button type="button" class="btn small ghost" id="exp-action-menu" onclick="expToggleHeaderMenu()" aria-label="Más acciones">
+              <i class="fas fa-ellipsis-vertical"></i>
+            </button>
           </div>
-          <button class="btn small ghost" onclick="closeExpedienteModal()">✕</button>
         </div>
-
-        <!-- Tabs de navegación -->
-        <div class="expediente-tabs">
-          <button class="exp-tab active" data-exp-tab="info"><i class="fas fa-user"></i> Datos</button>
-          <button class="exp-tab" data-exp-tab="sessions"><i class="fas fa-spa"></i> Sesiones</button>
-          <button class="exp-tab" data-exp-tab="photos"><i class="fas fa-camera"></i> Fotos</button>
-          <button class="exp-tab" data-exp-tab="compare"><i class="fas fa-exchange-alt"></i> Comparar</button>
-          <button class="exp-tab" data-exp-tab="ficha"><i class="fas fa-clipboard-list"></i> Ficha</button>
-          <button class="exp-tab" data-exp-tab="consents"><i class="fas fa-file-signature"></i> Consentimientos</button>
-          <button class="exp-tab" data-exp-tab="diagnosis"><i class="fas fa-microscope"></i> Diagnóstico</button>
-          <button class="exp-tab" data-exp-tab="laser"><i class="fas fa-bolt"></i> Láser</button>
-          <button class="exp-tab" data-exp-tab="documents"><i class="fas fa-folder"></i> Documentos</button>
+        <div class="exp-view-identity">
+          <i class="fas fa-clipboard-list exp-view-id-icon" aria-hidden="true"></i>
+          <h2 id="exp-client-name" class="exp-view-name"></h2>
         </div>
+        <div id="exp-client-meta" class="exp-view-meta muted"></div>
+        <div id="exp-health-alerts" class="exp-health-alerts" role="alert" hidden></div>
+        <nav id="exp-sections" class="exp-sections-bar" aria-label="Secciones del expediente">
+          <button class="exp-sec active" data-exp-sec="resumen"><i class="fas fa-house"></i> <span>Resumen</span></button>
+          <button class="exp-sec" data-exp-sec="ficha"><i class="fas fa-clipboard-list"></i> <span>Ficha</span></button>
+          <button class="exp-sec" data-exp-sec="tratamientos"><i class="fas fa-spa"></i> <span>Tratamientos</span></button>
+          <button class="exp-sec" data-exp-sec="laser"><i class="fas fa-bolt"></i> <span>Láser</span></button>
+          <button class="exp-sec" data-exp-sec="fotos"><i class="fas fa-camera"></i> <span>Fotos</span></button>
+          <button class="exp-sec" data-exp-sec="documentos"><i class="fas fa-folder"></i> <span>Documentos</span></button>
+        </nav>
+      </header>
 
-        <!-- Contenido -->
-        <div class="expediente-content">
-          <!-- Tab: Datos del cliente -->
-          <div id="exp-tab-info" class="exp-tab-content active">
-            <form id="exp-info-form" class="exp-form">
-              <div class="exp-form-grid">
-                <div class="exp-form-group">
-                  <label>Edad</label>
-                  <input type="number" id="exp-age" class="form-input" placeholder="Ej: 35">
-                </div>
-                <div class="exp-form-group">
-                  <label>Tipo de piel</label>
-                  <select id="exp-skin-type" class="form-input">
-                    <option value="">Seleccionar...</option>
-                    <option value="normal">Normal</option>
-                    <option value="grasa">Grasa</option>
-                    <option value="seca">Seca</option>
-                    <option value="mixta">Mixta</option>
-                    <option value="sensible">Sensible</option>
-                  </select>
-                </div>
-              </div>
-              <div class="exp-form-group">
-                <label>Alergias conocidas</label>
-                <textarea id="exp-allergies" class="form-input" rows="2" placeholder="Ej: Alérgica al látex, sensibilidad a ciertos ácidos..."></textarea>
-              </div>
-              <div class="exp-form-group">
-                <label>Antecedentes médicos</label>
-                <textarea id="exp-medical" class="form-input" rows="2" placeholder="Ej: Diabetes, tratamientos hormonales, cirugías previas..."></textarea>
-              </div>
-              <div class="exp-form-group">
-                <label>Objetivos del tratamiento</label>
-                <textarea id="exp-objectives" class="form-input" rows="2" placeholder="Ej: Reducir manchas, rejuvenecimiento, contorno corporal..."></textarea>
-              </div>
-              <div class="exp-form-group">
-                <label>Observaciones generales</label>
-                <textarea id="exp-observations" class="form-input" rows="3" placeholder="Notas adicionales..."></textarea>
-              </div>
-              <button type="submit" class="btn primary" style="width:100%;margin-top:12px;">
-                <i class="fas fa-save"></i> Guardar cambios
-              </button>
-            </form>
+      <!-- Cuerpo de la vista (max-width 720px centrado) -->
+      <div class="exp-view-body">
+
+        <!-- ===== Sección: Resumen ===== -->
+        <section id="exp-sec-resumen" class="exp-sec-content active">
+          <div class="exp-hairline-group">
+            <h3 class="exp-section-title">Alertas de salud</h3>
+            <div id="exp-resumen-alerts"></div>
           </div>
+          <div class="exp-hairline-group">
+            <h3 class="exp-section-title">Datos clave</h3>
+            <div id="exp-resumen-keydata"></div>
+          </div>
+          <div class="exp-hairline-group">
+            <h3 class="exp-section-title">Estado de documentos</h3>
+            <div id="exp-resumen-docs"></div>
+          </div>
+          <div class="exp-hairline-group">
+            <h3 class="exp-section-title">Visitas</h3>
+            <div id="exp-resumen-visits"></div>
+          </div>
+        </section>
 
-          <!-- Tab: Sesiones de tratamiento -->
-          <div id="exp-tab-sessions" class="exp-tab-content">
-            <div style="margin-bottom:16px;">
-              <h3 style="margin:0 0 12px 0;font-size:15px;font-weight:600;color:var(--ink);">Historial de sesiones</h3>
-              <button class="btn primary" style="width:100%;padding:12px;font-size:14px;" onclick="openNewSessionModal()">
-                <i class="fas fa-plus"></i> Nueva sesión
-              </button>
+        <!-- ===== Sección: Ficha ===== -->
+        <section id="exp-sec-ficha" class="exp-sec-content">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-size:13px;color:var(--ink-3,#888);">Estado:</span>
+              <span id="exp-ficha-status" class="exp-badge">—</span>
             </div>
-            <div id="exp-sessions-list" class="exp-sessions-list">
-              <!-- Las sesiones se cargan dinámicamente -->
-              <div class="exp-empty-state">
-                <i class="fas fa-spa"></i>
-                <p>No hay sesiones registradas</p>
-              </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <a id="exp-ficha-pdf-link" href="#" target="_blank" rel="noopener" style="display:none;" class="btn small ghost"><i class="fas fa-file-pdf"></i> Ver PDF</a>
+              <button class="btn small primary" onclick="expSendFicha()"><i class="fab fa-whatsapp"></i> Enviar ficha por WhatsApp</button>
             </div>
           </div>
+          <div id="exp-ficha-body"></div>
+        </section>
 
-          <!-- Tab: Galería de fotos -->
-          <div id="exp-tab-photos" class="exp-tab-content">
-            <div style="margin-bottom:16px;">
-              <h3 style="margin:0 0 12px 0;font-size:15px;font-weight:600;color:var(--ink);">Galería de seguimiento</h3>
-              <label class="btn primary" style="width:100%;padding:12px;font-size:14px;display:flex;justify-content:center;align-items:center;gap:8px;cursor:pointer;">
-                <i class="fas fa-camera"></i> Subir fotos
-                <input type="file" id="exp-photo-upload" multiple accept="image/*" style="display:none;" onchange="uploadExpPhotos(this.files)">
-              </label>
-            </div>
-            <div class="exp-photos-filters">
-              <select id="exp-photo-filter-type" class="form-input small" onchange="filterExpPhotos()">
-                <option value="">Todos los tipos</option>
-                <option value="before">Antes</option>
-                <option value="after">Después</option>
-                <option value="progress">Progreso</option>
-              </select>
-              <select id="exp-photo-filter-category" class="form-input small" onchange="filterExpPhotos()">
-                <option value="">Todas las categorías</option>
-                <option value="facial">Facial</option>
-                <option value="corporal">Corporal</option>
-                <option value="depilacion">Depilación</option>
-              </select>
-            </div>
-            <div id="exp-photos-grid" class="exp-photos-grid">
-              <!-- Las fotos se cargan dinámicamente -->
-              <div class="exp-empty-state">
-                <i class="fas fa-images"></i>
-                <p>No hay fotos en el expediente</p>
-              </div>
-            </div>
-          </div>
-
-          <!-- Tab: Comparación antes/después -->
-          <div id="exp-tab-compare" class="exp-tab-content">
-            <div class="exp-compare-header">
-              <h3>Comparación de progreso</h3>
-              <select id="exp-compare-area" class="form-input small" onchange="loadComparePhotos()">
-                <option value="">Seleccionar área...</option>
-              </select>
-            </div>
-            <div id="exp-compare-container" class="exp-compare-container">
-              <div class="exp-compare-side">
-                <h4>Antes</h4>
-                <div id="exp-compare-before" class="exp-compare-photo">
-                  <i class="fas fa-image"></i>
-                  <p>Sin foto</p>
-                </div>
-              </div>
-              <div class="exp-compare-side">
-                <h4>Después</h4>
-                <div id="exp-compare-after" class="exp-compare-photo">
-                  <i class="fas fa-image"></i>
-                  <p>Sin foto</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Tab: Ficha clínica digital -->
-          <div id="exp-tab-ficha" class="exp-tab-content">
-            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
-              <div style="display:flex;align-items:center;gap:8px;">
-                <span style="font-size:13px;color:var(--muted,#888);">Estado:</span>
-                <span id="exp-ficha-status" class="exp-badge">—</span>
-              </div>
-              <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                <a id="exp-ficha-pdf-link" href="#" target="_blank" rel="noopener" style="display:none;" class="btn small ghost"><i class="fas fa-file-pdf"></i> Ver PDF</a>
-                <button class="btn small primary" onclick="expSendFicha()"><i class="fab fa-whatsapp"></i> Enviar ficha por WhatsApp</button>
-              </div>
-            </div>
-            <div id="exp-ficha-body"></div>
-          </div>
-
-          <!-- Tab: Consentimientos -->
-          <div id="exp-tab-consents" class="exp-tab-content">
-            <div style="margin-bottom:12px;">
-              <button class="btn small primary" onclick="expSendConsent()"><i class="fab fa-whatsapp"></i> Enviar consentimiento láser</button>
-            </div>
-            <div id="exp-consents-list"></div>
-          </div>
-
-          <!-- Tab: Diagnóstico facial -->
-          <div id="exp-tab-diagnosis" class="exp-tab-content">
+        <!-- ===== Sección: Tratamientos (Diagnóstico + Sesiones) ===== -->
+        <section id="exp-sec-tratamientos" class="exp-sec-content">
+          <div class="exp-hairline-group">
+            <h3 class="exp-section-title">Diagnóstico facial</h3>
             <form id="exp-diagnosis-form" class="exp-form" onsubmit="return expSaveDiagnosis(event)">
               <input type="hidden" id="exp-diag-id">
               <div class="exp-form-grid">
@@ -3462,84 +3375,127 @@
               <div class="exp-form-group"><label>Causas</label><textarea id="exp-diag-causes" class="form-input" rows="2"></textarea></div>
               <div class="exp-form-group"><label>TX cosmético</label><textarea id="exp-diag-cosmeticTx" class="form-input" rows="2"></textarea></div>
               <div class="exp-form-group"><label>Pronóstico</label><textarea id="exp-diag-prognosis" class="form-input" rows="2"></textarea></div>
-              <div class="exp-form-group"><label>Costo</label><input type="text" id="exp-diag-cost" class="form-input" placeholder="Ej: $1,500"></div>
-              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+              <div class="exp-form-group"><label>Costo</label><input type="text" inputmode="numeric" id="exp-diag-cost" class="form-input" placeholder="Ej: $1,500"></div>
+              <div class="exp-form-actions-sticky">
                 <button type="submit" class="btn primary"><i class="fas fa-save"></i> Guardar diagnóstico</button>
-                <button type="button" class="btn ghost" onclick="expExportDiagnosisPdf()"><i class="fas fa-file-export"></i> Exportar PDF a Drive</button>
+                <button type="button" class="btn ghost" onclick="expExportDiagnosisPdf()"><i class="fas fa-file-export"></i> Exportar a Drive</button>
               </div>
             </form>
-            <hr style="margin:16px 0;border:0;border-top:1px solid var(--border,#eee);">
-            <h4 style="font-size:14px;font-weight:600;margin:0 0 10px;">Diagnósticos anteriores</h4>
+          </div>
+          <div class="exp-hairline-group">
+            <h3 class="exp-section-title">Diagnósticos anteriores</h3>
             <div id="exp-diagnosis-list"></div>
           </div>
-
-          <!-- Tab: Láser -->
-          <div id="exp-tab-laser" class="exp-tab-content">
-            <h3 style="margin:0 0 12px;font-size:15px;font-weight:600;color:var(--ink,#111);">Sesiones de láser</h3>
-            <div style="overflow-x:auto;">
-              <table style="width:100%;border-collapse:collapse;font-size:13px;">
-                <thead>
-                  <tr style="text-align:left;border-bottom:2px solid var(--border,#eee);">
-                    <th style="padding:6px 8px;">Fecha</th>
-                    <th style="padding:6px 8px;">Cosmetóloga</th>
-                    <th style="padding:6px 8px;">Zona</th>
-                    <th style="padding:6px 8px;">Frecuencia</th>
-                    <th style="padding:6px 8px;">Fluencia</th>
-                    <th style="padding:6px 8px;">Intensidad</th>
-                    <th style="padding:6px 8px;">Observaciones</th>
-                    <th style="padding:6px 8px;">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody id="exp-laser-tbody"></tbody>
-              </table>
+          <div class="exp-hairline-group">
+            <h3 class="exp-section-title">Historial de sesiones</h3>
+            <div style="margin-bottom:12px;">
+              <button class="btn primary exp-full-btn" onclick="openNewSessionModal()">
+                <i class="fas fa-plus"></i> Nueva sesión
+              </button>
             </div>
-            <form id="exp-laser-form" class="exp-form" style="margin-top:14px;" onsubmit="return expSaveLaserSession(event)">
-              <input type="hidden" id="exp-laser-id">
-              <div class="exp-form-grid">
-                <div class="exp-form-group"><label>Fecha</label><input type="date" id="exp-laser-date" class="form-input"></div>
-                <div class="exp-form-group"><label>Cosmetóloga</label><input type="text" id="exp-laser-staffName" class="form-input"></div>
-                <div class="exp-form-group"><label>Zona</label><input type="text" id="exp-laser-zone" class="form-input"></div>
-                <div class="exp-form-group"><label>Frecuencia</label><input type="text" id="exp-laser-frequency" class="form-input"></div>
-                <div class="exp-form-group"><label>Fluencia</label><input type="text" id="exp-laser-fluence" class="form-input"></div>
-                <div class="exp-form-group"><label>Intensidad</label><input type="text" id="exp-laser-laserIntensity" class="form-input"></div>
-              </div>
-              <div class="exp-form-group"><label>Observaciones</label><textarea id="exp-laser-observations" class="form-input" rows="2"></textarea></div>
-              <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                <button type="submit" class="btn primary"><i class="fas fa-save"></i> <span id="exp-laser-save-label">Agregar sesión</span></button>
-                <button type="button" class="btn ghost" onclick="expResetLaserForm()">Cancelar</button>
-              </div>
-            </form>
+            <div id="exp-sessions-list" class="exp-sessions-list"></div>
           </div>
+        </section>
 
-          <!-- Tab: Documentos -->
-          <div id="exp-tab-documents" class="exp-tab-content">
-            <div id="exp-docs-dropzone" style="border:2px dashed var(--border,#ccc);border-radius:10px;padding:18px;text-align:center;cursor:pointer;margin-bottom:14px;transition:background .15s;">
-              <i class="fas fa-cloud-upload-alt" style="font-size:26px;color:var(--muted,#999);"></i>
-              <p style="margin:8px 0 4px;font-weight:600;">Arrastra archivos aquí o haz clic para subir</p>
-              <p style="margin:0;font-size:12px;color:var(--muted,#999);">PDF, imágenes, recetas… (máx. 10 archivos)</p>
+        <!-- ===== Sección: Láser ===== -->
+        <section id="exp-sec-laser" class="exp-sec-content">
+          <h3 class="exp-section-title">Sesiones de depilación láser</h3>
+          <div id="exp-laser-list" class="exp-stacked-list"></div>
+          <form id="exp-laser-form" class="exp-form" style="margin-top:18px;" onsubmit="return expSaveLaserSession(event)">
+            <input type="hidden" id="exp-laser-id">
+            <div class="exp-form-grid">
+              <div class="exp-form-group"><label>Fecha</label><input type="date" id="exp-laser-date" class="form-input"></div>
+              <div class="exp-form-group"><label>Cosmetóloga</label><input type="text" id="exp-laser-staffName" class="form-input"></div>
+              <div class="exp-form-group"><label>Zona</label><input type="text" id="exp-laser-zone" class="form-input"></div>
+              <div class="exp-form-group"><label>Frecuencia</label><input type="text" inputmode="numeric" id="exp-laser-frequency" class="form-input"></div>
+              <div class="exp-form-group"><label>Fluencia</label><input type="text" inputmode="numeric" id="exp-laser-fluence" class="form-input"></div>
+              <div class="exp-form-group"><label>Intensidad</label><input type="text" inputmode="numeric" id="exp-laser-laserIntensity" class="form-input"></div>
+            </div>
+            <div class="exp-form-group"><label>Observaciones</label><textarea id="exp-laser-observations" class="form-input" rows="2"></textarea></div>
+            <div class="exp-form-actions-sticky">
+              <button type="submit" class="btn primary"><i class="fas fa-save"></i> <span id="exp-laser-save-label">Registrar sesión</span></button>
+              <button type="button" class="btn ghost" onclick="expResetLaserForm()">Cancelar</button>
+            </div>
+          </form>
+        </section>
+
+        <!-- ===== Sección: Fotos ===== -->
+        <section id="exp-sec-fotos" class="exp-sec-content">
+          <h3 class="exp-section-title">Galería de seguimiento</h3>
+          <div style="margin-bottom:12px;">
+            <label class="btn primary exp-full-btn" style="display:flex;justify-content:center;align-items:center;gap:8px;cursor:pointer;">
+              <i class="fas fa-camera"></i> Subir fotos
+              <input type="file" id="exp-photo-upload" multiple accept="image/*" capture="environment" style="display:none;" onchange="uploadExpPhotos(this.files)">
+            </label>
+          </div>
+          <div class="exp-photos-filters">
+            <select id="exp-photo-filter-type" class="form-input small" onchange="filterExpPhotos()">
+              <option value="">Todos los tipos</option>
+              <option value="before">Antes</option>
+              <option value="after">Después</option>
+              <option value="progress">Progreso</option>
+            </select>
+            <select id="exp-photo-filter-category" class="form-input small" onchange="filterExpPhotos()">
+              <option value="">Todas las categorías</option>
+              <option value="facial">Facial</option>
+              <option value="corporal">Corporal</option>
+              <option value="depilacion">Depilación</option>
+            </select>
+          </div>
+          <div id="exp-photos-grid" class="exp-photos-grid"></div>
+          <div class="exp-hairline-group" style="margin-top:18px;">
+            <h3 class="exp-section-title">Comparación antes / después</h3>
+            <div class="exp-compare-header">
+              <select id="exp-compare-area" class="form-input small" onchange="loadComparePhotos()">
+                <option value="">Seleccionar área...</option>
+              </select>
+            </div>
+            <div id="exp-compare-container" class="exp-compare-container">
+              <div class="exp-compare-side">
+                <h4>Antes</h4>
+                <div id="exp-compare-before" class="exp-compare-photo">
+                  <i class="fas fa-image"></i>
+                  <p>Sin foto</p>
+                </div>
+              </div>
+              <div class="exp-compare-side">
+                <h4>Después</h4>
+                <div id="exp-compare-after" class="exp-compare-photo">
+                  <i class="fas fa-image"></i>
+                  <p>Sin foto</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===== Sección: Documentos ===== -->
+        <section id="exp-sec-documentos" class="exp-sec-content">
+          <div class="exp-hairline-group">
+            <h3 class="exp-section-title">Consentimiento láser</h3>
+            <div id="exp-consents-list"></div>
+            <div style="margin-top:10px;">
+              <button class="btn small primary" onclick="expSendConsent()"><i class="fab fa-whatsapp"></i> Enviar consentimiento</button>
+            </div>
+          </div>
+          <div class="exp-hairline-group">
+            <h3 class="exp-section-title">Documentos del expediente</h3>
+            <div id="exp-docs-dropzone" class="exp-docs-dropzone">
+              <i class="fas fa-cloud-upload-alt" style="font-size:26px;color:var(--ink-3,#999);"></i>
+              <p class="exp-docs-drop-title">Arrastra aquí los PDFs escaneados del expediente en papel</p>
+              <p class="exp-docs-drop-sub">PDF, imágenes, recetas… (máx. 10 archivos)</p>
+              <button type="button" class="btn primary exp-full-btn" onclick="document.getElementById('exp-docs-input').click()">
+                <i class="fas fa-upload"></i> Subir documentos
+              </button>
               <input type="file" id="exp-docs-input" multiple style="display:none;" onchange="expUploadDocuments(this.files)">
             </div>
-            <div id="exp-docs-list"></div>
+            <div id="exp-docs-list" style="margin-top:14px;"></div>
           </div>
-        </div>
+        </section>
 
-        <!-- Resumen rápido -->
-        <div class="expediente-summary">
-          <div class="exp-stat">
-            <span id="exp-total-sessions">0</span>
-            <small>Sesiones</small>
-          </div>
-          <div class="exp-stat">
-            <span id="exp-total-photos">0</span>
-            <small>Fotos</small>
-          </div>
-          <div class="exp-stat">
-            <span id="exp-last-session">—</span>
-            <small>Última sesión</small>
-          </div>
-        </div>
       </div>
-    </div>
+    </section>
+    <!-- /expediente-view -->
 
     <!-- Modal: Nueva Sesión de Tratamiento -->
     <dialog id="newSessionDialog" class="exp-dialog">
@@ -3952,56 +3908,95 @@
       }
     }
 
-    // ===== SISTEMA DE EXPEDIENTE DE CLIENTA =====
+    // ===== SISTEMA DE EXPEDIENTE DE CLIENTA (vista completa) =====
     let currentExpedienteCardId = null;
     let currentExpedienteRecordId = null;
     let expedientePhotosCache = [];
     let expedienteSessionsCache = [];
+    let expedienteScrollRestoration = 0; // scroll Y de la lista al abrir
 
-    // Abrir modal de expediente
-    async function openClientRecord() {
-      const cardId = getCurrentCardId();
+    // Abrir la vista completa de expediente (sustituye al modal).
+    // cardId opcional: si falta, lee getCurrentCardId(). options.fromHistory evita
+    // un pushState duplicado cuando venimos de popstate/DOMContentLoaded.
+    async function openExpedienteView(cardId, options) {
+      cardId = cardId || getCurrentCardId();
+      options = options || {};
       console.log('[Expediente] Abriendo para cardId:', cardId);
-      
+
       if (!cardId) {
         alert('No hay tarjeta seleccionada');
         return;
       }
-      
+
       currentExpedienteCardId = cardId;
-      
-      // Obtener datos del cliente del cache
-      const card = window.cardsCache ? window.cardsCache[cardId] : null;
-      if (card) {
-        document.getElementById('exp-client-name').textContent = '<i class="fas fa-clipboard-list"></i> ' + (card.name || 'Sin nombre');
-        document.getElementById('exp-client-phone').textContent = card.phone || '';
-      }
-      
-      // Cerrar modal de cliente primero
+
+      // Guardar scroll de la lista para restaurarlo al volver.
+      expedienteScrollRestoration = window.scrollY;
+
+      // Ocultar TODAS las secciones de tabs (switchTab hace esto, pero repetimos
+      // por si venimos de un path directo sin pasar por switchTab).
+      document.querySelectorAll('[id^="tab-"]').forEach(function (s) { s.classList.add('hidden'); });
+
+      // Mostrar la vista de expediente.
+      const view = document.getElementById('expediente-view');
+      if (view) view.classList.remove('hidden');
+
+      // Cerrar cualquier modal de cliente abierto.
       const clientModal = document.getElementById('client-modal');
-      if (clientModal) {
-        clientModal.classList.add('hidden');
+      if (clientModal) clientModal.classList.add('hidden');
+
+      // Identidad: textContent SOLO con el nombre (corrige el bug del HTML escapado).
+      const card = window.cardsCache ? window.cardsCache[cardId] : null;
+      const nameEl = document.getElementById('exp-client-name');
+      const metaEl = document.getElementById('exp-client-meta');
+      if (card) {
+        nameEl.textContent = card.name || 'Sin nombre';
+        const bits = [];
+        if (card.phone) bits.push(card.phone);
+        metaEl.textContent = bits.join(' · ');
+      } else {
+        nameEl.textContent = 'Clienta';
+        metaEl.textContent = '';
       }
-      
-      // Mostrar modal de expediente y ocultar elementos de fondo
-      document.getElementById('expediente-modal').classList.remove('hidden');
-      document.body.classList.add('modal-open');
-      document.body.classList.add('expediente-open');
-      
-      // Cargar datos del expediente
+
+      // Ajustar acciones del encabezado según estado de la ficha (se refina al cargar).
+      const fichaBtn = document.getElementById('exp-action-ficha');
+      if (fichaBtn) fichaBtn.classList.remove('hidden');
+
+      // Push de estado para que el botón atrás / swipe-back regrese a la lista.
+      if (!options.fromHistory) {
+        history.pushState({ view: 'expediente', cardId: cardId }, '', '/admin/clientas/' + encodeURIComponent(cardId));
+      }
+
+      window.scrollTo(0, 0);
+
+      // Cargar datos del expediente (legacy + digital).
       await loadExpedienteData(cardId);
-      // Cargar expediente digital (ficha, consentimientos, diagnóstico, láser, documentos)
       try { await loadExpedienteDigital(cardId); } catch (e) { console.error('[Expediente digital] Error al cargar:', e); }
     }
 
-    // Cerrar modal de expediente
-    function closeExpedienteModal() {
-      document.getElementById('expediente-modal').classList.add('hidden');
-      document.body.classList.remove('modal-open');
-      document.body.classList.remove('expediente-open');
+    // Cerrar la vista de expediente y volver a la lista de clientas.
+    function closeExpedienteView() {
+      const view = document.getElementById('expediente-view');
+      if (view) view.classList.add('hidden');
       currentExpedienteCardId = null;
       currentExpedienteRecordId = null;
+      // Volver a la lista de clientas.
+      if (typeof window.switchTab === 'function') window.switchTab('cards');
+      // Restaurar el scroll de la lista.
+      try { window.scrollTo(0, expedienteScrollRestoration || 0); } catch (_) {}
     }
+
+    // Menú compacto del encabezado (móvil: muestra ficha/WA cuando el header se compacta).
+    function expToggleHeaderMenu() {
+      const wa = document.getElementById('exp-action-wa');
+      const ficha = document.getElementById('exp-action-ficha');
+      [wa, ficha].forEach(function (b) { if (b) b.classList.toggle('hidden'); });
+    }
+
+    // Compatibilidad: alias del viejo nombre usado por onclicks existentes.
+    async function openClientRecord() { return openExpedienteView(); }
+    function closeExpedienteModal() { return closeExpedienteView(); }
 
     // Cargar todos los datos del expediente
     async function loadExpedienteData(cardId) {
@@ -4047,7 +4042,8 @@
 
     // Mostrar/ocultar loading
     function showExpedienteLoading(show) {
-      const content = document.querySelector('.expediente-content');
+      const content = document.querySelector('.exp-view-body');
+      if (!content) return;
       if (show) {
         content.style.opacity = '0.5';
         content.style.pointerEvents = 'none';
@@ -4060,12 +4056,13 @@
     // Renderizar lista de sesiones
     function renderExpedienteSessions() {
       const container = document.getElementById('exp-sessions-list');
+      if (!container) return;
       
       if (!expedienteSessionsCache || expedienteSessionsCache.length === 0) {
         container.innerHTML = `
           <div class="exp-empty-state">
             <i class="fas fa-spa"></i>
-            <p>No hay sesiones registradas</p>
+            <p>Sin sesiones registradas. Captura la primera al terminar la sesión de hoy.</p>
           </div>
         `;
         return;
@@ -4102,6 +4099,7 @@
     // Renderizar galería de fotos
     function renderExpedientePhotos(filterType = '', filterCategory = '') {
       const container = document.getElementById('exp-photos-grid');
+      if (!container) return;
       
       let photos = expedientePhotosCache || [];
       
@@ -4117,7 +4115,7 @@
         container.innerHTML = `
           <div class="exp-empty-state" style="grid-column: 1/-1;">
             <i class="fas fa-images"></i>
-            <p>No hay fotos${filterType || filterCategory ? ' con estos filtros' : ' en el expediente'}</p>
+            <p>Toma la primera foto de avance desde Sesiones.</p>
           </div>
         `;
         return;
@@ -4148,21 +4146,26 @@
       renderExpedientePhotos(typeFilter, categoryFilter);
     }
 
-    // Actualizar resumen del expediente
+    // Actualizar resumen del expediente (ahora va a la sección Resumen)
     function updateExpedienteSummary(record) {
-      document.getElementById('exp-total-sessions').textContent = 
-        expedienteSessionsCache ? expedienteSessionsCache.length : 0;
-      document.getElementById('exp-total-photos').textContent = 
-        expedientePhotosCache ? expedientePhotosCache.length : 0;
-      
-      // Última sesión
+      const totalSessions = expedienteSessionsCache ? expedienteSessionsCache.length : 0;
+      const totalPhotos = expedientePhotosCache ? expedientePhotosCache.length : 0;
+      let lastSessionStr = 'Sin sesiones registradas';
       if (expedienteSessionsCache && expedienteSessionsCache.length > 0) {
         const lastSession = expedienteSessionsCache[0];
         const date = new Date(lastSession.date || lastSession.createdAt);
-        document.getElementById('exp-last-session').textContent = 
-          date.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' });
-      } else {
-        document.getElementById('exp-last-session').textContent = '—';
+        lastSessionStr = 'Última: ' + date.toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
+      }
+
+      // Visitas (Resumen)
+      const visitsEl = document.getElementById('exp-resumen-visits');
+      if (visitsEl) {
+        visitsEl.innerHTML =
+          '<div class="exp-kpi-row">' +
+            '<div class="exp-kpi"><span class="exp-kpi-num">' + totalSessions + '</span><small>Sesiones</small></div>' +
+            '<div class="exp-kpi"><span class="exp-kpi-num">' + totalPhotos + '</span><small>Fotos</small></div>' +
+          '</div>' +
+          '<p class="exp-kpi-note">' + expEsc(lastSessionStr) + '</p>';
       }
     }
 
@@ -4197,56 +4200,23 @@
         `<i class="fas fa-image"></i><p>Sin foto "Después"</p>`;
     }
 
-    // Navegación de tabs del expediente
+    // Navegación de secciones del expediente (pills horizontales)
     document.addEventListener('click', function(e) {
-      if (e.target.classList.contains('exp-tab')) {
-        const tabName = e.target.dataset.expTab;
-        
-        // Actualizar tabs activos
-        document.querySelectorAll('.exp-tab').forEach(t => t.classList.remove('active'));
-        e.target.classList.add('active');
-        
-        // Mostrar contenido correspondiente
-        document.querySelectorAll('.exp-tab-content').forEach(c => c.classList.remove('active'));
-        document.getElementById('exp-tab-' + tabName).classList.add('active');
-      }
-    });
+      const btn = e.target.closest && e.target.closest('.exp-sec');
+      if (!btn) return;
+      const secName = btn.dataset.expSec;
 
-    // Guardar datos del formulario de info
-    document.getElementById('exp-info-form').addEventListener('submit', async function(e) {
-      e.preventDefault();
-      
-      if (!currentExpedienteRecordId) {
-        alert('No hay expediente cargado');
-        return;
-      }
-      
-      const data = {
-        age: parseInt(document.getElementById('exp-age').value) || null,
-        skinType: document.getElementById('exp-skin-type').value || null,
-        allergies: document.getElementById('exp-allergies').value || null,
-        medicalHistory: document.getElementById('exp-medical').value || null,
-        objectives: document.getElementById('exp-objectives').value || null,
-        observations: document.getElementById('exp-observations').value || null
-      };
-      
-      try {
-        const response = await fetch(`/api/client-records/${currentExpedienteRecordId}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
-          },
-          body: JSON.stringify(data)
-        });
-        
-        if (!response.ok) throw new Error('Error al guardar');
-        
-        alert('Datos guardados correctamente');
-      } catch (error) {
-        console.error('[Expediente] Error al guardar:', error);
-        alert('Error al guardar los datos');
-      }
+      // Actualizar pills activos
+      document.querySelectorAll('.exp-sec').forEach(t => t.classList.remove('active'));
+      btn.classList.add('active');
+
+      // Mostrar contenido correspondiente
+      document.querySelectorAll('.exp-sec-content').forEach(c => c.classList.remove('active'));
+      const target = document.getElementById('exp-sec-' + secName);
+      if (target) target.classList.add('active');
+
+      // Auto-scroll a la pestaña activa en la barra (móvil).
+      try { btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }); } catch (_) {}
     });
 
     // Abrir modal de nueva sesión
@@ -4518,9 +4488,124 @@
         renderDiagnosisPanel(data.diagnoses || []);
         renderLaserPanel(data.laserSessions || []);
         renderDocumentsPanel(data.documents || []);
+        renderResumenPanel(data);
+        renderHealthAlerts(data.intake);
+        adjustHeaderActions(data.intake, data.record, data.consents);
       } catch (e) {
         console.error('[Expediente digital] Error:', e);
         alert('No se pudo cargar el expediente digital');
+      }
+    }
+
+    // ----- Resumen (solo lectura, alimentado por la ficha firmada) -----
+    function renderResumenPanel(data) {
+      const intake = data.intake || null;
+      const record = data.record || {};
+
+      // Alertas (espejo de la franja sticky, aquí como grupo hairline).
+      const alertsEl = document.getElementById('exp-resumen-alerts');
+      if (alertsEl) {
+        const alerts = collectHealthAlerts(intake);
+        if (alerts.length === 0) {
+          alertsEl.innerHTML = '<p class="exp-muted-note">Sin alertas de salud registradas.</p>';
+        } else {
+          alertsEl.innerHTML = alerts.map(function (a) {
+            return '<span class="exp-alert-chip"><i class="fas fa-triangle-exclamation"></i> ' + expEsc(a) + '</span>';
+          }).join('');
+        }
+      }
+
+      // Datos clave (desde la ficha firmada, con nota si no hay).
+      const keyEl = document.getElementById('exp-resumen-keydata');
+      if (keyEl) {
+        if (!intake || intake.status !== 'signed') {
+          keyEl.innerHTML = '<p class="exp-muted-note">Se llena con la Ficha Clínica. Envíasela por WhatsApp para capturarla desde su celular.</p>';
+        } else {
+          const idata = intake.interestData || {};
+          const alergias = idata.alergias && idata.alergias.value ? (idata.alergias.detail || 'Sí') : 'No';
+          const piel = intake.skinCondition || '—';
+          const edad = intake.age != null ? intake.age + ' años' : '—';
+          keyEl.innerHTML =
+            '<div class="exp-kv"><span class="exp-kv-k">Edad</span><span class="exp-kv-v">' + expEsc(edad) + '</span></div>' +
+            '<div class="exp-kv"><span class="exp-kv-k">Condición de la piel</span><span class="exp-kv-v">' + expEsc(piel) + '</span></div>' +
+            '<div class="exp-kv"><span class="exp-kv-k">Alergias</span><span class="exp-kv-v">' + expEsc(alergias) + '</span></div>';
+        }
+      }
+
+      // Estado de documentos (ficha + consentimiento).
+      const docsEl = document.getElementById('exp-resumen-docs');
+      if (docsEl) {
+        const fichaBadge = fichaStatusBadge(intake, record);
+        const consentSigned = (data.consents || []).some(function (c) { return c.status === 'signed'; });
+        const consentBadge = consentSigned
+          ? '<span class="exp-badge exp-badge-ok">Firmada</span>'
+          : '<span class="exp-badge exp-badge-muted">Sin firmar</span>';
+        docsEl.innerHTML =
+          '<div class="exp-kv"><span class="exp-kv-k">Ficha clínica</span><span class="exp-kv-v">' + fichaBadge + '</span></div>' +
+          '<div class="exp-kv"><span class="exp-kv-k">Consentimiento láser</span><span class="exp-kv-v">' + consentBadge + '</span></div>';
+      }
+
+      // Visitas (KPIs)
+      updateExpedienteSummary(record);
+    }
+
+    // Construye el badge HTML de estado de la ficha (reutilizado en Resumen).
+    function fichaStatusBadge(intake, record) {
+      if (intake && intake.status === 'signed') {
+        const f = intake.signedAt ? new Date(intake.signedAt).toLocaleDateString('es-MX', { day: 'numeric', month: 'long' }) : '';
+        return '<span class="exp-badge exp-badge-ok">Firmada' + (f ? ' el ' + expEsc(f) : '') + '</span>';
+      }
+      if (record && record.fichaLinkSentAt) {
+        const f = new Date(record.fichaLinkSentAt).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' });
+        return '<span class="exp-badge exp-badge-info">Enviada ' + expEsc(f) + '</span>';
+      }
+      if (intake) return '<span class="exp-badge exp-badge-info">Borrador</span>';
+      return '<span class="exp-badge exp-badge-muted">Sin enviar</span>';
+    }
+
+    // Recopila alertas de salud desde la ficha firmada (alergias con detalle, embarazo,
+    // lactancia, medicamentos). Devuelve array de strings cortas para los chips.
+    function collectHealthAlerts(intake) {
+      if (!intake || intake.status !== 'signed') return [];
+      const idata = intake.interestData || {};
+      const out = [];
+      if (idata.alergias && idata.alergias.value) {
+        out.push('Alergia: ' + (idata.alergias.detail || 'Sí'));
+      }
+      if (idata.embarazo && idata.embarazo.value) out.push('Embarazo');
+      if (idata.lactancia && idata.lactancia.value) out.push('Lactancia');
+      if (idata.medicamentos && idata.medicamentos.value) {
+        out.push('Medicamentos: ' + (idata.medicamentos.detail || 'Sí'));
+      }
+      return out;
+    }
+
+    // Pinta la franja sticky de alertas de salud del encabezado.
+    function renderHealthAlerts(intake) {
+      const el = document.getElementById('exp-health-alerts');
+      if (!el) return;
+      const alerts = collectHealthAlerts(intake);
+      if (alerts.length === 0) { el.hidden = true; el.innerHTML = ''; return; }
+      el.hidden = false;
+      el.innerHTML = alerts.map(function (a) {
+        return '<span class="exp-alert-chip"><i class="fas fa-triangle-exclamation"></i> ' + expEsc(a) + '</span>';
+      }).join('');
+    }
+
+    // Ajusta el botón "Enviar ficha" del header: primario si no firmada, ghost si firmada.
+    function adjustHeaderActions(intake, record, consents) {
+      const fichaBtn = document.getElementById('exp-action-ficha');
+      if (!fichaBtn) return;
+      const signed = intake && intake.status === 'signed';
+      const span = fichaBtn.querySelector('span');
+      if (signed) {
+        fichaBtn.classList.remove('primary');
+        fichaBtn.classList.add('ghost');
+        if (span) span.textContent = 'Reenviar ficha';
+      } else {
+        fichaBtn.classList.add('primary');
+        fichaBtn.classList.remove('ghost');
+        if (span) span.textContent = 'Enviar ficha';
       }
     }
 
@@ -4548,7 +4633,7 @@
       }
 
       if (!intake) {
-        body.innerHTML = expEmptyState('fa-clipboard', 'La clienta aún no ha llenado su ficha clínica. Envíale el link por WhatsApp.');
+        body.innerHTML = expEmptyState('fa-clipboard', 'Esta clienta aún no tiene ficha clínica. Envíasela por WhatsApp y la llena desde su celular en 3 minutos.');
         return;
       }
 
@@ -4728,8 +4813,14 @@
       document.getElementById('exp-diag-prognosis').value = d.prognosis || '';
       document.getElementById('exp-diag-cost').value = d.cost || '';
       document.getElementById('exp-diag-staffName').value = d.staffName || '';
-      const panel = document.getElementById('exp-tab-diagnosis');
-      if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const panel = document.getElementById('exp-sec-tratamientos');
+      if (panel) { panel.classList.add('active'); panel.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+      // Activar la pill de Tratamientos
+      document.querySelectorAll('.exp-sec').forEach(t => t.classList.remove('active'));
+      const pill = document.querySelector('.exp-sec[data-exp-sec="tratamientos"]');
+      if (pill) pill.classList.add('active');
+      document.querySelectorAll('.exp-sec-content').forEach(c => c.classList.remove('active'));
+      if (panel) panel.classList.add('active');
     }
 
     async function expSaveDiagnosis(e) {
@@ -4789,26 +4880,25 @@
 
     // ----- Láser -----
     function renderLaserPanel(sessions) {
-      const tb = document.getElementById('exp-laser-tbody');
+      const tb = document.getElementById('exp-laser-list');
       if (!tb) return;
       if (!sessions || sessions.length === 0) {
-        tb.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:16px;color:var(--muted,#888);">No hay sesiones de láser registradas.</td></tr>';
+        tb.innerHTML = '<div class="exp-empty-state"><i class="fas fa-bolt"></i><p>Sin sesiones registradas. Captura la primera al terminar la sesión de hoy.</p></div>';
         return;
       }
       tb.innerHTML = sessions.map(function (s) {
         const fecha = s.date ? new Date(s.date).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
-        return '<tr style="border-bottom:1px solid var(--border,#eee);">' +
-          '<td style="padding:6px 8px;white-space:nowrap;">' + expEsc(fecha) + '</td>' +
-          '<td style="padding:6px 8px;">' + expEsc(s.staffName || '—') + '</td>' +
-          '<td style="padding:6px 8px;">' + expEsc(s.zone || '—') + '</td>' +
-          '<td style="padding:6px 8px;">' + expEsc(s.frequency || '—') + '</td>' +
-          '<td style="padding:6px 8px;">' + expEsc(s.fluence || '—') + '</td>' +
-          '<td style="padding:6px 8px;">' + expEsc(s.laserIntensity || '—') + '</td>' +
-          '<td style="padding:6px 8px;">' + expEsc(s.observations || '—') + '</td>' +
-          '<td style="padding:6px 8px;white-space:nowrap;">' +
-            '<button class="btn small ghost" onclick="expEditLaserSession(' + "'" + s.id + "'" + ')">Editar</button> ' +
-            '<button class="btn small ghost" style="color:#dc2626;" onclick="expDeleteLaserSession(' + "'" + s.id + "'" + ')">Eliminar</button>' +
-          '</td></tr>';
+        const params = [s.frequency, s.fluence, s.laserIntensity, s.staffName].filter(Boolean).map(expEsc).join(' · ');
+        const obs = s.observations ? '<div class="exp-laser-obs">' + expEsc(String(s.observations).slice(0, 120)) + (s.observations.length > 120 ? '…' : '') + '</div>' : '';
+        return '<div class="exp-stacked-row">' +
+          '<div class="exp-stacked-main"><span class="exp-stacked-date">' + expEsc(fecha) + '</span>' + (s.zone ? '<span class="exp-stacked-zone"> · ' + expEsc(s.zone) + '</span>' : '') + '</div>' +
+          '<div class="exp-stacked-meta">' + params + '</div>' +
+          obs +
+          '<div class="exp-stacked-actions">' +
+            '<button class="btn small ghost" onclick="expEditLaserSession(' + "'" + s.id + "'" + ')"><i class="fas fa-pen"></i> Editar</button> ' +
+            '<button class="btn small ghost" style="color:var(--err,#dc2626);" onclick="expDeleteLaserSession(' + "'" + s.id + "'" + ')"><i class="fas fa-trash"></i></button>' +
+          '</div>' +
+        '</div>';
       }).join('');
     }
 
@@ -4955,17 +5045,17 @@
       }
     }
 
-    // Dropzone drag & drop (click + arrastrar/soltar)
+    // Dropzone drag & drop (escritorio). En móvil se usa el botón "Subir documentos".
     (function () {
       const dz = document.getElementById('exp-docs-dropzone');
       const input = document.getElementById('exp-docs-input');
       if (!dz || !input) return;
-      dz.addEventListener('click', function () { input.click(); });
+      // No enlazar click en el dropzone: el botón interior ya dispara input.click().
       ['dragenter', 'dragover'].forEach(function (ev) {
-        dz.addEventListener(ev, function (e) { e.preventDefault(); dz.style.background = 'rgba(0,0,0,0.04)'; });
+        dz.addEventListener(ev, function (e) { e.preventDefault(); dz.classList.add('exp-drop-active'); });
       });
       ['dragleave', 'drop'].forEach(function (ev) {
-        dz.addEventListener(ev, function (e) { e.preventDefault(); dz.style.background = ''; });
+        dz.addEventListener(ev, function (e) { e.preventDefault(); dz.classList.remove('exp-drop-active'); });
       });
       dz.addEventListener('drop', function (e) {
         if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) expUploadDocuments(e.dataTransfer.files);
@@ -4974,7 +5064,10 @@
 
     // Hacer funciones globales para onclick en HTML
     window.openClientRecord = openClientRecord;
+    window.openExpedienteView = openExpedienteView;
+    window.closeExpedienteView = closeExpedienteView;
     window.closeExpedienteModal = closeExpedienteModal;
+    window.expToggleHeaderMenu = expToggleHeaderMenu;
     window.openNewSessionModal = openNewSessionModal;
     window.uploadExpPhotos = uploadExpPhotos;
     window.deleteExpPhoto = deleteExpPhoto;

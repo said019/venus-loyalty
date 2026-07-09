@@ -31,7 +31,14 @@
       
       // Ocultar TODAS las secciones de tabs
       document.querySelectorAll('[id^="tab-"]').forEach(s => s.classList.add('hidden'));
-      
+
+      // Cerrar la vista de expediente si está abierta (no es un #tab-*)
+      const expView = document.getElementById('expediente-view');
+      if (expView && !expView.classList.contains('hidden')) {
+        expView.classList.add('hidden');
+        if (typeof window.closeExpedienteView === 'function') window.closeExpedienteView();
+      }
+
       // Mostrar la sección objetivo
       const targetSection = document.getElementById(normalizedId);
       if (targetSection) {

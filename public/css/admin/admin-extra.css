@@ -2376,13 +2376,9 @@
         z-index: 100;
       }
 
-      /* Ocultar elementos cuando el expediente está abierto */
-      body.expediente-open .quick-actions,
-      body.expediente-open .admin-header,
-      body.expediente-open .sidebar,
-      body.expediente-open .topbar {
-        display: none !important;
-      }
+      /* (Eliminado) Ocultar elementos cuando el expediente está abierto.
+         Ya no se necesita: la vista de expediente sustituye al modal y convive
+         con el shell del admin como una sección más. */
 
       .quick-action-btn {
         width: 56px;
@@ -2413,4 +2409,392 @@
           align-items: stretch;
           gap: 12px;
         }
+
+      /* ============================================================
+         VISTA COMPLETA DE EXPEDIENTE (sustituye al modal)
+         Tokens: DESIGN.md (olive/cream/hairline, Playfair + DM Sans)
+         ============================================================ */
+      #expediente-view {
+        background: var(--bg, #faf8f5);
+        min-height: 100vh;
+        padding: 0;
+      }
+
+      /* Encabezado */
+      .exp-view-header {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        background: var(--bg, #faf8f5);
+        border-bottom: 1px solid var(--line, rgba(0,0,0,0.08));
+        padding: 12px 16px 0;
+      }
+      .exp-view-header-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+      .exp-back-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        min-height: 44px;
+        padding: 0 10px;
+        background: transparent;
+        border: none;
+        color: var(--ink, #1a1a1f);
+        font-family: 'DM Sans', system-ui, sans-serif;
+        font-size: 15px;
+        font-weight: 500;
+        cursor: pointer;
+        border-radius: 12px;
+      }
+      .exp-back-btn:hover { background: var(--bg-hover, rgba(0,0,0,0.05)); }
+      .exp-view-actions {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .exp-view-identity {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        margin-top: 6px;
+      }
+      .exp-view-id-icon { color: var(--ink-3, rgba(26,26,31,0.4)); font-size: 16px; }
+      .exp-view-name {
+        margin: 0;
+        font-family: 'Playfair Display', serif;
+        font-size: 26px;
+        font-weight: 600;
+        letter-spacing: -0.015em;
+        color: var(--ink, #1a1a1f);
+        line-height: 1.2;
+      }
+      .exp-view-meta {
+        margin: 2px 0 8px;
+        font-size: 13px;
+        color: var(--ink-3, rgba(26,26,31,0.5));
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      /* Franja de alertas de salud (ámbar tenue, siempre visible) */
+      .exp-health-alerts {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        padding: 6px 0 8px;
+        margin: 0;
+      }
+      .exp-alert-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 600;
+        font-family: 'DM Sans', system-ui, sans-serif;
+        background: oklch(94% 0.040 80);
+        color: oklch(45% 0.090 60);
+        border: 1px solid oklch(88% 0.060 80);
+      }
+      .exp-alert-chip i { font-size: 10px; }
+
+      /* Barra de 6 secciones (pills horizontales, sticky) */
+      .exp-sections-bar {
+        display: flex;
+        gap: 6px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scroll-snap-type: x proximity;
+        padding: 8px 0 10px;
+        margin: 0 -16px;
+        padding-left: 16px;
+        padding-right: 16px;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+      }
+      .exp-sections-bar::-webkit-scrollbar { display: none; }
+      .exp-sec {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        min-height: 44px;
+        padding: 0 14px;
+        border-radius: 999px;
+        border: 1px solid var(--line, rgba(0,0,0,0.10));
+        background: var(--surface, #ffffff);
+        color: var(--ink-2, rgba(26,26,31,0.7));
+        font-family: 'DM Sans', system-ui, sans-serif;
+        font-size: 13px;
+        font-weight: 500;
+        white-space: nowrap;
+        cursor: pointer;
+        scroll-snap-align: center;
+        transition: background 200ms ease, color 200ms ease, border-color 200ms ease;
+      }
+      .exp-sec:hover { border-color: var(--line-2, rgba(0,0,0,0.18)); }
+      .exp-sec.active {
+        background: var(--venus, #8c9668);
+        color: #fff;
+        border-color: var(--venus, #8c9668);
+      }
+      .exp-sec i { font-size: 11px; }
+
+      /* Cuerpo de la vista */
+      .exp-view-body {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 18px 16px 60px;
+      }
+      .exp-sec-content { display: none; }
+      .exp-sec-content.active {
+        display: block;
+        animation: expFadeIn 200ms ease-out;
+      }
+      @keyframes expFadeIn {
+        from { opacity: 0; transform: translateY(8px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+
+      /* Grupos hairline */
+      .exp-hairline-group {
+        padding: 14px 0;
+        border-bottom: 1px solid var(--line, rgba(0,0,0,0.08));
+      }
+      .exp-hairline-group:last-child { border-bottom: none; }
+      .exp-section-title {
+        margin: 0 0 10px;
+        font-family: 'DM Sans', system-ui, sans-serif;
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--ink-3, rgba(26,26,31,0.5));
+      }
+
+      /* Badges */
+      .exp-badge {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #fff;
+        background: #9ca3af;
+      }
+      .exp-badge-ok { background: oklch(62% 0.115 155); }
+      .exp-badge-info { background: oklch(58% 0.080 220); }
+      .exp-badge-warn { background: oklch(72% 0.110 80); }
+      .exp-badge-muted { background: oklch(75% 0.010 80); color: oklch(40% 0.010 80); }
+
+      /* KPI / clave-valor */
+      .exp-kpi-row { display: flex; gap: 28px; }
+      .exp-kpi { display: flex; flex-direction: column; }
+      .exp-kpi-num {
+        font-family: 'Playfair Display', serif;
+        font-size: 24px;
+        font-weight: 600;
+        color: var(--ink, #1a1a1f);
+      }
+      .exp-kpi small {
+        font-size: 11px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--ink-3, rgba(26,26,31,0.5));
+      }
+      .exp-kpi-note { margin: 6px 0 0; font-size: 13px; color: var(--ink-3, rgba(26,26,31,0.5)); }
+      .exp-kv {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 6px 0;
+        font-size: 13px;
+      }
+      .exp-kv-k { color: var(--ink-3, rgba(26,26,31,0.5)); }
+      .exp-kv-v { color: var(--ink, #1a1a1f); font-weight: 500; text-align: right; }
+      .exp-muted-note { margin: 0; font-size: 13px; color: var(--ink-3, rgba(26,26,31,0.5)); font-style: italic; }
+
+      /* Formularios (Diagnóstico, Láser) */
+      .exp-form { display: flex; flex-direction: column; gap: 10px; }
+      .exp-form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .exp-form-group { display: flex; flex-direction: column; gap: 4px; }
+      .exp-form-group label {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--ink-2, rgba(26,26,31,0.7));
+      }
+      .exp-form-group .form-input,
+      .exp-form-group input,
+      .exp-form-group textarea,
+      .exp-form-group select {
+        font-size: 16px; /* evita auto-zoom iOS Safari */
+        min-height: 44px;
+      }
+      .exp-form-actions-sticky {
+        position: sticky;
+        bottom: 0;
+        background: var(--bg, #faf8f5);
+        border-top: 1px solid var(--line, rgba(0,0,0,0.08));
+        padding: 10px 0;
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 8px;
+        z-index: 10;
+      }
+      .exp-full-btn { width: 100%; padding: 12px; font-size: 14px; justify-content: center; }
+
+      /* Sesiones apiladas (mobile-first) */
+      .exp-sessions-list, .exp-stacked-list { display: flex; flex-direction: column; gap: 8px; }
+      .exp-session-card, .exp-stacked-row {
+        padding: 12px 14px;
+        border: 1px solid var(--line, rgba(0,0,0,0.08));
+        border-radius: 12px;
+        cursor: pointer;
+        transition: border-color 120ms ease;
+      }
+      .exp-session-card:hover, .exp-stacked-row:hover { border-color: var(--line-2, rgba(0,0,0,0.18)); }
+      .exp-session-header { display: flex; justify-content: space-between; gap: 8px; }
+      .exp-session-date { font-size: 15px; font-weight: 600; color: var(--ink, #1a1a1f); }
+      .exp-session-type { font-size: 12px; color: var(--ink-3, rgba(26,26,31,0.5)); }
+      .exp-session-device, .exp-session-areas { font-size: 13px; color: var(--ink-3, rgba(26,26,31,0.5)); margin-top: 4px; }
+
+      /* Láser: renglón apilado (sin scroll horizontal) */
+      .exp-stacked-main { font-size: 15px; font-weight: 600; color: var(--ink, #1a1a1f); }
+      .exp-stacked-zone { color: var(--ink-2, rgba(26,26,31,0.7)); font-weight: 500; }
+      .exp-stacked-meta {
+        font-size: 13px;
+        color: var(--ink-3, rgba(26,26,31,0.5));
+        margin-top: 2px;
+      }
+      .exp-laser-obs {
+        font-size: 13px;
+        color: var(--ink-3, rgba(26,26,31,0.5));
+        margin-top: 4px;
+      }
+      .exp-stacked-actions { display: flex; gap: 6px; margin-top: 8px; }
+
+      /* Fotos */
+      .exp-photos-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+      }
+      .exp-photo-item {
+        position: relative;
+        aspect-ratio: 1;
+        border-radius: 12px;
+        overflow: hidden;
+        cursor: pointer;
+      }
+      .exp-photo-item img { width: 100%; height: 100%; object-fit: cover; }
+      .exp-photo-badge {
+        position: absolute;
+        top: 4px;
+        left: 4px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 10px;
+        font-weight: 600;
+        color: #fff;
+      }
+      .exp-photo-badge.before { background: oklch(58% 0.080 220); }
+      .exp-photo-badge.after { background: oklch(62% 0.115 155); }
+      .exp-photo-badge.progress { background: oklch(72% 0.110 80); }
+      .exp-photo-delete {
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        width: 26px;
+        height: 26px;
+        border-radius: 999px;
+        border: none;
+        background: oklch(22% 0.012 80 / 0.6);
+        color: #fff;
+        cursor: pointer;
+        opacity: 0;
+        transition: opacity 150ms ease;
+      }
+      .exp-photo-item:hover .exp-photo-delete { opacity: 1; }
+      .exp-photos-filters {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+      .exp-photos-filters select { flex: 1; min-width: 0; }
+      .exp-compare-container {
+        display: flex;
+        gap: 12px;
+        margin-top: 10px;
+      }
+      .exp-compare-side { flex: 1; }
+      .exp-compare-side h4 { margin: 0 0 6px; font-size: 13px; font-weight: 600; }
+      .exp-compare-photo {
+        aspect-ratio: 1;
+        border: 1px dashed var(--line, rgba(0,0,0,0.10));
+        border-radius: 12px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        color: var(--ink-3, rgba(26,26,31,0.4));
+      }
+      .exp-compare-photo img { width: 100%; height: 100%; object-fit: cover; border-radius: 12px; }
+
+      /* Documentos */
+      .exp-docs-dropzone {
+        border: 2px dashed var(--line, rgba(0,0,0,0.12));
+        border-radius: 16px;
+        padding: 22px 16px;
+        text-align: center;
+        transition: background 150ms ease, border-color 150ms ease;
+      }
+      .exp-docs-dropzone.exp-drop-active {
+        background: oklch(94% 0.022 120);
+        border-color: var(--venus, #8c9668);
+      }
+      .exp-docs-drop-title { margin: 8px 0 4px; font-weight: 600; font-size: 14px; color: var(--ink, #1a1a1f); }
+      .exp-docs-drop-sub { margin: 0 0 12px; font-size: 12px; color: var(--ink-3, rgba(26,26,31,0.5)); }
+
+      .exp-empty-state {
+        text-align: center;
+        padding: 24px 12px;
+        color: var(--ink-3, rgba(26,26,31,0.5));
+      }
+      .exp-empty-state i { font-size: 22px; margin-bottom: 8px; }
+      .exp-empty-state p { margin: 0; font-size: 13px; }
+
+      /* === Responsive === */
+      @media (max-width: 480px) {
+        .exp-view-header { padding: 10px 14px 0; }
+        .exp-view-name { font-size: 22px; }
+        .exp-back-label { display: none; } /* solo icono en cel chico */
+        .exp-action-wa,
+        #exp-action-wa { display: none; } /* se ve solo desde el menú ⋯ en cel */
+        .exp-form-grid { grid-template-columns: 1fr; }
+        .exp-photos-grid { grid-template-columns: repeat(2, 1fr); }
+        .exp-compare-container { flex-direction: column; }
+        .exp-kpi-row { gap: 22px; }
+        /* En cel, el botón "Enviar ficha" del header se esconde; se accede desde ⋯ */
+        #exp-action-ficha { display: none; }
+      }
+
+      @media (min-width: 481px) {
+        #exp-action-menu { display: none; } /* en tablet+ los botones completos se ven */
+      }
+
+      @media (min-width: 1025px) {
+        .exp-view-body { padding: 28px 36px 80px; }
+        .exp-view-header { padding: 16px 36px 0; }
+      }
       }
