@@ -176,7 +176,7 @@ router.get('/:cardId', async (req, res) => {
       prisma.laserSessionLog.findMany({ where: { recordId: record.id }, orderBy: { date: 'desc' } }),
       prisma.clientDocument.findMany({ where: { recordId: record.id }, orderBy: { uploadedAt: 'desc' } }),
     ]);
-    res.json({ success: true, record: { id: record.id, fichaLinkSentAt: record.fichaLinkSentAt }, intake, consents, diagnoses, laserSessions, documents });
+    res.json({ success: true, card: { id: card.id, name: card.name, phone: card.phone, stamps: card.stamps, max: card.max }, record: { id: record.id, fichaLinkSentAt: record.fichaLinkSentAt }, intake, consents, diagnoses, laserSessions, documents });
   } catch (e) { console.error(e); return fail(res, 500, e.message); }
 });
 

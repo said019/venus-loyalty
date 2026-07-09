@@ -4569,14 +4569,13 @@
         const data = await res.json();
         if (!data.success) throw new Error(data.error || 'Error al cargar expediente digital');
         expedienteDigitalCache = data;
-        // Deep-link directo a /admin/clientas/:id: cardsCache aún no existe y el
-        // encabezado quedó con el fallback "Clienta". Hidratar desde la ficha.
+        // Hidratar el nombre del encabezado desde la tarjeta que devuelve el
+        // backend (autoritativo): funciona aunque cardsCache aún no cargue y la
+        // clienta no tenga ficha. Antes se quedaba en "Clienta" en deep-link.
         const expNameEl = document.getElementById('exp-client-name');
-        if (expNameEl && expNameEl.textContent === 'Clienta' && data.intake && data.intake.fullName) {
-          expNameEl.textContent = data.intake.fullName;
-          const expMetaEl = document.getElementById('exp-client-meta');
-          if (expMetaEl && !expMetaEl.textContent && data.intake.phone) expMetaEl.textContent = data.intake.phone;
-        }
+        const expCard = data.card || (window.cardsCache ? window.cardsCache[cardId] : null);
+        const expRealName = (expCard && expCard.name) || (data.intake && data.intake.fullName) || '';
+        if (expNameEl && expRealName) expNameEl.textContent = expRealName;
         renderFichaPanel(data.intake, data.record);
         renderConsentsPanel(data.consents || []);
         renderDiagnosisPanel(data.diagnoses || []);
@@ -4599,7 +4598,7 @@
       // Enriquecer el meta del header: edad · tipo de piel · sellos (brief §4).
       const metaEl = document.getElementById('exp-client-meta');
       if (metaEl) {
-        const card = window.cardsCache && currentExpedienteCardId ? window.cardsCache[currentExpedienteCardId] : null;
+        const card = data.card || (window.cardsCache && currentExpedienteCardId ? window.cardsCache[currentExpedienteCardId] : null);
         const bits = [];
         if (card && card.phone) bits.push(card.phone);
         if (intake && intake.status === 'signed') {
