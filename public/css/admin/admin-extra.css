@@ -2429,7 +2429,11 @@
         --exp-surface-2: oklch(93.5% 0.014 88);
         --exp-ink:       oklch(22% 0.012 80);
         --exp-ink-2:     oklch(45% 0.012 80);
-        --exp-ink-3:     oklch(60% 0.010 80);
+        /* AA: oklch(60% 0.010 80) sobre --exp-bg (96.5%) rondaba 3.9:1 en texto
+           de cuerpo/metadatos (badges, key-value, meta de documentos). Bajado
+           a 48% de lightness; los usos decorativos (bordes, iconos) heredan
+           el mismo cambio sin romper nada. Dark mode ya cumple AA sin tocarlo. */
+        --exp-ink-3:     oklch(48% 0.010 80);
         --exp-line:      oklch(88% 0.014 88);
         --exp-line-2:    oklch(82% 0.018 88);
         --exp-olive:     oklch(58% 0.075 120);
@@ -2607,8 +2611,8 @@
         padding-right: 20px;
         -webkit-overflow-scrolling: touch;
         scrollbar-width: none;
-        -webkit-mask-image: linear-gradient(to right, transparent 0, #000 18px, #000 calc(100% - 18px), transparent 100%);
-                mask-image: linear-gradient(to right, transparent 0, #000 18px, #000 calc(100% - 18px), transparent 100%);
+        -webkit-mask-image: linear-gradient(to right, transparent 0, #000 24px, #000 calc(100% - 24px), transparent 100%);
+                mask-image: linear-gradient(to right, transparent 0, #000 24px, #000 calc(100% - 24px), transparent 100%);
       }
       .exp-sections-bar::-webkit-scrollbar { display: none; }
       .exp-sec {
@@ -2625,6 +2629,10 @@
         white-space: nowrap;
         cursor: pointer;
         scroll-snap-align: center;
+        /* Etiqueta completa siempre: sin width fija y sin permitir que el
+           flex de la barra la encoja por debajo de su contenido (por eso se
+           veía "P", "Fic", "Tr" truncados). La barra scrollea horizontal. */
+        flex-shrink: 0;
         transition: color 120ms ease, border-color 120ms ease, background 120ms ease;
       }
       .exp-sec:hover { border-color: var(--exp-line-2); color: var(--exp-ink); }
