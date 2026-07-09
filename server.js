@@ -2463,6 +2463,11 @@ app.get("/admin.html", redirectIfRecepcion, (_req, res) => {
 app.get("/admin/:slug", redirectIfRecepcion, (_req, res) => {
   res.sendFile(path.join(__dirname, "public", "admin.html"));
 });
+// Deep linking del SPA a /admin/clientas/:cardId (vista de expediente).
+// El router del cliente lee el cardId del path y abre la vista directamente.
+app.get("/admin/:slug/:cardId", redirectIfRecepcion, (_req, res) => {
+  res.sendFile(path.join(__dirname, "public", "admin.html"));
+});
 app.get("/admin-login.html", (_req, res) => {
   res.sendFile(path.join(__dirname, "public", "admin-login.html"));
 });
