@@ -3111,143 +3111,204 @@
     <footer class="footer">© Venus Cosmetología</footer>
 
     <!-- Modal Tarjeta - SIMPLIFICADO -->
+    <style>
+      /* ===== Tarjeta de cliente — rediseño Venus (tokens DESIGN.md) ===== */
+      #card-modal-backdrop {
+        --cm-surface: oklch(99% 0.006 88);
+        --cm-surface-2: oklch(96.6% 0.012 88);
+        --cm-ink: oklch(24% 0.012 80);
+        --cm-ink-2: oklch(46% 0.012 80);
+        --cm-ink-3: oklch(56% 0.010 80);
+        --cm-line: oklch(89% 0.013 88);
+        --cm-olive: oklch(52% 0.078 120);
+        --cm-olive-deep: oklch(44% 0.088 120);
+        --cm-olive-soft: oklch(95% 0.020 120);
+        --cm-track: oklch(89% 0.016 120);
+        --cm-amber: oklch(80% 0.095 82);
+        --cm-amber-ink: oklch(40% 0.080 68);
+        --cm-clay: oklch(60% 0.065 55);
+        --cm-clay-deep: oklch(52% 0.072 52);
+        --cm-err: oklch(55% 0.14 28);
+        --cm-wa: oklch(60% 0.135 152);
+        background: oklch(24% 0.012 80 / 0.42);
+        backdrop-filter: blur(3px);
+      }
+      /* Los FAB flotantes (QR/+) escapan el z-index del modal por su contexto de
+         apilamiento; ocultarlos mientras el modal está abierto (no deben taparlo). */
+      body:has(#card-modal-backdrop:not(.hidden)) .quick-actions { display: none; }
+      :root[data-theme="dark"] #card-modal-backdrop {
+        --cm-surface: oklch(23% 0.014 80);
+        --cm-surface-2: oklch(27% 0.016 80);
+        --cm-ink: oklch(95% 0.012 88);
+        --cm-ink-2: oklch(76% 0.012 88);
+        --cm-ink-3: oklch(60% 0.010 88);
+        --cm-line: oklch(33% 0.018 80);
+        --cm-olive: oklch(66% 0.080 120);
+        --cm-olive-deep: oklch(74% 0.088 120);
+        --cm-olive-soft: oklch(30% 0.030 120);
+        --cm-track: oklch(34% 0.020 120);
+        --cm-amber: oklch(72% 0.100 82);
+        --cm-amber-ink: oklch(22% 0.030 70);
+      }
+      #card-modal-backdrop .cmx-card {
+        background: var(--cm-surface); color: var(--cm-ink);
+        border: 1px solid var(--cm-line); border-radius: 22px;
+        box-shadow: 0 24px 60px oklch(20% 0.012 80 / 0.24); padding: 22px;
+      }
+      #card-modal-backdrop .cmx-head { display:flex; align-items:center; gap:12px; margin-bottom:6px; }
+      #card-modal-backdrop .cmx-avatar { width:38px; height:38px; border-radius:12px; background:var(--cm-olive-soft); color:var(--cm-olive-deep); display:flex; align-items:center; justify-content:center; font-size:16px; flex:none; }
+      #card-modal-backdrop .cmx-title { font-family:'Playfair Display',Georgia,serif; font-size:22px; font-weight:600; color:var(--cm-ink); letter-spacing:-0.01em; margin:0; flex:1; }
+      #card-modal-backdrop .cmx-stamp { background:var(--cm-amber); color:var(--cm-amber-ink); font-weight:600; border:none; border-radius:999px; padding:9px 15px; font-size:13px; cursor:pointer; display:inline-flex; align-items:center; gap:7px; transition:filter .12s; white-space:nowrap; }
+      #card-modal-backdrop .cmx-stamp:hover { filter:brightness(0.96); }
+      #card-modal-backdrop .cmx-close { width:38px; height:38px; border-radius:12px; border:1px solid var(--cm-line); background:var(--cm-surface); color:var(--cm-ink-2); cursor:pointer; font-size:15px; display:flex; align-items:center; justify-content:center; transition:background .12s; flex:none; }
+      #card-modal-backdrop .cmx-close:hover { background:var(--cm-surface-2); }
+      #card-modal-backdrop .cmx-rule { height:1px; background:var(--cm-line); margin:14px 0; border:0; }
+      #card-modal-backdrop .cmx-label { font-size:11px; letter-spacing:.09em; text-transform:uppercase; color:var(--cm-ink-3); margin-bottom:3px; }
+      #card-modal-backdrop .cmx-name { font-family:'Playfair Display',Georgia,serif; font-size:19px; font-weight:600; color:var(--cm-ink); line-height:1.15; }
+      #card-modal-backdrop .cmx-phone { font-size:15px; color:var(--cm-ink); font-variant-numeric:tabular-nums; }
+      #card-modal-backdrop .cmx-edit { background:none; border:none; color:var(--cm-olive); cursor:pointer; font-size:11px; padding:0; margin-left:6px; }
+      #card-modal-backdrop .cmx-panel { background:var(--cm-surface-2); border:1px solid var(--cm-line); border-radius:16px; padding:15px 16px; }
+      #card-modal-backdrop .cmx-progress-num { font-family:'Playfair Display',Georgia,serif; font-size:24px; font-weight:600; color:var(--cm-olive-deep); }
+      #card-modal-backdrop .cmx-track { background:var(--cm-track); border-radius:999px; height:8px; overflow:hidden; }
+      #card-modal-backdrop .cmx-fill { background:var(--cm-olive); height:100%; width:0%; border-radius:999px; transition:width .4s cubic-bezier(.25,1,.5,1); }
+      #card-modal-backdrop .cmx-kpis { display:grid; grid-template-columns:repeat(3,1fr); }
+      #card-modal-backdrop .cmx-kpi { text-align:center; padding:2px 6px; }
+      #card-modal-backdrop .cmx-kpi + .cmx-kpi { border-left:1px solid var(--cm-line); }
+      #card-modal-backdrop .cmx-kpi-num { font-family:'Playfair Display',Georgia,serif; font-size:23px; font-weight:600; color:var(--cm-ink); line-height:1; }
+      #card-modal-backdrop .cmx-kpi-lbl { font-size:11px; color:var(--cm-ink-3); margin-top:6px; }
+      #card-modal-backdrop .cmx-next { background:var(--cm-olive-soft); border:1px solid oklch(86% 0.03 120); border-radius:14px; padding:13px 15px; }
+      :root[data-theme="dark"] #card-modal-backdrop .cmx-next { border-color:oklch(36% 0.04 120); }
+      #card-modal-backdrop .cmx-details summary { cursor:pointer; font-size:13px; color:var(--cm-olive-deep); font-weight:500; list-style:none; display:flex; align-items:center; gap:8px; padding:9px 0; }
+      #card-modal-backdrop .cmx-details summary::-webkit-details-marker { display:none; }
+      #card-modal-backdrop .cmx-input, #card-modal-backdrop .cmx-textarea { width:100%; background:var(--cm-surface); border:1px solid var(--cm-line); border-radius:10px; padding:10px 12px; color:var(--cm-ink); font-size:14px; font-family:inherit; }
+      #card-modal-backdrop .cmx-input:focus, #card-modal-backdrop .cmx-textarea:focus { outline:none; border-color:var(--cm-olive); box-shadow:0 0 0 2px var(--cm-olive-soft); }
+      #card-modal-backdrop .cmx-actions { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; padding-top:18px; border-top:1px solid var(--cm-line); }
+      #card-modal-backdrop .cmx-btn { border:none; border-radius:12px; padding:12px 8px; font-size:13px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:7px; min-height:44px; transition:filter .12s, background .12s; }
+      #card-modal-backdrop .cmx-btn:hover { filter:brightness(.97); }
+      #card-modal-backdrop .cmx-btn:active { transform:translateY(1px); }
+      #card-modal-backdrop .cmx-btn-wa { background:var(--cm-wa); color:#fff; }
+      #card-modal-backdrop .cmx-btn-olive { background:var(--cm-olive); color:#fff; }
+      #card-modal-backdrop .cmx-btn-ghost { background:var(--cm-surface); color:var(--cm-ink); border:1px solid var(--cm-line); }
+      #card-modal-backdrop .cmx-membership { width:100%; margin-top:12px; background:var(--cm-clay); color:#fff; font-weight:600; font-size:14px; border:none; border-radius:14px; padding:14px 16px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:9px; min-height:48px; transition:background .12s; }
+      #card-modal-backdrop .cmx-membership:hover { background:var(--cm-clay-deep); }
+      #card-modal-backdrop .cmx-links { display:flex; justify-content:center; gap:8px 16px; margin-top:14px; padding-top:14px; border-top:1px solid var(--cm-line); flex-wrap:wrap; }
+      #card-modal-backdrop .cmx-link { background:none; border:none; cursor:pointer; font-size:12px; color:var(--cm-ink-3); display:inline-flex; align-items:center; gap:5px; transition:color .12s; }
+      #card-modal-backdrop .cmx-link:hover { color:var(--cm-ink); }
+      #card-modal-backdrop .cmx-link.is-primary { color:var(--cm-olive-deep); font-weight:600; }
+      #card-modal-backdrop .cmx-link.is-danger { color:var(--cm-err); }
+    </style>
     <div id="card-modal-backdrop" class="modal-backdrop hidden">
-      <div class="modal-card" style="max-width:420px;">
+      <div class="modal-card cmx-card" style="max-width:420px;">
 
         <!-- Header con acciones rápidas -->
-        <div class="modal-header" style="flex-wrap:wrap;gap:10px;">
-          <h3 style="margin:0;flex:1;"><i class="fas fa-user"></i> Cliente</h3>
-          <div style="display:flex;gap:6px;">
-            <button id="cm-stamp" class="btn small" style="background:#FFD166;color:#1b1b1b;font-weight:600;"><i class="fas fa-star"></i> +1
-              sello</button>
-            <button id="cm-close" class="btn small ghost" onclick="closeCardModal()">✕</button>
-          </div>
+        <div class="cmx-head">
+          <span class="cmx-avatar"><i class="fas fa-user"></i></span>
+          <h3 class="cmx-title">Cliente</h3>
+          <button id="cm-stamp" class="cmx-stamp"><i class="fas fa-star"></i> +1 sello</button>
+          <button id="cm-close" class="cmx-close" onclick="closeCardModal()" aria-label="Cerrar">✕</button>
         </div>
+        <hr class="cmx-rule">
+        <div style="height:2px;"></div>
 
         <!-- Info del cliente -->
-        <div class="modal-body" style="padding:16px 0;">
+        <div class="modal-body" style="padding:0;">
 
           <!-- Datos principales -->
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px;">
             <div>
-              <div class="muted" style="font-size:11px;margin-bottom:2px;">Nombre</div>
-              <div id="cm-name" style="font-weight:600;font-size:15px;">—</div>
+              <div class="cmx-label">Nombre</div>
+              <div id="cm-name" class="cmx-name">—</div>
             </div>
             <div>
-              <div class="muted" style="font-size:11px;margin-bottom:2px;">Teléfono <button id="cm-edit-phone-btn" style="background:none;border:none;color:var(--venus-soft);cursor:pointer;font-size:10px;padding:0;margin-left:4px;"><i class="fas fa-pencil-alt"></i> editar</button></div>
-              <div id="cm-phone-display" style="font-size:15px;">—</div>
-              <div id="cm-phone-edit" class="hidden" style="display:flex;gap:6px;align-items:center;">
-                <input type="tel" id="cm-phone-input" style="flex:1;padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:rgba(0,0,0,0.3);color:#fff;font-size:14px;" placeholder="10 dígitos">
-                <button id="cm-phone-save" class="btn small" style="padding:6px 10px;background:#22c55e;">✓</button>
-                <button id="cm-phone-cancel" class="btn small ghost" style="padding:6px 8px;">✕</button>
+              <div class="cmx-label">Teléfono <button id="cm-edit-phone-btn" class="cmx-edit"><i class="fas fa-pencil-alt"></i> editar</button></div>
+              <div id="cm-phone-display" class="cmx-phone">—</div>
+              <div id="cm-phone-edit" class="hidden" style="display:flex;gap:6px;align-items:center;margin-top:4px;">
+                <input type="tel" id="cm-phone-input" class="cmx-input" style="flex:1;" placeholder="10 dígitos">
+                <button id="cm-phone-save" class="cmx-btn cmx-btn-olive" style="padding:8px 12px;min-height:auto;">✓</button>
+                <button id="cm-phone-cancel" class="cmx-btn cmx-btn-ghost" style="padding:8px 10px;min-height:auto;">✕</button>
               </div>
             </div>
           </div>
 
           <!-- Sellos con barra de progreso -->
-          <div style="background:rgba(255,255,255,0.05);border-radius:12px;padding:14px;margin-bottom:16px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-              <span style="font-size:13px;">Progreso</span>
-              <span id="cm-stamps" style="font-weight:700;font-size:18px;color:var(--venus-soft);">0 / 8</span>
+          <div class="cmx-panel" style="margin-bottom:16px;">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;">
+              <span class="cmx-label" style="margin:0;">Progreso</span>
+              <span id="cm-stamps" class="cmx-progress-num">0 / 8</span>
             </div>
-            <div style="background:rgba(255,255,255,0.1);border-radius:8px;height:8px;overflow:hidden;">
-              <div id="cm-progress-bar"
-                style="background:linear-gradient(90deg,#FFD166,#8c9668);height:100%;width:0%;transition:width 0.3s;border-radius:8px;">
-              </div>
+            <div class="cmx-track">
+              <div id="cm-progress-bar" class="cmx-fill"></div>
             </div>
-            <div id="cm-status-text" class="muted" style="font-size:11px;margin-top:6px;text-align:center;">—</div>
+            <div id="cm-status-text" style="font-size:12px;margin-top:8px;text-align:center;color:var(--cm-ink-3);">—</div>
           </div>
 
           <!-- Próxima cita (si existe) -->
-          <div id="cm-next-appt-section" class="hidden"
-            style="background:rgba(140,150,104,0.15);border:1px solid rgba(140,150,104,0.3);border-radius:12px;padding:12px;margin-bottom:16px;">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
-              <span><i class="fas fa-calendar"></i></span>
-              <span style="font-size:12px;color:var(--venus-soft);font-weight:600;">Próxima cita</span>
-            </div>
-            <div id="cm-next-appt-date" style="font-size:18px;font-weight:700;color:#22c55e;">—</div>
-            <div id="cm-next-appt-service" style="font-size:13px;margin-top:2px;">—</div>
+          <div id="cm-next-appt-section" class="hidden cmx-next" style="margin-bottom:16px;">
+            <div class="cmx-label" style="color:var(--cm-olive-deep);margin-bottom:5px;"><i class="fas fa-calendar"></i> Próxima cita</div>
+            <div id="cm-next-appt-date" style="font-family:'Playfair Display',Georgia,serif;font-size:19px;font-weight:600;color:var(--cm-olive-deep);">—</div>
+            <div id="cm-next-appt-service" style="font-size:13px;margin-top:2px;color:var(--cm-ink-2);">—</div>
           </div>
 
           <!-- Stats rápidos -->
-          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;">
-            <div style="text-align:center;padding:10px;background:rgba(255,255,255,0.03);border-radius:8px;">
-              <div id="cm-visited-count" style="font-size:18px;font-weight:700;color:var(--venus-soft);">0</div>
-              <div class="muted" style="font-size:10px;">Visitas</div>
+          <div class="cmx-panel cmx-kpis" style="margin-bottom:16px;">
+            <div class="cmx-kpi">
+              <div id="cm-visited-count" class="cmx-kpi-num">0</div>
+              <div class="cmx-kpi-lbl">Visitas</div>
             </div>
-            <div style="text-align:center;padding:10px;background:rgba(255,255,255,0.03);border-radius:8px;">
-              <div id="cm-cycles-completed" style="font-size:18px;font-weight:700;color:var(--venus-soft);">0</div>
-              <div class="muted" style="font-size:10px;">Ciclos</div>
+            <div class="cmx-kpi">
+              <div id="cm-cycles-completed" class="cmx-kpi-num">0</div>
+              <div class="cmx-kpi-lbl">Ciclos</div>
             </div>
-            <div style="text-align:center;padding:10px;background:rgba(255,255,255,0.03);border-radius:8px;">
-              <div id="cm-last-visit" style="font-size:12px;font-weight:600;color:var(--venus-soft);">—</div>
-              <div class="muted" style="font-size:10px;">Última visita</div>
+            <div class="cmx-kpi">
+              <div id="cm-last-visit" class="cmx-kpi-num" style="font-size:15px;">—</div>
+              <div class="cmx-kpi-lbl">Última visita</div>
             </div>
           </div>
 
           <!-- Notas (colapsable) -->
-          <details style="margin-bottom:16px;">
-            <summary style="cursor:pointer;font-size:13px;color:var(--venus-soft);margin-bottom:8px;"><i class="fas fa-sticky-note"></i> Notas del
-              cliente</summary>
-            <textarea id="cm-notes" class="modal-textarea" rows="2" placeholder="Agregar notas..."
-              style="width:100%;background:rgba(0,0,0,0.2);border:1px solid var(--line);border-radius:8px;padding:10px;color:#fff;font-size:13px;resize:none;"></textarea>
-            <button id="cm-save-notes" class="btn small ghost" style="margin-top:6px;font-size:11px;"><i
-                class="fas fa-save"></i> Guardar
-              nota</button>
+          <details class="cmx-details" style="border-top:1px solid var(--cm-line);">
+            <summary><i class="fas fa-sticky-note"></i> Notas del cliente</summary>
+            <textarea id="cm-notes" class="cmx-textarea" rows="2" placeholder="Agregar notas..." style="resize:none;"></textarea>
+            <button id="cm-save-notes" class="cmx-btn cmx-btn-ghost" style="margin-top:8px;font-size:12px;padding:9px 14px;min-height:auto;width:auto;display:inline-flex;"><i class="fas fa-save"></i> Guardar nota</button>
           </details>
 
           <!-- QR (colapsable) -->
-          <details>
-            <summary style="cursor:pointer;font-size:13px;color:var(--venus-soft);margin-bottom:8px;"><i class="fas fa-qrcode"></i> Código QR
-            </summary>
-            <div style="background:rgba(255,255,255,0.05);border-radius:12px;padding:12px;text-align:center;">
+          <details class="cmx-details" style="border-top:1px solid var(--cm-line);">
+            <summary><i class="fas fa-qrcode"></i> Código QR</summary>
+            <div class="cmx-panel" style="text-align:center;">
               <canvas id="card-qr" style="max-width:150px;"></canvas>
-              <div class="muted" style="font-size:10px;margin-top:6px;">ID: <code id="cm-id"
-                  style="font-size:10px;">—</code></div>
+              <div style="font-size:11px;margin-top:8px;color:var(--cm-ink-3);">ID: <code id="cm-id" style="font-size:11px;color:var(--cm-ink-2);">—</code></div>
             </div>
           </details>
 
         </div>
 
         <!-- Footer con acciones -->
-        <div class="modal-footer"
-          style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.1);">
-          <button id="cm-whatsapp" class="btn small" style="background:#25D366;color:white;" onclick="handleWhatsAppClick()">
+        <div class="cmx-actions">
+          <button id="cm-whatsapp" class="cmx-btn cmx-btn-wa" onclick="handleWhatsAppClick()">
             <i class="fab fa-whatsapp"></i> WhatsApp
           </button>
-          <button id="cm-schedule" class="btn small" style="background:#8c9668;color:white;" onclick="handleScheduleClick()">
+          <button id="cm-schedule" class="cmx-btn cmx-btn-olive" onclick="handleScheduleClick()">
             <i class="fas fa-calendar-plus"></i> Agendar
           </button>
-          <button id="cm-redeem" class="btn small" onclick="handleRedeemClick()">
+          <button id="cm-redeem" class="cmx-btn cmx-btn-ghost" onclick="handleRedeemClick()">
             <i class="fas fa-gift"></i> Canjear
           </button>
         </div>
 
         <!-- Membresía Masajes -->
-        <div style="margin-top:10px;">
-          <button id="cm-issue-massage" class="btn"
-            style="width:100%;background:linear-gradient(135deg,#C4936E,#a87350);color:#fff;font-weight:700;font-size:14px;border:none;border-radius:12px;padding:13px 16px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.2s;box-shadow:0 4px 16px rgba(196,147,110,0.35);"
-            onclick="issueMassageMembership()">
-            <i class="fas fa-spa"></i> Emitir Membresía Masajes (10 sesiones)
-          </button>
-        </div>
+        <button id="cm-issue-massage" class="cmx-membership" onclick="issueMassageMembership()">
+          <i class="fas fa-spa"></i> Emitir Membresía Masajes (10 sesiones)
+        </button>
 
         <!-- Acciones secundarias -->
-        <div
-          style="display:flex;justify-content:center;gap:12px;margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.05);flex-wrap:wrap;">
-          <button id="cm-expediente" class="btn-link"
-            style="background:none;border:none;color:#22c55e;font-size:11px;cursor:pointer;font-weight:600;" onclick="openClientRecord()"><i class="fas fa-clipboard-list"></i> Expediente</button>
-          <button id="cm-copy" class="btn-link"
-            style="background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;">Copiar ID</button>
-          <button id="cm-open-url" class="btn-link"
-            style="background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;">Abrir página</button>
-          <button id="cm-notify" class="btn-link"
-            style="background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;">Notificar</button>
-          <button id="cm-force-update" class="btn-link"
-            style="background:none;border:none;color:var(--venus-soft);font-size:11px;cursor:pointer;"><i class="fas fa-sync-alt"></i> Actualizar
-            pase</button>
-          <button id="cm-delete" class="btn-link"
-            style="background:none;border:none;color:#ef4444;font-size:11px;cursor:pointer;">Eliminar</button>
+        <div class="cmx-links">
+          <button id="cm-expediente" class="cmx-link is-primary" onclick="openClientRecord()"><i class="fas fa-clipboard-list"></i> Expediente</button>
+          <button id="cm-copy" class="cmx-link">Copiar ID</button>
+          <button id="cm-open-url" class="cmx-link">Abrir página</button>
+          <button id="cm-notify" class="cmx-link">Notificar</button>
+          <button id="cm-force-update" class="cmx-link"><i class="fas fa-sync-alt"></i> Actualizar pase</button>
+          <button id="cm-delete" class="cmx-link is-danger">Eliminar</button>
         </div>
 
         <!-- Formulario de Notificación Individual (Oculto por defecto) -->
