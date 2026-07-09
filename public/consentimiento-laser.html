@@ -175,18 +175,40 @@
       margin: 0 0 22px;
     }
 
-    /* ============ DOCUMENTO (texto legal) ============ */
+    /* ============ DOCUMENTO (texto legal) — secciones colapsables ============ */
     .fc-doc { margin-top: 4px; }
-    .fc-doc__section { margin: 0 0 22px; }
-    .fc-doc__section:last-child { margin-bottom: 0; }
+    .fc-doc__section {
+      border-bottom: 1px solid var(--line);
+    }
+    .fc-doc__section:last-child { border-bottom: none; }
+    /* Cada sección es un <details>; el heading (o "Introducción") es el <summary>. */
     .fc-doc__heading {
       font-family: var(--body);
       font-size: 13px; font-weight: 800;
       letter-spacing: 0.08em; text-transform: uppercase;
       color: var(--sage-label);
-      margin: 0 0 10px;
       line-height: 1.3;
+      margin: 0;
+      padding: 15px 2px;
+      cursor: pointer;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      -webkit-tap-highlight-color: transparent;
     }
+    .fc-doc__heading::-webkit-details-marker { display: none; }
+    .fc-doc__heading::after {
+      content: '+';
+      font-size: 20px;
+      font-weight: 400;
+      color: var(--sage);
+      flex-shrink: 0;
+      transition: transform 200ms var(--ease-out-quart);
+    }
+    .fc-doc__section[open] > .fc-doc__heading::after { transform: rotate(45deg); }
+    .fc-doc__section-body { padding: 0 2px 18px; }
     .fc-doc__line {
       font-size: 15px; line-height: 1.6; color: var(--ink);
       margin: 0 0 10px;
@@ -196,6 +218,19 @@
       padding-left: 1.1em;
       text-indent: -1.1em;
     }
+
+    /* ============ AUTORIZACIÓN DE FOTOS — destacada, antes de firmar ============ */
+    .fc-photo-emphasis {
+      display: flex; gap: 12px; align-items: flex-start;
+      background: var(--sage-soft);
+      border: 1.5px solid var(--sage);
+      border-radius: 14px;
+      padding: 16px 18px;
+      margin: 4px 0 20px;
+    }
+    .fc-photo-emphasis__icon { font-size: 20px; line-height: 1; flex-shrink: 0; margin-top: 1px; }
+    .fc-photo-emphasis__text strong { display: block; font-size: 14.5px; color: var(--ink); margin-bottom: 3px; }
+    .fc-photo-emphasis__text span { font-size: 14px; color: var(--ink-2); line-height: 1.5; }
 
     /* ============ CHECKBOX ============ */
     .fc-check {
@@ -431,6 +466,14 @@
         <h2 class="fc-card__title">Tu aceptación y firma</h2>
         <p class="fc-card__lede">Marca la casilla y firma con el dedo o el ratón. 🌸</p>
 
+        <div class="fc-photo-emphasis">
+          <span class="fc-photo-emphasis__icon" aria-hidden="true">📸</span>
+          <div class="fc-photo-emphasis__text">
+            <strong>Autorización de fotografías de evolución</strong>
+            <span>Autorizo que Venus tome fotografías de la evolución de mi tratamiento. Esta autorización queda incluida al firmar este consentimiento.</span>
+          </div>
+        </div>
+
         <div class="fc-field">
           <label class="fc-check" id="checkWrap">
             <input type="checkbox" id="checkRead" class="fc-check__input" aria-describedby="checkLabel">
@@ -574,29 +617,33 @@
         ? 'Hola ' + name + ', lee con calma y firma al final. Es necesario antes de tu sesión de depilación láser. 🌸'
         : 'Lee con calma y firma al final. Es necesario antes de tu sesión de depilación láser. 🌸';
 
-      // Secciones.
+      // Secciones — digestibles: cada una es un <details> colapsable (el heading es
+      // el <summary>; la introducción sin heading usa un rótulo genérico). La
+      // primera sección queda ABIERTA por defecto; el resto, colapsado.
       docBody.innerHTML = '';
       const sections = Array.isArray(ct.sections) ? ct.sections : [];
-      sections.forEach((sec) => {
-        const wrap = document.createElement('div');
-        wrap.className = 'fc-doc__section';
-        if (sec.heading && String(sec.heading).trim()) {
-          const h = document.createElement('h3');
-          h.className = 'fc-doc__heading';
-          h.textContent = sec.heading;
-          wrap.appendChild(h);
-        }
-        const body = sec.body || '';
-        const lines = String(body).split('\n');
+      sections.forEach((sec, i) => {
+        const heading = sec.heading && String(sec.heading).trim() ? sec.heading : 'Introducción';
+        const lines = String(sec.body || '').split('\n').filter((line) => line.trim() !== '');
+
+        const details = document.createElement('details');
+        details.className = 'fc-doc__section';
+        if (i === 0) details.open = true;
+        const summary = document.createElement('summary');
+        summary.className = 'fc-doc__heading';
+        summary.textContent = heading;
+        details.appendChild(summary);
+        const body = document.createElement('div');
+        body.className = 'fc-doc__section-body';
         lines.forEach((line) => {
-          if (line.trim() === '') return; // saltar líneas vacías
           const p = document.createElement('p');
           const isBullet = /^\s*•/.test(line);
           p.className = 'fc-doc__line' + (isBullet ? ' fc-doc__line--bullet' : '');
           p.textContent = line;
-          wrap.appendChild(p);
+          body.appendChild(p);
         });
-        docBody.appendChild(wrap);
+        details.appendChild(body);
+        docBody.appendChild(details);
       });
     }
 
