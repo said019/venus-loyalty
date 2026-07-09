@@ -4015,13 +4015,17 @@
         const record = result.data || result; // Manejar ambos formatos
         currentExpedienteRecordId = record.id;
         
-        // Llenar formulario de datos
-        document.getElementById('exp-age').value = record.age || '';
-        document.getElementById('exp-skin-type').value = record.skinType || '';
-        document.getElementById('exp-allergies').value = record.allergies || '';
-        document.getElementById('exp-medical').value = record.medicalHistory || '';
-        document.getElementById('exp-objectives').value = record.objectives || '';
-        document.getElementById('exp-observations').value = record.observations || '';
+        // Los campos del viejo formulario "Datos" (exp-age, exp-skin-type, …)
+        // ya no existen: la sección Resumen ahora muestra estos datos de solo
+        // lectura alimentados por la Ficha firmada. Guardamos contra null por si
+        // el record legacy trae datos, para no romper el flujo.
+        const setIf = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
+        setIf('exp-age', record.age);
+        setIf('exp-skin-type', record.skinType);
+        setIf('exp-allergies', record.allergies);
+        setIf('exp-medical', record.medicalHistory);
+        setIf('exp-objectives', record.objectives);
+        setIf('exp-observations', record.observations);
         
         // Cargar sesiones y fotos
         expedienteSessionsCache = record.sessions || [];
