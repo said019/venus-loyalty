@@ -88,14 +88,19 @@ router.post('/public/ficha/:token/submit', async (req, res) => {
 
     const signed = await prisma.intakeForm.update({
       where: { id: intake.id },
-      data: { status: 'signed', signatureClient: signature, signedAt: new Date() },
+      data: { status: 'signed', signatureClient: signature, signedAt: new Date(), driveUploadPending: true },
     });
 
-    const pdf = await buildIntakePdf(signed, card);
-    const drive = await pushPdfToDrive(card, `Ficha Clínica – ${fechaHoy()}.pdf`, pdf);
-    await prisma.intakeForm.update({ where: { id: intake.id }, data: drive });
-    if (drive.pdfDriveFileId) {
-      await prisma.clientDocument.create({ data: { recordId: record.id, name: `Ficha Clínica – ${fechaHoy()}.pdf`, mimeType: 'application/pdf', driveFileId: drive.pdfDriveFileId, webViewLink: drive.pdfWebViewLink, source: 'generated' } });
+    try {
+      const pdf = await buildIntakePdf(signed, card);
+      const drive = await pushPdfToDrive(card, `Ficha Clínica – ${fechaHoy()}.pdf`, pdf);
+      await prisma.intakeForm.update({ where: { id: intake.id }, data: drive });
+      if (drive.pdfDriveFileId) {
+        await prisma.clientDocument.create({ data: { recordId: record.id, name: `Ficha Clínica – ${fechaHoy()}.pdf`, mimeType: 'application/pdf', driveFileId: drive.pdfDriveFileId, webViewLink: drive.pdfWebViewLink, source: 'generated' } });
+      }
+    } catch (pdfErr) {
+      // La firma ya quedó persistida; el PDF/Drive se reintenta vía cron (driveUploadPending: true).
+      console.error('[expedientes] PDF/Drive post-firma falló; queda pendiente:', pdfErr);
     }
 
     // Denormalizar resumen que el admin ya muestra
@@ -135,12 +140,17 @@ router.post('/public/consent/:token/submit', async (req, res) => {
     if (existing) return fail(res, 409, 'consentimiento_ya_firmado');
 
     const text = getConsentText('laser-diodo');
-    const consent = await prisma.consentDoc.create({ data: { recordId: record.id, type: 'laser-diodo', textVersion: text.version, status: 'signed', signatureClient: signature, signedAt: new Date() } });
-    const pdf = await buildConsentPdf(consent, card);
-    const drive = await pushPdfToDrive(card, `Consentimiento Láser – ${fechaHoy()}.pdf`, pdf);
-    await prisma.consentDoc.update({ where: { id: consent.id }, data: drive });
-    if (drive.pdfDriveFileId) {
-      await prisma.clientDocument.create({ data: { recordId: record.id, name: `Consentimiento Láser – ${fechaHoy()}.pdf`, mimeType: 'application/pdf', driveFileId: drive.pdfDriveFileId, webViewLink: drive.pdfWebViewLink, source: 'generated' } });
+    const consent = await prisma.consentDoc.create({ data: { recordId: record.id, type: 'laser-diodo', textVersion: text.version, status: 'signed', signatureClient: signature, signedAt: new Date(), driveUploadPending: true } });
+    try {
+      const pdf = await buildConsentPdf(consent, card);
+      const drive = await pushPdfToDrive(card, `Consentimiento Láser – ${fechaHoy()}.pdf`, pdf);
+      await prisma.consentDoc.update({ where: { id: consent.id }, data: drive });
+      if (drive.pdfDriveFileId) {
+        await prisma.clientDocument.create({ data: { recordId: record.id, name: `Consentimiento Láser – ${fechaHoy()}.pdf`, mimeType: 'application/pdf', driveFileId: drive.pdfDriveFileId, webViewLink: drive.pdfWebViewLink, source: 'generated' } });
+      }
+    } catch (pdfErr) {
+      // La firma ya quedó persistida; el PDF/Drive se reintenta vía cron (driveUploadPending: true).
+      console.error('[expedientes] PDF/Drive post-firma falló; queda pendiente:', pdfErr);
     }
     await NotificationsRepo.create({ type: 'cliente', icon: 'file-signature', title: 'Consentimiento firmado', message: `${card.name} firmó el consentimiento de depilación láser`, read: false, entityId: card.id });
     res.json({ success: true });
@@ -193,6 +203,10 @@ router.put('/:cardId/diagnosis', async (req, res) => {
     const record = await ensureRecord(req.params.cardId);
     const { id, skinType, alteration, causes, cosmeticTx, prognosis, cost, staffName } = req.body || {};
     const data = { skinType, alteration, causes, cosmeticTx, prognosis, cost, staffName };
+    if (id) {
+      const existing = await prisma.facialDiagnosis.findUnique({ where: { id } });
+      if (!existing || existing.recordId !== record.id) return fail(res, 404, 'diagnostico_no_encontrado');
+    }
     const diag = id
       ? await prisma.facialDiagnosis.update({ where: { id }, data })
       : await prisma.facialDiagnosis.create({ data: { recordId: record.id, ...data } });
@@ -227,6 +241,9 @@ router.post('/:cardId/laser-sessions', async (req, res) => {
 
 router.put('/:cardId/laser-sessions/:id', async (req, res) => {
   try {
+    const record = await ensureRecord(req.params.cardId);
+    const existing = await prisma.laserSessionLog.findUnique({ where: { id: req.params.id } });
+    if (!existing || existing.recordId !== record.id) return fail(res, 404, 'sesion_no_encontrada');
     const { date, staffName, zone, frequency, fluence, laserIntensity, observations } = req.body || {};
     const session = await prisma.laserSessionLog.update({ where: { id: req.params.id }, data: { date: date ? new Date(date) : undefined, staffName, zone, frequency, fluence, laserIntensity, observations } });
     res.json({ success: true, session });
@@ -234,8 +251,13 @@ router.put('/:cardId/laser-sessions/:id', async (req, res) => {
 });
 
 router.delete('/:cardId/laser-sessions/:id', async (req, res) => {
-  try { await prisma.laserSessionLog.delete({ where: { id: req.params.id } }); res.json({ success: true }); }
-  catch (e) { return fail(res, 500, e.message); }
+  try {
+    const record = await ensureRecord(req.params.cardId);
+    const result = await prisma.laserSessionLog.deleteMany({ where: { id: req.params.id, recordId: record.id } });
+    if (result.count === 0) return fail(res, 404, 'sesion_no_encontrada');
+    res.json({ success: true });
+  }
+  catch (e) { console.error(e); return fail(res, 500, e.message); }
 });
 
 router.post('/:cardId/documents', upload.array('files', 10), async (req, res) => {
@@ -255,8 +277,13 @@ router.post('/:cardId/documents', upload.array('files', 10), async (req, res) =>
 });
 
 router.delete('/:cardId/documents/:docId', async (req, res) => {
-  try { await prisma.clientDocument.delete({ where: { id: req.params.docId } }); res.json({ success: true }); }
-  catch (e) { return fail(res, 500, e.message); }
+  try {
+    const record = await ensureRecord(req.params.cardId);
+    const result = await prisma.clientDocument.deleteMany({ where: { id: req.params.docId, recordId: record.id } });
+    if (result.count === 0) return fail(res, 404, 'documento_no_encontrado');
+    res.json({ success: true });
+  }
+  catch (e) { console.error(e); return fail(res, 500, e.message); }
 });
 
 export default router;

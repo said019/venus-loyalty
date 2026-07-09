@@ -487,6 +487,10 @@ export function startScheduler() {
                     const data = { pdfDriveFileId: up.id, pdfWebViewLink: up.webViewLink, driveUploadPending: false };
                     if (item.kind === 'intake') await prisma.intakeForm.update({ where: { id: item.x.id }, data });
                     else await prisma.consentDoc.update({ where: { id: item.x.id }, data });
+                    const existing = await prisma.clientDocument.findFirst({ where: { driveFileId: up.id } });
+                    if (!existing) {
+                        await prisma.clientDocument.create({ data: { recordId: item.x.record.id, name, mimeType: 'application/pdf', driveFileId: up.id, webViewLink: up.webViewLink, source: 'generated' } });
+                    }
                     console.log(`📁 [drive-retry] subido: ${name}`);
                 } catch (e) { console.warn('[drive-retry] item falló:', e.message); }
             }
