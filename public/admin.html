@@ -20,6 +20,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
 
   <!-- Firebase removido - ahora usamos PostgreSQL -->
   <!-- Chart.js for Reports -->
@@ -3455,14 +3456,33 @@
             </div>
             <div id="exp-sessions-list" class="exp-sessions-list"></div>
           </div>
+          <div class="exp-hairline-group">
+            <h3 class="exp-section-title">Cuestionario de condiciones</h3>
+            <p class="exp-muted-note" style="margin-bottom:14px;">Actívalas si aplican a la clienta y responde junto con ella. Se guarda en el mismo cuestionario de su ficha.</p>
+            <div class="exp-chips" id="exp-cond-chips">
+              <button type="button" class="exp-chip" data-cond="acne">Acné</button>
+              <button type="button" class="exp-chip" data-cond="cicatrices">Cicatrices atróficas</button>
+              <button type="button" class="exp-chip" data-cond="pigmentaciones">Pigmentaciones</button>
+              <button type="button" class="exp-chip" data-cond="envejecimiento">Envejecimiento</button>
+              <button type="button" class="exp-chip" data-cond="ojerasInflamadas">Ojeras inflamadas</button>
+              <button type="button" class="exp-chip" data-cond="ojerasPigmentadas">Ojeras pigmentadas</button>
+              <button type="button" class="exp-chip" data-cond="pielSensible">Piel sensible</button>
+            </div>
+            <div id="exp-cond-questions" style="margin-top:6px;"></div>
+            <div style="margin-top:16px;">
+              <button type="button" class="btn primary" onclick="expSaveQuestionnaires()"><i class="fas fa-save"></i> Guardar cuestionario</button>
+            </div>
+          </div>
         </section>
 
         <!-- ===== Sección: Láser ===== -->
         <section id="exp-sec-laser" class="exp-sec-content">
           <h3 class="exp-section-title">Sesiones de depilación láser</h3>
+          <div id="exp-laser-gate"></div>
           <div id="exp-laser-list" class="exp-stacked-list"></div>
           <form id="exp-laser-form" class="exp-form" style="margin-top:18px;" onsubmit="return expSaveLaserSession(event)">
             <input type="hidden" id="exp-laser-id">
+            <input type="hidden" id="exp-laser-signature">
             <div class="exp-form-grid">
               <div class="exp-form-group"><label>Fecha</label><input type="date" id="exp-laser-date" class="form-input"></div>
               <div class="exp-form-group"><label>Cosmetóloga</label><input type="text" id="exp-laser-staffName" class="form-input"></div>
@@ -3472,6 +3492,13 @@
               <div class="exp-form-group"><label>Parámetro 3</label><input type="text" inputmode="numeric" id="exp-laser-laserIntensity" class="form-input"></div>
             </div>
             <div class="exp-form-group"><label>Observaciones</label><textarea id="exp-laser-observations" class="form-input" rows="2"></textarea></div>
+            <div class="exp-form-group">
+              <label>Firma de la clienta</label>
+              <div class="exp-sig-field">
+                <button type="button" class="btn ghost" onclick="expCaptureLaserSignature()"><i class="fas fa-signature"></i> Capturar firma</button>
+                <span id="exp-laser-sig-status" class="exp-sig-status"><i class="fas fa-circle-exclamation"></i> Falta firmar</span>
+              </div>
+            </div>
             <div class="exp-form-actions-sticky">
               <button type="submit" class="btn primary"><i class="fas fa-save"></i> <span id="exp-laser-save-label">Registrar sesión</span></button>
               <button type="button" class="btn ghost" onclick="expResetLaserForm()">Cancelar</button>
@@ -4528,6 +4555,9 @@
     // ===== EXPEDIENTE DIGITAL (Ficha / Consentimientos / Diagnóstico / Láser / Documentos) =====
     // Consumes /api/expedientes/* (router con adminAuth por cookie adm → credentials:'include').
     let expedienteDigitalCache = null;
+    let expLaserSignatureDataUrl = null; // firma recién capturada para la sesión de láser en curso (aún no guardada)
+    let expLaserEditingHasServerSignature = false; // true si la sesión que se está editando ya tenía firma guardada
+    let expQuestionnairesState = {}; // cuestionario de condiciones en edición (admin), espejo de intake.questionnaires
     const expApi = window.apiFetch || ((u, o) => fetch(u, Object.assign({ credentials: 'include' }, o || {})));
 
     // Etiquetas para render de la ficha (espejo de ficha-clinica.html)
@@ -4546,6 +4576,96 @@
       pielSensible: ['¿Recientemente te has realizado algún tratamiento invasivo? ¿Cuál?','¿Tu piel no tolera muy bien todos los productos para la piel?','¿Normalmente tu piel tiene una temperatura alta?','¿En tu familia hay enfermedades o condiciones de la piel como piel sensible, reactiva, con cáncer de piel o rosácea?']
     };
 
+    // ----- Cuestionario de condiciones (editable en el admin, mismo dato que la ficha) -----
+    function expRenderQuestionnaireChips() {
+      const wrap = document.getElementById('exp-cond-chips');
+      if (!wrap) return;
+      Array.prototype.forEach.call(wrap.querySelectorAll('.exp-chip'), function (chip) {
+        chip.classList.toggle('on', !!expQuestionnairesState[chip.dataset.cond]);
+      });
+    }
+
+    function expRenderQuestionnaireFields() {
+      const wrap = document.getElementById('exp-cond-questions');
+      if (!wrap) return;
+      const conds = Object.keys(expQuestionnairesState);
+      if (conds.length === 0) {
+        wrap.innerHTML = '<p class="exp-muted-note">Selecciona arriba las que apliquen para ver sus preguntas.</p>';
+        return;
+      }
+      wrap.innerHTML = conds.map(function (cond) {
+        const qs = EXP_QUESTIONS[cond] || [];
+        const title = EXP_COND_TITLES[cond] || cond;
+        const ans = expQuestionnairesState[cond] || {};
+        const fields = qs.map(function (q, idx) {
+          const qkey = 'q' + (idx + 1);
+          const val = ans[qkey] || '';
+          return '<div class="exp-form-group"><label>' + (idx + 1) + '. ' + expEsc(q) + '</label>' +
+            '<textarea class="form-input" rows="2" data-cond="' + expEsc(cond) + '" data-qkey="' + qkey + '">' + expEsc(val) + '</textarea></div>';
+        }).join('');
+        return '<div class="exp-cond-block"><h4 class="exp-cond-block-title">' + expEsc(title) + '</h4>' + fields + '</div>';
+      }).join('');
+    }
+
+    function expToggleQuestionnaireCond(cond) {
+      if (expQuestionnairesState[cond]) {
+        delete expQuestionnairesState[cond];
+      } else {
+        const ans = {};
+        (EXP_QUESTIONS[cond] || []).forEach(function (_, idx) { ans['q' + (idx + 1)] = ''; });
+        expQuestionnairesState[cond] = ans;
+      }
+      expRenderQuestionnaireChips();
+      expRenderQuestionnaireFields();
+    }
+
+    // Precarga el cuestionario desde intake.questionnaires cada vez que se carga el expediente.
+    function expLoadQuestionnairesFromIntake(intake) {
+      expQuestionnairesState = (intake && intake.questionnaires && typeof intake.questionnaires === 'object')
+        ? JSON.parse(JSON.stringify(intake.questionnaires))
+        : {};
+      expRenderQuestionnaireChips();
+      expRenderQuestionnaireFields();
+    }
+
+    async function expSaveQuestionnaires() {
+      const cardId = currentExpedienteCardId;
+      if (!cardId) { alert('No hay expediente cargado'); return; }
+      try {
+        const res = await expApi('/api/expedientes/' + encodeURIComponent(cardId) + '/questionnaires', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ questionnaires: expQuestionnairesState }) });
+        if (!res.ok) throw new Error('Error al guardar el cuestionario');
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Error al guardar el cuestionario');
+        alert('Cuestionario guardado correctamente');
+        await loadExpedienteDigital(cardId);
+      } catch (err) {
+        console.error('[Cuestionario] Error:', err);
+        alert('Error al guardar el cuestionario');
+      }
+    }
+
+    // Delegación de eventos: chips (toggle condición) + inputs de preguntas (captura respuesta).
+    (function bindExpQuestionnaireEvents() {
+      const chipsWrap = document.getElementById('exp-cond-chips');
+      if (chipsWrap) {
+        chipsWrap.addEventListener('click', function (e) {
+          const chip = e.target.closest('.exp-chip');
+          if (!chip) return;
+          expToggleQuestionnaireCond(chip.dataset.cond);
+        });
+      }
+      const qWrap = document.getElementById('exp-cond-questions');
+      if (qWrap) {
+        qWrap.addEventListener('input', function (e) {
+          const ta = e.target.closest('[data-qkey]');
+          if (!ta) return;
+          const cond = ta.dataset.cond, qkey = ta.dataset.qkey;
+          if (!expQuestionnairesState[cond]) expQuestionnairesState[cond] = {};
+          expQuestionnairesState[cond][qkey] = ta.value;
+        });
+      }
+    })();
+
     function expEsc(s) {
       return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
         return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c];
@@ -4559,6 +4679,116 @@
     }
     function expEmptyState(icon, msg) {
       return '<div class="exp-empty-state"><i class="fas ' + icon + '"></i><p>' + expEsc(msg) + '</p></div>';
+    }
+
+    // ----- Firma en tablet (helper reutilizable: consentimiento + sesiones de láser) -----
+    // Modal simple (overlay + tarjeta), independiente del tema claro/oscuro del admin —
+    // como los flujos de firma públicos (ficha-clinica.html / consentimiento-laser.html),
+    // esto es un momento formal de "firmar un documento" y siempre se ve en tono claro.
+    let expSigPad = null;
+    let expSigPadResizeHandler = null;
+
+    function expSigPadEscHandler(e) {
+      if (e.key === 'Escape') expCloseSignaturePad();
+    }
+
+    function expCloseSignaturePad() {
+      const overlay = document.getElementById('exp-sigpad-overlay');
+      if (overlay) overlay.remove();
+      expSigPad = null;
+      if (expSigPadResizeHandler) { window.removeEventListener('resize', expSigPadResizeHandler); expSigPadResizeHandler = null; }
+      document.removeEventListener('keydown', expSigPadEscHandler);
+    }
+
+    // opts: { title, subtitle, bodyHtml, saveLabel, onSave(dataUrl) }
+    // bodyHtml (opcional) se pinta ANTES del canvas de firma (usado por el consentimiento).
+    function expOpenSignaturePad(opts) {
+      opts = opts || {};
+      const title = opts.title || 'Firma';
+      const subtitle = opts.subtitle || '';
+      const bodyHtml = opts.bodyHtml || '';
+      const saveLabel = opts.saveLabel || 'Guardar firma';
+      const onSave = opts.onSave;
+
+      expCloseSignaturePad(); // por si había uno abierto
+
+      const overlay = document.createElement('div');
+      overlay.className = 'exp-sigpad-overlay';
+      overlay.id = 'exp-sigpad-overlay';
+      overlay.innerHTML =
+        '<div class="exp-sigpad-modal" role="dialog" aria-modal="true" aria-labelledby="exp-sigpad-title">' +
+          '<div class="exp-sigpad-header">' +
+            '<h3 class="exp-sigpad-title" id="exp-sigpad-title">' + expEsc(title) + '</h3>' +
+            '<button type="button" class="exp-sigpad-close" aria-label="Cerrar">&times;</button>' +
+          '</div>' +
+          (subtitle ? '<p class="exp-sigpad-subtitle">' + expEsc(subtitle) + '</p>' : '') +
+          '<div class="exp-sigpad-scroll">' +
+            (bodyHtml ? '<div class="exp-sigpad-body">' + bodyHtml + '</div>' : '') +
+            '<div class="exp-sigpad-sigblock">' +
+              '<label class="exp-sigpad-label">Firma de la clienta</label>' +
+              '<div class="exp-sigpad-canvas-wrap"><canvas class="exp-sigpad-canvas" id="exp-sigpad-canvas"></canvas></div>' +
+              '<button type="button" class="exp-sigpad-clear" id="exp-sigpad-clear-btn">Limpiar</button>' +
+            '</div>' +
+          '</div>' +
+          '<div class="exp-sigpad-actions">' +
+            '<button type="button" class="btn ghost" id="exp-sigpad-cancel-btn">Cancelar</button>' +
+            '<button type="button" class="btn primary" id="exp-sigpad-save-btn" disabled>' + expEsc(saveLabel) + '</button>' +
+          '</div>' +
+        '</div>';
+      document.body.appendChild(overlay);
+
+      const canvas = overlay.querySelector('#exp-sigpad-canvas');
+      const saveBtn = overlay.querySelector('#exp-sigpad-save-btn');
+      const clearBtn = overlay.querySelector('#exp-sigpad-clear-btn');
+      const cancelBtn = overlay.querySelector('#exp-sigpad-cancel-btn');
+      const closeBtn = overlay.querySelector('.exp-sigpad-close');
+
+      function updateSaveState() {
+        saveBtn.disabled = !expSigPad || expSigPad.isEmpty();
+      }
+      function resize() {
+        if (!expSigPad) return;
+        const ratio = Math.max(window.devicePixelRatio || 1, 1);
+        const rect = canvas.getBoundingClientRect();
+        canvas.width = Math.floor(rect.width * ratio);
+        canvas.height = Math.floor(rect.height * ratio);
+        canvas.getContext('2d').scale(ratio, ratio);
+        expSigPad.clear();
+        updateSaveState();
+      }
+      function boot() {
+        if (typeof SignaturePad === 'undefined') { requestAnimationFrame(boot); return; }
+        expSigPad = new SignaturePad(canvas, { backgroundColor: 'rgba(255,255,255,0)', penColor: '#243026', minWidth: 0.8, maxWidth: 2.2 });
+        resize();
+        expSigPad.addEventListener('beginStroke', updateSaveState);
+        expSigPad.addEventListener('endStroke', updateSaveState);
+      }
+      requestAnimationFrame(boot);
+      expSigPadResizeHandler = resize;
+      window.addEventListener('resize', expSigPadResizeHandler);
+
+      clearBtn.addEventListener('click', function () { if (expSigPad) expSigPad.clear(); updateSaveState(); });
+      cancelBtn.addEventListener('click', expCloseSignaturePad);
+      closeBtn.addEventListener('click', expCloseSignaturePad);
+      overlay.addEventListener('click', function (e) { if (e.target === overlay) expCloseSignaturePad(); });
+      document.addEventListener('keydown', expSigPadEscHandler);
+
+      saveBtn.addEventListener('click', async function () {
+        if (!expSigPad || expSigPad.isEmpty()) return;
+        const dataUrl = expSigPad.toDataURL('image/png');
+        saveBtn.disabled = true;
+        const originalLabel = saveBtn.textContent;
+        saveBtn.textContent = 'Guardando…';
+        try {
+          if (onSave) await onSave(dataUrl);
+          expCloseSignaturePad();
+        } catch (err) {
+          console.error('[Firma] Error al guardar:', err);
+          alert(err && err.message ? err.message : 'No se pudo guardar la firma');
+          saveBtn.disabled = false;
+          saveBtn.textContent = originalLabel;
+        }
+      });
     }
 
     // Carga todo el expediente digital y pinta las 5 pestañas.
@@ -4577,8 +4807,11 @@
         const expRealName = (expCard && expCard.name) || (data.intake && data.intake.fullName) || '';
         if (expNameEl && expRealName) expNameEl.textContent = expRealName;
         renderFichaPanel(data.intake, data.record);
+        expLoadQuestionnairesFromIntake(data.intake);
         renderConsentsPanel(data.consents || []);
         renderDiagnosisPanel(data.diagnoses || []);
+        const consentFirmado = (data.consents || []).some(function (c) { return c.type === 'laser-diodo' && c.status === 'signed'; });
+        renderLaserGate(consentFirmado);
         renderLaserPanel(data.laserSessions || []);
         renderDocumentsPanel(data.documents || []);
         renderResumenPanel(data);
@@ -4912,6 +5145,60 @@
       }
     }
 
+    // Firma del consentimiento EN LA TABLET: la clienta lee (secciones colapsables)
+    // y firma ahí mismo, sin depender de un link por WhatsApp.
+    async function expSignConsent() {
+      const cardId = currentExpedienteCardId;
+      if (!cardId) { alert('No hay expediente cargado'); return; }
+
+      let ct;
+      try {
+        const res = await expApi('/api/expedientes/consent-text/laser-diodo');
+        if (!res.ok) throw new Error('No se pudo cargar el texto del consentimiento');
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'No se pudo cargar el texto del consentimiento');
+        ct = data.consentText || {};
+      } catch (err) {
+        console.error('[Consentimiento] Error al cargar texto:', err);
+        alert('No se pudo cargar el texto del consentimiento. Intenta de nuevo.');
+        return;
+      }
+
+      const sections = Array.isArray(ct.sections) ? ct.sections : [];
+      const sectionsHtml = sections.map(function (sec, i) {
+        const heading = sec.heading && String(sec.heading).trim() ? expEsc(sec.heading) : 'Introducción';
+        const paras = String(sec.body || '').split('\n').filter(function (l) { return l.trim() !== ''; })
+          .map(function (line) { return '<p>' + expEsc(line) + '</p>'; }).join('');
+        return '<details class="exp-consenttext__section"' + (i === 0 ? ' open' : '') + '>' +
+          '<summary>' + heading + '</summary>' + paras +
+          '</details>';
+      }).join('');
+
+      const bodyHtml =
+        '<div class="exp-consenttext">' +
+          sectionsHtml +
+          '<div class="exp-photo-emphasis">' +
+            '<i class="fas fa-camera"></i>' +
+            '<div><strong>Autorización de fotografías</strong>' +
+            '<span>Autorizo que Venus tome fotografías de la evolución de mi tratamiento. Esta autorización queda incluida al firmar este consentimiento.</span></div>' +
+          '</div>' +
+        '</div>';
+
+      expOpenSignaturePad({
+        title: 'Consentimiento de depilación láser',
+        subtitle: 'La clienta firma después de leer.',
+        bodyHtml: bodyHtml,
+        saveLabel: 'Firmar consentimiento',
+        onSave: async function (dataUrl) {
+          const res = await expApi('/api/expedientes/' + encodeURIComponent(cardId) + '/consent-sign', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ signature: dataUrl }) });
+          if (!res.ok) { let m = 'Error al firmar el consentimiento'; try { const j = await res.json(); if (j && j.error) m = j.error; } catch (_) {} throw new Error(m); }
+          const data = await res.json();
+          if (!data.success) throw new Error(data.error || 'Error al firmar el consentimiento');
+          await loadExpedienteDigital(cardId);
+        }
+      });
+    }
+
     // ----- Diagnóstico -----
     function renderDiagnosisPanel(diagnoses) {
       const list = document.getElementById('exp-diagnosis-list');
@@ -5004,6 +5291,24 @@
     }
 
     // ----- Láser -----
+    // Gate: sin consentimiento firmado no se pueden registrar sesiones.
+    function renderLaserGate(consentFirmado) {
+      const gate = document.getElementById('exp-laser-gate');
+      const form = document.getElementById('exp-laser-form');
+      if (!gate || !form) return;
+      if (!consentFirmado) {
+        form.style.display = 'none';
+        gate.innerHTML =
+          '<div class="exp-gate-panel">' +
+            '<p><i class="fas fa-triangle-exclamation"></i> Antes de registrar sesiones, la clienta debe firmar el consentimiento informado de depilación láser.</p>' +
+            '<button type="button" class="btn primary" onclick="expSignConsent()"><i class="fas fa-file-signature"></i> Firmar consentimiento en la tablet</button>' +
+          '</div>';
+      } else {
+        form.style.display = '';
+        gate.innerHTML = '<div style="margin-bottom:14px;"><span class="exp-badge exp-badge-ok">Consentimiento firmado</span></div>';
+      }
+    }
+
     function renderLaserPanel(sessions) {
       const tb = document.getElementById('exp-laser-list');
       if (!tb) return;
@@ -5015,8 +5320,9 @@
         const fecha = s.date ? new Date(s.date).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
         const params = [s.frequency, s.fluence, s.laserIntensity, s.staffName].filter(Boolean).map(expEsc).join(' · ');
         const obs = s.observations ? '<div class="exp-laser-obs">' + expEsc(String(s.observations).slice(0, 120)) + (s.observations.length > 120 ? '…' : '') + '</div>' : '';
+        const sigBadge = s.signedAt ? '<span class="exp-stacked-sig" title="Firmada por la clienta"><i class="fas fa-check"></i> Firmada</span>' : '';
         return '<div class="exp-stacked-row">' +
-          '<div class="exp-stacked-main"><span class="exp-stacked-date">' + expEsc(fecha) + '</span>' + (s.zone ? '<span class="exp-stacked-zone"> · ' + expEsc(s.zone) + '</span>' : '') + '</div>' +
+          '<div class="exp-stacked-main"><span class="exp-stacked-date">' + expEsc(fecha) + '</span>' + (s.zone ? '<span class="exp-stacked-zone"> · ' + expEsc(s.zone) + '</span>' : '') + sigBadge + '</div>' +
           '<div class="exp-stacked-meta">' + params + '</div>' +
           obs +
           '<div class="exp-stacked-actions">' +
@@ -5025,6 +5331,38 @@
           '</div>' +
         '</div>';
       }).join('');
+    }
+
+    // Abre el pad de firma para la sesión de láser en curso (no se envía hasta guardar el form).
+    function expCaptureLaserSignature() {
+      expOpenSignaturePad({
+        title: 'Firma de la clienta',
+        subtitle: 'Confirma que acepta esta sesión de depilación láser.',
+        saveLabel: 'Guardar firma',
+        onSave: function (dataUrl) {
+          expLaserSignatureDataUrl = dataUrl;
+          expLaserEditingHasServerSignature = false; // la firma nueva reemplaza cualquier estado previo
+          expUpdateLaserSigStatus();
+        }
+      });
+    }
+
+    function expUpdateLaserSigStatus() {
+      // Espejo en el hidden #exp-laser-signature (fuente de verdad: la variable expLaserSignatureDataUrl).
+      const hiddenEl = document.getElementById('exp-laser-signature');
+      if (hiddenEl) hiddenEl.value = expLaserSignatureDataUrl || '';
+      const el = document.getElementById('exp-laser-sig-status');
+      if (!el) return;
+      if (expLaserSignatureDataUrl) {
+        el.className = 'exp-sig-status on';
+        el.innerHTML = '<i class="fas fa-circle-check"></i> Firma capturada';
+      } else if (expLaserEditingHasServerSignature) {
+        el.className = 'exp-sig-status on';
+        el.innerHTML = '<i class="fas fa-circle-check"></i> Ya firmada';
+      } else {
+        el.className = 'exp-sig-status';
+        el.innerHTML = '<i class="fas fa-circle-exclamation"></i> Falta firmar';
+      }
     }
 
     function expEditLaserSession(id) {
@@ -5039,6 +5377,10 @@
       document.getElementById('exp-laser-fluence').value = s.fluence || '';
       document.getElementById('exp-laser-laserIntensity').value = s.laserIntensity || '';
       document.getElementById('exp-laser-observations').value = s.observations || '';
+      // La firma no se recarga en claro (no hace falta re-firmar si el servidor ya la tiene).
+      expLaserSignatureDataUrl = null;
+      expLaserEditingHasServerSignature = !!s.signedAt;
+      expUpdateLaserSigStatus();
       const lbl = document.getElementById('exp-laser-save-label');
       if (lbl) lbl.textContent = 'Guardar cambios';
       const f = document.getElementById('exp-laser-form');
@@ -5052,12 +5394,19 @@
       if (idEl) idEl.value = '';
       const lbl = document.getElementById('exp-laser-save-label');
       if (lbl) lbl.textContent = 'Agregar sesión';
+      expLaserSignatureDataUrl = null;
+      expLaserEditingHasServerSignature = false;
+      expUpdateLaserSigStatus();
     }
 
     async function expSaveLaserSession(e) {
       e.preventDefault();
       const cardId = currentExpedienteCardId;
       if (!cardId) { alert('No hay expediente cargado'); return false; }
+      if (!expLaserSignatureDataUrl && !expLaserEditingHasServerSignature) {
+        alert('La clienta debe firmar esta sesión');
+        return false;
+      }
       const id = document.getElementById('exp-laser-id').value || null;
       const body = {
         date: document.getElementById('exp-laser-date').value || null,
@@ -5066,7 +5415,8 @@
         frequency: document.getElementById('exp-laser-frequency').value || null,
         fluence: document.getElementById('exp-laser-fluence').value || null,
         laserIntensity: document.getElementById('exp-laser-laserIntensity').value || null,
-        observations: document.getElementById('exp-laser-observations').value || null
+        observations: document.getElementById('exp-laser-observations').value || null,
+        signature: expLaserSignatureDataUrl || undefined
       };
       try {
         const url = id
