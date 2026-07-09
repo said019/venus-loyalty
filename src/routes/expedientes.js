@@ -198,6 +198,50 @@ async function sendLink(req, res, purpose) {
 router.post('/:cardId/send-ficha', (req, res) => sendLink(req, res, 'ficha'));
 router.post('/:cardId/send-consent', (req, res) => sendLink(req, res, 'consent'));
 
+// Texto del consentimiento para pintarlo en el modal de firma de la tablet.
+router.get('/consent-text/:type', (req, res) => {
+  try {
+    res.json({ success: true, consentText: getConsentText(req.params.type) });
+  } catch (e) {
+    return fail(res, 400, 'tipo_de_consentimiento_desconocido');
+  }
+});
+
+// Firmar el consentimiento de láser desde el admin (tablet), en persona.
+// Mismo patrón que POST /public/consent/:token/submit, pero por :cardId + adminAuth.
+router.post('/:cardId/consent-sign', async (req, res) => {
+  try {
+    const { signature } = req.body || {};
+    if (!signature?.startsWith('data:image/png;base64,')) return fail(res, 400, 'firma_requerida');
+
+    const card = await prisma.card.findUnique({ where: { id: req.params.cardId } });
+    if (!card) return fail(res, 404, 'card_not_found');
+    const record = await ensureRecord(card.id);
+
+    const existing = await prisma.consentDoc.findFirst({ where: { recordId: record.id, type: 'laser-diodo', status: 'signed' } });
+    if (existing) return res.json({ success: true, alreadySigned: true });
+
+    const text = getConsentText('laser-diodo');
+    const consent = await prisma.consentDoc.create({ data: { recordId: record.id, type: 'laser-diodo', textVersion: text.version, status: 'signed', signatureClient: signature, signedAt: new Date(), driveUploadPending: true } });
+    try {
+      const pdf = await buildConsentPdf(consent, card);
+      const drive = await pushPdfToDrive(card, `Consentimiento Láser – ${fechaHoy()}.pdf`, pdf);
+      await prisma.consentDoc.update({ where: { id: consent.id }, data: drive });
+      if (drive.pdfDriveFileId) {
+        await prisma.clientDocument.create({ data: { recordId: record.id, name: `Consentimiento Láser – ${fechaHoy()}.pdf`, mimeType: 'application/pdf', driveFileId: drive.pdfDriveFileId, webViewLink: drive.pdfWebViewLink, source: 'generated' } });
+      }
+    } catch (pdfErr) {
+      // La firma ya quedó persistida; el PDF/Drive se reintenta vía cron (driveUploadPending: true).
+      console.error('[expedientes] PDF/Drive post-firma (tablet) falló; queda pendiente:', pdfErr);
+    }
+    await NotificationsRepo.create({ type: 'cliente', icon: 'file-signature', title: 'Consentimiento firmado', message: `${card.name} firmó el consentimiento de depilación láser en la tablet`, read: false, entityId: card.id });
+    res.json({ success: true, consent: { status: 'signed', signedAt: consent.signedAt } });
+  } catch (e) {
+    console.error('[expedientes] consent-sign:', e);
+    return fail(res, 500, e.message);
+  }
+});
+
 router.put('/:cardId/diagnosis', async (req, res) => {
   try {
     const record = await ensureRecord(req.params.cardId);
@@ -230,11 +274,29 @@ router.post('/:cardId/diagnosis/:id/pdf', async (req, res) => {
   } catch (e) { console.error(e); return fail(res, 500, e.message); }
 });
 
+// Cuestionario de condiciones, llenado/editado desde el admin junto con la clienta.
+// Actualiza el MISMO intake.questionnaires que la ficha pública (upsert de IntakeForm).
+router.put('/:cardId/questionnaires', async (req, res) => {
+  try {
+    const record = await ensureRecord(req.params.cardId);
+    const { questionnaires } = req.body || {};
+    const intake = await prisma.intakeForm.findUnique({ where: { recordId: record.id } });
+    if (intake) {
+      await prisma.intakeForm.update({ where: { id: intake.id }, data: { questionnaires } });
+    } else {
+      await prisma.intakeForm.create({ data: { recordId: record.id, questionnaires } });
+    }
+    res.json({ success: true });
+  } catch (e) { console.error(e); return fail(res, 500, e.message); }
+});
+
 router.post('/:cardId/laser-sessions', async (req, res) => {
   try {
     const record = await ensureRecord(req.params.cardId);
-    const { date, staffName, zone, frequency, fluence, laserIntensity, observations } = req.body || {};
-    const session = await prisma.laserSessionLog.create({ data: { recordId: record.id, date: date ? new Date(date) : new Date(), staffName, zone, frequency, fluence, laserIntensity, observations } });
+    const { date, staffName, zone, frequency, fluence, laserIntensity, observations, signature } = req.body || {};
+    const data = { recordId: record.id, date: date ? new Date(date) : new Date(), staffName, zone, frequency, fluence, laserIntensity, observations };
+    if (signature?.startsWith('data:image/png;base64,')) { data.signatureClient = signature; data.signedAt = new Date(); }
+    const session = await prisma.laserSessionLog.create({ data });
     res.json({ success: true, session });
   } catch (e) { console.error(e); return fail(res, 500, e.message); }
 });
@@ -244,8 +306,10 @@ router.put('/:cardId/laser-sessions/:id', async (req, res) => {
     const record = await ensureRecord(req.params.cardId);
     const existing = await prisma.laserSessionLog.findUnique({ where: { id: req.params.id } });
     if (!existing || existing.recordId !== record.id) return fail(res, 404, 'sesion_no_encontrada');
-    const { date, staffName, zone, frequency, fluence, laserIntensity, observations } = req.body || {};
-    const session = await prisma.laserSessionLog.update({ where: { id: req.params.id }, data: { date: date ? new Date(date) : undefined, staffName, zone, frequency, fluence, laserIntensity, observations } });
+    const { date, staffName, zone, frequency, fluence, laserIntensity, observations, signature } = req.body || {};
+    const data = { date: date ? new Date(date) : undefined, staffName, zone, frequency, fluence, laserIntensity, observations };
+    if (signature?.startsWith('data:image/png;base64,')) { data.signatureClient = signature; data.signedAt = new Date(); }
+    const session = await prisma.laserSessionLog.update({ where: { id: req.params.id }, data });
     res.json({ success: true, session });
   } catch (e) { console.error(e); return fail(res, 500, e.message); }
 });
