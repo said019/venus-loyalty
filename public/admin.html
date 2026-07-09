@@ -18636,6 +18636,447 @@
     })();
   </script>
 
+  <!-- ============================================================
+       Diálogos Venus — reemplazo con estética propia de alert/confirm/
+       prompt nativos del navegador. Mismos tokens que #card-modal-backdrop
+       y .exp-sigpad-* (DESIGN.md): superficie crema, tinta oliva, Playfair
+       Display en títulos. Siempre en tono claro, independiente del toggle
+       oscuro del admin (igual que el modal de firma). z-index por encima
+       de cualquier modal existente (100001-100002).
+       ============================================================ -->
+  <style>
+    #venus-dialog-root {
+      --vd-surface: oklch(99% 0.006 88);
+      --vd-surface-2: oklch(96.6% 0.012 88);
+      --vd-ink: oklch(24% 0.012 80);
+      --vd-ink-2: oklch(46% 0.012 80);
+      --vd-ink-3: oklch(56% 0.010 80);
+      --vd-line: oklch(89% 0.013 88);
+      --vd-olive: oklch(52% 0.078 120);
+      --vd-olive-deep: oklch(44% 0.088 120);
+      --vd-olive-soft: oklch(95% 0.020 120);
+      --vd-err: oklch(55% 0.140 28);
+      --vd-err-deep: oklch(46% 0.150 28);
+      position: fixed;
+      inset: 0;
+      z-index: 100003;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: oklch(24% 0.012 80 / 0.5);
+      backdrop-filter: blur(3px);
+      -webkit-backdrop-filter: blur(3px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .16s ease-out;
+      color-scheme: light;
+    }
+    #venus-dialog-root:empty { display: none; }
+    #venus-dialog-root.vd-open { opacity: 1; pointer-events: auto; }
+    #venus-dialog-root .vd-card {
+      width: 100%;
+      max-width: 440px;
+      max-height: min(88vh, 640px);
+      display: flex;
+      flex-direction: column;
+      background: var(--vd-surface);
+      color: var(--vd-ink);
+      border-radius: 20px;
+      box-shadow: 0 24px 60px oklch(22% 0.012 80 / 0.35);
+      overflow: hidden;
+      transform: translateY(14px) scale(0.98);
+      opacity: 0;
+      transition: transform .2s cubic-bezier(.25,1,.5,1), opacity .2s ease-out;
+      font-family: 'DM Sans', system-ui, sans-serif;
+    }
+    #venus-dialog-root.vd-open .vd-card { transform: translateY(0) scale(1); opacity: 1; }
+    #venus-dialog-root .vd-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 22px 22px 0;
+    }
+    #venus-dialog-root .vd-title {
+      margin: 0;
+      font: 600 20px/1.28 'Playfair Display', Georgia, serif;
+      color: var(--vd-ink);
+      letter-spacing: -0.01em;
+    }
+    #venus-dialog-root .vd-close {
+      flex-shrink: 0;
+      width: 32px;
+      height: 32px;
+      border-radius: 999px;
+      border: none;
+      background: transparent;
+      color: var(--vd-ink-2);
+      font-size: 19px;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background .12s, color .12s;
+    }
+    #venus-dialog-root .vd-close:hover { background: var(--vd-surface-2); color: var(--vd-ink); }
+    #venus-dialog-root .vd-body {
+      padding: 14px 22px 4px;
+      overflow-y: auto;
+      flex: 1;
+    }
+    #venus-dialog-root .vd-message {
+      margin: 0;
+      font-size: 14.5px;
+      line-height: 1.6;
+      color: var(--vd-ink-2);
+      white-space: normal;
+    }
+    #venus-dialog-root .vd-input {
+      width: 100%;
+      background: var(--vd-surface);
+      border: 1.5px solid var(--vd-line);
+      border-radius: 12px;
+      padding: 12px 14px;
+      color: var(--vd-ink);
+      font-size: 15px;
+      font-family: inherit;
+      margin-top: 14px;
+    }
+    #venus-dialog-root .vd-input:focus {
+      outline: none;
+      border-color: var(--vd-olive);
+      box-shadow: 0 0 0 3px var(--vd-olive-soft);
+    }
+    #venus-dialog-root .vd-choices {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 14px;
+    }
+    #venus-dialog-root .vd-choice-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 2px;
+      width: 100%;
+      text-align: left;
+      background: var(--vd-surface-2);
+      border: 1.5px solid var(--vd-line);
+      border-radius: 14px;
+      padding: 13px 16px;
+      cursor: pointer;
+      min-height: 44px;
+      font-family: inherit;
+      transition: background .12s, border-color .12s;
+    }
+    #venus-dialog-root .vd-choice-btn:hover,
+    #venus-dialog-root .vd-choice-btn:focus-visible {
+      background: var(--vd-olive-soft);
+      border-color: var(--vd-olive);
+      outline: none;
+    }
+    #venus-dialog-root .vd-choice-label {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--vd-ink);
+    }
+    #venus-dialog-root .vd-choice-hint {
+      font-size: 12.5px;
+      color: var(--vd-ink-3);
+    }
+    #venus-dialog-root .vd-actions {
+      display: flex;
+      gap: 10px;
+      padding: 18px 22px;
+      padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+      border-top: 1px solid var(--vd-line);
+      background: var(--vd-surface);
+      flex-shrink: 0;
+    }
+    #venus-dialog-root .vd-btn {
+      flex: 1;
+      min-height: 46px;
+      border-radius: 999px;
+      border: none;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      padding: 0 18px;
+      transition: filter .12s, background .12s;
+    }
+    #venus-dialog-root .vd-btn:active { transform: translateY(1px); }
+    #venus-dialog-root .vd-btn.vd-ghost { background: transparent; color: var(--vd-ink-2); border: 1.5px solid var(--vd-line); }
+    #venus-dialog-root .vd-btn.vd-ghost:hover { background: var(--vd-surface-2); color: var(--vd-ink); }
+    #venus-dialog-root .vd-btn.vd-primary { background: var(--vd-olive); color: #fff; }
+    #venus-dialog-root .vd-btn.vd-primary:hover { background: var(--vd-olive-deep); }
+    #venus-dialog-root .vd-btn.vd-danger { background: var(--vd-err); color: #fff; }
+    #venus-dialog-root .vd-btn.vd-danger:hover { background: var(--vd-err-deep); }
+    @media (max-width: 480px) {
+      #venus-dialog-root { padding: 0; align-items: flex-end; }
+      #venus-dialog-root .vd-card { max-width: 420px; margin: 0 auto; max-height: 92vh; border-radius: 20px 20px 0 0; }
+    }
+  </style>
+  <script>
+    // ============================================================
+    // Diálogos Venus: venusAlert / venusConfirm / venusPrompt / venusChoice
+    // Reemplazan alert()/confirm()/prompt() nativos con la estética Venus.
+    // Todas devuelven Promise y se encolan sobre un único overlay/raíz
+    // reutilizable (#venus-dialog-root), así que si se llaman en paralelo
+    // se muestran una tras otra en vez de superponerse.
+    // ============================================================
+    (function () {
+      'use strict';
+
+      var vdRoot = null;
+      var vdState = null; // { resolve, cancelValue, getOkValue|okValue, choices, allowBackdropClose, isPrompt }
+      var vdLastFocused = null;
+      var vdMouseDownOnBackdrop = false;
+      var vdQueue = Promise.resolve();
+
+      function vdEsc(s) {
+        return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+          return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+        });
+      }
+      function vdNl2br(s) {
+        return vdEsc(s).replace(/\n/g, '<br>');
+      }
+
+      // Encola una tarea (que abre un diálogo y devuelve una Promise) para que
+      // los diálogos nunca se superpongan sobre el único overlay reutilizable.
+      function vdEnqueue(taskFn) {
+        var result = vdQueue.then(taskFn, taskFn);
+        vdQueue = result.then(function () {}, function () {});
+        return result;
+      }
+
+      function vdBuildRoot() {
+        if (vdRoot) return vdRoot;
+        vdRoot = document.createElement('div');
+        vdRoot.id = 'venus-dialog-root';
+        document.body.appendChild(vdRoot);
+
+        vdRoot.addEventListener('mousedown', function (e) {
+          vdMouseDownOnBackdrop = (e.target === vdRoot);
+        });
+        vdRoot.addEventListener('click', function (e) {
+          if (!vdState) return;
+          if (e.target === vdRoot) {
+            if (vdMouseDownOnBackdrop && vdState.allowBackdropClose) vdResolveCancel();
+            return;
+          }
+          var choiceBtn = e.target.closest('[data-vd-choice]');
+          if (choiceBtn) {
+            var idx = +choiceBtn.getAttribute('data-vd-choice');
+            var choice = vdState.choices && vdState.choices[idx];
+            vdSettle(choice ? choice.value : null);
+            return;
+          }
+          if (e.target.closest('[data-vd-ok]')) { vdResolveOk(); return; }
+          if (e.target.closest('[data-vd-cancel]')) { vdResolveCancel(); return; }
+        });
+        document.addEventListener('keydown', function (e) {
+          if (!vdState) return;
+          if (e.key === 'Escape') {
+            if (vdState.allowBackdropClose) { e.preventDefault(); vdResolveCancel(); }
+            return;
+          }
+          if (e.key === 'Enter') {
+            var active = document.activeElement;
+            // Si el foco ya está en un botón, dejar que su propia activación
+            // nativa (Enter/Space sobre <button>) resuelva — evita doble disparo.
+            if (active && active.tagName === 'BUTTON') return;
+            if (vdState.isPrompt) { e.preventDefault(); vdResolveOk(); }
+            return;
+          }
+          if (e.key === 'Tab') vdTrapFocus(e);
+        });
+        return vdRoot;
+      }
+
+      function vdTrapFocus(e) {
+        var card = vdRoot.querySelector('.vd-card');
+        if (!card) return;
+        var focusables = card.querySelectorAll('button, input, [href], [tabindex]:not([tabindex="-1"])');
+        if (!focusables.length) return;
+        var first = focusables[0], last = focusables[focusables.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+
+      function vdActivate(opts) {
+        opts = opts || {};
+        requestAnimationFrame(function () {
+          vdRoot.classList.add('vd-open');
+          var el = opts.focusSelector ? vdRoot.querySelector(opts.focusSelector) : null;
+          if (el) {
+            el.focus();
+            if (opts.selectText && el.select) el.select();
+          }
+        });
+      }
+
+      function vdResolveOk() {
+        if (!vdState) return;
+        var value = typeof vdState.getOkValue === 'function' ? vdState.getOkValue() : vdState.okValue;
+        vdSettle(value);
+      }
+      function vdResolveCancel() {
+        if (!vdState) return;
+        vdSettle(vdState.cancelValue);
+      }
+      function vdSettle(value) {
+        if (!vdState) return;
+        var state = vdState;
+        vdState = null;
+        vdRoot.classList.remove('vd-open');
+        var toFocus = vdLastFocused;
+        vdLastFocused = null;
+        setTimeout(function () {
+          if (vdRoot) vdRoot.innerHTML = '';
+          if (toFocus && typeof toFocus.focus === 'function') {
+            try { toFocus.focus(); } catch (e2) {}
+          }
+        }, 200);
+        state.resolve(value);
+      }
+
+      function vdCardShell(titleHtml, bodyHtml, actionsHtml, opts) {
+        opts = opts || {};
+        return '<div class="vd-card" role="' + (opts.role || 'dialog') + '" aria-modal="true" aria-labelledby="vd-title">' +
+          '<div class="vd-header">' +
+            '<h3 class="vd-title" id="vd-title">' + titleHtml + '</h3>' +
+            (opts.noClose ? '' : '<button type="button" class="vd-close" data-vd-cancel aria-label="Cerrar">&times;</button>') +
+          '</div>' +
+          '<div class="vd-body">' + bodyHtml + '</div>' +
+          '<div class="vd-actions">' + actionsHtml + '</div>' +
+        '</div>';
+      }
+
+      // venusAlert(message, opts) -> Promise<void>
+      window.venusAlert = function (message, opts) {
+        opts = opts || {};
+        return vdEnqueue(function () {
+          return new Promise(function (resolve) {
+            vdBuildRoot();
+            vdLastFocused = document.activeElement;
+            vdRoot.innerHTML = vdCardShell(
+              vdEsc(opts.title || 'Venus'),
+              '<div class="vd-message">' + vdNl2br(message) + '</div>',
+              '<button type="button" class="vd-btn vd-primary" data-vd-ok>' + vdEsc(opts.okLabel || 'Entendido') + '</button>',
+              { role: 'alertdialog' }
+            );
+            vdState = {
+              resolve: function () { resolve(); },
+              okValue: undefined,
+              cancelValue: undefined,
+              allowBackdropClose: true
+            };
+            vdActivate({ focusSelector: '[data-vd-ok]' });
+          });
+        });
+      };
+
+      // venusConfirm(message, opts) -> Promise<boolean>
+      window.venusConfirm = function (message, opts) {
+        opts = opts || {};
+        var danger = !!opts.danger;
+        return vdEnqueue(function () {
+          return new Promise(function (resolve) {
+            vdBuildRoot();
+            vdLastFocused = document.activeElement;
+            var actions =
+              '<button type="button" class="vd-btn vd-ghost" data-vd-cancel>' + vdEsc(opts.cancelLabel || 'Cancelar') + '</button>' +
+              '<button type="button" class="vd-btn ' + (danger ? 'vd-danger' : 'vd-primary') + '" data-vd-ok>' + vdEsc(opts.okLabel || 'Aceptar') + '</button>';
+            vdRoot.innerHTML = vdCardShell(
+              vdEsc(opts.title || (danger ? 'Confirmar' : 'Venus')),
+              '<div class="vd-message">' + vdNl2br(message) + '</div>',
+              actions,
+              { role: 'alertdialog' }
+            );
+            vdState = {
+              resolve: function (v) { resolve(v); },
+              okValue: true,
+              cancelValue: false,
+              allowBackdropClose: !danger
+            };
+            vdActivate({ focusSelector: '[data-vd-ok]' });
+          });
+        });
+      };
+
+      // venusPrompt(message, opts) -> Promise<string|null>
+      window.venusPrompt = function (message, opts) {
+        opts = opts || {};
+        var inputType = opts.inputType || 'text';
+        var defaultValue = opts.defaultValue != null ? opts.defaultValue : '';
+        return vdEnqueue(function () {
+          return new Promise(function (resolve) {
+            vdBuildRoot();
+            vdLastFocused = document.activeElement;
+            var body =
+              (message ? '<div class="vd-message">' + vdNl2br(message) + '</div>' : '') +
+              '<input class="vd-input" data-vd-input type="' + vdEsc(inputType) + '" value="' + vdEsc(defaultValue) + '"' +
+              (opts.placeholder ? ' placeholder="' + vdEsc(opts.placeholder) + '"' : '') + '>';
+            var actions =
+              '<button type="button" class="vd-btn vd-ghost" data-vd-cancel>Cancelar</button>' +
+              '<button type="button" class="vd-btn vd-primary" data-vd-ok>' + vdEsc(opts.okLabel || 'Aceptar') + '</button>';
+            vdRoot.innerHTML = vdCardShell(vdEsc(opts.title || 'Venus'), body, actions);
+            vdState = {
+              resolve: function (v) { resolve(v); },
+              getOkValue: function () {
+                var el = vdRoot.querySelector('[data-vd-input]');
+                return el ? el.value : '';
+              },
+              cancelValue: null,
+              allowBackdropClose: true,
+              isPrompt: true
+            };
+            vdActivate({ focusSelector: '[data-vd-input]', selectText: true });
+          });
+        });
+      };
+
+      // venusChoice(message, choices, opts) -> Promise<any|null>
+      // choices: [{ value, label, hint? }, ...]
+      window.venusChoice = function (message, choices, opts) {
+        opts = opts || {};
+        choices = choices || [];
+        return vdEnqueue(function () {
+          return new Promise(function (resolve) {
+            vdBuildRoot();
+            vdLastFocused = document.activeElement;
+            var choicesHtml = choices.map(function (c, i) {
+              return '<button type="button" class="vd-choice-btn" data-vd-choice="' + i + '">' +
+                '<span class="vd-choice-label">' + vdEsc(c.label) + '</span>' +
+                (c.hint ? '<span class="vd-choice-hint">' + vdEsc(c.hint) + '</span>' : '') +
+                '</button>';
+            }).join('');
+            var body =
+              (message ? '<div class="vd-message">' + vdNl2br(message) + '</div>' : '') +
+              '<div class="vd-choices">' + choicesHtml + '</div>';
+            var actions = '<button type="button" class="vd-btn vd-ghost" data-vd-cancel>Cancelar</button>';
+            vdRoot.innerHTML = vdCardShell(vdEsc(opts.title || 'Venus'), body, actions);
+            vdState = {
+              resolve: function (v) { resolve(v); },
+              choices: choices,
+              cancelValue: null,
+              allowBackdropClose: true
+            };
+            vdActivate({ focusSelector: '.vd-choice-btn' });
+          });
+        });
+      };
+    })();
+  </script>
+
 </body>
 
 </html>
