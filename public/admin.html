@@ -3295,10 +3295,9 @@
           </div>
         </div>
         <div class="exp-view-identity">
-          <i class="fas fa-clipboard-list exp-view-id-icon" aria-hidden="true"></i>
           <h2 id="exp-client-name" class="exp-view-name"></h2>
         </div>
-        <div id="exp-client-meta" class="exp-view-meta muted"></div>
+        <div id="exp-client-meta" class="exp-view-meta"></div>
         <div id="exp-health-alerts" class="exp-health-alerts" role="alert" hidden></div>
         <nav id="exp-sections" class="exp-sections-bar" aria-label="Secciones del expediente">
           <button class="exp-sec active" data-exp-sec="resumen"><i class="fas fa-house"></i> <span>Resumen</span></button>
@@ -4506,6 +4505,21 @@
       const intake = data.intake || null;
       const record = data.record || {};
 
+      // Enriquecer el meta del header: edad · tipo de piel · sellos (brief §4).
+      const metaEl = document.getElementById('exp-client-meta');
+      if (metaEl) {
+        const card = window.cardsCache && currentExpedienteCardId ? window.cardsCache[currentExpedienteCardId] : null;
+        const bits = [];
+        if (card && card.phone) bits.push(card.phone);
+        if (intake && intake.status === 'signed') {
+          if (intake.age != null) bits.push(intake.age + ' años');
+          const diag = (data.diagnoses && data.diagnoses[0]) || null;
+          if (diag && diag.skinType) bits.push('Piel ' + diag.skinType);
+        }
+        if (card && card.stamps != null && card.max) bits.push(card.stamps + '/' + card.max + ' sellos');
+        metaEl.textContent = bits.join(' · ');
+      }
+
       // Alertas (espejo de la franja sticky, aquí como grupo hairline).
       const alertsEl = document.getElementById('exp-resumen-alerts');
       if (alertsEl) {
@@ -4622,12 +4636,25 @@
       intake = intake || null;
       record = record || {};
 
-      let label = 'Sin enviar', color = '#9ca3af'; // gris
-      if (intake && intake.status === 'signed') { label = 'Firmada ✅'; color = '#16a34a'; }      // verde
-      else if (record.fichaLinkSentAt) { label = 'Enviada'; color = '#d97706'; }                   // amarillo/naranja
-      else if (intake) { label = 'Borrador'; color = '#2563eb'; }                                  // azul
-      badge.textContent = label;
-      badge.style.cssText = 'display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600;color:#fff;background:' + color + ';';
+      // Badge de estado (clases, no inline hex)
+      badge.className = 'exp-badge';
+      if (intake && intake.status === 'signed') { badge.classList.add('exp-badge-ok'); badge.textContent = 'Firmada'; }
+      else if (record.fichaLinkSentAt) { badge.classList.add('exp-badge-info'); badge.textContent = 'Enviada'; }
+      else if (intake) { badge.classList.add('exp-badge-info'); badge.textContent = 'Borrador'; }
+      else { badge.classList.add('exp-badge-muted'); badge.textContent = 'Sin enviar'; }
+      // Chip de respaldo Drive pendiente
+      const pending = intake && intake.driveUploadPending;
+      const oldPending = body.dataset.pendingChip === '1';
+      if (pending && !oldPending) {
+        const chip = document.createElement('span');
+        chip.className = 'exp-badge exp-badge-warn';
+        chip.style.marginLeft = '8px';
+        chip.textContent = 'PDF pendiente de respaldo';
+        badge.parentNode.insertBefore(chip, badge.nextSibling);
+        body.dataset.pendingChip = '1';
+      } else if (!pending && oldPending) {
+        body.dataset.pendingChip = '';
+      }
 
       if (intake && intake.pdfWebViewLink) {
         pdfLink.href = intake.pdfWebViewLink;
@@ -4643,15 +4670,14 @@
 
       const rows = [];
       const sec = (title, items) => {
-        rows.push('<h4 style="margin:14px 0 6px;font-size:13px;font-weight:700;color:var(--ink,#111);">' + expEsc(title) + '</h4>');
-        if (!items || items.length === 0) { rows.push('<p style="margin:0 0 8px;font-size:13px;color:var(--muted,#888);">Sin datos</p>'); return; }
-        rows.push('<table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:8px;">');
+        rows.push('<div class="exp-hairline-group"><h3 class="exp-section-title">' + expEsc(title) + '</h3>');
+        if (!items || items.length === 0) { rows.push('<p class="exp-muted-note">Sin datos</p></div>'); return; }
         items.forEach(function (it) {
           const k = it[0], v = it[1];
-          const shown = (v === null || v === '' || v === undefined) ? '<span style="color:#bbb;">Sin datos</span>' : v;
-          rows.push('<tr><td style="padding:4px 8px 4px 0;color:var(--muted,#888);white-space:nowrap;width:40%;vertical-align:top;">' + expEsc(k) + '</td><td style="padding:4px 0;vertical-align:top;">' + shown + '</td></tr>');
+          const shown = (v === null || v === '' || v === undefined) ? '<span class="exp-muted-note">Sin datos</span>' : v;
+          rows.push('<div class="exp-kv"><span class="exp-kv-k">' + expEsc(k) + '</span><span class="exp-kv-v">' + shown + '</span></div>');
         });
-        rows.push('</table>');
+        rows.push('</div>');
       };
 
       // Datos personales
@@ -4674,7 +4700,7 @@
         const item = idata[k];
         if (item && typeof item === 'object') {
           const val = item.value ? 'Sí' : 'No';
-          const detail = item.detail ? ' — ' + expEsc(item.detail) : '';
+          const detail = item.detail ? ', ' + expEsc(item.detail) : '';
           interRows.push([EXP_INTEREST_LABELS[k], val + detail]);
         }
       });
@@ -4691,38 +4717,39 @@
       // Cuestionarios respondidos
       const q = intake.questionnaires || {};
       const qKeys = Object.keys(q);
-      rows.push('<h4 style="margin:14px 0 6px;font-size:13px;font-weight:700;color:var(--ink,#111);">Cuestionarios respondidos</h4>');
+      rows.push('<div class="exp-hairline-group"><h3 class="exp-section-title">Cuestionarios respondidos</h3>');
       if (qKeys.length === 0) {
-        rows.push('<p style="margin:0 0 8px;font-size:13px;color:var(--muted,#888);">Sin datos</p>');
+        rows.push('<p class="exp-muted-note">Sin datos</p>');
       } else {
         qKeys.forEach(function (cond) {
           const title = EXP_COND_TITLES[cond] || cond;
-          rows.push('<div style="margin:0 0 10px;padding:10px;border:1px solid var(--border,#eee);border-radius:8px;"><div style="font-weight:600;margin-bottom:4px;">' + expEsc(title) + '</div>');
+          rows.push('<div class="exp-kv-group"><div class="exp-kv-group-title">' + expEsc(title) + '</div>');
           const ans = q[cond] || {};
           const qs = EXP_QUESTIONS[cond] || [];
           Object.keys(ans).sort().forEach(function (qkey) {
             const idx = parseInt(qkey.replace('q', ''), 10) - 1;
             const qtext = qs[idx] || ('Pregunta ' + (idx + 1));
-            rows.push('<div style="font-size:12px;color:var(--muted,#888);margin-top:6px;">' + (idx + 1) + '. ' + expEsc(qtext) + '</div>');
-            rows.push('<div style="font-size:13px;margin:0 0 4px;">' + (ans[qkey] ? expEsc(ans[qkey]) : '<span style="color:#bbb;">Sin responder</span>') + '</div>');
+            const answer = ans[qkey] ? expEsc(ans[qkey]) : '<span class="exp-muted-note">Sin responder</span>';
+            rows.push('<div class="exp-kv exp-kv-stack"><span class="exp-kv-k">' + (idx + 1) + '. ' + expEsc(qtext) + '</span><span class="exp-kv-v">' + answer + '</span></div>');
           });
           rows.push('</div>');
         });
       }
+      rows.push('</div>');
 
       // Rutina
       const day = Array.isArray(intake.routineDay) ? intake.routineDay : [];
       const night = Array.isArray(intake.routineNight) ? intake.routineNight : [];
-      rows.push('<h4 style="margin:14px 0 6px;font-size:13px;font-weight:700;color:var(--ink,#111);">Rutina</h4>');
-      rows.push('<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">');
-      rows.push('<div><div style="font-weight:600;font-size:12px;margin-bottom:4px;">Día</div>' + (day.length ? day.map(function (p) { return '<div style="font-size:13px;">• ' + expEsc(p) + '</div>'; }).join('') : '<span style="color:#bbb;font-size:13px;">Sin productos</span>') + '</div>');
-      rows.push('<div><div style="font-weight:600;font-size:12px;margin-bottom:4px;">Noche</div>' + (night.length ? night.map(function (p) { return '<div style="font-size:13px;">• ' + expEsc(p) + '</div>'; }).join('') : '<span style="color:#bbb;font-size:13px;">Sin productos</span>') + '</div>');
-      rows.push('</div>');
+      rows.push('<div class="exp-hairline-group"><h3 class="exp-section-title">Rutina skincare</h3>');
+      rows.push('<div class="exp-routine-grid">');
+      rows.push('<div><div class="exp-routine-label">Día</div>' + (day.length ? day.map(function (p) { return '<div class="exp-routine-item">' + expEsc(p) + '</div>'; }).join('') : '<span class="exp-muted-note">Sin productos</span>') + '</div>');
+      rows.push('<div><div class="exp-routine-label">Noche</div>' + (night.length ? night.map(function (p) { return '<div class="exp-routine-item">' + expEsc(p) + '</div>'; }).join('') : '<span class="exp-muted-note">Sin productos</span>') + '</div>');
+      rows.push('</div></div>');
 
       // Autorización de fotografías
-      rows.push('<h4 style="margin:14px 0 6px;font-size:13px;font-weight:700;color:var(--ink,#111);">Autorización de fotografías</h4>');
+      rows.push('<div class="exp-hairline-group"><h3 class="exp-section-title">Autorización de fotografías</h3>');
       const pc = intake.photoConsent === true ? 'SÍ AUTORIZO' : (intake.photoConsent === false ? 'NO AUTORIZO' : '');
-      rows.push('<p style="margin:0;font-size:13px;">' + (pc || '<span style="color:#bbb;">Sin datos</span>') + '</p>');
+      rows.push('<p class="exp-kv-v">' + (pc || '<span class="exp-muted-note">Sin datos</span>') + '</p></div>');
 
       body.innerHTML = rows.join('');
     }
@@ -4756,13 +4783,13 @@
       }
       c.innerHTML = consents.map(function (co) {
         const type = co.type === 'laser-diodo' ? 'Depilación láser (diodo)' : (co.type || '—');
-        const status = co.status === 'signed' ? 'Firmado' : 'Pendiente';
-        const statusColor = co.status === 'signed' ? '#16a34a' : '#d97706';
-        const fecha = co.signedAt ? new Date(co.signedAt).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
+        const statusClass = co.status === 'signed' ? 'exp-badge-ok' : 'exp-badge-warn';
+        const statusLabel = co.status === 'signed' ? 'Firmado' : 'Pendiente';
+        const fecha = co.signedAt ? new Date(co.signedAt).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }) : '—';
         const pdf = co.pdfWebViewLink ? '<a href="' + expEsc(co.pdfWebViewLink) + '" target="_blank" rel="noopener" class="btn small ghost"><i class="fas fa-file-pdf"></i> Ver PDF</a>' : '';
-        return '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border,#eee);">' +
-          '<div><div style="font-weight:600;font-size:13px;">' + expEsc(type) + '</div><div style="font-size:12px;color:var(--muted,#888);">Firmado: ' + expEsc(fecha) + '</div></div>' +
-          '<div style="display:flex;align-items:center;gap:8px;"><span style="padding:3px 8px;border-radius:999px;font-size:11px;font-weight:600;color:#fff;background:' + statusColor + ';">' + expEsc(status) + '</span>' + pdf + '</div>' +
+        return '<div class="exp-consent-row">' +
+          '<div class="exp-consent-info"><div class="exp-consent-type">' + expEsc(type) + '</div><div class="exp-consent-date">Firmado: ' + expEsc(fecha) + '</div></div>' +
+          '<div class="exp-consent-actions"><span class="exp-badge ' + statusClass + '">' + expEsc(statusLabel) + '</span>' + pdf + '</div>' +
           '</div>';
       }).join('');
     }
@@ -4791,16 +4818,17 @@
       const list = document.getElementById('exp-diagnosis-list');
       if (!list) return;
       if (!diagnoses || diagnoses.length === 0) {
-        list.innerHTML = '<p style="font-size:13px;color:var(--muted,#888);">No hay diagnósticos previos.</p>';
+        list.innerHTML = '<p class="exp-muted-note">No hay diagnósticos previos.</p>';
         return;
       }
-      list.innerHTML = diagnoses.map(function (d) {
-        const fecha = d.createdAt ? new Date(d.createdAt).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
+      list.innerHTML = diagnoses.map(function (d, i) {
+        const fecha = d.createdAt ? new Date(d.createdAt).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }) : '—';
         const pdf = d.pdfWebViewLink ? '<a href="' + expEsc(d.pdfWebViewLink) + '" target="_blank" rel="noopener" class="btn small ghost" onclick="event.stopPropagation();"><i class="fas fa-file-pdf"></i> PDF</a>' : '';
-        return '<div style="padding:10px;border:1px solid var(--border,#eee);border-radius:8px;margin-bottom:8px;cursor:pointer;" onclick="expLoadDiagnosis(' + "'" + d.id + "'" + ')">' +
-          '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">' +
-          '<div><div style="font-weight:600;font-size:13px;">' + expEsc(d.skinType || '—') + ' · ' + expEsc(d.alteration || '—') + '</div>' +
-          '<div style="font-size:12px;color:var(--muted,#888);">' + expEsc(fecha) + (d.staffName ? ' · ' + expEsc(d.staffName) : '') + '</div></div>' + pdf +
+        const collapsed = i > 0 ? ' exp-diag-row-collapsed' : '';
+        return '<div class="exp-diag-row' + collapsed + '" onclick="expLoadDiagnosis(' + "'" + d.id + "'" + ')">' +
+          '<div class="exp-diag-row-main">' +
+          '<div><div class="exp-diag-title">' + expEsc(d.skinType || '—') + ' · ' + expEsc(d.alteration || '—') + '</div>' +
+          '<div class="exp-diag-meta">' + expEsc(fecha) + (d.staffName ? ' · ' + expEsc(d.staffName) : '') + '</div></div>' + pdf +
           '</div></div>';
       }).join('');
     }
@@ -4900,7 +4928,7 @@
           obs +
           '<div class="exp-stacked-actions">' +
             '<button class="btn small ghost" onclick="expEditLaserSession(' + "'" + s.id + "'" + ')"><i class="fas fa-pen"></i> Editar</button> ' +
-            '<button class="btn small ghost" style="color:var(--err,#dc2626);" onclick="expDeleteLaserSession(' + "'" + s.id + "'" + ')"><i class="fas fa-trash"></i></button>' +
+            '<button class="btn small ghost exp-btn-danger" onclick="expDeleteLaserSession(' + "'" + s.id + "'" + ')"><i class="fas fa-trash"></i></button>' +
           '</div>' +
         '</div>';
       }).join('');
@@ -4995,19 +5023,19 @@
         const mt = d.mimeType || '';
         const icon = mt.indexOf('pdf') !== -1 ? 'fa-file-pdf' : (mt.indexOf('image/') === 0 ? 'fa-file-image' : 'fa-file');
         const size = d.sizeBytes ? expFormatBytes(d.sizeBytes) : '';
-        const fecha = d.uploadedAt ? new Date(d.uploadedAt).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+        const fecha = d.uploadedAt ? new Date(d.uploadedAt).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
         const isGen = d.source === 'generated';
-        const badge = '<span style="padding:3px 8px;border-radius:999px;font-size:11px;font-weight:600;color:#fff;background:' + (isGen ? '#2563eb' : '#9ca3af') + ';">' + (isGen ? 'Generado' : 'Importado') + '</span>';
+        const badge = '<span class="exp-badge ' + (isGen ? 'exp-badge-info' : 'exp-badge-muted') + '">' + (isGen ? 'Generado' : 'Importado') + '</span>';
         const link = d.webViewLink
-          ? '<a href="' + expEsc(d.webViewLink) + '" target="_blank" rel="noopener" style="color:var(--ink,#111);text-decoration:none;font-weight:600;">' + expEsc(d.name) + '</a>'
-          : '<span style="font-weight:600;">' + expEsc(d.name) + '</span>';
-        return '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border,#eee);">' +
-          '<div style="display:flex;align-items:center;gap:10px;min-width:0;">' +
-            '<i class="fas ' + icon + '" style="font-size:18px;color:var(--muted,#888);"></i>' +
-            '<div style="min-width:0;"><div style="font-size:13px;overflow:hidden;text-overflow:ellipsis;">' + link + '</div>' +
-            '<div style="font-size:12px;color:var(--muted,#888);">' + expEsc(fecha) + (size ? ' · ' + expEsc(size) : '') + '</div></div></div>' +
-          '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">' + badge +
-            '<button class="btn small ghost" style="color:#dc2626;" title="Elimina el registro del expediente (no borra el archivo en Google Drive)" onclick="expDeleteDocument(' + "'" + d.id + "'" + ')"><i class="fas fa-trash"></i></button></div>' +
+          ? '<a href="' + expEsc(d.webViewLink) + '" target="_blank" rel="noopener" class="exp-doc-link">' + expEsc(d.name) + '</a>'
+          : '<span class="exp-doc-link">' + expEsc(d.name) + '</span>';
+        return '<div class="exp-doc-row">' +
+          '<div class="exp-doc-main">' +
+            '<i class="fas ' + icon + ' exp-doc-icon"></i>' +
+            '<div class="exp-doc-info"><div class="exp-doc-name">' + link + '</div>' +
+            '<div class="exp-doc-meta">' + expEsc(fecha) + (size ? ' · ' + expEsc(size) : '') + '</div></div></div>' +
+          '<div class="exp-doc-actions">' + badge +
+            '<button class="btn small ghost exp-btn-danger" title="Elimina el registro del expediente (no borra el archivo en Google Drive)" onclick="expDeleteDocument(' + "'" + d.id + "'" + ')"><i class="fas fa-trash"></i></button></div>' +
           '</div>';
       }).join('');
     }
