@@ -7379,6 +7379,99 @@ app.delete('/api/admin/reviews/:id', adminAuth, async (req, res) => {
 });
 
 /* =========================================================
+   MARKETING — checklist diario (tablas: marketing_tasks / marketing_task_logs)
+   ========================================================= */
+
+function mktToday() {
+  // Fecha local de México (el server puede correr en UTC)
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Mexico_City' }).format(new Date());
+}
+
+// GET /api/admin/marketing/checklist?date=YYYY-MM-DD
+app.get('/api/admin/marketing/checklist', adminAuth, async (req, res) => {
+  try {
+    const date = /^\d{4}-\d{2}-\d{2}$/.test(req.query.date || '') ? req.query.date : mktToday();
+    const rows = await prisma.$queryRaw`
+      SELECT t.id, t.section, t.title, t.detail, t.frequency,
+             to_char(t.due_date, 'YYYY-MM-DD') AS due_date, t.sort,
+             CASE WHEN t.frequency = 'daily'
+                  THEN EXISTS(SELECT 1 FROM marketing_task_logs l WHERE l.task_id = t.id AND l.done_date = ${date}::date)
+                  ELSE EXISTS(SELECT 1 FROM marketing_task_logs l WHERE l.task_id = t.id)
+             END AS done
+      FROM marketing_tasks t
+      WHERE t.active = true
+      ORDER BY t.sort ASC, t.due_date ASC NULLS LAST, t.id ASC`;
+    res.json({ success: true, date, tasks: rows });
+  } catch (error) {
+    console.error('[MARKETING] Error checklist:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// POST /api/admin/marketing/checklist/:id/toggle — marca/desmarca (diarias: por día)
+app.post('/api/admin/marketing/checklist/:id/toggle', adminAuth, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isInteger(id)) return res.status(400).json({ success: false, error: 'bad_id' });
+    const date = /^\d{4}-\d{2}-\d{2}$/.test(req.body?.date || '') ? req.body.date : mktToday();
+
+    const task = await prisma.$queryRaw`SELECT frequency FROM marketing_tasks WHERE id = ${id} AND active = true`;
+    if (!task.length) return res.status(404).json({ success: false, error: 'not_found' });
+
+    let deleted;
+    if (task[0].frequency === 'daily') {
+      deleted = await prisma.$executeRaw`DELETE FROM marketing_task_logs WHERE task_id = ${id} AND done_date = ${date}::date`;
+    } else {
+      deleted = await prisma.$executeRaw`DELETE FROM marketing_task_logs WHERE task_id = ${id}`;
+    }
+    let done = false;
+    if (deleted === 0) {
+      await prisma.$executeRaw`
+        INSERT INTO marketing_task_logs (task_id, done_date) VALUES (${id}, ${date}::date)
+        ON CONFLICT (task_id, done_date) DO NOTHING`;
+      done = true;
+    }
+    res.json({ success: true, id, done });
+  } catch (error) {
+    console.error('[MARKETING] Error toggle:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// POST /api/admin/marketing/tasks — agregar tarea manual
+app.post('/api/admin/marketing/tasks', adminAuth, async (req, res) => {
+  try {
+    const { title, detail = null, section = 'Otras', frequency = 'once', due_date = null } = req.body || {};
+    if (!title || typeof title !== 'string' || !title.trim()) {
+      return res.status(400).json({ success: false, error: 'title_required' });
+    }
+    const freq = frequency === 'daily' ? 'daily' : 'once';
+    const due = /^\d{4}-\d{2}-\d{2}$/.test(due_date || '') ? due_date : null;
+    const rows = await prisma.$queryRaw`
+      INSERT INTO marketing_tasks (section, title, detail, frequency, due_date, sort)
+      VALUES (${section}, ${title.trim()}, ${detail}, ${freq}, ${due}::date, 100)
+      RETURNING id`;
+    res.json({ success: true, id: rows[0].id });
+  } catch (error) {
+    console.error('[MARKETING] Error add task:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// DELETE /api/admin/marketing/tasks/:id — desactivar tarea
+app.delete('/api/admin/marketing/tasks/:id', adminAuth, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isInteger(id)) return res.status(400).json({ success: false, error: 'bad_id' });
+    await prisma.$executeRaw`UPDATE marketing_tasks SET active = false WHERE id = ${id}`;
+    res.json({ success: true });
+  } catch (error) {
+    console.error('[MARKETING] Error delete task:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/* =========================================================
    SERVER
    ========================================================= */
 const PORT = process.env.PORT || 3000;
