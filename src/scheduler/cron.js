@@ -452,6 +452,46 @@ export function startScheduler() {
             console.error('❌ Error en notificaciones automáticas:', error);
         }
     });
+
+    // ========================================================================
+    // REINTENTO DE PDFs DE EXPEDIENTE PENDIENTES DE SUBIR A DRIVE — cada 30 min
+    // Cuando una clienta firma ficha/consent y la subida a Drive falla (o Drive
+    // no estaba configurado), el row queda con driveUploadPending=true. Aquí lo
+    // reintentamos: reconstruimos el PDF, aseguramos la carpeta del cliente y
+    // subimos. Idempotente y fire-and-forget.
+    // ========================================================================
+    // Reintento de PDFs de expediente que no pudieron subirse a Drive
+    cron.schedule('*/30 * * * *', async () => {
+        try {
+            const { isDriveConfigured } = await import('../services/driveService.js');
+            if (!isDriveConfigured()) return;
+            const { buildIntakePdf, buildConsentPdf } = await import('../services/expedientePdf.js');
+            const { ensureClientFolder, uploadBuffer } = await import('../services/driveService.js');
+
+            const pendingIntakes = await prisma.intakeForm.findMany({
+                where: { driveUploadPending: true, status: 'signed' },
+                include: { record: true }, take: 10,
+            });
+            const pendingConsents = await prisma.consentDoc.findMany({
+                where: { driveUploadPending: true, status: 'signed' },
+                include: { record: true }, take: 10,
+            });
+            for (const item of [...pendingIntakes.map(x => ({ x, kind: 'intake' })), ...pendingConsents.map(x => ({ x, kind: 'consent' }))]) {
+                try {
+                    const card = await prisma.card.findUnique({ where: { id: item.x.record.cardId } });
+                    if (!card) continue;
+                    const pdf = item.kind === 'intake' ? await buildIntakePdf(item.x, card) : await buildConsentPdf(item.x, card);
+                    const folderId = await ensureClientFolder(card);
+                    const name = `${item.kind === 'intake' ? 'Ficha Clínica' : 'Consentimiento Láser'} – ${new Date(item.x.signedAt).toISOString().slice(0, 10)}.pdf`;
+                    const up = await uploadBuffer({ folderId, name, mimeType: 'application/pdf', buffer: pdf });
+                    const data = { pdfDriveFileId: up.id, pdfWebViewLink: up.webViewLink, driveUploadPending: false };
+                    if (item.kind === 'intake') await prisma.intakeForm.update({ where: { id: item.x.id }, data });
+                    else await prisma.consentDoc.update({ where: { id: item.x.id }, data });
+                    console.log(`📁 [drive-retry] subido: ${name}`);
+                } catch (e) { console.warn('[drive-retry] item falló:', e.message); }
+            }
+        } catch (e) { console.error('[drive-retry] error:', e.message); }
+    });
 }
 
 // ========== CUMPLEAÑOS (próximos 7 días) ==========
