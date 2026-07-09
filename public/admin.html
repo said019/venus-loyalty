@@ -4233,7 +4233,7 @@
         
         return `
           <div class="exp-photo-item" onclick="openPhotoLightbox('${photo.url}', '${photo.type || ''}', '${photo.createdAt || ''}')">
-            <img src="${photo.url}" alt="Foto de tratamiento" loading="lazy">
+            <img src="${venusPhotoUrl(photo.url)}" alt="Foto de tratamiento" loading="lazy">
             <span class="exp-photo-badge ${typeClass}">${typeLabel}</span>
             <button class="exp-photo-delete" onclick="event.stopPropagation(); deleteExpPhoto('${photo.id}')">
               <i class="fas fa-trash"></i>
@@ -4297,12 +4297,12 @@
       const beforeContainer = document.getElementById('exp-compare-before');
       const afterContainer = document.getElementById('exp-compare-after');
       
-      beforeContainer.innerHTML = beforePhoto ? 
-        `<img src="${beforePhoto.url}" alt="Antes">` :
+      beforeContainer.innerHTML = beforePhoto ?
+        `<img src="${venusPhotoUrl(beforePhoto.url)}" alt="Antes">` :
         `<i class="fas fa-image"></i><p>Sin foto "Antes"</p>`;
-      
+
       afterContainer.innerHTML = afterPhoto ?
-        `<img src="${afterPhoto.url}" alt="Después">` :
+        `<img src="${venusPhotoUrl(afterPhoto.url)}" alt="Después">` :
         `<i class="fas fa-image"></i><p>Sin foto "Después"</p>`;
     }
 
@@ -4514,9 +4514,19 @@
       alert(detailHtml.trim());
     }
 
+    // Cloudinary: entregar en formato web (f_auto) para que las fotos HEIC de iPhone
+    // se vean en cualquier navegador (si no, salen "corruptas"). Inserta la
+    // transformación tras /upload/. Sirve para fotos ya subidas y nuevas.
+    function venusPhotoUrl(url) {
+      if (!url || typeof url !== 'string') return url || '';
+      if (url.indexOf('res.cloudinary.com') === -1 || url.indexOf('/upload/') === -1) return url;
+      if (/\/upload\/[^/]*f_auto/.test(url)) return url;
+      return url.replace('/upload/', '/upload/f_auto,q_auto/');
+    }
+
     // Lightbox para fotos
     function openPhotoLightbox(url, type, date) {
-      document.getElementById('lightbox-img').src = url;
+      document.getElementById('lightbox-img').src = venusPhotoUrl(url);
       document.getElementById('lightbox-type').textContent = 
         { before: 'Antes', after: 'Después', progress: 'Progreso' }[type] || '';
       
