@@ -4506,6 +4506,14 @@
         const data = await res.json();
         if (!data.success) throw new Error(data.error || 'Error al cargar expediente digital');
         expedienteDigitalCache = data;
+        // Deep-link directo a /admin/clientas/:id: cardsCache aún no existe y el
+        // encabezado quedó con el fallback "Clienta". Hidratar desde la ficha.
+        const expNameEl = document.getElementById('exp-client-name');
+        if (expNameEl && expNameEl.textContent === 'Clienta' && data.intake && data.intake.fullName) {
+          expNameEl.textContent = data.intake.fullName;
+          const expMetaEl = document.getElementById('exp-client-meta');
+          if (expMetaEl && !expMetaEl.textContent && data.intake.phone) expMetaEl.textContent = data.intake.phone;
+        }
         renderFichaPanel(data.intake, data.record);
         renderConsentsPanel(data.consents || []);
         renderDiagnosisPanel(data.diagnoses || []);
