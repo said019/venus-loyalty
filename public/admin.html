@@ -4533,7 +4533,7 @@
     // Etiquetas para render de la ficha (espejo de ficha-clinica.html)
     const EXP_INTEREST_LABELS = { embarazo:'Embarazo', lactancia:'Lactancia', alergias:'Alergias', vitaminas:'Vitaminas / Suplementos', medicamentos:'Medicamentos', implantes:'Implantes o dispositivos', anticonceptivos:'Anticonceptivos', intervenciones:'Intervenciones estéticas o quirúrgicas', protectorSolar:'Protector solar' };
     const EXP_YESNO_PLAIN = ['embarazo','lactancia','anticonceptivos'];
-    const EXP_YESNO_WITH_DETAIL = ['alergias','vitaminas','medicamentos','implantes','intervenciones','protectorSolar'];
+    const EXP_YESNO_WITH_DETAIL = ['alergias','vitaminas','medicamentos','implantes','intervenciones'];
     const EXP_CICLO_LABELS = { R:'Regular', IR:'Irregular', NP:'No presente' };
     const EXP_COND_TITLES = { acne:'Acné', cicatrices:'Cicatrices atróficas', pigmentaciones:'Pigmentaciones', envejecimiento:'Envejecimiento', ojerasInflamadas:'Ojeras inflamadas', ojerasPigmentadas:'Ojeras pigmentadas', pielSensible:'Piel sensible' };
     const EXP_QUESTIONS = {
@@ -4794,6 +4794,15 @@
           interRows.push([EXP_INTEREST_LABELS[k], val + detail]);
         }
       });
+      // Protector solar: frecuencia diaria (1/2/3 veces). Tolera datos viejos Sí/No.
+      const ps = idata.protectorSolar;
+      if (ps && typeof ps === 'object') {
+        let psText = '';
+        const t = ps.timesPerDay;
+        if (t === 1 || t === 2 || t === 3) psText = t + (t === 1 ? ' vez' : ' veces') + ' al día';
+        else if (typeof ps.value === 'boolean') psText = ps.value ? ('Sí' + (ps.detail ? ', ' + expEsc(ps.detail) : '')) : 'No';
+        if (psText) interRows.push([EXP_INTEREST_LABELS.protectorSolar, psText]);
+      }
       sec('Datos de interés', interRows);
 
       // Condición

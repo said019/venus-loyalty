@@ -86,6 +86,15 @@ async function newDoc() {
 
 const YESNO = (e) => (e == null ? '—' : e.value ? `Sí${e.detail ? ` (${e.detail})` : ''}` : 'No');
 
+// Protector solar: frecuencia diaria (1/2/3 veces al día). Tolera datos viejos { value }.
+const protectorSolarText = (p) => {
+  if (!p) return '—';
+  const t = p.timesPerDay;
+  if (t === 1 || t === 2 || t === 3) return `${t} ${t === 1 ? 'vez' : 'veces'} al día`;
+  if (typeof p.value === 'boolean') return p.value ? `Sí${p.detail ? ` (${p.detail})` : ''}` : 'No';
+  return '—';
+};
+
 const INTEREST_LABELS = {
   cicloMenstrual: 'Ciclo menstrual', embarazo: 'Embarazo', lactancia: 'Lactancia',
   alergias: 'Alergias', vitaminas: 'Vitaminas / Suplementos', medicamentos: 'Medicamentos',
@@ -167,9 +176,10 @@ export async function buildIntakePdf(intake, card) {
   d.sectionHeader('Datos de interés');
   const i = intake.interestData || {};
   d.field('Ciclo menstrual (R / IR / NP)', i.cicloMenstrual);
-  for (const k of ['embarazo','lactancia','alergias','vitaminas','medicamentos','implantes','anticonceptivos','intervenciones','protectorSolar']) {
+  for (const k of ['embarazo','lactancia','alergias','vitaminas','medicamentos','implantes','anticonceptivos','intervenciones']) {
     d.field(INTEREST_LABELS[k], YESNO(i[k]));
   }
+  d.field(INTEREST_LABELS.protectorSolar, protectorSolarText(i.protectorSolar));
 
   d.sectionHeader('Condiciones, padecimientos y enfermedades de la piel');
   d.field('Condición de la piel que se busca mejorar', intake.skinCondition);

@@ -637,6 +637,15 @@
 
           <!-- Toggles se inyectan por JS en #togglesWrap -->
           <div id="togglesWrap"></div>
+
+          <div class="fc-field">
+            <label class="fc-field__label">Protector solar — ¿cuántas veces al día lo usas?</label>
+            <div class="fc-pills" id="protectorPills">
+              <button type="button" class="fc-pill" data-protector="1">1 vez</button>
+              <button type="button" class="fc-pill" data-protector="2">2 veces</button>
+              <button type="button" class="fc-pill" data-protector="3">3 veces</button>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -836,7 +845,7 @@
     // Llaves de interés que son Sí/No puro (sin detalle).
     const YESNO_PLAIN = ['embarazo', 'lactancia', 'anticonceptivos'];
     // Llaves de interés que muestran detalle cuando el valor es Sí.
-    const YESNO_WITH_DETAIL = ['alergias', 'vitaminas', 'medicamentos', 'implantes', 'intervenciones', 'protectorSolar'];
+    const YESNO_WITH_DETAIL = ['alergias', 'vitaminas', 'medicamentos', 'implantes', 'intervenciones'];
     const INTEREST_LABELS = {
       embarazo: 'Embarazo',
       lactancia: 'Lactancia',
@@ -863,7 +872,9 @@
           cicloMenstrual: null,
           embarazo: blankYesNo(), lactancia: blankYesNo(), alergias: blankYesNo(),
           vitaminas: blankYesNo(), medicamentos: blankYesNo(), implantes: blankYesNo(),
-          anticonceptivos: blankYesNo(), intervenciones: blankYesNo(), protectorSolar: blankYesNo(),
+          anticonceptivos: blankYesNo(), intervenciones: blankYesNo(),
+          // Protector solar: frecuencia diaria (1, 2 o 3 veces al día).
+          protectorSolar: { timesPerDay: null },
         },
         skinCondition: '', conditionSince: '', previousTreatments: '', treatmentReactions: '',
         questionnaires: {},
@@ -965,6 +976,11 @@
       if (i.interestData && typeof i.interestData === 'object') {
         const id = i.interestData;
         if (id.cicloMenstrual) state.interestData.cicloMenstrual = id.cicloMenstrual;
+        // Protector solar: nuevo formato { timesPerDay: 1|2|3 }.
+        if (id.protectorSolar && typeof id.protectorSolar === 'object') {
+          const t = id.protectorSolar.timesPerDay;
+          state.interestData.protectorSolar = { timesPerDay: (t === 1 || t === 2 || t === 3) ? t : null };
+        }
         for (const k of YESNO_PLAIN.concat(YESNO_WITH_DETAIL)) {
           if (id[k] && typeof id[k] === 'object') {
             state.interestData[k] = { value: !!id[k].value, detail: id[k].detail || '' };
@@ -1247,6 +1263,27 @@
       });
     }
 
+    // Protector solar: 1, 2 o 3 veces al día (misma mecánica de pills que el ciclo).
+    function bindProtector() {
+      const pills = $('#protectorPills');
+      if (!pills) return;
+      pills.addEventListener('click', (e) => {
+        const p = e.target.closest('.fc-pill');
+        if (!p) return;
+        const val = parseInt(p.dataset.protector, 10);
+        const cur = state.interestData.protectorSolar || {};
+        state.interestData.protectorSolar = { timesPerDay: (cur.timesPerDay === val) ? null : val };
+        paintProtector();
+        scheduleSave();
+      });
+    }
+    function paintProtector() {
+      const cur = state.interestData.protectorSolar || {};
+      $$('#protectorPills .fc-pill').forEach((p) => {
+        p.classList.toggle('on', cur.timesPerDay === parseInt(p.dataset.protector, 10));
+      });
+    }
+
     /* ============================================================
        12. STEP 1, 3 — inputs planos (data-bind)
        ============================================================ */
@@ -1402,12 +1439,14 @@
     function bindAllInputs() {
       paintPlainInputs();
       paintCiclo();
+      paintProtector();
       paintChips();
       renderCondQuestions();
       renderRoutine('Day');
       renderRoutine('Night');
       paintPhoto();
       bindCiclo();
+      bindProtector();
       bindChips();
       bindRoutine();
       bindPhoto();
