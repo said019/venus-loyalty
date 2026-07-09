@@ -3940,6 +3940,15 @@
       const view = document.getElementById('expediente-view');
       if (view) view.classList.remove('hidden');
 
+      // Ocultar el chrome viejo del admin (topbar con saludo, FAB de QR/+, footer)
+      // mientras la vista está abierta. Se resuelve con una clase en <body> + CSS
+      // (admin-extra.css) en vez de tocar cada elemento por JS.
+      document.body.classList.add('exp-open');
+
+      // Reiniciar siempre a la sección Resumen, aunque una clienta anterior se
+      // haya quedado en otra pestaña (Fotos, Documentos, etc.).
+      if (typeof expActivateSection === 'function') expActivateSection('resumen');
+
       // Cerrar cualquier modal de cliente abierto.
       const clientModal = document.getElementById('client-modal');
       if (clientModal) clientModal.classList.add('hidden');
@@ -3980,6 +3989,10 @@
       if (view) view.classList.add('hidden');
       currentExpedienteCardId = null;
       currentExpedienteRecordId = null;
+      // Restaurar el chrome del admin (topbar, FAB, footer). Este es el único
+      // cierre real de la vista (clic en "Clientas", popstate vía switchTab, o
+      // swipe-back de iOS), así que basta con quitar la clase aquí.
+      document.body.classList.remove('exp-open');
       // Volver a la lista de clientas.
       if (typeof window.switchTab === 'function') window.switchTab('cards');
       // Restaurar el scroll de la lista.
@@ -4203,23 +4216,30 @@
         `<i class="fas fa-image"></i><p>Sin foto "Después"</p>`;
     }
 
-    // Navegación de secciones del expediente (pills horizontales)
+    // Navegación de secciones del expediente (pills horizontales).
+    // expActivateSection centraliza pill+contenido para que openExpedienteView()
+    // (reset a Resumen al abrir) y expLoadDiagnosis() (salto directo a
+    // Tratamientos) no dupliquen la lógica del click.
+    function expActivateSection(secName) {
+      document.querySelectorAll('.exp-sec').forEach(t => t.classList.remove('active'));
+      const pill = document.querySelector('.exp-sec[data-exp-sec="' + secName + '"]');
+      if (pill) pill.classList.add('active');
+
+      document.querySelectorAll('.exp-sec-content').forEach(c => c.classList.remove('active'));
+      const panel = document.getElementById('exp-sec-' + secName);
+      if (panel) panel.classList.add('active');
+
+      return { pill: pill, panel: panel };
+    }
+
     document.addEventListener('click', function(e) {
       const btn = e.target.closest && e.target.closest('.exp-sec');
       if (!btn) return;
       const secName = btn.dataset.expSec;
+      expActivateSection(secName);
 
-      // Actualizar pills activos
-      document.querySelectorAll('.exp-sec').forEach(t => t.classList.remove('active'));
-      btn.classList.add('active');
-
-      // Mostrar contenido correspondiente
-      document.querySelectorAll('.exp-sec-content').forEach(c => c.classList.remove('active'));
-      const target = document.getElementById('exp-sec-' + secName);
-      if (target) target.classList.add('active');
-
-      // Auto-scroll a la pestaña activa en la barra (móvil).
-      try { btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }); } catch (_) {}
+      // Auto-scroll a la pestaña activa en la barra (móvil: barra con scroll horizontal).
+      try { btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' }); } catch (_) {}
     });
 
     // Abrir modal de nueva sesión
@@ -4845,14 +4865,8 @@
       document.getElementById('exp-diag-prognosis').value = d.prognosis || '';
       document.getElementById('exp-diag-cost').value = d.cost || '';
       document.getElementById('exp-diag-staffName').value = d.staffName || '';
-      const panel = document.getElementById('exp-sec-tratamientos');
-      if (panel) { panel.classList.add('active'); panel.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
-      // Activar la pill de Tratamientos
-      document.querySelectorAll('.exp-sec').forEach(t => t.classList.remove('active'));
-      const pill = document.querySelector('.exp-sec[data-exp-sec="tratamientos"]');
-      if (pill) pill.classList.add('active');
-      document.querySelectorAll('.exp-sec-content').forEach(c => c.classList.remove('active'));
-      if (panel) panel.classList.add('active');
+      const result = expActivateSection('tratamientos');
+      if (result.panel) result.panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
     async function expSaveDiagnosis(e) {

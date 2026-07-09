@@ -2376,9 +2376,16 @@
         z-index: 100;
       }
 
-      /* (Eliminado) Ocultar elementos cuando el expediente está abierto.
-         Ya no se necesita: la vista de expediente sustituye al modal y convive
-         con el shell del admin como una sección más. */
+      /* Ocultar el chrome viejo del admin mientras la vista de expediente está
+         abierta (topbar con el saludo, FAB de QR/+, footer suelto). Se activa
+         con .exp-open en <body> — ver openExpedienteView/closeExpedienteView en
+         admin.html — en vez de tocar cada elemento por JS: más robusto ante
+         altas/bajas de elementos del chrome. */
+      body.exp-open .topbar-new,
+      body.exp-open .quick-actions,
+      body.exp-open .footer {
+        display: none;
+      }
 
       .quick-action-btn {
         width: 56px;
@@ -2638,7 +2645,10 @@
       .exp-sec-content { display: none; }
       .exp-sec-content.active {
         display: block;
-        animation: expFadeIn 220ms cubic-bezier(0.16, 1, 0.3, 1);
+        /* DESIGN.md → Motion: "Tab change: 200ms opacity + 8px translate,
+           ease-out-quart." Solo anima opacity/transform (compositor), nunca
+           layout. */
+        animation: expFadeIn 200ms cubic-bezier(0.25, 1, 0.5, 1);
       }
       @keyframes expFadeIn {
         from { opacity: 0; transform: translateY(8px); }
