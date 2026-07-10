@@ -3530,6 +3530,7 @@
               <div class="exp-sig-field">
                 <button type="button" class="btn ghost" onclick="expCaptureLaserSignature()"><i class="fas fa-signature"></i> Capturar firma</button>
                 <span id="exp-laser-sig-status" class="exp-sig-status"><i class="fas fa-circle-exclamation"></i> Falta firmar</span>
+                <img id="exp-laser-sig-preview" class="exp-sig-thumb" style="display:none;" alt="Firma guardada">
               </div>
             </div>
             <div class="exp-form-actions-sticky">
@@ -4621,6 +4622,7 @@
     let expedienteDigitalCache = null;
     let expLaserSignatureDataUrl = null; // firma recién capturada para la sesión de láser en curso (aún no guardada)
     let expLaserEditingHasServerSignature = false; // true si la sesión que se está editando ya tenía firma guardada
+    let expLaserEditingSignatureUrl = null; // dataURL de la firma ya guardada en el servidor (para previsualizarla al editar)
     let expQuestionnairesState = {}; // cuestionario de condiciones en edición (admin), espejo de intake.questionnaires
     const expApi = window.apiFetch || ((u, o) => fetch(u, Object.assign({ credentials: 'include' }, o || {})));
 
@@ -5461,16 +5463,28 @@
         const params = [s.frequency, s.fluence, s.laserIntensity, s.staffName].filter(Boolean).map(expEsc).join(' · ');
         const obs = s.observations ? '<div class="exp-laser-obs">' + expEsc(String(s.observations).slice(0, 120)) + (s.observations.length > 120 ? '…' : '') + '</div>' : '';
         const sigBadge = s.signedAt ? '<span class="exp-stacked-sig" title="Firmada por la clienta"><i class="fas fa-check"></i> Firmada</span>' : '';
+        const sigThumb = (s.signatureClient && String(s.signatureClient).indexOf('data:image') === 0)
+          ? '<div class="exp-sig-thumb-wrap"><img class="exp-sig-thumb" src="' + s.signatureClient + '" alt="Firma de la clienta" title="Ver firma" onclick="expViewLaserSignature(' + "'" + s.id + "'" + ')"></div>'
+          : '';
         return '<div class="exp-stacked-row">' +
           '<div class="exp-stacked-main"><span class="exp-stacked-date">' + expEsc(fecha) + '</span>' + (s.zone ? '<span class="exp-stacked-zone"> · ' + expEsc(s.zone) + '</span>' : '') + sigBadge + '</div>' +
           '<div class="exp-stacked-meta">' + params + '</div>' +
           obs +
+          sigThumb +
           '<div class="exp-stacked-actions">' +
             '<button class="btn small ghost" onclick="expEditLaserSession(' + "'" + s.id + "'" + ')"><i class="fas fa-pen"></i> Editar</button> ' +
             '<button class="btn small ghost exp-btn-danger" onclick="expDeleteLaserSession(' + "'" + s.id + "'" + ')"><i class="fas fa-trash"></i></button>' +
           '</div>' +
         '</div>';
       }).join('');
+    }
+
+    // Amplía la firma guardada de una sesión de láser (reutiliza el lightbox de fotos).
+    function expViewLaserSignature(id) {
+      const arr = (expedienteDigitalCache && expedienteDigitalCache.laserSessions) || [];
+      const s = arr.find(function (x) { return x.id === id; });
+      if (!s || !s.signatureClient) return;
+      openPhotoLightbox(s.signatureClient, '', s.signedAt || s.date);
     }
 
     // Abre el pad de firma para la sesión de láser en curso (no se envía hasta guardar el form).
@@ -5482,6 +5496,7 @@
         onSave: function (dataUrl) {
           expLaserSignatureDataUrl = dataUrl;
           expLaserEditingHasServerSignature = false; // la firma nueva reemplaza cualquier estado previo
+          expLaserEditingSignatureUrl = null;
           expUpdateLaserSigStatus();
         }
       });
@@ -5503,6 +5518,12 @@
         el.className = 'exp-sig-status';
         el.innerHTML = '<i class="fas fa-circle-exclamation"></i> Falta firmar';
       }
+      const prev = document.getElementById('exp-laser-sig-preview');
+      if (prev) {
+        const url = expLaserSignatureDataUrl || expLaserEditingSignatureUrl;
+        if (url && String(url).indexOf('data:image') === 0) { prev.src = url; prev.style.display = ''; }
+        else { prev.removeAttribute('src'); prev.style.display = 'none'; }
+      }
     }
 
     function expEditLaserSession(id) {
@@ -5520,6 +5541,7 @@
       // La firma no se recarga en claro (no hace falta re-firmar si el servidor ya la tiene).
       expLaserSignatureDataUrl = null;
       expLaserEditingHasServerSignature = !!s.signedAt;
+      expLaserEditingSignatureUrl = s.signatureClient || null;
       expUpdateLaserSigStatus();
       const lbl = document.getElementById('exp-laser-save-label');
       if (lbl) lbl.textContent = 'Guardar cambios';
@@ -5536,6 +5558,7 @@
       if (lbl) lbl.textContent = 'Agregar sesión';
       expLaserSignatureDataUrl = null;
       expLaserEditingHasServerSignature = false;
+      expLaserEditingSignatureUrl = null;
       expUpdateLaserSigStatus();
     }
 
