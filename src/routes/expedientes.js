@@ -274,6 +274,15 @@ router.post('/:cardId/diagnosis/:id/pdf', async (req, res) => {
   } catch (e) { console.error(e); return fail(res, 500, e.message); }
 });
 
+router.delete('/:cardId/diagnosis/:id', async (req, res) => {
+  try {
+    const record = await ensureRecord(req.params.cardId);
+    const result = await prisma.facialDiagnosis.deleteMany({ where: { id: req.params.id, recordId: record.id } });
+    if (result.count === 0) return fail(res, 404, 'diagnostico_no_encontrado');
+    res.json({ success: true });
+  } catch (e) { console.error(e); return fail(res, 500, e.message); }
+});
+
 // Cuestionario de condiciones, llenado/editado desde el admin junto con la clienta.
 // Actualiza el MISMO intake.questionnaires que la ficha pública (upsert de IntakeForm).
 router.put('/:cardId/questionnaires', async (req, res) => {
