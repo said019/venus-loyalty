@@ -384,9 +384,10 @@ async function procesarFechaReagendamiento(cita, telefono, fechaTexto) {
     try {
         await prisma.appointment.update({ where: { id: cita.id }, data: { updatedAt: new Date() } });
         await NotificationsRepo.create({ type: 'alerta', icon: 'calendar-alt', title: 'Propuesta de reagendamiento', message: `${cita.clientName} propone reagendar ${cita.serviceName} para: "${fechaTexto}"`, read: false, entityId: cita.id });
-        const { getEvolutionClient } = await import('../services/whatsapp-evolution.js');
-        const evo = getEvolutionClient();
-        await evo.sendText(telefono, `✅ ¡Perfecto ${cita.clientName}! Recibimos tu solicitud para reagendar tu cita de *${cita.serviceName}* para el *${fechaTexto}*.\n\nNuestro equipo revisará la disponibilidad y te confirmará a la brevedad. 🌸`);
+        // Sin acuse automático por WhatsApp (decisión 2026-07-10): mientras la cita
+        // siga en "rescheduling", CUALQUIER texto de la clienta caía aquí y el bot
+        // le contestaba en medio de la conversación. El equipo responde manual;
+        // la propuesta llega como notificación al panel.
         console.log(`📅 Propuesta de reagendamiento guardada para cita ${cita.id}: ${fechaTexto}`);
     } catch (error) { console.error('Error procesando fecha de reagendamiento:', error); }
 }
