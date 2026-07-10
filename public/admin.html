@@ -3398,6 +3398,7 @@
           <button class="exp-sec" data-exp-sec="ficha"><i class="fas fa-clipboard-list"></i> <span>Ficha</span></button>
           <button class="exp-sec" data-exp-sec="tratamientos"><i class="fas fa-spa"></i> <span>Tratamientos</span></button>
           <button class="exp-sec" data-exp-sec="laser"><i class="fas fa-bolt"></i> <span>Láser</span></button>
+          <button class="exp-sec" data-exp-sec="skin"><i class="fas fa-wand-magic-sparkles"></i> <span>Análisis IA</span></button>
           <button class="exp-sec" data-exp-sec="fotos"><i class="fas fa-camera"></i> <span>Fotos</span></button>
           <button class="exp-sec" data-exp-sec="documentos"><i class="fas fa-folder"></i> <span>Documentos</span></button>
         </nav>
@@ -3536,6 +3537,22 @@
               <button type="button" class="btn ghost" onclick="expResetLaserForm()">Cancelar</button>
             </div>
           </form>
+        </section>
+
+        <!-- ===== Sección: Análisis de piel con IA (Venus Skin Analyzer) ===== -->
+        <section id="exp-sec-skin" class="exp-sec-content">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:0 0 6px;">
+            <h3 class="exp-section-title" style="margin:0;">Análisis de piel con IA</h3>
+            <button type="button" class="btn primary" onclick="expNewSkinAnalysis()">
+              <i class="fas fa-wand-magic-sparkles"></i> Nuevo análisis
+            </button>
+          </div>
+          <p class="muted" style="margin:0 0 14px;font-size:12px;">
+            Historial del Venus Skin Analyzer vinculado a esta clienta.
+          </p>
+          <div id="exp-skin-list">
+            <div class="muted" style="text-align:center;padding:24px;font-size:13px;">Cargando…</div>
+          </div>
         </section>
 
         <!-- ===== Sección: Fotos ===== -->
@@ -4864,11 +4881,87 @@
         renderResumenPanel(data);
         renderHealthAlerts(data.intake);
         adjustHeaderActions(data.intake, data.record, data.consents);
+        // Análisis de piel con IA — endpoint dedicado (no viene en /expedientes)
+        loadExpedienteSkinAnalysis(cardId);
       } catch (e) {
         console.error('[Expediente digital] Error:', e);
         await venusAlert('No se pudo cargar el expediente digital');
       }
     }
+
+    // ----- Análisis de piel con IA (Venus Skin Analyzer) -----
+    async function loadExpedienteSkinAnalysis(cardId) {
+      const cont = document.getElementById('exp-skin-list');
+      if (!cont) return;
+      cont.innerHTML = '<div class="muted" style="text-align:center;padding:24px;font-size:13px;">Cargando…</div>';
+      try {
+        const res = await expApi('/api/skin-analysis/by-card/' + encodeURIComponent(cardId));
+        const json = await res.json();
+        const list = (json && json.success && Array.isArray(json.data)) ? json.data : [];
+        renderExpedienteSkinAnalysis(list);
+      } catch (e) {
+        console.error('[Expediente skin] Error:', e);
+        cont.innerHTML = '<div class="muted" style="text-align:center;padding:24px;font-size:13px;color:#ef4444;">No se pudieron cargar los análisis.</div>';
+      }
+    }
+
+    function renderExpedienteSkinAnalysis(list) {
+      const cont = document.getElementById('exp-skin-list');
+      if (!cont) return;
+      if (!list.length) {
+        cont.innerHTML = `
+          <div class="muted" style="text-align:center;padding:28px 16px;font-size:13px;border:1px dashed var(--border,#ddd);border-radius:12px;">
+            <i class="fas fa-wand-magic-sparkles" style="font-size:22px;opacity:.4;display:block;margin-bottom:8px;"></i>
+            Aún no hay análisis de piel para esta clienta.<br>
+            Toca <strong>Nuevo análisis</strong> para crear el primero.
+          </div>`;
+        return;
+      }
+      const scoreColor = (s) => {
+        if (s == null) return '#9ca3af';
+        if (s >= 80) return '#16a34a';
+        if (s >= 60) return '#d97706';
+        return '#ef4444';
+      };
+      const sevColor = { critical: '#ef4444', concern: '#d97706', moderate: '#ca8a04', good: '#16a34a', excellent: '#16a34a' };
+      cont.innerHTML = list.map(a => {
+        const fecha = a.analyzedAt ? new Date(a.analyzedAt).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }) : '—';
+        const score = (a.overallScore != null) ? a.overallScore : null;
+        const concerns = Array.isArray(a.scores) ? a.scores : [];
+        const chips = concerns.map(s => `
+          <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;color:${sevColor[s.severity] || '#6b7280'};background:${(sevColor[s.severity] || '#6b7280')}1a;border:1px solid ${(sevColor[s.severity] || '#6b7280')}33;">
+            ${s.labelEs || s.metric}
+          </span>`).join('');
+        return `
+          <div style="border:1px solid var(--border,#eee);border-radius:12px;padding:14px 16px;margin-bottom:10px;display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;">
+            <div style="width:56px;height:56px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;color:#fff;background:${scoreColor(score)};">
+              ${score != null ? score : '—'}
+            </div>
+            <div style="flex:1;min-width:180px;">
+              <div style="font-weight:700;font-size:14px;color:var(--ink,#111);">${fecha}</div>
+              <div style="font-size:12px;color:var(--muted,#777);margin-top:2px;">
+                ${a.skinType ? 'Piel ' + a.skinType : ''}${a.skinColor ? ' · ' + a.skinColor : ''}${(a.ageBiological != null) ? ' · Edad biológica ' + a.ageBiological : ''}
+              </div>
+              ${chips ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">${chips}</div>` : ''}
+            </div>
+            <button type="button" class="btn small ghost" onclick="expViewSkinAnalysis('${a.id}')" style="flex-shrink:0;">
+              <i class="fas fa-up-right-from-square"></i> Ver completo
+            </button>
+          </div>`;
+      }).join('');
+    }
+
+    // Abrir el analyzer para ESTA clienta (queda vinculado por ?cardId)
+    function expNewSkinAnalysis() {
+      if (!currentExpedienteCardId) { alert('No hay clienta cargada'); return; }
+      window.open('/skin-analysis.html?cardId=' + encodeURIComponent(currentExpedienteCardId), '_blank', 'noopener');
+    }
+    // Ver el detalle completo de un análisis (skin-analysis.html usa ?view=id)
+    function expViewSkinAnalysis(id) {
+      window.open('/skin-analysis.html?view=' + encodeURIComponent(id), '_blank', 'noopener');
+    }
+    window.expNewSkinAnalysis = expNewSkinAnalysis;
+    window.expViewSkinAnalysis = expViewSkinAnalysis;
 
     // ----- Resumen (solo lectura, alimentado por la ficha firmada) -----
     function renderResumenPanel(data) {
