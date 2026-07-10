@@ -1295,6 +1295,63 @@ app.post('/api/appointments/:id/payment', adminAuth, async (req, res) => {
 });
 
 // POST /api/direct-sales - Registrar venta directa (sin cita)
+// GET /api/sales/range — ventas SIN cita (manuales + directas de producto) en
+// un rango de fechas. El reporte de Ventas las suma como tercera fuente junto
+// a citas cobradas y café. Se excluyen las ventas ligadas a cita
+// (appointmentId != null) porque su monto ya cuenta vía appointment.totalPaid.
+app.get('/api/sales/range', adminAuth, async (req, res) => {
+  try {
+    const { from, to } = req.query;
+    if (!from || !to) return res.json({ success: false, error: 'Faltan from/to' });
+    const sales = await prisma.sale.findMany({
+      where: {
+        appointmentId: null,
+        date: { gte: new Date(`${from}T00:00:00-06:00`), lte: new Date(`${to}T23:59:59-06:00`) },
+      },
+      orderBy: { date: 'asc' },
+    });
+    res.json({ success: true, data: sales });
+  } catch (e) {
+    console.error('[sales/range]', e);
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// POST /api/manual-incomes — ingreso manual (estilo Excel, pero en el sistema).
+// Crea un Sale sin cita: concepto, monto, método y fecha. Aparece en el
+// reporte de Ventas al instante vía /api/sales/range.
+app.post('/api/manual-incomes', adminAuth, async (req, res) => {
+  try {
+    const { date, concept, clientName, amount, paymentMethod } = req.body || {};
+    const monto = parseFloat(amount);
+    if (!concept || !String(concept).trim()) return res.status(400).json({ success: false, error: 'Falta el concepto' });
+    if (!Number.isFinite(monto) || monto <= 0) return res.status(400).json({ success: false, error: 'Monto inválido' });
+    if (!['efectivo', 'tarjeta', 'transferencia'].includes(paymentMethod)) {
+      return res.status(400).json({ success: false, error: 'Método de pago inválido' });
+    }
+    const fecha = /^\d{4}-\d{2}-\d{2}$/.test(String(date || '')) ? date : new Date().toISOString().slice(0, 10);
+
+    const sale = await prisma.sale.create({
+      data: {
+        clientName: (clientName && String(clientName).trim()) || 'Ingreso manual',
+        serviceName: String(concept).trim(),
+        serviceAmount: monto,
+        productsAmount: 0,
+        subtotal: monto,
+        total: monto,
+        totalAmount: monto,
+        paymentMethod,
+        date: new Date(`${fecha}T12:00:00-06:00`),
+      },
+    });
+    console.log(`[MANUAL INCOME] +$${monto} · ${concept} · ${paymentMethod} · ${fecha}`);
+    res.json({ success: true, id: sale.id });
+  } catch (e) {
+    console.error('[manual-incomes]', e);
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
 app.post('/api/direct-sales', adminAuth, async (req, res) => {
   try {
     const {

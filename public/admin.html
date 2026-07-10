@@ -1779,6 +1779,9 @@
           <button class="btn ghost" onclick="cargarReportesMes()">
             <i class="fas fa-sync"></i> Actualizar
           </button>
+          <button class="btn primary" onclick="openManualIncomeDialog()" style="background:#22c55e;border-color:#22c55e;">
+            <i class="fas fa-plus"></i> Registrar ingreso
+          </button>
           <button class="btn primary" onclick="exportarVentasExcel()">
             <i class="fas fa-file-excel"></i> Exportar Excel
           </button>
@@ -3042,6 +3045,58 @@
     </dialog>
 
     <!-- EXPENSE DIALOG -->
+    <!-- Registrar ingreso manual (estilo Excel: fecha, concepto, monto, método) -->
+    <dialog id="manualIncomeDialog">
+      <div class="dialog-content">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+          <h3 style="margin:0;display:flex;align-items:center;gap:10px;">
+            <i class="fas fa-hand-holding-dollar" style="color:#22c55e;"></i>
+            <span>Registrar ingreso</span>
+          </h3>
+          <button type="button" class="btn ghost" onclick="document.getElementById('manualIncomeDialog').close()" style="min-width:auto;padding:8px 12px;" title="Cerrar">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <form id="form-manual-income">
+          <div style="display:grid;gap:16px;">
+            <div>
+              <label class="form-label">Fecha</label>
+              <input type="date" id="mi-date" class="form-input" required>
+            </div>
+            <div>
+              <label class="form-label">Concepto / Servicio</label>
+              <input type="text" id="mi-concept" class="form-input" required placeholder="Ej. Limpieza profunda, Masaje, Producto…">
+            </div>
+            <div>
+              <label class="form-label">Clienta <span class="muted" style="font-weight:400;">(opcional)</span></label>
+              <input type="text" id="mi-client" class="form-input" placeholder="Ej. María López">
+            </div>
+            <div>
+              <label class="form-label">Monto</label>
+              <div style="position:relative;">
+                <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);">$</span>
+                <input type="number" id="mi-amount" class="form-input" required min="1" step="any" style="padding-left:26px;" placeholder="650">
+              </div>
+            </div>
+            <div>
+              <label class="form-label">Método de pago</label>
+              <select id="mi-method" class="form-input" required>
+                <option value="efectivo">Efectivo</option>
+                <option value="tarjeta">Tarjeta</option>
+                <option value="transferencia">Transferencia</option>
+              </select>
+            </div>
+            <div style="display:flex;gap:10px;justify-content:flex-end;">
+              <button type="button" class="btn ghost" onclick="document.getElementById('manualIncomeDialog').close()">Cancelar</button>
+              <button type="submit" class="btn primary" style="background:#22c55e;border-color:#22c55e;">
+                <i class="fas fa-save"></i> Guardar ingreso
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </dialog>
+
     <dialog id="expenseDialog">
       <div class="dialog-content">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
@@ -17896,13 +17951,14 @@
 
         console.log('[REPORTS] Cargando mes:', firstDay, 'a', lastDayStr);
 
-        // Cargar citas y ventas de cafetería en paralelo
-        const [apptRes, coffeeRes] = await Promise.all([
+        // Cargar citas, cafetería y ventas manuales/directas en paralelo
+        const [apptRes, coffeeRes, manualRes] = await Promise.all([
           apiFetch(`/api/appointments/range?from=${fromISO}&to=${toISO}`),
-          apiFetch(`/api/pos/sales?from=${firstDay}&to=${lastDayStr}`)
+          apiFetch(`/api/pos/sales?from=${firstDay}&to=${lastDayStr}`),
+          apiFetch(`/api/sales/range?from=${firstDay}&to=${lastDayStr}`)
         ]);
 
-        const [apptJson, coffeeJson] = await Promise.all([apptRes.json(), coffeeRes.json()]);
+        const [apptJson, coffeeJson, manualJson] = await Promise.all([apptRes.json(), coffeeRes.json(), manualRes.json()]);
 
         if (!apptJson.success) {
           console.error('[REPORTS] Error citas:', apptJson.error);
@@ -17928,9 +17984,24 @@
             _isCoffeeSale: true
           }));
 
-        console.log('[REPORTS] Citas completadas:', ventas.length, '| Coffee Bar:', coffeeSales.length);
+        // Ingresos manuales + ventas directas de producto (tabla sales, sin cita).
+        // Antes eran invisibles: el reporte solo leía citas + café.
+        const manualSales = (manualJson && manualJson.success ? manualJson.data || [] : [])
+          .map(s => ({
+            id: s.id,
+            paidAt: s.date,
+            clientName: s.clientName || 'Ingreso manual',
+            serviceName: s.serviceName || (parseFloat(s.productsAmount) > 0 ? 'Venta de productos' : 'Ingreso manual'),
+            paymentMethod: s.paymentMethod,
+            totalPaid: parseFloat(s.totalAmount ?? s.total) || 0,
+            serviceAmount: parseFloat(s.serviceAmount) || 0,
+            discountAmount: parseFloat(s.discountAmount) || 0,
+            _isManualSale: true
+          }));
 
-        const todasLasVentas = [...ventas, ...coffeeSales].sort(
+        console.log('[REPORTS] Citas:', ventas.length, '| Coffee:', coffeeSales.length, '| Manuales/directas:', manualSales.length);
+
+        const todasLasVentas = [...ventas, ...coffeeSales, ...manualSales].sort(
           (a, b) => new Date(a.paidAt || a.startDateTime) - new Date(b.paidAt || b.startDateTime)
         );
 
@@ -18242,12 +18313,13 @@
 
         console.log('[REPORTS] Cargando rango:', from, 'a', to);
 
-        const [apptRes, coffeeRes] = await Promise.all([
+        const [apptRes, coffeeRes, manualRes] = await Promise.all([
           apiFetch(`/api/appointments/range?from=${fromISO}&to=${toISO}`),
-          apiFetch(`/api/pos/sales?from=${from}&to=${to}`)
+          apiFetch(`/api/pos/sales?from=${from}&to=${to}`),
+          apiFetch(`/api/sales/range?from=${from}&to=${to}`)
         ]);
 
-        const [apptJson, coffeeJson] = await Promise.all([apptRes.json(), coffeeRes.json()]);
+        const [apptJson, coffeeJson, manualJson] = await Promise.all([apptRes.json(), coffeeRes.json(), manualRes.json()]);
 
         if (!apptJson.success) {
           console.error('[REPORTS] Error citas:', apptJson.error);
@@ -18272,11 +18344,25 @@
             _isCoffeeSale: true
           }));
 
-        const ventas = [...ventasCitas, ...coffeeSales].sort(
+        // Ingresos manuales + ventas directas (tabla sales, sin cita)
+        const manualSales = (manualJson && manualJson.success ? manualJson.data || [] : [])
+          .map(s => ({
+            id: s.id,
+            paidAt: s.date,
+            clientName: s.clientName || 'Ingreso manual',
+            serviceName: s.serviceName || (parseFloat(s.productsAmount) > 0 ? 'Venta de productos' : 'Ingreso manual'),
+            paymentMethod: s.paymentMethod,
+            totalPaid: parseFloat(s.totalAmount ?? s.total) || 0,
+            serviceAmount: parseFloat(s.serviceAmount) || 0,
+            discountAmount: parseFloat(s.discountAmount) || 0,
+            _isManualSale: true
+          }));
+
+        const ventas = [...ventasCitas, ...coffeeSales, ...manualSales].sort(
           (a, b) => new Date(a.paidAt || a.startDateTime) - new Date(b.paidAt || b.startDateTime)
         );
 
-        console.log('[REPORTS] Citas completadas:', ventasCitas.length, '| Coffee Bar:', coffeeSales.length);
+        console.log('[REPORTS] Citas:', ventasCitas.length, '| Coffee:', coffeeSales.length, '| Manuales/directas:', manualSales.length);
 
         // Guardar datos para filtros
         reportData = ventas;
@@ -18362,6 +18448,58 @@
     window.filtrarReportePorFechas = filtrarReportePorFechas;
     window.limpiarFiltroFechas = limpiarFiltroFechas;
     window.filtroRapido = filtroRapido;
+
+    // ========== INGRESO MANUAL (estilo Excel) ==========
+    // Captura rápida como en su libreta/Excel: fecha, concepto, monto, método.
+    // Se guarda en la tabla `sales` (sin cita) y el reporte lo suma como
+    // tercera fuente vía /api/sales/range.
+    function openManualIncomeDialog() {
+      const dlg = document.getElementById('manualIncomeDialog');
+      const hoy = new Date();
+      const tz = new Date(hoy.getTime() - hoy.getTimezoneOffset() * 60000);
+      document.getElementById('mi-date').value = tz.toISOString().slice(0, 10);
+      document.getElementById('mi-concept').value = '';
+      document.getElementById('mi-client').value = '';
+      document.getElementById('mi-amount').value = '';
+      document.getElementById('mi-method').value = 'efectivo';
+      dlg.showModal();
+      setTimeout(() => document.getElementById('mi-concept').focus(), 50);
+    }
+    window.openManualIncomeDialog = openManualIncomeDialog;
+
+    document.getElementById('form-manual-income').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = e.target.querySelector('button[type="submit"]');
+      const payload = {
+        date: document.getElementById('mi-date').value,
+        concept: document.getElementById('mi-concept').value.trim(),
+        clientName: document.getElementById('mi-client').value.trim(),
+        amount: parseFloat(document.getElementById('mi-amount').value),
+        paymentMethod: document.getElementById('mi-method').value
+      };
+      if (!payload.date || !payload.concept || !(payload.amount > 0)) {
+        showNotification('Completa fecha, concepto y monto', 'error');
+        return;
+      }
+      btn.disabled = true;
+      try {
+        const res = await apiFetch('/api/manual-incomes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const json = await res.json();
+        if (!json.success) throw new Error(json.error || 'No se pudo guardar');
+        document.getElementById('manualIncomeDialog').close();
+        showNotification(`Ingreso registrado: ${payload.concept} — $${payload.amount.toLocaleString('es-MX')}`, 'success');
+        cargarReportesMes();
+      } catch (err) {
+        console.error('[MANUAL-INCOME] Error:', err);
+        showNotification('Error: ' + err.message, 'error');
+      } finally {
+        btn.disabled = false;
+      }
+    });
 
     // ========== GASTOS DEL MES ==========
     let currentExpenseId = null;
