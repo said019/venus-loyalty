@@ -130,11 +130,14 @@ class EvolutionAPIClient {
         }
     }
 
-    // Obtener mensajes recientes de TODO el store (sin filtrar por chat).
-    // Usado por la reconciliación de votos de encuestas.
-    async findRecentMessages(limit = 300) {
+    // Obtener mensajes recientes del store. `where` permite filtrar server-side
+    // (ej. { messageType: 'pollUpdateMessage' } para traer SOLO votos).
+    // Sin filtro, Evolution pagina el store global y los votos recientes pueden
+    // quedar fuera de la ventana devuelta — por eso el barrido de votos estuvo
+    // ciego (0 rescates desde el 2 jul aunque las clientas sí votaban).
+    async findRecentMessages(limit = 300, where = {}) {
         const response = await this.client.post(`/chat/findMessages/${this.instanceName}`, {
-            where: {},
+            where,
             limit,
         });
         const data = response.data;

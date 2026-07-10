@@ -6892,10 +6892,25 @@ app.post('/api/admin/reconcile-polls', adminAuth, async (req, res) => {
     try {
         const { getEvolutionClient } = await import('./src/services/whatsapp-evolution.js');
         const { WhatsAppService } = await import('./src/services/whatsapp-v2.js');
-        const { matchOptionByHash } = await import('./src/routes/webhookEvolution.js');
+        const { reconcilePollVotes, decodePollUpdate } = await import('./src/services/pollVotes.js');
         const evo = getEvolutionClient();
 
-        // Buscar citas scheduled que ya se les envió la encuesta 24h
+        const reconciled = [];
+
+        // 1) Barrido primario del store: decodifica votos en TEXTO PLANO + @lid
+        //    (formato real de Evolution), aplica one-way y manda acuse. Corre
+        //    ANTES de la query para que las citas rescatadas salgan del listado.
+        try {
+            const sweep = await reconcilePollVotes({ apply: true });
+            for (const c of sweep.changes) {
+                reconciled.push({ id: c.appointmentId, client: c.client, service: c.service, newStatus: c.to });
+            }
+        } catch (e) {
+            console.warn('[Reconcile] barrido primario falló (sigo con escaneo por chat):', e.message);
+        }
+
+        // 2) Escaneo por chat (respuestas de TEXTO tipo "CONFIRMO" que el
+        //    webhook haya perdido). Los votos ya los cubrió el barrido de arriba.
         const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
         const pendingAppts = await prisma.appointment.findMany({
             where: {
@@ -6907,10 +6922,15 @@ app.post('/api/admin/reconcile-polls', adminAuth, async (req, res) => {
         });
 
         if (pendingAppts.length === 0) {
-            return res.json({ success: true, message: 'No hay citas pendientes de reconciliar', reconciled: [] });
+            return res.json({
+                success: true,
+                total: reconciled.length,
+                reconciled,
+                message: reconciled.length > 0
+                    ? `${reconciled.length} cita(s) reconciliada(s)`
+                    : 'No hay citas pendientes de reconciliar'
+            });
         }
-
-        const reconciled = [];
 
         for (const appt of pendingAppts) {
             try {
@@ -6944,39 +6964,14 @@ app.post('/api/admin/reconcile-polls', adminAuth, async (req, res) => {
                         || msg?.message?.extendedTextMessage?.text
                         || '').toLowerCase().trim();
 
-                    // Extraer opción del poll (texto plano o hashes)
+                    // Extraer opción del poll — decodePollUpdate cubre el formato
+                    // real (TEXTO PLANO en vote.selectedOptions) con fallback a
+                    // hash legacy. La lógica anterior asumía solo hashes y por eso
+                    // el botón nunca rescataba votos.
                     let pollOption = null;
                     if (pollUpdate) {
-                        if (Array.isArray(pollUpdate?.votes)) {
-                            pollOption = (pollUpdate.votes[0]?.optionName || pollUpdate.votes[0]?.name || '').toLowerCase();
-                        }
-                        // Formato hash: pollUpdate.vote.selectedOptions = [Buffer/hex/base64]
-                        if (!pollOption && Array.isArray(pollUpdate?.vote?.selectedOptions)) {
-                            const hashes = pollUpdate.vote.selectedOptions;
-                            const targetPollId = pollUpdate?.pollCreationMessageKey?.id;
-                            // Intentar contra la opción del pendingPoll específico; fallback a cualquier poll de esta cita
-                            const pollsToTry = targetPollId && apptPollIds.has(targetPollId)
-                                ? apptPolls.filter(p => p.id === targetPollId && p.options)
-                                : apptPolls.filter(p => p.options);
-                            for (const pp of pollsToTry) {
-                                try {
-                                    const opts = JSON.parse(pp.options);
-                                    for (const h of hashes) {
-                                        const matched = matchOptionByHash(opts, h);
-                                        if (matched) { pollOption = matched.toLowerCase(); break; }
-                                    }
-                                } catch { /* ignore */ }
-                                if (pollOption) break;
-                            }
-                            // Fallback global: opciones estándar si no hay pendingPoll guardado
-                            if (!pollOption) {
-                                const fallbackOpts = ['Confirmar asistencia', 'Reagendar', 'Cancelar'];
-                                for (const h of hashes) {
-                                    const matched = matchOptionByHash(fallbackOpts, h);
-                                    if (matched) { pollOption = matched.toLowerCase(); break; }
-                                }
-                            }
-                        }
+                        const opt = decodePollUpdate(pollUpdate);
+                        if (opt) pollOption = String(opt).toLowerCase();
                     }
 
                     const respuesta = pollOption || text;

@@ -279,10 +279,29 @@ export function startScheduler() {
             const pendingAlerts = await AppointmentModel.getPendingConfirmationAlert(rangeStart, rangeEnd);
 
             if (pendingAlerts.length > 0) {
-                console.log(`⚠️ [4h-alert] ${pendingAlerts.length} citas sin confirmar — enviando alerta`);
+                console.log(`⚠️ [4h-alert] ${pendingAlerts.length} citas sin confirmar — barrido de votos + alerta`);
+                // Antes de molestar con "Confirmación pendiente": barrer votos del
+                // store. Si la clienta YA votó y el webhook lo perdió, el barrido
+                // la confirma (y le manda acuse) y abajo saltamos su alerta.
+                // Pasó con Francisca Reyes (10 jul): votó "Confirmar" y a las 4h
+                // le llegó la amenaza de cancelación de todos modos.
+                try { await reconcilePollVotes({ apply: true }); }
+                catch (e) { console.warn('[4h-alert] barrido de votos falló (sigo con alertas):', e.message); }
             }
 
             for (const appt of pendingAlerts) {
+                // Re-verificar contra la DB: el barrido de arriba (o el webhook en
+                // paralelo) pudo haberla confirmado hace un instante.
+                try {
+                    const fresh = await prisma.appointment.findUnique({
+                        where: { id: appt.id }, select: { status: true }
+                    });
+                    if (!fresh || fresh.status !== 'scheduled') {
+                        console.log(`✅ [4h-alert] ${appt.clientName} ya no está 'scheduled' (${fresh?.status}) — skip alerta`);
+                        continue;
+                    }
+                } catch { /* si falla el re-check, seguimos con el flujo normal */ }
+
                 const result = await WhatsAppService.sendAlertaCancelacion(appt);
                 if (result.success) {
                     await AppointmentModel.markConfirmationAlertSent(appt.id);
@@ -316,10 +335,27 @@ export function startScheduler() {
             const pendingCancel = await AppointmentModel.getPendingAutoCancelation(rangeStart, rangeEnd);
 
             if (pendingCancel.length > 0) {
-                console.log(`❌ [auto-cancel] ${pendingCancel.length} citas sin confirmar — cancelando`);
+                console.log(`❌ [auto-cancel] ${pendingCancel.length} citas sin confirmar — barrido de votos + cancelación`);
+                // ÚLTIMA LÍNEA DE DEFENSA antes de cancelar: barrer votos del store.
+                // Cancelar la cita de una clienta que SÍ votó "Confirmar" es el peor
+                // desenlace posible del bug de votos perdidos; el barrido lo evita.
+                try { await reconcilePollVotes({ apply: true }); }
+                catch (e) { console.warn('[auto-cancel] barrido de votos falló (sigo):', e.message); }
             }
 
             for (const appt of pendingCancel) {
+                // Re-verificar contra la DB: el barrido (o el webhook) pudo haberla
+                // confirmado hace un instante. Solo cancelamos si sigue 'scheduled'.
+                try {
+                    const fresh = await prisma.appointment.findUnique({
+                        where: { id: appt.id }, select: { status: true }
+                    });
+                    if (!fresh || fresh.status !== 'scheduled') {
+                        console.log(`✅ [auto-cancel] ${appt.clientName} ya no está 'scheduled' (${fresh?.status}) — skip cancelación`);
+                        continue;
+                    }
+                } catch { /* si falla el re-check, mejor NO cancelar este tick */ continue; }
+
                 await prisma.appointment.update({
                     where: { id: appt.id },
                     data: {

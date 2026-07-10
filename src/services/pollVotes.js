@@ -13,6 +13,7 @@
 import crypto from 'crypto';
 import { prisma } from '../db/index.js';
 import { getEvolutionClient } from './whatsapp-evolution.js';
+import { WhatsAppService } from './whatsapp-v2.js';
 
 export const STANDARD_POLL_OPTIONS = ['Confirmar asistencia', 'Reagendar', 'Cancelar'];
 
@@ -81,17 +82,42 @@ function targetStatusFor(option) {
 }
 
 // Barre el store de Evolution, decodifica votos pendientes y actualiza el status
-// de la cita correspondiente. Idempotente (no toca citas que ya están en el status destino).
-// No envía mensajes a las clientas (solo actualiza estado), para que sea seguro correrlo en cron.
-export async function reconcilePollVotes({ apply = true, limit = 300 } = {}) {
+// de la cita correspondiente.
+//
+// Reglas de seguridad (aprendidas de incidentes reales):
+//  - Barrido FILTRADO por messageType server-side: sin filtro, Evolution pagina
+//    el store global y los votos recientes quedan fuera de la ventana → el
+//    barrido estuvo ciego (0 rescates 2-10 jul aunque las clientas votaban).
+//    Fallback al barrido sin filtro si el filtrado falla o viene vacío.
+//  - Transición ONE-WAY: solo se aplica un voto si la cita sigue en 'scheduled'.
+//    Antes, re-aplicar votos viejos sobre citas ya procesadas causó un loop
+//    cancelled↔rescheduling cada 3 min (Stephanie, 2 jul). Con one-way, cada
+//    cita cambia a lo más UNA vez por esta vía y nunca pisa decisiones
+//    posteriores (del webhook, del admin o de la clienta por texto).
+//  - ACUSE a la clienta (sendAcuse=true): como la transición es única, es
+//    seguro responder. Confirmaciones del mismo teléfono se agrupan en un
+//    solo mensaje; el acuse nunca bloquea el cambio de status si falla.
+export async function reconcilePollVotes({ apply = true, limit = 300, sendAcuse = true } = {}) {
     const evo = getEvolutionClient();
     let records = [];
+    let source = 'filtered';
     try {
-        const data = await evo.findRecentMessages(limit);
-        records = data;
+        // Primario: solo votos (messageType filtrado server-side)
+        records = await evo.findRecentMessages(limit, { messageType: 'pollUpdateMessage' });
+        if (!records.length) {
+            // Fallback: barrido global sin filtro (versiones de Evolution que no
+            // soporten el where por messageType)
+            source = 'unfiltered-fallback';
+            records = await evo.findRecentMessages(limit);
+        }
     } catch (err) {
-        console.warn('[pollVotes] No se pudieron traer mensajes:', err.message);
-        return { scanned: 0, votes: 0, changes: [] };
+        try {
+            source = 'unfiltered-after-error';
+            records = await evo.findRecentMessages(limit);
+        } catch (err2) {
+            console.warn('[pollVotes] No se pudieron traer mensajes:', err2.message);
+            return { scanned: 0, votes: 0, changes: [], source: 'error' };
+        }
     }
 
     const votes = records.filter(m => m?.message?.pollUpdateMessage);
@@ -116,13 +142,17 @@ export async function reconcilePollVotes({ apply = true, limit = 300 } = {}) {
                 where: { OR: [{ id: pollId }, { id: { startsWith: pollId + '_' } }] }
             });
             const apptIds = [...new Set(pps.map(p => p.appointmentId).filter(Boolean))];
-            if (apptIds.length) appts = await prisma.appointment.findMany({ where: { id: { in: apptIds } } });
+            if (apptIds.length) {
+                appts = await prisma.appointment.findMany({
+                    where: { id: { in: apptIds }, startDateTime: { gte: marginDate } }
+                });
+            }
         }
         if (appts.length === 0) {
             const one = await prisma.appointment.findFirst({
                 where: {
                     clientPhone: { endsWith: last10 },
-                    status: { in: ['scheduled', 'confirmed', 'rescheduling'] },
+                    status: 'scheduled',
                     startDateTime: { gte: marginDate }
                 },
                 orderBy: { startDateTime: 'asc' }
@@ -131,8 +161,13 @@ export async function reconcilePollVotes({ apply = true, limit = 300 } = {}) {
         }
 
         for (const appt of appts) {
-            if (!appt || appt.status === target) continue;
-            const change = { appointmentId: appt.id, client: appt.clientName, service: appt.serviceName, from: appt.status, to: target, option };
+            // ONE-WAY: solo desde 'scheduled'. Un voto viejo jamás pisa una cita
+            // ya confirmada/cancelada/en reagenda (por esta u otra vía).
+            if (!appt || appt.status !== 'scheduled' || appt.status === target) continue;
+            const change = {
+                appointmentId: appt.id, client: appt.clientName, service: appt.serviceName,
+                from: appt.status, to: target, option, appt,
+            };
             if (apply) {
                 const data = { status: target, updatedAt: new Date() };
                 if (target === 'confirmed') { data.confirmedAt = new Date(); data.confirmedVia = 'whatsapp-reconciled'; }
@@ -144,5 +179,31 @@ export async function reconcilePollVotes({ apply = true, limit = 300 } = {}) {
         }
     }
 
-    return { scanned: records.length, votes: votes.length, changes };
+    // ── Acuse a las clientas. Cada cita llega aquí a lo más una vez en su vida
+    //    (one-way), así que no hay riesgo de spamear. Confirmaciones del mismo
+    //    teléfono van en UN mensaje consolidado.
+    if (apply && sendAcuse && changes.length > 0) {
+        const confirmedByPhone = new Map();
+        for (const c of changes) {
+            if (c.to === 'confirmed') {
+                const key = c.appt.clientPhone;
+                if (!confirmedByPhone.has(key)) confirmedByPhone.set(key, []);
+                confirmedByPhone.get(key).push(c.appt);
+            }
+        }
+        for (const [, citas] of confirmedByPhone) {
+            try { await WhatsAppService.sendConfirmacionRecibidaMultiple(citas); }
+            catch (e) { console.warn('[pollVotes] acuse confirmación falló:', e.message); }
+        }
+        for (const c of changes) {
+            try {
+                if (c.to === 'rescheduling') await WhatsAppService.sendSolicitudReprogramacion(c.appt);
+                else if (c.to === 'cancelled') await WhatsAppService.sendCancelacionConfirmada(c.appt);
+            } catch (e) { console.warn('[pollVotes] acuse falló:', e.message); }
+        }
+    }
+
+    // No exponer el objeto appt completo hacia afuera (logs/JSON del endpoint)
+    const publicChanges = changes.map(({ appt, ...rest }) => rest);
+    return { scanned: records.length, votes: votes.length, changes: publicChanges, source };
 }
