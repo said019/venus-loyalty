@@ -1923,9 +1923,12 @@
         </div>
       </div>
 
-      <!-- Tabla de Ingresos Detallada -->
+      <!-- Filtro de forma de pago (aplica a la tabla "Detalle de Ventas") -->
+      <!-- NOTA: aquí vivía el esqueleto roto de una tabla vieja (table/thead
+           sin cerrar) que por foster-parenting metía las tarjetas de
+           estadísticas y el panel de gastos dentro de un scroll de 500px. -->
       <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
           <h3 style="margin:0;font-size:14px;color:var(--venus-soft);">
             <i class="fas fa-list"></i> INGRESOS
           </h3>
@@ -1939,10 +1942,7 @@
             </select>
           </div>
         </div>
-        <div class="table-wrap" style="max-height:500px;overflow-y:auto;">
-          <table class="data-table" style="font-size:12px;">
-            <thead style="position:sticky;top:0;background:var(--bg-tertiary);z-index:1;">
-        </div>
+      </div>
 
         <!-- Estadísticas -->
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:20px;">
@@ -17275,334 +17275,17 @@
 
     let reportData = [];
 
-    function getReportField(id, fallbackId) {
-      return document.getElementById(id) || (fallbackId ? document.getElementById(fallbackId) : null);
-    }
-
-    // Cargar servicios en el filtro cuando se entre a la pestaña de reportes
-    document.addEventListener('DOMContentLoaded', () => {
-      // Detectar cuando se abre la pestaña de reportes
-      const reportLink = document.querySelector('a[data-tab="reports"]');
-      if (reportLink) {
-        reportLink.addEventListener('click', async () => {
-          await cargarServiciosReporte();
-          // Establecer fechas por defecto (último mes)
-          const hoy = new Date();
-          const hace30Dias = new Date();
-          hace30Dias.setDate(hoy.getDate() - 30);
-          const dateFromEl = getReportField('filter-date-from', 'report-date-from');
-          const dateToEl = getReportField('filter-date-to', 'report-date-to');
-          if (dateFromEl) dateFromEl.value = hace30Dias.toISOString().split('T')[0];
-          if (dateToEl) dateToEl.value = hoy.toISOString().split('T')[0];
-        });
-      }
-    });
-
-    async function cargarServiciosReporte() {
-      try {
-        const res = await apiFetch('/api/services');
-        const json = await res.json();
-
-        if (json.success) {
-          const servicios = json.data || [];
-          const select = document.getElementById('filter-service');
-          if (!select) return;
-          select.innerHTML = '<option value="">Todos</option>';
-
-          servicios.forEach(s => {
-            const option = document.createElement('option');
-            option.value = s.id;
-            option.textContent = s.name;
-            select.appendChild(option);
-          });
-        }
-      } catch (error) {
-        console.error('[REPORTS] Error cargando servicios:', error);
-      }
-    }
-
-    async function initReportsTab() {
-      console.log('[REPORTS] Inicializando tab de reportes');
-
-      // Cargar servicios para el dropdown
-      await cargarServiciosReporte();
-
-      // Establecer fechas por defecto (mes actual)
+    // Al abrir la pestaña Ventas: pre-llenar el rango de fechas con el mes en
+    // curso. Los datos los carga el listener de [data-tab="reports"] (abajo),
+    // que llama a cargarReportesMes() + loadExpenses().
+    function initReportsTab() {
       const hoy = new Date();
       const primerDiaMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
-
-      const dateFromEl = getReportField('filter-date-from', 'report-date-from');
-      const dateToEl = getReportField('filter-date-to', 'report-date-to');
+      const dateFromEl = document.getElementById('report-date-from');
+      const dateToEl = document.getElementById('report-date-to');
       if (dateFromEl) dateFromEl.value = primerDiaMes.toISOString().split('T')[0];
       if (dateToEl) dateToEl.value = hoy.toISOString().split('T')[0];
-
-      console.log('[REPORTS] Tab inicializado. Listo para aplicar filtros.');
     }
-
-    async function aplicarFiltrosReporte() {
-      try {
-        const dateFrom = getReportField('filter-date-from', 'report-date-from')?.value;
-        const dateTo = getReportField('filter-date-to', 'report-date-to')?.value;
-
-        if (!dateFrom || !dateTo) {
-          await venusAlert('Por favor selecciona un rango de fechas');
-          return;
-        }
-
-        console.log('[REPORTS] Cargando ventas desde', dateFrom, 'hasta', dateTo);
-
-        // Convertir fechas a ISO con timezone de México
-        const fromISO = `${dateFrom}T00:00:00-06:00`;
-        const toISO = `${dateTo}T23:59:59-06:00`;
-
-        console.log('[REPORTS] URL:', `/api/appointments/range?from=${fromISO}&to=${toISO}`);
-
-        // Cargar todas las citas completadas en el rango
-        const res = await apiFetch(`/api/appointments/range?from=${fromISO}&to=${toISO}`);
-        console.log('[REPORTS] Fetch completado. Status:', res.status, res.statusText);
-
-        const json = await res.json();
-        console.log('[REPORTS] JSON recibido:', json);
-
-        if (!json.success) {
-          console.error('[REPORTS] Error en respuesta:', json.error);
-          await venusAlert('Error cargando datos: ' + (json.error || 'Desconocido'));
-          return;
-        }
-
-        const allAppointments = json.data || [];
-        console.log('[REPORTS] Total de citas recibidas:', allAppointments.length);
-
-        // Debug: Ver el estado de las primeras 5 citas
-        allAppointments.slice(0, 5).forEach((a, i) => {
-          console.log(`[REPORTS] Cita ${i + 1}:`, {
-            id: a.id,
-            clientName: a.clientName,
-            status: a.status,
-            totalPaid: a.totalPaid,
-            paymentMethod: a.paymentMethod,
-            startDateTime: a.startDateTime
-          });
-        });
-
-        // Filtrar solo las citas completadas con pago
-        let ventas = allAppointments.filter(a => {
-          const isCompleted = a.status === 'completed';
-          const hasTotalPaid = !!a.totalPaid;
-          const hasPaymentMethod = !!a.paymentMethod;
-
-          if (!isCompleted || !hasTotalPaid || !hasPaymentMethod) {
-            console.log('[REPORTS] Cita excluida:', {
-              id: a.id,
-              clientName: a.clientName,
-              isCompleted,
-              hasTotalPaid,
-              hasPaymentMethod
-            });
-          }
-
-          return isCompleted && hasTotalPaid && hasPaymentMethod;
-        });
-
-        console.log('[REPORTS] Citas completadas con pago:', ventas.length);
-
-        // Aplicar filtros adicionales
-        const paymentFilter = document.getElementById('filter-payment-method')?.value || '';
-        const serviceFilter = document.getElementById('filter-service')?.value || '';
-
-        console.log('[REPORTS] Filtros adicionales:', { paymentFilter, serviceFilter });
-
-        if (paymentFilter) {
-          const before = ventas.length;
-          ventas = ventas.filter(v => v.paymentMethod === paymentFilter);
-          console.log(`[REPORTS] Filtro de método de pago: ${before} → ${ventas.length}`);
-        }
-
-        if (serviceFilter) {
-          const before = ventas.length;
-          ventas = ventas.filter(v => v.serviceId === serviceFilter);
-          console.log(`[REPORTS] Filtro de servicio: ${before} → ${ventas.length}`);
-        }
-
-        console.log('[REPORTS] Total final de ventas:', ventas.length);
-
-        reportData = ventas;
-        renderizarReporte(ventas);
-      } catch (error) {
-        console.error('[REPORTS] ❌ Error capturado:', error);
-        console.error('[REPORTS] Error name:', error.name);
-        console.error('[REPORTS] Error message:', error.message);
-        console.error('[REPORTS] Error stack:', error.stack);
-        await venusAlert('Error al cargar el reporte: ' + error.message);
-      }
-    }
-
-    function renderizarReporte(ventas) {
-      console.log('[REPORTS] Renderizando reporte con', ventas.length, 'ventas');
-
-      // Calcular estadísticas
-      let totalGeneral = 0;
-      let totalEfectivo = 0;
-      let totalTarjeta = 0;
-      let totalTransferencia = 0;
-      let countEfectivo = 0;
-      let countTarjeta = 0;
-      let countTransferencia = 0;
-
-      ventas.forEach(v => {
-        const amount = parseFloat(v.totalPaid) || 0;
-        totalGeneral += amount;
-
-        switch (v.paymentMethod) {
-          case 'efectivo':
-            totalEfectivo += amount;
-            countEfectivo++;
-            break;
-          case 'tarjeta':
-            totalTarjeta += amount;
-            countTarjeta++;
-            break;
-          case 'transferencia':
-            totalTransferencia += amount;
-            countTransferencia++;
-            break;
-        }
-      });
-
-      // Actualizar estadísticas
-      document.getElementById('report-total-sales').textContent = '$' + totalGeneral.toFixed(2);
-      document.getElementById('report-sales-count').textContent = `${ventas.length} ventas`;
-
-      document.getElementById('report-cash-total').textContent = '$' + totalEfectivo.toFixed(2);
-      document.getElementById('report-cash-count').textContent = `${countEfectivo} ventas`;
-
-      document.getElementById('report-card-total').textContent = '$' + totalTarjeta.toFixed(2);
-      document.getElementById('report-card-count').textContent = `${countTarjeta} ventas`;
-
-      document.getElementById('report-transfer-total').textContent = '$' + totalTransferencia.toFixed(2);
-      document.getElementById('report-transfer-count').textContent = `${countTransferencia} ventas`;
-
-      // Renderizar tabla
-      const tbody = document.getElementById('report-sales-tbody');
-
-      if (ventas.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="muted" style="text-align:center;padding:40px;">No se encontraron ventas en este período</td></tr>';
-        return;
-      }
-
-      tbody.innerHTML = ventas.map((v, index) => {
-        const fecha = new Date(v.paidAt || v.startDateTime);
-        const fechaStr = fecha.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
-
-        const productsSold = v.productsSold || [];
-        const productosCount = productsSold.length;
-        const productosQty = productsSold.reduce((sum, p) => sum + (p.qty || 1), 0);
-
-        // Crear HTML de productos para el tooltip/expandible
-        let productosHtml = '-';
-        if (productosCount > 0) {
-          const productosListHtml = productsSold.map(p =>
-            `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.1);">
-              <span>${p.name}</span>
-              <span style="color:#a78bfa;font-weight:600;">×${p.qty} = $${(p.price * p.qty).toLocaleString()}</span>
-            </div>`
-          ).join('');
-
-          productosHtml = `
-            <div class="productos-cell" style="position:relative;">
-              <button onclick="toggleProductosDetail(${index})" style="
-                background:#8b5cf6;
-                color:white;
-                border:none;
-                padding:4px 10px;
-                border-radius:6px;
-                font-size:11px;
-                font-weight:600;
-                cursor:pointer;
-                display:flex;
-                align-items:center;
-                gap:4px;
-              ">
-                <i class="fas fa-box"></i> ${productosQty} <i class="fas fa-chevron-down" style="font-size:9px;"></i>
-              </button>
-              <div id="productos-detail-${index}" class="productos-detail-popup" style="
-                display:none;
-                position:absolute;
-                top:100%;
-                left:0;
-                z-index:100;
-                background:#1a1b18;
-                border:1px solid rgba(139,92,246,0.3);
-                border-radius:10px;
-                padding:12px;
-                min-width:250px;
-                box-shadow:0 10px 25px rgba(0,0,0,0.4);
-                margin-top:4px;
-              ">
-                <div style="font-size:12px;font-weight:600;margin-bottom:8px;color:#a78bfa;">
-                  <i class="fas fa-shopping-bag"></i> Productos Vendidos
-                </div>
-                ${productosListHtml}
-                <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.1);font-weight:600;text-align:right;color:#22c55e;">
-                  Total: $${productsSold.reduce((sum, p) => sum + (p.price * p.qty), 0).toLocaleString()}
-                </div>
-              </div>
-            </div>
-          `;
-        }
-
-        const descuento = parseFloat(v.discountAmount) || 0;
-        const descuentoText = descuento > 0 ? `$${descuento.toFixed(2)}` : '-';
-
-        return `
-          <tr>
-            <td data-label="Fecha">${fechaStr}</td>
-            <td data-label="Cliente">${v.clientName || 'Sin nombre'}</td>
-            <td data-label="Servicio">${v.serviceName || '-'}</td>
-            <td data-label="Método">
-              <span style="
-                display:inline-block;
-                padding:4px 8px;
-                border-radius:6px;
-                font-size:11px;
-                font-weight:500;
-                background:${v.paymentMethod === 'efectivo' ? '#dcfce7' : v.paymentMethod === 'tarjeta' ? '#dbeafe' : '#f3e8ff'};
-                color:${v.paymentMethod === 'efectivo' ? '#166534' : v.paymentMethod === 'tarjeta' ? '#1e40af' : '#6b21a8'};
-              ">${v.paymentMethod || '-'}</span>
-            </td>
-            <td data-label="Productos">${productosHtml}</td>
-            <td data-label="Descuento">${descuentoText}</td>
-            <td data-label="Total" style="font-weight:600;">$${parseFloat(v.totalPaid).toFixed(2)}</td>
-          </tr>
-        `;
-      }).join('');
-
-      console.log('[REPORTS] Reporte renderizado correctamente');
-    }
-
-    function limpiarFiltrosReporte() {
-      const dateFromEl = getReportField('filter-date-from', 'report-date-from');
-      const dateToEl = getReportField('filter-date-to', 'report-date-to');
-      if (dateFromEl) dateFromEl.value = '';
-      if (dateToEl) dateToEl.value = '';
-      if (document.getElementById('filter-payment-method')) document.getElementById('filter-payment-method').value = '';
-      if (document.getElementById('filter-service')) document.getElementById('filter-service').value = '';
-
-      reportData = [];
-
-      document.getElementById('report-total-sales').textContent = '$0.00';
-      document.getElementById('report-sales-count').textContent = '0 ventas';
-      document.getElementById('report-cash-total').textContent = '$0.00';
-      document.getElementById('report-cash-count').textContent = '0 ventas';
-      document.getElementById('report-card-total').textContent = '$0.00';
-      document.getElementById('report-card-count').textContent = '0 ventas';
-      document.getElementById('report-transfer-total').textContent = '$0.00';
-      document.getElementById('report-transfer-count').textContent = '0 ventas';
-
-      const tbody = document.getElementById('report-sales-tbody');
-      tbody.innerHTML = '<tr><td colspan="7" class="muted" style="text-align:center;padding:40px;">Selecciona un rango de fechas y haz clic en "Aplicar Filtros"</td></tr>';
-    }
-
     // Función para mostrar/ocultar detalle de productos en reportes
     function toggleProductosDetail(index) {
       const popup = document.getElementById('productos-detail-' + index);
@@ -17629,61 +17312,6 @@
     });
 
     window.toggleProductosDetail = toggleProductosDetail;
-
-    async function exportarVentas() {
-      if (reportData.length === 0) {
-        await venusAlert('No hay datos para exportar. Primero aplica los filtros.');
-        return;
-      }
-
-      try {
-        // Crear CSV
-        const headers = ['Fecha', 'Cliente', 'Teléfono', 'Servicio', 'Método Pago', 'Productos', 'Descuento', 'Total'];
-        const rows = reportData.map(v => {
-          const fecha = new Date(v.paidAt || v.startDateTime);
-          const fechaStr = fecha.toLocaleDateString('es-MX');
-
-          const productosCount = (v.productsSold || []).length;
-          const descuento = parseFloat(v.discountAmount) || 0;
-
-          return [
-            fechaStr,
-            v.clientName || 'Sin nombre',
-            v.clientPhone || '',
-            v.serviceName || '',
-            v.paymentMethod || '',
-            productosCount,
-            descuento.toFixed(2),
-            parseFloat(v.totalPaid).toFixed(2)
-          ];
-        });
-
-        // Convertir a CSV
-        const csvContent = [
-          headers.join(','),
-          ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
-        ].join('\n');
-
-        // Descargar
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-        const dateFrom = getReportField('filter-date-from', 'report-date-from')?.value || 'inicio';
-        const dateTo = getReportField('filter-date-to', 'report-date-to')?.value || 'fin';
-
-        link.setAttribute('href', url);
-        link.setAttribute('download', `reporte-ventas-${dateFrom}-${dateTo}.csv`);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
-        console.log('[REPORTS] CSV exportado correctamente');
-      } catch (error) {
-        console.error('[REPORTS] Error exportando:', error);
-        await venusAlert('Error al exportar: ' + error.message);
-      }
-    }
 
     // ===== EXPORTAR A EXCEL FORMATO VENTAS VENUS =====
     async function exportarVentasExcel() {
@@ -17936,6 +17564,68 @@
       return (styles.getPropertyValue('--bg-secondary') || '#ffffff').trim() || '#ffffff';
     }
 
+    // Fuente ÚNICA de datos del reporte: citas cobradas + Coffee Bar + ventas
+    // manuales/directas (tabla sales, sin cita), normalizadas al mismo formato
+    // y ordenadas por fecha. La usan la vista por mes y la vista por rango —
+    // antes cada una duplicaba estas ~60 líneas y había que editarlas 2 veces.
+    async function fetchVentasRango(from, to) {
+      const fromISO = `${from}T00:00:00-06:00`;
+      const toISO = `${to}T23:59:59-06:00`;
+
+      const [apptRes, coffeeRes, manualRes] = await Promise.all([
+        apiFetch(`/api/appointments/range?from=${fromISO}&to=${toISO}`),
+        apiFetch(`/api/pos/sales?from=${from}&to=${to}`),
+        apiFetch(`/api/sales/range?from=${from}&to=${to}`)
+      ]);
+
+      const [apptJson, coffeeJson, manualJson] = await Promise.all([apptRes.json(), coffeeRes.json(), manualRes.json()]);
+
+      if (!apptJson.success) {
+        console.error('[REPORTS] Error citas:', apptJson.error);
+      }
+
+      // Citas completadas con pago
+      const ventasCitas = (apptJson.data || []).filter(a =>
+        a.status === 'completed' && a.totalPaid && a.paymentMethod
+      );
+
+      // Ventas cafetería (excluir canceladas) → normalizar al mismo formato
+      const coffeeSales = (coffeeJson.success ? coffeeJson.data || [] : [])
+        .filter(s => s.status !== 'cancelled')
+        .map(s => ({
+          id: s.id,
+          paidAt: s.createdAt,
+          clientName: s.folio,
+          serviceName: 'Venus Coffee Bar',
+          paymentMethod: s.paymentMethod,
+          totalPaid: parseFloat(s.total),
+          serviceAmount: parseFloat(s.subtotal),
+          discountAmount: parseFloat(s.discount) || 0,
+          _isCoffeeSale: true
+        }));
+
+      // Ingresos manuales + ventas directas de producto (tabla sales, sin cita).
+      // Antes eran invisibles: el reporte solo leía citas + café.
+      const manualSales = (manualJson && manualJson.success ? manualJson.data || [] : [])
+        .map(s => ({
+          id: s.id,
+          paidAt: s.date,
+          clientName: s.clientName || 'Ingreso manual',
+          serviceName: s.serviceName || (parseFloat(s.productsAmount) > 0 ? 'Venta de productos' : 'Ingreso manual'),
+          paymentMethod: s.paymentMethod,
+          totalPaid: parseFloat(s.totalAmount ?? s.total) || 0,
+          serviceAmount: parseFloat(s.serviceAmount) || 0,
+          discountAmount: parseFloat(s.discountAmount) || 0,
+          _isManualSale: true
+        }));
+
+      console.log('[REPORTS] Citas:', ventasCitas.length, '| Coffee:', coffeeSales.length, '| Manuales/directas:', manualSales.length);
+
+      return [...ventasCitas, ...coffeeSales, ...manualSales].sort(
+        (a, b) => new Date(a.paidAt || a.startDateTime) - new Date(b.paidAt || b.startDateTime)
+      );
+    }
+
     async function cargarReportesMes() {
       try {
         const { year, month } = currentReportMonth;
@@ -17946,65 +17636,9 @@
         const lastDay = new Date(year, month, 0).getDate();
         const lastDayStr = `${year}-${String(month).padStart(2, '0')}-${lastDay}`;
 
-        const fromISO = `${firstDay}T00:00:00-06:00`;
-        const toISO = `${lastDayStr}T23:59:59-06:00`;
-
         console.log('[REPORTS] Cargando mes:', firstDay, 'a', lastDayStr);
 
-        // Cargar citas, cafetería y ventas manuales/directas en paralelo
-        const [apptRes, coffeeRes, manualRes] = await Promise.all([
-          apiFetch(`/api/appointments/range?from=${fromISO}&to=${toISO}`),
-          apiFetch(`/api/pos/sales?from=${firstDay}&to=${lastDayStr}`),
-          apiFetch(`/api/sales/range?from=${firstDay}&to=${lastDayStr}`)
-        ]);
-
-        const [apptJson, coffeeJson, manualJson] = await Promise.all([apptRes.json(), coffeeRes.json(), manualRes.json()]);
-
-        if (!apptJson.success) {
-          console.error('[REPORTS] Error citas:', apptJson.error);
-        }
-
-        // Citas completadas
-        const ventas = (apptJson.data || []).filter(a =>
-          a.status === 'completed' && a.totalPaid && a.paymentMethod
-        );
-
-        // Ventas cafetería (excluir canceladas) → normalizar al mismo formato
-        const coffeeSales = (coffeeJson.success ? coffeeJson.data || [] : [])
-          .filter(s => s.status !== 'cancelled')
-          .map(s => ({
-            id: s.id,
-            paidAt: s.createdAt,
-            clientName: s.folio,
-            serviceName: 'Venus Coffee Bar',
-            paymentMethod: s.paymentMethod,
-            totalPaid: parseFloat(s.total),
-            serviceAmount: parseFloat(s.subtotal),
-            discountAmount: parseFloat(s.discount) || 0,
-            _isCoffeeSale: true
-          }));
-
-        // Ingresos manuales + ventas directas de producto (tabla sales, sin cita).
-        // Antes eran invisibles: el reporte solo leía citas + café.
-        const manualSales = (manualJson && manualJson.success ? manualJson.data || [] : [])
-          .map(s => ({
-            id: s.id,
-            paidAt: s.date,
-            clientName: s.clientName || 'Ingreso manual',
-            serviceName: s.serviceName || (parseFloat(s.productsAmount) > 0 ? 'Venta de productos' : 'Ingreso manual'),
-            paymentMethod: s.paymentMethod,
-            totalPaid: parseFloat(s.totalAmount ?? s.total) || 0,
-            serviceAmount: parseFloat(s.serviceAmount) || 0,
-            discountAmount: parseFloat(s.discountAmount) || 0,
-            _isManualSale: true
-          }));
-
-        console.log('[REPORTS] Citas:', ventas.length, '| Coffee:', coffeeSales.length, '| Manuales/directas:', manualSales.length);
-
-        const todasLasVentas = [...ventas, ...coffeeSales, ...manualSales].sort(
-          (a, b) => new Date(a.paidAt || a.startDateTime) - new Date(b.paidAt || b.startDateTime)
-        );
-
+        const todasLasVentas = await fetchVentasRango(firstDay, lastDayStr);
         reportData = todasLasVentas;
         renderExcelReport(todasLasVentas);
       } catch (error) {
@@ -18012,14 +17646,23 @@
       }
     }
 
+    // Renderer ÚNICO del reporte de Ventas (vista por mes Y por rango):
+    // resumen, tarjetas por método de pago, lista/gráficas de servicios y tabla.
     function renderExcelReport(ventas) {
-      // 1. Calcular totales
+      // 1. Calcular totales (generales, por método de pago y por servicio)
       let totalIngresos = 0;
+      let totalEfectivo = 0, countEfectivo = 0;
+      let totalTarjeta = 0, countTarjeta = 0;
+      let totalTransferencia = 0, countTransferencia = 0;
       const ingresosPorServicio = {};
 
       ventas.forEach(v => {
         const amount = parseFloat(v.totalPaid) || 0;
         totalIngresos += amount;
+
+        if (v.paymentMethod === 'efectivo') { totalEfectivo += amount; countEfectivo++; }
+        else if (v.paymentMethod === 'tarjeta') { totalTarjeta += amount; countTarjeta++; }
+        else if (v.paymentMethod === 'transferencia') { totalTransferencia += amount; countTransferencia++; }
 
         const serviceName = v.serviceName || 'Otro';
         if (!ingresosPorServicio[serviceName]) {
@@ -18032,8 +17675,22 @@
       const totalEgresos = 0;
 
       // 2. Actualizar resumen financiero
-      document.getElementById('report-total-ingresos').textContent = '$' + totalIngresos.toLocaleString('es-MX', { minimumFractionDigits: 2 });
-      document.getElementById('report-total-egresos').textContent = '$' + totalEgresos.toLocaleString('es-MX', { minimumFractionDigits: 2 });
+      const money = n => '$' + n.toLocaleString('es-MX', { minimumFractionDigits: 2 });
+      document.getElementById('report-total-ingresos').textContent = money(totalIngresos);
+      document.getElementById('report-total-egresos').textContent = money(totalEgresos);
+
+      // 2b. Tarjetas por método de pago. Antes solo las llenaba el flujo "por
+      // rango": en la vista por mes (la default) se quedaban en $0.00 y la
+      // Utilidad Neta se calculaba contra ese cero.
+      const setText = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+      setText('report-total-sales', money(totalIngresos));
+      setText('report-sales-count', `${ventas.length} ventas`);
+      setText('report-cash-total', money(totalEfectivo));
+      setText('report-cash-count', `${countEfectivo} ventas`);
+      setText('report-card-total', money(totalTarjeta));
+      setText('report-card-count', `${countTarjeta} ventas`);
+      setText('report-transfer-total', money(totalTransferencia));
+      setText('report-transfer-count', `${countTransferencia} ventas`);
 
       // 3. Renderizar lista de servicios
       const serviciosList = document.getElementById('report-servicios-list');
@@ -18304,117 +17961,20 @@
       filtrarReportePorFechas();
     }
 
+    // Vista por rango personalizado: mismos datos y mismo renderer que la
+    // vista por mes (fetchVentasRango + renderExcelReport); solo cambian el
+    // rango, la etiqueta y que los gastos también se cargan por rango.
     async function cargarReportePorRango(from, to) {
       try {
         document.getElementById('report-current-month').textContent = 'Rango personalizado';
-
-        const fromISO = `${from}T00:00:00-06:00`;
-        const toISO = `${to}T23:59:59-06:00`;
-
         console.log('[REPORTS] Cargando rango:', from, 'a', to);
 
-        const [apptRes, coffeeRes, manualRes] = await Promise.all([
-          apiFetch(`/api/appointments/range?from=${fromISO}&to=${toISO}`),
-          apiFetch(`/api/pos/sales?from=${from}&to=${to}`),
-          apiFetch(`/api/sales/range?from=${from}&to=${to}`)
-        ]);
-
-        const [apptJson, coffeeJson, manualJson] = await Promise.all([apptRes.json(), coffeeRes.json(), manualRes.json()]);
-
-        if (!apptJson.success) {
-          console.error('[REPORTS] Error citas:', apptJson.error);
-        }
-
-        // Filtrar ventas completadas
-        const ventasCitas = (apptJson.data || []).filter(a =>
-          a.status === 'completed' && a.totalPaid && a.paymentMethod
-        );
-
-        const coffeeSales = (coffeeJson.success ? coffeeJson.data || [] : [])
-          .filter(s => s.status !== 'cancelled')
-          .map(s => ({
-            id: s.id,
-            paidAt: s.createdAt,
-            clientName: s.folio,
-            serviceName: 'Venus Coffee Bar',
-            paymentMethod: s.paymentMethod,
-            totalPaid: parseFloat(s.total),
-            serviceAmount: parseFloat(s.subtotal),
-            discountAmount: parseFloat(s.discount) || 0,
-            _isCoffeeSale: true
-          }));
-
-        // Ingresos manuales + ventas directas (tabla sales, sin cita)
-        const manualSales = (manualJson && manualJson.success ? manualJson.data || [] : [])
-          .map(s => ({
-            id: s.id,
-            paidAt: s.date,
-            clientName: s.clientName || 'Ingreso manual',
-            serviceName: s.serviceName || (parseFloat(s.productsAmount) > 0 ? 'Venta de productos' : 'Ingreso manual'),
-            paymentMethod: s.paymentMethod,
-            totalPaid: parseFloat(s.totalAmount ?? s.total) || 0,
-            serviceAmount: parseFloat(s.serviceAmount) || 0,
-            discountAmount: parseFloat(s.discountAmount) || 0,
-            _isManualSale: true
-          }));
-
-        const ventas = [...ventasCitas, ...coffeeSales, ...manualSales].sort(
-          (a, b) => new Date(a.paidAt || a.startDateTime) - new Date(b.paidAt || b.startDateTime)
-        );
-
-        console.log('[REPORTS] Citas:', ventasCitas.length, '| Coffee:', coffeeSales.length, '| Manuales/directas:', manualSales.length);
-
-        // Guardar datos para filtros
+        const ventas = await fetchVentasRango(from, to);
         reportData = ventas;
-
-        // Calcular totales
-        let totalGeneral = 0;
-        let totalEfectivo = 0;
-        let totalTarjeta = 0;
-        let totalTransferencia = 0;
-        const serviciosTotales = {};
-
-        ventas.forEach(v => {
-          const total = parseFloat(v.totalPaid) || 0;
-          totalGeneral += total;
-
-          if (v.paymentMethod === 'efectivo') totalEfectivo += total;
-          else if (v.paymentMethod === 'tarjeta') totalTarjeta += total;
-          else if (v.paymentMethod === 'transferencia') totalTransferencia += total;
-
-          const serviceName = v.serviceName || 'Otro';
-          if (!serviciosTotales[serviceName]) serviciosTotales[serviceName] = 0;
-          serviciosTotales[serviceName] += total;
-        });
-
-        // Actualizar estadísticas
-        document.getElementById('report-total-sales').textContent = '$' + totalGeneral.toFixed(2);
-        document.getElementById('report-sales-count').textContent = `${ventas.length} ventas`;
-        document.getElementById('report-cash-total').textContent = '$' + totalEfectivo.toFixed(2);
-        document.getElementById('report-card-total').textContent = '$' + totalTarjeta.toFixed(2);
-        document.getElementById('report-transfer-total').textContent = '$' + totalTransferencia.toFixed(2);
-
-        // Actualizar resumen financiero
-        document.getElementById('report-total-ingresos').textContent = '$' + totalGeneral.toFixed(2);
-
-        // Renderizar lista de servicios
-        const serviciosList = document.getElementById('report-servicios-list');
-        if (serviciosList) {
-          const sortedServicios = Object.entries(serviciosTotales).sort((a, b) => b[1] - a[1]);
-          serviciosList.innerHTML = sortedServicios.map(([name, total]) => `
-            <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.1);">
-              <span style="font-size:12px;color:rgba(255,255,255,0.85);">${name}</span>
-              <span style="font-size:12px;font-weight:600;color:#C1D7AE;">$${total.toFixed(2)}</span>
-            </div>
-          `).join('');
-        }
-
-        // Renderizar tabla
-        renderExcelTable(ventas);
+        renderExcelReport(ventas);
 
         // Cargar gastos del rango
         await cargarGastosPorRango(from, to);
-
       } catch (error) {
         console.error('[REPORTS] Error:', error);
       }
@@ -18506,42 +18066,27 @@
     const expenseDialog = document.getElementById('expenseDialog');
     const formExpense = document.getElementById('form-expense');
 
+    // Gastos del mes seleccionado en el reporte. Es un atajo de
+    // cargarGastosPorRango con el rango del mes — antes duplicaba el fetch.
     async function loadExpenses() {
-      try {
-        // Usar el mes seleccionado del reporte (currentReportMonth) en lugar del mes actual
-        let year, month;
+      // Usar el mes seleccionado del reporte (currentReportMonth) en lugar del mes actual
+      let year, month;
 
-        if (typeof currentReportMonth !== 'undefined' && currentReportMonth.year && currentReportMonth.month) {
-          year = currentReportMonth.year;
-          month = String(currentReportMonth.month).padStart(2, '0');
-        } else {
-          // Fallback al mes actual si no hay mes seleccionado
-          const now = new Date();
-          year = now.getFullYear();
-          month = String(now.getMonth() + 1).padStart(2, '0');
-        }
-
-        const firstDay = `${year}-${month}-01`;
-        const lastDay = new Date(year, parseInt(month), 0).getDate();
-        const lastDayStr = `${year}-${month}-${String(lastDay).padStart(2, '0')}`;
-
-        console.log(`[EXPENSES] Cargando gastos del ${firstDay} al ${lastDayStr}`);
-
-        const res = await apiFetch(`/api/expenses?from=${firstDay}&to=${lastDayStr}`);
-        const json = await res.json();
-
-        if (!json.success) {
-          console.error('Error cargando gastos:', json.error);
-          return;
-        }
-
-        const expenses = json.data || [];
-        console.log(`[EXPENSES] ${expenses.length} gastos encontrados`);
-        renderExpenses(expenses);
-        calculateExpenseStats(expenses);
-      } catch (error) {
-        console.error('Error cargando gastos:', error);
+      if (typeof currentReportMonth !== 'undefined' && currentReportMonth.year && currentReportMonth.month) {
+        year = currentReportMonth.year;
+        month = String(currentReportMonth.month).padStart(2, '0');
+      } else {
+        // Fallback al mes actual si no hay mes seleccionado
+        const now = new Date();
+        year = now.getFullYear();
+        month = String(now.getMonth() + 1).padStart(2, '0');
       }
+
+      const firstDay = `${year}-${month}-01`;
+      const lastDay = new Date(year, parseInt(month), 0).getDate();
+      const lastDayStr = `${year}-${month}-${String(lastDay).padStart(2, '0')}`;
+
+      await cargarGastosPorRango(firstDay, lastDayStr);
     }
 
     function renderExpenses(expenses) {
@@ -18606,7 +18151,7 @@
 
       // Obtener total de ventas del mes
       const totalSalesEl = document.getElementById('report-total-sales');
-      const totalSales = totalSalesEl ? parseFloat(totalSalesEl.textContent.replace('$', '').replace(',', '')) || 0 : 0;
+      const totalSales = totalSalesEl ? parseFloat(totalSalesEl.textContent.replace(/[$,]/g, '')) || 0 : 0;
       const netProfit = totalSales - totalExpenses;
       const profitMargin = totalSales > 0 ? ((netProfit / totalSales) * 100).toFixed(1) : 0;
 
@@ -18734,14 +18279,15 @@
       });
     }
 
-    // Inicializar listeners combinados (Reportes y Gastos)
+    // Inicializar listeners combinados (Reportes y Gastos).
+    // loadExpenses corre DESPUÉS de cargarReportesMes: la Utilidad Neta se
+    // calcula leyendo el total de ventas ya renderizado — si corren en
+    // paralelo, lee $0.00 y la utilidad sale mal.
     document.querySelectorAll('[data-tab="reports"]').forEach(tab => {
       tab.addEventListener('click', () => {
-        setTimeout(() => {
-          // Mis funciones
+        setTimeout(async () => {
           if (typeof initReportMonthTabs === 'function') initReportMonthTabs();
-          if (typeof cargarReportesMes === 'function') cargarReportesMes();
-          // Sus funciones
+          if (typeof cargarReportesMes === 'function') await cargarReportesMes();
           if (typeof loadExpenses === 'function') loadExpenses();
         }, 100);
       });
