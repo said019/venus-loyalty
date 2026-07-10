@@ -4246,6 +4246,7 @@
             </div>
             ${deviceInfo ? `<div class="exp-session-device">${deviceInfo}</div>` : ''}
             ${session.treatedAreas ? `<div class="exp-session-areas"><strong>Zonas:</strong> ${session.treatedAreas}</div>` : ''}
+            ${!session.productsUsed ? `<div class="exp-session-products-pending"><span class="exp-badge exp-badge-danger" onclick="event.stopPropagation(); expFillSessionProducts('${session.id}')"><i class="fas fa-triangle-exclamation"></i> Falta registrar productos</span></div>` : ''}
           </div>
         `;
       }).join('');
@@ -4561,13 +4562,36 @@
         ${deviceSettings.frequency ? `<strong>Frecuencia:</strong> ${deviceSettings.frequency}\n` : ''}
         ${deviceSettings.time ? `<strong>Tiempo:</strong> ${deviceSettings.time}\n` : ''}
         ${session.treatedAreas ? `<strong>Zonas:</strong> ${session.treatedAreas}\n` : ''}
-        ${session.productsUsed ? `<strong>Productos:</strong> ${session.productsUsed}\n` : ''}
+        ${session.productsUsed ? `<strong>Productos:</strong> ${session.productsUsed}\n` : `<strong>Productos:</strong> <span style="color:oklch(45% 0.150 25);font-weight:600;">⚠ Pendiente de registrar</span>\n`}
         ${session.observations ? `<strong>Observaciones:</strong> ${session.observations}\n` : ''}
         ${session.results ? `<strong>Resultados:</strong> ${session.results}\n` : ''}
         ${session.recommendations ? `<strong>Recomendaciones:</strong> ${session.recommendations}` : ''}
       `;
       
       await venusAlert(detailHtml.trim());
+    }
+
+    // Captura rápida del pendiente "Falta registrar productos" de una sesión.
+    async function expFillSessionProducts(sessionId) {
+      const products = await venusPrompt('¿Qué productos se utilizaron en esta sesión?');
+      if (!products || !products.trim()) return;
+      try {
+        const response = await expApi(`/api/client-records/sessions/${sessionId}/products`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ productsUsed: products.trim() })
+        });
+        if (!response.ok) throw new Error('Error al guardar productos');
+        const data = await response.json();
+        if (!data.success) throw new Error(data.error || 'Error al guardar productos');
+        const cached = expedienteSessionsCache.find(s => s.id === sessionId);
+        if (cached) cached.productsUsed = products.trim();
+        renderExpedienteSessions();
+        await venusAlert('Productos registrados');
+      } catch (error) {
+        console.error('[Expediente] Error registrando productos:', error);
+        await venusAlert('Error al registrar los productos');
+      }
     }
 
     // Cloudinary: entregar en formato web (f_auto) para que las fotos HEIC de iPhone
