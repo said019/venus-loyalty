@@ -3471,7 +3471,8 @@
               <div class="exp-form-group"><label>Pronóstico</label><textarea id="exp-diag-prognosis" class="form-input" rows="2"></textarea></div>
               <div class="exp-form-group"><label>Costo</label><input type="text" inputmode="numeric" id="exp-diag-cost" class="form-input" placeholder="Ej: $1,500"></div>
               <div class="exp-form-actions-sticky">
-                <button type="submit" class="btn primary"><i class="fas fa-save"></i> Guardar diagnóstico</button>
+                <button type="submit" class="btn primary"><i class="fas fa-save"></i> <span id="exp-diag-save-label">Guardar diagnóstico</span></button>
+                <button type="button" class="btn ghost" onclick="expNewDiagnosis()"><i class="fas fa-plus"></i> Nuevo diagnóstico</button>
                 <button type="button" class="btn ghost" onclick="expExportDiagnosisPdf()"><i class="fas fa-file-export"></i> Exportar a Drive</button>
               </div>
             </form>
@@ -5357,7 +5358,12 @@
           '<div class="exp-diag-row-main">' +
           '<div><div class="exp-diag-title">' + expEsc(d.skinType || '—') + ' · ' + expEsc(d.alteration || '—') + '</div>' +
           '<div class="exp-diag-meta">' + expEsc(fecha) + (d.staffName ? ' · ' + expEsc(d.staffName) : '') + '</div></div>' + pdf +
-          '</div></div>';
+          '</div>' +
+          '<div class="exp-stacked-actions">' +
+            '<button class="btn small ghost" onclick="event.stopPropagation(); expLoadDiagnosis(' + "'" + d.id + "'" + ')"><i class="fas fa-pen"></i> Editar</button> ' +
+            '<button class="btn small ghost exp-btn-danger" onclick="event.stopPropagation(); expDeleteDiagnosis(' + "'" + d.id + "'" + ')"><i class="fas fa-trash"></i></button>' +
+          '</div>' +
+          '</div>';
       }).join('');
     }
 
@@ -5373,8 +5379,37 @@
       document.getElementById('exp-diag-prognosis').value = d.prognosis || '';
       document.getElementById('exp-diag-cost').value = d.cost || '';
       document.getElementById('exp-diag-staffName').value = d.staffName || '';
+      const lbl = document.getElementById('exp-diag-save-label');
+      if (lbl) lbl.textContent = 'Guardar cambios';
       const result = expActivateSection('tratamientos');
       if (result.panel) result.panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    // Limpia el form de diagnóstico para capturar uno nuevo (evita sobrescribir el cargado).
+    function expNewDiagnosis() {
+      const f = document.getElementById('exp-diagnosis-form');
+      if (f) f.reset();
+      document.getElementById('exp-diag-id').value = '';
+      const lbl = document.getElementById('exp-diag-save-label');
+      if (lbl) lbl.textContent = 'Guardar diagnóstico';
+    }
+
+    async function expDeleteDiagnosis(id) {
+      const cardId = currentExpedienteCardId;
+      if (!cardId) return;
+      if (!(await venusConfirm('¿Eliminar este diagnóstico? Esta acción no se puede deshacer.', { title: 'Confirmar', danger: true, okLabel: 'Eliminar' }))) return;
+      try {
+        const res = await expApi('/api/expedientes/' + encodeURIComponent(cardId) + '/diagnosis/' + encodeURIComponent(id), { method: 'DELETE' });
+        if (!res.ok) throw new Error('Error al eliminar diagnóstico');
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Error al eliminar diagnóstico');
+        if (document.getElementById('exp-diag-id').value === id) expNewDiagnosis();
+        await venusAlert('Diagnóstico eliminado');
+        await loadExpedienteDigital(cardId);
+      } catch (err) {
+        console.error('[Diagnóstico] Error al eliminar:', err);
+        await venusAlert('Error al eliminar el diagnóstico');
+      }
     }
 
     async function expSaveDiagnosis(e) {
