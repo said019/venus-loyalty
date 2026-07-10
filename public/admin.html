@@ -3063,6 +3063,17 @@
               <label class="form-label">Fecha</label>
               <input type="date" id="mi-date" class="form-input" required>
             </div>
+            <!-- Ayuda del sistema: citas de ese día para comparar y autollenar.
+                 Las ya cobradas se marcan porque YA cuentan en el reporte
+                 (registrarlas aquí las duplicaría). -->
+            <div id="mi-citas-box" style="display:none;">
+              <label class="form-label" style="display:flex;justify-content:space-between;align-items:baseline;">
+                <span><i class="fas fa-calendar-check" style="color:#22c55e;"></i> Citas de ese día</span>
+                <span class="muted" style="font-weight:400;font-size:11px;">toca una para llenar</span>
+              </label>
+              <div id="mi-citas-lista" style="display:grid;gap:6px;max-height:180px;overflow-y:auto;"></div>
+              <div id="mi-citas-resumen" class="muted" style="font-size:11px;margin-top:6px;"></div>
+            </div>
             <div>
               <label class="form-label">Concepto / Servicio</label>
               <input type="text" id="mi-concept" class="form-input" required placeholder="Ej. Limpieza profunda, Masaje, Producto…">
@@ -18023,9 +18034,94 @@
       document.getElementById('mi-amount').value = '';
       document.getElementById('mi-method').value = 'efectivo';
       dlg.showModal();
+      loadCitasParaIngreso(document.getElementById('mi-date').value);
       setTimeout(() => document.getElementById('mi-concept').focus(), 50);
     }
     window.openManualIncomeDialog = openManualIncomeDialog;
+
+    // ── Ayuda del sistema: citas del día elegido, para comparar y autollenar.
+    //    Cobradas → ya cuentan en el reporte (avisar, NO autollenar: duplicaría).
+    //    Sin cobrar → un toque llena concepto/clienta y sugiere el precio del
+    //    catálogo de servicios.
+    let miServiciosCache = null;
+    const miEsc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+    async function loadCitasParaIngreso(fecha) {
+      const box = document.getElementById('mi-citas-box');
+      const lista = document.getElementById('mi-citas-lista');
+      const resumen = document.getElementById('mi-citas-resumen');
+      if (!box || !fecha) return;
+      box.style.display = '';
+      lista.innerHTML = '<div class="muted" style="font-size:12px;">Buscando citas…</div>';
+      resumen.textContent = '';
+      try {
+        const res = await apiFetch(`/api/appointments/range?from=${fecha}T00:00:00-06:00&to=${fecha}T23:59:59-06:00`);
+        const json = await res.json();
+        const citas = (json.success ? json.data || [] : [])
+          .filter(a => a.status !== 'cancelled')
+          // Fuera los ajustes del import de Excel: no son citas de verdad y
+          // inflarían el resumen de "ya cobrado ese día".
+          .filter(a => a.source !== 'importacion-excel' && a.clientName !== 'Registro histórico Excel')
+          .sort((a, b) => new Date(a.startDateTime) - new Date(b.startDateTime));
+
+        if (!citas.length) {
+          lista.innerHTML = '<div class="muted" style="font-size:12px;">Sin citas ese día — captura libre.</div>';
+          return;
+        }
+
+        // Precios del catálogo para sugerir monto en citas sin cobrar
+        if (!miServiciosCache) {
+          try {
+            const sres = await apiFetch('/api/services');
+            const sjson = await sres.json();
+            miServiciosCache = (sjson.success ? sjson.data || [] : []);
+          } catch { miServiciosCache = []; }
+        }
+
+        let totalCobrado = 0, nCobradas = 0;
+        lista.innerHTML = citas.map((a, i) => {
+          const cobrada = a.status === 'completed' && a.totalPaid;
+          if (cobrada) { totalCobrado += parseFloat(a.totalPaid) || 0; nCobradas++; }
+          const hora = new Date(a.startDateTime).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+          const tag = cobrada
+            ? `<span style="font-size:10px;padding:2px 6px;border-radius:4px;background:rgba(34,197,94,.15);color:#16a34a;white-space:nowrap;">✓ Cobrada $${(parseFloat(a.totalPaid) || 0).toLocaleString('es-MX')}</span>`
+            : '<span style="font-size:10px;padding:2px 6px;border-radius:4px;background:rgba(234,179,8,.15);color:#a16207;white-space:nowrap;">Sin cobrar</span>';
+          return `
+            <button type="button" class="mi-cita-item" data-idx="${i}"
+              style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:transparent;color:var(--ink);cursor:pointer;text-align:left;${cobrada ? 'opacity:.65;' : ''}">
+              <span style="font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                <strong>${hora}</strong> · ${miEsc(a.clientName)} — ${miEsc(a.serviceName)}
+              </span>
+              ${tag}
+            </button>`;
+        }).join('');
+
+        resumen.textContent = nCobradas
+          ? `Ya en el reporte ese día: $${totalCobrado.toLocaleString('es-MX')} (${nCobradas} cita${nCobradas > 1 ? 's' : ''} cobrada${nCobradas > 1 ? 's' : ''}). No las vuelvas a registrar aquí.`
+          : 'Ninguna cita de ese día está cobrada todavía.';
+
+        lista.querySelectorAll('.mi-cita-item').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const a = citas[parseInt(btn.dataset.idx, 10)];
+            const cobrada = a.status === 'completed' && a.totalPaid;
+            if (cobrada) {
+              showNotification('Esa cita ya está cobrada y YA cuenta en el reporte — no la registres de nuevo', 'error');
+              return;
+            }
+            document.getElementById('mi-concept').value = a.serviceName || '';
+            document.getElementById('mi-client').value = a.clientName || '';
+            const svc = (miServiciosCache || []).find(s => (s.name || '').toLowerCase() === (a.serviceName || '').toLowerCase());
+            if (svc && svc.price) document.getElementById('mi-amount').value = parseFloat(svc.price);
+            document.getElementById('mi-amount').focus();
+          });
+        });
+      } catch (err) {
+        console.error('[MANUAL-INCOME] citas del día:', err);
+        lista.innerHTML = '<div class="muted" style="font-size:12px;">No se pudieron cargar las citas.</div>';
+      }
+    }
+
+    document.getElementById('mi-date').addEventListener('change', e => loadCitasParaIngreso(e.target.value));
 
     document.getElementById('form-manual-income').addEventListener('submit', async (e) => {
       e.preventDefault();
