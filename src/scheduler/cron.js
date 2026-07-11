@@ -91,11 +91,11 @@ export function startScheduler() {
     // ENCUESTA DE CONFIRMACIÓN — 9:00 AM hora México para citas de MAÑANA
     // Agrupa por teléfono para no mandar múltiples mensajes al mismo cliente
     // ========================================================================
-    // 15-20 UTC = 9AM-2PM México, cada hora. La query es idempotente
+    // 15-23 UTC = 9AM-5PM México, cada hora. La query es idempotente
     // (sent24hAt null → se marca al enviar), así que las corridas extra solo
     // recuperan encuestas que la de las 9AM no alcanzó a mandar (deploy caído,
     // server dormido, o el apagón del 10-11 jul 2026).
-    cron.schedule('0 15-20 * * *', async () => {
+    cron.schedule('0 15-23 * * *', async () => {
         if (!AUTO_CONFIRMACION_ACTIVA) return;
         console.log('📋 [9AM] Enviando encuestas de confirmación para citas de mañana...');
 
