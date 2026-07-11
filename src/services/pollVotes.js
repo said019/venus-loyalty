@@ -81,6 +81,34 @@ function targetStatusFor(option) {
     return null;
 }
 
+// ¿Se aplica este voto sobre la cita? Reglas (ver tests/sweepVoteGuard.test.js):
+//  - 'scheduled': siempre (comportamiento histórico del barrido).
+//  - 'confirmed' → rescheduling/cancelled: SOLO si el voto es POSTERIOR a la
+//    confirmación (Mariel 11-jul: votó Reagendar sobre cita confirmada y el
+//    barrido la ignoraba en silencio). El orden temporal evita el loop de
+//    votos viejos re-aplicados (Stephanie 2-jul).
+//  - 'cancelled'/'rescheduling': terminales para el barrido; solo el equipo
+//    (o el webhook en vivo) las mueve.
+export function shouldApplySweepVote({ status, target, voteTsMs, confirmedAtMs, updatedAtMs }) {
+    if (!target || status === target) return false;
+    if (status === 'scheduled') return true;
+    if (status === 'confirmed' && (target === 'rescheduling' || target === 'cancelled')) {
+        const anchor = confirmedAtMs != null ? confirmedAtMs : updatedAtMs;
+        return voteTsMs != null && anchor != null && voteTsMs > anchor;
+    }
+    return false;
+}
+
+// Timestamp del voto en ms desde un registro del store de Evolution/Baileys.
+// Viene como segundos (number o Long {low,high}); null si no se puede leer.
+export function voteTimestampMs(record) {
+    const raw = record?.messageTimestamp ?? record?.message?.messageTimestamp ?? null;
+    if (raw == null) return null;
+    const n = Number(raw?.low !== undefined ? raw.low : raw);
+    if (!Number.isFinite(n) || n <= 0) return null;
+    return n > 1e12 ? n : n * 1000;
+}
+
 // Barre el store de Evolution, decodifica votos pendientes y actualiza el status
 // de la cita correspondiente.
 //
@@ -152,7 +180,7 @@ export async function reconcilePollVotes({ apply = true, limit = 300, sendAcuse 
             const one = await prisma.appointment.findFirst({
                 where: {
                     clientPhone: { endsWith: last10 },
-                    status: 'scheduled',
+                    status: { in: ['scheduled', 'confirmed'] },
                     startDateTime: { gte: marginDate }
                 },
                 orderBy: { startDateTime: 'asc' }
@@ -160,10 +188,19 @@ export async function reconcilePollVotes({ apply = true, limit = 300, sendAcuse 
             if (one) appts = [one];
         }
 
+        const voteTsMs = voteTimestampMs(m);
         for (const appt of appts) {
-            // ONE-WAY: solo desde 'scheduled'. Un voto viejo jamás pisa una cita
-            // ya confirmada/cancelada/en reagenda (por esta u otra vía).
-            if (!appt || appt.status !== 'scheduled' || appt.status === target) continue;
+            if (!appt) continue;
+            // Guard temporal (ver shouldApplySweepVote): scheduled siempre;
+            // confirmed solo con voto posterior a la confirmación; el resto no.
+            const ok = shouldApplySweepVote({
+                status: appt.status,
+                target,
+                voteTsMs,
+                confirmedAtMs: appt.confirmedAt ? new Date(appt.confirmedAt).getTime() : null,
+                updatedAtMs: appt.updatedAt ? new Date(appt.updatedAt).getTime() : null
+            });
+            if (!ok) continue;
             const change = {
                 appointmentId: appt.id, client: appt.clientName, service: appt.serviceName,
                 from: appt.status, to: target, option, appt,
