@@ -18717,7 +18717,19 @@
       pointer-events: none;
       transition: opacity .16s ease-out;
       color-scheme: light;
+      /* Reset de estilos UA de <dialog>: el overlay ES un <dialog> para vivir
+         en el top layer (encima de modales nativos como "Nueva cita"). */
+      width: 100%;
+      height: 100%;
+      max-width: 100%;
+      max-height: 100%;
+      margin: 0;
+      border: 0;
+      outline: none;
     }
+    /* Nuestro display:flex (id) le ganaría al dialog:not([open]) del navegador */
+    #venus-dialog-root:not([open]) { display: none; }
+    #venus-dialog-root::backdrop { background: transparent; }
     #venus-dialog-root:empty { display: none; }
     #venus-dialog-root.vd-open { opacity: 1; pointer-events: auto; }
     #venus-dialog-root .vd-card {
@@ -18910,8 +18922,15 @@
 
       function vdBuildRoot() {
         if (vdRoot) return vdRoot;
-        vdRoot = document.createElement('div');
+        // <dialog> + showModal(): el overlay entra al TOP LAYER. Un div normal
+        // queda INERTE (ni visible ni clickeable) si hay un <dialog> nativo
+        // abierto con showModal() (ej. "Nueva cita"): el venusAlert de éxito
+        // jamás se podía resolver y el botón se quedaba en "Agendando...".
+        vdRoot = document.createElement('dialog');
         vdRoot.id = 'venus-dialog-root';
+        // Escape dispara 'cancel' en <dialog>; lo anulamos porque el keydown
+        // de documento de abajo ya decide si el diálogo se puede cerrar.
+        vdRoot.addEventListener('cancel', function (e) { e.preventDefault(); });
         document.body.appendChild(vdRoot);
 
         vdRoot.addEventListener('mousedown', function (e) {
@@ -18964,6 +18983,8 @@
 
       function vdActivate(opts) {
         opts = opts || {};
+        // Unirse al top layer POR ENCIMA de cualquier modal nativo abierto.
+        if (!vdRoot.open) { try { vdRoot.showModal(); } catch (e) { /* fallback: overlay normal */ } }
         requestAnimationFrame(function () {
           vdRoot.classList.add('vd-open');
           var el = opts.focusSelector ? vdRoot.querySelector(opts.focusSelector) : null;
@@ -18996,7 +19017,10 @@
           // cleanup quedó obsoleto: no tocar el DOM ni robar el foco del
           // diálogo nuevo.
           if (vdGen !== myGen) return;
-          if (vdRoot) vdRoot.innerHTML = '';
+          if (vdRoot) {
+            vdRoot.innerHTML = '';
+            if (vdRoot.open) { try { vdRoot.close(); } catch (e3) {} }
+          }
           if (toFocus && typeof toFocus.focus === 'function') {
             try { toFocus.focus(); } catch (e2) {}
           }
