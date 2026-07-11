@@ -41,8 +41,17 @@ function getCurrentHourMexico() {
     return mexicoNow.getHours();
 }
 
+// Interruptor de la cadena de confirmación automática (decisión Said 2026-07-10:
+// "desactiva el mensaje de encuestas"). Apaga las 3 patas juntas porque son una
+// cadena: encuesta 9AM → alerta 4h → auto-cancelación. Apagar solo la encuesta
+// dejaría al auto-cancel borrando citas que nadie pudo confirmar.
+// Siguen activos: recordatorios informativos (48h/30h/2h), el envío MANUAL de
+// encuesta desde el admin, y el barrido de votos de encuestas ya enviadas.
+const AUTO_CONFIRMACION_ACTIVA = false;
+
 export function startScheduler() {
     console.log('⏰ Scheduler de recordatorios WhatsApp iniciado');
+    if (!AUTO_CONFIRMACION_ACTIVA) console.log('🔕 Cadena de confirmación automática (encuesta 9AM / alerta 4h / auto-cancel) DESACTIVADA');
 
     // Helper para convertir a ISO con offset de México (-06:00)
     const toMexicoCityISO = (date) => {
@@ -86,6 +95,7 @@ export function startScheduler() {
     // ========================================================================
     cron.schedule('0 15 * * *', async () => {
         // 15:00 UTC = 9:00 AM México (CST, UTC-6)
+        if (!AUTO_CONFIRMACION_ACTIVA) return;
         console.log('📋 [9AM] Enviando encuestas de confirmación para citas de mañana...');
 
         try {
@@ -270,6 +280,7 @@ export function startScheduler() {
     // Solo envía si la cita sigue en 'scheduled' (no si ya está confirmed)
     // ========================================================================
     cron.schedule('*/10 * * * *', async () => {
+        if (!AUTO_CONFIRMACION_ACTIVA) return;
         const now = new Date();
 
         try {
@@ -326,6 +337,7 @@ export function startScheduler() {
     // AUTO-CANCELACIÓN 1h — cada 10 min
     // ========================================================================
     cron.schedule('*/10 * * * *', async () => {
+        if (!AUTO_CONFIRMACION_ACTIVA) return;
         const now = new Date();
 
         try {
