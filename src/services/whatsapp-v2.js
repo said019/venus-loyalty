@@ -87,6 +87,32 @@ async function sendPollViaEvolution(to, question, options, appointmentId = null)
     }
 }
 
+// Texto del acuse consolidado de confirmación. Puro (exportado para tests).
+// Mismo día → encabezado con la fecha; días distintos → cada línea con SU fecha.
+export function buildConfirmacionRecibidaMultipleMensaje(citas) {
+    const nombre = sanitizeForWhatsApp(citas[0].clientName);
+    const fechaKey = c => {
+        if (typeof c.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(c.date)) return c.date;
+        const d = c.date || c.startDateTime;
+        return d ? new Date(d).toISOString().slice(0, 10) : '';
+    };
+    const horaDe = c => c.time || formatearHora(c.startDateTime);
+    const ordenadas = citas.slice().sort((a, b) =>
+        (`${fechaKey(a)} ${horaDe(a)}`).localeCompare(`${fechaKey(b)} ${horaDe(b)}`));
+    const fechasUnicas = [...new Set(ordenadas.map(fechaKey))];
+
+    let encabezado, lineas;
+    if (fechasUnicas.length === 1) {
+        const fecha = formatearFechaLegible(ordenadas[0].date || ordenadas[0].startDateTime);
+        encabezado = `Confirmamos tus citas para el *${fecha}*:`;
+        lineas = ordenadas.map(c => `  • *${sanitizeForWhatsApp(c.serviceName)}* a las *${horaDe(c)}*`);
+    } else {
+        encabezado = 'Confirmamos tus citas:';
+        lineas = ordenadas.map(c => `  • *${sanitizeForWhatsApp(c.serviceName)}* — *${formatearFechaLegible(c.date || c.startDateTime)}* a las *${horaDe(c)}*`);
+    }
+    return `✅ ¡Gracias ${nombre}! ${encabezado}\n\n${lineas.join('\n')}\n\nTe esperamos en Venus Cosmetología. 🌸`;
+}
+
 function buildAttendanceSurveyCopy(appt) {
     const fecha = formatearFechaLegible(appt.date || appt.startDateTime);
     const hora = appt.time || formatearHora(appt.startDateTime);
@@ -275,20 +301,15 @@ export const WhatsAppService = {
         return await sendViaEvolution(card.phone, mensaje);
     },
 
-    /** UN solo mensaje que confirma TODAS las citas (caso encuesta consolidada del mismo día). */
+    /** UN solo mensaje que confirma TODAS las citas.
+     *  OJO: pueden ser de DÍAS DISTINTOS (el webhook y el barrido de votos
+     *  confirman todas las citas activas del teléfono). El builder agrupa
+     *  por fecha; con una sola fecha en el encabezado salió el incidente de
+     *  "cita que no era de hoy" (María de los Angeles, 11 jul 2026). */
     async sendConfirmacionRecibidaMultiple(citas) {
         if (!Array.isArray(citas) || citas.length === 0) return { success: false };
         if (citas.length === 1) return this.sendConfirmacionRecibida(citas[0]);
-
-        const nombre = sanitizeForWhatsApp(citas[0].clientName);
-        const fecha = formatearFechaLegible(citas[0].date || citas[0].startDateTime);
-        const lineas = citas
-            .slice()
-            .sort((a, b) => (a.time || formatearHora(a.startDateTime)).localeCompare(b.time || formatearHora(b.startDateTime)))
-            .map(c => `  • *${sanitizeForWhatsApp(c.serviceName)}* a las *${c.time || formatearHora(c.startDateTime)}*`)
-            .join('\n');
-
-        const mensaje = `✅ ¡Gracias ${nombre}! Confirmamos tus citas para el *${fecha}*:\n\n${lineas}\n\nTe esperamos en Venus Cosmetología. 🌸`;
+        const mensaje = buildConfirmacionRecibidaMultipleMensaje(citas);
         return await sendViaEvolution(citas[0].clientPhone, mensaje);
     },
 
