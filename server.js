@@ -813,6 +813,25 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// 🔄 Versión del build para el aviso "hay una nueva versión" del admin.
+// Se calcula UNA vez al arrancar: hash del contenido de admin.html (cambia
+// con cada deploy que toque el admin). El front la consulta al cargar y la
+// re-consulta periódicamente; si cambió, muestra el botón de actualizar.
+const ADMIN_BUILD_VERSION = (() => {
+  try {
+    const html = fs.readFileSync(path.join(__dirname, 'public', 'admin.html'));
+    return crypto.createHash('sha1').update(html).digest('hex').slice(0, 12);
+  } catch (e) {
+    console.warn('[VERSION] No se pudo hashear admin.html:', e.message);
+    return `boot-${Date.now()}`;
+  }
+})();
+console.log('[VERSION] Build del admin:', ADMIN_BUILD_VERSION);
+
+app.get('/api/version', (req, res) => {
+  res.json({ success: true, version: ADMIN_BUILD_VERSION });
+});
+
 // 🧪 Test endpoint para WhatsApp
 app.post('/api/test/whatsapp', async (req, res) => {
   try {
