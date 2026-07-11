@@ -41,13 +41,11 @@ function getCurrentHourMexico() {
     return mexicoNow.getHours();
 }
 
-// Interruptor de la cadena de confirmación automática (decisión Said 2026-07-10:
-// "desactiva el mensaje de encuestas"). Apaga las 3 patas juntas porque son una
-// cadena: encuesta 9AM → alerta 4h → auto-cancelación. Apagar solo la encuesta
-// dejaría al auto-cancel borrando citas que nadie pudo confirmar.
-// Siguen activos: recordatorios informativos (48h/30h/2h), el envío MANUAL de
-// encuesta desde el admin, y el barrido de votos de encuestas ya enviadas.
-const AUTO_CONFIRMACION_ACTIVA = false;
+// Interruptor de la cadena de confirmación automática: encuesta → alerta 4h →
+// auto-cancelación (las 3 patas van juntas: sin encuesta nadie puede confirmar
+// y el auto-cancel borraría citas). Se apagó el 2026-07-10 y Said pidió
+// regresarla el 2026-07-11 ("si tiene que llevar encuesta"): queda ACTIVA.
+const AUTO_CONFIRMACION_ACTIVA = true;
 
 export function startScheduler() {
     console.log('⏰ Scheduler de recordatorios WhatsApp iniciado');
@@ -93,8 +91,11 @@ export function startScheduler() {
     // ENCUESTA DE CONFIRMACIÓN — 9:00 AM hora México para citas de MAÑANA
     // Agrupa por teléfono para no mandar múltiples mensajes al mismo cliente
     // ========================================================================
-    cron.schedule('0 15 * * *', async () => {
-        // 15:00 UTC = 9:00 AM México (CST, UTC-6)
+    // 15-20 UTC = 9AM-2PM México, cada hora. La query es idempotente
+    // (sent24hAt null → se marca al enviar), así que las corridas extra solo
+    // recuperan encuestas que la de las 9AM no alcanzó a mandar (deploy caído,
+    // server dormido, o el apagón del 10-11 jul 2026).
+    cron.schedule('0 15-20 * * *', async () => {
         if (!AUTO_CONFIRMACION_ACTIVA) return;
         console.log('📋 [9AM] Enviando encuestas de confirmación para citas de mañana...');
 
