@@ -18725,7 +18725,16 @@
       max-height: 100%;
       margin: 0;
       border: 0;
+      border-radius: 0;
       outline: none;
+      box-shadow: none;
+      overflow: visible;
+      /* admin-extra.css centra todos los <dialog> con translate(-50%, -50%)
+         y les aplica una animacion propia. Este elemento no es la tarjeta:
+         es el overlay de viewport completo, por lo que esas reglas lo
+         desplazan media pantalla hacia arriba y a la izquierda. */
+      transform: none;
+      animation: none;
     }
     /* Nuestro display:flex (id) le ganaría al dialog:not([open]) del navegador */
     #venus-dialog-root:not([open]) { display: none; }
