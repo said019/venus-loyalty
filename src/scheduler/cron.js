@@ -47,9 +47,17 @@ function getCurrentHourMexico() {
 // regresarla el 2026-07-11 ("si tiene que llevar encuesta"): queda ACTIVA.
 const AUTO_CONFIRMACION_ACTIVA = true;
 
+// Interruptor del mensaje de evaluación/reseña post-cita (spec
+// 2026-07-16-desactivar-mensaje-resenas-design.md; Said lo pidió el 17-jul:
+// "quita los mensajes de evaluación"). Apagado: el cron de reseñas sale antes
+// de consultar citas o llamar a Evolution. Las reseñas existentes, la página
+// pública y el panel siguen intactos; citas con reviewSentAt no se tocan.
+const RESENAS_AUTO_ACTIVAS = false;
+
 export function startScheduler() {
     console.log('⏰ Scheduler de recordatorios WhatsApp iniciado');
     if (!AUTO_CONFIRMACION_ACTIVA) console.log('🔕 Cadena de confirmación automática (encuesta 9AM / alerta 4h / auto-cancel) DESACTIVADA');
+    if (!RESENAS_AUTO_ACTIVAS) console.log('🔕 Envío automático de link de evaluación/reseña post-cita DESACTIVADO');
 
     // Helper para convertir a ISO con offset de México (-06:00)
     const toMexicoCityISO = (date) => {
@@ -427,6 +435,7 @@ export function startScheduler() {
     // ENVÍO DE LINK DE EVALUACIÓN POST-CITA — cada 10 min
     // ========================================================================
     cron.schedule('*/10 * * * *', async () => {
+        if (!RESENAS_AUTO_ACTIVAS) return;
         try {
             const now = new Date();
             const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
