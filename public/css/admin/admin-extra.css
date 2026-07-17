@@ -3334,3 +3334,206 @@
         .exp-sigpad-overlay { padding: 0; align-items: flex-end; }
         .exp-sigpad-modal { max-width: 100%; max-height: 92vh; border-radius: 20px 20px 0 0; }
       }
+
+      /* ========== VENTA RÁPIDA (directSaleDialog) — rediseño Venus ==========
+         Tokens de DESIGN.md: crema/oat + acento oliva restringido, hairlines
+         en vez de sombras, Playfair para el título y el total, DM Sans UI.
+         Estructura flex: header y footer fijos, cuerpo con scroll — el botón
+         Cobrar ya no se corta (antes: dialog overflow:hidden a 90vh). */
+      #directSaleDialog {
+        --ds-bg: oklch(96.5% 0.012 88);
+        --ds-surface: oklch(99% 0.006 88);
+        --ds-surface-2: oklch(93.5% 0.014 88);
+        --ds-ink: oklch(22% 0.012 80);
+        --ds-ink-2: oklch(45% 0.012 80);
+        --ds-ink-3: oklch(60% 0.010 80);
+        --ds-line: oklch(88% 0.014 88);
+        --ds-line-2: oklch(82% 0.018 88);
+        --ds-olive: oklch(58% 0.075 120);
+        --ds-olive-deep: oklch(48% 0.085 120);
+        --ds-olive-soft: oklch(94% 0.022 120);
+        --ds-err: oklch(58% 0.140 28);
+        width: min(520px, 94vw);
+        max-height: min(88vh, 760px);
+        border: 1px solid var(--ds-line);
+        border-radius: 22px;
+        background: var(--ds-bg);
+        color: var(--ds-ink);
+        box-shadow: 0 24px 60px oklch(22% 0.012 80 / 0.18);
+        overflow: hidden;
+        font-family: 'DM Sans', system-ui, sans-serif;
+        color-scheme: light;
+      }
+      [data-theme="dark"] #directSaleDialog {
+        --ds-bg: oklch(18% 0.012 80);
+        --ds-surface: oklch(22% 0.014 80);
+        --ds-surface-2: oklch(26% 0.016 80);
+        --ds-ink: oklch(95% 0.012 88);
+        --ds-ink-2: oklch(78% 0.012 88);
+        --ds-ink-3: oklch(60% 0.010 88);
+        --ds-line: oklch(30% 0.018 80);
+        --ds-line-2: oklch(38% 0.020 80);
+        --ds-olive: oklch(68% 0.080 120);
+        --ds-olive-deep: oklch(78% 0.090 120);
+        --ds-olive-soft: oklch(28% 0.030 120);
+        color-scheme: dark;
+      }
+      #directSaleDialog[open] { display: flex; flex-direction: column; }
+
+      #directSaleDialog .ds-header {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 22px 28px 16px;
+        border-bottom: 1px solid var(--ds-line);
+        flex-shrink: 0;
+      }
+      #directSaleDialog .ds-title {
+        margin: 0;
+        font: 500 24px/1.2 'Playfair Display', serif;
+        letter-spacing: -0.015em;
+      }
+      #directSaleDialog .ds-close {
+        width: 36px; height: 36px; border-radius: 999px; border: 1px solid var(--ds-line);
+        background: var(--ds-surface); color: var(--ds-ink-2); font-size: 20px; line-height: 1;
+        cursor: pointer; transition: border-color 120ms ease, color 120ms ease;
+      }
+      #directSaleDialog .ds-close:hover { border-color: var(--ds-line-2); color: var(--ds-ink); }
+
+      #directSaleDialog .ds-body {
+        flex: 1 1 auto; overflow-y: auto;
+        padding: 22px 28px 8px;
+        display: flex; flex-direction: column; gap: 22px;
+      }
+      #directSaleDialog .ds-group { display: flex; flex-direction: column; gap: 8px; }
+      #directSaleDialog .ds-label {
+        font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase;
+        color: var(--ds-ink-3);
+      }
+      #directSaleDialog .ds-label-soft { text-transform: none; letter-spacing: 0; font-weight: 500; }
+
+      #directSaleDialog .ds-input {
+        width: 100%; min-height: 44px; padding: 10px 14px;
+        border: 1px solid var(--ds-line); border-radius: 12px;
+        background: var(--ds-surface); color: var(--ds-ink);
+        font: 500 15px/1.3 'DM Sans', system-ui, sans-serif;
+        transition: border-color 120ms ease;
+      }
+      #directSaleDialog .ds-input:focus { outline: 2px solid var(--ds-olive); outline-offset: -1px; border-color: transparent; }
+      #directSaleDialog .ds-input::placeholder { color: var(--ds-ink-3); font-weight: 400; }
+
+      /* Buscador de producto (combobox) */
+      #directSaleDialog .ds-add-row { display: flex; gap: 8px; align-items: stretch; }
+      #directSaleDialog .ds-combo { position: relative; flex: 1 1 auto; min-width: 0; }
+      #directSaleDialog .ds-qty { flex: 0 0 64px; width: 64px; text-align: center; }
+      #directSaleDialog .ds-add-btn {
+        flex: 0 0 44px; min-height: 44px; border-radius: 12px; border: none; cursor: pointer;
+        background: var(--ds-olive); color: oklch(99% 0.006 88); font-size: 15px;
+        transition: background 120ms ease;
+      }
+      #directSaleDialog .ds-add-btn:hover { background: var(--ds-olive-deep); }
+      #directSaleDialog .ds-add-btn:active { transform: translateY(1px); }
+
+      #directSaleDialog .ds-combo-panel {
+        position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 30;
+        max-height: 264px; overflow-y: auto;
+        background: var(--ds-surface); border: 1px solid var(--ds-line-2); border-radius: 12px;
+        box-shadow: 0 12px 32px oklch(22% 0.012 80 / 0.14);
+      }
+      #directSaleDialog .ds-combo-group {
+        position: sticky; top: 0;
+        padding: 8px 14px 6px;
+        font-size: 10.5px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase;
+        color: var(--ds-ink-3); background: var(--ds-surface);
+        border-bottom: 1px solid var(--ds-line);
+      }
+      #directSaleDialog .ds-combo-item {
+        display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+        padding: 11px 14px; cursor: pointer; font-size: 14.5px;
+      }
+      #directSaleDialog .ds-combo-item:hover, #directSaleDialog .ds-combo-item.hl { background: var(--ds-olive-soft); }
+      #directSaleDialog .ds-combo-item .ds-combo-price { color: var(--ds-ink-2); font-weight: 600; white-space: nowrap; }
+      #directSaleDialog .ds-combo-item .ds-combo-stock { color: var(--ds-ink-3); font-size: 12px; }
+      #directSaleDialog .ds-combo-empty { padding: 14px; color: var(--ds-ink-3); font-size: 14px; text-align: center; }
+
+      /* Carrito */
+      #directSaleDialog .ds-cart { display: flex; flex-direction: column; }
+      #directSaleDialog .ds-cart-empty {
+        padding: 18px 4px; color: var(--ds-ink-3); font-size: 14px; text-align: center;
+      }
+      #directSaleDialog .ds-cart-item {
+        display: flex; align-items: center; gap: 12px;
+        padding: 12px 2px;
+        border-bottom: 1px solid var(--ds-line);
+      }
+      #directSaleDialog .ds-cart-item:last-child { border-bottom: none; }
+      #directSaleDialog .ds-cart-info { flex: 1 1 auto; min-width: 0; }
+      #directSaleDialog .ds-cart-name { display: block; font-weight: 500; font-size: 14.5px; }
+      #directSaleDialog .ds-cart-meta { display: block; color: var(--ds-ink-3); font-size: 12.5px; margin-top: 2px; }
+      #directSaleDialog .ds-cart-subtotal { font-weight: 600; font-size: 14.5px; white-space: nowrap; }
+      #directSaleDialog .ds-cart-remove {
+        width: 30px; height: 30px; border-radius: 999px; border: 1px solid transparent;
+        background: none; color: var(--ds-ink-3); cursor: pointer; font-size: 12px;
+        transition: color 120ms ease, border-color 120ms ease;
+      }
+      #directSaleDialog .ds-cart-remove:hover { color: var(--ds-err); border-color: var(--ds-err); }
+
+      /* Descuento */
+      #directSaleDialog .ds-discount-row { display: flex; gap: 8px; align-items: stretch; }
+      #directSaleDialog .ds-toggle {
+        display: flex; border: 1px solid var(--ds-line); border-radius: 12px; overflow: hidden; flex: 0 0 auto;
+      }
+      #directSaleDialog .ds-toggle button {
+        width: 48px; min-height: 44px; border: none; background: var(--ds-surface);
+        color: var(--ds-ink-2); font: 600 15px 'DM Sans', system-ui, sans-serif; cursor: pointer;
+      }
+      #directSaleDialog .ds-toggle button.active { background: var(--ds-olive); color: oklch(99% 0.006 88); }
+      #directSaleDialog .ds-discount-input { position: relative; flex: 1 1 auto; }
+      #directSaleDialog .ds-discount-input span {
+        position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+        color: var(--ds-ink-3); font-weight: 600;
+      }
+
+      /* Totales */
+      #directSaleDialog .ds-totals {
+        border-top: 1px solid var(--ds-line);
+        padding: 16px 2px 4px;
+        display: flex; flex-direction: column; gap: 8px;
+      }
+      #directSaleDialog .ds-total-row { display: flex; justify-content: space-between; font-size: 14px; color: var(--ds-ink-2); }
+      #directSaleDialog .ds-total-discount span:last-child { color: var(--ds-err); }
+      #directSaleDialog .ds-total-grand { align-items: baseline; color: var(--ds-ink); }
+      #directSaleDialog .ds-total-grand span:first-child { font-size: 15px; font-weight: 600; }
+      #directSaleDialog .ds-total-grand span:last-child { font: 600 28px/1 'Playfair Display', serif; letter-spacing: -0.015em; }
+
+      /* Footer fijo */
+      #directSaleDialog .ds-footer {
+        flex-shrink: 0;
+        display: flex; gap: 10px;
+        padding: 16px 28px 22px;
+        border-top: 1px solid var(--ds-line);
+        background: var(--ds-bg);
+      }
+      #directSaleDialog .ds-btn-primary {
+        flex: 1 1 auto; min-height: 48px; border: none; border-radius: 12px; cursor: pointer;
+        background: var(--ds-olive); color: oklch(99% 0.006 88);
+        font: 600 15.5px 'DM Sans', system-ui, sans-serif;
+        display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+        transition: background 120ms ease;
+      }
+      #directSaleDialog .ds-btn-primary:hover { background: var(--ds-olive-deep); }
+      #directSaleDialog .ds-btn-primary:active { transform: translateY(1px); }
+      #directSaleDialog .ds-btn-primary:disabled { opacity: 0.55; cursor: default; }
+      #directSaleDialog .ds-btn-ghost {
+        flex: 0 0 auto; min-height: 48px; padding: 0 20px; border-radius: 12px; cursor: pointer;
+        border: 1px solid var(--ds-line-2); background: none; color: var(--ds-ink-2);
+        font: 500 15px 'DM Sans', system-ui, sans-serif;
+        transition: color 120ms ease, border-color 120ms ease;
+      }
+      #directSaleDialog .ds-btn-ghost:hover { color: var(--ds-ink); border-color: var(--ds-ink-3); }
+
+      @media (max-width: 640px) {
+        #directSaleDialog {
+          width: 100vw; max-height: 100dvh; height: 100dvh;
+          border-radius: 0; border: none;
+        }
+        #directSaleDialog .ds-footer { padding-bottom: max(22px, env(safe-area-inset-bottom)); }
+      }

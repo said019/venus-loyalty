@@ -2967,82 +2967,80 @@
 
     <!-- DIRECT SALE DIALOG -->
     <dialog id="directSaleDialog">
-      <button class="btn-close-payment" onclick="closeDirectSaleModal()" title="Cerrar">
-        <i class="fas fa-times"></i>
-      </button>
-      <div class="dialog-header" style="padding:20px 20px 0;">
-        <h3><i class="fas fa-shopping-cart"></i> Nueva Venta</h3>
+      <div class="ds-header">
+        <h3 class="ds-title">Nueva venta</h3>
+        <button class="ds-close" onclick="closeDirectSaleModal()" title="Cerrar" aria-label="Cerrar">&times;</button>
       </div>
-      <div style="padding:0 20px 20px;">
+
+      <div class="ds-body">
         <!-- Cliente (opcional) -->
-        <div class="form-row">
-          <label>Cliente (opcional)</label>
-          <input type="text" id="direct-sale-client" placeholder="Escribe para buscar clienta…" class="form-input"
+        <div class="ds-group">
+          <label class="ds-label" for="direct-sale-client">Clienta <span class="ds-label-soft">(opcional)</span></label>
+          <input type="text" id="direct-sale-client" placeholder="Escribe para buscar…" class="ds-input"
             list="direct-sale-clients-list" autocomplete="off">
           <datalist id="direct-sale-clients-list"></datalist>
         </div>
 
-        <!-- Productos -->
-        <div class="payment-section">
-          <div class="payment-section-header">
-            <span class="payment-section-title"><i class="fas fa-shopping-bag"></i> Productos</span>
+        <!-- Productos: buscador escribible (retail + menú del café) -->
+        <div class="ds-group">
+          <label class="ds-label" for="direct-sale-product-search">Producto o café</label>
+          <div class="ds-add-row">
+            <div class="ds-combo">
+              <input type="text" id="direct-sale-product-search" class="ds-input" placeholder="Escribe: latte, sérum, matcha…"
+                autocomplete="off" oninput="dsFilterCatalog(this.value)" onfocus="dsFilterCatalog(this.value)"
+                onkeydown="dsComboKeydown(event)">
+              <div class="ds-combo-panel" id="ds-combo-panel" hidden></div>
+            </div>
+            <input type="number" id="direct-sale-product-qty" class="ds-input ds-qty" value="1" min="1" max="99" aria-label="Cantidad">
+            <button type="button" class="ds-add-btn" onclick="addProductToDirectSale()" title="Agregar"><i class="fas fa-plus"></i></button>
           </div>
-          <div class="product-add-row">
-            <select id="direct-sale-product-select">
-              <option value="">Agregar producto...</option>
-            </select>
-            <input type="number" id="direct-sale-product-qty" value="1" min="1" max="99">
-            <button type="button" onclick="addProductToDirectSale()"><i class="fas fa-plus"></i></button>
-          </div>
-          <div class="payment-product-list" id="direct-sale-products-list">
-            <div class="payment-products-empty">Selecciona productos para vender</div>
+          <div class="ds-cart" id="direct-sale-products-list">
+            <div class="ds-cart-empty">Aún no hay nada en la venta.</div>
           </div>
         </div>
 
         <!-- Descuento -->
-        <div class="payment-section">
-          <div class="payment-section-header">
-            <span class="payment-section-title"><i class="fas fa-percent"></i> Descuento</span>
-          </div>
-          <div class="discount-row">
-            <div class="discount-toggle">
-              <button class="active" onclick="setDirectSaleDiscountType('percent')"
-                id="btn-ds-discount-percent">%</button>
-              <button onclick="setDirectSaleDiscountType('fixed')" id="btn-ds-discount-fixed">$</button>
+        <div class="ds-group">
+          <label class="ds-label">Descuento</label>
+          <div class="ds-discount-row">
+            <div class="ds-toggle">
+              <button type="button" class="active" onclick="setDirectSaleDiscountType('percent')" id="btn-ds-discount-percent">%</button>
+              <button type="button" onclick="setDirectSaleDiscountType('fixed')" id="btn-ds-discount-fixed">$</button>
             </div>
-            <div class="discount-input-wrap">
-              <input type="number" id="direct-sale-discount-value" placeholder="0" min="0" value="0"
+            <div class="ds-discount-input">
+              <input type="number" id="direct-sale-discount-value" class="ds-input" placeholder="0" min="0" value="0"
                 oninput="calculateDirectSaleTotals()">
-              <span class="discount-symbol" id="ds-discount-symbol">%</span>
+              <span id="ds-discount-symbol">%</span>
             </div>
           </div>
-        </div>
-
-        <!-- Totales -->
-        <div class="payment-totals">
-          <div class="payment-total-row sub"><span>Productos</span><span id="ds-total-products">$0</span></div>
-          <div class="payment-total-row discount" id="ds-total-discount-row" style="display:none;">
-            <span>Descuento</span><span id="ds-total-discount">-$0</span>
-          </div>
-          <div class="payment-total-row grand"><span>Total</span><span id="ds-total-grand">$0</span></div>
         </div>
 
         <!-- Método de pago -->
-        <div class="form-row" style="margin-top:16px;">
-          <label>Método de Pago <span style="color:#ef4444;">*</span></label>
-          <select id="direct-sale-payment-method" class="form-input">
+        <div class="ds-group">
+          <label class="ds-label" for="direct-sale-payment-method">Método de pago</label>
+          <select id="direct-sale-payment-method" class="ds-input">
             <option value="efectivo">Efectivo</option>
             <option value="tarjeta_credito">Tarjeta de crédito</option>
             <option value="tarjeta_debito">Tarjeta de débito</option>
             <option value="transferencia">Transferencia</option>
           </select>
         </div>
+
+        <!-- Totales -->
+        <div class="ds-totals">
+          <div class="ds-total-row"><span>Productos</span><span id="ds-total-products">$0</span></div>
+          <div class="ds-total-row ds-total-discount" id="ds-total-discount-row" style="display:none;">
+            <span>Descuento</span><span id="ds-total-discount">-$0</span>
+          </div>
+          <div class="ds-total-row ds-total-grand"><span>Total</span><span id="ds-total-grand">$0</span></div>
+        </div>
       </div>
-      <div class="dialog-footer">
-        <button class="btn primary btn-cobrar" onclick="saveDirectSale()" id="btn-save-direct-sale">
+
+      <div class="ds-footer">
+        <button type="button" onclick="closeDirectSaleModal()" class="ds-btn-ghost">Cancelar</button>
+        <button class="ds-btn-primary" onclick="saveDirectSale()" id="btn-save-direct-sale">
           <i class="fas fa-check-circle"></i> Cobrar <span id="btn-ds-total">$0</span>
         </button>
-        <button type="button" onclick="closeDirectSaleModal()" class="btn ghost">Cancelar</button>
       </div>
     </dialog>
 
@@ -13550,7 +13548,10 @@
     async function openDirectSaleModal() {
       directSaleProducts = [];
       dsDiscountType = 'percent';
+      dsSelectedItem = null;
       document.getElementById('direct-sale-client').value = '';
+      document.getElementById('direct-sale-product-search').value = '';
+      document.getElementById('ds-combo-panel').hidden = true;
       document.getElementById('direct-sale-discount-value').value = 0;
       document.getElementById('btn-ds-discount-percent').classList.add('active');
       document.getElementById('btn-ds-discount-fixed').classList.remove('active');
@@ -13569,25 +13570,27 @@
       directSaleProducts = [];
     }
 
+    // Cerrar el panel del buscador al hacer click fuera de él
+    document.addEventListener('click', (e) => {
+      const panel = document.getElementById('ds-combo-panel');
+      if (panel && !panel.hidden && !e.target.closest('.ds-combo')) panel.hidden = true;
+    });
+
+    // Catálogo unificado (retail + café) para el buscador escribible de Venta Rápida.
+    let dsCatalog = [];
+    let dsSelectedItem = null; // item elegido en el combobox (aún no agregado)
+
     async function loadProductsForDirectSale() {
-      const select = document.getElementById('direct-sale-product-select');
-      select.innerHTML = '<option value="">Agregar producto...</option>';
+      dsCatalog = [];
 
       // 1) Productos de venta (retail, con stock)
       try {
         const res = await apiFetch('/api/products');
         const json = await res.json();
         if (json.success) {
-          const conStock = json.data.filter(p => p.stock > 0);
-          if (conStock.length > 0) {
-            let html = '<optgroup label="Productos">';
-            conStock.forEach(p => {
-              html += `<option value="${p.id}" data-price="${p.price}" data-name="${p.name}" data-stock="${p.stock}">
-                ${p.name} - $${p.price.toLocaleString()} (Stock: ${p.stock})
-              </option>`;
-            });
-            select.innerHTML += html + '</optgroup>';
-          }
+          json.data.filter(p => p.stock > 0).forEach(p => {
+            dsCatalog.push({ id: p.id, name: p.name, price: parseFloat(p.price) || 0, stock: p.stock, group: 'Productos' });
+          });
         }
       } catch (e) {
         console.error('Error cargando productos:', e);
@@ -13599,34 +13602,89 @@
       try {
         const resCafe = await apiFetch('/api/pos/products');
         const jsonCafe = await resCafe.json();
-        if (jsonCafe.success && Array.isArray(jsonCafe.data) && jsonCafe.data.length > 0) {
-          const CATS = { cafe_caliente: '☕ Café caliente', cafe_frio: '🧊 Café frío', panaderia: '🥐 Panadería', extras: '✨ Extras' };
-          const porCategoria = {};
+        if (jsonCafe.success && Array.isArray(jsonCafe.data)) {
+          const CATS = { cafe_caliente: 'Café caliente', cafe_frio: 'Café frío', panaderia: 'Panadería', extras: 'Extras' };
           jsonCafe.data.forEach(p => {
-            const cat = CATS[p.category] || '☕ Café';
-            if (!porCategoria[cat]) porCategoria[cat] = [];
+            const group = CATS[p.category] || 'Café';
             const base = parseFloat(p.price) || 0;
-            porCategoria[cat].push({ id: `coffee:${p.id}`, name: p.name, price: base });
+            dsCatalog.push({ id: `coffee:${p.id}`, name: p.name, price: base, stock: null, group });
             (p.variants || []).filter(v => v.type === 'size').forEach(v => {
-              porCategoria[cat].push({
+              dsCatalog.push({
                 id: `coffee:${p.id}:${v.id}`,
                 name: `${p.name} (${v.name})`,
-                price: base + (parseFloat(v.priceAdj) || 0)
+                price: base + (parseFloat(v.priceAdj) || 0),
+                stock: null,
+                group
               });
             });
-          });
-          Object.entries(porCategoria).forEach(([cat, items]) => {
-            let html = `<optgroup label="${cat}">`;
-            items.forEach(it => {
-              html += `<option value="${it.id}" data-price="${it.price}" data-name="${it.name}" data-stock="">
-                ${it.name} - $${it.price.toLocaleString()}
-              </option>`;
-            });
-            select.innerHTML += html + '</optgroup>';
           });
         }
       } catch (e) {
         console.error('Error cargando menú del café:', e);
+      }
+    }
+
+    // Normaliza para buscar sin acentos ("serum" encuentra "sérum")
+    function dsNorm(s) {
+      return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    }
+
+    function dsFilterCatalog(query) {
+      const panel = document.getElementById('ds-combo-panel');
+      if (!panel) return;
+      dsSelectedItem = null;
+      const q = dsNorm(query.trim());
+      const matches = q
+        ? dsCatalog.filter(it => dsNorm(it.name).includes(q))
+        : dsCatalog;
+      if (matches.length === 0) {
+        panel.innerHTML = '<div class="ds-combo-empty">Sin resultados. Revisa la ortografía o agrega el producto en Servicios.</div>';
+        panel.hidden = false;
+        return;
+      }
+      const ORDEN = ['Productos', 'Café caliente', 'Café frío', 'Panadería', 'Extras', 'Café'];
+      const grupos = new Map();
+      matches.forEach(it => {
+        if (!grupos.has(it.group)) grupos.set(it.group, []);
+        grupos.get(it.group).push(it);
+      });
+      let html = '';
+      [...grupos.entries()].sort((a, b) => ORDEN.indexOf(a[0]) - ORDEN.indexOf(b[0])).forEach(([grupo, items]) => {
+        html += `<div class="ds-combo-group">${grupo}</div>`;
+        items.slice(0, 40).forEach(it => {
+          const idx = dsCatalog.indexOf(it);
+          const stockTxt = it.stock != null ? ` <span class="ds-combo-stock">· ${it.stock} en stock</span>` : '';
+          html += `<div class="ds-combo-item" onmousedown="event.preventDefault(); dsPickCatalogItem(${idx})">
+            <span>${it.name}${stockTxt}</span><span class="ds-combo-price">$${it.price.toLocaleString()}</span>
+          </div>`;
+        });
+      });
+      panel.innerHTML = html;
+      panel.hidden = false;
+    }
+
+    function dsPickCatalogItem(idx) {
+      const it = dsCatalog[idx];
+      if (!it) return;
+      dsSelectedItem = it;
+      const input = document.getElementById('direct-sale-product-search');
+      input.value = it.name;
+      document.getElementById('ds-combo-panel').hidden = true;
+      document.getElementById('direct-sale-product-qty').focus();
+    }
+
+    function dsComboKeydown(e) {
+      const panel = document.getElementById('ds-combo-panel');
+      if (e.key === 'Escape') { panel.hidden = true; return; }
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        // Si hay un único resultado visible, elegirlo y agregarlo de una vez
+        const visibles = panel.hidden ? [] : panel.querySelectorAll('.ds-combo-item');
+        if (dsSelectedItem) { addProductToDirectSale(); return; }
+        if (visibles.length >= 1) {
+          visibles[0].dispatchEvent(new MouseEvent('mousedown'));
+          addProductToDirectSale();
+        }
       }
     }
 
@@ -13657,31 +13715,38 @@
       }
     }
 
-    function addProductToDirectSale() {
-      const select = document.getElementById('direct-sale-product-select');
+    async function addProductToDirectSale() {
       const qtyInput = document.getElementById('direct-sale-product-qty');
-      const option = select.selectedOptions[0];
+      const searchInput = document.getElementById('direct-sale-product-search');
 
-      if (!select.value) return;
+      if (!dsSelectedItem) {
+        await venusAlert('Escribe y elige un producto de la lista primero');
+        searchInput.focus();
+        return;
+      }
 
       const qty = parseInt(qtyInput.value) || 1;
-      const existing = directSaleProducts.find(p => p.id === select.value);
+      const it = dsSelectedItem;
+      const existing = directSaleProducts.find(p => p.id === it.id);
 
       if (existing) {
         existing.qty += qty;
       } else {
         directSaleProducts.push({
-          id: select.value,
-          name: option.dataset.name,
-          price: parseFloat(option.dataset.price),
+          id: it.id,
+          name: it.name,
+          price: it.price,
           qty: qty,
-          // Items del café no tienen stock (dataset.stock vacío → null)
-          maxStock: option.dataset.stock ? parseInt(option.dataset.stock) : null
+          maxStock: it.stock // null para items del café (sin stock)
         });
       }
 
-      select.value = '';
+      dsSelectedItem = null;
+      searchInput.value = '';
       qtyInput.value = 1;
+      searchInput.focus();
+      // Ocultar DESPUÉS del focus: el onfocus re-abre el panel y taparía el carrito
+      document.getElementById('ds-combo-panel').hidden = true;
       renderDirectSaleProducts();
       calculateDirectSaleTotals();
     }
@@ -13695,20 +13760,20 @@
     function renderDirectSaleProducts() {
       const list = document.getElementById('direct-sale-products-list');
       if (directSaleProducts.length === 0) {
-        list.innerHTML = '<div class="payment-products-empty">Selecciona productos para vender</div>';
+        list.innerHTML = '<div class="ds-cart-empty">Aún no hay nada en la venta.</div>';
         return;
       }
 
       list.innerHTML = directSaleProducts.map(p => {
         const subtotal = p.price * p.qty;
         return `
-          <div class="payment-product-item">
-            <div class="payment-product-info">
-              <span class="payment-product-name">${p.name}</span>
-              <span class="payment-product-price">$${p.price.toLocaleString()} × ${p.qty}</span>
+          <div class="ds-cart-item">
+            <div class="ds-cart-info">
+              <span class="ds-cart-name">${p.name}</span>
+              <span class="ds-cart-meta">$${p.price.toLocaleString()} × ${p.qty}</span>
             </div>
-            <div class="payment-product-subtotal">$${subtotal.toLocaleString()}</div>
-            <button onclick="removeProductFromDirectSale('${p.id}')" class="payment-product-remove">
+            <div class="ds-cart-subtotal">$${subtotal.toLocaleString()}</div>
+            <button onclick="removeProductFromDirectSale('${p.id}')" class="ds-cart-remove" title="Quitar">
               <i class="fas fa-times"></i>
             </button>
           </div>
