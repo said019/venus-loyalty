@@ -16269,11 +16269,12 @@
     let cajaData = [];
     // Obtener fecha actual en zona horaria de México
     function getFechaMexico() {
-      const now = new Date();
-      const mexicoOffset = -6 * 60; // UTC-6
-      const localOffset = now.getTimezoneOffset();
-      const mexicoTime = new Date(now.getTime() + (localOffset - mexicoOffset) * 60000);
-      return mexicoTime.toISOString().split('T')[0];
+      // YYYY-MM-DD del día actual en CDMX vía Intl (locale en-CA da ese formato).
+      // La versión anterior hacía aritmética de offsets con el SIGNO invertido:
+      // en un navegador en México daba now+12h, así que desde el mediodía la
+      // Caja marcaba el día SIGUIENTE (incidente 17-jul-2026) y "pendientes
+      // hasta hoy" incluía citas de mañana.
+      return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Mexico_City' }).format(new Date());
     }
     let cajaFechaActual = getFechaMexico();
     let cajaFiltroActual = 'todos';
