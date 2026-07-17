@@ -13004,28 +13004,62 @@
         const json = await res.json();
 
         if (json.success) {
-          allProductsForPayment = (json.data || []).filter(p => p.stock > 0);
-          updatePaymentProductSelect();
+          allProductsForPayment = (json.data || []).filter(p => p.stock > 0)
+            .map(p => ({ ...p, grupo: 'Productos' }));
         }
       } catch (error) {
         console.error('Error loading products for payment:', error);
       }
+
+      // Menú del café: sin stock; el server ignora los ids "coffee:…" al
+      // descontar inventario (solo suman al cobro).
+      try {
+        const resCafe = await apiFetch('/api/pos/products');
+        const jsonCafe = await resCafe.json();
+        if (jsonCafe.success && Array.isArray(jsonCafe.data)) {
+          const CATS = { cafe_caliente: 'Café caliente', cafe_frio: 'Café frío', panaderia: 'Panadería', extras: 'Extras' };
+          jsonCafe.data.forEach(p => {
+            const base = parseFloat(p.price) || 0;
+            const grupo = CATS[p.category] || 'Café';
+            allProductsForPayment.push({ id: `coffee:${p.id}`, name: p.name, price: base, stock: null, category: p.category, grupo });
+            (p.variants || []).filter(v => v.type === 'size').forEach(v => {
+              allProductsForPayment.push({ id: `coffee:${p.id}:${v.id}`, name: `${p.name} (${v.name})`, price: base + (parseFloat(v.priceAdj) || 0), stock: null, category: p.category, grupo });
+            });
+          });
+        }
+      } catch (e) { console.warn('Menú del café no disponible en cobro:', e); }
+
+      updatePaymentProductSelect();
     }
 
     function updatePaymentProductSelect() {
       const select = document.getElementById('payment-product-select');
       if (!select) return;
 
-      select.innerHTML = '<option value="">Agregar producto...</option>';
+      select.innerHTML = '<option value="">Agregar producto o café...</option>';
 
-      allProductsForPayment.forEach(p => {
-        const inCart = paymentProducts.find(pp => pp.id === p.id);
-        const availableStock = p.stock - (inCart ? inCart.qty : 0);
-
-        if (availableStock > 0) {
-          const stockLabel = availableStock <= 5 ? ` (${availableStock})` : '';
-          select.innerHTML += `<option value="${p.id}" data-price="${p.price}" data-name="${p.name}" data-stock="${availableStock}" data-category="${p.category}">${p.name} - $${p.price}${stockLabel}</option>`;
-        }
+      const ORDEN = ['Productos', 'Café caliente', 'Café frío', 'Panadería', 'Extras', 'Café'];
+      ORDEN.forEach(grupo => {
+        const items = allProductsForPayment.filter(p => (p.grupo || 'Productos') === grupo);
+        if (!items.length) return;
+        let html = `<optgroup label="${grupo}">`;
+        let alguno = false;
+        items.forEach(p => {
+          const inCart = paymentProducts.find(pp => pp.id === p.id);
+          if (p.stock == null) {
+            // Café: sin límite de stock
+            alguno = true;
+            html += `<option value="${p.id}" data-price="${p.price}" data-name="${p.name}" data-stock="" data-category="${p.category}">${p.name} - $${p.price}</option>`;
+            return;
+          }
+          const availableStock = p.stock - (inCart ? inCart.qty : 0);
+          if (availableStock > 0) {
+            alguno = true;
+            const stockLabel = availableStock <= 5 ? ` (${availableStock})` : '';
+            html += `<option value="${p.id}" data-price="${p.price}" data-name="${p.name}" data-stock="${availableStock}" data-category="${p.category}">${p.name} - $${p.price}${stockLabel}</option>`;
+          }
+        });
+        if (alguno) select.innerHTML += html + '</optgroup>';
       });
     }
 
@@ -13203,9 +13237,11 @@
 
       const option = select.options[select.selectedIndex];
       const qty = parseInt(qtyInput.value) || 1;
-      const stock = parseInt(option.dataset.stock) || 0;
+      // Café: dataset.stock vacío → sin límite. Retail: validar contra stock.
+      const hasStock = option.dataset.stock !== '';
+      const stock = hasStock ? (parseInt(option.dataset.stock) || 0) : null;
 
-      if (qty > stock) {
+      if (hasStock && qty > stock) {
         await venusAlert(`Solo hay ${stock} unidades disponibles`);
         return;
       }
@@ -16738,17 +16774,33 @@
     async function abrirCobrarCita(citaId) {
       citaActualId = citaId; // Guardar el ID globalmente
       try {
-        // Cargar cita, productos y servicios en paralelo
-        const [resCita, resProductos, resServicios] = await Promise.all([
+        // Cargar cita, productos, menú del café y servicios en paralelo
+        const [resCita, resProductos, resServicios, resCafe] = await Promise.all([
           apiFetch(`/api/appointments/${citaId}`),
           apiFetch('/api/products'),
-          apiFetch('/api/services')
+          apiFetch('/api/services'),
+          apiFetch('/api/pos/products').catch(() => null)
         ]);
-        
+
         const jsonCita = await resCita.json();
         const jsonProductos = await resProductos.json();
         const jsonServicios = await resServicios.json();
-        
+        let cafeItems = [];
+        try {
+          const jsonCafe = resCafe ? await resCafe.json() : null;
+          if (jsonCafe && jsonCafe.success && Array.isArray(jsonCafe.data)) {
+            const CATS = { cafe_caliente: 'Café caliente', cafe_frio: 'Café frío', panaderia: 'Panadería', extras: 'Extras' };
+            jsonCafe.data.forEach(p => {
+              const base = parseFloat(p.price) || 0;
+              const grupo = CATS[p.category] || 'Café';
+              cafeItems.push({ id: `coffee:${p.id}`, name: p.name, price: base, grupo });
+              (p.variants || []).filter(v => v.type === 'size').forEach(v => {
+                cafeItems.push({ id: `coffee:${p.id}:${v.id}`, name: `${p.name} (${v.name})`, price: base + (parseFloat(v.priceAdj) || 0), grupo });
+              });
+            });
+          }
+        } catch (e) { console.warn('[Cobrar] menú del café no disponible:', e); }
+
         if (!jsonCita.success) {
           showNotification('No se pudo cargar la cita', 'error');
           return;
@@ -16945,10 +16997,17 @@
                   </div>
                   <div style="display:flex;gap:8px;margin-bottom:12px;">
                     <select id="select-producto" class="cobro-input" style="flex:1;">
-                      <option value="">Agregar producto...</option>
-                      ${productosDisponibles.map(p => `<option value="${p.id}" data-precio="${p.price}" data-nombre="${p.name}">
+                      <option value="">Agregar producto o café...</option>
+                      ${productosDisponibles.length ? `<optgroup label="Productos">${productosDisponibles.map(p => `<option value="${p.id}" data-precio="${p.price}" data-nombre="${p.name}">
                         ${p.name} - $${parseFloat(p.price).toFixed(0)}
-                      </option>`).join('')}
+                      </option>`).join('')}</optgroup>` : ''}
+                      ${['Café caliente', 'Café frío', 'Panadería', 'Extras', 'Café'].map(grupo => {
+                        const items = cafeItems.filter(c => c.grupo === grupo);
+                        if (!items.length) return '';
+                        return `<optgroup label="${grupo}">${items.map(c => `<option value="${c.id}" data-precio="${c.price}" data-nombre="${c.name}">
+                          ${c.name} - $${c.price.toFixed(0)}
+                        </option>`).join('')}</optgroup>`;
+                      }).join('')}
                     </select>
                     <input type="number" id="cantidad-producto" value="1" min="1" class="cobro-input" style="width:60px;text-align:center;">
                     <button onclick="agregarProductoCobro()" 
@@ -17253,8 +17312,14 @@
         const json = await res.json();
         
         if (json.success) {
-          // Actualizar stock de productos vendidos
+          // CERRAR PRIMERO: el cobro ya quedó registrado; nada de lo que siga
+          // (stock, notificación, recarga) debe poder dejar el modal abierto.
+          const modalCobro = document.getElementById('modal-cobrar-cita');
+          if (modalCobro) modalCobro.remove();
+
+          // Actualizar stock de productos vendidos (los del café no llevan stock)
           for (const prod of productosEnCobro) {
+            if (String(prod.id).startsWith('coffee:')) continue;
             try {
               await fetch(`/api/products/${prod.id}/stock`, {
                 method: 'PATCH',
@@ -17266,10 +17331,9 @@
               console.warn('Error actualizando stock:', e);
             }
           }
-          
-          showNotification('¡Pago registrado correctamente!', 'success');
-          document.getElementById('modal-cobrar-cita').remove();
+
           productosEnCobro = []; // Limpiar
+          showNotification('¡Pago registrado correctamente!', 'success');
           cargarCaja(); // Recargar la caja
         } else {
           showNotification(json.message || 'Error al registrar pago', 'error');

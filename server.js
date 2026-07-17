@@ -1285,7 +1285,14 @@ app.post('/api/appointments/:id/payment', adminAuth, async (req, res) => {
     // Descontar stock de productos vendidos usando Prisma
     if (productsSold && productsSold.length > 0) {
       for (const product of productsSold) {
-        await ProductsRepo.updateStock(product.productId, -product.qty);
+        // Items del menú del café (id "coffee:…") no existen en products:
+        // sin este guard, updateStock tira P2025 y TODO el cobro fallaba.
+        if (!product.productId || String(product.productId).startsWith('coffee:')) continue;
+        try {
+          await ProductsRepo.updateStock(product.productId, -product.qty);
+        } catch (e) {
+          console.warn('[payment] stock no actualizado para', product.productId, e.message);
+        }
       }
     }
 
