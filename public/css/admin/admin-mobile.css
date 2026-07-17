@@ -678,3 +678,92 @@ html[data-theme="dark"]  { color-scheme: dark; }
   .page-header { padding: 8px 12px !important; }
   .page-header h1 { font-size: 18px !important; }
 }
+
+/* Centro de notificaciones: adaptación táctil sin perder jerarquía */
+@media (max-width: 767px) {
+  .notification-dropdown {
+    top: calc(var(--topbar-height, 64px) + 8px) !important;
+    left: 12px !important;
+    right: 12px !important;
+    width: auto !important;
+    max-width: none !important;
+    max-height: calc(100dvh - var(--topbar-height, 64px) - 20px) !important;
+    border-radius: 16px !important;
+    overflow: hidden !important;
+  }
+
+  .notification-header {
+    min-height: 72px;
+    padding: 12px 10px 12px 14px;
+  }
+
+  .notification-heading-icon {
+    width: 34px;
+    height: 34px;
+    flex-basis: 34px;
+  }
+
+  .notification-header h3 {
+    font-size: 15px !important;
+  }
+
+  .notification-action-label {
+    display: none;
+  }
+
+  .btn-mark-read,
+  .notification-close {
+    width: 38px;
+    min-height: 38px;
+    justify-content: center;
+    padding: 0;
+    font-size: 14px;
+  }
+
+  .notification-list {
+    max-height: calc(100dvh - var(--topbar-height, 64px) - 150px);
+  }
+
+  button.notification-item {
+    grid-template-columns: 36px minmax(0, 1fr) 14px;
+    gap: 10px;
+    min-height: 82px;
+    padding: 13px 10px 13px 15px;
+  }
+
+  .notification-icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .notification-options {
+    width: 14px;
+  }
+
+  .notification-footer {
+    min-height: 54px;
+    padding: 8px 9px 8px 12px;
+  }
+
+  .notification-footer button {
+    min-height: 38px;
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 390px) {
+  .notification-heading p {
+    font-size: 10.5px;
+  }
+
+  .notification-message {
+    font-size: 12px;
+  }
+
+  .notification-view-all span {
+    max-width: 116px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}

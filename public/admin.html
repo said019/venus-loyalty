@@ -151,17 +151,35 @@
     <div class="topbar-right">
       <!-- Notificaciones -->
       <div class="notification-wrapper">
-        <button class="topbar-btn" id="notif-btn-desktop" title="Notificaciones">
+        <button class="topbar-btn" id="notif-btn-desktop" title="Notificaciones"
+          aria-label="Abrir notificaciones" aria-haspopup="dialog" aria-expanded="false"
+          aria-controls="notif-dropdown">
           <i class="fas fa-bell"></i>
           <span class="badge hidden" id="notif-badge">0</span>
         </button>
 
-        <div class="notification-dropdown" id="notif-dropdown">
+        <div class="notification-dropdown" id="notif-dropdown" role="dialog"
+          aria-label="Centro de notificaciones">
           <div class="notification-header">
-            <h3><i class="fas fa-bell"></i> Notificaciones</h3>
-            <button class="btn-mark-read" id="btn-mark-all-read">
-              <i class="fas fa-check-double"></i> Marcar leídas
-            </button>
+            <div class="notification-heading">
+              <span class="notification-heading-icon" aria-hidden="true">
+                <i class="fas fa-bell"></i>
+              </span>
+              <div>
+                <h3>Notificaciones</h3>
+                <p id="notif-unread-count" aria-live="polite">0 sin leer</p>
+              </div>
+            </div>
+            <div class="notification-header-actions">
+              <button class="btn-mark-read" id="btn-mark-all-read" title="Marcar todo como leído">
+                <i class="fas fa-check-double" aria-hidden="true"></i>
+                <span class="notification-action-label">Marcar todo como leído</span>
+              </button>
+              <button class="notification-close" id="btn-close-notifications" type="button"
+                title="Cerrar notificaciones" aria-label="Cerrar notificaciones">
+                <i class="fas fa-times" aria-hidden="true"></i>
+              </button>
+            </div>
           </div>
 
           <div class="notification-list" id="notif-list">
@@ -172,7 +190,13 @@
           </div>
 
           <div class="notification-footer">
-            <button id="btn-clear-all-notif">Limpiar todas</button>
+            <button class="notification-view-all" id="btn-view-all-notif" type="button">
+              <span>Ver todas las notificaciones</span>
+              <i class="fas fa-arrow-right" aria-hidden="true"></i>
+            </button>
+            <button class="notification-clear-read" id="btn-clear-read-notif" type="button">
+              Eliminar leídas
+            </button>
           </div>
         </div>
       </div>
@@ -15929,6 +15953,7 @@
 
     let notifications = [];
     let unreadCount = 0;
+    let showAllNotifications = false;
 
     // Tipos de notificación con iconos
     const NOTIF_TYPES = {
@@ -16014,6 +16039,10 @@
 
       const dropdown = document.getElementById('notif-dropdown');
       dropdown?.classList.toggle('active');
+      document.getElementById('notif-btn-desktop')?.setAttribute(
+        'aria-expanded',
+        dropdown?.classList.contains('active') ? 'true' : 'false'
+      );
 
       if (dropdown?.classList.contains('active')) {
         renderNotifications();
@@ -16027,13 +16056,18 @@
       const notifBtnDesktop = document.getElementById('notif-btn-desktop');
       const notifBtnMobile = document.getElementById('notif-btn-mobile');
       const btnMarkAllRead = document.getElementById('btn-mark-all-read');
-      const btnClearAll = document.getElementById('btn-clear-all-notif');
+      const btnCloseNotifications = document.getElementById('btn-close-notifications');
+      const btnViewAll = document.getElementById('btn-view-all-notif');
+      const btnClearRead = document.getElementById('btn-clear-read-notif');
+      const notificationList = document.getElementById('notif-list');
 
       console.log('[NOTIF] Elementos encontrados:', {
         desktop: !!notifBtnDesktop,
         mobile: !!notifBtnMobile,
         markRead: !!btnMarkAllRead,
-        clearAll: !!btnClearAll
+        close: !!btnCloseNotifications,
+        viewAll: !!btnViewAll,
+        clearRead: !!btnClearRead
       });
 
       if (notifBtnDesktop) {
@@ -16062,14 +16096,40 @@
       if (btnMarkAllRead) {
         btnMarkAllRead.addEventListener('click', (e) => {
           e.preventDefault();
+          e.stopPropagation();
           markAllRead();
         });
       }
 
-      if (btnClearAll) {
-        btnClearAll.addEventListener('click', (e) => {
+      if (btnCloseNotifications) {
+        btnCloseNotifications.addEventListener('click', (e) => {
           e.preventDefault();
-          clearAllNotifications();
+          e.stopPropagation();
+          closeNotifications();
+        });
+      }
+
+      if (btnViewAll) {
+        btnViewAll.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          showAllNotifications = !showAllNotifications;
+          renderNotifications();
+        });
+      }
+
+      if (btnClearRead) {
+        btnClearRead.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          clearReadNotifications();
+        });
+      }
+
+      if (notificationList) {
+        notificationList.addEventListener('click', (e) => {
+          const item = e.target.closest('[data-notification-id]');
+          if (item) clickNotification(item.dataset.notificationId);
         });
       }
 
@@ -16079,13 +16139,24 @@
     document.addEventListener('click', (e) => {
       const wrapper = e.target.closest('.notification-wrapper');
       if (!wrapper) {
-        document.getElementById('notif-dropdown')?.classList.remove('active');
+        closeNotifications();
       }
     });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeNotifications();
+    });
+
+    function closeNotifications() {
+      document.getElementById('notif-dropdown')?.classList.remove('active');
+      document.getElementById('notif-btn-desktop')?.setAttribute('aria-expanded', 'false');
+    }
 
     function updateBadge() {
       const badge = document.getElementById('notif-badge');
       const badgeMobile = document.getElementById('notif-badge-mobile');
+      const unreadLabel = document.getElementById('notif-unread-count');
+      const markAllButton = document.getElementById('btn-mark-all-read');
       const count = unreadCount > 99 ? '99+' : unreadCount;
 
       if (badge) {
@@ -16097,37 +16168,121 @@
         badgeMobile.textContent = count;
         badgeMobile.classList.toggle('hidden', unreadCount === 0);
       }
+
+      if (unreadLabel) {
+        unreadLabel.textContent = unreadCount === 0
+          ? 'Todo al día'
+          : `${count} sin leer`;
+      }
+
+      if (markAllButton) markAllButton.disabled = unreadCount === 0;
+    }
+
+    function escapeNotificationHtml(value) {
+      return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+
+    function safeNotificationClass(value, fallback = 'info') {
+      const className = String(value ?? '').toLowerCase().replace(/[^a-z0-9_-]/g, '');
+      return className || fallback;
+    }
+
+    function isNotificationFromToday(dateStr) {
+      const date = new Date(dateStr);
+      const now = new Date();
+      return !Number.isNaN(date.getTime())
+        && date.getFullYear() === now.getFullYear()
+        && date.getMonth() === now.getMonth()
+        && date.getDate() === now.getDate();
+    }
+
+    function renderNotificationItem(notification) {
+      const id = escapeNotificationHtml(notification.id);
+      const type = safeNotificationClass(notification.type);
+      const icon = safeNotificationClass(notification.icon, 'bell');
+      const title = escapeNotificationHtml(notification.title || 'Notificación');
+      const message = escapeNotificationHtml(notification.message || '');
+
+      return `
+        <button type="button" class="notification-item ${notification.read ? '' : 'unread'}"
+          data-notification-id="${id}" aria-label="${notification.read ? '' : 'No leída: '}${title}">
+          <span class="notification-icon ${type}" aria-hidden="true">
+            <i class="fas fa-${icon}"></i>
+          </span>
+          <span class="notification-content">
+            <span class="notification-item-head">
+              <span class="notification-title">${title}</span>
+              <span class="notification-time">${escapeNotificationHtml(timeAgo(notification.createdAt))}</span>
+            </span>
+            <span class="notification-message">${message}</span>
+          </span>
+          <span class="notification-options" aria-hidden="true">
+            <i class="fas fa-ellipsis-v"></i>
+          </span>
+        </button>
+      `;
+    }
+
+    function renderNotificationGroup(label, items) {
+      if (!items.length) return '';
+      return `
+        <section class="notification-group" aria-label="${label}">
+          <div class="notification-group-label">${label}</div>
+          <div class="notification-group-items">
+            ${items.map(renderNotificationItem).join('')}
+          </div>
+        </section>
+      `;
     }
 
     function renderNotifications() {
       const list = document.getElementById('notif-list');
       if (!list) return;
 
+      updateBadge();
+
       if (notifications.length === 0) {
         list.innerHTML = `
           <div class="notification-empty">
-            <i class="fas fa-bell-slash"></i>
-            <p>No hay notificaciones</p>
+            <span class="notification-empty-icon" aria-hidden="true"><i class="fas fa-bell-slash"></i></span>
+            <h4>Todo está al día</h4>
+            <p>Las nuevas solicitudes y cambios de citas aparecerán aquí.</p>
           </div>
         `;
+        document.getElementById('btn-view-all-notif')?.classList.add('hidden');
+        document.getElementById('btn-clear-read-notif')?.classList.add('hidden');
         return;
       }
 
-      list.innerHTML = notifications.slice(0, 20).map(n => `
-        <div class="notification-item ${n.read ? '' : 'unread'}" onclick="clickNotification('${n.id}')">
-          <div class="notification-icon ${n.type}">
-            <i class="fas fa-${n.icon}"></i>
-          </div>
-          <div class="notification-content">
-            <div class="notification-title">
-              ${n.title}
-              ${!n.read ? '<span class="new-tag">Nuevo</span>' : ''}
-            </div>
-            <div class="notification-message">${n.message}</div>
-            <div class="notification-time">${timeAgo(n.createdAt)}</div>
-          </div>
-        </div>
-      `).join('');
+      const visibleNotifications = notifications.slice(0, showAllNotifications ? 30 : 8);
+      const todayNotifications = visibleNotifications.filter(n => isNotificationFromToday(n.createdAt));
+      const previousNotifications = visibleNotifications.filter(n => !isNotificationFromToday(n.createdAt));
+
+      list.innerHTML = [
+        renderNotificationGroup('Hoy', todayNotifications),
+        renderNotificationGroup('Anteriores', previousNotifications)
+      ].join('');
+
+      const btnViewAll = document.getElementById('btn-view-all-notif');
+      if (btnViewAll) {
+        btnViewAll.classList.toggle('hidden', notifications.length <= 8);
+        btnViewAll.querySelector('span').textContent = showAllNotifications
+          ? 'Mostrar recientes'
+          : 'Ver todas las notificaciones';
+        btnViewAll.querySelector('i').className = showAllNotifications
+          ? 'fas fa-arrow-up'
+          : 'fas fa-arrow-right';
+      }
+
+      document.getElementById('btn-clear-read-notif')?.classList.toggle(
+        'hidden',
+        !notifications.some(n => n.read)
+      );
     }
 
     function timeAgo(dateStr) {
@@ -16153,7 +16308,7 @@
         fetch(`/api/notifications/${id}/read`, { method: 'POST', credentials: 'include' });
       }
 
-      document.getElementById('notif-dropdown')?.classList.remove('active');
+      closeNotifications();
     }
 
     async function markAllRead() {
@@ -16168,17 +16323,26 @@
       }
     }
 
-    async function clearAllNotifications() {
-      if (!(await venusConfirm('¿Eliminar todas las notificaciones?', { title: 'Confirmar', danger: true, okLabel: 'Eliminar todas' }))) return;
+    async function clearReadNotifications() {
+      const readCount = notifications.filter(n => n.read).length;
+      if (readCount === 0) return;
+
+      if (!(await venusConfirm(
+        `¿Eliminar ${readCount === 1 ? 'la notificación leída' : `las ${readCount} notificaciones leídas`}?`,
+        { title: 'Eliminar leídas', danger: true, okLabel: 'Eliminar' }
+      ))) return;
 
       try {
-        await fetch('/api/notifications/clear', { method: 'DELETE', credentials: 'include' });
-        notifications = [];
-        unreadCount = 0;
+        const response = await fetch('/api/notifications/read', { method: 'DELETE', credentials: 'include' });
+        const result = await response.json();
+        if (!response.ok || result.success === false) throw new Error(result.error || 'No se pudieron eliminar');
+
+        notifications = notifications.filter(n => !n.read);
+        showAllNotifications = false;
         updateBadge();
         renderNotifications();
       } catch (error) {
-        console.error('Error:', error);
+        console.error('Error eliminando notificaciones leídas:', error);
       }
     }
 
@@ -16302,7 +16466,7 @@
 
     window.toggleNotifications = toggleNotifications;
     window.markAllRead = markAllRead;
-    window.clearAllNotifications = clearAllNotifications;
+    window.clearReadNotifications = clearReadNotifications;
     window.clickNotification = clickNotification;
     window.createNotification = createNotification;
     window.notifyCitaNueva = notifyCitaNueva;

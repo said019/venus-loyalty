@@ -5340,6 +5340,17 @@ app.post('/api/notifications/read-all', adminAuth, async (req, res) => {
   }
 });
 
+// DELETE /api/notifications/read - Eliminar únicamente las notificaciones leídas
+app.delete('/api/notifications/read', adminAuth, async (req, res) => {
+  try {
+    const result = await prisma.notification.deleteMany({ where: { read: true } });
+    res.json({ success: true, deleted: result.count });
+  } catch (error) {
+    console.error("Error clearing read notifications:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // DELETE /api/notifications/clear - Limpiar todas
 app.delete('/api/notifications/clear', adminAuth, async (req, res) => {
   try {
