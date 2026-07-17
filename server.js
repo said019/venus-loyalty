@@ -37,9 +37,6 @@ import { CardsRepo, AppointmentsRepo, ServicesRepo, ProductsRepo, SalesRepo, Not
 // WhatsApp Service - USANDO V2 PARA FORZAR RECARGA
 import { WhatsAppService } from './src/services/whatsapp-v2.js';
 
-// Firebase legacy (solo para migración - remover después)
-// import { firestore } from "./lib/firebase.js";
-
 import {
   sendMassPushNotification,
   sendTestPushNotification,
@@ -122,7 +119,7 @@ const __dirname = path.dirname(__filename);
    ========================================================= */
 
 if (!firestore) {
-  console.error("❌ Firestore NO está inicializado. Revisa lib/firebase.js");
+  console.error("❌ La capa de datos no está inicializada. Revisa src/db/compat.js");
 }
 
 const COL_CARDS = "cards";
@@ -1415,23 +1412,21 @@ app.post('/api/direct-sales', adminAuth, async (req, res) => {
 
     console.log('[DIRECT SALE] Procesando venta directa:', { clientName, productsAmount, totalAmount });
 
-    // Descontar stock de productos vendidos
-    const batch = firestore.batch();
+    // Descontar stock de productos vendidos, directo con Prisma. Los items del
+    // café ("coffee:…") no llevan inventario retail. firestore.batch() no
+    // existe en la capa compat: tumbaba TODA la Venta Rápida (17-jul-2026).
     for (const product of productsSold) {
-      const productRef = firestore.collection('products').doc(product.productId);
-      const productDoc = await productRef.get();
-
-      if (productDoc.exists) {
-        const currentStock = productDoc.data().stock || 0;
-        const newStock = Math.max(0, currentStock - product.qty);
-        batch.update(productRef, {
-          stock: newStock,
-          updatedAt: new Date().toISOString()
-        });
-        console.log(`[DIRECT SALE] Stock actualizado: ${product.name} ${currentStock} -> ${newStock}`);
+      if (!product.productId || String(product.productId).startsWith('coffee:')) continue;
+      try {
+        const prod = await prisma.product.findUnique({ where: { id: product.productId } });
+        if (!prod) continue;
+        const newStock = Math.max(0, (prod.stock || 0) - product.qty);
+        await prisma.product.update({ where: { id: prod.id }, data: { stock: newStock, updatedAt: new Date() } });
+        console.log(`[DIRECT SALE] Stock actualizado: ${product.name} ${prod.stock} -> ${newStock}`);
+      } catch (e) {
+        console.warn('[DIRECT SALE] stock no actualizado para', product.productId, e.message);
       }
     }
-    await batch.commit();
 
     // Registrar en colección de ventas
     const saleRef = await firestore.collection('sales').add({
@@ -4881,17 +4876,10 @@ app.post('/api/booking-requests/:id/booked', adminAuth, async (req, res) => {
 // DELETE /api/booking-requests - Borrar TODAS las solicitudes
 app.delete('/api/booking-requests', adminAuth, async (req, res) => {
   try {
-    const snapshot = await firestore.collection('booking_requests').get();
+    const result = await prisma.bookingRequest.deleteMany({});
+    console.log(`[BOOKING] 🗑️ Se eliminaron ${result.count} solicitudes`);
 
-    const batch = firestore.batch();
-    snapshot.docs.forEach((doc) => {
-      batch.delete(doc.ref);
-    });
-
-    await batch.commit();
-    console.log(`[BOOKING] 🗑️ Se eliminaron ${snapshot.size} solicitudes`);
-
-    res.json({ success: true, count: snapshot.size });
+    res.json({ success: true, count: result.count });
   } catch (error) {
     console.error('[BOOKING] Error deleting all requests:', error);
     res.json({ success: false, error: error.message });
@@ -5344,10 +5332,7 @@ app.post('/api/notifications/:id/read', adminAuth, async (req, res) => {
 // POST /api/notifications/read-all - Marcar todas como leídas
 app.post('/api/notifications/read-all', adminAuth, async (req, res) => {
   try {
-    const snapshot = await firestore.collection('notifications').where('read', '==', false).get();
-    const batch = firestore.batch();
-    snapshot.forEach(doc => batch.update(doc.ref, { read: true, readAt: new Date().toISOString() }));
-    await batch.commit();
+    await prisma.notification.updateMany({ where: { read: false }, data: { read: true } });
     res.json({ success: true });
   } catch (error) {
     console.error("Error marking all notifications as read:", error);
@@ -5358,10 +5343,7 @@ app.post('/api/notifications/read-all', adminAuth, async (req, res) => {
 // DELETE /api/notifications/clear - Limpiar todas
 app.delete('/api/notifications/clear', adminAuth, async (req, res) => {
   try {
-    const snapshot = await firestore.collection('notifications').get();
-    const batch = firestore.batch();
-    snapshot.forEach(doc => batch.delete(doc.ref));
-    await batch.commit();
+    await prisma.notification.deleteMany({});
     res.json({ success: true });
   } catch (error) {
     console.error("Error clearing notifications:", error);
@@ -5427,22 +5409,10 @@ app.get("/api/admin/notifications", adminAuth, getNotifications);
 // ⭐ NUEVO: Borrar historial de notificaciones enviadas
 app.delete("/api/admin/notifications/clear", adminAuth, async (req, res) => {
   try {
-    // Usar la misma colección que lee getNotifications: 'notifications'
-    const snapshot = await firestore.collection('notifications').get();
-
-    if (snapshot.empty) {
-      return res.json({ success: true, deleted: 0 });
-    }
-
-    const batch = firestore.batch();
-    snapshot.docs.forEach(doc => {
-      batch.delete(doc.ref);
-    });
-
-    await batch.commit();
-
-    console.log(`[NOTIFICATIONS] ✅ Borradas ${snapshot.size} notificaciones del historial`);
-    res.json({ success: true, deleted: snapshot.size });
+    // Misma tabla que lee getNotifications: notifications
+    const result = await prisma.notification.deleteMany({});
+    console.log(`[NOTIFICATIONS] ✅ Borradas ${result.count} notificaciones del historial`);
+    res.json({ success: true, deleted: result.count });
   } catch (error) {
     console.error('[NOTIFICATIONS] Error borrando historial:', error);
     res.status(500).json({ success: false, error: error.message });
