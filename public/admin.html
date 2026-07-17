@@ -2977,7 +2977,9 @@
         <!-- Cliente (opcional) -->
         <div class="form-row">
           <label>Cliente (opcional)</label>
-          <input type="text" id="direct-sale-client" placeholder="Nombre del cliente" class="form-input">
+          <input type="text" id="direct-sale-client" placeholder="Escribe para buscar clienta…" class="form-input"
+            list="direct-sale-clients-list" autocomplete="off">
+          <datalist id="direct-sale-clients-list"></datalist>
         </div>
 
         <!-- Productos -->
@@ -13555,6 +13557,7 @@
       document.getElementById('ds-discount-symbol').textContent = '%';
 
       await loadProductsForDirectSale();
+      loadClientsForDirectSale(); // en segundo plano; no bloquea abrir el modal
       renderDirectSaleProducts();
       calculateDirectSaleTotals();
 
@@ -13567,20 +13570,90 @@
     }
 
     async function loadProductsForDirectSale() {
+      const select = document.getElementById('direct-sale-product-select');
+      select.innerHTML = '<option value="">Agregar producto...</option>';
+
+      // 1) Productos de venta (retail, con stock)
       try {
         const res = await apiFetch('/api/products');
         const json = await res.json();
         if (json.success) {
-          const select = document.getElementById('direct-sale-product-select');
-          select.innerHTML = '<option value="">Agregar producto...</option>';
-          json.data.filter(p => p.stock > 0).forEach(p => {
-            select.innerHTML += `<option value="${p.id}" data-price="${p.price}" data-name="${p.name}" data-stock="${p.stock}">
-              ${p.name} - $${p.price.toLocaleString()} (Stock: ${p.stock})
-            </option>`;
-          });
+          const conStock = json.data.filter(p => p.stock > 0);
+          if (conStock.length > 0) {
+            let html = '<optgroup label="Productos">';
+            conStock.forEach(p => {
+              html += `<option value="${p.id}" data-price="${p.price}" data-name="${p.name}" data-stock="${p.stock}">
+                ${p.name} - $${p.price.toLocaleString()} (Stock: ${p.stock})
+              </option>`;
+            });
+            select.innerHTML += html + '</optgroup>';
+          }
         }
       } catch (e) {
         console.error('Error cargando productos:', e);
+      }
+
+      // 2) Menú del café (Venus The Coffee Bar). Sin stock: el backend de
+      // direct-sales ignora ids que no existen en products, así que estos
+      // items solo suman al cobro (no descuentan inventario retail).
+      try {
+        const resCafe = await apiFetch('/api/pos/products');
+        const jsonCafe = await resCafe.json();
+        if (jsonCafe.success && Array.isArray(jsonCafe.data) && jsonCafe.data.length > 0) {
+          const CATS = { cafe_caliente: '☕ Café caliente', cafe_frio: '🧊 Café frío', panaderia: '🥐 Panadería', extras: '✨ Extras' };
+          const porCategoria = {};
+          jsonCafe.data.forEach(p => {
+            const cat = CATS[p.category] || '☕ Café';
+            if (!porCategoria[cat]) porCategoria[cat] = [];
+            const base = parseFloat(p.price) || 0;
+            porCategoria[cat].push({ id: `coffee:${p.id}`, name: p.name, price: base });
+            (p.variants || []).filter(v => v.type === 'size').forEach(v => {
+              porCategoria[cat].push({
+                id: `coffee:${p.id}:${v.id}`,
+                name: `${p.name} (${v.name})`,
+                price: base + (parseFloat(v.priceAdj) || 0)
+              });
+            });
+          });
+          Object.entries(porCategoria).forEach(([cat, items]) => {
+            let html = `<optgroup label="${cat}">`;
+            items.forEach(it => {
+              html += `<option value="${it.id}" data-price="${it.price}" data-name="${it.name}" data-stock="">
+                ${it.name} - $${it.price.toLocaleString()}
+              </option>`;
+            });
+            select.innerHTML += html + '</optgroup>';
+          });
+        }
+      } catch (e) {
+        console.error('Error cargando menú del café:', e);
+      }
+    }
+
+    // Datalist de clientas para el campo "Cliente" de Venta Rápida (una sola carga).
+    let dsClientsLoaded = false;
+    async function loadClientsForDirectSale() {
+      if (dsClientsLoaded) return;
+      try {
+        const datalist = document.getElementById('direct-sale-clients-list');
+        if (!datalist) return;
+        let page = 1, hasMore = true, items = [];
+        while (hasMore && page <= 20) {
+          const res = await apiFetch(`/api/admin/cards-firebase?page=${page}&limit=100`);
+          const json = await res.json();
+          if (json.items && json.items.length > 0) {
+            items = items.concat(json.items);
+            hasMore = page < json.totalPages;
+            page++;
+          } else hasMore = false;
+        }
+        datalist.innerHTML = items
+          .filter(c => c.name)
+          .map(c => `<option value="${String(c.name).replace(/"/g, '&quot;')}">${c.phone || ''}</option>`)
+          .join('');
+        dsClientsLoaded = true;
+      } catch (e) {
+        console.warn('No se pudo cargar la lista de clientas para Venta Rápida:', e);
       }
     }
 
@@ -13602,7 +13675,8 @@
           name: option.dataset.name,
           price: parseFloat(option.dataset.price),
           qty: qty,
-          maxStock: parseInt(option.dataset.stock)
+          // Items del café no tienen stock (dataset.stock vacío → null)
+          maxStock: option.dataset.stock ? parseInt(option.dataset.stock) : null
         });
       }
 
