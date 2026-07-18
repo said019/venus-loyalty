@@ -61,7 +61,11 @@ async function sendPollViaEvolution(to, question, options, appointmentId = null)
         }
 
         // Guardar mapeo pollMessageId → appointmentId para identificar cita exacta en webhook
-        const pollMsgId = pollResult?.key?.id;
+        const pollMsgId = pollResult?.key?.id || pollResult?.message?.key?.id || null;
+        if (!pollMsgId) {
+            // Sin mapeo, el voto solo puede resolverse por teléfono (frágil con @lid).
+            console.warn('[Evolution] sendPoll SIN key.id — no habrá mapeo poll→cita. Shape:', JSON.stringify(pollResult || {}).slice(0, 300));
+        }
         if (pollMsgId && appointmentId) {
             try {
                 await prisma.pendingPoll.create({
