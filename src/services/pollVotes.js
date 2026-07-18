@@ -73,6 +73,42 @@ export function normalizePhone(raw) {
     return phone;
 }
 
+// Teléfono → JID de WhatsApp (formato del store de Evolution).
+export function phoneToJid(raw) {
+    return `${normalizePhone(raw)}@s.whatsapp.net`;
+}
+
+// Candidatos de JID para consultar el store: WhatsApp MX guarda los chats con
+// '521…' (prefijo móvil legacy; ej. real documentado arriba: 5214271908849),
+// pero también existe la forma '52…'. Probar 521 primero.
+export function jidCandidates(raw) {
+    const tel = normalizePhone(raw);
+    const jids = [];
+    if (/^52\d{10}$/.test(tel)) jids.push(`521${tel.slice(2)}@s.whatsapp.net`);
+    jids.push(`${tel}@s.whatsapp.net`);
+    return jids;
+}
+
+// Une listas de registros del store quedándose SOLO con votos (pollUpdateMessage),
+// deduplicados por key.id (el primero gana). Los registros sin key.id se
+// conservan todos: no hay forma segura de dedupearlos.
+export function mergeVoteRecords(...listas) {
+    const seen = new Set();
+    const out = [];
+    for (const lista of listas) {
+        for (const r of (lista || [])) {
+            if (!r?.message?.pollUpdateMessage) continue;
+            const id = r?.key?.id;
+            if (id) {
+                if (seen.has(id)) continue;
+                seen.add(id);
+            }
+            out.push(r);
+        }
+    }
+    return out;
+}
+
 function targetStatusFor(option) {
     const o = (option || '').toLowerCase();
     if (o.includes('confirm')) return 'confirmed';
@@ -125,7 +161,24 @@ export function voteTimestampMs(record) {
 //  - ACUSE a la clienta (sendAcuse=true): como la transición es única, es
 //    seguro responder. Confirmaciones del mismo teléfono se agrupan en un
 //    solo mensaje; el acuse nunca bloquea el cambio de status si falla.
-export async function reconcilePollVotes({ apply = true, limit = 300, sendAcuse = true } = {}) {
+// Candado anti-traslape: el barrido corre desde 3 crons distintos (3min, y los
+// dos de */10) y con hasta 30 llamadas HTTP puede tardar más que su intervalo;
+// sin esto se apilan corridas martillando Evolution y la DB.
+let reconcileEnCurso = false;
+
+export async function reconcilePollVotes(opts = {}) {
+    if (reconcileEnCurso) {
+        return { scanned: 0, votes: 0, changes: [], source: 'skipped-overlap' };
+    }
+    reconcileEnCurso = true;
+    try {
+        return await reconcilePollVotesInner(opts);
+    } finally {
+        reconcileEnCurso = false;
+    }
+}
+
+async function reconcilePollVotesInner({ apply = true, limit = 300, sendAcuse = true } = {}) {
     const evo = getEvolutionClient();
     let records = [];
     let source = 'filtered';
@@ -137,6 +190,11 @@ export async function reconcilePollVotes({ apply = true, limit = 300, sendAcuse 
             // soporten el where por messageType)
             source = 'unfiltered-fallback';
             records = await evo.findRecentMessages(limit);
+        } else if (records.some(r => !r?.message?.pollUpdateMessage)) {
+            // El server IGNORÓ el filtro (devolvió mensajes mixtos): registrarlo
+            // para que "filtro honrado" y "filtro ignorado" sean distinguibles
+            // en logs — antes eran idénticos y ocultaron el barrido ciego.
+            source = 'filter-ignored';
         }
     } catch (err) {
         try {
@@ -148,15 +206,66 @@ export async function reconcilePollVotes({ apply = true, limit = 300, sendAcuse 
         }
     }
 
-    const votes = records.filter(m => m?.message?.pollUpdateMessage);
+    // ── Barrido DIRIGIDO por chat (incidente Thania 18-jul-2026: votó a las
+    //    9AM y el barrido global nunca vio el voto → alerta de cancelación).
+    //    El store global lo comparte una instancia que también manda campañas
+    //    masivas: con ventana de 300 mensajes un voto se entierra fácil.
+    //    Consultar el CHAT de cada clienta con encuesta reciente es barato
+    //    (pocas encuestas/día) y ahí el voto no se puede enterrar.
+    let targeted = [];
+    try {
+        const desde = new Date(Date.now() - 72 * 60 * 60 * 1000);
+        const activos = await prisma.pendingPoll.findMany({
+            where: { createdAt: { gte: desde } },
+            select: { phone: true },
+            orderBy: { createdAt: 'desc' }, // si hay que capar, que caiga lo más viejo
+        });
+        const telefonos = [...new Set(activos.map(p => normalizePhone(p.phone)))]
+            .filter(t => /^\d{11,15}$/.test(t));
+        if (telefonos.length > 30) console.warn(`[pollVotes] barrido dirigido: ${telefonos.length} chats activos, limitando a 30`);
+        let chatsVacios = 0;
+        for (const tel of telefonos.slice(0, 30)) {
+            try {
+                let encontrado = false;
+                for (const jid of jidCandidates(tel)) {
+                    const msgs = await evo.fetchMessages(jid, 60);
+                    if (msgs.length) { targeted.push(...msgs); encontrado = true; break; }
+                }
+                if (!encontrado) chatsVacios++;
+            } catch (e) { /* chat sin mensajes o filtro no soportado: seguir */ }
+        }
+        // Chat con encuesta activa que regresa 0 mensajes = señal de JID/@lid o
+        // paginación rota; si esto crece, el barrido dirigido está ciego.
+        if (chatsVacios > 0) console.warn(`[pollVotes] barrido dirigido: ${chatsVacios} chat(s) con encuesta activa regresaron 0 mensajes`);
+    } catch (e) {
+        console.warn('[pollVotes] barrido dirigido falló (sigo con el global):', e.message);
+    }
+
+    const globalVotes = records.filter(m => m?.message?.pollUpdateMessage);
+    // Orden DESC garantizado client-side: si la versión de Evolution devolviera
+    // viejo-primero, un voto corregido aplicaría el estado viejo. Más reciente gana.
+    const votes = mergeVoteRecords(records, targeted)
+        .sort((a, b) => (voteTimestampMs(b) || 0) - (voteTimestampMs(a) || 0));
+    if (votes.length > globalVotes.length) {
+        console.log(`[pollVotes] 🎯 barrido dirigido rescató ${votes.length - globalVotes.length} voto(s) que el global no veía`);
+    }
     const changes = [];
+    // Descartes contados por razón: sin esto cada regresión parece "nadie votó".
+    const desc = { cifrados: 0, indecodificables: 0, opcionDesconocida: 0, opcionAjena: 0, sinCita: 0, carreraPerdida: 0 };
     const marginDate = new Date(Date.now() - 2 * 60 * 60 * 1000);
 
     for (const m of votes) {
         const pum = m.message.pollUpdateMessage;
         const option = decodePollUpdate(pum);
+        if (!option) {
+            // encPayload sin selectedOptions = Evolution no pudo descifrar el voto
+            // (reinicio de instancia / poll original fuera de su store).
+            if (pum?.vote?.encPayload) desc.cifrados++;
+            else desc.indecodificables++;
+            continue;
+        }
         const target = targetStatusFor(option);
-        if (!target) continue;
+        if (!target) { desc.opcionDesconocida++; continue; }
 
         const phone = realPhoneFromKey(m.key);
         const last10 = phone.slice(-10);
@@ -164,19 +273,33 @@ export async function reconcilePollVotes({ apply = true, limit = 300, sendAcuse 
         // 1) TODAS las citas del poll (encuesta consolidada → varios pendingPolls
         //    con el mismo prefijo de pollMsgId); 2) fallback por teléfono.
         let appts = [];
+        let pollConocido = false; // el voto ES de una encuesta nuestra mapeada
         const pollId = pum?.pollCreationMessageKey?.id;
         if (pollId) {
             const pps = await prisma.pendingPoll.findMany({
                 where: { OR: [{ id: pollId }, { id: { startsWith: pollId + '_' } }] }
             });
             const apptIds = [...new Set(pps.map(p => p.appointmentId).filter(Boolean))];
+            pollConocido = apptIds.length > 0;
             if (apptIds.length) {
                 appts = await prisma.appointment.findMany({
                     where: { id: { in: apptIds }, startDateTime: { gte: marginDate } }
                 });
             }
         }
+        if (pollConocido && appts.length === 0) {
+            // El poll matcheó pero SU cita ya pasó/no existe: jamás redirigir el
+            // voto viejo a OTRA cita futura de la clienta vía fallback (un
+            // "Cancelar" del miércoles cancelaría la cita nueva del sábado).
+            desc.sinCita++;
+            continue;
+        }
         if (appts.length === 0) {
+            // Fallback por teléfono SOLO para votos de NUESTRAS encuestas: la
+            // instancia se comparte con otros negocios y un voto a un poll ajeno
+            // cuya opción contenga 'confirmar'/'cancelar' mutaría citas de Venus.
+            const esOpcionEstandar = STANDARD_POLL_OPTIONS.some(o => o.toLowerCase() === String(option).trim().toLowerCase());
+            if (!esOpcionEstandar) { desc.opcionAjena++; continue; }
             const one = await prisma.appointment.findFirst({
                 where: {
                     clientPhone: { endsWith: last10 },
@@ -186,6 +309,7 @@ export async function reconcilePollVotes({ apply = true, limit = 300, sendAcuse 
                 orderBy: { startDateTime: 'asc' }
             });
             if (one) appts = [one];
+            else { desc.sinCita++; continue; }
         }
 
         const voteTsMs = voteTimestampMs(m);
@@ -210,7 +334,14 @@ export async function reconcilePollVotes({ apply = true, limit = 300, sendAcuse 
                 if (target === 'confirmed') { data.confirmedAt = new Date(); data.confirmedVia = 'whatsapp-reconciled'; }
                 if (target === 'cancelled') { data.cancelledAt = new Date(); data.cancelledVia = 'whatsapp-reconciled'; }
                 if (target === 'rescheduling') { data.rescheduleRequestedAt = new Date(); }
-                await prisma.appointment.update({ where: { id: appt.id }, data });
+                // Transición ATÓMICA (status como precondición): el barrido corre
+                // desde 3 crons sin lock y puede traslaparse consigo mismo; sin
+                // esto dos corridas aplicaban el mismo voto y duplicaban acuses.
+                const result = await prisma.appointment.updateMany({
+                    where: { id: appt.id, status: appt.status },
+                    data
+                });
+                if (result.count === 0) { desc.carreraPerdida++; continue; }
             }
             changes.push(change);
         }
@@ -232,7 +363,15 @@ export async function reconcilePollVotes({ apply = true, limit = 300, sendAcuse 
             try { await WhatsAppService.sendConfirmacionRecibidaMultiple(citas); }
             catch (e) { console.warn('[pollVotes] acuse confirmación falló:', e.message); }
         }
+        // Reagendar/cancelar: UN acuse por clienta aunque el voto consolidado
+        // haya movido varias citas (el texto del acuse es genérico; N copias
+        // idénticas son spam).
+        const acusados = new Set();
         for (const c of changes) {
+            if (c.to !== 'rescheduling' && c.to !== 'cancelled') continue;
+            const k = `${c.appt.clientPhone}|${c.to}`;
+            if (acusados.has(k)) continue;
+            acusados.add(k);
             try {
                 if (c.to === 'rescheduling') await WhatsAppService.sendSolicitudReprogramacion(c.appt);
                 else if (c.to === 'cancelled') await WhatsAppService.sendCancelacionConfirmada(c.appt);
@@ -240,7 +379,13 @@ export async function reconcilePollVotes({ apply = true, limit = 300, sendAcuse 
         }
     }
 
+    // Observabilidad: con esto, "nadie votó" y "voto perdido" dejan de verse igual.
+    const descartados = Object.entries(desc).filter(([, n]) => n > 0).map(([k, n]) => `${k}=${n}`).join(' ');
+    if (votes.length > 0 || descartados) {
+        console.log(`[pollVotes] source=${source} escaneados=${records.length} dirigidos=${targeted.length} votos=${votes.length} aplicados=${changes.length}${descartados ? ' descartes: ' + descartados : ''}`);
+    }
+
     // No exponer el objeto appt completo hacia afuera (logs/JSON del endpoint)
     const publicChanges = changes.map(({ appt, ...rest }) => rest);
-    return { scanned: records.length, votes: votes.length, changes: publicChanges, source };
+    return { scanned: records.length, targetedScanned: targeted.length, votes: votes.length, changes: publicChanges, source, descartes: desc };
 }

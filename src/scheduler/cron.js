@@ -4,7 +4,7 @@ import { WhatsAppService } from '../services/whatsapp-v2.js';
 import { prisma } from '../db/index.js';
 import { NotificationsRepo } from '../db/repositories.js';
 import { config } from '../config/config.js';
-import { reconcilePollVotes } from '../services/pollVotes.js';
+import { reconcilePollVotes, normalizePhone } from '../services/pollVotes.js';
 
 /**
  * Obtiene la fecha de mañana en formato YYYY-MM-DD en hora de México
@@ -124,10 +124,11 @@ export function startScheduler() {
 
             console.log(`📅 [9AM] ${pendingAppts.length} citas pendientes de encuesta para ${tomorrow}`);
 
-            // Agrupar por teléfono para enviar 1 solo mensaje por clienta
+            // Agrupar por teléfono NORMALIZADO (521/52/10 dígitos): sin esto la
+            // misma clienta guardada con y sin lada recibía dos encuestas.
             const byPhone = new Map();
             for (const appt of pendingAppts) {
-                const phone = appt.clientPhone.replace(/\D/g, '');
+                const phone = normalizePhone(appt.clientPhone);
                 if (!byPhone.has(phone)) {
                     byPhone.set(phone, []);
                 }
@@ -171,7 +172,8 @@ export function startScheduler() {
                             );
 
                             // Guardar mapeo poll→cita para TODAS las citas del grupo
-                            const pollMsgId = pollResult?.key?.id;
+                            const pollMsgId = pollResult?.key?.id || pollResult?.message?.key?.id || null;
+                            if (!pollMsgId) console.warn('[9AM] sendPoll consolidado SIN key.id — sin mapeo poll→cita. Shape:', JSON.stringify(pollResult || {}).slice(0, 300));
                             const pollOpts = ['Confirmar asistencia', 'Reagendar', 'Cancelar'];
                             if (pollMsgId) {
                                 for (const a of appts) {
@@ -185,7 +187,11 @@ export function startScheduler() {
                                                 expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000)
                                             }
                                         });
-                                    } catch (e) { /* ignore duplicates */ }
+                                    } catch (e) {
+                                        // Solo los duplicados (P2002) son esperables; cualquier otro
+                                        // error deja la cita SIN mapeo poll→cita y hay que saberlo.
+                                        if (e?.code !== 'P2002') console.error('[9AM] pendingPoll consolidado NO guardado para cita', a.id, ':', e.message);
+                                    }
                                 }
                             }
                         } catch (pollErr) {

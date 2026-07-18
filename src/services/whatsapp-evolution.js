@@ -138,23 +138,45 @@ class EvolutionAPIClient {
     async findRecentMessages(limit = 300, where = {}) {
         const response = await this.client.post(`/chat/findMessages/${this.instanceName}`, {
             where,
-            limit,
+            limit,         // v1 honra limit…
+            page: 1,       // …pero v2 lo IGNORA y pagina con page/offset,
+            offset: limit, // donde offset es el TAMAÑO de página (default 50).
+            // Sin esto, la "ventana de 300" era en realidad ~50 mensajes y los
+            // votos se enterraban (incidentes Francisca 10-jul, Thania 18-jul).
         });
         const data = response.data;
-        if (Array.isArray(data)) return data;
-        if (Array.isArray(data?.messages?.records)) return data.messages.records;
-        if (Array.isArray(data?.messages)) return data.messages;
-        return [];
+        let records = [];
+        if (Array.isArray(data)) records = data;
+        else if (Array.isArray(data?.messages?.records)) records = data.messages.records;
+        else if (Array.isArray(data?.messages)) records = data.messages;
+        // Guard anti-semántica-skip: si el server reporta total>0 pero regresó 0
+        // registros, esta versión interpretó offset como SKIP (saltó los
+        // recientes) → reintentar con el body simple de siempre.
+        if (!records.length && Number(data?.messages?.total) > 0) {
+            const retry = await this.client.post(`/chat/findMessages/${this.instanceName}`, { where, limit });
+            const d2 = retry.data;
+            if (Array.isArray(d2)) records = d2;
+            else if (Array.isArray(d2?.messages?.records)) records = d2.messages.records;
+            else if (Array.isArray(d2?.messages)) records = d2.messages;
+        }
+        return records;
     }
 
     // Obtener mensajes de un chat específico
     async fetchMessages(remoteJid, limit = 50) {
         try {
+            // remoteJid debe ir COMPLETO (…@s.whatsapp.net). OJO @lid: los votos
+            // entrantes se guardan con key.remoteJid='…@lid' y el número REAL en
+            // key.remoteJidAlt; el OR de Evolution 2.3.6+ solo compara
+            // key.remoteJidAlt si TÚ mandas ese parámetro. Mandamos ambos con el
+            // mismo JID: matchea chats normales (remoteJid) Y chats @lid (alt).
             const response = await this.client.post(`/chat/findMessages/${this.instanceName}`, {
                 where: {
-                    key: { remoteJid },
+                    key: { remoteJid, remoteJidAlt: remoteJid },
                 },
-                limit,
+                limit,         // v1
+                page: 1,       // v2 (offset = tamaño de página; limit se ignora)
+                offset: limit,
             });
             const data = response.data;
             // Puede venir como array directo o como { messages: [...] }
