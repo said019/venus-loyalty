@@ -7022,6 +7022,42 @@ app.get('/api/admin/debug/polls', adminAuth, async (req, res) => {
   }
 });
 
+// === REENVIAR ENCUESTAS DE MAÑANA (utilidad post-incidente 21-jul) ===
+// Las encuestas creadas ANTES de encender la persistencia de Evolution tienen
+// votos indescifrables para siempre. Este endpoint desmarca sent24hAt de las
+// citas de MAÑANA aún sin confirmar: el cron horario (9AM-5PM MX) les reenvía
+// una encuesta NUEVA (con secreto guardado) en la próxima hora en punto.
+// GET sin parámetros = vista previa; agregar ?confirm=1 para ejecutar.
+app.get('/api/admin/debug/resend-surveys', adminAuth, async (req, res) => {
+  try {
+    const mananaMX = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Mexico_City' })
+      .format(new Date(Date.now() + 24 * 60 * 60 * 1000));
+    const citas = await prisma.appointment.findMany({
+      where: { date: mananaMX, status: 'scheduled', sendWhatsApp24h: true, sent24hAt: { not: null } },
+      select: { id: true, clientName: true, serviceName: true, time: true },
+      orderBy: { time: 'asc' },
+    });
+    if (String(req.query.confirm) !== '1') {
+      return res.json({
+        modo: 'VISTA PREVIA — agrega ?confirm=1 a la URL para ejecutar',
+        manana: mananaMX,
+        citasQueRecibiranNuevaEncuesta: citas,
+      });
+    }
+    const ids = citas.map(c => c.id);
+    await prisma.appointment.updateMany({ where: { id: { in: ids } }, data: { sent24hAt: null } });
+    console.log(`[resend-surveys] ${ids.length} citas de ${mananaMX} desmarcadas; el cron horario reenviará encuestas nuevas`);
+    res.json({
+      modo: 'EJECUTADO',
+      manana: mananaMX,
+      desmarcadas: citas,
+      nota: 'La encuesta nueva sale en la próxima hora en punto (ventana 9AM-5PM MX).',
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // === RECONCILIAR POLLS: reprocesar respuestas perdidas de encuestas ===
 app.post('/api/admin/reconcile-polls', adminAuth, async (req, res) => {
     try {
