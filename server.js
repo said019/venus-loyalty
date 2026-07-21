@@ -6934,6 +6934,94 @@ app.get("/api/debug/database-status", adminAuth, async (req, res) => {
 // === HEALTH CHECK
 app.get("/health", (req, res) => res.json({ ok: true }));
 
+// === DIAGNÓSTICO DE ENCUESTAS: verdad del store de Evolution sin necesitar
+// acceso a Railway. Abrir logueado como admin:
+//   https://venuscosmetologia.com.mx/api/admin/debug/polls
+// Solo lectura (dry-run); redacta contenido de mensajes (solo shapes/conteos).
+app.get('/api/admin/debug/polls', adminAuth, async (req, res) => {
+  const out = { marker: 'polls-debug-v1 (2026-07-21)', generadoEn: new Date().toISOString() };
+  try {
+    const { getEvolutionClient } = await import('./src/services/whatsapp-evolution.js');
+    const { reconcilePollVotes, jidCandidates, decodePollUpdate } = await import('./src/services/pollVotes.js');
+    const evo = getEvolutionClient();
+
+    const histograma = (records) => {
+      const h = {};
+      for (const r of records.slice(0, 100)) {
+        const t = r?.messageType || (r?.message ? Object.keys(r.message)[0] : (r?.error ? 'error' : 'desconocido'));
+        h[t] = (h[t] || 0) + 1;
+      }
+      return h;
+    };
+    const shapeVoto = (r) => r ? {
+      keyId: r?.key?.id || null,
+      remoteJid: r?.key?.remoteJid || null,
+      remoteJidAlt: r?.key?.remoteJidAlt || null,
+      messageTimestamp: r?.messageTimestamp ?? null,
+      pollCreationKeyId: r?.message?.pollUpdateMessage?.pollCreationMessageKey?.id || null,
+      selectedOptions: r?.message?.pollUpdateMessage?.vote?.selectedOptions ?? null,
+      tieneEncPayload: !!r?.message?.pollUpdateMessage?.vote?.encPayload,
+      opcionDecodificada: decodePollUpdate(r?.message?.pollUpdateMessage) || null,
+    } : null;
+
+    out.evolution = { server: await evo.getServerInfo(), status: await evo.getStatus() };
+
+    const filtrado = await evo.findRecentMessages(300, { messageType: 'pollUpdateMessage' });
+    out.storeFiltrado = {
+      total: filtrado.length,
+      histograma: histograma(filtrado),
+      primerVoto: shapeVoto(filtrado.find(r => r?.message?.pollUpdateMessage)),
+    };
+
+    const global = await evo.findRecentMessages(120);
+    out.storeGlobal = { total: global.length, histograma: histograma(global) };
+
+    const status = await evo.findStatusMessages(30);
+    out.messageUpdates = {
+      total: status.length,
+      conPollUpdates: status.filter(r => Array.isArray(r?.pollUpdates) && r.pollUpdates.length).length,
+      muestraPollUpdates: (status.find(r => Array.isArray(r?.pollUpdates) && r.pollUpdates.length)?.pollUpdates || []).slice(0, 3),
+    };
+
+    const desde = new Date(Date.now() - 72 * 60 * 60 * 1000);
+    const polls = await prisma.pendingPoll.findMany({
+      where: { createdAt: { gte: desde } },
+      orderBy: { createdAt: 'desc' },
+      take: 15,
+    });
+    out.encuestasActivas = [];
+    for (const p of polls.slice(0, 8)) {
+      const cita = p.appointmentId ? await prisma.appointment.findUnique({
+        where: { id: p.appointmentId },
+        select: { clientName: true, status: true, date: true, time: true }
+      }) : null;
+      const chats = [];
+      for (const jid of jidCandidates(p.phone)) {
+        const msgs = await evo.fetchMessages(jid, 40);
+        chats.push({
+          jid,
+          mensajes: msgs.length,
+          votos: msgs.filter(m => m?.message?.pollUpdateMessage).length,
+          votoDeEstePoll: msgs.some(m => {
+            const pid = m?.message?.pollUpdateMessage?.pollCreationMessageKey?.id;
+            return pid && (p.id === pid || p.id.startsWith(pid + '_'));
+          }),
+        });
+      }
+      out.encuestasActivas.push({
+        pollId: String(p.id).slice(0, 28), phone: p.phone, createdAt: p.createdAt,
+        cita, chats,
+      });
+    }
+
+    out.dryRun = await reconcilePollVotes({ apply: false });
+    res.json(out);
+  } catch (e) {
+    out.error = e.message;
+    res.status(500).json(out);
+  }
+});
+
 // === RECONCILIAR POLLS: reprocesar respuestas perdidas de encuestas ===
 app.post('/api/admin/reconcile-polls', adminAuth, async (req, res) => {
     try {

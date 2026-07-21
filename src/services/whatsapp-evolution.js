@@ -215,6 +215,36 @@ class EvolutionAPIClient {
         return response.data;
     }
 
+    // Info del server Evolution (la raíz devuelve { version, ... }) — diagnóstico.
+    async getServerInfo() {
+        try {
+            const response = await this.client.get('/');
+            return response.data;
+        } catch (error) {
+            return { error: error.response?.status || error.message };
+        }
+    }
+
+    // MessageUpdate del store (en Evolution ≤2.3.6 los votos viven AQUÍ, en
+    // pollUpdates de la fila de update, no en el store de mensajes) — diagnóstico.
+    async findStatusMessages(limit = 30) {
+        try {
+            const response = await this.client.post(`/chat/findStatusMessage/${this.instanceName}`, {
+                where: {},
+                limit,
+                page: 1,
+                offset: limit,
+            });
+            const data = response.data;
+            if (Array.isArray(data)) return data;
+            if (Array.isArray(data?.messages?.records)) return data.messages.records;
+            if (Array.isArray(data?.messages)) return data.messages;
+            return [];
+        } catch (error) {
+            return [{ error: error.response?.status || error.message }];
+        }
+    }
+
     // Cerrar sesión (desvincular WhatsApp)
     async logout() {
         const response = await this.client.delete(`/instance/logout/${this.instanceName}`);

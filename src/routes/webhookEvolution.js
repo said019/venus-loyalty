@@ -121,9 +121,16 @@ async function handleIncomingMessage(data) {
 
         // Detectar poll response ANTES del filtro fromMe
         // Las respuestas de poll vienen con fromMe=true porque referencian el poll original
+        // OJO: Evolution también empuja votos como AGREGADO `pollUpdates: [{name, voters}]`
+        // (messages.update en ≤2.3.6; messages.upsert trae messageRaw.pollUpdates en 2.3.7+).
+        // Este formato caía al manejo de texto y se tiraba ("mensaje sin texto") —
+        // por eso el webhook parecía no recibir votos (Sandra 21-jul, Thania 18-jul).
         const isPollResponse = message?.message?.pollUpdateMessage || data?.pollUpdate
             || data?.message?.pollUpdateMessage || data?.pollResponse
-            || message?.pollUpdateMessage;
+            || message?.pollUpdateMessage
+            || (Array.isArray(data?.pollUpdates) && data.pollUpdates.length)
+            || (Array.isArray(message?.pollUpdates) && message.pollUpdates.length)
+            || (Array.isArray(data?.updates) && data.updates.some(u => Array.isArray(u?.pollUpdates) && u.pollUpdates.length));
 
         if (isPollResponse) {
             console.log(`[Evolution] Respuesta de Poll detectada de ${from}`);
@@ -156,9 +163,28 @@ async function handlePollResponse(phone, payload, profileName) {
     let selectedOption = null;
     let voteHashes = [];
 
+    // Formato 0: AGREGADO pollUpdates [{name, voters:[jid,...]}] — lo que Evolution
+    // empuja en messages.update (≤2.3.6 vía getAggregateVotesInPollMessage) y en
+    // messages.upsert (2.3.7+, messageRaw.pollUpdates). En chat 1-a-1 la opción
+    // votada es la que tiene voters. El key del evento ES el del mensaje del poll.
+    const aggregate = (Array.isArray(payload?.pollUpdates) && payload.pollUpdates)
+        || (Array.isArray(payload?.messages?.[0]?.pollUpdates) && payload.messages[0].pollUpdates)
+        || (Array.isArray(payload?.updates) && payload.updates.find(u => Array.isArray(u?.pollUpdates) && u.pollUpdates.length)?.pollUpdates)
+        || null;
+    let aggregatePollKeyId = null;
+    if (aggregate) {
+        const conVotos = aggregate.filter(o => Array.isArray(o?.voters) && o.voters.length > 0);
+        if (conVotos.length > 0) {
+            selectedOption = conVotos[0]?.name || null;
+            aggregatePollKeyId = payload?.key?.id || payload?.messages?.[0]?.key?.id
+                || payload?.updates?.find(u => u?.key?.id)?.key?.id || null;
+            console.log(`[Evolution Poll] Formato agregado: opción "${selectedOption}" pollKey=${aggregatePollKeyId}`);
+        }
+    }
+
     // Formato 1: pollUpdate.votes (algunas versiones)
     const votes = payload?.pollUpdate?.votes || payload?.data?.pollUpdate?.votes;
-    if (Array.isArray(votes) && votes.length > 0) {
+    if (!selectedOption && Array.isArray(votes) && votes.length > 0) {
         selectedOption = votes[0]?.optionName || votes[0]?.name || votes[0];
     }
 
@@ -196,6 +222,7 @@ async function handlePollResponse(phone, payload, profileName) {
     const pollMsgId = pum?.pollCreationMessageKey?.id
         || payload?.pollUpdate?.pollCreationMessageKey?.id
         || payload?.pollCreationMessageKey?.id
+        || aggregatePollKeyId
         || null;
 
     console.log(`[Evolution Poll] pollMsgId=${pollMsgId} option="${selectedOption}" hashes=${JSON.stringify(voteHashes).substring(0,200)}`);
