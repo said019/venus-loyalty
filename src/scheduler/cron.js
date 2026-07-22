@@ -96,6 +96,57 @@ export function startScheduler() {
     });
 
     // ========================================================================
+    // WATCHDOG DE VOTOS — cada 30 min. Verificación INDEPENDIENTE de resultado:
+    // lee los votos CRUDOS del store y comprueba que cada uno se haya reflejado
+    // en su cita. Si un voto lleva >10 min sin procesar, alerta roja en el
+    // panel. Existe porque 4 incidentes (jul-2026) pasaron invisibles: la
+    // ausencia de quejas NO es evidencia de que las encuestas funcionen.
+    // ========================================================================
+    cron.schedule('*/30 * * * *', async () => {
+        try {
+            const { getEvolutionClient } = await import('../services/whatsapp-evolution.js');
+            const { decodePollUpdate, voteTimestampMs } = await import('../services/pollVotes.js');
+            const evo = getEvolutionClient();
+            const records = await evo.findRecentMessages(200, { messageType: 'pollUpdateMessage' });
+            const desde = Date.now() - 24 * 60 * 60 * 1000;
+            const gracia = Date.now() - 10 * 60 * 1000;
+            let vistos = 0, sinProcesar = 0;
+            for (const r of records) {
+                const pum = r?.message?.pollUpdateMessage;
+                if (!pum) continue;
+                const ts = voteTimestampMs(r);
+                if (!ts || ts < desde || ts > gracia) continue;
+                const opcion = decodePollUpdate(pum);
+                if (!opcion) continue;
+                const pollId = pum?.pollCreationMessageKey?.id;
+                if (!pollId) continue;
+                vistos++;
+                const pps = await prisma.pendingPoll.findMany({
+                    where: { OR: [{ id: pollId }, { id: { startsWith: pollId + '_' } }] }
+                });
+                for (const pp of pps) {
+                    if (!pp.appointmentId) continue;
+                    const cita = await prisma.appointment.findUnique({ where: { id: pp.appointmentId } });
+                    if (!cita || cita.status !== 'scheduled') continue; // procesada: OK
+                    const ya = await prisma.notification.findFirst({
+                        where: { entityId: cita.id, title: 'Voto de encuesta SIN procesar' }
+                    });
+                    if (ya) continue;
+                    sinProcesar++;
+                    await NotificationsRepo.create({
+                        type: 'alerta', icon: 'triangle-exclamation',
+                        title: 'Voto de encuesta SIN procesar',
+                        message: `${cita.clientName} votó "${opcion}" hace más de 10 min y su cita sigue sin actualizar. Confírmala manualmente y revisa /api/admin/debug/polls.`,
+                        read: false, entityId: cita.id
+                    });
+                    console.error(`🚨 [watchdog] Voto "${opcion}" de ${cita.clientName} SIN procesar (cita ${cita.id})`);
+                }
+            }
+            if (vistos > 0) console.log(`🐶 [watchdog] votos últimas 24h: ${vistos}, sin procesar: ${sinProcesar}`);
+        } catch (e) { console.warn('[watchdog votos] error:', e.message); }
+    });
+
+    // ========================================================================
     // ENCUESTA DE CONFIRMACIÓN — 9:00 AM hora México para citas de MAÑANA
     // Agrupa por teléfono para no mandar múltiples mensajes al mismo cliente
     // ========================================================================
