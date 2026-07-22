@@ -1895,9 +1895,14 @@
               <span style="font-size:13px;color:rgba(255,255,255,0.9);">TOTAL Ingresos</span>
               <span id="report-total-ingresos" style="font-size:15px;font-weight:700;color:#C1D7AE;">$0.00</span>
             </div>
-            <div style="display:flex;justify-content:space-between;padding:6px 0;">
+            <div
+              style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.15);">
               <span style="font-size:13px;color:rgba(255,255,255,0.9);">TOTAL Egresos</span>
               <span id="report-total-egresos" style="font-size:15px;font-weight:700;color:#8F9E8B;">$0.00</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:8px 0 2px;">
+              <span style="font-size:13px;font-weight:700;color:rgba(255,255,255,0.95);">UTILIDAD</span>
+              <span id="report-utilidad" style="font-size:17px;font-weight:700;color:#C1D7AE;">$0.00</span>
             </div>
           </div>
 
@@ -18071,6 +18076,12 @@
       const money = n => '$' + n.toLocaleString('es-MX', { minimumFractionDigits: 2 });
       document.getElementById('report-total-ingresos').textContent = money(totalIngresos);
       document.getElementById('report-total-egresos').textContent = money(totalEgresos);
+      const utilidadEl = document.getElementById('report-utilidad');
+      if (utilidadEl) {
+        const utilidad = totalIngresos - totalEgresos;
+        utilidadEl.textContent = (utilidad < 0 ? '-$' : '$') + Math.abs(utilidad).toLocaleString('es-MX', { minimumFractionDigits: 2 });
+        utilidadEl.style.color = utilidad < 0 ? '#e29ba0' : '#C1D7AE';
+      }
 
       // 2b. Tarjetas por método de pago. Antes solo las llenaba el flujo "por
       // rango": en la vista por mes (la default) se quedaban en $0.00 y la
