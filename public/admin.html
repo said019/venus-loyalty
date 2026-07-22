@@ -18019,15 +18019,28 @@
 
         const todasLasVentas = await fetchVentasRango(firstDay, lastDayStr);
         reportData = todasLasVentas;
-        renderExcelReport(todasLasVentas);
+        const totalEgresos = await fetchTotalEgresos(firstDay, lastDayStr);
+        renderExcelReport(todasLasVentas, totalEgresos);
       } catch (error) {
         console.error('[REPORTS] Error cargando mes:', error);
       }
     }
 
+    // Suma de gastos del rango para el Resumen Financiero y la dona.
+    async function fetchTotalEgresos(from, to) {
+      try {
+        const res = await apiFetch(`/api/expenses?from=${from}&to=${to}`);
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data)) {
+          return json.data.reduce((s, g) => s + (parseFloat(g.amount) || 0), 0);
+        }
+      } catch (e) { console.warn('[REPORTS] gastos no disponibles:', e); }
+      return 0;
+    }
+
     // Renderer ÚNICO del reporte de Ventas (vista por mes Y por rango):
     // resumen, tarjetas por método de pago, lista/gráficas de servicios y tabla.
-    function renderExcelReport(ventas) {
+    function renderExcelReport(ventas, totalEgresos = 0) {
       // 1. Calcular totales (generales, por método de pago y por servicio)
       let totalIngresos = 0;
       let totalEfectivo = 0, countEfectivo = 0;
@@ -18050,8 +18063,9 @@
         ingresosPorServicio[serviceName] += amount;
       });
 
-      // Por ahora, egresos es 0 (se puede expandir más adelante)
-      const totalEgresos = 0;
+      // totalEgresos llega como parámetro (suma real de /api/expenses del rango).
+      // Antes estaba hardcodeado en 0 y los gastos insertados jamás aparecían
+      // en el Resumen ni en la dona (incidente 22-jul-2026).
 
       // 2. Actualizar resumen financiero
       const money = n => '$' + n.toLocaleString('es-MX', { minimumFractionDigits: 2 });
@@ -18350,7 +18364,8 @@
 
         const ventas = await fetchVentasRango(from, to);
         reportData = ventas;
-        renderExcelReport(ventas);
+        const totalEgresos = await fetchTotalEgresos(from, to);
+        renderExcelReport(ventas, totalEgresos);
 
         // Cargar gastos del rango
         await cargarGastosPorRango(from, to);
