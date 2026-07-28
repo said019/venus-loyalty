@@ -3012,10 +3012,10 @@
 
         <!-- Productos: buscador escribible (retail + menú del café) -->
         <div class="ds-group">
-          <label class="ds-label" for="direct-sale-product-search">Producto o café</label>
+          <label class="ds-label" for="direct-sale-product-search">Servicio, producto o café</label>
           <div class="ds-add-row">
             <div class="ds-combo">
-              <input type="text" id="direct-sale-product-search" class="ds-input" placeholder="Escribe: latte, sérum, matcha…"
+              <input type="text" id="direct-sale-product-search" class="ds-input" placeholder="Escribe: limpieza, latte, sérum…"
                 autocomplete="off" oninput="dsFilterCatalog(this.value)" onfocus="dsFilterCatalog(this.value)"
                 onkeydown="dsComboKeydown(event)">
               <div class="ds-combo-panel" id="ds-combo-panel" hidden></div>
@@ -13661,7 +13661,27 @@
         console.error('Error cargando productos:', e);
       }
 
-      // 2) Menú del café (Venus The Coffee Bar). Sin stock: el backend de
+      // 2) Servicios del estudio (venta sin cita desde mostrador). Sin stock;
+      // el backend ignora ids que no existen en products (solo suman al cobro).
+      try {
+        const resServicios = await apiFetch('/api/services');
+        const jsonServicios = await resServicios.json();
+        if (jsonServicios.success && Array.isArray(jsonServicios.data)) {
+          jsonServicios.data.forEach(s => {
+            dsCatalog.push({
+              id: `service:${s.id}`,
+              name: s.name,
+              price: parseFloat(s.price) || 0,
+              stock: null,
+              group: 'Servicios'
+            });
+          });
+        }
+      } catch (e) {
+        console.error('Error cargando servicios para venta rápida:', e);
+      }
+
+      // 3) Menú del café (Venus The Coffee Bar). Sin stock: el backend de
       // direct-sales ignora ids que no existen en products, así que estos
       // items solo suman al cobro (no descuentan inventario retail).
       try {
@@ -13707,7 +13727,7 @@
         panel.hidden = false;
         return;
       }
-      const ORDEN = ['Productos', 'Café caliente', 'Café frío', 'Panadería', 'Extras', 'Café'];
+      const ORDEN = ['Servicios', 'Productos', 'Café caliente', 'Café frío', 'Panadería', 'Extras', 'Café'];
       const grupos = new Map();
       matches.forEach(it => {
         if (!grupos.has(it.group)) grupos.set(it.group, []);
