@@ -1160,6 +1160,20 @@ app.get('/api/appointments/range', adminAuth, async (req, res) => {
     // Usar repositorio de Prisma
     const appointments = await AppointmentsRepo.findByDateRange(from, to);
 
+    // Adjuntar apartado de barra (Setting JSON): la vista de día del
+    // calendario se alimenta de ESTE endpoint, no del de ?date.
+    try {
+      const keys = appointments.map(a => `booking_extra_appt_${a.id}`);
+      if (keys.length) {
+        const extras = await prisma.setting.findMany({ where: { key: { in: keys } } });
+        const byKey = new Map(extras.map(s => [s.key, s.value]));
+        for (const a of appointments) {
+          const ex = byKey.get(`booking_extra_appt_${a.id}`);
+          if (ex && typeof ex === 'object') a.barExtra = ex;
+        }
+      }
+    } catch (e) { /* sin extras */ }
+
     console.log('[REPORTS] Encontradas', appointments.length, 'citas en el rango');
 
     res.json({ success: true, data: appointments });
