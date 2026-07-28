@@ -4550,6 +4550,33 @@ app.post('/api/public/request', async (req, res) => {
     const requestRef = await firestore.collection('booking_requests').add(requestData);
     console.log(`[BOOKING REQUEST] ✅ Solicitud guardada con ID: ${requestRef.id}`);
 
+    // Preorden/anticipo: el modelo BookingRequest no tiene estas columnas (se
+    // filtran al persistir desde el fix del 17-jul). Se guardan como Setting
+    // JSON para que el panel de Solicitudes las muestre (bebida, comprobante,
+    // estado del anticipo) y el admin pueda validar el depósito.
+    if (hasPreorder || depositReceiptUrl) {
+      try {
+        await prisma.setting.upsert({
+          where: { key: `booking_extra_${requestRef.id}` },
+          create: {
+            key: `booking_extra_${requestRef.id}`,
+            value: {
+              preorderItems: preorderItemsClean, preorderSubtotal, discountPct, discountAmount,
+              finalServicePrice, depositReceiptUrl: depositReceiptUrl || null,
+              depositAmount: requestData.depositAmount, depositStatus: requestData.depositStatus,
+            }
+          },
+          update: {
+            value: {
+              preorderItems: preorderItemsClean, preorderSubtotal, discountPct, discountAmount,
+              finalServicePrice, depositReceiptUrl: depositReceiptUrl || null,
+              depositAmount: requestData.depositAmount, depositStatus: requestData.depositStatus,
+            }
+          }
+        });
+      } catch (e) { console.warn('[BOOKING REQUEST] extra (preorden/anticipo) no guardado:', e.message); }
+    }
+
     // 2.1 ENVIAR NOTIFICACIONES POR EMAIL
     // Notificar al Admin
     EmailService.sendNewRequestNotification(requestData).catch(err =>
@@ -4681,6 +4708,20 @@ app.get('/api/booking-requests', adminAuth, async (req, res) => {
     const data = [];
     snapshot.forEach(doc => data.push({ id: doc.id, ...doc.data() }));
 
+    // Enriquecer con preorden/anticipo guardados como Setting JSON (el modelo
+    // no tiene esas columnas): así el panel muestra bebida y comprobante.
+    try {
+      const keys = data.map(r => `booking_extra_${r.id}`);
+      if (keys.length) {
+        const extras = await prisma.setting.findMany({ where: { key: { in: keys } } });
+        const byKey = new Map(extras.map(s => [s.key, s.value]));
+        for (const r of data) {
+          const extra = byKey.get(`booking_extra_${r.id}`);
+          if (extra && typeof extra === 'object') Object.assign(r, extra);
+        }
+      }
+    } catch (e) { console.warn('[BOOKING REQUESTS] extras no disponibles:', e.message); }
+
     console.log(`[BOOKING REQUESTS] 📋 Listando ${data.length} solicitudes`);
     res.json({ success: true, data });
   } catch (error) {
@@ -4710,14 +4751,17 @@ app.patch('/api/booking-requests/:id/deposit', adminAuth, async (req, res) => {
     if (!['confirm', 'reject'].includes(action)) {
       return res.status(400).json({ success: false, error: 'action debe ser confirm o reject' });
     }
-    const update = {
-      depositStatus: action === 'confirm' ? 'confirmed' : 'rejected',
-      depositReviewedAt: new Date().toISOString(),
-      depositReviewedBy: req.admin?.email || 'admin',
-    };
-    if (action === 'reject' && reason) update.depositRejectReason = reason;
-    await firestore.collection('booking_requests').doc(req.params.id).update(update);
-    res.json({ success: true, depositStatus: update.depositStatus });
+    // El estado del anticipo vive en el Setting JSON de la solicitud (el
+    // modelo BookingRequest no tiene columnas de depósito).
+    const key = `booking_extra_${req.params.id}`;
+    const row = await prisma.setting.findUnique({ where: { key } });
+    const extra = (row && typeof row.value === 'object') ? { ...row.value } : {};
+    extra.depositStatus = action === 'confirm' ? 'confirmed' : 'rejected';
+    extra.depositReviewedAt = new Date().toISOString();
+    extra.depositReviewedBy = req.admin?.email || 'admin';
+    if (action === 'reject' && reason) extra.depositRejectReason = reason;
+    await prisma.setting.upsert({ where: { key }, create: { key, value: extra }, update: { value: extra } });
+    res.json({ success: true, depositStatus: extra.depositStatus });
   } catch (error) {
     console.error('[deposit review]', error);
     res.status(500).json({ success: false, error: error.message });
