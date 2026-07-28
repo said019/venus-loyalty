@@ -9783,6 +9783,7 @@
               <div class="ab-head">${appt.time} · ${appt.clientName}</div>
               <div class="ab-svc">${appt.serviceName}</div>
               <div class="ab-meta">${appt.clientPhone}</div>
+              ${appt.barExtra?.preorderItems?.length ? `<div class="ab-meta" style="color:#6B8E23;font-weight:700;">☕ ${appt.barExtra.preorderItems.map(i => `${i.qty || 1}× ${(i.name || '').replace(/</g, '&lt;')}`).join(', ')}</div>` : ''}
           </div>`;
       });
 
@@ -10154,6 +10155,7 @@
                         <i class="fas fa-clock" style="font-size:9px;color:var(--muted);"></i>
                         <span style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;">${time} — ${appt.serviceName}</span>
                       </div>
+                      ${appt.barExtra?.preorderItems?.length ? `<div style="font-size:10px;color:var(--venus-soft);font-weight:700;margin-top:2px;">☕ Barra: ${appt.barExtra.preorderItems.map(i => `${i.qty || 1}× ${(i.name || '').replace(/</g, '&lt;')}`).join(', ')}${appt.barExtra.depositReceiptUrl ? ' · 💵 con anticipo' : ''}</div>` : ''}
                     </div>
                   </div>
                   <select onchange="updateAppointmentStatus('${appt.id}', this.value)" style="background:${stColor};color:#fff;font-size:9px;font-weight:700;padding:4px 8px;border-radius:999px;text-transform:uppercase;border:none;cursor:pointer;appearance:none;-webkit-appearance:none;min-width:90px;text-align:center;" onclick="this.style.appearance='auto';this.style.webkitAppearance='menulist'" onblur="this.style.appearance='none';this.style.webkitAppearance='none'">

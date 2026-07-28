@@ -1063,6 +1063,20 @@ app.get('/api/appointments', adminAuth, async (req, res) => {
     // Usar repositorio de Prisma
     const data = await AppointmentsRepo.findByDate(date);
 
+    // Adjuntar apartado de barra/anticipo heredado de la solicitud (Setting
+    // JSON): la Agenda lo muestra en el bloque del día y la tarjeta lateral.
+    try {
+      const keys = data.map(a => `booking_extra_appt_${a.id}`);
+      if (keys.length) {
+        const extras = await prisma.setting.findMany({ where: { key: { in: keys } } });
+        const byKey = new Map(extras.map(s => [s.key, s.value]));
+        for (const a of data) {
+          const ex = byKey.get(`booking_extra_appt_${a.id}`);
+          if (ex && typeof ex === 'object') a.barExtra = ex;
+        }
+      }
+    } catch (e) { /* sin extras */ }
+
     console.log(`[APPOINTMENTS] Encontradas ${data.length} citas`);
     res.json({ success: true, data });
   } catch (error) {
@@ -7079,6 +7093,50 @@ app.get('/api/admin/debug/polls', adminAuth, async (req, res) => {
   } catch (e) {
     out.error = e.message;
     res.status(500).json(out);
+  }
+});
+
+// === REPONER PEDIDO DE BARRA A UNA CITA (utilidad para citas creadas antes
+// del flujo barra→cita del 27-jul). Busca la cita por teléfono+fecha y le
+// escribe el Setting booking_extra_appt. GET = vista previa; &confirm=1 ejecuta.
+// Ej: /api/admin/debug/set-bar-extra?phone=4271162894&date=2026-07-29
+//     &nombre=Dirty%20Horchata&precio=78&qty=1&descuento=8&anticipo=100
+//     &comprobante=https%3A%2F%2F...&confirm=1
+app.get('/api/admin/debug/set-bar-extra', adminAuth, async (req, res) => {
+  try {
+    const { phone, date, nombre, comprobante } = req.query;
+    const precio = parseFloat(req.query.precio) || 0;
+    const qty = parseInt(req.query.qty) || 1;
+    const descuento = parseFloat(req.query.descuento) || 0;
+    const anticipo = parseFloat(req.query.anticipo) || 0;
+    if (!phone || !date || !nombre) {
+      return res.status(400).json({ error: 'Faltan phone, date o nombre' });
+    }
+    const last10 = String(phone).replace(/\D/g, '').slice(-10);
+    const citas = await prisma.appointment.findMany({
+      where: { date, clientPhone: { endsWith: last10 }, status: { notIn: ['cancelled'] } },
+      select: { id: true, clientName: true, serviceName: true, time: true },
+      orderBy: { time: 'asc' },
+    });
+    if (!citas.length) return res.status(404).json({ error: 'Sin citas para ese teléfono y fecha' });
+    const cita = citas[0];
+    const value = {
+      preorderItems: [{ name: nombre, price: precio, qty }],
+      preorderSubtotal: precio * qty,
+      discountPct: descuento > 0 ? 10 : 0,
+      discountAmount: descuento,
+      depositReceiptUrl: comprobante || null,
+      depositAmount: anticipo,
+      depositStatus: comprobante ? 'awaiting_review' : 'pending',
+    };
+    if (String(req.query.confirm) !== '1') {
+      return res.json({ modo: 'VISTA PREVIA — agrega &confirm=1 para ejecutar', cita, seEscribiria: value, otrasCitasMismoDia: citas.slice(1) });
+    }
+    const key = `booking_extra_appt_${cita.id}`;
+    await prisma.setting.upsert({ where: { key }, create: { key, value }, update: { value } });
+    res.json({ modo: 'EJECUTADO', cita, escrito: value });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
   }
 });
 
