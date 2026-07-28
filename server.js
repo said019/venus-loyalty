@@ -1165,7 +1165,12 @@ app.get('/api/appointments/:id', adminAuth, async (req, res) => {
       return res.json({ success: false, error: 'Cita no encontrada' });
     }
 
-    console.log('[API] Appointment data:', appointment);
+    // Apartado de barra/anticipo heredado de la solicitud (Setting JSON):
+    // la Caja lo usa para precargar la bebida y mostrar el anticipo al cobrar.
+    try {
+      const extraRow = await prisma.setting.findUnique({ where: { key: `booking_extra_appt_${id}` } });
+      if (extraRow && typeof extraRow.value === 'object') appointment.barExtra = extraRow.value;
+    } catch (e) { /* sin extra */ }
 
     res.json({ success: true, data: appointment });
   } catch (error) {
@@ -4877,6 +4882,17 @@ app.post('/api/booking-requests/:id/booked', adminAuth, async (req, res) => {
     // 2. GUARDAR CITA EN FIRESTORE
     const appointmentRef = await firestore.collection('appointments').add(appointmentData);
     console.log(`[BOOKING] ✅ Cita creada desde solicitud: ${appointmentRef.id}`);
+
+    // Arrastrar el apartado de barra/anticipo de la solicitud a la CITA: sin
+    // esto, al aprobar la solicitud el pedido de barra desaparecía del panel.
+    // La Caja lo lee al cobrar (bebida precargada + descuento).
+    try {
+      const extraRow = await prisma.setting.findUnique({ where: { key: `booking_extra_${req.params.id}` } });
+      if (extraRow && typeof extraRow.value === 'object') {
+        const key = `booking_extra_appt_${appointmentRef.id}`;
+        await prisma.setting.upsert({ where: { key }, create: { key, value: extraRow.value }, update: { value: extraRow.value } });
+      }
+    } catch (e) { console.warn('[BOOKING] extra de barra no copiado a la cita:', e.message); }
 
     // 3. ENVIAR WHATSAPP DE CONFIRMACIÓN
     try {

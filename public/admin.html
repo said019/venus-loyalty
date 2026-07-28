@@ -17278,6 +17278,47 @@
 
         document.body.insertAdjacentHTML('beforeend', html);
 
+        // ── Apartado de barra heredado de la solicitud pública ──
+        // Precarga la bebida al ticket, aplica su descuento (fijo) y muestra
+        // el anticipo con link al comprobante. Sin esto, el pedido de barra
+        // desaparecía del panel al aprobar la solicitud.
+        const barExtra = cita.barExtra || null;
+        if (barExtra) {
+          if (Array.isArray(barExtra.preorderItems) && barExtra.preorderItems.length) {
+            barExtra.preorderItems.forEach((it, i) => {
+              productosEnCobro.push({
+                id: `preorder:${i}`,
+                nombre: `☕ ${it.name || 'Bebida apartada'} (apartada)`,
+                precio: parseFloat(it.price) || 0,
+                cantidad: parseInt(it.qty) || 1
+              });
+            });
+            renderizarProductosCobro();
+            if ((parseFloat(barExtra.discountAmount) || 0) > 0) {
+              cambiarTipoDescuento('fijo');
+              const descIn = document.getElementById('cobrar-descuento');
+              if (descIn) { descIn.value = barExtra.discountAmount; }
+              actualizarTotalCobro();
+            }
+          }
+          const resumenEl = document.getElementById('resumen-productos');
+          if (resumenEl && (barExtra.depositReceiptUrl || (barExtra.preorderItems || []).length)) {
+            const depLinea = barExtra.depositReceiptUrl
+              ? `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
+                   <span>💵 Anticipo $${barExtra.depositAmount || 100} · ${({ awaiting_review: 'por validar', confirmed: 'confirmado', rejected: 'RECHAZADO' })[barExtra.depositStatus] || barExtra.depositStatus || ''}</span>
+                   <a href="${barExtra.depositReceiptUrl}" target="_blank" rel="noopener" style="color:#8C9668;text-decoration:underline;">Ver comprobante</a>
+                 </div>`
+              : '';
+            resumenEl.insertAdjacentHTML('beforebegin', `
+              <div style="background:rgba(140,150,104,0.12);border:1px solid rgba(140,150,104,0.35);border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:13px;color:#ddd;">
+                <div style="font-weight:600;color:#C1D7AE;">☕ Pedido de barra apartado al agendar</div>
+                ${(barExtra.preorderItems || []).map(it => `<div>· ${it.qty || 1}× ${(it.name || '').replace(/</g, '&lt;')} — $${it.price || 0}</div>`).join('')}
+                ${(parseFloat(barExtra.discountAmount) || 0) > 0 ? `<div style="color:#aaa;">Descuento bebida (10%): −$${barExtra.discountAmount} (ya aplicado abajo)</div>` : ''}
+                ${depLinea}
+              </div>`);
+          }
+        }
+
       } catch (err) {
         console.error('[Cobrar Cita] Error:', err);
         showNotification('Error al cargar datos de la cita', 'error');
@@ -17506,9 +17547,11 @@
           const modalCobro = document.getElementById('modal-cobrar-cita');
           if (modalCobro) modalCobro.remove();
 
-          // Actualizar stock de productos vendidos (los del café no llevan stock)
+          // Actualizar stock de productos vendidos (café, servicios y bebidas
+          // apartadas no llevan inventario retail)
           for (const prod of productosEnCobro) {
-            if (String(prod.id).startsWith('coffee:')) continue;
+            const pid = String(prod.id);
+            if (pid.startsWith('coffee:') || pid.startsWith('preorder:') || pid.startsWith('service:')) continue;
             try {
               await fetch(`/api/products/${prod.id}/stock`, {
                 method: 'PATCH',
