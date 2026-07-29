@@ -8279,24 +8279,17 @@
           throw new Error(data.error || 'No se pudo canjear');
         }
 
-        // ✅ CORRECCIÓN: Actualizar Google Wallet después del canje
-        try {
-          const card = cardsCache[cardId];
-          if (card) {
-            const { updateLoyaltyObject } = await import("./lib/google.js");
-            await updateLoyaltyObject(cardId, card.name, 0, card.max);
-            console.log(`[GOOGLE WALLET] ✅ Canje realizado para: ${cardId} (0/${card.max})`);
-          }
-        } catch (googleError) {
-          console.error(`[GOOGLE WALLET] ❌ Error actualizando canje:`, googleError.message);
-        }
+        // Aquí había un `await import("./lib/google.js")` corriendo en el
+        // navegador: ese módulo es de servidor, el import siempre fallaba y
+        // moría en su propio catch. El canje ya actualiza Google y Apple
+        // Wallet del lado del servidor (redeemLoyaltyCard).
 
         await loadCards(currentPage);
         if (currentCardId === cardId) {
           const updated = cardsCache[cardId];
           if (updated) openCardModal(updated);
         }
-        await venusAlert('Canje realizado y Google Wallet actualizado');
+        await venusAlert(`Canje realizado. Ciclo ${data.cycles} completado — el pase se actualiza solo.`);
       } catch (e) {
         await venusAlert('Error: ' + e.message);
       }

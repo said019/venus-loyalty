@@ -260,6 +260,49 @@ async function fsUpdateCardStamps(cardId, stamps) {
   });
 }
 
+// Canje de tarjeta de lealtad — ÚNICA implementación.
+// Antes vivía duplicada en /api/redeem/:cardId (escáner de recepción) y en
+// /api/admin/redeem (panel), y las dos copias se separaron: la de recepción
+// no incrementaba `cycles`, así que los canjes hechos en el mostrador no le
+// sumaban historial a la clienta (el ranking usa stamps + cycles*8).
+//
+// Devuelve { ok: false, error } si aún no completa los sellos, para que cada
+// endpoint responda con su propio código HTTP.
+async function redeemLoyaltyCard(cardId, by) {
+  const card = await fsGetCard(cardId);
+  if (!card) return { ok: false, error: 'card_not_found' };
+  if ((card.stamps || 0) < card.max) return { ok: false, error: 'not_enough_stamps' };
+
+  const newCycles = (card.cycles || 0) + 1;
+  const updated = await fsUpdateCard(cardId, {
+    stamps: 0,
+    cycles: newCycles,
+    lastVisit: new Date().toISOString(),
+  });
+
+  await fsAddEvent(cardId, 'REDEEM', { by, cycle: newCycles });
+  console.log(`[REDEEM] ${card.name} completó el ciclo ${newCycles} (por ${by})`);
+
+  // Wallet: si falla, el canje NO se revierte — queda registrado y el pase se
+  // pone al día en el siguiente refresco.
+  try {
+    const { updateLoyaltyObject } = await import('./lib/google.js');
+    await updateLoyaltyObject(cardId, card.name, 0, card.max);
+    console.log(`[GOOGLE WALLET] ✅ Canje actualizado para: ${cardId} (0/${card.max})`);
+  } catch (googleError) {
+    console.error('[GOOGLE WALLET] ❌ Error actualizando canje:', googleError.message);
+  }
+
+  try {
+    await appleWebService.notifyCardUpdate(cardId);
+    console.log(`[APPLE WALLET] ✅ Canje notificado para: ${cardId}`);
+  } catch (err) {
+    console.error('[APPLE WALLET] ❌ Error notificando:', err);
+  }
+
+  return { ok: true, card: updated || { ...card, stamps: 0, cycles: newCycles }, cycles: newCycles };
+}
+
 async function fsAddEvent(cardId, type, meta = {}) {
   // Normalizar tipo a minúsculas (Prisma espera 'stamp' o 'redeem')
   const normalizedType = type.toLowerCase();
@@ -5757,37 +5800,30 @@ function getPromoStatus() {
 app.post("/api/redeem/:cardId", basicAuth, async (req, res) => {
   try {
     const { cardId } = req.params;
-    const card = await fsGetCard(cardId);
-    if (!card) return res.status(404).json({ error: "card not found" });
-    if ((card.stamps || 0) < card.max)
-      return res.status(400).json({ error: "Aún no completa los sellos" });
-
-    const prev = card.stamps;
-    const updated = await fsUpdateCardStamps(cardId, 0);
-    await fsAddEvent(cardId, "REDEEM", { by: "reception" });
-
-    // ⭐ CORRECCIÓN: Google Wallet con 4 parámetros
-    try {
-      const { updateLoyaltyObject } = await import("./lib/google.js");
-      await updateLoyaltyObject(cardId, updated.name, 0, updated.max);
-      console.log(`[GOOGLE WALLET] ✅ Redeem actualizado para: ${cardId} (0/${updated.max})`);
-    } catch (googleError) {
-      console.error(`[GOOGLE WALLET] ❌ Error actualizando redeem:`, googleError.message);
+    // La respuesta armaba `addToAppleUrl`, una variable que nunca se declaró en
+    // este handler: lanzaba ReferenceError y el endpoint devolvía 500 SIEMPRE,
+    // aunque el canje ya se había hecho. En recepción se veía "Error al
+    // canjear" sobre un canje correcto, y al reintentar salía "Aún no completa
+    // los sellos" (ya estaban en 0), como si se hubieran perdido.
+    const result = await redeemLoyaltyCard(cardId, "reception");
+    if (!result.ok) {
+      const status = result.error === 'card_not_found' ? 404 : 400;
+      const mensaje = result.error === 'card_not_found'
+        ? 'card not found'
+        : 'Aún no completa los sellos';
+      return res.status(status).json({ error: mensaje });
     }
 
-    try {
-      await appleWebService.notifyCardUpdate(cardId);
-    } catch (err) {
-      console.error("[APPLE] Error notificando:", err);
-    }
-
-    const addToGoogleUrl = buildGoogleSaveUrl({
+    const card = result.card;
+    const base = process.env.BASE_URL || "";
+    res.json({
+      ok: true,
+      message: "Canje realizado",
       cardId,
-      name: updated.name,
-      stamps: 0,
-      max: updated.max,
+      cycles: result.cycles,
+      addToGoogleUrl: buildGoogleSaveUrl({ cardId, name: card.name, stamps: 0, max: card.max }),
+      addToAppleUrl: `${base}/api/apple/pass?cardId=${encodeURIComponent(cardId)}`,
     });
-    res.json({ ok: true, message: "Canje realizado", cardId, addToAppleUrl });
   } catch (e) {
     console.error("[REDEEM staff]", e);
     res.status(500).json({ error: e.message });
@@ -6576,40 +6612,14 @@ app.post("/api/admin/redeem", adminAuth, async (req, res) => {
     const { cardId } = req.body || {};
     if (!cardId) return res.status(400).json({ error: "missing_cardId" });
 
-    const card = await fsGetCard(cardId);
-    if (!card) return res.status(404).json({ error: "card not found" });
-    if ((card.stamps || 0) < card.max) return res.status(400).json({ error: "not_enough_stamps" });
-
-    // Incrementar ciclos y resetear sellos
-    const newCycles = (card.cycles || 0) + 1;
-    await fsUpdateCard(cardId, {
-      stamps: 0,
-      cycles: newCycles,
-      lastVisit: new Date().toISOString()
-    });
-
-    await fsAddEvent(cardId, "REDEEM", { by: "admin", cycle: newCycles });
-
-    console.log(`[REDEEM] Cliente ${card.name} completó ciclo ${newCycles}`);
-
-    // Actualizar Google Wallet
-    try {
-      const { updateLoyaltyObject } = await import("./lib/google.js");
-      await updateLoyaltyObject(cardId, card.name, 0, card.max);
-      console.log(`[GOOGLE WALLET] ✅ Redeem admin actualizado para: ${cardId}`);
-    } catch (googleError) {
-      console.error(`[GOOGLE WALLET] ❌ Error actualizando redeem admin:`, googleError.message);
+    const result = await redeemLoyaltyCard(cardId, "admin");
+    if (!result.ok) {
+      const status = result.error === 'card_not_found' ? 404 : 400;
+      const mensaje = result.error === 'card_not_found' ? 'card not found' : 'not_enough_stamps';
+      return res.status(status).json({ error: mensaje });
     }
 
-    // Actualizar Apple Wallet
-    try {
-      await appleWebService.notifyCardUpdate(cardId);
-      console.log(`[APPLE WALLET] ✅ Redeem admin actualizado para: ${cardId}`);
-    } catch (err) {
-      console.error("[APPLE WALLET] ❌ Error notificando:", err);
-    }
-
-    res.json({ ok: true, cardId, cycles: newCycles });
+    res.json({ ok: true, cardId, cycles: result.cycles });
   } catch (e) {
     console.error('[REDEEM] Error:', e);
     res.status(500).json({ error: e.message });
