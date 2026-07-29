@@ -611,9 +611,192 @@ export function startScheduler() {
             }
         } catch (e) { console.error('[drive-retry] error:', e.message); }
     });
-}
 
-// ========== CUMPLEAÑOS (próximos 7 días) ==========
+    // ========================================================================
+    // MARKETING — Resumen diario de comisiones (medianoche)
+    // ========================================================================
+    cron.schedule('0 0 * * *', async () => {
+        try {
+            const today = getTodayDateMexico();
+            const todayStart = new Date(today + 'T00:00:00-06:00');
+            const todayEnd = new Date(today + 'T23:59:59-06:00');
+
+            const appointments = await prisma.appointment.findMany({
+                where: {
+                    bookedById: { not: null },
+                    createdAt: { gte: todayStart, lte: todayEnd },
+                },
+                include: { bookedBy: { select: { email: true, name: true } } },
+            });
+
+            if (appointments.length === 0) return;
+
+            const byMarketer = {};
+            for (const a of appointments) {
+                const id = a.bookedById;
+                if (!byMarketer[id]) byMarketer[id] = { name: a.bookedBy?.name || a.bookedBy?.email || 'Marketing', count: 0, services: [] };
+                byMarketer[id].count++;
+                byMarketer[id].services.push(`${a.clientName} - ${a.serviceName}`);
+            }
+
+            const summary = Object.values(byMarketer).map(m =>
+                `${m.name}: ${m.count} cita${m.count > 1 ? 's' : ''} (${m.services.join(', ')})`
+            ).join('\n');
+
+            await NotificationsRepo.create({
+                type: 'alerta',
+                icon: 'chart-line',
+                title: 'Resumen diario: citas agendadas por marketing',
+                message: summary,
+                read: false,
+            });
+            console.log(`📊 [marketing] Resumen diario: ${appointments.length} citas por ${Object.keys(byMarketer).length} marketer(s)`);
+        } catch (error) {
+            console.error('Error en resumen diario de comisiones:', error);
+        }
+    });
+
+    // ========================================================================
+    // MARKETING — Promoción automática a Gold (diario 6 AM)
+    // Clientas con cycles >= threshold (default 2) suben a gold
+    // ========================================================================
+    cron.schedule('0 6 * * *', async () => {
+        try {
+            const thresholdSetting = await prisma.setting.findUnique({ where: { key: 'marketing.gold.threshold_cycles' } });
+            const threshold = thresholdSetting?.value || 2;
+
+            const candidates = await prisma.card.findMany({
+                where: { status: 'active', cardType: { not: 'gold' }, cycles: { gte: threshold } },
+            });
+
+            for (const card of candidates) {
+                await prisma.card.update({
+                    where: { id: card.id },
+                    data: { cardType: 'gold' },
+                });
+                console.log(`👑 [marketing] ${card.name} promovida a Gold (${card.cycles} ciclos)`);
+
+                // Notificación al admin
+                await NotificationsRepo.create({
+                    type: 'premio',
+                    icon: 'crown',
+                    title: 'Nueva clienta Gold',
+                    message: `${card.name} subió a Gold con ${card.cycles} ciclos completados`,
+                    read: false,
+                    entityId: card.id,
+                });
+            }
+        } catch (error) {
+            console.error('Error en promoción Gold:', error);
+        }
+    });
+
+    // ========================================================================
+    // MARKETING — Detección de embajadoras (semanal lunes 7 AM)
+    // Clientas con >= 3 reseñas 5★ + >= 2 referidos completados
+    // ========================================================================
+    cron.schedule('0 7 * * 1', async () => {
+        try {
+            const minReviewsSetting = await prisma.setting.findUnique({ where: { key: 'marketing.ambassador.min_reviews' } });
+            const minReferralsSetting = await prisma.setting.findUnique({ where: { key: 'marketing.ambassador.min_referrals' } });
+            const minReviews = minReviewsSetting?.value || 3;
+            const minReferrals = minReferralsSetting?.value || 2;
+
+            const cards = await prisma.card.findMany({ where: { status: 'active', isAmbassador: false } });
+
+            for (const card of cards) {
+                // Contar reseñas 5★
+                const fiveStarReviews = await prisma.review.count({
+                    where: { clientPhone: card.phone, stars: 5 },
+                });
+
+                // Contar referidos completados
+                const completedReferrals = await prisma.referral.count({
+                    where: { referrerCardId: card.id, status: { in: ['completada', 'pagada'] } },
+                });
+
+                if (fiveStarReviews >= minReviews && completedReferrals >= minReferrals) {
+                    await prisma.card.update({ where: { id: card.id }, data: { isAmbassador: true } });
+                    console.log(`🌟 [marketing] ${card.name} ahora es embajadora`);
+                    await NotificationsRepo.create({
+                        type: 'premio', icon: 'star',
+                        title: 'Nueva embajadora Venus',
+                        message: `${card.name} (${fiveStarReviews} reseñas 5★, ${completedReferrals} referidos)`,
+                        read: false, entityId: card.id,
+                    });
+                }
+            }
+        } catch (error) {
+            console.error('Error en detección de embajadoras:', error);
+        }
+    });
+
+    // ========================================================================
+    // MARKETING — Re-engagement 30/60/90 días (diario 10 AM)
+    // Clientas inactivas según categoría de servicio
+    // ========================================================================
+    cron.schedule('0 10 * * *', async () => {
+        try {
+            const now = new Date();
+            const thresholds = [30, 60, 90];
+
+            for (const days of thresholds) {
+                const cutoff = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+                const inactiveCards = await prisma.card.findMany({
+                    where: {
+                        status: 'active',
+                        lastVisit: { lt: cutoff, not: null },
+                    },
+                    take: 50,
+                });
+
+                for (const card of inactiveCards) {
+                    // Verificar que no se haya enviado ya este re-engagement este año
+                    // Usar un campo en data para tracking (simplificado: notificación interna)
+                    const recentNotif = await prisma.notification.findFirst({
+                        where: {
+                            type: 'alerta',
+                            message: { contains: card.name },
+                            createdAt: { gte: new Date(now.getTime() - days * 24 * 60 * 60 * 1000) },
+                        },
+                    });
+                    if (recentNotif) continue;
+
+                    let msg = '';
+                    if (days === 30) msg = `Hola ${card.name} 🌿 ¿Cómo va tu piel? Si quieres agendar: https://wa.me/`;
+                    else if (days === 60) msg = `Te extrañamos en Venus 🌿 ¿Agendamos tu siguiente servicio? Tienes ${card.stamps}/${card.max} sellos.`;
+                    else if (days === 90) msg = `Volvamos a vernos: tu siguiente servicio va con 10% off esta semana 🌿`;
+
+                    try {
+                        const { WhatsAppService } = await import('../services/whatsapp-v2.js');
+                        await WhatsAppService.sendText(card.phone, msg);
+                        console.log(`📨 [marketing] Re-engagement ${days}d enviado a ${card.name}`);
+                    } catch (e) {
+                        console.error(`[marketing] Re-engagement ${days}d falló para ${card.name}:`, e.message);
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Error en re-engagement:', error);
+        }
+    });
+
+    // ========================================================================
+    // MARKETING — Evaluación de retos de sellos (diario 6 AM)
+    // Marcar como expirados los retos cuya ventana de tiempo pasó
+    // ========================================================================
+    cron.schedule('0 6 * * *', async () => {
+        try {
+            const { ChallengesRepo } = await import('../db/repositories.js');
+            const expired = await ChallengesRepo.evaluateWindows();
+            if (expired.length > 0) {
+                console.log(`🏆 [marketing] ${expired.length} reto${expired.length > 1 ? 's' : ''} expirado${expired.length > 1 ? 's' : ''}`);
+            }
+        } catch (error) {
+            console.error('Error evaluando retos:', error);
+        }
+    });
+}
 async function checkBirthdays() {
     try {
         const now = new Date();

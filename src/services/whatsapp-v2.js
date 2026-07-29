@@ -130,6 +130,11 @@ function buildAttendanceSurveyCopy(appt) {
 }
 
 export const WhatsAppService = {
+    /** Envía texto libre por WhatsApp (Evolution API). */
+    async sendText(to, message) {
+        return await sendViaEvolution(to, message);
+    },
+
     /** Envía confirmación de cita al momento de crearla.
      *  Si la clienta tiene otra cita el mismo día, envía 1 solo mensaje consolidado.
      */

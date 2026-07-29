@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Venus Marketing</title>
+  <link rel="icon" href="/assets/logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prata&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="/marketing.css?v=1">
+</head>
+<body>
+  <!-- Login Screen -->
+  <div id="login-screen" class="login-screen">
+    <div class="login-card">
+      <img src="/assets/logo.png" alt="Venus" class="login-logo">
+      <h1 class="login-title">Venus Marketing</h1>
+      <form id="login-form">
+        <input type="email" id="login-email" placeholder="Correo" required>
+        <input type="password" id="login-password" placeholder="Contraseña" required>
+        <button type="submit" class="btn-primary">Ingresar</button>
+      </form>
+      <p id="login-error" class="login-error"></p>
+    </div>
+  </div>
+
+  <!-- Main App -->
+  <div id="app" class="app hidden">
+    <nav class="sidebar">
+      <div class="sidebar-header">
+        <img src="/assets/logo.png" alt="Venus" class="sidebar-logo">
+        <span class="sidebar-title">Marketing</span>
+      </div>
+      <ul class="sidebar-nav">
+        <li><a href="#agendar" data-view="agendar"><i class="fas fa-calendar-plus"></i> Agendar</a></li>
+        <li><a href="#mis-citas" data-view="mis-citas"><i class="fas fa-calendar"></i> Mis Citas</a></li>
+        <li><a href="#agenda" data-view="agenda"><i class="fas fa-calendar-days"></i> Agenda</a></li>
+        <li><a href="#leads" data-view="leads"><i class="fas fa-users"></i> Leads</a></li>
+        <li><a href="#campañas" data-view="campanas"><i class="fas fa-bullhorn"></i> Campañas</a></li>
+        <li><a href="#push" data-view="push"><i class="fas fa-bell"></i> Push Wallet</a></li>
+        <li><a href="#giftcards" data-view="giftcards"><i class="fas fa-gift"></i> Gift Cards</a></li>
+        <li><a href="#reportes" data-view="reportes"><i class="fas fa-chart-bar"></i> Reportes</a></li>
+      </ul>
+      <div class="sidebar-footer">
+        <button id="logout-btn" class="btn-ghost"><i class="fas fa-sign-out-alt"></i> Salir</button>
+      </div>
+    </nav>
+
+    <main class="content">
+      <!-- Agendar -->
+      <section id="view-agendar" class="view hidden">
+        <h2 class="view-title">Agendar Cita</h2>
+        <form id="agendar-form" class="card-form">
+          <div class="form-row">
+            <input type="text" id="agt-name" placeholder="Nombre del cliente" required>
+            <input type="tel" id="agt-phone" placeholder="Teléfono" required>
+          </div>
+          <div class="form-row">
+            <select id="agt-service"><option value="">Selecciona servicio</option></select>
+            <input type="text" id="agt-service-name" placeholder="O escribe el servicio" style="display:none">
+          </div>
+          <div class="form-row">
+            <input type="date" id="agt-date" required>
+            <input type="time" id="agt-time" required>
+          </div>
+          <div class="form-row">
+            <select id="agt-staff"><option value="">Sin asignar</option></select>
+            <input type="text" id="agt-source" placeholder="Origen (ej. instagram-ads)">
+          </div>
+          <label class="checkbox-row">
+            <input type="checkbox" id="agt-whatsapp" checked> Enviar confirmación WhatsApp
+          </label>
+          <button type="submit" class="btn-primary"><i class="fas fa-calendar-plus"></i> Agendar y generar comisión</button>
+        </form>
+        <div id="agendar-result" class="result-msg"></div>
+      </section>
+
+      <!-- Mis Citas -->
+      <section id="view-mis-citas" class="view hidden">
+        <h2 class="view-title">Mis Citas</h2>
+        <div class="stats-row">
+          <div class="stat-card"><span class="stat-label">Comisión pendiente</span><span class="stat-value" id="comm-pending">$0</span></div>
+          <div class="stat-card"><span class="stat-label">Comisión pagada</span><span class="stat-value" id="comm-paid">$0</span></div>
+          <div class="stat-card"><span class="stat-label">Total citas</span><span class="stat-value" id="comm-total">0</span></div>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>Cliente</th><th>Servicio</th><th>Fecha</th><th>Hora</th><th>Estado</th><th>Comisión</th></tr></thead>
+          <tbody id="mis-citas-tbody"></tbody>
+        </table>
+      </section>
+
+      <!-- Agenda general -->
+      <section id="view-agenda" class="view hidden">
+        <h2 class="view-title">Agenda del Estudio</h2>
+        <div class="form-row">
+          <input type="date" id="agenda-date">
+          <button id="agenda-load" class="btn-primary">Ver agenda</button>
+        </div>
+        <div id="agenda-list" class="agenda-list"></div>
+      </section>
+
+      <!-- Leads -->
+      <section id="view-leads" class="view hidden">
+        <h2 class="view-title">Leads / Mini-CRM</h2>
+        <button id="lead-add-btn" class="btn-primary"><i class="fas fa-plus"></i> Nuevo Lead</button>
+        <div id="lead-form" class="card-form hidden">
+          <div class="form-row">
+            <input type="text" id="lead-name" placeholder="Nombre" required>
+            <input type="tel" id="lead-phone" placeholder="Teléfono" required>
+          </div>
+          <div class="form-row">
+            <select id="lead-origin">
+              <option value="otro">Otro</option>
+              <option value="facebook-ads">Facebook Ads</option>
+              <option value="instagram">Instagram</option>
+              <option value="referido">Referido</option>
+              <option value="whatsapp">WhatsApp</option>
+              <option value="calle">Calle/Pasó</option>
+            </select>
+            <input type="email" id="lead-email" placeholder="Email (opcional)">
+          </div>
+          <textarea id="lead-notes" placeholder="Notas" rows="2"></textarea>
+          <button id="lead-save" class="btn-primary">Guardar</button>
+        </div>
+        <div class="kanban" id="leads-kanban">
+          <div class="kanban-col" data-status="nuevo"><h3>Nuevo</h3><div class="kanban-body"></div></div>
+          <div class="kanban-col" data-status="contactado"><h3>Contactado</h3><div class="kanban-body"></div></div>
+          <div class="kanban-col" data-status="agendado"><h3>Agendado</h3><div class="kanban-body"></div></div>
+          <div class="kanban-col" data-status="convertido"><h3>Convertido</h3><div class="kanban-body"></div></div>
+          <div class="kanban-col" data-status="perdido"><h3>Perdido</h3><div class="kanban-body"></div></div>
+        </div>
+      </section>
+
+      <!-- Campañas WhatsApp -->
+      <section id="view-campanas" class="view hidden">
+        <h2 class="view-title">Campañas WhatsApp</h2>
+        <div class="card-form">
+          <div class="form-row">
+            <select id="camp-segment">
+              <option value="all">Todas las clientas activas</option>
+              <option value="inactive_30">Inactivas 30 días</option>
+              <option value="inactive_60">Inactivas 60 días</option>
+              <option value="inactive_90">Inactivas 90 días</option>
+              <option value="birthdays">Cumpleañeros del mes</option>
+              <option value="gold">Clientas Gold</option>
+            </select>
+            <input type="number" id="camp-limit" placeholder="Límite (opcional)" min="1">
+          </div>
+          <textarea id="camp-message" rows="4" placeholder="Mensaje. Usa {nombre} para personalizar."></textarea>
+          <button id="camp-send" class="btn-primary"><i class="fas fa-paper-plane"></i> Lanzar campaña</button>
+        </div>
+        <div id="camp-result" class="result-msg"></div>
+      </section>
+
+      <!-- Push Wallet -->
+      <section id="view-push" class="view hidden">
+        <h2 class="view-title">Push a Wallet</h2>
+        <div class="card-form">
+          <input type="text" id="push-title" placeholder="Título" required>
+          <textarea id="push-message" rows="3" placeholder="Mensaje" required></textarea>
+          <input type="hidden" id="push-type" value="promo">
+          <button id="push-send" class="btn-primary"><i class="fas fa-bell"></i> Enviar push</button>
+        </div>
+        <div id="push-result" class="result-msg"></div>
+      </section>
+
+      <!-- Gift Cards -->
+      <section id="view-giftcards" class="view hidden">
+        <h2 class="view-title">Gift Cards Promocionales</h2>
+        <button id="gc-add-btn" class="btn-primary"><i class="fas fa-plus"></i> Crear gift card</button>
+        <div id="gc-form" class="card-form hidden">
+          <div class="form-row">
+            <select id="gc-service" required><option value="">Selecciona servicio</option></select>
+          </div>
+          <div class="form-row">
+            <input type="text" id="gc-recipient" placeholder="Nombre destinatario" required>
+            <input type="tel" id="gc-phone" placeholder="Teléfono destinatario" required>
+          </div>
+          <textarea id="gc-message" placeholder="Mensaje personalizado" rows="2"></textarea>
+          <select id="gc-validity"><option value="30">30 días</option><option value="60">60 días</option><option value="90">90 días</option></select>
+          <button id="gc-save" class="btn-primary">Crear</button>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>Código</th><th>Servicio</th><th>Destinatario</th><th>Estado</th><th>Vence</th><th>Acción</th></tr></thead>
+          <tbody id="gc-tbody"></tbody>
+        </table>
+      </section>
+
+      <!-- Reportes -->
+      <section id="view-reportes" class="view hidden">
+        <h2 class="view-title">Reportes de Marketing</h2>
+        <div class="stats-row">
+          <div class="stat-card"><span class="stat-label">Total leads</span><span class="stat-value" id="rep-leads">0</span></div>
+          <div class="stat-card"><span class="stat-label">Citas agendadas</span><span class="stat-value" id="rep-citas">0</span></div>
+          <div class="stat-card"><span class="stat-label">Citas completadas</span><span class="stat-value" id="rep-completadas">0</span></div>
+          <div class="stat-card"><span class="stat-label">Conversión</span><span class="stat-value" id="rep-conv">0%</span></div>
+        </div>
+        <h3>Citas por canal</h3>
+        <div id="rep-sources" class="sources-list"></div>
+        <h3>Embudo</h3>
+        <div id="rep-funnel" class="funnel"></div>
+        <h3>Comparativa mensual</h3>
+        <div id="rep-monthly" class="monthly-list"></div>
+      </section>
+    </main>
+  </div>
+
+  <script src="/marketing.js?v=1"></script>
+</body>
+</html>

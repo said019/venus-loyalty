@@ -34,7 +34,7 @@ import { validateLeadTime, LEAD_TIME_RULE } from './src/utils/leadTime.js';
 // Database - Prisma con repositorios
 import { prisma } from './src/db/index.js';
 import { firestore } from './src/db/compat.js';
-import { CardsRepo, AppointmentsRepo, ServicesRepo, ProductsRepo, SalesRepo, NotificationsRepo, BlockedSlotsRepo } from './src/db/repositories.js';
+import { CardsRepo, AppointmentsRepo, ServicesRepo, ProductsRepo, SalesRepo, NotificationsRepo, BlockedSlotsRepo, LeadsRepo, CommissionsRepo, ReferralsRepo, ChallengesRepo, PromotionsRepo, TouchpointsRepo, CardsMarketingRepo, SettingsRepo } from './src/db/repositories.js';
 import { buildDirectSaleRecord } from './src/services/directSale.js';
 
 // WhatsApp Service - USANDO V2 PARA FORZAR RECARGA
@@ -155,13 +155,14 @@ async function fsGetAdminByEmail(email) {
   return { id: snap.docs[0].id, ...snap.docs[0].data() };
 }
 
-async function fsInsertAdmin({ id, email, pass_hash, role = "admin" }) {
+async function fsInsertAdmin({ id, email, pass_hash, role = "admin", name = null }) {
   const now = new Date().toISOString();
   await firestore.collection(COL_ADMINS).doc(id).set({
     id,
     email,
     pass_hash,
     role,
+    name,
     createdAt: now,
     updatedAt: now,
   });
@@ -628,6 +629,7 @@ app.use(cookieParser());
 // Guard ANTES del static: si la cookie es de rol "recepcion", redirigir
 // a /recepcion.html cuando intenten cargar /admin.html. Sin esto el
 // express.static lo serviría antes de llegar a los handlers explícitos.
+// También redirige rol "marketing" a /marketing.html.
 app.use((req, res, next) => {
   if (req.path !== '/admin.html' && req.path !== '/admin') return next();
   try {
@@ -636,6 +638,9 @@ app.use((req, res, next) => {
     const payload = jwt.verify(raw, process.env.ADMIN_JWT_SECRET);
     if (payload?.role === 'recepcion') {
       return res.redirect(302, '/recepcion.html');
+    }
+    if (payload?.role === 'marketing') {
+      return res.redirect(302, '/marketing.html');
     }
   } catch { /* token inválido → seguir */ }
   next();
@@ -1629,6 +1634,8 @@ app.post('/api/appointments', adminAuth, async (req, res) => {
       // tiene Gmail conectado vía OAuth multi-cuenta, la cita también se
       // crea en su calendar personal y le llega por correo.
       assignedAdminId: assignedAdminId || null,
+      // Atribución de marketing: registrar quién agendó la cita (para comisión)
+      bookedById: req.admin?.uid || null,
       // Flags para recordatorios WhatsApp automáticos
       sendWhatsApp24h: sendWhatsApp24h !== false, // Por defecto true
       sendWhatsApp2h: sendWhatsApp2h !== false    // Por defecto true
@@ -1709,8 +1716,38 @@ app.post('/api/appointments', adminAuth, async (req, res) => {
     console.log('[APPOINTMENT] ✅ Cita creada y vinculada a tarjeta:', appointment.id, 'cardId:', card.id, {
       sendWhatsApp24h: appointmentData.sendWhatsApp24h,
       sendWhatsApp2h: appointmentData.sendWhatsApp2h,
-      assignedAdminId: appointmentData.assignedAdminId
+      assignedAdminId: appointmentData.assignedAdminId,
+      bookedById: appointmentData.bookedById
     });
+
+    // ── COMISIÓN: si la cita fue agendada por un marketer, crear comisión
+    if (req.admin?.role === 'marketing' && appointmentData.bookedById) {
+      try {
+        const commissionAmount = await SettingsRepo.get('marketing.commission.fixed_amount');
+        const amount = typeof commissionAmount === 'number' ? commissionAmount : 50;
+        await CommissionsRepo.create({
+          marketerId: req.admin.uid,
+          appointmentId: appointment.id,
+          amount,
+          status: 'pendiente',
+        });
+        console.log(`[APPOINTMENT] 💰 Comisión creada: $${amount} para ${req.admin.uid}`);
+
+        // Notificación inmediata al admin
+        const marketerName = req.admin.email?.split('@')[0] || 'Marketing';
+        await NotificationsRepo.create({
+          type: 'cita',
+          icon: 'calendar-plus',
+          title: 'Cita agendada por marketing',
+          message: `${marketerName} agendó: ${name} - ${serviceName} - ${date} ${time}`,
+          read: false,
+          entityId: appointment.id,
+        });
+        console.log('[APPOINTMENT] 🔔 Notificación de comisión enviada al admin');
+      } catch (commissionErr) {
+        console.error('[APPOINTMENT] ⚠️ Error creando comisión:', commissionErr.message);
+      }
+    }
 
     // ── Asignación: crear evento en el calendar PERSONAL del admin asignado
     //    y mandarle un email de notificación. Background — no bloquea la
@@ -4446,6 +4483,8 @@ app.post('/api/public/request', async (req, res) => {
       clientBirthday,
       preorderItems = [],  // [{ id, name, qty, price }, ...] — items de barra apartados
       depositReceiptUrl = null,  // URL de Cloudinary del comprobante de transferencia
+      refCode = null,  // código de referido (marketing)
+      utm = null,  // { source, campaign, medium } atribución UTM
     } = req.body;
 
     // Validaciones
@@ -4589,6 +4628,39 @@ app.post('/api/public/request', async (req, res) => {
 
     const requestRef = await firestore.collection('booking_requests').add(requestData);
     console.log(`[BOOKING REQUEST] ✅ Solicitud guardada con ID: ${requestRef.id}`);
+
+    // ── Atribución de marketing: registrar touchpoint y referido ──
+    try {
+      if (refCode || utm) {
+        // Crear touchpoint
+        await TouchpointsRepo.create({
+          cardId: cardId,
+          channel: utm?.source || (refCode ? 'referral' : 'direct'),
+          campaign: utm?.campaign || refCode || null,
+          utm: utm || null,
+        });
+        console.log(`[BOOKING REQUEST] 📊 Touchpoint registrado: ${utm?.source || 'referral'}`);
+      }
+      // Si viene de un referido, crear Referral pendiente
+      if (refCode) {
+        const referrerCard = await CardsMarketingRepo.findByReferralCode(refCode);
+        if (referrerCard && referrerCard.id !== cardId) {
+          // Verificar que no exista ya un referral para esta invitee
+          const existing = await ReferralsRepo.findByInvitee(cardId);
+          if (!existing) {
+            await ReferralsRepo.create({
+              referrerCardId: referrerCard.id,
+              inviteeCardId: cardId,
+              inviteePhone: phoneClean,
+              status: 'pendiente',
+            });
+            console.log(`[BOOKING REQUEST] 🤝 Referido registrado: ${referrerCard.name} → ${clientName}`);
+          }
+        }
+      }
+    } catch (attrErr) {
+      console.error('[BOOKING REQUEST] ⚠️ Error atribución:', attrErr.message);
+    }
 
     // Preorden/anticipo: el modelo BookingRequest no tiene estas columnas (se
     // filtran al persistir desde el fix del 17-jul). Se guardan como Setting
@@ -6401,10 +6473,31 @@ app.post("/api/admin/register", async (req, res) => {
     const allow =
       (process.env.ADMIN_ALLOW_SIGNUP || "false").toLowerCase() === "true";
     const n = await fsCountAdmins();
-    if (!allow && n > 0)
+
+    // Permitir registro si:
+    // 1. ADMIN_ALLOW_SIGNUP=true y no hay admins (primer admin), O
+    // 2. Un admin autenticado crea una cuenta para otro (con rol especificado)
+    let requestedRole = "admin";
+    let authedAdmin = null;
+
+    // Verificar si viene de un admin autenticado (crear cuenta para otro)
+    try {
+      const raw = req.cookies?.adm;
+      if (raw) {
+        const payload = jwt.verify(raw, process.env.ADMIN_JWT_SECRET);
+        if (payload?.uid && payload?.role === "admin") {
+          authedAdmin = payload;
+          requestedRole = ["admin", "recepcion", "marketing"].includes(req.body?.role)
+            ? req.body.role
+            : "admin";
+        }
+      }
+    } catch { /* token inválido → ignore */ }
+
+    if (!allow && n > 0 && !authedAdmin)
       return res.status(403).json({ error: "signup_disabled" });
 
-    const { email, password } = req.body || {};
+    const { email, password, name } = req.body || {};
     if (!email || !password)
       return res.status(400).json({ error: "missing_fields" });
 
@@ -6418,9 +6511,9 @@ app.post("/api/admin/register", async (req, res) => {
     const id = `adm_${Date.now()}`;
     const pass_hash = await bcrypt.hash(password, 10);
 
-    await fsInsertAdmin({ id, email: norm, pass_hash });
+    await fsInsertAdmin({ id, email: norm, pass_hash, role: requestedRole, name: name || null });
 
-    res.json({ ok: true });
+    res.json({ ok: true, role: requestedRole });
   } catch (e) {
     console.error("[ADMIN REGISTER]", e);
     res.status(500).json({ error: e.message });
@@ -7660,7 +7753,7 @@ function mktToday() {
 }
 
 // GET /api/admin/marketing/checklist?date=YYYY-MM-DD
-app.get('/api/admin/marketing/checklist', adminAuth, async (req, res) => {
+app.get('/api/admin/marketing/checklist', adminAuth, requireRole('admin'), async (req, res) => {
   try {
     const date = /^\d{4}-\d{2}-\d{2}$/.test(req.query.date || '') ? req.query.date : mktToday();
     const rows = await prisma.$queryRaw`
@@ -7681,7 +7774,7 @@ app.get('/api/admin/marketing/checklist', adminAuth, async (req, res) => {
 });
 
 // POST /api/admin/marketing/checklist/:id/toggle — marca/desmarca (diarias: por día)
-app.post('/api/admin/marketing/checklist/:id/toggle', adminAuth, async (req, res) => {
+app.post('/api/admin/marketing/checklist/:id/toggle', adminAuth, requireRole('admin'), async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
     if (!Number.isInteger(id)) return res.status(400).json({ success: false, error: 'bad_id' });
@@ -7711,7 +7804,7 @@ app.post('/api/admin/marketing/checklist/:id/toggle', adminAuth, async (req, res
 });
 
 // POST /api/admin/marketing/tasks — agregar tarea manual
-app.post('/api/admin/marketing/tasks', adminAuth, async (req, res) => {
+app.post('/api/admin/marketing/tasks', adminAuth, requireRole('admin'), async (req, res) => {
   try {
     const { title, detail = null, section = 'Otras', frequency = 'once', due_date = null } = req.body || {};
     if (!title || typeof title !== 'string' || !title.trim()) {
@@ -7731,7 +7824,7 @@ app.post('/api/admin/marketing/tasks', adminAuth, async (req, res) => {
 });
 
 // DELETE /api/admin/marketing/tasks/:id — desactivar tarea
-app.delete('/api/admin/marketing/tasks/:id', adminAuth, async (req, res) => {
+app.delete('/api/admin/marketing/tasks/:id', adminAuth, requireRole('admin'), async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
     if (!Number.isInteger(id)) return res.status(400).json({ success: false, error: 'bad_id' });
@@ -7744,8 +7837,761 @@ app.delete('/api/admin/marketing/tasks/:id', adminAuth, async (req, res) => {
 });
 
 /* =========================================================
-   SERVER
+   MARKETING — Endpoints del rol marketing
    ========================================================= */
+
+// ── Agendar cita (con atribución + comisión) ──
+app.post('/api/marketing/appointments', adminAuth, requireRole('marketing'), async (req, res) => {
+  try {
+    const { name, phone, serviceId, serviceName, date, time, durationMinutes, sendWhatsAppConfirmation, source, assignedAdminId } = req.body;
+    if (!name || !phone || !serviceName || !date || !time)
+      return res.status(400).json({ success: false, error: 'Faltan campos requeridos' });
+
+    const phoneClean = phone.replace(/\D/g, '');
+    let card = await CardsRepo.findByPhone(phoneClean);
+    if (!card) {
+      card = await CardsRepo.create({ name, phone: phoneClean, source: 'marketing' });
+    }
+
+    // Verificar conflictos
+    const duration = parseInt(durationMinutes) || 60;
+    const conflicts = await AppointmentsRepo.findConflicts(date, time, duration);
+    if (conflicts.length > 0)
+      return res.status(409).json({ success: false, error: 'conflict', conflicts });
+
+    const appointmentData = {
+      cardId: card.id,
+      clientName: name,
+      clientPhone: phoneClean,
+      serviceId: serviceId || null,
+      serviceName,
+      date,
+      time,
+      durationMinutes: duration,
+      status: 'scheduled',
+      location: 'Venus Cosmetología',
+      source: source || 'marketing',
+      assignedAdminId: assignedAdminId || null,
+      bookedById: req.admin.uid,
+      sendWhatsApp24h: req.body.sendWhatsApp24h !== false,
+      sendWhatsApp2h: req.body.sendWhatsApp2h !== false,
+    };
+
+    const appointment = await AppointmentsRepo.create(appointmentData);
+
+    // Crear comisión
+    try {
+      const commissionAmount = await SettingsRepo.get('marketing.commission.fixed_amount');
+      const amount = typeof commissionAmount === 'number' ? commissionAmount : 50;
+      await CommissionsRepo.create({ marketerId: req.admin.uid, appointmentId: appointment.id, amount, status: 'pendiente' });
+
+      const marketerName = req.admin.email?.split('@')[0] || 'Marketing';
+      await NotificationsRepo.create({
+        type: 'cita', icon: 'calendar-plus',
+        title: 'Cita agendada por marketing',
+        message: `${marketerName} agendó: ${name} - ${serviceName} - ${date} ${time}`,
+        read: false, entityId: appointment.id,
+      });
+    } catch (e) { console.error('[MARKETING] Comisión error:', e.message); }
+
+    // WhatsApp confirmación
+    if (sendWhatsAppConfirmation) {
+      try { await WhatsAppService.sendConfirmation(appointment); } catch (e) { console.error('[MARKETING] WhatsApp:', e.message); }
+    }
+
+    res.json({ success: true, appointmentId: appointment.id });
+  } catch (error) {
+    console.error('[MARKETING] Agendar error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ── Mis citas (filtradas por bookedById) ──
+app.get('/api/marketing/appointments', adminAuth, requireRole('marketing'), async (req, res) => {
+  try {
+    const { status, fromDate, toDate } = req.query;
+    const where = { bookedById: req.admin.uid };
+    if (status) where.status = status;
+    if (fromDate || toDate) {
+      where.startDateTime = {};
+      if (fromDate) where.startDateTime.gte = new Date(fromDate);
+      if (toDate) where.startDateTime.lte = new Date(toDate);
+    }
+    const appointments = await prisma.appointment.findMany({
+      where,
+      orderBy: { startDateTime: 'desc' },
+      take: 100,
+    });
+    res.json({ success: true, data: appointments });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ── Agenda general del estudio ──
+app.get('/api/marketing/agenda', adminAuth, requireRole('marketing'), async (req, res) => {
+  try {
+    const date = req.query.date || new Date().toISOString().split('T')[0];
+    const appointments = await AppointmentsRepo.findByDate(date);
+    res.json({ success: true, data: appointments });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ── Leads: crear ──
+app.post('/api/marketing/leads', adminAuth, requireRole('marketing'), async (req, res) => {
+  try {
+    const { name, phone, email, origin, notes } = req.body;
+    if (!name || !phone)
+      return res.status(400).json({ success: false, error: 'name_and_phone_required' });
+    const lead = await LeadsRepo.create({
+      name, phone: phone.replace(/\D/g, ''), email: email || null,
+      origin: origin || 'otro', notes: notes || null,
+      status: 'nuevo', score: 0, marketerId: req.admin.uid,
+    });
+    res.json({ success: true, data: lead });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ── Leads: listar (ordenados por score) ──
+app.get('/api/marketing/leads', adminAuth, requireRole('marketing'), async (req, res) => {
+  try {
+    const { status } = req.query;
+    const leads = await LeadsRepo.findByMarketer(req.admin.uid, status ? { status } : {});
+    // Computar scores
+    for (const lead of leads) {
+      lead.score = await LeadsRepo.computeScore(lead);
+    }
+    leads.sort((a, b) => b.score - a.score);
+    res.json({ success: true, data: leads });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ── Leads: actualizar estado ──
+app.patch('/api/marketing/leads/:id', adminAuth, requireRole('marketing'), async (req, res) => {
+  try {
+    const { status, notes } = req.body;
+    const lead = await LeadsRepo.findById(req.params.id);
+    if (!lead || lead.marketerId !== req.admin.uid)
+      return res.status(404).json({ success: false, error: 'not_found' });
+    const updated = await LeadsRepo.updateStatus(req.params.id, status, notes ? { notes } : {});
+    res.json({ success: true, data: updated });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ── Leads: convertir en cita ──
+app.post('/api/marketing/leads/:id/convert', adminAuth, requireRole('marketing'), async (req, res) => {
+  try {
+    const { serviceId, serviceName, date, time, durationMinutes } = req.body;
+    const lead = await LeadsRepo.findById(req.params.id);
+    if (!lead || lead.marketerId !== req.admin.uid)
+      return res.status(404).json({ success: false, error: 'not_found' });
+
+    // Crear cita
+    let card = await CardsRepo.findByPhone(lead.phone);
+    if (!card) card = await CardsRepo.create({ name: lead.name, phone: lead.phone, source: 'marketing-lead' });
+
+    const appointment = await AppointmentsRepo.create({
+      cardId: card.id, clientName: lead.name, clientPhone: lead.phone,
+      serviceId: serviceId || null, serviceName: serviceName || 'Servicio',
+      date, time, durationMinutes: parseInt(durationMinutes) || 60,
+      status: 'scheduled', location: 'Venus Cosmetología',
+      source: 'marketing-lead', bookedById: req.admin.uid,
+      sendWhatsApp24h: true, sendWhatsApp2h: true,
+    });
+
+    // Crear comisión
+    try {
+      const amount = (await SettingsRepo.get('marketing.commission.fixed_amount')) || 50;
+      await CommissionsRepo.create({ marketerId: req.admin.uid, appointmentId: appointment.id, amount, status: 'pendiente' });
+    } catch (e) { console.error('[MARKETING] Comisión:', e.message); }
+
+    // Marcar lead como convertido
+    await LeadsRepo.convert(req.params.id, appointment.id);
+
+    res.json({ success: true, appointmentId: appointment.id });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ── Mis comisiones ──
+app.get('/api/marketing/commissions', adminAuth, requireRole('marketing'), async (req, res) => {
+  try {
+    const totals = await CommissionsRepo.totalsByMarketer(req.admin.uid);
+    const list = await CommissionsRepo.findByMarketer(req.admin.uid);
+    res.json({ success: true, totals, data: list });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ── Campañas WhatsApp ──
+app.post('/api/marketing/whatsapp-campaign', adminAuth, requireRole('marketing'), async (req, res) => {
+  try {
+    const { segment, message, limit } = req.body;
+    if (!message) return res.status(400).json({ success: false, error: 'message_required' });
+
+    // Determinar audiencia según segment
+    let cards = [];
+    if (segment === 'inactive_30') cards = await CardsMarketingRepo.findByInactive(30);
+    else if (segment === 'inactive_60') cards = await CardsMarketingRepo.findByInactive(60);
+    else if (segment === 'inactive_90') cards = await CardsMarketingRepo.findByInactive(90);
+    else if (segment === 'birthdays') {
+      const month = new Date().getMonth() + 1;
+      cards = await CardsMarketingRepo.findByBirthdayMonth(month);
+    } else if (segment === 'gold') {
+      cards = await CardsMarketingRepo.findByCardType('gold');
+    } else {
+      cards = await prisma.card.findMany({ where: { status: 'active' }, take: 200 });
+    }
+
+    const phones = cards.map(c => c.phone).filter(Boolean);
+    const capped = limit ? phones.slice(0, limit) : phones;
+
+    // Enviar con throttle (1 cada 5 min) — background
+    const personalizedMsg = (template, name) => template.replace(/\{nombre\}/gi, name || 'amiga');
+    let sent = 0, failed = 0;
+    setImmediate(async () => {
+      for (const phone of capped) {
+        try {
+          const card = cards.find(c => c.phone === phone);
+          const msg = personalizedMsg(message, card?.name);
+          await WhatsAppService.sendText(phone, msg);
+          sent++;
+          // Throttle 5 min entre mensajes
+          await new Promise(r => setTimeout(r, 5 * 60 * 1000));
+        } catch (e) {
+          failed++;
+          console.error('[MARKETING] WhatsApp send error:', e.message);
+        }
+      }
+      // Notificar al admin
+      await NotificationsRepo.create({
+        type: 'alerta', icon: 'bullhorn',
+        title: 'Campaña WhatsApp completada',
+        message: `${sent} enviados, ${failed} fallidos. Segmento: ${segment}`,
+        read: false,
+      });
+    });
+
+    res.json({ success: true, totalRecipients: capped.length, message: 'Campaña iniciada en background' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ── Push a Wallet ──
+app.post('/api/marketing/wallet-push', adminAuth, requireRole('marketing'), sendMassPushNotification);
+
+// ── Gift cards promocionales ──
+app.post('/api/marketing/giftcards', adminAuth, requireRole('marketing'), async (req, res) => {
+  try {
+    const { serviceId, recipientName, recipientPhone, message, validityDays = 30 } = req.body;
+    if (!serviceId || !recipientName || !recipientPhone)
+      return res.status(400).json({ success: false, error: 'missing_fields' });
+
+    const service = await ServicesRepo.findById(serviceId);
+    if (!service) return res.status(404).json({ success: false, error: 'service_not_found' });
+
+    const code = `VENUS-${Date.now().toString(36).toUpperCase()}`;
+    const expiresAt = new Date(Date.now() + validityDays * 24 * 60 * 60 * 1000);
+
+    const giftCard = await prisma.giftCard.create({
+      data: {
+        code, amount: service.price, remainingAmount: service.price,
+        status: 'pending', recipientName, recipientPhone, message: message || null,
+        serviceId, serviceName: service.name, servicePrice: service.price,
+        validityDays, expiresAt,
+      },
+    });
+    res.json({ success: true, data: giftCard });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/marketing/giftcards', adminAuth, requireRole('marketing'), async (req, res) => {
+  try {
+    const giftCards = await prisma.giftCard.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+    res.json({ success: true, data: giftCards });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ── Reportes de marketing ──
+app.get('/api/marketing/reports/sources', adminAuth, requireRole('marketing'), async (req, res) => {
+  try {
+    const appointments = await prisma.appointment.findMany({
+      where: { bookedById: req.admin.uid },
+      select: { source: true, status: true },
+    });
+    const bySource = {};
+    for (const a of appointments) {
+      const src = a.source || 'sin_etiqueta';
+      if (!bySource[src]) bySource[src] = { total: 0, completed: 0 };
+      bySource[src].total++;
+      if (a.status === 'completed') bySource[src].completed++;
+    }
+    res.json({ success: true, data: bySource });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/marketing/reports/funnel', adminAuth, requireRole('marketing'), async (req, res) => {
+  try {
+    const leads = await LeadsRepo.findByMarketer(req.admin.uid);
+    const totalLeads = leads.length;
+    const agendados = leads.filter(l => ['agendado', 'convertido'].includes(l.status)).length;
+    const convertidos = leads.filter(l => l.status === 'convertido').length;
+
+    const appointments = await prisma.appointment.findMany({
+      where: { bookedById: req.admin.uid },
+      select: { status: true },
+    });
+    const totalCitas = appointments.length;
+    const completadas = appointments.filter(a => a.status === 'completed').length;
+
+    res.json({ success: true, data: { totalLeads, agendados, convertidos, totalCitas, completadas } });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/marketing/reports/roi', adminAuth, requireRole('marketing'), async (req, res) => {
+  try {
+    const { from, to } = req.query;
+    const fromDate = from || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+    const toDate = to || new Date().toISOString();
+
+    // Ingresos atribuidos: citas del marketer completadas
+    const appointments = await prisma.appointment.findMany({
+      where: {
+        bookedById: req.admin.uid,
+        status: 'completed',
+        startDateTime: { gte: new Date(fromDate), lte: new Date(toDate) },
+      },
+      select: { totalPaid: true },
+    });
+    const ingresos = appointments.reduce((sum, a) => sum + parseFloat(a.totalPaid || 0), 0);
+
+    // Gastos de marketing
+    const expenses = await prisma.expense.findMany({
+      where: {
+        category: 'marketing',
+        date: { gte: fromDate.split('T')[0], lte: toDate.split('T')[0] },
+      },
+      select: { amount: true },
+    });
+    const gastos = expenses.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
+
+    // Comisiones
+    const commissions = await CommissionsRepo.totalsByMarketer(req.admin.uid);
+
+    res.json({ success: true, data: { ingresos, gastos, roi: gastos > 0 ? ((ingresos - gastos) / gastos * 100).toFixed(1) : null, commissions } });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/marketing/reports/monthly', adminAuth, requireRole('marketing'), async (req, res) => {
+  try {
+    const appointments = await prisma.appointment.findMany({
+      where: { bookedById: req.admin.uid },
+      select: { date: true, status: true },
+      orderBy: { date: 'asc' },
+    });
+    const byMonth = {};
+    for (const a of appointments) {
+      const month = a.date.slice(0, 7);
+      if (!byMonth[month]) byMonth[month] = { total: 0, completed: 0 };
+      byMonth[month].total++;
+      if (a.status === 'completed') byMonth[month].completed++;
+    }
+    res.json({ success: true, data: byMonth });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ── Segmentos ──
+app.get('/api/marketing/segments/inactive', adminAuth, requireRole('marketing', 'admin'), async (req, res) => {
+  try {
+    const days = parseInt(req.query.days) || 30;
+    const cards = await CardsMarketingRepo.findByInactive(days);
+    res.json({ success: true, count: cards.length, data: cards });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/marketing/segments/birthdays', adminAuth, requireRole('marketing', 'admin'), async (req, res) => {
+  try {
+    const month = parseInt(req.query.month) || (new Date().getMonth() + 1);
+    const cards = await CardsMarketingRepo.findByBirthdayMonth(month);
+    res.json({ success: true, count: cards.length, data: cards });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/marketing/segments/gold', adminAuth, requireRole('marketing', 'admin'), async (req, res) => {
+  try {
+    const cards = await CardsMarketingRepo.findByCardType('gold');
+    res.json({ success: true, count: cards.length, data: cards });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/marketing/segments/ambassadors', adminAuth, requireRole('marketing', 'admin'), async (req, res) => {
+  try {
+    const cards = await CardsMarketingRepo.findAmbassadors();
+    res.json({ success: true, count: cards.length, data: cards });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ── Referidos ──
+app.post('/api/marketing/referrals/generate-code', adminAuth, requireRole('marketing', 'admin'), async (req, res) => {
+  try {
+    const { cardId } = req.body;
+    if (!cardId) return res.status(400).json({ success: false, error: 'cardId_required' });
+    const card = await CardsMarketingRepo.generateReferralCode(cardId);
+    res.json({ success: true, data: { referralCode: card.referralCode } });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/marketing/referrals', adminAuth, requireRole('marketing', 'admin'), async (req, res) => {
+  try {
+    const { cardId } = req.query;
+    if (!cardId) return res.status(400).json({ success: false, error: 'cardId_required' });
+    const referrals = await ReferralsRepo.findByReferrer(cardId);
+    res.json({ success: true, data: referrals });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ── Retos ──
+app.get('/api/marketing/challenges', adminAuth, requireRole('marketing', 'admin'), async (req, res) => {
+  try {
+    const { cardId, activeOnly } = req.query;
+    if (cardId) {
+      const challenges = await ChallengesRepo.findByCard(cardId, { activeOnly: activeOnly === 'true' });
+      res.json({ success: true, data: challenges });
+    } else {
+      const challenges = await ChallengesRepo.findActive();
+      res.json({ success: true, data: challenges });
+    }
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/marketing/challenges', adminAuth, requireRole('admin'), async (req, res) => {
+  try {
+    const { cardId, kind, targetVisits, windowDays, bonusStamps } = req.body;
+    if (!cardId) return res.status(400).json({ success: false, error: 'cardId_required' });
+    const challenge = await ChallengesRepo.create({
+      cardId, kind: kind || 'tres_visitas_30',
+      targetVisits: targetVisits || 3, windowDays: windowDays || 30,
+      bonusStamps: bonusStamps || 1,
+    });
+    res.json({ success: true, data: challenge });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ── UGC / Fotos de progreso ──
+app.get('/api/marketing/ugc/photos', adminAuth, requireRole('marketing', 'admin'), async (req, res) => {
+  try {
+    const { serviceId } = req.query;
+    // Buscar fotos de clientas con consentimiento público
+    const photos = await prisma.clientPhoto.findMany({
+      where: { type: { in: ['before', 'after'] } },
+      include: { record: { select: { cardId: true } } },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+    // Filtrar por consentimiento en Card.publicDisplayOk
+    const filtered = [];
+    for (const p of photos) {
+      if (!p.record?.cardId) continue;
+      const card = await prisma.card.findUnique({ where: { id: p.record.cardId }, select: { publicDisplayOk: true, name: true } });
+      if (card?.publicDisplayOk) filtered.push({ ...p, clientName: card.name });
+    }
+    res.json({ success: true, count: filtered.length, data: filtered });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/marketing/ugc/photos/:id/request', adminAuth, requireRole('marketing', 'admin'), async (req, res) => {
+  try {
+    // Solicitar foto de progreso T+14 por WhatsApp
+    const photoId = req.params.id;
+    const photo = await prisma.clientPhoto.findUnique({ where: { id: photoId }, include: { record: true } });
+    if (!photo) return res.status(404).json({ success: false, error: 'not_found' });
+    const card = await prisma.card.findUnique({ where: { id: photo.record.cardId } });
+    if (!card) return res.status(404).json({ success: false, error: 'card_not_found' });
+
+    try {
+      await WhatsAppService.sendText(card.phone, `Hola ${card.name} 🌿 ¿Cómo va tu piel? Mándanos una foto de frente para ver tu progreso 👇`);
+    } catch (e) { console.error('[MARKETING] WhatsApp:', e.message); }
+
+    res.json({ success: true, message: 'Solicitud enviada' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ── Reseñas pendientes de respuesta ──
+app.get('/api/marketing/reviews/pending', adminAuth, requireRole('marketing', 'admin'), async (req, res) => {
+  try {
+    const reviews = await prisma.review.findMany({
+      where: { replied: false },
+      orderBy: { createdAt: 'desc' },
+    });
+    res.json({ success: true, data: reviews });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.patch('/api/marketing/reviews/:id/reply', adminAuth, requireRole('marketing', 'admin'), async (req, res) => {
+  try {
+    const { reply } = req.body;
+    if (!reply) return res.status(400).json({ success: false, error: 'reply_required' });
+    const review = await prisma.review.update({
+      where: { id: req.params.id },
+      data: { reply, replied: true, repliedAt: new Date() },
+    });
+    res.json({ success: true, data: review });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/* =========================================================
+   MARKETING — Endpoints del admin (gestión de marketers)
+   ========================================================= */
+
+// Listar marketers
+app.get('/api/admin/marketers', adminAuth, requireRole('admin'), async (_req, res) => {
+  try {
+    const marketers = await prisma.admin.findMany({
+      where: { role: 'marketing' },
+      select: { id: true, email: true, name: true, role: true, createdAt: true },
+      orderBy: { name: 'asc' },
+    });
+    // Agregar totales de comisión
+    const result = [];
+    for (const m of marketers) {
+      const totals = await CommissionsRepo.totalsByMarketer(m.id);
+      result.push({ ...m, commissions: totals });
+    }
+    res.json({ success: true, data: result });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Comisiones de un marketer específico
+app.get('/api/admin/marketers/:id/commissions', adminAuth, requireRole('admin'), async (req, res) => {
+  try {
+    const totals = await CommissionsRepo.totalsByMarketer(req.params.id);
+    const list = await CommissionsRepo.findByMarketer(req.params.id);
+    res.json({ success: true, totals, data: list });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Marcar comisión como pagada
+app.patch('/api/admin/commissions/:id/pay', adminAuth, requireRole('admin'), async (req, res) => {
+  try {
+    const commission = await CommissionsRepo.markPaid(req.params.id);
+    res.json({ success: true, data: commission });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Reporte global de comisiones
+app.get('/api/admin/commissions', adminAuth, requireRole('admin'), async (req, res) => {
+  try {
+    const { status, marketerId, from, to } = req.query;
+    const commissions = await CommissionsRepo.findAll({
+      status, marketerId, fromDate: from, toDate: to,
+    });
+    res.json({ success: true, data: commissions });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Configuración de comisión
+app.get('/api/admin/settings/commission', adminAuth, requireRole('admin'), async (_req, res) => {
+  try {
+    const amount = await SettingsRepo.get('marketing.commission.fixed_amount');
+    res.json({ success: true, amount: typeof amount === 'number' ? amount : 50 });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.put('/api/admin/settings/commission', adminAuth, requireRole('admin'), async (req, res) => {
+  try {
+    const { amount } = req.body;
+    if (typeof amount !== 'number' || amount < 0)
+      return res.status(400).json({ success: false, error: 'invalid_amount' });
+    await SettingsRepo.set('marketing.commission.fixed_amount', amount);
+    res.json({ success: true, amount });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Configuración global de marketing
+app.get('/api/admin/settings/marketing', adminAuth, requireRole('admin'), async (_req, res) => {
+  try {
+    const config = {
+      goldThreshold: (await SettingsRepo.get('marketing.gold.threshold_cycles')) || 2,
+      referralCap: (await SettingsRepo.get('marketing.referral.cap_yearly')) || 5,
+      ambassadorMinReviews: (await SettingsRepo.get('marketing.ambassador.min_reviews')) || 3,
+      ambassadorMinReferrals: (await SettingsRepo.get('marketing.ambassador.min_referrals')) || 2,
+    };
+    res.json({ success: true, data: config });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.put('/api/admin/settings/marketing', adminAuth, requireRole('admin'), async (req, res) => {
+  try {
+    const { goldThreshold, referralCap, ambassadorMinReviews, ambassadorMinReferrals } = req.body;
+    if (goldThreshold !== undefined) await SettingsRepo.set('marketing.gold.threshold_cycles', goldThreshold);
+    if (referralCap !== undefined) await SettingsRepo.set('marketing.referral.cap_yearly', referralCap);
+    if (ambassadorMinReviews !== undefined) await SettingsRepo.set('marketing.ambassador.min_reviews', ambassadorMinReviews);
+    if (ambassadorMinReferrals !== undefined) await SettingsRepo.set('marketing.ambassador.min_referrals', ambassadorMinReferrals);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Promociones
+app.post('/api/admin/promotions', adminAuth, requireRole('admin'), async (req, res) => {
+  try {
+    const { type, name, config, endsAt } = req.body;
+    if (!type || !name) return res.status(400).json({ success: false, error: 'type_and_name_required' });
+    const promotion = await PromotionsRepo.create({ type, name, config, endsAt: endsAt ? new Date(endsAt) : null });
+    res.json({ success: true, data: promotion });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/admin/promotions', adminAuth, requireRole('admin'), async (_req, res) => {
+  try {
+    const promotions = await PromotionsRepo.findAll();
+    res.json({ success: true, data: promotions });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Embajadoras
+app.get('/api/admin/ambassadors', adminAuth, requireRole('admin'), async (_req, res) => {
+  try {
+    const cards = await CardsMarketingRepo.findAmbassadors();
+    res.json({ success: true, data: cards });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.patch('/api/admin/cards/:id/ambassador', adminAuth, requireRole('admin'), async (req, res) => {
+  try {
+    const { isAmbassador } = req.body;
+    const card = await CardsMarketingRepo.setAmbassador(req.params.id, isAmbassador);
+    res.json({ success: true, data: card });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Atribución multi-touch
+app.get('/api/admin/attribution', adminAuth, requireRole('admin'), async (req, res) => {
+  try {
+    const { from, to } = req.query;
+    const fromDate = from || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+    const toDate = to || new Date().toISOString();
+    const report = await TouchpointsRepo.attributionReport(fromDate, toDate);
+    res.json({ success: true, data: report });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/* =========================================================
+   MARKETING — Endpoints públicos
+   ========================================================= */
+
+// Redirect de referido: /r/:code → /agendar.html?ref=CODE
+app.get('/r/:code', async (req, res) => {
+  try {
+    const { code } = req.params;
+    const card = await CardsMarketingRepo.findByReferralCode(code);
+    if (card) {
+      // Registrar touchpoint
+      await TouchpointsRepo.create({ channel: 'referral', campaign: code });
+    }
+    res.redirect(302, `/agendar.html?ref=${encodeURIComponent(code)}`);
+  } catch {
+    res.redirect(302, '/agendar.html');
+  }
+});
+
+// Galería before/after pública (UGC consentido)
+app.get('/api/public/before-after', async (req, res) => {
+  try {
+    const { serviceId } = req.query;
+    const photos = await prisma.clientPhoto.findMany({
+      where: { type: { in: ['before', 'after'] } },
+      include: { record: { select: { cardId: true } } },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+    });
+    const filtered = [];
+    for (const p of photos) {
+      if (!p.record?.cardId) continue;
+      const card = await prisma.card.findUnique({ where: { id: p.record.cardId }, select: { publicDisplayOk: true } });
+      if (card?.publicDisplayOk) filtered.push({ url: p.url, type: p.type, area: p.area });
+    }
+    res.json({ success: true, data: filtered });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`\n🚀 Servidor activo en http://localhost:${PORT}`);

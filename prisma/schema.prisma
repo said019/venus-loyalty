@@ -38,10 +38,27 @@ model Card {
   massageCycles    Int     @default(0) // Ciclos completados de masaje
   massageWalletUrl String? // URL Google Wallet para masajes
 
+  // ===== MARKETING =====
+  referralCode           String?  @unique @map("referral_code") // código de referido (ej. SAID10)
+  referredByCardId       String?  @map("referred_by_card_id")  // quién la refirió
+  referredBy             Card?    @relation("CardReferrals", fields: [referredByCardId], references: [id], onDelete: SetNull)
+  referrals              Card[]   @relation("CardReferrals")
+  referralStampsThisYear Int     @default(0) @map("referral_stamps_this_year") // tope 5/año
+  birthdaySentYear        Int?    @map("birthday_sent_year")   // guard anti-doble envío cumpleaños
+  isAmbassador            Boolean  @default(false) @map("is_ambassador")
+  bestSendHour            Int?    @map("best_send_hour")        // hora top de actividad WhatsApp
+  publicDisplayOk         Boolean  @default(false) @map("public_display_ok") // consentimiento UGC
+
+  // Relaciones de referidos (programa Referral)
+  referralsMade     Referral[] @relation("ReferralReferrer")
+  referralsReceived Referral[] @relation("ReferralInvitee")
+
   // Relaciones
   appointments Appointment[]
   events       Event[]
   skinAnalyses SkinAnalysis[]
+  touchpoints  Touchpoint[]
+  challenges   Challenge[]
 
   @@map("cards")
 }
@@ -122,6 +139,19 @@ model Appointment {
   assignedAdminId String?
   assignedAdmin   Admin?  @relation(fields: [assignedAdminId], references: [id], onDelete: SetNull)
 
+  // Atribución de marketing: admin que agendó la cita (para comisión).
+  bookedById String?
+  bookedBy   Admin?  @relation("AppointmentsBookedBy", fields: [bookedById], references: [id], onDelete: SetNull)
+
+  // Relación a comisión (1:1 opcional — solo citas agendadas por marketing)
+  commission Commission?
+
+  // Relación a lead (1:1 opcional — si la cita viene de un lead convertido)
+  lead Lead?
+
+  // Relación a touchpoint (atribución multi-touch)
+  touchpoint Touchpoint?
+
   // Google Calendar mapping (OAuth2)
   calendarMappings GoogleCalendarMapping[]
 
@@ -130,6 +160,7 @@ model Appointment {
   @@index([status, startDateTime])
   @@index([clientPhone, startDateTime])
   @@index([assignedAdminId])
+  @@index([bookedById])
   @@map("appointments")
 }
 
@@ -297,6 +328,12 @@ model Admin {
   googleCalendar       AdminGoogleCalendar?
   // Citas que este admin atenderá (asignación manual al agendar)
   assignedAppointments Appointment[]
+  // Citas que este admin agendó (atribución de marketing / comisión)
+  bookedAppointments   Appointment[] @relation("AppointmentsBookedBy")
+  // Leads asignados a este marketer
+  leads                Lead[]
+  // Comisiones generadas por este marketer
+  commissions          Commission[]
 
   @@map("admins")
 }
@@ -929,4 +966,119 @@ model SkinAnalysisImage {
 
   @@index([analysisId])
   @@map("skin_analysis_images")
+}
+
+// ========== MARKETING ==========
+
+// Leads / Mini-CRM para la persona de marketing
+model Lead {
+  id            String   @id @default(cuid())
+  name          String
+  phone         String
+  email         String?
+  origin        String   @default("otro") // facebook-ads | instagram | referido | whatsapp | calle | otro
+  notes         String?
+  status        String   @default("nuevo") // nuevo | contactado | agendado | convertido | perdido
+  score         Int      @default(0) // 0-100, computado en read
+  marketerId    String
+  marketer      Admin    @relation(fields: [marketerId], references: [id], onDelete: Cascade)
+  appointmentId String?  @unique // cita resultante cuando se convierte
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  contactedAt   DateTime?
+  convertedAt   DateTime?
+
+  @@index([marketerId])
+  @@index([status])
+  @@index([score])
+  @@map("leads")
+}
+
+// Comisiones por cita agendada (1 cita = 1 comisión)
+model Commission {
+  id            String      @id @default(cuid())
+  marketerId    String
+  marketer      Admin       @relation(fields: [marketerId], references: [id], onDelete: Cascade)
+  appointmentId String      @unique
+  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  amount        Float       // monto fijo configurado al momento de agendar (snapshot)
+  status        String      @default("pendiente") // pendiente | pagada | cancelada
+  paidAt        DateTime?
+  createdAt     DateTime    @default(now())
+
+  @@index([marketerId])
+  @@index([status])
+  @@map("commissions")
+}
+
+// Programa de referidos
+model Referral {
+  id              String   @id @default(cuid())
+  referrerCardId  String
+  referrerCard    Card     @relation("ReferralReferrer", fields: [referrerCardId], references: [id], onDelete: Cascade)
+  inviteeCardId   String
+  inviteeCard     Card     @relation("ReferralInvitee", fields: [inviteeCardId], references: [id], onDelete: Cascade)
+  inviteePhone    String
+  status          String   @default("pendiente") // pendiente | completada | pagada
+  completedAt     DateTime?
+  awardedAt       DateTime? // cuándo se otorgó el sello al referrer
+  createdAt       DateTime @default(now())
+
+  @@unique([inviteeCardId]) // 1 referido = 1 referral
+  @@index([referrerCardId])
+  @@map("referrals")
+}
+
+// Retos de sellos (ej. 3 visitas en 30 días = sello extra)
+model Challenge {
+  id               String   @id @default(cuid())
+  cardId           String
+  card             Card     @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  kind             String   @default("tres_visitas_30") // tres_visitas_30 | doble_sello_dia | custom
+  startedAt        DateTime @default(now())
+  targetVisits     Int      @default(3)
+  windowDays       Int      @default(30)
+  visitsCompleted  Int      @default(0)
+  completedAt      DateTime?
+  bonusStamps      Int      @default(1)
+  createdAt        DateTime @default(now())
+
+  @@index([cardId])
+  @@index([kind])
+  @@map("challenges")
+}
+
+// Ventanas promocionales (ej. doble sello los martes, winback 10% off)
+model Promotion {
+  id        String   @id @default(cuid())
+  type      String   @default("doble_sello") // doble_sello | bonus_stamp | winback_discount
+  name      String
+  active    Boolean  @default(true)
+  config    Json     // { weekday:2, category:'facial', discountPct:10, ... }
+  startsAt  DateTime @default(now())
+  endsAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([active])
+  @@map("promotions")
+}
+
+// Atribución multi-touch: cada contacto de un cliente con el negocio
+model Touchpoint {
+  id        String   @id @default(cuid())
+  cardId    String?
+  card      Card?    @relation(fields: [cardId], references: [id], onDelete: SetNull)
+  channel   String   // instagram | facebook-ads | referral | whatsapp | online | direct
+  campaign  String?
+  utm       Json?
+  timestamp DateTime @default(now())
+
+  // Relación opcional con la cita que originó este touchpoint
+  appointmentId String? @unique
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+
+  @@index([cardId])
+  @@index([channel])
+  @@map("touchpoints")
 }

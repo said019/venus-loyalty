@@ -2404,7 +2404,64 @@
       </div>
     </section>
 
-    <!-- Modal Nuevo/Editar Producto -->
+    <!-- ===== MARKETING — Marketers y Comisiones ===== -->
+    <section id="tab-marketing-manage" class="card hidden">
+      <h2><i class="fas fa-users"></i> Marketers y Comisiones</h2>
+
+      <div style="margin: 16px 0;">
+        <h3 style="font-size:16px;margin-bottom:8px;">Crear cuenta de marketing</h3>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <input id="mkt-new-email" placeholder="correo@ejemplo.com" style="flex:1;min-width:180px;padding:8px 10px;border:1px solid rgba(0,0,0,0.15);border-radius:8px;">
+          <input id="mkt-new-name" placeholder="Nombre" style="flex:1;min-width:120px;padding:8px 10px;border:1px solid rgba(0,0,0,0.15);border-radius:8px;">
+          <input id="mkt-new-pass" type="password" placeholder="Contraseña" style="flex:1;min-width:120px;padding:8px 10px;border:1px solid rgba(0,0,0,0.15);border-radius:8px;">
+          <button class="btn small primary" onclick="createMarketer()"><i class="fas fa-user-plus"></i> Crear</button>
+        </div>
+      </div>
+
+      <div style="margin: 16px 0;">
+        <h3 style="font-size:16px;margin-bottom:8px;">Configuración de comisión</h3>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <label>Monto fijo por cita: $</label>
+          <input id="mkt-commission-amount" type="number" style="width:100px;padding:8px 10px;border:1px solid rgba(0,0,0,0.15);border-radius:8px;" placeholder="50">
+          <button class="btn small primary" onclick="saveCommissionConfig()">Guardar</button>
+          <button class="btn small ghost" onclick="loadCommissionConfig()">Cargar</button>
+        </div>
+      </div>
+
+      <div style="margin: 16px 0;">
+        <h3 style="font-size:16px;margin-bottom:8px;">Marketers activos</h3>
+        <table class="data-table" style="width:100%;border-collapse:collapse;">
+          <thead>
+            <tr style="background:rgba(0,0,0,0.03);">
+              <th style="padding:8px;text-align:left;">Nombre</th>
+              <th style="padding:8px;text-align:left;">Email</th>
+              <th style="padding:8px;text-align:right;">Comisión pendiente</th>
+              <th style="padding:8px;text-align:right;">Comisión pagada</th>
+              <th style="padding:8px;text-align:center;">Acción</th>
+            </tr>
+          </thead>
+          <tbody id="mkt-marketers-tbody"></tbody>
+        </table>
+      </div>
+
+      <div style="margin: 16px 0;">
+        <h3 style="font-size:16px;margin-bottom:8px;">Reporte de comisiones</h3>
+        <table class="data-table" style="width:100%;border-collapse:collapse;">
+          <thead>
+            <tr style="background:rgba(0,0,0,0.03);">
+              <th style="padding:8px;text-align:left;">Marketer</th>
+              <th style="padding:8px;text-align:left;">Cliente</th>
+              <th style="padding:8px;text-align:left;">Servicio</th>
+              <th style="padding:8px;text-align:left;">Fecha</th>
+              <th style="padding:8px;text-align:right;">Monto</th>
+              <th style="padding:8px;text-align:center;">Estado</th>
+              <th style="padding:8px;text-align:center;">Acción</th>
+            </tr>
+          </thead>
+          <tbody id="mkt-commissions-tbody"></tbody>
+        </table>
+      </div>
+    </section>
     <div id="modal-product" class="modal-backdrop hidden">
       <div class="modal-card">
         <div class="modal-header">
@@ -19839,6 +19896,110 @@
       // Badge de pendientes al abrir el admin (sin entrar al tab)
       document.addEventListener('DOMContentLoaded', function () {
         setTimeout(function () { window.loadMarketingChecklist(); }, 1200);
+      });
+    })();
+  </script>
+
+  <!-- ===== MARKETING MANAGE (Marketers y Comisiones) ===== -->
+  <script>
+    (function () {
+      async function apiFetch(path, options = {}) {
+        const res = await fetch(path, {
+          ...options,
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+        });
+        return res.json();
+      }
+
+      window.createMarketer = async function () {
+        const email = document.getElementById('mkt-new-email').value;
+        const name = document.getElementById('mkt-new-name').value;
+        const pass = document.getElementById('mkt-new-pass').value;
+        if (!email || !pass) { alert('Email y contraseña son requeridos'); return; }
+        const res = await fetch('/api/admin/register', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password: pass, name, role: 'marketing' }),
+        });
+        const data = await res.json();
+        if (data.ok) {
+          alert('✅ Marketer creado: ' + email);
+          document.getElementById('mkt-new-email').value = '';
+          document.getElementById('mkt-new-name').value = '';
+          document.getElementById('mkt-new-pass').value = '';
+          loadMarketers();
+        } else {
+          alert('❌ ' + (data.error || 'Error'));
+        }
+      };
+
+      window.loadMarketers = async function () {
+        try {
+          const res = await apiFetch('/api/admin/marketers');
+          if (!res.success) return;
+          const tbody = document.getElementById('mkt-marketers-tbody');
+          tbody.innerHTML = res.data.map(m => `
+            <tr>
+              <td style="padding:8px;">${m.name || m.email}</td>
+              <td style="padding:8px;">${m.email}</td>
+              <td style="padding:8px;text-align:right;">$${(m.commissions?.pendiente || 0).toFixed(0)}</td>
+              <td style="padding:8px;text-align:right;">$${(m.commissions?.pagada || 0).toFixed(0)}</td>
+              <td style="padding:8px;text-align:center;">
+                <button class="btn small ghost" onclick="loadMarketerCommissions('${m.id}')">Ver comisiones</button>
+              </td>
+            </tr>
+          `).join('');
+        } catch (e) { console.error('loadMarketers', e); }
+      };
+
+      window.loadMarketerCommissions = async function (marketerId) {
+        try {
+          const res = await apiFetch(`/api/admin/marketers/${marketerId}/commissions`);
+          if (!res.success) return;
+          const tbody = document.getElementById('mkt-commissions-tbody');
+          tbody.innerHTML = res.data.map(c => `
+            <tr>
+              <td style="padding:8px;">${marketerId}</td>
+              <td style="padding:8px;">-</td>
+              <td style="padding:8px;">-</td>
+              <td style="padding:8px;">${new Date(c.createdAt).toLocaleDateString()}</td>
+              <td style="padding:8px;text-align:right;">$${c.amount.toFixed(0)}</td>
+              <td style="padding:8px;text-align:center;">${c.status}</td>
+              <td style="padding:8px;text-align:center;">
+                ${c.status === 'pendiente' ? `<button class="btn small primary" onclick="payCommission('${c.id}')">Marcar pagada</button>` : '-'}
+              </td>
+            </tr>
+          `).join('');
+        } catch (e) { console.error('loadMarketerCommissions', e); }
+      };
+
+      window.payCommission = async function (id) {
+        const res = await apiFetch(`/api/admin/commissions/${id}/pay`, { method: 'PATCH' });
+        if (res.success) {
+          alert('✅ Comisión marcada como pagada');
+          loadMarketers();
+        }
+      };
+
+      window.saveCommissionConfig = async function () {
+        const amount = parseFloat(document.getElementById('mkt-commission-amount').value);
+        if (isNaN(amount) || amount < 0) { alert('Monto inválido'); return; }
+        const res = await apiFetch('/api/admin/settings/commission', { method: 'PUT', body: JSON.stringify({ amount }) });
+        if (res.success) alert('✅ Comisión configurada: $' + amount);
+      };
+
+      window.loadCommissionConfig = async function () {
+        const res = await apiFetch('/api/admin/settings/commission');
+        if (res.success) document.getElementById('mkt-commission-amount').value = res.amount;
+      };
+
+      document.addEventListener('DOMContentLoaded', function () {
+        setTimeout(function () {
+          loadMarketers();
+          loadCommissionConfig();
+        }, 1500);
       });
     })();
   </script>
