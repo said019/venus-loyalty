@@ -3995,6 +3995,7 @@
   <!-- Chart.js lib -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="/js/admin/core/api.js"></script>
+  <script src="/js/admin/core/pagos.js"></script>
   <script src="/js/admin/core/ui.js"></script>
   <script src="/js/admin/core/router.js"></script>
   <script src="/js/admin/views/reviews.js"></script>
@@ -10379,16 +10380,17 @@
             });
 
             if (amount > 0 && method) {
-              switch (method) {
-                case 'efectivo':
-                  cashTotal += amount;
-                  break;
+              // Normalizado: el switch exacto tiraba los cobros con
+              // tarjeta_credito / tarjeta_debito y el total salía corto.
+              switch (normalizarMetodoPago(method)) {
                 case 'tarjeta':
                   cardTotal += amount;
                   break;
                 case 'transferencia':
                   transferTotal += amount;
                   break;
+                default:
+                  cashTotal += amount;
               }
             }
           }
@@ -16962,6 +16964,8 @@
       }).join('');
     }
 
+    // normalizarMetodoPago / etiquetaMetodoPago / cuentaDeMetodoPago viven en
+    // /js/admin/core/pagos.js (script clásico cargado antes que este bloque).
     function getMetodoPagoBadge(metodo) {
       const m = (metodo || 'efectivo').toLowerCase();
       if (m.includes('efectivo') || m === 'cash') {
@@ -17924,9 +17928,8 @@
             const descuento = parseFloat(venta.discountAmount) || 0;
             const total = parseFloat(venta.totalPaid) || 0;
             const tipo = (venta.productsSold?.length > 0) ? 'PRODUCTO' : null;
-            const formaPago = (venta.paymentMethod || '').charAt(0).toUpperCase() + (venta.paymentMethod || '').slice(1);
-            const cuentaBancaria = venta.paymentMethod === 'transferencia' || venta.paymentMethod === 'tarjeta'
-              ? 'BBVA Alo' : 'Caja';
+            const formaPago = etiquetaMetodoPago(venta.paymentMethod);
+            const cuentaBancaria = cuentaDeMetodoPago(venta.paymentMethod, 'BBVA Alo');
 
             row.push(
               fecha,
@@ -18117,6 +18120,9 @@
           totalPaid: parseFloat(s.totalAmount ?? s.total) || 0,
           serviceAmount: parseFloat(s.serviceAmount) || 0,
           discountAmount: parseFloat(s.discountAmount) || 0,
+          // Sin esto, la Venta Rápida salía como "SERVICIO" en la tabla del
+          // reporte: la columna Tipo mira productsSold y no se traía.
+          productsSold: s.productsSold || s.products || [],
           _isManualSale: true
         }));
 
@@ -18174,9 +18180,12 @@
         const amount = parseFloat(v.totalPaid) || 0;
         totalIngresos += amount;
 
-        if (v.paymentMethod === 'efectivo') { totalEfectivo += amount; countEfectivo++; }
-        else if (v.paymentMethod === 'tarjeta') { totalTarjeta += amount; countTarjeta++; }
-        else if (v.paymentMethod === 'transferencia') { totalTransferencia += amount; countTransferencia++; }
+        // Normalizado: si no, "tarjeta_credito"/"tarjeta_debito" no entraban en
+        // ninguna tarjeta y la suma por método quedaba por debajo del total.
+        const metodo = normalizarMetodoPago(v.paymentMethod);
+        if (metodo === 'efectivo') { totalEfectivo += amount; countEfectivo++; }
+        else if (metodo === 'tarjeta') { totalTarjeta += amount; countTarjeta++; }
+        else { totalTransferencia += amount; countTransferencia++; }
 
         const serviceName = v.serviceName || 'Otro';
         if (!ingresosPorServicio[serviceName]) {
@@ -18361,15 +18370,22 @@
         totalDescuento += descuento;
         totalGeneral += total;
 
-        const tipo = v._isCoffeeSale ? 'CAFETERÍA' : (v.productsSold?.length > 0) ? 'PRODUCTO' : 'SERVICIO';
-        const tipoColor = v._isCoffeeSale
+        // Una Venta Rápida hecha solo de bebidas de barra (ids "coffee:…") es
+        // cafetería aunque no venga del POS del café. Si va mezclada con retail
+        // se queda como PRODUCTO: el ticket no se puede partir en dos renglones.
+        const items = v.productsSold || [];
+        const esSoloBarra = items.length > 0 && items.every(p => String(p.productId || '').startsWith('coffee:'));
+        const esCafeteria = !!v._isCoffeeSale || esSoloBarra;
+        const tipo = esCafeteria ? 'CAFETERÍA' : (items.length > 0) ? 'PRODUCTO' : 'SERVICIO';
+        const tipoColor = esCafeteria
           ? { bg: '#fef9c3', fg: '#713f12' }
           : tipo === 'PRODUCTO'
             ? { bg: '#fef3c7', fg: '#92400e' }
             : { bg: '#e0e7ff', fg: '#3730a3' };
-        const formaPago = (v.paymentMethod || '').charAt(0).toUpperCase() + (v.paymentMethod || '').slice(1);
-        const cuentaBancaria = v.paymentMethod === 'transferencia' ? 'BBVA Aho' :
-          v.paymentMethod === 'tarjeta' ? 'BBVA Aho' : 'Caja';
+        const formaPago = etiquetaMetodoPago(v.paymentMethod);
+        // Todo lo que no es efectivo cae en banco (incluye tarjeta_credito/debito,
+        // que antes se contaban como "Caja" por comparar el string exacto).
+        const cuentaBancaria = cuentaDeMetodoPago(v.paymentMethod, 'BBVA Aho');
 
         return `
           <tr>
@@ -18407,8 +18423,10 @@
       const paymentFilter = document.getElementById('filter-payment-method').value;
       if (!reportData) return;
 
+      // Comparar normalizado: el filtro "Tarjeta" debe traer también los cobros
+      // guardados como tarjeta_credito / tarjeta_debito.
       const filteredVentas = paymentFilter
-        ? reportData.filter(v => v.paymentMethod === paymentFilter)
+        ? reportData.filter(v => normalizarMetodoPago(v.paymentMethod) === normalizarMetodoPago(paymentFilter))
         : reportData;
 
       renderExcelTable(filteredVentas);

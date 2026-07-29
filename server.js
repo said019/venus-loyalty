@@ -23,6 +23,8 @@ import {
   toMexicoISO,
   startOfMonthMexicoISO,
   todayMexicoStr,
+  startOfDayMexico,
+  endOfDayMexico,
   mxYear,
   mxMonth,
   mxDay,
@@ -1484,32 +1486,22 @@ app.get('/api/transactions', adminAuth, requireRole("admin"), async (req, res) =
     const { date } = req.query;
     if (!date) return res.json({ success: false, error: 'Fecha requerida' });
 
-    const startDate = new Date(date + 'T00:00:00');
-    const endDate = new Date(date + 'T23:59:59');
+    // Día natural de México. Antes era `new Date(date + 'T00:00:00')`, que se
+    // interpreta en la zona del SERVIDOR (UTC en Railway): una venta de las
+    // 19:00 se guardaba con createdAt del día siguiente en UTC y no salía en la
+    // Caja del día en que se cobró.
+    const startDate = startOfDayMexico(date);
+    const endDate = endOfDayMexico(date);
 
-    // Buscar en SalesRepo (Prisma)
-    // Asumiendo que Prisma maneja fechas ISO
-    try {
-      const sales = await prisma.sale.findMany({
-        where: {
-          createdAt: {
-            gte: startDate,
-            lte: endDate
-          }
-        }
-      });
+    // El fallback a firestore.collection('sales') que había aquí consultaba la
+    // MISMA tabla vía la capa compat, con el mismo filtro: solo podía devolver
+    // el mismo resultado vacío. Se eliminó.
+    const sales = await prisma.sale.findMany({
+      where: { createdAt: { gte: startDate, lte: endDate } },
+      orderBy: { createdAt: 'asc' },
+    });
 
-      if (sales && sales.length > 0) return res.json({ success: true, data: sales });
-    } catch (e) { console.warn('Error fetching prismas sales:', e); }
-
-    // Fallback a Firestore para ventas directas
-    const snapshot = await firestore.collection('sales')
-      .where('createdAt', '>=', startDate.toISOString())
-      .where('createdAt', '<=', endDate.toISOString())
-      .get();
-
-    const fsSales = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-    return res.json({ success: true, data: fsSales });
+    return res.json({ success: true, data: sales });
 
   } catch (e) {
     console.error('Error obteniendo transacciones:', e);
