@@ -76,6 +76,20 @@ function mxDay() {
     return parseInt(todayMexicoStr().split('-')[2]);
 }
 
+// Límites de un día natural de México como Date, para filtrar por rango.
+// CDMX no observa horario de verano desde 2022: el offset es -06:00 todo el año.
+// Sin esto, `new Date('2026-07-29')` es medianoche UTC = 18:00 del 28 en México,
+// así que una venta de la tarde caía en el día SIGUIENTE del reporte.
+function startOfDayMexico(dateStr) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(dateStr || ''))) return new Date(dateStr);
+    return new Date(`${dateStr}T00:00:00.000-06:00`);
+}
+
+function endOfDayMexico(dateStr) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(dateStr || ''))) return new Date(dateStr);
+    return new Date(`${dateStr}T23:59:59.999-06:00`);
+}
+
 // Inicio del mes actual en México como ISO string (medianoche CDM = 06:00 UTC)
 function startOfMonthMexicoISO() {
     const [year, month] = todayMexicoStr().split('-');
@@ -89,6 +103,8 @@ export {
     toMexicoCityISO,
     toMexicoISO,
     todayMexicoStr,
+    startOfDayMexico,
+    endOfDayMexico,
     mxYear,
     mxMonth,
     mxDay,

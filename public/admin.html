@@ -2238,6 +2238,7 @@
             <button class="btn ghost small caja-filter-btn is-active" data-filter="todos" onclick="filtrarCaja('todos')">Todos</button>
             <button class="btn ghost small caja-filter-btn" data-filter="citas" onclick="filtrarCaja('citas')">Citas</button>
             <button class="btn ghost small caja-filter-btn" data-filter="productos" onclick="filtrarCaja('productos')">Productos</button>
+            <button class="btn ghost small caja-filter-btn" data-filter="cafe" onclick="filtrarCaja('cafe')">Café</button>
           </div>
         </div>
         
@@ -16703,25 +16704,21 @@
 
         const transacciones = [];
 
+        // Suma un cobro al método que le toca (efectivo es el respaldo).
+        // Las tres fuentes de la Caja —citas, venta rápida y café— usan esto.
+        const sumarAMetodo = (metodo, monto) => {
+          if (metodo.includes('tarjeta') || metodo === 'card') { totalTarjeta += monto; countTarjeta++; }
+          else if (metodo.includes('transfer')) { totalTransferencia += monto; countTransferencia++; }
+          else { totalEfectivo += monto; countEfectivo++; }
+        };
+
         citasCompletadas.forEach(cita => {
           // MODIFICADO: Permitir registrar transacciones de monto 0
           if (cita.totalPaid >= 0) {
             const metodo = (cita.paymentMethod || 'efectivo').toLowerCase();
             const monto = parseFloat(cita.totalPaid) || 0;
-            
-            if (metodo.includes('efectivo') || metodo === 'cash') {
-              totalEfectivo += monto;
-              countEfectivo++;
-            } else if (metodo.includes('tarjeta') || metodo === 'card') {
-              totalTarjeta += monto;
-              countTarjeta++;
-            } else if (metodo.includes('transfer')) {
-              totalTransferencia += monto;
-              countTransferencia++;
-            } else {
-              totalEfectivo += monto;
-              countEfectivo++;
-            }
+
+            sumarAMetodo(metodo, monto);
 
             transacciones.push({
               tipo: 'cita',
@@ -16749,12 +16746,8 @@
                 if (!venta.appointmentId && !venta.serviceName) {
                    const monto = parseFloat(venta.totalAmount) || 0;
                    const metodo = (venta.paymentMethod || 'efectivo').toLowerCase();
-                   
-                   // Sumar a totales
-                   if (metodo.includes('efectivo')) { totalEfectivo += monto; countEfectivo++; }
-                   else if (metodo.includes('tarjeta')) { totalTarjeta += monto; countTarjeta++; }
-                   else if (metodo.includes('transfer')) { totalTransferencia += monto; countTransferencia++; }
-                   else { totalEfectivo += monto; countEfectivo++; }
+
+                   sumarAMetodo(metodo, monto);
 
                    transacciones.push({
                      tipo: 'producto',
@@ -16771,6 +16764,41 @@
           }
         } catch (e) {
           console.warn('Error cargando ventas directas:', e);
+        }
+
+        // Ventas del Coffee Bar. Viven en su propia tabla (coffee_sales), no en
+        // `sales`, y la Caja nunca las leía: el café jamás aparecía en el corte
+        // del día aunque sí salía en el reporte de Ventas.
+        try {
+          const resCafe = await apiFetch(`/api/pos/sales?from=${fecha}&to=${fecha}`);
+          if (resCafe.ok) {
+            const jsonCafe = await resCafe.json();
+            const ventasCafe = (jsonCafe.success ? jsonCafe.data || [] : [])
+              .filter(v => v.status !== 'cancelled');
+
+            ventasCafe.forEach(venta => {
+              const monto = parseFloat(venta.total) || 0;
+              const metodo = (venta.paymentMethod || 'efectivo').toLowerCase();
+
+              sumarAMetodo(metodo, monto);
+
+              const concepto = (venta.items || [])
+                .map(i => (i.qty > 1 ? `${i.qty}× ${i.productName}` : i.productName))
+                .join(', ');
+
+              transacciones.push({
+                tipo: 'cafe',
+                hora: new Date(venta.createdAt).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }),
+                cliente: venta.folio || 'Coffee Bar',
+                concepto: concepto || 'Venus Coffee Bar',
+                monto: monto,
+                metodo: metodo,
+                id: venta.id
+              });
+            });
+          }
+        } catch (e) {
+          console.warn('Error cargando ventas del café:', e);
         }
 
         cajaData = transacciones;
@@ -16884,6 +16912,8 @@
         filtered = transacciones.filter(t => t.tipo === 'cita');
       } else if (cajaFiltroActual === 'productos') {
         filtered = transacciones.filter(t => t.tipo === 'producto');
+      } else if (cajaFiltroActual === 'cafe') {
+        filtered = transacciones.filter(t => t.tipo === 'cafe');
       }
 
       if (!filtered || filtered.length === 0) {
@@ -16891,7 +16921,7 @@
           <tr>
             <td colspan="7" class="caja-empty-state" style="padding:48px 20px;">
               <i class="fas fa-inbox"></i>
-              <p>Sin transacciones ${cajaFiltroActual !== 'todos' ? 'de ' + cajaFiltroActual : ''} registradas</p>
+              <p>Sin transacciones ${cajaFiltroActual !== 'todos' ? 'de ' + ({ citas: 'citas', productos: 'productos', cafe: 'café' }[cajaFiltroActual] || cajaFiltroActual) : ''} registradas</p>
             </td>
           </tr>
         `;
@@ -16907,10 +16937,13 @@
 
       tbody.innerHTML = filtered.map(t => {
         const metodoBadge = getMetodoPagoBadge(t.metodo);
-        const tipoBadge = t.tipo === 'cita' 
-          ? '<span class="status-badge confirmed" style="font-size:10px;"><i class="fas fa-calendar-check"></i> Cita</span>'
-          : '<span class="status-badge pending" style="font-size:10px;"><i class="fas fa-shopping-bag"></i> Producto</span>';
-        
+        const TIPO_BADGES = {
+          cita: '<span class="status-badge confirmed" style="font-size:10px;"><i class="fas fa-calendar-check"></i> Cita</span>',
+          cafe: '<span class="status-badge" style="font-size:10px;background:#f3e5d8;color:#7b4b28;"><i class="fas fa-mug-hot"></i> Café</span>',
+          producto: '<span class="status-badge pending" style="font-size:10px;"><i class="fas fa-shopping-bag"></i> Producto</span>'
+        };
+        const tipoBadge = TIPO_BADGES[t.tipo] || TIPO_BADGES.producto;
+
         return `
           <tr>
             <td style="font-family:'Prata',serif;font-weight:600;">${t.hora}</td>
@@ -16920,7 +16953,7 @@
             <td class="caja-amount-cell">$${(t.monto || 0).toLocaleString('es-MX', {minimumFractionDigits:2,maximumFractionDigits:2})}</td>
             <td style="text-align:center;">${metodoBadge}</td>
             <td style="text-align:center;">
-              <button class="btn ghost small" onclick="verDetalleCaja('${t.id}')" title="Ver detalle" style="padding:6px 8px;">
+              <button class="btn ghost small" onclick="verDetalleCaja('${t.id}','${t.tipo}')" title="Ver detalle" style="padding:6px 8px;">
                 <i class="fas fa-eye"></i>
               </button>
             </td>
@@ -17711,7 +17744,16 @@
       }
     }
 
-    function verDetalleCaja(id) {
+    function verDetalleCaja(id, tipo) {
+      // Solo las citas tienen ficha. Venta rápida y café son tickets de otra
+      // tabla: abrirles el modal de cita mostraba un detalle vacío o roto.
+      if (tipo && tipo !== 'cita') {
+        showNotification(
+          tipo === 'cafe' ? 'Ticket del Coffee Bar — el detalle está en el POS del café' : 'Venta de mostrador (sin cita asociada)',
+          'info'
+        );
+        return;
+      }
       // Por ahora, simplemente abrir el detalle de la cita
       if (typeof openAppointmentDetailModal === 'function') {
         openAppointmentDetailModal(id);
