@@ -33,6 +33,7 @@ import { validateLeadTime, LEAD_TIME_RULE } from './src/utils/leadTime.js';
 import { prisma } from './src/db/index.js';
 import { firestore } from './src/db/compat.js';
 import { CardsRepo, AppointmentsRepo, ServicesRepo, ProductsRepo, SalesRepo, NotificationsRepo, BlockedSlotsRepo } from './src/db/repositories.js';
+import { buildDirectSaleRecord } from './src/services/directSale.js';
 
 // WhatsApp Service - USANDO V2 PARA FORZAR RECARGA
 import { WhatsAppService } from './src/services/whatsapp-v2.js';
@@ -1412,7 +1413,6 @@ app.post('/api/direct-sales', adminAuth, async (req, res) => {
   try {
     const {
       clientName,
-      paymentMethod,
       productsAmount,
       discountType,
       discountValue,
@@ -1461,45 +1461,17 @@ app.post('/api/direct-sales', adminAuth, async (req, res) => {
       }
     }
 
-    // Registrar en colección de ventas
-    const saleRef = await firestore.collection('sales').add({
-      type: 'direct', // Venta directa (sin cita)
-      clientName: clientName || 'Venta directa',
-      serviceName: null,
-      serviceAmount: 0,
-      productsAmount: parseFloat(productsAmount) || 0,
-      subtotal: parseFloat(productsAmount) || 0,
-      discountType,
-      discountValue,
-      discountAmount: parseFloat(discountAmount) || 0,
-      totalAmount: parseFloat(totalAmount) || 0,
-      productsSold,
-      paymentMethod,
-      createdAt: new Date().toISOString()
-    });
+    // Registrar la venta (una sola escritura, vía Prisma).
+    // ANTES se hacía firestore.collection('sales').add({ type:'direct', … }):
+    // la capa compat lo traduce a prisma.sale.create() y el modelo Sale NO
+    // tiene columna `type` ni recibía `total`/`date` (obligatorios) → Prisma
+    // tiraba "Unknown argument `type`" y TODA venta directa fallaba (con y sin
+    // descuento, con producto de barra o de retail). Ver src/services/directSale.js.
+    const sale = await SalesRepo.create(buildDirectSaleRecord(req.body));
 
-    // También en Prisma
-    try {
-      await SalesRepo.create({
-        appointmentId: null,
-        clientName: clientName || 'Venta Pasajero',
-        serviceName: null,
-        serviceAmount: 0,
-        productsAmount: parseFloat(productsAmount) || 0,
-        subtotal: parseFloat(productsAmount) || 0,
-        discountType,
-        discountValue: discountValue || 0,
-        discountAmount: parseFloat(discountAmount) || 0,
-        totalAmount: parseFloat(totalAmount) || 0,
-        productsSold,
-        paymentMethod,
-        date: new Date()
-      });
-    } catch (e) { console.error('Error registrando venta directa en prisma:', e); }
+    console.log('[DIRECT SALE] ✅ Venta registrada:', sale.id);
 
-    console.log('[DIRECT SALE] ✅ Venta registrada:', saleRef.id);
-
-    res.json({ success: true, saleId: saleRef.id });
+    res.json({ success: true, saleId: sale.id });
   } catch (error) {
     console.error('[DIRECT SALE] Error:', error);
     res.json({ success: false, error: error.message });

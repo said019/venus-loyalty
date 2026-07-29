@@ -13952,7 +13952,13 @@
           if (typeof loadProducts === 'function') loadProducts();
           await venusAlert('✓ Venta registrada: $' + grandTotal.toLocaleString());
         } else {
-          await venusAlert('Error: ' + json.error);
+          // El backend responde con códigos secos para el guardrail de recepción;
+          // traducirlos para que no salga "Error: discount_locked" en pantalla.
+          const MENSAJES = {
+            discount_locked: 'Tu usuario de recepción no puede aplicar descuentos. Pide a una admin que lo autorice.',
+            price_locked: 'El precio no coincide con el catálogo. Tu usuario de recepción no puede cambiarlo.'
+          };
+          await venusAlert(MENSAJES[json.error] || ('Error: ' + json.error));
         }
       } catch (error) {
         console.error('Error saving direct sale:', error);
@@ -16736,7 +16742,11 @@
             const jsonVentas = await resVentas.json();
             if (jsonVentas.success && jsonVentas.data) {
               jsonVentas.data.forEach(venta => {
-                if (venta.type === 'direct') {
+                // Venta directa (Venta Rápida): sin cita y sin servicio.
+                // Antes se filtraba por `venta.type === 'direct'`, pero el modelo
+                // Sale nunca tuvo columna `type`: la condición jamás se cumplía y
+                // las ventas de mostrador no aparecían en el corte.
+                if (!venta.appointmentId && !venta.serviceName) {
                    const monto = parseFloat(venta.totalAmount) || 0;
                    const metodo = (venta.paymentMethod || 'efectivo').toLowerCase();
                    
