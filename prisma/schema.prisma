@@ -140,7 +140,7 @@ model Appointment {
   assignedAdmin   Admin?  @relation(fields: [assignedAdminId], references: [id], onDelete: SetNull)
 
   // Atribución de marketing: admin que agendó la cita (para comisión).
-  bookedById String?
+  bookedById String? @map("booked_by_id")
   bookedBy   Admin?  @relation("AppointmentsBookedBy", fields: [bookedById], references: [id], onDelete: SetNull)
 
   // Relación a comisión (1:1 opcional — solo citas agendadas por marketing)
@@ -980,14 +980,14 @@ model Lead {
   notes         String?
   status        String   @default("nuevo") // nuevo | contactado | agendado | convertido | perdido
   score         Int      @default(0) // 0-100, computado en read
-  marketerId    String
+  marketerId    String   @map("marketer_id")
   marketer      Admin    @relation(fields: [marketerId], references: [id], onDelete: Cascade)
-  appointmentId String?  @unique // cita resultante cuando se convierte
+  appointmentId String?  @unique @map("appointment_id") // cita resultante cuando se convierte
   appointment   Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  contactedAt   DateTime?
-  convertedAt   DateTime?
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  contactedAt   DateTime? @map("contacted_at")
+  convertedAt   DateTime? @map("converted_at")
 
   @@index([marketerId])
   @@index([status])
@@ -998,14 +998,14 @@ model Lead {
 // Comisiones por cita agendada (1 cita = 1 comisión)
 model Commission {
   id            String      @id @default(cuid())
-  marketerId    String
+  marketerId    String      @map("marketer_id")
   marketer      Admin       @relation(fields: [marketerId], references: [id], onDelete: Cascade)
-  appointmentId String      @unique
+  appointmentId String      @unique @map("appointment_id")
   appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
   amount        Float       // monto fijo configurado al momento de agendar (snapshot)
   status        String      @default("pendiente") // pendiente | pagada | cancelada
-  paidAt        DateTime?
-  createdAt     DateTime    @default(now())
+  paidAt        DateTime?   @map("paid_at")
+  createdAt     DateTime    @default(now()) @map("created_at")
 
   @@index([marketerId])
   @@index([status])
@@ -1015,15 +1015,15 @@ model Commission {
 // Programa de referidos
 model Referral {
   id              String   @id @default(cuid())
-  referrerCardId  String
+  referrerCardId  String   @map("referrer_card_id")
   referrerCard    Card     @relation("ReferralReferrer", fields: [referrerCardId], references: [id], onDelete: Cascade)
-  inviteeCardId   String
+  inviteeCardId   String   @map("invitee_card_id")
   inviteeCard     Card     @relation("ReferralInvitee", fields: [inviteeCardId], references: [id], onDelete: Cascade)
-  inviteePhone    String
+  inviteePhone    String   @map("invitee_phone")
   status          String   @default("pendiente") // pendiente | completada | pagada
-  completedAt     DateTime?
-  awardedAt       DateTime? // cuándo se otorgó el sello al referrer
-  createdAt       DateTime @default(now())
+  completedAt     DateTime? @map("completed_at")
+  awardedAt       DateTime? @map("awarded_at") // cuándo se otorgó el sello al referrer
+  createdAt       DateTime @default(now()) @map("created_at")
 
   @@unique([inviteeCardId]) // 1 referido = 1 referral
   @@index([referrerCardId])
@@ -1033,16 +1033,16 @@ model Referral {
 // Retos de sellos (ej. 3 visitas en 30 días = sello extra)
 model Challenge {
   id               String   @id @default(cuid())
-  cardId           String
+  cardId           String   @map("card_id")
   card             Card     @relation(fields: [cardId], references: [id], onDelete: Cascade)
   kind             String   @default("tres_visitas_30") // tres_visitas_30 | doble_sello_dia | custom
-  startedAt        DateTime @default(now())
-  targetVisits     Int      @default(3)
-  windowDays       Int      @default(30)
-  visitsCompleted  Int      @default(0)
-  completedAt      DateTime?
-  bonusStamps      Int      @default(1)
-  createdAt        DateTime @default(now())
+  startedAt        DateTime @default(now()) @map("started_at")
+  targetVisits     Int      @default(3) @map("target_visits")
+  windowDays       Int      @default(30) @map("window_days")
+  visitsCompleted  Int      @default(0) @map("visits_completed")
+  completedAt      DateTime? @map("completed_at")
+  bonusStamps      Int      @default(1) @map("bonus_stamps")
+  createdAt        DateTime @default(now()) @map("created_at")
 
   @@index([cardId])
   @@index([kind])
@@ -1056,9 +1056,9 @@ model Promotion {
   name      String
   active    Boolean  @default(true)
   config    Json     // { weekday:2, category:'facial', discountPct:10, ... }
-  startsAt  DateTime @default(now())
-  endsAt    DateTime?
-  createdAt DateTime @default(now())
+  startsAt  DateTime @default(now()) @map("starts_at")
+  endsAt    DateTime? @map("ends_at")
+  createdAt DateTime @default(now()) @map("created_at")
 
   @@index([active])
   @@map("promotions")
@@ -1067,7 +1067,7 @@ model Promotion {
 // Atribución multi-touch: cada contacto de un cliente con el negocio
 model Touchpoint {
   id        String   @id @default(cuid())
-  cardId    String?
+  cardId    String?  @map("card_id")
   card      Card?    @relation(fields: [cardId], references: [id], onDelete: SetNull)
   channel   String   // instagram | facebook-ads | referral | whatsapp | online | direct
   campaign  String?
@@ -1075,7 +1075,7 @@ model Touchpoint {
   timestamp DateTime @default(now())
 
   // Relación opcional con la cita que originó este touchpoint
-  appointmentId String? @unique
+  appointmentId String? @unique @map("appointment_id")
   appointment   Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
 
   @@index([cardId])
