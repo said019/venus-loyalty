@@ -7,7 +7,7 @@
   <link rel="icon" href="/assets/logo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Prata&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="/marketing.css?v=1">
 </head>
@@ -44,7 +44,8 @@
         <li><a href="#reportes" data-view="reportes"><i class="fas fa-chart-bar"></i> Reportes</a></li>
       </ul>
       <div class="sidebar-footer">
-        <button id="logout-btn" class="btn-ghost"><i class="fas fa-sign-out-alt"></i> Salir</button>
+        <button id="theme-toggle-btn" class="theme-toggle"><i class="fas fa-moon"></i> <span>Modo oscuro</span></button>
+        <button id="logout-btn" class="btn-ghost"><i class="fas fa-sign-out-alt"></i> <span>Salir</span></button>
       </div>
     </nav>
 
@@ -208,5 +209,25 @@
   </div>
 
   <script src="/marketing.js?v=1"></script>
+  <script>
+    // Theme toggle — mismo mecanismo que /admin.html (data-theme en <html> + localStorage propio)
+    (function () {
+      var KEY = 'marketing-theme';
+      var btn = document.getElementById('theme-toggle-btn');
+      function apply(theme) {
+        document.documentElement.setAttribute('data-theme', theme);
+        if (btn) btn.innerHTML = theme === 'dark'
+          ? '<i class="fas fa-sun"></i> <span>Modo claro</span>'
+          : '<i class="fas fa-moon"></i> <span>Modo oscuro</span>';
+      }
+      var saved = localStorage.getItem(KEY);
+      if (saved) apply(saved);
+      if (btn) btn.addEventListener('click', function () {
+        var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        localStorage.setItem(KEY, next);
+        apply(next);
+      });
+    })();
+  </script>
 </body>
 </html>
