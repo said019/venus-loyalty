@@ -15,6 +15,7 @@ async function login(email, password) {
     document.getElementById('login-screen').classList.add('hidden');
     document.getElementById('app').classList.remove('hidden');
     loadInitialData();
+    navigate('agendar'); // sin esto, el portal quedaba en blanco al entrar
   } else {
     document.getElementById('login-error').textContent = 'Credenciales inválidas';
   }
@@ -28,6 +29,7 @@ async function checkSession() {
       document.getElementById('login-screen').classList.add('hidden');
       document.getElementById('app').classList.remove('hidden');
       loadInitialData();
+      navigate('agendar');
     }
   } catch { /* no logueado */ }
 }
