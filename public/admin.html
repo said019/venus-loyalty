@@ -2015,67 +2015,74 @@
         </div>
 
         <!-- Panel de Gastos del Mes -->
-        <div class="card"
-          style="margin-bottom:20px;background:linear-gradient(135deg, rgba(239,68,68,0.05) 0%, rgba(220,38,38,0.05) 100%);border:1px solid rgba(239,68,68,0.2);">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-            <h3 style="margin:0;font-size:18px;display:flex;align-items:center;gap:10px;">
-              <i class="fas fa-receipt" style="color:#ef4444;"></i>
-              <span>Gastos del Mes</span>
-            </h3>
-            <button class="btn primary" onclick="openExpenseModal()"
-              style="background:linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">
-              <i class="fas fa-plus"></i> Nuevo Gasto
+        <article class="card expenses-panel" aria-labelledby="expenses-panel-title">
+          <header class="expenses-panel-header">
+            <div class="expenses-panel-heading">
+              <span class="expenses-panel-icon" aria-hidden="true">
+                <i class="fas fa-receipt"></i>
+              </span>
+              <div>
+                <p class="expenses-eyebrow">Control mensual</p>
+                <h3 id="expenses-panel-title">Gastos del mes</h3>
+                <p class="expenses-panel-copy">Revisa los egresos del periodo y registra nuevos movimientos.</p>
+              </div>
+            </div>
+            <button class="btn primary expense-add-button" onclick="openExpenseModal()">
+              <i class="fas fa-plus" aria-hidden="true"></i>
+              <span>Nuevo gasto</span>
             </button>
-          </div>
+          </header>
 
           <!-- Resumen de Gastos -->
-          <div
-            style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:20px;">
-            <div
-              style="background:rgba(255,255,255,0.05);padding:16px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);">
-              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-                <i class="fas fa-wallet" style="color:#ef4444;"></i>
-                <span style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:600;">Total
-                  Gastos</span>
+          <section class="expenses-summary" aria-label="Resumen de gastos">
+            <div class="expense-stat expense-stat-total">
+              <div class="expense-stat-label">
+                <i class="fas fa-wallet" aria-hidden="true"></i>
+                <span>Total gastos</span>
               </div>
-              <div id="expenses-total" style="font-size:24px;font-weight:700;color:#ef4444;">$0.00</div>
-              <div id="expenses-count" style="font-size:11px;color:var(--muted);margin-top:4px;">0 gastos</div>
+              <strong id="expenses-total">$0.00</strong>
+              <small id="expenses-count">0 gastos</small>
             </div>
 
-            <div
-              style="background:rgba(255,255,255,0.05);padding:16px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);">
-              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-                <i class="fas fa-chart-line" style="color:#10b981;"></i>
-                <span style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:600;">Utilidad
-                  Neta</span>
+            <div class="expense-stat expense-stat-profit">
+              <div class="expense-stat-label">
+                <i class="fas fa-chart-line" aria-hidden="true"></i>
+                <span>Utilidad neta</span>
               </div>
-              <div id="net-profit" style="font-size:24px;font-weight:700;color:#10b981;">$0.00</div>
-              <div id="profit-margin" style="font-size:11px;color:var(--muted);margin-top:4px;">0% margen</div>
+              <strong id="net-profit">$0.00</strong>
+              <small id="profit-margin">0% margen</small>
             </div>
 
-            <div
-              style="background:rgba(255,255,255,0.05);padding:16px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);">
-              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-                <i class="fas fa-shopping-cart" style="color:#f59e0b;"></i>
-                <span
-                  style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:600;">Productos</span>
+            <div class="expense-stat expense-stat-products">
+              <div class="expense-stat-label">
+                <i class="fas fa-box" aria-hidden="true"></i>
+                <span>Productos</span>
               </div>
-              <div id="expenses-products" style="font-size:24px;font-weight:700;color:#f59e0b;">$0.00</div>
+              <strong id="expenses-products">$0.00</strong>
+              <small>Compras del periodo</small>
             </div>
 
-            <div
-              style="background:rgba(255,255,255,0.05);padding:16px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);">
-              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-                <i class="fas fa-ellipsis-h" style="color:#8b5cf6;"></i>
-                <span style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:600;">Otros</span>
+            <div class="expense-stat expense-stat-others">
+              <div class="expense-stat-label">
+                <i class="fas fa-layer-group" aria-hidden="true"></i>
+                <span>Otros</span>
               </div>
-              <div id="expenses-others" style="font-size:24px;font-weight:700;color:#8b5cf6;">$0.00</div>
+              <strong id="expenses-others">$0.00</strong>
+              <small>Resto de categorías</small>
             </div>
-          </div>
+          </section>
 
           <!-- Tabla de Gastos -->
-          <div class="table-wrap">
-            <table class="data-table">
+          <section class="expenses-list" aria-labelledby="expenses-list-title">
+            <div class="expenses-list-heading">
+              <div>
+                <p class="expenses-eyebrow">Detalle</p>
+                <h4 id="expenses-list-title">Movimientos registrados</h4>
+              </div>
+              <span class="expenses-list-hint">Ordenados por fecha</span>
+            </div>
+            <div class="table-wrap expenses-table-wrap">
+              <table class="data-table expenses-table" aria-label="Movimientos de gastos del mes">
               <thead>
                 <tr>
                   <th>Fecha</th>
@@ -2086,15 +2093,20 @@
                 </tr>
               </thead>
               <tbody id="expenses-tbody">
-                <tr>
-                  <td colspan="5" class="muted" style="text-align:center;padding:20px;">
-                    No hay gastos registrados este mes
+                <tr class="expense-empty-row">
+                  <td colspan="5">
+                    <div class="expense-empty-state">
+                      <i class="fas fa-receipt" aria-hidden="true"></i>
+                      <strong>No hay gastos registrados</strong>
+                      <span>Los movimientos de este mes aparecerán aquí.</span>
+                    </div>
                   </td>
                 </tr>
               </tbody>
             </table>
           </div>
-        </div>
+          </section>
+        </article>
 
         <!-- Tabla de ventas -->
         <div class="card">
@@ -18766,16 +18778,38 @@
 
     function renderExpenses(expenses) {
       const tbody = document.getElementById('expenses-tbody');
+      const emptyState = `
+        <tr class="expense-empty-row">
+          <td colspan="5">
+            <div class="expense-empty-state">
+              <i class="fas fa-receipt" aria-hidden="true"></i>
+              <strong>No hay gastos registrados</strong>
+              <span>Los movimientos de este mes aparecerán aquí.</span>
+            </div>
+          </td>
+        </tr>
+      `;
 
       if (!expenses || expenses.length === 0) {
-        if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="muted" style="text-align:center;padding:20px;">No hay gastos registrados este mes</td></tr>';
+        if (tbody) tbody.innerHTML = emptyState;
         return;
       }
 
       if (tbody) {
         tbody.innerHTML = expenses.map(exp => {
-          const date = new Date(exp.date);
-          const dateStr = date.toLocaleDateString('es-MX', { day: '2-digit', month: 'short' });
+          const escapeExpenseText = value => String(value ?? '').replace(/[&<>"']/g, char => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+          })[char]);
+          const rawDate = String(exp.date || '').slice(0, 10);
+          const date = new Date(`${rawDate}T12:00:00`);
+          const dateStr = Number.isNaN(date.getTime())
+            ? escapeExpenseText(rawDate)
+            : date.toLocaleDateString('es-MX', { day: '2-digit', month: 'short' }).replace('.', '');
+          const categoryKey = String(exp.category || 'otros').toLowerCase();
           const categoryIcons = {
             productos: '<i class="fas fa-box"></i>',
             renta: '<i class="fas fa-home"></i>',
@@ -18787,19 +18821,48 @@
             transporte: '<i class="fas fa-car"></i>',
             otros: '<i class="fas fa-file-alt"></i>'
           };
+          const categoryLabels = {
+            productos: 'Productos',
+            renta: 'Renta',
+            servicios: 'Servicios',
+            salarios: 'Salarios',
+            marketing: 'Marketing',
+            equipo: 'Equipo',
+            mantenimiento: 'Mantenimiento',
+            transporte: 'Transporte',
+            otros: 'Otros'
+          };
+          const categoryLabel = categoryLabels[categoryKey] || categoryKey;
+          const safeDescription = escapeExpenseText(exp.description || 'Sin descripción');
+          const safeId = String(exp.id || '').replace(/[^a-zA-Z0-9_-]/g, '');
+          const amount = Number.parseFloat(exp.amount) || 0;
+          const amountLabel = amount.toLocaleString('es-MX', {
+            style: 'currency',
+            currency: 'MXN',
+            minimumFractionDigits: 2
+          });
 
           return `
-            <tr>
-              <td>${dateStr}</td>
-              <td>${categoryIcons[exp.category] || '<i class="fas fa-file-alt"></i>'} ${exp.category}</td>
-              <td>${exp.description}</td>
-              <td style="font-weight:600;color:#ef4444;">$${parseFloat(exp.amount).toFixed(2)}</td>
-              <td>
-                <button onclick="editExpense('${exp.id}')" class="btn-icon" style="background:#3b82f6;color:white;padding:4px 8px;border-radius:6px;font-size:0.85em;">
-                  <i class="fas fa-edit"></i>
+            <tr class="expense-row">
+              <td class="expense-date" data-label="Fecha">${dateStr}</td>
+              <td class="expense-category" data-label="Categoría">
+                <span class="expense-category-badge">
+                  ${categoryIcons[categoryKey] || '<i class="fas fa-file-alt"></i>'}
+                  ${escapeExpenseText(categoryLabel)}
+                </span>
+              </td>
+              <td class="expense-description" data-label="Descripción">${safeDescription}</td>
+              <td class="expense-amount" data-label="Monto">${amountLabel}</td>
+              <td class="expense-actions" data-label="Acciones">
+                <button type="button" onclick="editExpense('${safeId}')" class="expense-action expense-action-edit"
+                  aria-label="Editar ${safeDescription}" title="Editar gasto">
+                  <i class="fas fa-pen" aria-hidden="true"></i>
+                  <span>Editar</span>
                 </button>
-                <button onclick="deleteExpense('${exp.id}')" class="btn-icon" style="background:#ef4444;color:white;padding:4px 8px;border-radius:6px;font-size:0.85em;">
-                  <i class="fas fa-trash"></i>
+                <button type="button" onclick="deleteExpense('${safeId}')" class="expense-action expense-action-delete"
+                  aria-label="Eliminar ${safeDescription}" title="Eliminar gasto">
+                  <i class="fas fa-trash-can" aria-hidden="true"></i>
+                  <span>Eliminar</span>
                 </button>
               </td>
             </tr>
@@ -18843,11 +18906,7 @@
       const netProfitEl = document.getElementById('net-profit');
       if (netProfitEl) {
         netProfitEl.textContent = '$' + netProfit.toFixed(2);
-        if (netProfit >= 0) {
-          netProfitEl.style.color = '#10b981';
-        } else {
-          netProfitEl.style.color = '#ef4444';
-        }
+        netProfitEl.classList.toggle('is-negative', netProfit < 0);
       }
 
       if (document.getElementById('profit-margin')) document.getElementById('profit-margin').textContent = `${profitMargin}% margen`;

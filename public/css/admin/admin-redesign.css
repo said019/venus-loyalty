@@ -1714,3 +1714,396 @@ html[data-theme="light"] .notification-group-label {
 html[data-theme="light"] button.notification-item.unread {
   background: #f4f4e9;
 }
+
+/* ============================================================
+   Reportes · panel de gastos
+   Componente aislado: evita que los estilos globales de tablas y
+   cards conviertan sus acciones en controles gigantes o desbordados.
+   ============================================================ */
+#tab-reports .expenses-panel {
+  --expense-rose: oklch(56% 0.135 28);
+  --expense-rose-soft: oklch(95% 0.026 28);
+  --expense-green: oklch(56% 0.09 150);
+  --expense-green-soft: oklch(95% 0.025 150);
+  margin-bottom: 20px;
+  padding: 0;
+  overflow: hidden;
+  border-color: var(--line);
+  background: var(--bg-secondary);
+  box-shadow: none;
+}
+
+#tab-reports .expenses-panel:hover {
+  transform: none;
+  border-color: var(--line-hover);
+  box-shadow: none;
+}
+
+.expenses-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 24px 26px 22px;
+}
+
+.expenses-panel-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  min-width: 0;
+}
+
+.expenses-panel-icon {
+  display: inline-flex;
+  flex: 0 0 42px;
+  width: 42px;
+  height: 42px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: var(--expense-rose-soft);
+  color: var(--expense-rose);
+  font-size: 16px;
+}
+
+.expenses-eyebrow {
+  margin: 0 0 4px;
+  color: var(--muted);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+#tab-reports .expenses-panel-header h3 {
+  margin: 0;
+  color: var(--ink);
+  font-family: 'Prata', Georgia, serif;
+  font-size: 22px;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.expenses-panel-copy {
+  max-width: 58ch;
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+#tab-reports .expense-add-button {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 0 17px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: var(--venus) !important;
+  color: var(--primary-foreground) !important;
+  box-shadow: none;
+  font-weight: 650;
+}
+
+#tab-reports .expense-add-button:hover {
+  filter: brightness(0.94);
+  transform: none;
+}
+
+#tab-reports .expense-add-button:active {
+  transform: translateY(1px);
+}
+
+#tab-reports .expense-add-button:focus-visible,
+.expense-action:focus-visible {
+  outline: 2px solid var(--venus);
+  outline-offset: 3px;
+}
+
+.expenses-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--bg-tertiary) 52%, transparent);
+}
+
+.expense-stat {
+  min-width: 0;
+  padding: 19px 22px 20px;
+}
+
+.expense-stat + .expense-stat {
+  border-left: 1px solid var(--line);
+}
+
+.expense-stat-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 9px;
+  color: var(--muted);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.expense-stat-label i {
+  width: 14px;
+  color: var(--venus-soft);
+  text-align: center;
+}
+
+.expense-stat strong {
+  display: block;
+  overflow: hidden;
+  color: var(--ink);
+  font-family: 'Prata', Georgia, serif;
+  font-size: clamp(19px, 2vw, 25px);
+  font-variant-numeric: tabular-nums;
+  font-weight: 400;
+  letter-spacing: -0.035em;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.expense-stat small {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 10.5px;
+  line-height: 1.3;
+}
+
+.expense-stat-total .expense-stat-label i,
+.expense-stat-total strong {
+  color: var(--expense-rose);
+}
+
+.expense-stat-profit .expense-stat-label i,
+.expense-stat-profit strong {
+  color: var(--expense-green);
+}
+
+.expense-stat-profit strong.is-negative {
+  color: var(--expense-rose);
+}
+
+.expenses-list {
+  padding: 22px 26px 26px;
+}
+
+.expenses-list-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 13px;
+}
+
+.expenses-list-heading h4 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.expenses-list-hint {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.expenses-table-wrap {
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--bg-secondary);
+}
+
+.expenses-table {
+  width: 100%;
+  table-layout: auto;
+}
+
+.expenses-table thead {
+  background: color-mix(in srgb, var(--bg-tertiary) 72%, transparent);
+}
+
+.expenses-table th {
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.expenses-table td {
+  padding: 13px 14px;
+  color: var(--ink);
+  font-size: 12.5px;
+  line-height: 1.4;
+  white-space: normal;
+}
+
+.expenses-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.expenses-table tbody tr:hover {
+  background: color-mix(in srgb, var(--bg-tertiary) 55%, transparent);
+}
+
+.expense-date,
+.expense-amount {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap !important;
+}
+
+.expense-date {
+  color: var(--muted) !important;
+  text-transform: capitalize;
+}
+
+.expense-category-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  width: fit-content;
+  padding: 5px 8px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--venus) 10%, transparent);
+  color: var(--venus-soft);
+  font-size: 11.5px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.expense-category-badge i {
+  width: 13px;
+  text-align: center;
+}
+
+.expense-description {
+  min-width: 180px;
+}
+
+.expense-amount {
+  color: var(--expense-rose) !important;
+  font-weight: 700;
+  text-align: right !important;
+}
+
+.expense-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 7px;
+  white-space: nowrap !important;
+}
+
+.expense-action {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 11px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: transparent;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.expense-action-edit:hover {
+  border-color: var(--venus);
+  background: color-mix(in srgb, var(--venus) 9%, transparent);
+  color: var(--venus-soft);
+}
+
+.expense-action-delete {
+  border-color: color-mix(in srgb, var(--expense-rose) 35%, var(--line));
+  color: var(--expense-rose);
+}
+
+.expense-action-delete:hover {
+  border-color: var(--expense-rose);
+  background: var(--expense-rose-soft);
+}
+
+.expense-action:active {
+  transform: translateY(1px);
+}
+
+.expense-empty-row:hover {
+  background: transparent !important;
+}
+
+.expense-empty-row td {
+  padding: 0;
+}
+
+.expense-empty-state {
+  display: flex;
+  min-height: 170px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 26px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.expense-empty-state i {
+  display: inline-flex;
+  width: 42px;
+  height: 42px;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 11px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--venus) 9%, transparent);
+  color: var(--venus-soft);
+}
+
+.expense-empty-state strong {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.expense-empty-state span {
+  margin-top: 4px;
+  font-size: 11.5px;
+}
+
+html[data-theme="dark"] #tab-reports .expenses-panel {
+  --expense-rose-soft: oklch(29% 0.04 28);
+  --expense-green-soft: oklch(29% 0.03 150);
+}
+
+@media (max-width: 960px) {
+  .expenses-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .expense-stat:nth-child(3) {
+    border-left: 0;
+  }
+
+  .expense-stat:nth-child(n + 3) {
+    border-top: 1px solid var(--line);
+  }
+}

@@ -3105,7 +3105,9 @@ app.get('/api/expenses', adminAuth, requireRole("admin"), async (req, res) => {
     const snapshot = await firestore.collection('expenses')
       .where('date', '>=', from)
       .where('date', '<=', to)
-      .orderBy('date', 'desc')
+      // El último movimiento capturado debe aparecer primero, aunque su
+      // fecha contable sea anterior o coincida con la de otros gastos.
+      .orderBy('createdAt', 'desc')
       .get();
 
     const data = [];

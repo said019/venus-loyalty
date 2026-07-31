@@ -767,3 +767,269 @@ html[data-theme="dark"]  { color-scheme: dark; }
     white-space: nowrap;
   }
 }
+
+/* ────────────────────────────────────────────────────────────
+   REPORTES · GASTOS
+   Layout móvil propio. Sobrescribe la conversión genérica de tablas:
+   aquí cada movimiento sí tiene jerarquía y acciones contenidas.
+   ──────────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  #tab-reports .card.expenses-panel {
+    padding: 0 !important;
+    overflow: hidden !important;
+    border-radius: 16px !important;
+  }
+
+  .expenses-panel-header {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 17px;
+    padding: 19px 17px 17px;
+  }
+
+  .expenses-panel-heading {
+    gap: 11px;
+  }
+
+  .expenses-panel-icon {
+    flex-basis: 38px;
+    width: 38px;
+    height: 38px;
+    border-radius: 11px;
+    font-size: 14px;
+  }
+
+  #tab-reports .expenses-panel-header h3 {
+    font-size: 20px;
+  }
+
+  .expenses-panel-copy {
+    margin-top: 4px;
+    font-size: 11.5px;
+  }
+
+  #tab-reports .expense-add-button {
+    width: 100%;
+    min-height: 46px;
+  }
+
+  .expenses-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .expense-stat {
+    padding: 15px 14px 16px;
+  }
+
+  .expense-stat:nth-child(3) {
+    border-left: 0;
+  }
+
+  .expense-stat:nth-child(n + 3) {
+    border-top: 1px solid var(--line);
+  }
+
+  .expense-stat-label {
+    align-items: flex-start;
+    gap: 6px;
+    min-height: 25px;
+    margin-bottom: 7px;
+    font-size: 9.5px;
+    letter-spacing: 0.07em;
+  }
+
+  .expense-stat strong {
+    font-size: clamp(17px, 5.4vw, 21px);
+  }
+
+  .expense-stat small {
+    margin-top: 5px;
+    font-size: 9.5px;
+  }
+
+  .expenses-list {
+    padding: 19px 14px 16px;
+  }
+
+  .expenses-list-heading {
+    margin-bottom: 11px;
+  }
+
+  .expenses-list-heading h4 {
+    font-size: 13.5px;
+  }
+
+  .expenses-list-hint {
+    display: none;
+  }
+
+  .expenses-table-wrap {
+    min-height: 0;
+    overflow: visible !important;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .data-table.expenses-table,
+  .data-table.expenses-table tbody {
+    display: block !important;
+    width: 100% !important;
+  }
+
+  .data-table.expenses-table thead {
+    display: none !important;
+  }
+
+  .data-table.expenses-table tr.expense-row {
+    display: grid !important;
+    width: 100% !important;
+    grid-template-areas:
+      "date category"
+      "description description"
+      "amount amount"
+      "actions actions";
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0 10px;
+    margin: 0 0 10px !important;
+    padding: 15px !important;
+    overflow: hidden;
+    border: 1px solid var(--line) !important;
+    border-radius: 13px !important;
+    background: var(--bg-secondary) !important;
+    box-shadow: none !important;
+  }
+
+  .data-table.expenses-table tr.expense-row:last-child {
+    margin-bottom: 0 !important;
+  }
+
+  .data-table.expenses-table tr.expense-row td {
+    display: block !important;
+    width: auto !important;
+    min-width: 0;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    color: var(--ink);
+    font-size: 12px;
+    line-height: 1.4;
+    text-align: left !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+
+  .data-table.expenses-table tr.expense-row td::before {
+    display: none !important;
+    content: none !important;
+  }
+
+  .data-table.expenses-table tr.expense-row .expense-date {
+    grid-area: date;
+    color: var(--muted) !important;
+    font-size: 11.5px;
+    font-weight: 650;
+    text-transform: capitalize;
+  }
+
+  .data-table.expenses-table tr.expense-row .expense-category {
+    grid-area: category;
+    justify-self: end;
+    max-width: 100%;
+  }
+
+  .expense-category-badge {
+    max-width: 100%;
+    padding: 5px 7px;
+    overflow: hidden;
+    font-size: 10.5px;
+    text-overflow: ellipsis;
+  }
+
+  .data-table.expenses-table tr.expense-row .expense-description {
+    grid-area: description;
+    min-width: 0;
+    margin-top: 12px !important;
+    padding-top: 12px !important;
+    border-top: 1px solid var(--line) !important;
+    color: var(--ink);
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.42;
+  }
+
+  .data-table.expenses-table tr.expense-row .expense-amount {
+    grid-area: amount;
+    margin-top: 14px !important;
+    color: var(--expense-rose) !important;
+    font-family: 'Prata', Georgia, serif;
+    font-size: 21px;
+    font-weight: 400;
+    letter-spacing: -0.025em;
+  }
+
+  .data-table.expenses-table tr.expense-row .expense-amount::before {
+    display: block !important;
+    margin-bottom: 3px;
+    content: "Monto" !important;
+    color: var(--muted);
+    font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .data-table.expenses-table tr.expense-row .expense-actions {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: stretch;
+    grid-area: actions;
+    gap: 8px;
+    margin-top: 14px !important;
+    padding-top: 13px !important;
+    border-top: 1px solid var(--line) !important;
+  }
+
+  .data-table.expenses-table .expense-actions .expense-action {
+    flex: 1 1 0;
+    width: auto !important;
+    min-width: 0;
+    min-height: 42px;
+    padding: 0 10px;
+    border-radius: 10px;
+    font-size: 11.5px;
+  }
+
+  .data-table.expenses-table tr.expense-empty-row {
+    display: block !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden;
+    border: 1px solid var(--line) !important;
+    border-radius: 13px !important;
+    background: var(--bg-secondary) !important;
+    box-shadow: none !important;
+  }
+
+  .data-table.expenses-table tr.expense-empty-row td {
+    display: block !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+  }
+
+  .data-table.expenses-table tr.expense-empty-row td::before {
+    display: none !important;
+    content: none !important;
+  }
+
+  .expense-empty-state {
+    min-height: 150px;
+    padding: 22px 16px;
+  }
+}
