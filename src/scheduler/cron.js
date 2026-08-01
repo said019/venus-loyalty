@@ -54,10 +54,18 @@ const AUTO_CONFIRMACION_ACTIVA = true;
 // pública y el panel siguen intactos; citas con reviewSentAt no se tocan.
 const RESENAS_AUTO_ACTIVAS = false;
 
+// Interruptor del re-engagement automático de marketing (30/60/90 días).
+// Apagado el 2026-07-31: el cron mandó WhatsApp real a 49 clientas a las
+// 4 AM México por un bug de timezone (ver fix debajo), y Said pidió
+// "ya no quiero que se envíe nada, quita todo eso". El cron sigue corriendo
+// (evalúa candidatas) pero sale antes de llamar a Evolution — no manda nada.
+const MARKETING_REENGAGEMENT_ACTIVO = false;
+
 export function startScheduler() {
     console.log('⏰ Scheduler de recordatorios WhatsApp iniciado');
     if (!AUTO_CONFIRMACION_ACTIVA) console.log('🔕 Cadena de confirmación automática (encuesta 9AM / alerta 4h / auto-cancel) DESACTIVADA');
     if (!RESENAS_AUTO_ACTIVAS) console.log('🔕 Envío automático de link de evaluación/reseña post-cita DESACTIVADO');
+    if (!MARKETING_REENGAGEMENT_ACTIVO) console.log('🔕 Envío automático de re-engagement de marketing (30/60/90 días) DESACTIVADO');
 
     // Helper para convertir a ISO con offset de México (-06:00)
     const toMexicoCityISO = (date) => {
@@ -615,6 +623,12 @@ export function startScheduler() {
     // ========================================================================
     // MARKETING — Resumen diario de comisiones (medianoche)
     // ========================================================================
+    // BUG (31-jul-2026): estos 5 crons de marketing se agregaron con hora
+    // "México" tal cual (0 10 * * * = "10 AM") sin timezone, pero node-cron
+    // corre en la hora del servidor (UTC) — todos los demás crons de este
+    // archivo lo compensan a mano (ver comentario línea ~153). El de
+    // re-engagement mandó WhatsApp real a clientas a las 4 AM México en vez
+    // de 10 AM. Fix: timezone explícito en vez de más aritmética a mano.
     cron.schedule('0 0 * * *', async () => {
         try {
             const today = getTodayDateMexico();
@@ -654,7 +668,7 @@ export function startScheduler() {
         } catch (error) {
             console.error('Error en resumen diario de comisiones:', error);
         }
-    });
+    }, { timezone: 'America/Mexico_City' });
 
     // ========================================================================
     // MARKETING — Promoción automática a Gold (diario 6 AM)
@@ -689,7 +703,7 @@ export function startScheduler() {
         } catch (error) {
             console.error('Error en promoción Gold:', error);
         }
-    });
+    }, { timezone: 'America/Mexico_City' });
 
     // ========================================================================
     // MARKETING — Detección de embajadoras (semanal lunes 7 AM)
@@ -729,13 +743,14 @@ export function startScheduler() {
         } catch (error) {
             console.error('Error en detección de embajadoras:', error);
         }
-    });
+    }, { timezone: 'America/Mexico_City' });
 
     // ========================================================================
     // MARKETING — Re-engagement 30/60/90 días (diario 10 AM)
     // Clientas inactivas según categoría de servicio
     // ========================================================================
     cron.schedule('0 10 * * *', async () => {
+        if (!MARKETING_REENGAGEMENT_ACTIVO) return;
         try {
             const now = new Date();
             const thresholds = [30, 60, 90];
@@ -763,7 +778,7 @@ export function startScheduler() {
                     if (recentNotif) continue;
 
                     let msg = '';
-                    if (days === 30) msg = `Hola ${card.name} 🌿 ¿Cómo va tu piel? Si quieres agendar: https://wa.me/`;
+                    if (days === 30) msg = `Hola ${card.name} 🌿 ¿Cómo va tu piel? Si quieres agendar: ${config.baseUrl}/agendar.html`;
                     else if (days === 60) msg = `Te extrañamos en Venus 🌿 ¿Agendamos tu siguiente servicio? Tienes ${card.stamps}/${card.max} sellos.`;
                     else if (days === 90) msg = `Volvamos a vernos: tu siguiente servicio va con 10% off esta semana 🌿`;
 
@@ -779,7 +794,7 @@ export function startScheduler() {
         } catch (error) {
             console.error('Error en re-engagement:', error);
         }
-    });
+    }, { timezone: 'America/Mexico_City' });
 
     // ========================================================================
     // MARKETING — Evaluación de retos de sellos (diario 6 AM)
@@ -795,7 +810,7 @@ export function startScheduler() {
         } catch (error) {
             console.error('Error evaluando retos:', error);
         }
-    });
+    }, { timezone: 'America/Mexico_City' });
 }
 async function checkBirthdays() {
     try {
