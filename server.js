@@ -983,15 +983,7 @@ app.post('/api/whatsapp/confirmation', adminAuth, async (req, res) => {
 // GET /api/products - Listar todos los productos
 app.get('/api/products', adminAuth, async (req, res) => {
   try {
-    const snapshot = await firestore.collection('products')
-      .orderBy('name', 'asc')
-      .get();
-
-    const products = [];
-    snapshot.forEach(doc => {
-      products.push({ id: doc.id, ...doc.data() });
-    });
-
+    const products = await prisma.product.findMany({ orderBy: { name: 'asc' } });
     res.json({ success: true, data: products });
   } catch (error) {
     console.error('Error fetching products:', error);
@@ -1008,22 +1000,20 @@ app.post('/api/products', adminAuth, requireRole("admin"), async (req, res) => {
       return res.json({ success: false, error: 'Nombre y precio son requeridos' });
     }
 
-    const productData = {
-      name,
-      category: category || 'otro',
-      presentation: presentation || '',
-      price: parseFloat(price),
-      cost: cost ? parseFloat(cost) : null,
-      stock: parseInt(stock) || 0,
-      minStock: parseInt(minStock) || 5,
-      description: description || '',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
+    const product = await prisma.product.create({
+      data: {
+        name,
+        category: category || 'otro',
+        presentation: presentation || '',
+        price: parseFloat(price),
+        cost: cost ? parseFloat(cost) : null,
+        stock: parseInt(stock) || 0,
+        minStock: parseInt(minStock) || 5,
+        description: description || ''
+      }
+    });
 
-    const docRef = await firestore.collection('products').add(productData);
-
-    res.json({ success: true, id: docRef.id, data: productData });
+    res.json({ success: true, id: product.id, data: product });
   } catch (error) {
     console.error('Error creating product:', error);
     res.json({ success: false, error: error.message });
@@ -1036,19 +1026,19 @@ app.put('/api/products/:id', adminAuth, requireRole("admin"), async (req, res) =
     const { id } = req.params;
     const { name, category, presentation, price, cost, stock, minStock, description } = req.body;
 
-    const updateData = {
-      name,
-      category,
-      presentation,
-      price: parseFloat(price),
-      cost: cost ? parseFloat(cost) : null,
-      stock: parseInt(stock),
-      minStock: parseInt(minStock) || 5,
-      description,
-      updatedAt: new Date().toISOString()
-    };
-
-    await firestore.collection('products').doc(id).update(updateData);
+    await prisma.product.update({
+      where: { id },
+      data: {
+        name,
+        category,
+        presentation,
+        price: parseFloat(price),
+        cost: cost ? parseFloat(cost) : null,
+        stock: parseInt(stock),
+        minStock: parseInt(minStock) || 5,
+        description
+      }
+    });
 
     res.json({ success: true });
   } catch (error) {
@@ -1061,7 +1051,7 @@ app.put('/api/products/:id', adminAuth, requireRole("admin"), async (req, res) =
 app.delete('/api/products/:id', adminAuth, requireRole("admin"), async (req, res) => {
   try {
     const { id } = req.params;
-    await firestore.collection('products').doc(id).delete();
+    await prisma.product.delete({ where: { id } });
     res.json({ success: true });
   } catch (error) {
     console.error('Error deleting product:', error);
@@ -1075,20 +1065,13 @@ app.patch('/api/products/:id/stock', adminAuth, requireRole("admin"), async (req
     const { id } = req.params;
     const { change } = req.body; // +1 o -1
 
-    const docRef = firestore.collection('products').doc(id);
-    const doc = await docRef.get();
-
-    if (!doc.exists) {
+    const product = await prisma.product.findUnique({ where: { id } });
+    if (!product) {
       return res.json({ success: false, error: 'Producto no encontrado' });
     }
 
-    const currentStock = doc.data().stock || 0;
-    const newStock = Math.max(0, currentStock + change);
-
-    await docRef.update({
-      stock: newStock,
-      updatedAt: new Date().toISOString()
-    });
+    const newStock = Math.max(0, (product.stock || 0) + change);
+    await prisma.product.update({ where: { id }, data: { stock: newStock } });
 
     res.json({ success: true, newStock });
   } catch (error) {
@@ -1482,9 +1465,9 @@ app.post('/api/direct-sales', adminAuth, async (req, res) => {
       }
       for (const item of productsSold) {
         if (!item.productId) continue;
-        const productDoc = await firestore.collection('products').doc(item.productId).get();
-        if (!productDoc.exists) continue;
-        const catalogPrice = Number(productDoc.data().price || 0);
+        const product = await prisma.product.findUnique({ where: { id: item.productId } });
+        if (!product) continue;
+        const catalogPrice = Number(product.price || 0);
         const expectedSubtotal = catalogPrice * Number(item.qty || 0);
         const actualSubtotal = Number(item.subtotal || 0);
         if (Math.abs(actualSubtotal - expectedSubtotal) > 0.01) {

@@ -13790,7 +13790,10 @@
         ? dsCatalog.filter(it => dsNorm(it.name).includes(q))
         : dsCatalog;
       if (matches.length === 0) {
-        panel.innerHTML = '<div class="ds-combo-empty">Sin resultados. Revisa la ortografía o agrega el producto en Servicios.</div>';
+        const createBtn = query.trim()
+          ? '<button type="button" class="ds-combo-create-btn" onmousedown="event.preventDefault(); dsShowCreateProductForm()"><i class="fas fa-plus"></i> Crear producto nuevo</button>'
+          : '';
+        panel.innerHTML = '<div class="ds-combo-empty">Sin resultados. Revisa la ortografía.</div>' + createBtn;
         panel.hidden = false;
         return;
       }
@@ -13837,6 +13840,97 @@
           visibles[0].dispatchEvent(new MouseEvent('mousedown'));
           addProductToDirectSale();
         }
+      }
+    }
+
+    // Crear producto nuevo sin salir de Venta Rápida: se dispara desde el
+    // botón que aparece cuando la búsqueda no encuentra nada. El producto
+    // creado queda seleccionado igual que si viniera del catálogo.
+    function dsShowCreateProductForm() {
+      const panel = document.getElementById('ds-combo-panel');
+      if (!panel) return;
+      const searchInput = document.getElementById('direct-sale-product-search');
+      const prefillName = searchInput.value.trim();
+      const qty = parseInt(document.getElementById('direct-sale-product-qty').value, 10) || 1;
+
+      panel.innerHTML = `
+        <form id="ds-create-product-form" class="ds-create-form">
+          <div class="ds-create-title"><i class="fas fa-plus"></i> Crear producto nuevo</div>
+          <input type="text" id="ds-new-name" class="ds-input" placeholder="Nombre" required>
+          <div class="ds-create-row">
+            <select id="ds-new-category" class="ds-input" required>
+              <option value="skincare">Skincare</option>
+              <option value="maquillaje">Maquillaje</option>
+              <option value="corporal">Corporal</option>
+              <option value="cabello">Cabello</option>
+              <option value="otro" selected>Otro</option>
+            </select>
+            <input type="number" id="ds-new-price" class="ds-input" placeholder="Precio" min="0" step="any" required>
+          </div>
+          <input type="number" id="ds-new-stock" class="ds-input" placeholder="Stock inicial" min="0" required>
+          <div class="ds-create-actions">
+            <button type="button" class="ds-btn-ghost-sm" id="ds-create-cancel-btn">Cancelar</button>
+            <button type="submit" class="ds-btn-primary-sm" id="ds-create-submit-btn">Crear y agregar</button>
+          </div>
+        </form>
+      `;
+      panel.hidden = false;
+
+      const nameInput = document.getElementById('ds-new-name');
+      nameInput.value = prefillName;
+      document.getElementById('ds-new-stock').value = qty;
+      document.getElementById('ds-create-product-form').addEventListener('submit', dsSubmitCreateProduct);
+      document.getElementById('ds-create-cancel-btn').addEventListener('click', () => dsFilterCatalog(searchInput.value));
+      nameInput.focus();
+      nameInput.select();
+    }
+
+    async function dsSubmitCreateProduct(event) {
+      event.preventDefault();
+      const btn = document.getElementById('ds-create-submit-btn');
+      const name = document.getElementById('ds-new-name').value.trim();
+      const category = document.getElementById('ds-new-category').value;
+      const price = parseFloat(document.getElementById('ds-new-price').value);
+      const stock = parseInt(document.getElementById('ds-new-stock').value, 10);
+
+      if (!name || isNaN(price)) {
+        await venusAlert('Escribe nombre y precio válidos');
+        return;
+      }
+
+      const originalText = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creando…';
+
+      try {
+        const res = await fetch('/api/products', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ name, category, price, stock: isNaN(stock) ? 0 : stock })
+        });
+        const json = await res.json();
+
+        if (!json.success) {
+          await venusAlert('Error: ' + (json.error || 'No se pudo crear el producto'));
+          btn.disabled = false;
+          btn.innerHTML = originalText;
+          return;
+        }
+
+        const p = json.data;
+        const newItem = { id: p.id, name: p.name, price: parseFloat(p.price) || 0, stock: p.stock, group: 'Productos' };
+        dsCatalog.push(newItem);
+        dsSelectedItem = newItem;
+
+        document.getElementById('direct-sale-product-search').value = newItem.name;
+        document.getElementById('ds-combo-panel').hidden = true;
+        document.getElementById('direct-sale-product-qty').focus();
+      } catch (error) {
+        console.error('[Venta Rápida] Error creando producto:', error);
+        await venusAlert('Error de conexión al crear el producto');
+        btn.disabled = false;
+        btn.innerHTML = originalText;
       }
     }
 
