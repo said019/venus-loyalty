@@ -63,7 +63,23 @@
         el.innerHTML = '';
     }
 
-    function showLoading(show) {
+    // Igual que feedback(), pero para la vista de detalle (no tiene el
+    // panel #feedback del scanner) — un toast flotante con el mismo lenguaje visual.
+    function feedbackDetail(type, msg) {
+        const el = $('d-feedback');
+        if (!el) { console[type === 'err' ? 'error' : 'log'](msg); return; }
+        el.className = `feedback feedback-toast ${type}`;
+        el.innerHTML = `<i class="fas fa-${type === 'ok' ? 'check-circle' : 'exclamation-triangle'}"></i><span>${msg}</span>`;
+        el.style.display = 'flex';
+        clearTimeout(el._t);
+        el._t = setTimeout(() => { el.style.display = 'none'; }, 5000);
+    }
+
+    function showLoading(show, opts = {}) {
+        if (show) {
+            $('loading-title').textContent = opts.title || 'Descargando análisis';
+            $('loading-sub').textContent = opts.sub || 'Obteniendo datos del aparato Yiyuan · Traduciendo métricas · Guardando en historial';
+        }
         $('loading').classList.toggle('visible', show);
     }
 
@@ -80,10 +96,10 @@
 
         if (preselectCardId) {
             try {
-                const res = await fetch(`/api/admin/cards-firebase?q=&limit=100`, { credentials: 'include' });
-                const json = await res.json();
-                const card = (json.items || []).find(c => c.id === preselectCardId);
+                const res = await fetch(`/api/admin/cards-firebase?id=${encodeURIComponent(preselectCardId)}`, { credentials: 'include' });
+                const card = ((await res.json()).items || [])[0];
                 if (card) selectCard(card);
+                else feedback('err', 'No se encontró la clienta enlazada — búscala manualmente arriba');
             } catch { /* ignore */ }
         }
 
@@ -117,15 +133,15 @@
             const res = await fetch(`/api/admin/cards-firebase?q=${encodeURIComponent(q)}&limit=20`, {
                 credentials: 'include'
             });
-            if (!res.ok) throw new Error('auth');
+            if (res.status === 401) { location.href = '/admin-login.html'; return; }
+            if (!res.ok) throw new Error(`http_${res.status}`);
             const json = await res.json();
             renderSearchResults(json.items || []);
-        } catch (err) {
-            if (err.message === 'auth') {
-                location.href = '/admin-login.html';
-                return;
-            }
-            $('search-results').innerHTML = `<div style="padding:14px;color:var(--ink-3);font-size:13px;">Error buscando</div>`;
+        } catch {
+            $('search-results').innerHTML = `<div style="padding:14px;color:var(--ink-3);font-size:13px;">
+                No se pudo buscar — <button type="button" id="btn-retry-search" style="background:none;border:none;color:var(--accent-soft);text-decoration:underline;cursor:pointer;font:inherit;">reintentar</button>
+            </div>`;
+            $('btn-retry-search')?.addEventListener('click', () => searchCards(q));
         }
     }
 
@@ -168,6 +184,9 @@
         $('card-search').value = '';
         $('search-results').innerHTML = '';
         $('new-client-form').classList.remove('visible');
+        // Si ya había un reporte escaneado esperando confirmación, regresa a
+        // ese paso mostrando ahora a quién se le va a importar.
+        if (state.detectedShareId) showConfirmArea(state.detectedShareId);
     }
 
     function clearSelection() {
@@ -182,13 +201,14 @@
         const phone = $('new-phone').value.trim().replace(/\D/g, '');
 
         if (!name || phone.length < 10) {
-            alert('Nombre y teléfono (10 dígitos) son obligatorios');
+            feedback('err', 'Nombre y teléfono (10 dígitos) son obligatorios');
+            (!name ? $('new-name') : $('new-phone')).focus();
             return;
         }
 
         // Intenta crear via /api/issue (endpoint admin oficial). Si falla,
         // cae a modo manual (el backend de skin-analysis soporta clientName+clientPhone sin Card).
-        showLoading(true);
+        showLoading(true, { title: 'Creando tarjeta', sub: 'Guardando nombre y teléfono en el sistema…' });
         let created = null;
         try {
             const res = await fetch('/api/issue', {
@@ -221,6 +241,7 @@
             $('new-client-form').classList.remove('visible');
             $('new-name').value = '';
             $('new-phone').value = '';
+            if (state.detectedShareId) showConfirmArea(state.detectedShareId);
         }
         showLoading(false);
     }
@@ -249,7 +270,9 @@
         $(`panel-${mode}`).classList.add('active');
         clearFeedback();
 
-        if (mode === 'camera') {
+        // Ya hay un reporte esperando confirmación — no reactives la cámara y
+        // arriesgues pisar ese shareId con un segundo escaneo accidental.
+        if (mode === 'camera' && !state.detectedShareId) {
             await startCamera();
         } else {
             await stopCamera();
@@ -257,6 +280,13 @@
     }
 
     // ────── Camera ──────
+    const CAMERA_ERROR_COPY = {
+        NotAllowedError: 'El navegador bloqueó el acceso a la cámara. Toca el candado 🔒 junto a la URL → Permisos → Cámara → Permitir, y reintenta.',
+        NotFoundError: 'No se detectó ninguna cámara en este dispositivo.',
+        NotReadableError: 'Otra app está usando la cámara ahora mismo. Ciérrala e intenta de nuevo.',
+        SecurityError: 'Esta página necesita HTTPS para usar la cámara.',
+    };
+
     async function startCamera() {
         if (!window.Html5Qrcode) {
             feedback('err', 'No se pudo cargar el lector QR (revisa tu conexión)');
@@ -273,8 +303,10 @@
                 (decoded) => handleDecoded(decoded),
                 () => { /* per-frame errors: ignore */ }
             );
+            $('btn-retry-camera')?.classList.remove('visible');
         } catch (err) {
-            feedback('err', `No se pudo iniciar la cámara: ${err.message || err}`);
+            feedback('err', CAMERA_ERROR_COPY[err.name] || `No se pudo iniciar la cámara: ${err.message || err}`);
+            $('btn-retry-camera')?.classList.add('visible');
         }
     }
 
@@ -288,7 +320,9 @@
         state.scanner = null;
     }
 
-    function bindCameraMode() { /* no-op, startCamera se llama en initScanner */ }
+    function bindCameraMode() {
+        $('btn-retry-camera')?.addEventListener('click', startCamera);
+    }
 
     // ────── Upload ──────
     function bindUploadMode() {
@@ -306,12 +340,21 @@
             feedback('err', 'Lector QR no disponible');
             return;
         }
+        const label = document.querySelector('label.upload-area');
+        const textEl = label?.querySelector('span');
+        const original = textEl?.textContent;
+        label?.classList.add('busy');
+        if (textEl) textEl.textContent = 'Leyendo QR…';
         try {
             const tempScanner = new Html5Qrcode('qr-file-reader-temp', { verbose: false });
             const decoded = await tempScanner.scanFile(file, false);
+            tempScanner.clear?.();
             handleDecoded(decoded);
-        } catch (err) {
+        } catch {
             feedback('err', 'No se detectó un QR en la imagen. Prueba con otra foto.');
+        } finally {
+            label?.classList.remove('busy');
+            if (textEl && original) textEl.textContent = original;
         }
     }
 
@@ -345,6 +388,9 @@
 
     function showConfirmArea(shareId) {
         $('confirm-share-id').textContent = shareId;
+        const name = state.selectedCard?.name || state.manualMeta?.name;
+        $('confirm-client-line')?.classList.toggle('visible', !!name);
+        if (name) $('confirm-client-name').textContent = name;
         $('confirm-area').classList.add('visible');
         $('confirm-area').scrollIntoView({ behavior: 'smooth', block: 'end' });
     }
@@ -424,7 +470,7 @@
     async function loadDetail(id) {
         $('view-scanner').classList.add('hidden');
         $('view-detail').classList.remove('hidden');
-        showLoading(true);
+        showLoading(true, { title: 'Cargando reporte', sub: 'Obteniendo el análisis guardado…' });
 
         try {
             const res = await fetch(`/api/skin-analysis/${id}`, { credentials: 'include' });
@@ -434,12 +480,12 @@
             }
             const json = await res.json();
             if (!res.ok || !json.success) {
-                alert(json.error || 'No se pudo cargar el análisis');
+                feedbackDetail('err', json.error || 'No se pudo cargar el análisis');
                 return;
             }
             renderDetail(json.data);
         } catch (err) {
-            alert(`Error de red: ${err.message}`);
+            feedbackDetail('err', `Error de red: ${err.message}`);
         } finally {
             showLoading(false);
         }
@@ -451,7 +497,6 @@
 
         $('d-avatar').textContent = initials(cardName);
         $('d-name').textContent = cardName;
-        $('d-score').textContent = a.overallScore ?? '—';
 
         // Meta
         const analyzedAt = a.analyzedAt ? new Date(a.analyzedAt) : null;
@@ -480,12 +525,25 @@
             if (so !== 0) return so;
             return Number(a.score) - Number(b.score);
         });
+        // Un escaneo sin métricas legibles NO es lo mismo que "piel saludable" —
+        // hay que distinguirlos o un aparato/dato roto se ve idéntico a un A+.
+        const hasMetrics = sorted.length > 0;
+        $('d-score').textContent = hasMetrics ? Math.round(Number(a.overallScore ?? 0)) : '—';
 
         // Top concerns (critical + concern, top 3)
         const concerns = sorted.filter(s => s.severity === 'critical' || s.severity === 'concern').slice(0, 3);
-        $('d-concerns-sub').textContent = concerns.length === 0 ? 'Ninguna · piel en buen estado' : `${concerns.length} área${concerns.length > 1 ? 's' : ''} a tratar`;
 
-        if (concerns.length === 0) {
+        if (!hasMetrics) {
+            $('d-concerns-sub').textContent = 'Datos incompletos';
+            $('d-concerns').innerHTML = `
+                <div class="concern-card" style="border-left-color:var(--sev-critical);">
+                    <span class="concern-label" style="color:var(--sev-critical)">Datos incompletos</span>
+                    <div class="concern-name">El aparato no devolvió métricas legibles</div>
+                    <p style="font-size:13px;color:var(--ink-2);line-height:1.5;margin-top:10px;max-width:36ch;">Vuelve a escanear el QR o revisa el aparato Yiyuan — este reporte no tiene datos suficientes para un resultado confiable.</p>
+                </div>
+            `;
+        } else if (concerns.length === 0) {
+            $('d-concerns-sub').textContent = 'Ninguna · piel en buen estado';
             $('d-concerns').innerHTML = `
                 <div class="concern-card" style="border-left-color:var(--sev-excellent);">
                     <span class="concern-label">Sin preocupaciones</span>
@@ -497,11 +555,12 @@
                 </div>
             `;
         } else {
+            $('d-concerns-sub').textContent = `${concerns.length} área${concerns.length > 1 ? 's' : ''} a tratar`;
             const whyMap = state.concernsWhyMap || {};
-            $('d-concerns').innerHTML = concerns.map(c => {
+            $('d-concerns').innerHTML = concerns.map((c, idx) => {
                 const aiWhy = whyMap[c.metric];
                 return `
-                <div class="concern-card ${c.severity}">
+                <div class="concern-card ${c.severity}" style="--delay:${idx * 70}ms">
                     <span class="concern-label">${SEVERITY_LABELS[c.severity]}</span>
                     <div class="concern-name">${escapeHtml(c.labelEs)}</div>
                     ${aiWhy ? `<p style="font-size:13px;color:var(--ink-2);line-height:1.5;margin-top:10px;max-width:36ch;">${escapeHtml(aiWhy)}</p>` : ''}
@@ -516,6 +575,8 @@
                 `;
             }).join('');
         }
+
+        $('d-bento-count').textContent = `${sorted.length} métrica${sorted.length === 1 ? '' : 's'} clínica${sorted.length === 1 ? '' : 's'}`;
 
         // Bento grid
         $('d-bento').innerHTML = sorted.map((s, idx) => {
@@ -585,7 +646,7 @@
         if (ai && ai.headline && ai.summary) {
             $('d-ai-headline').textContent = ai.headline;
             $('d-ai-summary').textContent = ai.summary;
-            aiBlock.classList.remove('hidden');
+            aiBlock.classList.remove('hidden', 'ai-block-empty');
 
             // Map of metric → why para enriquecer los concern cards
             if (Array.isArray(ai.concerns)) {
@@ -594,7 +655,13 @@
                 });
             }
         } else {
-            aiBlock.classList.add('hidden');
+            // Antes esta sección (y tratamientos/rutina/próximo análisis) solo
+            // desaparecía sin avisar — el staff no tenía forma de saber si
+            // faltó la IA o si algo se rompió.
+            aiBlock.classList.remove('hidden');
+            aiBlock.classList.add('ai-block-empty');
+            $('d-ai-headline').textContent = 'Interpretación IA no disponible';
+            $('d-ai-summary').textContent = 'No se generó una narrativa clínica para este análisis. Los datos numéricos completos siguen disponibles abajo — usa "Regenerar narrativa IA" para intentarlo de nuevo.';
         }
 
         state.concernsWhyMap = concernsWhyMap;
@@ -651,6 +718,13 @@
     // ═══════════════════════════════════════════════════════════════
     // PDF EXPORT
     // ═══════════════════════════════════════════════════════════════
+    const IMAGE_PURPOSE_ES = {
+        uv: 'Daño solar acumulado', woods: 'Pigmentación subdérmica',
+        blue: 'Poros y producción de sebo', red: 'Vascularidad',
+        brown: 'Manchas y melanina', positive: 'Textura ampliada',
+        negative: 'Relieve y arrugas', aging_simu: 'Simulación de envejecimiento',
+    };
+
     function fillPDFTemplate(a) {
         const cardName = a.card?.name || a.clientName || 'Sin nombre';
         const cardPhone = a.card?.phone || a.clientPhone || '—';
@@ -669,7 +743,7 @@
         if (a.skinColor) metaParts.push(`Fototipo <strong>${escapeHtml(a.skinColor)}</strong>`);
         $('pdf-client-meta').innerHTML = metaParts.join(' &nbsp;·&nbsp; ');
 
-        $('pdf-score').textContent = a.overallScore ?? '—';
+        $('pdf-score').textContent = a.overallScore != null ? Math.round(Number(a.overallScore)) : '—';
 
         // Summary grid (4 celdas)
         $('pdf-summary').innerHTML = `
@@ -708,7 +782,7 @@
                         <div class="name">Piel saludable</div>
                         <div class="why">Todas las métricas en rango óptimo.</div>
                     </div>
-                    <div class="pdf-concern-score">${a.overallScore || '—'}<small>/100</small></div>
+                    <div class="pdf-concern-score">${a.overallScore != null ? Math.round(Number(a.overallScore)) : '—'}<small>/100</small></div>
                 </div>
             `;
         } else {
@@ -723,6 +797,16 @@
                 </div>
             `).join('');
         }
+
+        // Panel completo de métricas — antes el PDF solo mandaba las 3
+        // preocupaciones principales y perdía el resto (hasta 10 de 13).
+        $('pdf-metrics-title').textContent = `Panel completo — ${sorted.length} métrica${sorted.length === 1 ? '' : 's'}`;
+        $('pdf-metrics').innerHTML = sorted.map(s => `
+            <div class="pdf-metric-cell sev-${s.severity}">
+                <span class="label">${escapeHtml(s.labelEs)}</span>
+                <span class="score">${Math.round(Number(s.score))}</span>
+            </div>
+        `).join('');
 
         // Treatments
         const treatments = Array.isArray(ai?.recommendations) ? ai.recommendations : [];
@@ -769,19 +853,29 @@
         // Gallery page (solo si hay imágenes) — usa proxy para evitar CORS taint
         const images = a.images || [];
         if (images.length > 0) {
-            // Primeras 9 para caber en 1 página
-            const shown = images.slice(0, 9);
+            const shown = images.slice(0, 12); // el aparato entrega máx. 11 tipos — ya no se recorta a 9
             $('pdf-gallery').innerHTML = shown.map(img => {
                 const proxied = `/api/skin-analysis/image-proxy?url=${encodeURIComponent(img.originalUrl)}`;
+                const purpose = IMAGE_PURPOSE_ES[img.imageType] || '';
                 return `
                 <div class="pdf-gallery-item">
                     <img src="${proxied}" alt="${escapeHtml(img.labelEs)}">
-                    <div class="pdf-gallery-cap">${escapeHtml(img.labelEs)}</div>
+                    <div class="pdf-gallery-cap"><strong>${escapeHtml(img.labelEs)}</strong>${purpose ? `<span>${escapeHtml(purpose)}</span>` : ''}</div>
                 </div>`;
             }).join('');
             $('pdf-page-2').style.display = 'block';
         } else {
             $('pdf-page-2').style.display = 'none';
+        }
+    }
+
+    function stampPageNumbers(pdf) {
+        const total = pdf.internal.getNumberOfPages();
+        for (let i = 1; i <= total; i++) {
+            pdf.setPage(i);
+            pdf.setFontSize(8);
+            pdf.setTextColor(150, 150, 150);
+            pdf.text(`Página ${i} de ${total}`, 194, 289, { align: 'right' }); // dentro del padding inferior de .pdf-page
         }
     }
 
@@ -858,10 +952,16 @@
             };
 
             if (mode === 'download') {
-                await html2pdf().set(opts).from(root).save();
+                await html2pdf().set(opts).from(root).toPdf().get('pdf').then(pdf => {
+                    stampPageNumbers(pdf);
+                    pdf.save(filename);
+                });
             } else {
                 // Share: genera blob y usa navigator.share si está disponible
-                const blob = await html2pdf().set(opts).from(root).outputPdf('blob');
+                const blob = await html2pdf().set(opts).from(root).toPdf().get('pdf').then(pdf => {
+                    stampPageNumbers(pdf);
+                    return pdf.output('blob');
+                });
                 const file = new File([blob], filename, { type: 'application/pdf' });
 
                 if (navigator.canShare && navigator.canShare({ files: [file] })) {
@@ -883,9 +983,12 @@
 
                     const phone = (a.card?.phone || a.clientPhone || '').replace(/\D/g, '');
                     if (phone) {
-                        const msg = `Hola ${a.card?.name || a.clientName || ''}, te comparto tu análisis de piel de Venus Cosmetología. Adjunto el PDF que acabo de descargar.`;
+                        // "wa.me/...?text=" nunca puede adjuntar un archivo — antes el
+                        // mensaje decía "Adjunto el PDF" cuando en realidad no llevaba nada.
+                        const msg = `Hola ${a.card?.name || a.clientName || ''} 🌸, tu análisis de piel de Venus Cosmetología ya está listo. Te comparto el PDF a continuación en este chat.`;
                         setTimeout(() => {
                             window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+                            feedbackDetail('ok', 'PDF descargado — arrástralo a la conversación de WhatsApp que se acaba de abrir.');
                         }, 800);
                     }
                 }
@@ -914,13 +1017,13 @@
             });
             const json = await res.json();
             if (!res.ok || !json.success) {
-                alert(json.error || 'No se pudo regenerar la narrativa');
+                feedbackDetail('err', json.error || 'No se pudo regenerar la narrativa');
                 return;
             }
             // Recarga la vista para ver la nueva narrativa
             location.reload();
         } catch (err) {
-            alert(`Error de red: ${err.message}`);
+            feedbackDetail('err', `Error de red: ${err.message}`);
         } finally {
             btn.disabled = false;
             btn.innerHTML = oldHTML;
@@ -938,10 +1041,20 @@
         $('lightbox-img').src = '';
     }
 
+    function scoreQualifier(score) {
+        const n = Number(score);
+        if (!Number.isFinite(n)) return '';
+        if (n >= 85) return ' (Excelente)';
+        if (n >= 70) return ' (Bueno)';
+        if (n >= 55) return ' (Moderado)';
+        if (n >= 40) return ' (Requiere atención)';
+        return ' (Crítico)';
+    }
+
     function sendWhatsAppSummary(a) {
         const phone = a.card?.phone || a.clientPhone;
         if (!phone) {
-            alert('Esta clienta no tiene teléfono vinculado');
+            feedbackDetail('err', 'Esta clienta no tiene teléfono vinculado');
             return;
         }
 
@@ -949,6 +1062,9 @@
         const score = a.overallScore ?? '—';
         const skinType = a.skinType || '—';
         const ai = a.aiRecommendations;
+        // Antes el mensaje terminaba sin firma ni forma de responder — en un
+        // chat de WhatsApp con mucho tráfico, nada marcaba esto como oficial.
+        const cierre = `Agenda tu siguiente sesión escribiéndonos por aquí mismo 💬\n— Venus Cosmetología, San Juan del Río`;
 
         let msg;
 
@@ -963,11 +1079,11 @@
 
             msg = `Hola ${name} 🌸\n\n*Tu análisis de piel — Venus Cosmetología*\n\n` +
                 `${ai.summary}\n\n` +
-                `*Score general:* ${score}/100\n` +
+                `*Score general:* ${score}/100${scoreQualifier(score)}\n` +
                 `*Tipo de piel:* ${skinType}\n\n` +
                 (treatmentsTxt ? `*Tratamientos recomendados:*\n${treatmentsTxt}\n\n` : '') +
                 (ai.nextAnalysisIn ? `*Próximo análisis sugerido:* en ${ai.nextAnalysisIn} semanas\n\n` : '') +
-                `Agenda tu cita cuando quieras ✨`;
+                cierre;
         } else {
             // Fallback sin IA
             const concerns = [...(a.scores || [])]
@@ -978,10 +1094,10 @@
                 .join('\n');
 
             msg = `Hola ${name} 🌸\n\nAquí está el resumen de tu análisis de piel en Venus Cosmetología:\n\n` +
-                `*Score general:* ${score}/100\n` +
+                `*Score general:* ${score}/100${scoreQualifier(score)}\n` +
                 `*Tipo de piel:* ${skinType}\n\n` +
                 (concerns ? `*Áreas a mejorar:*\n${concerns}\n\n` : '') +
-                `Agenda tu próxima sesión para empezar un plan personalizado. ✨`;
+                cierre;
         }
 
         const url = `https://wa.me/${phone.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`;

@@ -5188,6 +5188,16 @@ app.get("/api/admin/wallet-stats", adminAuth, requireRole("admin"), async (req, 
 
 app.get("/api/admin/cards-firebase", adminAuth, requireRole("admin"), async (req, res) => {
   try {
+    // Lookup directo por id (usado por skin-analysis.html?cardId=... para
+    // preseleccionar clienta) — antes se buscaba con .find() sobre las
+    // primeras 100 tarjetas, así que dejaba de funcionar en cuanto el
+    // estudio tuviera más de 100 clientas.
+    const id = (req.query.id || "").trim();
+    if (id) {
+      const card = await prisma.card.findUnique({ where: { id } });
+      return res.json({ items: card ? [card] : [], total: card ? 1 : 0, page: 1, totalPages: 1, source: 'prisma' });
+    }
+
     const page = Math.max(1, parseInt(req.query.page || "1", 10));
     const limit = parseInt(req.query.limit || "100", 10);
     const q = (req.query.q || "").trim();
