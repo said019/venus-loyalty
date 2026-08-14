@@ -8,7 +8,12 @@
     <link rel="icon" href="/assets/logo.png">
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <script src="https://unpkg.com/html5-qrcode@2.3.10/html5-qrcode.min.js"></script>
+    <!-- 2.3.8 es la ÚLTIMA versión publicada de html5-qrcode. Esta página
+         apuntaba a 2.3.10, que NUNCA existió: el script daba 404, window.Html5Qrcode
+         quedaba undefined y ni la cámara ni la lectura de la foto del QR podían
+         funcionar. admin.html siempre usó 2.3.8 correctamente. NO subir de versión
+         sin verificar antes que exista en unpkg. -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.3/html2pdf.bundle.min.js"></script>
     <style>
         :root {
@@ -611,14 +616,35 @@
             opacity: 0.6;
         }
 
-        .btn-retry-camera {
+        /* Overlay de error de cámara — se pinta sobre el recuadro negro */
+        .camera-overlay {
+            position: absolute;
+            inset: 0;
+            z-index: 2;
             display: none;
-            width: fit-content;
-            margin: 12px auto 0;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            padding: 24px;
+            text-align: center;
+            background: rgba(10, 10, 15, 0.94);
         }
 
-        .btn-retry-camera.visible {
+        .camera-overlay.visible {
             display: flex;
+        }
+
+        .camera-overlay-icon {
+            font-size: 26px;
+            color: var(--ink-3);
+        }
+
+        .camera-overlay-msg {
+            font-size: 14px;
+            line-height: 1.5;
+            color: var(--ink-2);
+            max-width: 34ch;
         }
 
         .url-panel {
@@ -645,13 +671,15 @@
         }
 
         /* ────── FEEDBACK ────── */
+        /* display:none es el estado base; el JS pone display:flex al mostrar.
+           Antes había un segundo "display:flex" en esta misma regla que
+           anulaba el none, así que un panel vacío ocupaba espacio al cargar. */
         .feedback {
             display: none;
             padding: 12px 16px;
             border-radius: var(--radius-sm);
             margin-top: 18px;
             font-size: 13px;
-            display: flex;
             align-items: center;
             gap: 10px;
         }
@@ -2067,6 +2095,12 @@
             .new-client-form { grid-template-columns: 1fr; }
             .actions-bar-3, .actions-bar-2 { grid-template-columns: 1fr; }
             h2.section-title { font-size: 22px; }
+            /* En celular las 3 pestañas quedaban de ~105px y el texto se
+               partía en 3-4 renglones, empujando todo lo demás hacia abajo. */
+            .mode-tab { padding: 14px 8px; gap: 6px; }
+            .mode-tab i { font-size: 18px; }
+            .mode-tab span { font-size: 11px; }
+            .mode-tab small { display: none; }
         }
 
         @media (max-width: 480px) {
@@ -2162,12 +2196,19 @@
                 <div class="panel active" id="panel-camera">
                     <div class="camera-area">
                         <div id="qr-camera-region"></div>
+                        <!-- El error va ENCIMA del recuadro negro. Antes se pintaba
+                             en un panel ~400px más abajo, fuera de pantalla: el staff
+                             solo veía una caja negra sin explicación ni salida. -->
+                        <div class="camera-overlay" id="camera-overlay">
+                            <i class="fas fa-video-slash camera-overlay-icon"></i>
+                            <p class="camera-overlay-msg" id="camera-overlay-msg"></p>
+                            <button type="button" class="btn btn-primary" id="btn-retry-camera">
+                                <i class="fas fa-redo"></i>
+                                Encender cámara
+                            </button>
+                        </div>
                     </div>
                     <p class="camera-hint">Apunta la cámara al QR que muestra el aparato Yiyuan</p>
-                    <button type="button" class="btn btn-ghost btn-retry-camera" id="btn-retry-camera">
-                        <i class="fas fa-redo"></i>
-                        Reintentar cámara
-                    </button>
                 </div>
 
                 <div class="panel" id="panel-upload">
@@ -2176,8 +2217,16 @@
                         <span>Toca para subir una foto del QR</span>
                         <small style="color:var(--ink-3);font-size:12px;">JPG, PNG, HEIC</small>
                     </label>
-                    <input type="file" id="qr-file-input" accept="image/*" capture="environment" style="display:none">
-                    <div id="qr-file-reader-temp" style="display:none"></div>
+                    <!-- SIN capture="environment": ese atributo obliga al navegador a abrir
+                         la cámara directo y esconde la galería. Sin él, el sistema deja
+                         elegir entre tomar foto o buscar una imagen ya guardada. -->
+                    <input type="file" id="qr-file-input" accept="image/*" style="display:none">
+                    <!-- NO usar display:none aquí: la librería mide este contenedor
+                         para decidir a qué resolución analizar la foto. Oculto con
+                         display:none medía 0 y encogía la imagen a 300px, así que
+                         una foto perfecta de 3000px se reducía tanto que el QR ya
+                         no se podía leer ("no se detectó un QR" en fotos buenas). -->
+                    <div id="qr-file-reader-temp" style="position:absolute;left:-99999px;top:0;width:1200px;height:1200px;"></div>
                 </div>
 
                 <div class="panel" id="panel-url">
@@ -2446,6 +2495,8 @@
         </div>
     </div>
 
-    <script src="/skin-analysis.js" defer></script>
+    <!-- ?v= sube cada vez que cambia el JS: garantiza que el HTML nuevo nunca
+         se empareje con un JS viejo guardado en el navegador. -->
+    <script src="/skin-analysis.js?v=20260814b" defer></script>
 </body>
 </html>

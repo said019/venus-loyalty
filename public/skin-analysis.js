@@ -12,6 +12,7 @@
         manualMeta: null,       // { name, phone } si el admin crea cliente nuevo
         detectedShareId: null,
         scanner: null,
+        cameraBusy: false,      // arranque de cámara en curso (evita doble toque)
         searchDebounce: null,
     };
 
@@ -75,12 +76,18 @@
         el._t = setTimeout(() => { el.style.display = 'none'; }, 5000);
     }
 
+    // Ojo: todos los accesos al DOM aquí van con ?. a propósito. Si el
+    // navegador tiene el HTML viejo en caché y el JS nuevo, estos ids pueden
+    // no existir todavía; sin el ?. reventaba antes de mostrar el spinner y
+    // se caía toda la acción (importar, cargar reporte, generar PDF).
     function showLoading(show, opts = {}) {
         if (show) {
-            $('loading-title').textContent = opts.title || 'Descargando análisis';
-            $('loading-sub').textContent = opts.sub || 'Obteniendo datos del aparato Yiyuan · Traduciendo métricas · Guardando en historial';
+            const t = $('loading-title');
+            const s = $('loading-sub');
+            if (t) t.textContent = opts.title || 'Descargando análisis';
+            if (s) s.textContent = opts.sub || 'Obteniendo datos del aparato Yiyuan · Traduciendo métricas · Guardando en historial';
         }
-        $('loading').classList.toggle('visible', show);
+        $('loading')?.classList.toggle('visible', show);
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -94,17 +101,20 @@
         bindUrlMode();
         bindConfirm();
 
+        // La cámara arranca PRIMERO y sin await: antes quedaba esperando a que
+        // terminara el fetch de la clienta, así que con internet lento del
+        // estudio la cámara ni siquiera intentaba encender.
+        startCamera();
+
         if (preselectCardId) {
             try {
                 const res = await fetch(`/api/admin/cards-firebase?id=${encodeURIComponent(preselectCardId)}`, { credentials: 'include' });
+                if (res.status === 401) { location.href = '/admin-login.html'; return; }
                 const card = ((await res.json()).items || [])[0];
                 if (card) selectCard(card);
                 else feedback('err', 'No se encontró la clienta enlazada — búscala manualmente arriba');
             } catch { /* ignore */ }
         }
-
-        // Iniciar cámara por default
-        await startCamera();
     }
 
     // ────── Card selector ──────
@@ -194,6 +204,9 @@
         state.manualMeta = null;
         $('selected-card').classList.remove('visible');
         $('card-selector').classList.remove('has-selection');
+        // Sin esto, el panel de confirmar seguía diciendo "Importando para
+        // Fulanita" después de quitar a la clienta seleccionada.
+        if (state.detectedShareId) showConfirmArea(state.detectedShareId);
     }
 
     async function createQuickClient() {
@@ -260,7 +273,15 @@
     }
 
     async function switchMode(mode) {
-        if (mode === state.mode) return;
+        if (mode === state.mode) {
+            // Volver a tocar la pestaña que ya está activa era un no-op. Es
+            // justo lo que hace cualquiera cuando ve la cámara en negro, así
+            // que ahora reintenta encenderla.
+            if (mode === 'camera' && !state.detectedShareId && state.scanner?.getState?.() !== 2) {
+                await startCamera();
+            }
+            return;
+        }
         state.mode = mode;
 
         document.querySelectorAll('.mode-tab').forEach(b => {
@@ -280,44 +301,105 @@
     }
 
     // ────── Camera ──────
+    const IS_IOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+        || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+    // Navegador embebido dentro de otra app (WhatsApp, Instagram, Facebook).
+    // En iOS estos WKWebView suelen tragarse el permiso de cámara sin avisar.
+    const IS_IN_APP_BROWSER = /FBAN|FBAV|Instagram|Line|WhatsApp|WeChat/i.test(navigator.userAgent);
+
+    // Instrucciones REALES por plataforma. iOS Safari no tiene el candado 🔒
+    // junto a la URL — ese menú es de Chrome/Android, y mandaba a la gente
+    // a buscar algo que no existe en su iPhone.
+    const PERMISO_BLOQUEADO = IS_IOS
+        ? 'Safari tiene bloqueada la cámara para este sitio. Toca "aA" en la barra de direcciones → Ajustes del sitio web → Cámara → Permitir, y vuelve a intentar.'
+        : 'El navegador bloqueó el acceso a la cámara. Toca el candado 🔒 junto a la dirección → Permisos → Cámara → Permitir, y vuelve a intentar.';
+
     const CAMERA_ERROR_COPY = {
-        NotAllowedError: 'El navegador bloqueó el acceso a la cámara. Toca el candado 🔒 junto a la URL → Permisos → Cámara → Permitir, y reintenta.',
+        NotAllowedError: PERMISO_BLOQUEADO,
         NotFoundError: 'No se detectó ninguna cámara en este dispositivo.',
         NotReadableError: 'Otra app está usando la cámara ahora mismo. Ciérrala e intenta de nuevo.',
-        SecurityError: 'Esta página necesita HTTPS para usar la cámara.',
+        OverconstrainedError: 'No se encontró una cámara compatible en este dispositivo.',
+        AbortError: 'La cámara se interrumpió. Intenta de nuevo.',
+        SecurityError: 'Esta página necesita abrirse con https:// para usar la cámara.',
     };
 
-    async function startCamera() {
-        if (!window.Html5Qrcode) {
-            feedback('err', 'No se pudo cargar el lector QR (revisa tu conexión)');
-            return;
+    // html5-qrcode NO rechaza con un Error: manda un texto plano tipo
+    // "Error getting userMedia, error = NotAllowedError: ...". Por eso buscar
+    // err.name nunca funcionaba y todos estos mensajes en español eran
+    // inalcanzables. Aquí buscamos el nombre dentro del texto completo.
+    function cameraErrorMessage(err) {
+        const texto = [err?.name, err?.message, String(err ?? '')].filter(Boolean).join(' ');
+        for (const [nombre, mensaje] of Object.entries(CAMERA_ERROR_COPY)) {
+            if (texto.includes(nombre)) return mensaje;
         }
-        if (state.scanner && state.scanner.getState?.() === 2) return;
+        if (!navigator.mediaDevices) {
+            return IS_IN_APP_BROWSER
+                ? 'Este navegador no permite usar la cámara. Abre la página en Safari: toca "..." o el botón de compartir → Abrir en Safari.'
+                : 'Este navegador no permite usar la cámara. Prueba con Safari o Chrome.';
+        }
+        return `No se pudo iniciar la cámara: ${err?.message || err}`;
+    }
+
+    function showCameraError(msg) {
+        const overlay = $('camera-overlay');
+        const msgEl = $('camera-overlay-msg');
+        if (msgEl) msgEl.textContent = msg;
+        // El error se pinta ENCIMA del recuadro negro. Antes salía en un panel
+        // ~400px más abajo, fuera de pantalla: el staff solo veía la caja negra.
+        if (overlay) overlay.classList.add('visible');
+        else feedback('err', msg); // HTML viejo en caché: al menos que salga algo
+    }
+
+    function hideCameraError() {
+        $('camera-overlay')?.classList.remove('visible');
+    }
+
+    async function startCamera() {
+        if (state.cameraBusy) return;          // evita doble arranque por doble toque
+        if (state.scanner?.getState?.() === 2) return; // ya está escaneando
+
+        state.cameraBusy = true;
+        const btn = $('btn-retry-camera');
+        if (btn) btn.disabled = true;
 
         try {
+            if (!window.Html5Qrcode) {
+                showCameraError('No se pudo cargar el lector de códigos QR. Revisa tu conexión y vuelve a intentar.');
+                return;
+            }
             const scanner = new Html5Qrcode('qr-camera-region', { verbose: false });
-            state.scanner = scanner;
             await scanner.start(
                 { facingMode: 'environment' },
                 { fps: 10, qrbox: { width: 240, height: 240 } },
                 (decoded) => handleDecoded(decoded),
                 () => { /* per-frame errors: ignore */ }
             );
-            $('btn-retry-camera')?.classList.remove('visible');
+            // Solo se guarda si de verdad arrancó: antes se guardaba antes del
+            // await y una instancia muerta bloqueaba los siguientes intentos.
+            state.scanner = scanner;
+            hideCameraError();
         } catch (err) {
-            feedback('err', CAMERA_ERROR_COPY[err.name] || `No se pudo iniciar la cámara: ${err.message || err}`);
-            $('btn-retry-camera')?.classList.add('visible');
+            console.error('[camera] no arrancó:', err);
+            state.scanner = null;
+            showCameraError(cameraErrorMessage(err));
+        } finally {
+            state.cameraBusy = false;
+            if (btn) btn.disabled = false;
         }
     }
 
     async function stopCamera() {
         const s = state.scanner;
         if (!s) return;
+        state.scanner = null; // se libera primero para que un start() paralelo no lo pise
         try {
-            if (s.getState?.() === 2) await s.stop();
+            // getState(): 1 = NOT_STARTED. Antes solo paraba en estado 2
+            // (SCANNING), así que en pausa nunca se llamaba stop() y la
+            // cámara del teléfono se quedaba encendida hasta recargar.
+            if (s.getState?.() !== 1) await s.stop();
             s.clear?.();
         } catch { /* ignore */ }
-        state.scanner = null;
     }
 
     function bindCameraMode() {
@@ -334,10 +416,14 @@
         });
     }
 
+    // Una sola instancia reutilizable: antes se creaba una nueva por cada foto
+    // y la librería nunca liberaba la imagen anterior de memoria.
+    let fileScanner = null;
+
     async function decodeFromFile(file) {
         clearFeedback();
         if (!window.Html5Qrcode) {
-            feedback('err', 'Lector QR no disponible');
+            feedback('err', 'No se pudo cargar el lector de códigos QR. Revisa tu conexión y vuelve a intentar.');
             return;
         }
         const label = document.querySelector('label.upload-area');
@@ -345,17 +431,21 @@
         const original = textEl?.textContent;
         label?.classList.add('busy');
         if (textEl) textEl.textContent = 'Leyendo QR…';
+
+        let decoded = null;
         try {
-            const tempScanner = new Html5Qrcode('qr-file-reader-temp', { verbose: false });
-            const decoded = await tempScanner.scanFile(file, false);
-            tempScanner.clear?.();
-            handleDecoded(decoded);
+            if (!fileScanner) fileScanner = new Html5Qrcode('qr-file-reader-temp', { verbose: false });
+            decoded = await fileScanner.scanFile(file, false);
         } catch {
-            feedback('err', 'No se detectó un QR en la imagen. Prueba con otra foto.');
+            feedback('err', 'No se detectó un QR en la imagen. Acércate más al código y evita reflejos en la pantalla del aparato.');
         } finally {
             label?.classList.remove('busy');
             if (textEl && original) textEl.textContent = original;
         }
+
+        // FUERA del try: si handleDecoded fallaba adentro, el error se reportaba
+        // como "no se detectó un QR" aunque el QR se hubiera leído perfecto.
+        if (decoded) handleDecoded(decoded);
     }
 
     // ────── Manual URL ──────
@@ -375,24 +465,34 @@
 
     // ────── Decoded ──────
     function handleDecoded(decoded) {
+        // La cámara sigue leyendo ~10 veces por segundo hasta que stop()
+        // termina. Sin este candado, si el lente se movía a otro QR en ese
+        // instante, se cambiaba el reporte detectado sin que nadie lo notara.
+        if (state.detectedShareId) return;
+
         const shareId = extractShareId(decoded);
         if (!shareId) {
             feedback('err', 'El código no es de un reporte Yiyuan válido');
             return;
         }
         state.detectedShareId = shareId;
+        try { state.scanner?.pause?.(true); } catch { /* ignore */ }
         stopCamera();
         feedback('ok', `Reporte detectado — ${shareId.slice(0, 12)}…`);
         showConfirmArea(shareId);
     }
 
     function showConfirmArea(shareId) {
-        $('confirm-share-id').textContent = shareId;
+        const idEl = $('confirm-share-id');
+        if (idEl) idEl.textContent = shareId;
         const name = state.selectedCard?.name || state.manualMeta?.name;
         $('confirm-client-line')?.classList.toggle('visible', !!name);
-        if (name) $('confirm-client-name').textContent = name;
-        $('confirm-area').classList.add('visible');
-        $('confirm-area').scrollIntoView({ behavior: 'smooth', block: 'end' });
+        const nameEl = $('confirm-client-name');
+        if (name && nameEl) nameEl.textContent = name;
+        const area = $('confirm-area');
+        if (!area) return;
+        area.classList.add('visible');
+        area.scrollIntoView({ behavior: 'smooth', block: 'end' });
     }
 
     function bindConfirm() {
@@ -576,7 +676,8 @@
             }).join('');
         }
 
-        $('d-bento-count').textContent = `${sorted.length} métrica${sorted.length === 1 ? '' : 's'} clínica${sorted.length === 1 ? '' : 's'}`;
+        const bentoCount = $('d-bento-count');
+        if (bentoCount) bentoCount.textContent = `${sorted.length} métrica${sorted.length === 1 ? '' : 's'} clínica${sorted.length === 1 ? '' : 's'}`;
 
         // Bento grid
         $('d-bento').innerHTML = sorted.map((s, idx) => {
@@ -800,8 +901,10 @@
 
         // Panel completo de métricas — antes el PDF solo mandaba las 3
         // preocupaciones principales y perdía el resto (hasta 10 de 13).
-        $('pdf-metrics-title').textContent = `Panel completo — ${sorted.length} métrica${sorted.length === 1 ? '' : 's'}`;
-        $('pdf-metrics').innerHTML = sorted.map(s => `
+        const metricsTitle = $('pdf-metrics-title');
+        const metricsGrid = $('pdf-metrics');
+        if (metricsTitle) metricsTitle.textContent = `Panel completo — ${sorted.length} métrica${sorted.length === 1 ? '' : 's'}`;
+        if (metricsGrid) metricsGrid.innerHTML = sorted.map(s => `
             <div class="pdf-metric-cell sev-${s.severity}">
                 <span class="label">${escapeHtml(s.labelEs)}</span>
                 <span class="score">${Math.round(Number(s.score))}</span>
