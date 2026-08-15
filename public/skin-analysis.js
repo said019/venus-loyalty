@@ -1008,6 +1008,14 @@
 
         const root = $('pdf-root');
 
+        // html2canvas desplaza la captura según el scroll actual de la ventana
+        // (bug conocido con contenedores fijos). El botón de descarga está al
+        // FONDO del reporte, así que el usuario siempre llega con ~2000px de
+        // scroll: el contenido salía corrido hacia abajo y las primeras páginas
+        // del PDF quedaban en blanco. Capturamos en scroll 0 y restauramos.
+        const scrollPrevio = { x: window.scrollX, y: window.scrollY };
+        window.scrollTo(0, 0);
+
         try {
             fillPDFTemplate(a);
 
@@ -1051,6 +1059,9 @@
                     letterRendering: true,
                     // Forzar dimensiones consistentes (A4 @ 96dpi = 794x1123 px)
                     windowWidth: 794,
+                    // Cinturón y tirantes junto con el scrollTo(0,0) de arriba
+                    scrollX: 0,
+                    scrollY: 0,
                 },
                 jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
                 // UN solo mecanismo de corte. Antes se combinaban 'css' + 'avoid-all'
@@ -1113,6 +1124,7 @@
             console.error('[PDF] Error generando:', err);
             feedbackDetail('err', `No se pudo generar el PDF: ${err.message}`);
         } finally {
+            window.scrollTo(scrollPrevio.x, scrollPrevio.y);
             btn.disabled = false;
             btn.innerHTML = oldHTML;
             showLoading(false);
