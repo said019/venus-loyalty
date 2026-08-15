@@ -144,8 +144,8 @@
   <!-- NUEVO TOPBAR -->
   <header class="topbar-new">
     <div class="topbar-left">
-      <button class="topbar-menu-btn" id="topbar-menu-btn" onclick="toggleSidebar()">
-        <i class="fas fa-bars"></i>
+      <button class="topbar-menu-btn" id="topbar-menu-btn" onclick="toggleSidebar()" aria-label="Abrir menú">
+        <i class="fas fa-bars" aria-hidden="true"></i>
       </button>
       <div class="topbar-greeting">
         <h2 id="topbar-greeting">¡Hola! <i class="fas fa-hand-paper"></i></h2>
@@ -212,12 +212,12 @@
       </a>
 
       <!-- Theme Toggle -->
-      <div class="theme-toggle" onclick="toggleTheme()" title="Cambiar tema">
+      <button type="button" class="theme-toggle" onclick="toggleTheme()" title="Cambiar tema" aria-label="Cambiar tema">
         <div class="theme-toggle-icons">
           <span class="theme-icon moon"><i class="fas fa-moon"></i></span>
           <span class="theme-icon sun"><i class="fas fa-sun"></i></span>
         </div>
-      </div>
+      </button>
 
       <!-- Cerrar sesión -->
       <button id="logout" class="topbar-logout">
@@ -273,7 +273,7 @@
         </div>
         <div style="display:flex;gap:10px;">
           <button class="btn small ghost" onclick="loadTodayStats(); loadGiftCardStats();" title="Actualizar">
-            <i class="fas fa-sync"></i>
+            <i class="fas fa-sync" aria-hidden="true"></i>
           </button>
           <button class="btn primary" onclick="openNewAppointmentModal()">
             <i class="fas fa-plus"></i> Nueva Cita
@@ -313,7 +313,7 @@
 
       <!-- Sección HOY (arriba de los KPIs mensuales: glance-and-act, informe P1-22/T7) -->
       <div class="today-grid">
-        <div class="today-card citas-card" onclick="switchTab('tab-appointments')" style="cursor:pointer;">
+        <button type="button" class="today-card citas-card" onclick="switchTab('tab-appointments')">
           <div class="today-card-icon citas">
             <i class="fas fa-calendar-check"></i>
           </div>
@@ -321,9 +321,9 @@
             <h4 id="today-appointments">0</h4>
             <p>Citas hoy</p>
           </div>
-            <span class="today-card-action"><i class="fas fa-arrow-right"></i></span>
-        </div>
-        <div class="today-card pending-card" onclick="switchTab('tab-appointments')" style="cursor:pointer;">
+            <span class="today-card-action"><i class="fas fa-arrow-right" aria-hidden="true"></i></span>
+        </button>
+        <button type="button" class="today-card pending-card" onclick="switchTab('tab-appointments')">
           <div class="today-card-icon pendientes">
             <i class="fas fa-clock"></i>
           </div>
@@ -331,9 +331,9 @@
             <h4 id="today-pending">0</h4>
             <p>Por confirmar</p>
           </div>
-            <span class="today-card-action"><i class="fas fa-arrow-right"></i></span>
-        </div>
-        <div class="today-card income-card" onclick="switchTab('tab-caja')" style="cursor:pointer;">
+            <span class="today-card-action"><i class="fas fa-arrow-right" aria-hidden="true"></i></span>
+        </button>
+        <button type="button" class="today-card income-card" onclick="switchTab('tab-caja')">
           <div class="today-card-icon ingresos">
             <i class="fas fa-dollar-sign"></i>
           </div>
@@ -341,8 +341,8 @@
             <h4 id="today-income">$0</h4>
             <p>Ingresos hoy</p>
           </div>
-            <span class="today-card-action"><i class="fas fa-arrow-right"></i></span>
-        </div>
+            <span class="today-card-action"><i class="fas fa-arrow-right" aria-hidden="true"></i></span>
+        </button>
       </div>
 
       <!-- Hero Stats -->
@@ -552,7 +552,7 @@
           <p class="muted" style="margin:4px 0 0;font-size:13px;">Gestiona todas las tarjetas de tus clientas.</p>
         </div>
         <div style="display:flex;gap:8px;">
-          <button id="btn-reload-cards" class="btn ghost"><i class="fas fa-sync-alt"></i></button>
+          <button id="btn-reload-cards" class="btn ghost" aria-label="Recargar tarjetas"><i class="fas fa-sync-alt" aria-hidden="true"></i></button>
           <button id="btn-scan-card" class="btn primary"><i class="fas fa-qrcode"></i> Escanear</button>
         </div>
       </div>
@@ -680,25 +680,25 @@
 
           <form id="form-giftcard">
             <div class="form-group">
-              <label class="form-label">Para quién es (opcional)</label>
+              <label for="gc-recipient" class="form-label">Para quién es (opcional)</label>
               <input type="text" id="gc-recipient" class="form-input" placeholder="Nombre del destinatario">
             </div>
 
             <div class="form-group">
-              <label class="form-label">Servicio a regalar</label>
+              <label for="gc-service" class="form-label">Servicio a regalar<span class="req-mark" aria-hidden="true">*</span></label>
               <select id="gc-service" class="form-input" required>
                 <option value="">Seleccionar servicio...</option>
               </select>
             </div>
 
             <div class="form-group">
-              <label class="form-label">Mensaje personalizado (opcional)</label>
+              <label for="gc-message" class="form-label">Mensaje personalizado (opcional)</label>
               <input type="text" id="gc-message" class="form-input" placeholder="Ej: ¡Feliz cumpleaños!"
                 maxlength="100">
             </div>
 
             <div class="form-group">
-              <label class="form-label">Vigencia</label>
+              <label for="gc-validity" class="form-label">Vigencia</label>
               <select id="gc-validity" class="form-input">
                 <option value="30">30 días</option>
                 <option value="60">60 días</option>
@@ -770,7 +770,7 @@
       <div class="modal-card" style="max-width:420px;">
         <div class="modal-header">
           <h3><i class="fas fa-gift"></i> Gift Card</h3>
-          <button class="btn small ghost" onclick="closeGiftCardModal()"><i class="fas fa-times"></i></button>
+          <button class="btn small ghost" onclick="closeGiftCardModal()" aria-label="Cerrar"><i class="fas fa-times" aria-hidden="true"></i></button>
         </div>
         <div id="modal-giftcard-content" style="padding:0;">
           <!-- Contenido dinámico con diseño personalizado -->
@@ -797,15 +797,15 @@
         </h2>
         <div style="display:flex;gap:8px;align-items:center;">
           <select id="reviews-filter" onchange="filterReviews(this.value)" style="border:1.5px solid #e0d8d0;border-radius:10px;padding:6px 12px;font-size:13px;background:#fff;">
-            <option value="">Todas ⭐</option>
-            <option value="5">5 estrellas 🤩</option>
-            <option value="4">4 estrellas 😊</option>
-            <option value="3">3 estrellas 🙂</option>
-            <option value="2">2 estrellas 😐</option>
-            <option value="1">1 estrella 😞</option>
+            <option value="">Todas</option>
+            <option value="5">5 estrellas</option>
+            <option value="4">4 estrellas</option>
+            <option value="3">3 estrellas</option>
+            <option value="2">2 estrellas</option>
+            <option value="1">1 estrella</option>
           </select>
-          <button onclick="loadReviews()" style="background:linear-gradient(135deg,#9A9F82,#7d836a);color:#fff;border:none;border-radius:10px;padding:7px 14px;font-size:13px;cursor:pointer;">
-            <i class="fas fa-sync-alt"></i>
+          <button onclick="loadReviews()" style="background:linear-gradient(135deg,#9A9F82,#7d836a);color:#fff;border:none;border-radius:10px;padding:7px 14px;font-size:13px;cursor:pointer;" aria-label="Recargar reseñas">
+            <i class="fas fa-sync-alt" aria-hidden="true"></i>
           </button>
         </div>
       </div>
@@ -859,12 +859,12 @@
         <form id="business-config-form">
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
             <div>
-              <label>Nombre del negocio</label>
-              <input id="biz-name" placeholder="Venus Estética" required>
+              <label for="biz-name">Nombre del negocio<span class="req-mark" aria-hidden="true">*</span></label>
+              <input type="text" id="biz-name" placeholder="Venus Estética" required>
             </div>
             <div>
-              <label>WhatsApp del negocio</label>
-              <input id="biz-whatsapp" placeholder="524271234567" required>
+              <label for="biz-whatsapp">WhatsApp del negocio<span class="req-mark" aria-hidden="true">*</span></label>
+              <input type="tel" id="biz-whatsapp" placeholder="524271234567" required>
               <small class="muted">Formato: código país + número (sin +)</small>
             </div>
           </div>
@@ -879,13 +879,13 @@
           </div>
           <small class="muted">Escribe tu dirección y selecciona una sugerencia del menú</small>
 
-          <label style="margin-top:12px;">URL de Google Maps</label>
+          <label for="biz-maps-url" style="margin-top:12px;">URL de Google Maps</label>
           <input id="biz-maps-url" type="url" placeholder="https://www.google.com/maps/search/..." readonly>
           <small class="muted">Este enlace se genera automáticamente basado en tu dirección</small>
 
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
             <div>
-              <label>Horario apertura</label>
+              <label for="biz-open">Horario apertura</label>
               <select id="biz-open" class="form-input">
                 <option value="00:00">00:00</option>
                 <option value="00:30">00:30</option>
@@ -938,7 +938,7 @@
               </select>
             </div>
             <div>
-              <label>Horario cierre</label>
+              <label for="biz-close">Horario cierre</label>
               <select id="biz-close" class="form-input">
                 <option value="00:00">00:00</option>
                 <option value="00:30">00:30</option>
@@ -1071,33 +1071,33 @@
 
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
             <div>
-              <label>Banco</label>
-              <input id="bank-name" placeholder="BBVA, Banorte, Santander…">
+              <label for="bank-name">Banco</label>
+              <input type="text" id="bank-name" placeholder="BBVA, Banorte, Santander…">
             </div>
             <div>
-              <label>Titular de la cuenta</label>
-              <input id="bank-holder" placeholder="Venus Cosmetología">
+              <label for="bank-holder">Titular de la cuenta</label>
+              <input type="text" id="bank-holder" placeholder="Venus Cosmetología">
             </div>
           </div>
 
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
             <div>
-              <label>CLABE (18 dígitos)</label>
-              <input id="bank-clabe" placeholder="012345678901234567" maxlength="18" inputmode="numeric">
+              <label for="bank-clabe">CLABE (18 dígitos)</label>
+              <input type="text" id="bank-clabe" placeholder="012345678901234567" maxlength="18" inputmode="numeric">
             </div>
             <div>
-              <label>Número de cuenta (opcional)</label>
-              <input id="bank-account" placeholder="1234567890" inputmode="numeric">
+              <label for="bank-account">Número de cuenta (opcional)</label>
+              <input type="text" id="bank-account" placeholder="1234567890" inputmode="numeric">
             </div>
           </div>
 
           <div style="display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-top:12px;">
             <div>
-              <label>Referencia que debe poner el cliente</label>
-              <input id="bank-reference" placeholder="Tu nombre y fecha de cita">
+              <label for="bank-reference">Referencia que debe poner el cliente</label>
+              <input type="text" id="bank-reference" placeholder="Tu nombre y fecha de cita">
             </div>
             <div>
-              <label>Monto del anticipo ($)</label>
+              <label for="bank-amount">Monto del anticipo ($)</label>
               <input id="bank-amount" type="number" min="0" placeholder="100" inputmode="numeric">
             </div>
           </div>
@@ -1128,7 +1128,7 @@
 
           <div style="display:grid;grid-template-columns:1fr;gap:12px;max-width:280px;">
             <div>
-              <label>Citas previas mínimas para no pedir anticipo</label>
+              <label for="loyalty-noDeposit-minVisits">Citas previas mínimas para no pedir anticipo</label>
               <input id="loyalty-noDeposit-minVisits" type="number" min="1" max="20" placeholder="2" inputmode="numeric">
               <p class="muted" style="margin:6px 0 0;font-size:11px;">
                 Ej.: 2 = se exime al cumplir su tercera cita en adelante.
@@ -1240,7 +1240,7 @@
               <i class="fab fa-whatsapp"></i> Conectar WhatsApp
             </button>
             <div id="wa-qr-container" style="display:none;margin-top:16px;text-align:center;">
-              <img id="wa-qr-img" style="max-width:256px;border-radius:12px;background:#fff;padding:8px;">
+              <img id="wa-qr-img" alt="Código QR para conectar WhatsApp" style="max-width:256px;border-radius:12px;background:#fff;padding:8px;">
               <p class="muted" style="font-size:12px;margin-top:8px;">Escanea este QR con WhatsApp · se cierra solo al detectar conexión</p>
             </div>
             <div id="wa-connect-error" class="muted" style="display:none;margin-top:10px;font-size:12px;color:#e74c3c;"></div>
@@ -1259,16 +1259,16 @@
         <h3 style="margin:0 0 8px;"><i class="fas fa-mobile-alt"></i> Notificaciones Push</h3>
 
         <form id="push-notification-form">
-          <label>Título de la notificación</label>
-          <input id="push-title" placeholder="Ej. ¡Nueva promoción!" required maxlength="50">
+          <label for="push-title">Título de la notificación<span class="req-mark" aria-hidden="true">*</span></label>
+          <input type="text" id="push-title" placeholder="Ej. ¡Nueva promoción!" required maxlength="50">
           <small class="muted">Máximo 50 caracteres</small>
 
-          <label style="margin-top:10px;">Mensaje</label>
+          <label for="push-message" style="margin-top:10px;">Mensaje<span class="req-mark" aria-hidden="true">*</span></label>
           <textarea id="push-message" placeholder="Ej. Hoy tenemos 20% de descuento..." required maxlength="200"
             rows="3"></textarea>
           <small class="muted">Máximo 200 caracteres</small>
 
-          <label style="margin-top:10px;">Tipo</label>
+          <label for="push-type" style="margin-top:10px;">Tipo</label>
           <select id="push-type">
             <option value="promo">Promoción</option>
             <option value="reminder">Recordatorio</option>
@@ -1388,16 +1388,16 @@
             <span class="automation-icon"><i class="fas fa-birthday-cake"></i></span>
             <span class="automation-title">Recordatorio de Cumpleaños</span>
           </div>
-          <label class="toggle-switch">
+          <label for="auto-birthday-enabled" class="toggle-switch">
             <input type="checkbox" id="auto-birthday-enabled" checked>
             <span class="toggle-slider"></span>
           </label>
         </div>
         <div class="automation-body">
-          <label class="automation-label">Días de anticipación:</label>
+          <label for="auto-birthday-days" class="automation-label">Días de anticipación:</label>
           <input type="number" id="auto-birthday-days" class="automation-input" value="3" min="0" max="30">
 
-          <label class="automation-label" style="margin-top:10px;">Mensaje:</label>
+          <label for="auto-birthday-message" class="automation-label" style="margin-top:10px;">Mensaje:</label>
           <textarea id="auto-birthday-message" class="automation-textarea"
             rows="2">¡Feliz cumpleaños! <i class="fas fa-birthday-cake"></i> Te esperamos con un regalo especial en Venus.</textarea>
 
@@ -1413,16 +1413,16 @@
             <span class="automation-icon"><i class="fas fa-moon"></i></span>
             <span class="automation-title">Alerta de Inactividad</span>
           </div>
-          <label class="toggle-switch">
+          <label for="auto-inactivity-enabled" class="toggle-switch">
             <input type="checkbox" id="auto-inactivity-enabled" checked>
             <span class="toggle-slider"></span>
           </label>
         </div>
         <div class="automation-body">
-          <label class="automation-label">Días sin visita:</label>
+          <label for="auto-inactivity-days" class="automation-label">Días sin visita:</label>
           <input type="number" id="auto-inactivity-days" class="automation-input" value="30" min="7" max="180">
 
-          <label class="automation-label" style="margin-top:10px;">Mensaje:</label>
+          <label for="auto-inactivity-message" class="automation-label" style="margin-top:10px;">Mensaje:</label>
           <textarea id="auto-inactivity-message" class="automation-textarea"
             rows="2">¡Te extrañamos! Hace tiempo que no te vemos. Ven y disfruta nuestros servicios.</textarea>
 
@@ -1438,7 +1438,7 @@
             <span class="automation-icon"><i class="fas fa-gift"></i></span>
             <span class="automation-title">Tarjeta Completada</span>
           </div>
-          <label class="toggle-switch">
+          <label for="auto-completed-enabled" class="toggle-switch">
             <input type="checkbox" id="auto-completed-enabled" checked>
             <span class="toggle-slider"></span>
           </label>
@@ -1447,7 +1447,7 @@
           <p class="muted" style="font-size:12px;margin:0 0 10px;">Notificación cuando el cliente complete su tarjeta.
           </p>
 
-          <label class="automation-label">Mensaje:</label>
+          <label for="auto-completed-message" class="automation-label">Mensaje:</label>
           <textarea id="auto-completed-message" class="automation-textarea"
             rows="2">¡Felicidades! Has completado tu tarjeta. Ven a canjear tu premio.</textarea>
 
@@ -1460,19 +1460,19 @@
       <div class="automation-card">
         <div class="automation-header">
           <div>
-            <span class="automation-icon">⚡</span>
+            <span class="automation-icon"><i class="fas fa-bolt" aria-hidden="true"></i></span>
             <span class="automation-title">Casi Completa (Motivacional)</span>
           </div>
-          <label class="toggle-switch">
+          <label for="auto-almost-enabled" class="toggle-switch">
             <input type="checkbox" id="auto-almost-enabled" checked>
             <span class="toggle-slider"></span>
           </label>
         </div>
         <div class="automation-body">
-          <label class="automation-label">Faltan X sellos:</label>
+          <label for="auto-almost-stamps" class="automation-label">Faltan X sellos:</label>
           <input type="number" id="auto-almost-stamps" class="automation-input" value="2" min="1" max="5">
 
-          <label class="automation-label" style="margin-top:10px;">Mensaje:</label>
+          <label for="auto-almost-message" class="automation-label" style="margin-top:10px;">Mensaje:</label>
           <textarea id="auto-almost-message" class="automation-textarea"
             rows="2">¡Ya casi! ⚡ Solo te faltan [X] sellos para tu premio. ¡No esperes más!</textarea>
 
@@ -1537,18 +1537,18 @@
           <!-- PASO 2: Mensaje y envío -->
           <div id="promo-step2" class="hidden" style="background:rgba(255,255,255,0.06);border-radius:10px;padding:12px;margin-bottom:12px;">
             <h4 style="margin:0 0 8px;font-size:14px;"><i class="fas fa-paper-plane"></i> Paso 2 — Escribir mensaje y enviar</h4>
-            <label>Mensaje promocional</label>
+            <label for="promo-message">Mensaje promocional</label>
             <textarea id="promo-message" rows="4" placeholder="Hola {nombre}, te extrañamos en Venus! Tenemos un descuento especial en nuestros servicios básicos solo para ti. Agenda tu cita hoy." style="width:100%;"></textarea>
             <small class="muted">Usa <b>{nombre}</b> para personalizar con el nombre de la clienta</small>
             <div style="margin-top:10px;">
-              <label>Cantidad máxima de envíos</label>
+              <label for="promo-limit">Cantidad máxima de envíos</label>
               <input id="promo-limit" type="number" min="1" max="500" value="20" placeholder="20" style="width:100px;">
               <small class="muted">Déjalo vacío para enviar a todos los seleccionados</small>
             </div>
             <div class="row" style="margin-top:12px;gap:10px;">
               <button type="button" id="btn-promo-start" class="btn primary" onclick="startPromo2025()"><i class="fab fa-whatsapp"></i> Enviar a seleccionados</button>
               <button type="button" id="btn-promo-stop" class="btn ghost" style="color:#ef4444;" onclick="stopPromo2025()" disabled><i class="fas fa-stop"></i> Detener</button>
-              <button type="button" class="btn ghost" onclick="refreshPromoStatus()"><i class="fas fa-sync-alt"></i></button>
+              <button type="button" class="btn ghost" onclick="refreshPromoStatus()" aria-label="Actualizar estado de la promoción"><i class="fas fa-sync-alt" aria-hidden="true"></i></button>
             </div>
           </div>
 
@@ -1584,8 +1584,8 @@
             <p class="muted" style="font-size:12px;margin-top:4px;">Envíos automáticos y campañas combinados.</p>
           </div>
           <div style="display:flex;gap:8px;">
-            <button id="refresh-history" class="btn small ghost" title="Refrescar"><i class="fas fa-sync-alt"></i></button>
-            <button id="clear-notif-history" class="btn small ghost" style="color:#ef4444;" title="Borrar historial"><i class="fas fa-trash"></i></button>
+            <button id="refresh-history" class="btn small ghost" title="Refrescar"><i class="fas fa-sync-alt" aria-hidden="true"></i></button>
+            <button id="clear-notif-history" class="btn small ghost" style="color:#ef4444;" title="Borrar historial"><i class="fas fa-trash" aria-hidden="true"></i></button>
           </div>
         </div>
         <div class="table-wrap">
@@ -1619,7 +1619,7 @@
             style="color:#ef4444;border-color:#ef4444;">
             <i class="fas fa-trash"></i> Borrar Todo
           </button>
-          <button class="btn small ghost" onclick="loadBookingRequests()"><i class="fas fa-sync"></i></button>
+          <button class="btn small ghost" onclick="loadBookingRequests()" aria-label="Recargar solicitudes"><i class="fas fa-sync" aria-hidden="true"></i></button>
         </div>
       </div>
 
@@ -1657,7 +1657,7 @@
             <code id="agendar-url" style="font-size:11px;word-break:break-all;"></code>
           </div>
           <div style="display:flex;gap:6px;">
-            <button class="btn small" onclick="copyAgendarUrl()" title="Copiar URL"><i class="fas fa-copy"></i></button>
+            <button class="btn small" onclick="copyAgendarUrl()" title="Copiar URL"><i class="fas fa-copy" aria-hidden="true"></i></button>
             <a href="/agendar.html" target="_blank" class="btn small ghost" title="Abrir"><i
                 class="fas fa-external-link-alt"></i></a>
           </div>
@@ -1677,7 +1677,7 @@
           </div>
           <div class="agenda-head-actions">
             <button class="btn small ghost" onclick="clearAppointmentsCache(); loadMonthAppointments(true); loadAppointments(true); loadMonthStats(true);" title="Actualizar">
-              <i class="fas fa-sync"></i>
+              <i class="fas fa-sync" aria-hidden="true"></i>
             </button>
             <button class="btn primary agenda-cta" id="btn-new-appointment-header">
               <i class="fas fa-plus"></i><span>Nueva cita</span>
@@ -1715,17 +1715,17 @@
           <div class="agenda-controls">
             <div class="agenda-date-nav">
               <button class="btn-nav" id="btn-prev-month" title="Anterior" aria-label="Anterior">
-                <i class="fas fa-chevron-left"></i>
+                <i class="fas fa-chevron-left" aria-hidden="true"></i>
               </button>
               <button class="btn-nav agenda-today-btn" id="btn-today" title="Ir a hoy">Hoy</button>
               <button class="btn-nav" id="btn-next-month" title="Siguiente" aria-label="Siguiente">
-                <i class="fas fa-chevron-right"></i>
+                <i class="fas fa-chevron-right" aria-hidden="true"></i>
               </button>
             </div>
             <div class="view-selector" role="tablist" aria-label="Vista del calendario">
-              <button class="view-btn active" data-view="day" role="tab">Día</button>
-              <button class="view-btn" data-view="week" role="tab">Semana</button>
-              <button class="view-btn" data-view="month" role="tab">Mes</button>
+              <button class="view-btn active" data-view="day" role="tab" aria-selected="true">Día</button>
+              <button class="view-btn" data-view="week" role="tab" aria-selected="false">Semana</button>
+              <button class="view-btn" data-view="month" role="tab" aria-selected="false">Mes</button>
             </div>
             <button class="btn primary" id="btn-new-appointment" style="display:none;" aria-hidden="true">
               <i class="fas fa-plus"></i> Nueva Cita
@@ -1759,7 +1759,7 @@
                 <span>Sincronizar respuestas</span>
               </button>
               <button class="btn small ghost" id="btn-refresh-appts" title="Refrescar lista" style="padding:6px 8px;font-size:11px;">
-                <i class="fas fa-sync-alt"></i>
+                <i class="fas fa-sync-alt" aria-hidden="true"></i>
               </button>
             </div>
           </div>
@@ -1834,13 +1834,13 @@
 
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
             <div style="display:flex;align-items:center;gap:6px;">
-              <label style="font-size:12px;color:var(--muted);">Desde:</label>
+              <label for="report-date-from" style="font-size:12px;color:var(--muted);">Desde:</label>
               <input type="date" id="report-date-from" class="form-control"
                 style="padding:8px 12px;border-radius:8px;border:1px solid var(--line);background:var(--bg-card);color:var(--ink);font-size:13px;">
             </div>
 
             <div style="display:flex;align-items:center;gap:6px;">
-              <label style="font-size:12px;color:var(--muted);">Hasta:</label>
+              <label for="report-date-to" style="font-size:12px;color:var(--muted);">Hasta:</label>
               <input type="date" id="report-date-to" class="form-control"
                 style="padding:8px 12px;border-radius:8px;border:1px solid var(--line);background:var(--bg-card);color:var(--ink);font-size:13px;">
             </div>
@@ -2169,7 +2169,7 @@
             <span id="caja-fecha-hoy" style="font-size:16px;font-weight:600;color:var(--ink);"></span>
           </div>
           <div style="display:flex;align-items:center;gap:8px;">
-            <label style="font-size:12px;color:var(--muted);">Ver fecha:</label>
+            <label for="caja-fecha-select" style="font-size:12px;color:var(--muted);">Ver fecha:</label>
             <input type="date" id="caja-fecha-select" class="form-control" onchange="cargarCajaPorFecha(this.value)" 
               style="padding:6px 10px;border-radius:8px;font-size:13px;">
           </div>
@@ -2364,10 +2364,10 @@
             <input type="text" id="search-products" class="form-input" placeholder="Buscar producto..."
               style="flex:1;min-width:200px;">
             <div class="filter-chips">
-              <span class="chip active" data-category="all" onclick="filterProducts('all')">Todos</span>
-              <span class="chip" data-category="skincare" onclick="filterProducts('skincare')">Skincare</span>
-              <span class="chip" data-category="maquillaje" onclick="filterProducts('maquillaje')">Maquillaje</span>
-              <span class="chip" data-category="corporal" onclick="filterProducts('corporal')">Corporal</span>
+              <button type="button" class="chip active" data-category="all" onclick="filterProducts('all')">Todos</button>
+              <button type="button" class="chip" data-category="skincare" onclick="filterProducts('skincare')">Skincare</button>
+              <button type="button" class="chip" data-category="maquillaje" onclick="filterProducts('maquillaje')">Maquillaje</button>
+              <button type="button" class="chip" data-category="corporal" onclick="filterProducts('corporal')">Corporal</button>
             </div>
             <button class="btn primary" id="btn-new-product"><i class="fas fa-plus"></i> Nuevo Producto</button>
           </div>
@@ -2410,7 +2410,7 @@
       </p>
       <div id="mkt-checklist"><p class="muted">Cargando…</p></div>
       <div style="margin-top:18px;padding-top:14px;border-top:1px solid rgba(0,0,0,0.08);display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-        <input id="mkt-new-title" placeholder="Agregar tarea…" style="flex:1;min-width:200px;padding:8px 10px;border:1px solid rgba(0,0,0,0.15);border-radius:8px;">
+        <input type="text" id="mkt-new-title" placeholder="Agregar tarea…" style="flex:1;min-width:200px;padding:8px 10px;border:1px solid rgba(0,0,0,0.15);border-radius:8px;">
         <select id="mkt-new-freq" style="padding:8px 10px;border:1px solid rgba(0,0,0,0.15);border-radius:8px;">
           <option value="once">Una vez</option>
           <option value="daily">Diaria</option>
@@ -2427,8 +2427,8 @@
       <div style="margin: 16px 0;">
         <h3 style="font-size:16px;margin-bottom:8px;">Crear cuenta de marketing</h3>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <input id="mkt-new-email" placeholder="correo@ejemplo.com" style="flex:1;min-width:180px;padding:8px 10px;border:1px solid rgba(0,0,0,0.15);border-radius:8px;">
-          <input id="mkt-new-name" placeholder="Nombre" style="flex:1;min-width:120px;padding:8px 10px;border:1px solid rgba(0,0,0,0.15);border-radius:8px;">
+          <input type="email" id="mkt-new-email" placeholder="correo@ejemplo.com" style="flex:1;min-width:180px;padding:8px 10px;border:1px solid rgba(0,0,0,0.15);border-radius:8px;">
+          <input type="text" id="mkt-new-name" placeholder="Nombre" style="flex:1;min-width:120px;padding:8px 10px;border:1px solid rgba(0,0,0,0.15);border-radius:8px;">
           <input id="mkt-new-pass" type="password" placeholder="Contraseña" style="flex:1;min-width:120px;padding:8px 10px;border:1px solid rgba(0,0,0,0.15);border-radius:8px;">
           <button class="btn small primary" onclick="createMarketer()"><i class="fas fa-user-plus"></i> Crear</button>
         </div>
@@ -2437,7 +2437,7 @@
       <div style="margin: 16px 0;">
         <h3 style="font-size:16px;margin-bottom:8px;">Configuración de comisión</h3>
         <div style="display:flex;gap:8px;align-items:center;">
-          <label>Monto fijo por cita: $</label>
+          <label for="mkt-commission-amount">Monto fijo por cita: $</label>
           <input id="mkt-commission-amount" type="number" style="width:100px;padding:8px 10px;border:1px solid rgba(0,0,0,0.15);border-radius:8px;" placeholder="50">
           <button class="btn small primary" onclick="saveCommissionConfig()">Guardar</button>
           <button class="btn small ghost" onclick="loadCommissionConfig()">Cargar</button>
@@ -2482,20 +2482,20 @@
       <div class="modal-card">
         <div class="modal-header">
           <h3 id="modal-product-title"><i class="fas fa-shopping-bag"></i> Nuevo Producto</h3>
-          <button class="btn small ghost" id="close-modal-product"><i class="fas fa-times"></i></button>
+          <button class="btn small ghost" id="close-modal-product" aria-label="Cerrar"><i class="fas fa-times" aria-hidden="true"></i></button>
         </div>
 
         <form id="form-product">
           <input type="hidden" id="product-id">
 
           <div class="form-group">
-            <label class="form-label">Nombre del producto</label>
+            <label for="product-name" class="form-label">Nombre del producto<span class="req-mark" aria-hidden="true">*</span></label>
             <input type="text" id="product-name" class="form-input" required placeholder="Ej: Sérum Vitamina C">
           </div>
 
           <div class="row" style="gap:12px;">
             <div class="form-group" style="flex:1;">
-              <label class="form-label">Categoría</label>
+              <label for="product-category" class="form-label">Categoría<span class="req-mark" aria-hidden="true">*</span></label>
               <select id="product-category" class="form-input" required>
                 <option value="skincare">Skincare</option>
                 <option value="maquillaje">Maquillaje</option>
@@ -2505,7 +2505,7 @@
               </select>
             </div>
             <div class="form-group" style="flex:1;">
-              <label class="form-label">Presentación</label>
+              <label for="product-presentation" class="form-label">Presentación</label>
               <input type="text" id="product-presentation" class="form-input" placeholder="Ej: 30ml, 50g">
             </div>
           </div>
@@ -2532,17 +2532,17 @@
 
           <div class="row" style="gap:12px;">
             <div class="form-group" style="flex:1;">
-              <label class="form-label">Stock actual</label>
+              <label for="product-stock" class="form-label">Stock actual<span class="req-mark" aria-hidden="true">*</span></label>
               <input type="number" id="product-stock" class="form-input" required min="0" value="0">
             </div>
             <div class="form-group" style="flex:1;">
-              <label class="form-label">Stock mínimo (alerta)</label>
+              <label for="product-min-stock" class="form-label">Stock mínimo (alerta)</label>
               <input type="number" id="product-min-stock" class="form-input" min="0" value="5">
             </div>
           </div>
 
           <div class="form-group">
-            <label class="form-label">Descripción (opcional)</label>
+            <label for="product-description" class="form-label">Descripción (opcional)</label>
             <input type="text" id="product-description" class="form-input" placeholder="Breve descripción">
           </div>
 
@@ -2649,11 +2649,11 @@
                 <h4 style="margin:0 0 12px 0;color:var(--venus-soft);font-size:14px;font-weight:700;">Nuevo Cliente</h4>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
                   <div>
-                    <label style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:6px;">Nombre completo</label>
+                    <label for="new-client-name" style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:6px;">Nombre completo</label>
                     <input type="text" id="new-client-name" class="form-input" placeholder="Ej: Maria Gonzalez" style="width:100%;padding:12px 14px;background:var(--glass-bg);border:1px solid var(--border-color);border-radius:10px;font-size:14px;color:var(--ink);">
                   </div>
                   <div>
-                    <label style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:6px;">Telefono</label>
+                    <label for="new-client-phone" style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:6px;">Telefono</label>
                     <input type="tel" id="new-client-phone" class="form-input" placeholder="52..." style="width:100%;padding:12px 14px;background:var(--glass-bg);border:1px solid var(--border-color);border-radius:10px;font-size:14px;color:var(--ink);">
                   </div>
                 </div>
@@ -2709,19 +2709,19 @@
                   <div id="new-appt-calendar" class="calendar-dropdown" style="display:none;"></div>
                 </div>
                 <div>
-                  <label style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:8px;padding-left:4px;">Hora</label>
+                  <label for="new-appt-hour" style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:8px;padding-left:4px;">Hora<span class="req-mark" aria-hidden="true">*</span></label>
                   <select id="new-appt-hour" class="form-input" required style="width:100%;padding:12px 10px;background:var(--glass-bg);border:1px solid var(--border-color);border-radius:10px;font-size:14px;color:var(--ink);">
                     <option value="">--</option>
                   </select>
                 </div>
                 <div>
-                  <label style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:8px;padding-left:4px;">Min</label>
+                  <label for="new-appt-minute" style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:8px;padding-left:4px;">Min<span class="req-mark" aria-hidden="true">*</span></label>
                   <select id="new-appt-minute" class="form-input" required style="width:100%;padding:12px 10px;background:var(--glass-bg);border:1px solid var(--border-color);border-radius:10px;font-size:14px;color:var(--ink);">
                     <option value="">--</option>
                   </select>
                 </div>
                 <div>
-                  <label style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:8px;padding-left:4px;">Finaliza aprox.</label>
+                  <label for="new-appt-end-time" style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:8px;padding-left:4px;">Finaliza aprox.</label>
                   <input type="text" id="new-appt-end-time" class="form-input" readonly
                     style="width:100%;padding:12px 14px;background:rgba(255,255,255,0.03);border:1px solid var(--border-color);border-radius:10px;font-size:14px;color:var(--muted);">
                 </div>
@@ -2735,21 +2735,21 @@
                 <h2 style="font-size:16px;font-weight:600;color:var(--ink);margin:0;">Recordatorios de WhatsApp</h2>
               </div>
               <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
-                <label style="display:flex;align-items:flex-start;gap:12px;padding:14px;background:var(--glass-bg);border:1px solid var(--border-color);border-radius:12px;cursor:pointer;transition:background 0.2s;">
+                <label for="check-whatsapp-confirm" style="display:flex;align-items:flex-start;gap:12px;padding:14px;background:var(--glass-bg);border:1px solid var(--border-color);border-radius:12px;cursor:pointer;transition:background 0.2s;">
                   <input type="checkbox" id="check-whatsapp-confirm" checked style="margin-top:2px;width:18px;height:18px;accent-color:var(--venus);border-radius:4px;">
                   <div>
                     <p style="font-size:13px;font-weight:700;color:var(--ink);margin:0;">Inmediato</p>
                     <p style="font-size:11px;color:var(--muted);margin:2px 0 0;">Confirmacion al agendar</p>
                   </div>
                 </label>
-                <label style="display:flex;align-items:flex-start;gap:12px;padding:14px;background:var(--glass-bg);border:1px solid var(--border-color);border-radius:12px;cursor:pointer;transition:background 0.2s;">
+                <label for="check-whatsapp-24h" style="display:flex;align-items:flex-start;gap:12px;padding:14px;background:var(--glass-bg);border:1px solid var(--border-color);border-radius:12px;cursor:pointer;transition:background 0.2s;">
                   <input type="checkbox" id="check-whatsapp-24h" checked style="margin-top:2px;width:18px;height:18px;accent-color:var(--venus);border-radius:4px;">
                   <div>
                     <p style="font-size:13px;font-weight:700;color:var(--ink);margin:0;">24 horas antes</p>
                     <p style="font-size:11px;color:var(--muted);margin:2px 0 0;">Recordatorio preventivo</p>
                   </div>
                 </label>
-                <label style="display:flex;align-items:flex-start;gap:12px;padding:14px;background:var(--glass-bg);border:1px solid var(--border-color);border-radius:12px;cursor:pointer;transition:background 0.2s;">
+                <label for="check-whatsapp-2h" style="display:flex;align-items:flex-start;gap:12px;padding:14px;background:var(--glass-bg);border:1px solid var(--border-color);border-radius:12px;cursor:pointer;transition:background 0.2s;">
                   <input type="checkbox" id="check-whatsapp-2h" checked style="margin-top:2px;width:18px;height:18px;accent-color:var(--venus);border-radius:4px;">
                   <div>
                     <p style="font-size:13px;font-weight:700;color:var(--ink);margin:0;">2 horas antes</p>
@@ -2837,14 +2837,14 @@
           <div class="form-grid">
             <!-- Cliente (congelado) -->
             <div style="grid-column: 1/3;">
-              <label class="form-label">Cliente (no editable)</label>
+              <label for="edit-appt-client-name" class="form-label">Cliente (no editable)</label>
               <input type="text" id="edit-appt-client-name" class="form-input" readonly
                 style="background:rgba(255,255,255,0.05);cursor:not-allowed;">
             </div>
 
             <!-- Servicio -->
             <div style="grid-column: 1/3;">
-              <label class="form-label">Servicio</label>
+              <label for="edit-appt-service" class="form-label">Servicio<span class="req-mark" aria-hidden="true">*</span></label>
               <div class="custom-select-wrapper">
                 <input type="text" id="edit-appt-service" class="form-input" required>
                 <span class="dropdown-toggle-icon">▼</span>
@@ -2862,32 +2862,32 @@
             </div>
 
             <div>
-              <label class="form-label">Duración (min)</label>
+              <label for="edit-appt-duration" class="form-label">Duración (min)</label>
               <input type="number" id="edit-appt-duration" class="form-input" readonly>
             </div>
 
             <!-- Fecha y Hora -->
             <div class="grid-date-time full-width">
               <div style="position:relative;">
-                <label class="form-label"><i class="fas fa-calendar"></i> Fecha</label>
+                <label for="edit-appt-date" class="form-label"><i class="fas fa-calendar"></i> Fecha<span class="req-mark" aria-hidden="true">*</span></label>
                 <input type="text" id="edit-appt-date" class="form-input date-picker-input" readonly required
                   placeholder="Seleccionar fecha" style="cursor:pointer;">
                 <div id="edit-appt-calendar" class="calendar-dropdown" style="display:none;"></div>
               </div>
               <div>
-                <label class="form-label">Hora</label>
+                <label for="edit-appt-hour" class="form-label">Hora<span class="req-mark" aria-hidden="true">*</span></label>
                 <select id="edit-appt-hour" class="form-input" required style="width:100px;">
                   <option value="">--</option>
                 </select>
               </div>
               <div>
-                <label class="form-label">Min</label>
+                <label for="edit-appt-minute" class="form-label">Min<span class="req-mark" aria-hidden="true">*</span></label>
                 <select id="edit-appt-minute" class="form-input" required style="width:90px;">
                   <option value="">--</option>
                 </select>
               </div>
               <div>
-                <label class="form-label">Termina</label>
+                <label for="edit-appt-end-time" class="form-label">Termina</label>
                 <input type="text" id="edit-appt-end-time" class="form-input" readonly>
               </div>
             </div>
@@ -2927,7 +2927,7 @@
     <!-- PAYMENT DIALOG -->
     <dialog id="paymentDialog">
       <button class="btn-close-payment" onclick="closePaymentModal()" title="Cerrar">
-        <i class="fas fa-times"></i>
+        <i class="fas fa-times" aria-hidden="true"></i>
       </button>
 
       <div class="dialog-header">
@@ -2948,7 +2948,7 @@
               <span class="payment-price-display" id="payment-price-display">$0</span>
               <input type="number" class="payment-price-input" id="payment-price-input" min="0" step="any">
               <button class="btn-edit-price" onclick="togglePriceEdit()" title="Editar precio">
-                <i class="fas fa-pencil" style="font-size:12px;"></i>
+                <i class="fas fa-pencil" aria-hidden="true" style="font-size:12px;"></i>
               </button>
             </div>
           </div>
@@ -2967,8 +2967,8 @@
               <option value="">Agregar producto...</option>
             </select>
             <input type="number" id="payment-product-qty" value="1" min="1" max="99">
-            <button type="button" onclick="addProductToPayment()">
-              <i class="fas fa-plus"></i>
+            <button type="button" onclick="addProductToPayment()" aria-label="Agregar producto">
+              <i class="fas fa-plus" aria-hidden="true"></i>
             </button>
           </div>
 
@@ -3029,7 +3029,7 @@
 
         <!-- Método de pago -->
         <div class="form-row" style="margin-top:16px;margin-bottom:0;">
-          <label>Método de Pago <span style="color:#ef4444;">*</span></label>
+          <label for="payment-method">Método de Pago <span style="color:#ef4444;">*</span></label>
           <select id="payment-method" class="form-input">
             <option value="efectivo">Efectivo</option>
             <option value="tarjeta_credito">Tarjeta de crédito</option>
@@ -3055,7 +3055,7 @@
     <!-- PAYMENT DETAIL DIALOG -->
     <dialog id="paymentDetailDialog">
       <button class="btn-close-payment" onclick="closePaymentDetail()" title="Cerrar">
-        <i class="fas fa-times"></i>
+        <i class="fas fa-times" aria-hidden="true"></i>
       </button>
       <div class="dialog-header" style="padding:20px 20px 0;">
         <h3><i class="fas fa-receipt"></i> Detalle de Pago</h3>
@@ -3095,7 +3095,7 @@
               <div class="ds-combo-panel" id="ds-combo-panel" hidden></div>
             </div>
             <input type="number" id="direct-sale-product-qty" class="ds-input ds-qty" value="1" min="1" max="99" aria-label="Cantidad">
-            <button type="button" class="ds-add-btn" onclick="addProductToDirectSale()" title="Agregar"><i class="fas fa-plus"></i></button>
+            <button type="button" class="ds-add-btn" onclick="addProductToDirectSale()" title="Agregar"><i class="fas fa-plus" aria-hidden="true"></i></button>
           </div>
           <div class="ds-cart" id="direct-sale-products-list">
             <div class="ds-cart-empty">Aún no hay nada en la venta.</div>
@@ -3157,13 +3157,13 @@
             <span>Registrar ingreso</span>
           </h3>
           <button type="button" class="btn ghost" onclick="document.getElementById('manualIncomeDialog').close()" style="min-width:auto;padding:8px 12px;" title="Cerrar">
-            <i class="fas fa-times"></i>
+            <i class="fas fa-times" aria-hidden="true"></i>
           </button>
         </div>
         <form id="form-manual-income">
           <div style="display:grid;gap:16px;">
             <div>
-              <label class="form-label">Fecha</label>
+              <label for="mi-date" class="form-label">Fecha<span class="req-mark" aria-hidden="true">*</span></label>
               <input type="date" id="mi-date" class="form-input" required>
             </div>
             <!-- Ayuda del sistema: citas de ese día para comparar y autollenar.
@@ -3178,11 +3178,11 @@
               <div id="mi-citas-resumen" class="muted" style="font-size:11px;margin-top:6px;"></div>
             </div>
             <div>
-              <label class="form-label">Concepto / Servicio</label>
+              <label for="mi-concept" class="form-label">Concepto / Servicio<span class="req-mark" aria-hidden="true">*</span></label>
               <input type="text" id="mi-concept" class="form-input" required placeholder="Ej. Limpieza profunda, Masaje, Producto…">
             </div>
             <div>
-              <label class="form-label">Clienta <span class="muted" style="font-weight:400;">(opcional)</span></label>
+              <label for="mi-client" class="form-label">Clienta <span class="muted" style="font-weight:400;">(opcional)</span></label>
               <input type="text" id="mi-client" class="form-input" placeholder="Ej. María López">
             </div>
             <div>
@@ -3193,7 +3193,7 @@
               </div>
             </div>
             <div>
-              <label class="form-label">Método de pago</label>
+              <label for="mi-method" class="form-label">Método de pago<span class="req-mark" aria-hidden="true">*</span></label>
               <select id="mi-method" class="form-input" required>
                 <option value="efectivo">Efectivo</option>
                 <option value="tarjeta">Tarjeta</option>
@@ -3220,7 +3220,7 @@
           </h3>
           <button type="button" class="btn ghost" onclick="closeExpenseModal()" style="min-width:auto;padding:8px 12px;"
             title="Cerrar">
-            <i class="fas fa-times"></i>
+            <i class="fas fa-times" aria-hidden="true"></i>
           </button>
         </div>
         <form id="form-expense">
@@ -3228,13 +3228,13 @@
           <div style="display:grid;gap:16px;">
             <!-- Fecha -->
             <div>
-              <label class="form-label">Fecha</label>
+              <label for="expense-date" class="form-label">Fecha<span class="req-mark" aria-hidden="true">*</span></label>
               <input type="date" id="expense-date" class="form-input" required>
             </div>
 
             <!-- Categoría -->
             <div>
-              <label class="form-label">Categoría</label>
+              <label for="expense-category" class="form-label">Categoría<span class="req-mark" aria-hidden="true">*</span></label>
               <select id="expense-category" class="form-input" required>
                 <option value="">Seleccionar...</option>
                 <option value="productos">Productos/Inventario</option>
@@ -3251,7 +3251,7 @@
 
             <!-- Descripción -->
             <div>
-              <label class="form-label">Descripción</label>
+              <label for="expense-description" class="form-label">Descripción<span class="req-mark" aria-hidden="true">*</span></label>
               <textarea id="expense-description" class="form-input" rows="3"
                 placeholder="Ej: Compra de productos para tratamientos faciales" required></textarea>
             </div>
@@ -3553,7 +3553,7 @@
               <i class="fab fa-whatsapp"></i> <span>WhatsApp</span>
             </button>
             <button type="button" class="btn small ghost" id="exp-action-menu" onclick="expToggleHeaderMenu()" aria-label="Más acciones">
-              <i class="fas fa-ellipsis-vertical"></i>
+              <i class="fas fa-ellipsis-vertical" aria-hidden="true"></i>
             </button>
           </div>
         </div>
@@ -3619,7 +3619,7 @@
               <input type="hidden" id="exp-diag-id">
               <div class="exp-form-grid">
                 <div class="exp-form-group">
-                  <label>Tipo de piel</label>
+                  <label for="exp-diag-skinType">Tipo de piel</label>
                   <select id="exp-diag-skinType" class="form-input">
                     <option value="">Seleccionar...</option>
                     <option value="normal">Normal</option>
@@ -3630,15 +3630,15 @@
                   </select>
                 </div>
                 <div class="exp-form-group">
-                  <label>Cosmetóloga</label>
+                  <label for="exp-diag-staffName">Cosmetóloga</label>
                   <input type="text" id="exp-diag-staffName" class="form-input" placeholder="Nombre de la cosmetóloga">
                 </div>
               </div>
-              <div class="exp-form-group"><label>Alteración y/o condición de piel</label><textarea id="exp-diag-alteration" class="form-input" rows="2"></textarea></div>
-              <div class="exp-form-group"><label>Causas</label><textarea id="exp-diag-causes" class="form-input" rows="2"></textarea></div>
-              <div class="exp-form-group"><label>TX cosmético</label><textarea id="exp-diag-cosmeticTx" class="form-input" rows="2"></textarea></div>
-              <div class="exp-form-group"><label>Pronóstico</label><textarea id="exp-diag-prognosis" class="form-input" rows="2"></textarea></div>
-              <div class="exp-form-group"><label>Costo</label><input type="text" inputmode="numeric" id="exp-diag-cost" class="form-input" placeholder="Ej: $1,500"></div>
+              <div class="exp-form-group"><label for="exp-diag-alteration">Alteración y/o condición de piel</label><textarea id="exp-diag-alteration" class="form-input" rows="2"></textarea></div>
+              <div class="exp-form-group"><label for="exp-diag-causes">Causas</label><textarea id="exp-diag-causes" class="form-input" rows="2"></textarea></div>
+              <div class="exp-form-group"><label for="exp-diag-cosmeticTx">TX cosmético</label><textarea id="exp-diag-cosmeticTx" class="form-input" rows="2"></textarea></div>
+              <div class="exp-form-group"><label for="exp-diag-prognosis">Pronóstico</label><textarea id="exp-diag-prognosis" class="form-input" rows="2"></textarea></div>
+              <div class="exp-form-group"><label for="exp-diag-cost">Costo</label><input type="text" inputmode="numeric" id="exp-diag-cost" class="form-input" placeholder="Ej: $1,500"></div>
               <div class="exp-form-actions-sticky">
                 <button type="submit" class="btn primary"><i class="fas fa-save"></i> <span id="exp-diag-save-label">Guardar diagnóstico</span></button>
                 <button type="button" class="btn ghost" onclick="expNewDiagnosis()"><i class="fas fa-plus"></i> Nuevo diagnóstico</button>
@@ -3687,14 +3687,14 @@
             <input type="hidden" id="exp-laser-id">
             <input type="hidden" id="exp-laser-signature">
             <div class="exp-form-grid">
-              <div class="exp-form-group"><label>Fecha</label><input type="date" id="exp-laser-date" class="form-input"></div>
-              <div class="exp-form-group"><label>Cosmetóloga</label><input type="text" id="exp-laser-staffName" class="form-input"></div>
-              <div class="exp-form-group"><label>Zona</label><input type="text" id="exp-laser-zone" class="form-input"></div>
-              <div class="exp-form-group"><label>Parámetro 1</label><input type="text" inputmode="numeric" id="exp-laser-frequency" class="form-input"></div>
-              <div class="exp-form-group"><label>Parámetro 2</label><input type="text" inputmode="numeric" id="exp-laser-fluence" class="form-input"></div>
-              <div class="exp-form-group"><label>Parámetro 3</label><input type="text" inputmode="numeric" id="exp-laser-laserIntensity" class="form-input"></div>
+              <div class="exp-form-group"><label for="exp-laser-date">Fecha</label><input type="date" id="exp-laser-date" class="form-input"></div>
+              <div class="exp-form-group"><label for="exp-laser-staffName">Cosmetóloga</label><input type="text" id="exp-laser-staffName" class="form-input"></div>
+              <div class="exp-form-group"><label for="exp-laser-zone">Zona</label><input type="text" id="exp-laser-zone" class="form-input"></div>
+              <div class="exp-form-group"><label for="exp-laser-frequency">Parámetro 1</label><input type="text" inputmode="numeric" id="exp-laser-frequency" class="form-input"></div>
+              <div class="exp-form-group"><label for="exp-laser-fluence">Parámetro 2</label><input type="text" inputmode="numeric" id="exp-laser-fluence" class="form-input"></div>
+              <div class="exp-form-group"><label for="exp-laser-laserIntensity">Parámetro 3</label><input type="text" inputmode="numeric" id="exp-laser-laserIntensity" class="form-input"></div>
             </div>
-            <div class="exp-form-group"><label>Observaciones</label><textarea id="exp-laser-observations" class="form-input" rows="2"></textarea></div>
+            <div class="exp-form-group"><label for="exp-laser-observations">Observaciones</label><textarea id="exp-laser-observations" class="form-input" rows="2"></textarea></div>
             <div class="exp-form-group">
               <label>Firma de la clienta</label>
               <div class="exp-sig-field">
@@ -3730,7 +3730,7 @@
         <section id="exp-sec-fotos" class="exp-sec-content">
           <h3 class="exp-section-title">Galería de seguimiento</h3>
           <div style="margin-bottom:12px;">
-            <label class="btn primary exp-full-btn" style="display:flex;justify-content:center;align-items:center;gap:8px;cursor:pointer;">
+            <label for="exp-photo-upload" class="btn primary exp-full-btn" style="display:flex;justify-content:center;align-items:center;gap:8px;cursor:pointer;">
               <i class="fas fa-camera"></i> Subir fotos
               <input type="file" id="exp-photo-upload" multiple accept="image/*" capture="environment" style="display:none;" onchange="uploadExpPhotos(this.files)">
             </label>
@@ -3814,7 +3814,7 @@
         <form id="form-new-session">
           <div class="exp-form-grid">
             <div class="exp-form-group">
-              <label>Tipo de tratamiento *</label>
+              <label for="session-treatment-type">Tipo de tratamiento *</label>
               <select id="session-treatment-type" class="form-input" required>
                 <option value="">Seleccionar...</option>
                 <option value="facial">Facial</option>
@@ -3826,7 +3826,7 @@
               </select>
             </div>
             <div class="exp-form-group">
-              <label>Servicio realizado</label>
+              <label for="session-service">Servicio realizado</label>
               <input type="text" id="session-service" class="form-input" placeholder="Ej: Hydrafacial">
             </div>
           </div>
@@ -3835,52 +3835,52 @@
             <h4><i class="fas fa-cog"></i> Parámetros del aparato</h4>
             <div class="exp-form-grid">
               <div class="exp-form-group">
-                <label>Aparato utilizado</label>
+                <label for="session-device">Aparato utilizado</label>
                 <input type="text" id="session-device" class="form-input" placeholder="Ej: Cavitación, Radiofrecuencia">
               </div>
               <div class="exp-form-group">
-                <label>Potencia/Intensidad</label>
+                <label for="session-power">Potencia/Intensidad</label>
                 <input type="text" id="session-power" class="form-input" placeholder="Ej: 70%">
               </div>
               <div class="exp-form-group">
-                <label>Frecuencia</label>
+                <label for="session-frequency">Frecuencia</label>
                 <input type="text" id="session-frequency" class="form-input" placeholder="Ej: 1MHz">
               </div>
               <div class="exp-form-group">
-                <label>Tiempo de aplicación</label>
+                <label for="session-time">Tiempo de aplicación</label>
                 <input type="text" id="session-time" class="form-input" placeholder="Ej: 30 min">
               </div>
             </div>
           </div>
 
           <div class="exp-form-group">
-            <label>Zonas tratadas</label>
+            <label for="session-areas">Zonas tratadas</label>
             <input type="text" id="session-areas" class="form-input" placeholder="Ej: Abdomen, flancos, muslos">
           </div>
 
           <div class="exp-form-group">
-            <label>Productos utilizados</label>
+            <label for="session-products">Productos utilizados</label>
             <textarea id="session-products" class="form-input" rows="2" placeholder="Ej: Gel conductor, crema reafirmante..."></textarea>
           </div>
 
           <div class="exp-form-group">
-            <label>Observaciones de la sesión</label>
+            <label for="session-observations">Observaciones de la sesión</label>
             <textarea id="session-observations" class="form-input" rows="2" placeholder="Cómo respondió la piel, sensaciones..."></textarea>
           </div>
 
           <div class="exp-form-group">
-            <label>Resultados observados</label>
+            <label for="session-results">Resultados observados</label>
             <textarea id="session-results" class="form-input" rows="2" placeholder="Cambios visibles, medidas..."></textarea>
           </div>
 
           <div class="exp-form-group">
-            <label>Recomendaciones para próxima sesión</label>
+            <label for="session-recommendations">Recomendaciones para próxima sesión</label>
             <textarea id="session-recommendations" class="form-input" rows="2" placeholder="Ajustes sugeridos..."></textarea>
           </div>
 
           <div class="exp-form-group">
             <label>Fotos de la sesión</label>
-            <label class="exp-photo-upload-btn">
+            <label for="session-photos" class="exp-photo-upload-btn">
               <i class="fas fa-camera"></i> Seleccionar fotos
               <input type="file" id="session-photos" multiple accept="image/*" style="display:none;">
             </label>
@@ -4002,19 +4002,19 @@
     <div class="modal-card">
       <div class="modal-header">
         <h3 id="modal-service-title">Nuevo Servicio</h3>
-        <button type="button" class="btn small ghost" id="close-modal-service" aria-label="Cerrar"><i class="fas fa-times"></i></button>
+        <button type="button" class="btn small ghost" id="close-modal-service" aria-label="Cerrar"><i class="fas fa-times" aria-hidden="true"></i></button>
       </div>
 
       <form id="form-service">
         <input type="hidden" id="service-id">
 
         <div class="form-group">
-          <label class="form-label">Nombre del Servicio</label>
+          <label for="service-name" class="form-label">Nombre del Servicio<span class="req-mark" aria-hidden="true">*</span></label>
           <input type="text" id="service-name" class="form-input" required placeholder="Ej. Facial Hidratante">
         </div>
 
         <div class="form-group">
-          <label class="form-label">Categoría</label>
+          <label for="service-category" class="form-label">Categoría</label>
           <div style="position:relative;">
             <input type="text" id="service-category" class="form-input" autocomplete="off" placeholder="Elige una existente o escribe una nueva" style="padding-right:34px;">
             <button type="button" id="service-category-toggle" aria-label="Mostrar categorías"
@@ -4027,7 +4027,7 @@
 
         <div class="row" style="gap:15px;">
           <div class="form-group" style="flex:1;">
-            <label class="form-label">Duración (min)</label>
+            <label for="service-duration" class="form-label">Duración (min)<span class="req-mark" aria-hidden="true">*</span></label>
             <input type="number" id="service-duration" class="form-input" required min="10" step="5" value="60">
           </div>
           <div class="form-group" style="flex:1;">
@@ -4042,14 +4042,14 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label">Descripción (lista de beneficios)</label>
+          <label for="service-description" class="form-label">Descripción (lista de beneficios)</label>
           <textarea id="service-description" class="form-input" rows="4"
             placeholder="Un beneficio por línea..."></textarea>
           <div class="muted" style="font-size:11px;margin-top:4px;">Escribe cada punto en una línea separada.</div>
         </div>
 
         <div class="form-group">
-          <label class="form-label">Descuento/Promoción (Opcional)</label>
+          <label for="service-discount" class="form-label">Descuento/Promoción (Opcional)</label>
           <input type="text" id="service-discount" class="form-input" placeholder="Ej. 10% descuento en efectivo">
         </div>
 
@@ -4409,14 +4409,14 @@
           (deviceSettings.power ? ` - ${deviceSettings.power}` : '') : '';
         
         return `
-          <div class="exp-session-card" onclick="viewSessionDetail('${session.id}')">
+          <div class="exp-session-card" role="button" tabindex="0" onclick="viewSessionDetail('${session.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">
             <div class="exp-session-header">
               <span class="exp-session-date">${dateStr}</span>
               <span class="exp-session-type">${session.treatmentType || 'General'}</span>
             </div>
             ${deviceInfo ? `<div class="exp-session-device">${deviceInfo}</div>` : ''}
             ${session.treatedAreas ? `<div class="exp-session-areas"><strong>Zonas:</strong> ${session.treatedAreas}</div>` : ''}
-            ${!session.productsUsed ? `<div class="exp-session-products-pending"><span class="exp-badge exp-badge-danger" onclick="event.stopPropagation(); expFillSessionProducts('${session.id}')"><i class="fas fa-triangle-exclamation"></i> Falta registrar productos</span></div>` : ''}
+            ${!session.productsUsed ? `<div class="exp-session-products-pending"><button type="button" class="exp-badge exp-badge-danger" onclick="event.stopPropagation(); expFillSessionProducts('${session.id}')"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i> Falta registrar productos</button></div>` : ''}
           </div>
         `;
       }).join('');
@@ -4454,11 +4454,11 @@
         const typeLabel = { before: 'Antes', after: 'Después', progress: 'Progreso' }[typeClass] || 'Foto';
         
         return `
-          <div class="exp-photo-item" onclick="openPhotoLightbox('${photo.url}', '${photo.type || ''}', '${photo.createdAt || ''}')">
+          <div class="exp-photo-item" role="button" tabindex="0" onclick="openPhotoLightbox('${photo.url}', '${photo.type || ''}', '${photo.createdAt || ''}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">
             <img src="${venusPhotoUrl(photo.url)}" alt="Foto de tratamiento" loading="lazy">
             <span class="exp-photo-badge ${typeClass}">${typeLabel}</span>
-            <button class="exp-photo-delete" onclick="event.stopPropagation(); deleteExpPhoto('${photo.id}')">
-              <i class="fas fa-trash"></i>
+            <button class="exp-photo-delete" onclick="event.stopPropagation(); deleteExpPhoto('${photo.id}')" aria-label="Eliminar foto">
+              <i class="fas fa-trash" aria-hidden="true"></i>
             </button>
           </div>
         `;
@@ -5432,7 +5432,7 @@
         if (!res.ok) { let m = 'Error al enviar la ficha'; try { const j = await res.json(); if (j && j.error) m = j.error; } catch (_) {} throw new Error(m); }
         const data = await res.json();
         if (!data.success) throw new Error(data.error || 'Error al enviar la ficha');
-        let msg = 'Ficha enviada por WhatsApp ✅';
+        let msg = 'Ficha enviada por WhatsApp';
         if (data.url) msg += '\n\nLink: ' + data.url;
         await venusAlert(msg);
         await loadExpedienteDigital(cardId);
@@ -5472,7 +5472,7 @@
         if (!res.ok) { let m = 'Error al enviar el consentimiento'; try { const j = await res.json(); if (j && j.error) m = j.error; } catch (_) {} throw new Error(m); }
         const data = await res.json();
         if (!data.success) throw new Error(data.error || 'Error al enviar el consentimiento');
-        let msg = 'Consentimiento enviado por WhatsApp ✅';
+        let msg = 'Consentimiento enviado por WhatsApp';
         if (data.url) msg += '\n\nLink: ' + data.url;
         await venusAlert(msg);
         await loadExpedienteDigital(cardId);
@@ -5548,14 +5548,14 @@
         const fecha = d.createdAt ? new Date(d.createdAt).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }) : '—';
         const pdf = d.pdfWebViewLink ? '<a href="' + expEsc(d.pdfWebViewLink) + '" target="_blank" rel="noopener" class="btn small ghost" onclick="event.stopPropagation();"><i class="fas fa-file-pdf"></i> PDF</a>' : '';
         const collapsed = i > 0 ? ' exp-diag-row-collapsed' : '';
-        return '<div class="exp-diag-row' + collapsed + '" onclick="expLoadDiagnosis(' + "'" + d.id + "'" + ')">' +
+        return '<div class="exp-diag-row' + collapsed + '" role="button" tabindex="0" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();this.click();}" onclick="expLoadDiagnosis(' + "'" + d.id + "'" + ')">' +
           '<div class="exp-diag-row-main">' +
           '<div><div class="exp-diag-title">' + expEsc(d.skinType || '—') + ' · ' + expEsc(d.alteration || '—') + '</div>' +
           '<div class="exp-diag-meta">' + expEsc(fecha) + (d.staffName ? ' · ' + expEsc(d.staffName) : '') + '</div></div>' + pdf +
           '</div>' +
           '<div class="exp-stacked-actions">' +
             '<button class="btn small ghost" onclick="event.stopPropagation(); expLoadDiagnosis(' + "'" + d.id + "'" + ')"><i class="fas fa-pen"></i> Editar</button> ' +
-            '<button class="btn small ghost exp-btn-danger" onclick="event.stopPropagation(); expDeleteDiagnosis(' + "'" + d.id + "'" + ')"><i class="fas fa-trash"></i></button>' +
+            '<button class="btn small ghost exp-btn-danger" onclick="event.stopPropagation(); expDeleteDiagnosis(' + "'" + d.id + "'" + ')" aria-label="Eliminar diagnóstico"><i class="fas fa-trash" aria-hidden="true"></i></button>' +
           '</div>' +
           '</div>';
       }).join('');
@@ -5702,7 +5702,7 @@
           sigThumb +
           '<div class="exp-stacked-actions">' +
             '<button class="btn small ghost" onclick="expEditLaserSession(' + "'" + s.id + "'" + ')"><i class="fas fa-pen"></i> Editar</button> ' +
-            '<button class="btn small ghost exp-btn-danger" onclick="expDeleteLaserSession(' + "'" + s.id + "'" + ')"><i class="fas fa-trash"></i></button>' +
+            '<button class="btn small ghost exp-btn-danger" onclick="expDeleteLaserSession(' + "'" + s.id + "'" + ')" aria-label="Eliminar sesión láser"><i class="fas fa-trash" aria-hidden="true"></i></button>' +
           '</div>' +
         '</div>';
       }).join('');
@@ -5870,7 +5870,7 @@
             '<div class="exp-doc-info"><div class="exp-doc-name">' + link + '</div>' +
             '<div class="exp-doc-meta">' + expEsc(fecha) + (size ? ' · ' + expEsc(size) : '') + '</div></div></div>' +
           '<div class="exp-doc-actions">' + badge +
-            '<button class="btn small ghost exp-btn-danger" title="Elimina el registro del expediente (no borra el archivo en Google Drive)" onclick="expDeleteDocument(' + "'" + d.id + "'" + ')"><i class="fas fa-trash"></i></button></div>' +
+            '<button class="btn small ghost exp-btn-danger" title="Elimina el registro del expediente (no borra el archivo en Google Drive)" onclick="expDeleteDocument(' + "'" + d.id + "'" + ')"><i class="fas fa-trash" aria-hidden="true"></i></button></div>' +
           '</div>';
       }).join('');
     }
@@ -8200,7 +8200,7 @@
           throw new Error(data.error || 'No se pudo enviar');
         }
       } catch (e) {
-        await venusAlert('❌ Error: ' + e.message);
+        await venusAlert('Error: ' + e.message);
       }
     }
 
@@ -8311,7 +8311,7 @@
         }, 3000);
 
       } catch (e) {
-        await venusAlert('❌ Error: ' + e.message + '\n\nVerifica que Evolution API esté conectada en Ajustes.');
+        await venusAlert('Error: ' + e.message + '\n\nVerifica que Evolution API esté conectada en Ajustes.');
         btn.innerHTML = originalHtml;
         btn.disabled = false;
       }
@@ -8329,7 +8329,7 @@
         const data = await r.json();
         if (!r.ok || !data.success) throw new Error(data.error || 'Error generando wallet');
 
-        await venusAlert('✅ Google Wallet de masajes generado. Recarga la tarjeta del cliente.');
+        await venusAlert('Google Wallet de masajes generado. Recarga la tarjeta del cliente.');
         await loadCards(currentPage);
         const updated = cardsCache[cardId];
         if (updated) openCardModal(updated);
@@ -9547,7 +9547,7 @@
         const statusIcon = statusLabels[appt.status] || '<i class="fas fa-clipboard"></i>';
 
         return `
-          <div class="history-item" 
+          <button type="button" class="history-item" 
                data-service-name="${appt.serviceName}"
                data-service-id="${appt.serviceId || ''}" 
                onclick="selectHistoryService(this)">
@@ -9556,7 +9556,7 @@
               <span class="history-item-service">${appt.serviceName}</span>
             </div>
             <span class="history-item-select">Seleccionar →</span>
-          </div>
+          </button>
         `;
       }).join('');
     }
@@ -9763,7 +9763,7 @@
         bodyHTML += `<div class="day-column" data-date="${toLocalDateString(day)}">`;
         for (let h = 8; h <= 20; h++) {
           const timeStr = `${String(h).padStart(2, '0')}:00`;
-          bodyHTML += `<div class="time-slot" data-time="${timeStr}" onclick="openNewApptDialogWithDate('${toLocalDateString(day)}', '${timeStr}')"></div>`;
+          bodyHTML += `<button type="button" class="time-slot" data-time="${timeStr}" aria-label="Agendar cita el ${toLocalDateString(day)} a las ${timeStr}" onclick="openNewApptDialogWithDate('${toLocalDateString(day)}', '${timeStr}')"></button>`;
         }
 
         // Events
@@ -9779,10 +9779,10 @@
           const height = (appt.durationMinutes || 60);
           const status = appt.status || 'scheduled';
 
-          bodyHTML += `<div class="appt-block status-${status}" style="top:${top}px; height:${height}px;"
+          bodyHTML += `<button type="button" class="appt-block status-${status}" style="top:${top}px; height:${height}px;"
                           onclick="event.stopPropagation(); editAppointment('${appt.id}')" title="${appt.clientName} - ${appt.serviceName}">
                 <strong>${appt.time}</strong> ${appt.clientName}
-            </div>`;
+            </button>`;
         });
 
         bodyHTML += '</div>';
@@ -9830,7 +9830,7 @@
       bodyHTML += `<div class="day-column" style="flex:1;" data-date="${toLocalDateString(d)}">`;
       for (let h = 8; h <= 20; h++) {
         const timeStr = `${String(h).padStart(2, '0')}:00`;
-        bodyHTML += `<div class="time-slot" data-time="${timeStr}" onclick="openNewApptDialogWithDate('${toLocalDateString(d)}', '${timeStr}')"></div>`;
+        bodyHTML += `<button type="button" class="time-slot" data-time="${timeStr}" aria-label="Agendar cita el ${toLocalDateString(d)} a las ${timeStr}" onclick="openNewApptDialogWithDate('${toLocalDateString(d)}', '${timeStr}')"></button>`;
       }
 
       // Events
@@ -9846,13 +9846,13 @@
         const height = (appt.durationMinutes || 60);
         const status = appt.status || 'scheduled';
 
-        bodyHTML += `<div class="appt-block status-${status}" style="top:${top}px; height:${height}px;"
+        bodyHTML += `<button type="button" class="appt-block status-${status}" style="top:${top}px; height:${height}px;"
                         onclick="event.stopPropagation(); editAppointment('${appt.id}')" title="${appt.clientName}">
               <div class="ab-head">${appt.time} · ${appt.clientName}</div>
               <div class="ab-svc">${appt.serviceName}</div>
               <div class="ab-meta">${appt.clientPhone}</div>
-              ${appt.barExtra?.preorderItems?.length ? `<div class="ab-meta" style="color:#6B8E23;font-weight:700;">☕ ${appt.barExtra.preorderItems.map(i => `${i.qty || 1}× ${(i.name || '').replace(/</g, '&lt;')}`).join(', ')}</div>` : ''}
-          </div>`;
+              ${appt.barExtra?.preorderItems?.length ? `<div class="ab-meta" style="color:#6B8E23;font-weight:700;"><i class="fa-solid fa-mug-hot" aria-hidden="true"></i> ${appt.barExtra.preorderItems.map(i => `${i.qty || 1}× ${(i.name || '').replace(/</g, '&lt;')}`).join(', ')}</div>` : ''}
+          </button>`;
       });
 
       bodyHTML += '</div></div></div>';
@@ -10223,7 +10223,7 @@
                         <i class="fas fa-clock" style="font-size:9px;color:var(--muted);"></i>
                         <span style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;">${time} — ${appt.serviceName}</span>
                       </div>
-                      ${appt.barExtra?.preorderItems?.length ? `<div style="font-size:10px;color:var(--venus-soft);font-weight:700;margin-top:2px;">☕ Barra: ${appt.barExtra.preorderItems.map(i => `${i.qty || 1}× ${(i.name || '').replace(/</g, '&lt;')}`).join(', ')}${appt.barExtra.depositReceiptUrl ? ' · 💵 con anticipo' : ''}</div>` : ''}
+                      ${appt.barExtra?.preorderItems?.length ? `<div style="font-size:10px;color:var(--venus-soft);font-weight:700;margin-top:2px;"><i class="fa-solid fa-mug-hot" aria-hidden="true"></i> Barra: ${appt.barExtra.preorderItems.map(i => `${i.qty || 1}× ${(i.name || '').replace(/</g, '&lt;')}`).join(', ')}${appt.barExtra.depositReceiptUrl ? ' · con anticipo' : ''}</div>` : ''}
                     </div>
                   </div>
                   <select onchange="updateAppointmentStatus('${appt.id}', this.value)" style="background:${stColor};color:#fff;font-size:9px;font-weight:700;padding:4px 8px;border-radius:999px;text-transform:uppercase;border:none;cursor:pointer;appearance:none;-webkit-appearance:none;min-width:90px;text-align:center;" onclick="this.style.appearance='auto';this.style.webkitAppearance='menulist'" onblur="this.style.appearance='none';this.style.webkitAppearance='none'">
@@ -10243,8 +10243,8 @@
                   <button onclick="sendWhatsAppAttendanceSurvey('${appt.id}')" style="flex:1;font-size:9px;font-weight:700;padding:6px;border-radius:8px;background:#25D366;color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;">
                     <i class="fab fa-whatsapp" style="font-size:10px;"></i> WhatsApp
                   </button>
-                  <button onclick="editAppointment('${appt.id}')" style="padding:6px 8px;border-radius:8px;background:var(--glass-bg);border:1px solid var(--border-color);color:var(--muted);cursor:pointer;">
-                    <i class="fas fa-edit" style="font-size:11px;"></i>
+                  <button onclick="editAppointment('${appt.id}')" style="padding:6px 8px;border-radius:8px;background:var(--glass-bg);border:1px solid var(--border-color);color:var(--muted);cursor:pointer;" aria-label="Editar cita">
+                    <i class="fas fa-edit" aria-hidden="true" style="font-size:11px;"></i>
                   </button>
                 </div>
               </div>`;
@@ -10330,10 +10330,10 @@
                     <span style="background:#8b5cf6;color:white;padding:2px 6px;border-radius:4px;font-size:0.75em;font-weight:600;" title="${appt.productsSold.reduce((sum, p) => sum + p.qty, 0)} productos"><i class="fas fa-box"></i> ${appt.productsSold.reduce((sum, p) => sum + p.qty, 0)}</span>
                   ` : ''}
                   <button onclick="viewPaymentDetails('${appt.id}')" title="Ver detalle de pago" style="background:none;border:none;color:#60a5fa;cursor:pointer;padding:2px 4px;font-size:0.85em;">
-                    <i class="fas fa-eye"></i>
+                    <i class="fas fa-eye" aria-hidden="true"></i>
                   </button>
                   <button onclick="openPaymentModal('${appt.id}', '${appt.clientName.replace(/'/g, "\\'")}', '${appt.serviceName.replace(/'/g, "\\'")}', ${appt.totalPaid || 0}, true)" title="Editar pago" style="background:none;border:none;color:#9ca3af;cursor:pointer;padding:0;font-size:0.8em;">
-                    <i class="fas fa-pencil-alt"></i>
+                    <i class="fas fa-pencil-alt" aria-hidden="true"></i>
                   </button>
                 </div>
                 `}
@@ -11118,9 +11118,9 @@
 
         let html = `
           <div class="calendar-header">
-            <button class="calendar-nav-btn" data-action="prev"><i class="fas fa-chevron-left"></i></button>
+            <button class="calendar-nav-btn" data-action="prev" aria-label="Anterior"><i class="fas fa-chevron-left" aria-hidden="true"></i></button>
             <div class="calendar-month-year">${monthNames[month]} ${year}</div>
-            <button class="calendar-nav-btn" data-action="next"><i class="fas fa-chevron-right"></i></button>
+            <button class="calendar-nav-btn" data-action="next" aria-label="Siguiente"><i class="fas fa-chevron-right" aria-hidden="true"></i></button>
           </div>
           <div class="calendar-grid">
         `;
@@ -11280,9 +11280,10 @@
     document.querySelectorAll('.view-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         // Remover active de todos
-        document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.view-btn').forEach(b => { b.classList.remove('active'); b.setAttribute('aria-selected', 'false'); });
         // Agregar active al clickeado
         btn.classList.add('active');
+        btn.setAttribute('aria-selected', 'true');
 
         const view = btn.dataset.view;
         console.log('Vista seleccionada:', view);
@@ -11299,6 +11300,7 @@
     document.addEventListener('DOMContentLoaded', () => {
       document.querySelectorAll('.view-btn').forEach((b) => {
         b.classList.toggle('active', b.dataset.view === currentView);
+        b.setAttribute('aria-selected', String(b.dataset.view === currentView));
       });
     });
 
@@ -11641,8 +11643,8 @@
             <div style="font-weight:600;color:var(--ink);">${service.name}</div>
             <div style="font-size:12px;color:var(--muted);">$${service.price} • ${service.durationMinutes} min</div>
           </div>
-          <button type="button" onclick="removeServiceFromList('${service.id}')" class="btn small ghost" style="color:#ef4444;">
-            <i class="fas fa-times"></i>
+          <button type="button" onclick="removeServiceFromList('${service.id}')" class="btn small ghost" style="color:#ef4444;" aria-label="Quitar servicio">
+            <i class="fas fa-times" aria-hidden="true"></i>
           </button>
         </div>
       `).join('');
@@ -12056,10 +12058,10 @@
           <td data-label="Acciones" class="svc-actions">
             <div class="actions">
               <button class="btn small ghost" style="color:var(--accent-gold);border-color:var(--accent-gold);" onclick="editService('${s.id}')" title="Editar" aria-label="Editar servicio">
-                <i class="fas fa-edit"></i>
+                <i class="fas fa-edit" aria-hidden="true"></i>
               </button>
               <button class="btn small ghost" style="color:var(--error);border-color:var(--error);" onclick="deleteService('${s.id}')" title="Eliminar" aria-label="Eliminar servicio">
-                <i class="fas fa-trash"></i>
+                <i class="fas fa-trash" aria-hidden="true"></i>
               </button>
             </div>
           </td>
@@ -12772,20 +12774,20 @@
         let actionsHtml = '';
         if (gc.displayStatus === 'pending') {
           actionsHtml = `
-            <button class="btn small ghost" onclick="viewGiftCard('${gc.id}')" title="Ver QR"><i class="fas fa-qrcode"></i></button>
-            <button class="btn small ghost" onclick="copyGiftCardLinkById('${gc.id}')" title="Copiar link"><i class="fas fa-link"></i></button>
-            <button class="btn small ghost" onclick="sendGiftCardWhatsAppById('${gc.id}')" title="WhatsApp"><i class="fab fa-whatsapp"></i></button>
-            <button class="btn small ghost" onclick="deleteGiftCard('${gc.id}')" title="Eliminar" style="color:#ef4444;"><i class="fas fa-trash"></i></button>
+            <button class="btn small ghost" onclick="viewGiftCard('${gc.id}')" title="Ver QR"><i class="fas fa-qrcode" aria-hidden="true"></i></button>
+            <button class="btn small ghost" onclick="copyGiftCardLinkById('${gc.id}')" title="Copiar link"><i class="fas fa-link" aria-hidden="true"></i></button>
+            <button class="btn small ghost" onclick="sendGiftCardWhatsAppById('${gc.id}')" title="WhatsApp"><i class="fab fa-whatsapp" aria-hidden="true"></i></button>
+            <button class="btn small ghost" onclick="deleteGiftCard('${gc.id}')" title="Eliminar" style="color:#ef4444;"><i class="fas fa-trash" aria-hidden="true"></i></button>
           `;
         } else if (gc.displayStatus === 'redeemed') {
           actionsHtml = `
-            <button class="btn small ghost" onclick="viewGiftCard('${gc.id}')" title="Ver"><i class="fas fa-eye"></i></button>
-            <button class="btn small ghost" onclick="deleteGiftCard('${gc.id}')" title="Eliminar" style="color:#ef4444;"><i class="fas fa-trash"></i></button>
+            <button class="btn small ghost" onclick="viewGiftCard('${gc.id}')" title="Ver"><i class="fas fa-eye" aria-hidden="true"></i></button>
+            <button class="btn small ghost" onclick="deleteGiftCard('${gc.id}')" title="Eliminar" style="color:#ef4444;"><i class="fas fa-trash" aria-hidden="true"></i></button>
           `;
         } else {
           actionsHtml = `
-            <button class="btn small ghost" onclick="renewGiftCard('${gc.id}')" title="Renovar" style="color:var(--venus-soft);"><i class="fas fa-sync-alt"></i></button>
-            <button class="btn small ghost" onclick="deleteGiftCard('${gc.id}')" title="Eliminar" style="color:#ef4444;"><i class="fas fa-trash"></i></button>
+            <button class="btn small ghost" onclick="renewGiftCard('${gc.id}')" title="Renovar" style="color:var(--venus-soft);"><i class="fas fa-sync-alt" aria-hidden="true"></i></button>
+            <button class="btn small ghost" onclick="deleteGiftCard('${gc.id}')" title="Eliminar" style="color:#ef4444;"><i class="fas fa-trash" aria-hidden="true"></i></button>
           `;
         }
 
@@ -13398,8 +13400,8 @@
               <div class="payment-product-meta">$${p.price} × ${p.qty}</div>
             </div>
             <div class="payment-product-price">$${subtotal.toLocaleString()}</div>
-            <button class="payment-product-remove" onclick="removeProductFromPayment('${p.id}')">
-              <i class="fas fa-times"></i>
+            <button class="payment-product-remove" onclick="removeProductFromPayment('${p.id}')" aria-label="Quitar producto">
+              <i class="fas fa-times" aria-hidden="true"></i>
             </button>
           </div>
         `;
@@ -14024,7 +14026,7 @@
             </div>
             <div class="ds-cart-subtotal">$${subtotal.toLocaleString()}</div>
             <button onclick="removeProductFromDirectSale('${p.id}')" class="ds-cart-remove" title="Quitar">
-              <i class="fas fa-times"></i>
+              <i class="fas fa-times" aria-hidden="true"></i>
             </button>
           </div>
         `;
@@ -15260,12 +15262,12 @@
           actions = `
             <a href="https://wa.me/+${wa}" target="_blank" class="req-btn req-btn-wa"><i class="fab fa-whatsapp"></i><span>WhatsApp</span></a>
             <button class="req-btn req-btn-primary" onclick="contactRequest('${req.id}')"><i class="fas fa-phone"></i><span>Contactada</span></button>
-            <button class="req-btn req-btn-danger" onclick="rejectRequest('${req.id}')" title="Rechazar"><i class="fas fa-xmark"></i></button>`;
+            <button class="req-btn req-btn-danger" onclick="rejectRequest('${req.id}')" title="Rechazar"><i class="fas fa-xmark" aria-hidden="true"></i></button>`;
         } else if (req.status === 'contacted') {
           actions = `
             <a href="https://wa.me/+${wa}" target="_blank" class="req-btn req-btn-wa"><i class="fab fa-whatsapp"></i><span>WhatsApp</span></a>
             <button class="req-btn req-btn-ok" onclick="markAsBooked('${req.id}')"><i class="fas fa-calendar-check"></i><span>Agendar</span></button>
-            <button class="req-btn req-btn-danger" onclick="rejectRequest('${req.id}')" title="Rechazar"><i class="fas fa-xmark"></i></button>`;
+            <button class="req-btn req-btn-danger" onclick="rejectRequest('${req.id}')" title="Rechazar"><i class="fas fa-xmark" aria-hidden="true"></i></button>`;
         } else if (req.status === 'rejected') {
           actions = `<span class="req-resolved"><i class="fas fa-xmark"></i> Rechazada</span>`;
         } else {
@@ -15946,14 +15948,14 @@
         const res = await fetch('/api/admin/calendar/sync', { method: 'POST', credentials: 'include' });
         const json = await res.json();
         if (json.success) {
-          resultDiv.innerHTML = `<span style="color:#22c55e;">✅ ${json.created} creados, ${json.updated} actualizados, ${json.failed} errores (de ${json.total} citas)</span>`;
+          resultDiv.innerHTML = `<span style="color:var(--success);"><i class="fa-solid fa-check" aria-hidden="true"></i> ${json.created} creados, ${json.updated} actualizados, ${json.failed} errores (de ${json.total} citas)</span>`;
           showNotification('Google Calendar sincronizado', 'success');
           loadGoogleCalendarStatus();
         } else {
-          resultDiv.innerHTML = `<span style="color:#e74c3c;">❌ ${json.error}</span>`;
+          resultDiv.innerHTML = `<span style="color:var(--error);"><i class="fa-solid fa-xmark" aria-hidden="true"></i> ${json.error}</span>`;
         }
       } catch (err) {
-        resultDiv.innerHTML = `<span style="color:#e74c3c;">❌ Error: ${err.message}</span>`;
+        resultDiv.innerHTML = `<span style="color:var(--error);"><i class="fa-solid fa-xmark" aria-hidden="true"></i> Error: ${err.message}</span>`;
       }
     }
 
@@ -16692,7 +16694,7 @@
   <div class="scanner-modal" id="scanner-modal">
     <div class="scanner-content">
       <button class="scanner-close" id="scanner-close-btn" aria-label="Cerrar scanner">
-        <i class="fas fa-times"></i>
+        <i class="fas fa-times" aria-hidden="true"></i>
       </button>
 
       <div class="scanner-header">
@@ -17037,7 +17039,7 @@
               <i class="fas fa-dollar-sign"></i> Cobrar
             </button>
             <button class="btn danger small" onclick="descartarPendienteCaja('${cita.id}','${(cita.clientName||'').replace(/'/g,'\\\'')}')" title="Descartar pago pendiente" style="white-space:nowrap;">
-              <i class="fas fa-trash-alt"></i>
+              <i class="fas fa-trash-alt" aria-hidden="true"></i>
             </button>
           </div>
         </div>
@@ -17116,7 +17118,7 @@
             <td style="text-align:center;" data-label="Método">${metodoBadge}</td>
             <td style="text-align:center;" data-label="Acciones">
               <button class="btn ghost small" onclick="verDetalleCaja('${t.id}','${t.tipo}')" title="Ver detalle" style="padding:6px 8px;">
-                <i class="fas fa-eye"></i>
+                <i class="fas fa-eye" aria-hidden="true"></i>
               </button>
             </td>
           </tr>
@@ -17361,8 +17363,8 @@
               <div style="padding:20px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);">
                 <h3 style="margin:0;font-size:18px;font-weight:600;color:var(--text-primary);">Registrar Pago</h3>
                 <button onclick="document.getElementById('modal-cobrar-cita').remove()"
-                  style="width:32px;height:32px;background:var(--bg-tertiary);border:1px solid var(--line);border-radius:8px;color:var(--text-muted);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;">
-                  <i class="fas fa-times"></i>
+                  style="width:32px;height:32px;background:var(--bg-tertiary);border:1px solid var(--line);border-radius:8px;color:var(--text-muted);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;" aria-label="Cerrar">
+                  <i class="fas fa-times" aria-hidden="true"></i>
                 </button>
               </div>
 
@@ -17379,8 +17381,8 @@
                     <div class="cobro-value">${cita.serviceName || 'Servicio'}</div>
                     <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
                       <span style="color:#8C9668;font-size:15px;font-weight:700;">$${precioServicioGlobal.toFixed(0)}</span>
-                      <button onclick="editarPrecioServicio()" style="background:none;border:none;color:#666;cursor:pointer;padding:0;width:44px;height:44px;display:inline-flex;align-items:center;justify-content:center;">
-                        <i class="fas fa-pencil-alt" style="font-size:11px;"></i>
+                      <button onclick="editarPrecioServicio()" style="background:none;border:none;color:#666;cursor:pointer;padding:0;width:44px;height:44px;display:inline-flex;align-items:center;justify-content:center;" aria-label="Editar precio">
+                        <i class="fas fa-pencil-alt" aria-hidden="true" style="font-size:11px;"></i>
                       </button>
                     </div>
                     <input type="hidden" id="precio-servicio" value="${precioServicioGlobal}">
@@ -17409,8 +17411,8 @@
                     </select>
                     <input type="number" id="cantidad-producto" value="1" min="1" class="cobro-input" style="width:60px;text-align:center;">
                     <button onclick="agregarProductoCobro()" 
-                      style="padding:12px 16px;background:#8C9668;color:#fff;border:none;border-radius:8px;cursor:pointer;">
-                      <i class="fas fa-plus"></i>
+                      style="padding:12px 16px;background:#8C9668;color:#fff;border:none;border-radius:8px;cursor:pointer;" aria-label="Agregar producto">
+                      <i class="fas fa-plus" aria-hidden="true"></i>
                     </button>
                   </div>
                   <div id="lista-productos-cobro">
@@ -17629,8 +17631,8 @@
               <button onclick="cambiarCantidadProducto('${p.id}', 1)" style="width:44px;height:44px;border:1px solid var(--line-2);border-radius:6px;background:var(--bg-tertiary);cursor:pointer;font-size:18px;color:var(--text-primary);">+</button>
             </div>
             <span style="font-weight:700;color:#8C9668;font-size:14px;min-width:55px;text-align:right;">$${(p.precio * p.cantidad).toFixed(0)}</span>
-            <button onclick="eliminarProductoCobro('${p.id}')" style="background:none;border:none;color:#e74c3c;cursor:pointer;padding:12px;">
-              <i class="fas fa-trash-alt" style="font-size:12px;"></i>
+            <button onclick="eliminarProductoCobro('${p.id}')" style="background:none;border:none;color:#e74c3c;cursor:pointer;padding:12px;" aria-label="Quitar producto">
+              <i class="fas fa-trash-alt" aria-hidden="true" style="font-size:12px;"></i>
             </button>
           </div>
         `).join('');
@@ -17808,23 +17810,23 @@
             </div>
             <div class="modal-body">
               <div class="form-group">
-                <label>Concepto / Producto</label>
+                <label for="venta-concepto">Concepto / Producto</label>
                 <input type="text" id="venta-concepto" class="form-input" placeholder="Ej: Crema hidratante, Serum...">
               </div>
               
               <div class="form-group">
-                <label>Cliente (opcional)</label>
+                <label for="venta-cliente">Cliente (opcional)</label>
                 <input type="text" id="venta-cliente" class="form-input" placeholder="Nombre del cliente">
               </div>
               
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
                 <div class="form-group">
-                  <label>Monto</label>
+                  <label for="venta-monto">Monto</label>
                   <input type="number" id="venta-monto" class="form-input" step="0.01" min="0" placeholder="0.00">
                 </div>
                 
                 <div class="form-group">
-                  <label>Método de pago</label>
+                  <label for="venta-metodo">Método de pago</label>
                   <select id="venta-metodo" class="form-input">
                     <option value="efectivo">Efectivo</option>
                     <option value="tarjeta">Tarjeta</option>
@@ -17834,7 +17836,7 @@
               </div>
 
               <div class="form-group">
-                <label>Notas (opcional)</label>
+                <label for="venta-notas">Notas (opcional)</label>
                 <textarea id="venta-notas" class="form-input" rows="2" placeholder="Notas adicionales..."></textarea>
               </div>
             </div>
@@ -19366,8 +19368,8 @@
       toast.innerHTML = `
         <i class="fas fa-${theme.icon}" style="font-size: 18px;"></i>
         <span style="flex:1;line-height:1.4;">${message}</span>
-        <button onclick="this.parentElement.remove()" style="background:none;border:none;color:white;cursor:pointer;opacity:0.7;padding:4px;">
-          <i class="fas fa-times"></i>
+        <button onclick="this.parentElement.remove()" style="background:none;border:none;color:white;cursor:pointer;opacity:0.7;padding:4px;" aria-label="Cerrar">
+          <i class="fas fa-times" aria-hidden="true"></i>
         </button>
       `;
 
@@ -19988,7 +19990,7 @@
               '<span style="font-weight:600;' + (t.done ? 'text-decoration:line-through;' : '') + '">' + mktEsc(t.title) + '</span> ' + badgeHtml +
               (t.detail ? '<br><span class="muted" style="font-size:12px;">' + mktEsc(t.detail) + '</span>' : '') +
               '</span>' +
-              '<button class="btn small ghost" title="Eliminar tarea" onclick="event.preventDefault();deleteMarketingTask(' + t.id + ')" style="flex:none;padding:2px 8px;"><i class="fas fa-times"></i></button>' +
+              '<button class="btn small ghost" title="Eliminar tarea" onclick="event.preventDefault();deleteMarketingTask(' + t.id + ')" style="flex:none;padding:2px 8px;"><i class="fas fa-times" aria-hidden="true"></i></button>' +
               '</label>';
           });
         });
@@ -20084,13 +20086,13 @@
         });
         const data = await res.json();
         if (data.ok) {
-          alert('✅ Marketer creado: ' + email);
+          alert('Marketer creado: ' + email);
           document.getElementById('mkt-new-email').value = '';
           document.getElementById('mkt-new-name').value = '';
           document.getElementById('mkt-new-pass').value = '';
           loadMarketers();
         } else {
-          alert('❌ ' + (data.error || 'Error'));
+          alert(data.error || 'Error');
         }
       };
 
@@ -20140,7 +20142,7 @@
       window.payCommission = async function (id) {
         const res = await apiFetch(`/api/admin/commissions/${id}/pay`, { method: 'PATCH' });
         if (res.success) {
-          alert('✅ Comisión marcada como pagada');
+          alert('Comisión marcada como pagada');
           loadMarketers();
         }
       };
@@ -20149,7 +20151,7 @@
         const amount = parseFloat(document.getElementById('mkt-commission-amount').value);
         if (isNaN(amount) || amount < 0) { alert('Monto inválido'); return; }
         const res = await apiFetch('/api/admin/settings/commission', { method: 'PUT', body: JSON.stringify({ amount }) });
-        if (res.success) alert('✅ Comisión configurada: $' + amount);
+        if (res.success) alert('Comisión configurada: $' + amount);
       };
 
       window.loadCommissionConfig = async function () {

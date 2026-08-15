@@ -45,14 +45,20 @@
         targetSection.classList.remove('hidden');
       }
       
-      // Actualizar estado activo en sidebar
+      // Actualizar estado activo en sidebar (+ aria-current, informe T6.6)
       document.querySelectorAll('.sidebar-nav-item').forEach(item => {
-        item.classList.toggle('is-active', item.getAttribute('data-tab') === tabName);
+        const active = item.getAttribute('data-tab') === tabName;
+        item.classList.toggle('is-active', active);
+        if (active) item.setAttribute('aria-current', 'page');
+        else item.removeAttribute('aria-current');
       });
-      
-      // Actualizar estado activo en mobile nav
+
+      // Actualizar estado activo en mobile nav (+ aria-current)
       document.querySelectorAll('.mobile-nav-link').forEach(a => {
-        a.classList.toggle('is-active', a.getAttribute('data-tab') === tabName);
+        const active = a.getAttribute('data-tab') === tabName;
+        a.classList.toggle('is-active', active);
+        if (active) a.setAttribute('aria-current', 'page');
+        else a.removeAttribute('aria-current');
       });
       
       // Actualizar nav links legacy

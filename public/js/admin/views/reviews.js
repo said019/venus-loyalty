@@ -11,7 +11,7 @@
     async function loadReviews() {
       const listEl  = document.getElementById('reviews-list');
       const statsEl = document.getElementById('reviews-stats');
-      listEl.innerHTML = '<div style="text-align:center;padding:40px;color:#aaa;"><i class="fas fa-spinner fa-spin" style="font-size:28px;"></i></div>';
+      listEl.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted);"><i class="fas fa-spinner fa-spin" style="font-size:28px;"></i></div>';
 
       try {
         const r = await apiFetch('/api/admin/reviews?limit=100');
@@ -33,7 +33,7 @@
         }
 
       } catch (e) {
-        listEl.innerHTML = `<div style="text-align:center;padding:32px;color:#e74c3c;">❌ ${e.message}</div>`;
+        listEl.innerHTML = `<div style="text-align:center;padding:32px;color:var(--error);"><i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i> ${e.message}</div>`;
       }
     }
 
@@ -50,7 +50,7 @@
         <div style="background:linear-gradient(135deg,#f5a62320,#f5a62308);border:1px solid #f5a62330;border-radius:14px;padding:16px;text-align:center;">
           <div style="font-size:32px;font-weight:700;color:#f5a623;">${stats.avgRating || 0}</div>
           <div style="font-size:18px;margin:4px 0;">${starsHtml}</div>
-          <div style="font-size:12px;color:#888;">${stats.total} reseña${stats.total !== 1 ? 's' : ''}</div>
+          <div style="font-size:12px;color:var(--muted);">${stats.total} reseña${stats.total !== 1 ? 's' : ''}</div>
         </div>
         ${[5,4,3,2,1].map(n => {
           const count = (stats.dist || {})[n] || 0;
@@ -59,12 +59,12 @@
             <div style="background:#fff;border:1px solid #f0ece8;border-radius:14px;padding:14px;">
               <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
                 <span style="font-size:16px;color:#f5a623;">${'★'.repeat(n)}</span>
-                <span style="font-size:12px;color:#aaa;">${n} estrella${n>1?'s':''}</span>
+                <span style="font-size:12px;color:var(--muted);">${n} estrella${n>1?'s':''}</span>
               </div>
               <div style="background:#f0ece8;border-radius:4px;height:6px;margin-bottom:4px;">
                 <div style="background:#f5a623;height:6px;border-radius:4px;width:${pct}%;transition:width .4s;"></div>
               </div>
-              <div style="font-size:12px;color:#888;">${count} (${pct}%)</div>
+              <div style="font-size:12px;color:var(--muted);">${count} (${pct}%)</div>
             </div>`;
         }).join('')}
       `;
@@ -73,7 +73,7 @@
     function renderReviewsList(list) {
       const el = document.getElementById('reviews-list');
       if (!list.length) {
-        el.innerHTML = '<div style="text-align:center;padding:48px;color:#ccc;"><i class="fas fa-star" style="font-size:36px;display:block;margin-bottom:12px;"></i>Aún no hay reseñas</div>';
+        el.innerHTML = '<div style="text-align:center;padding:48px;color:var(--muted);"><i class="fas fa-star" style="font-size:36px;display:block;margin-bottom:12px;"></i>Aún no hay reseñas</div>';
         return;
       }
       el.innerHTML = list.map(rev => renderReviewCard(rev)).join('');
@@ -94,7 +94,7 @@
 
       const replyHtml = rev.replied
         ? `<div style="background:#f5f0eb;border-left:3px solid #9A9F82;border-radius:0 10px 10px 0;padding:10px 14px;margin-top:10px;font-size:13px;color:#555;">
-             <strong style="color:#9A9F82;">💬 Respuesta Venus:</strong><br>${rev.reply}
+             <strong style="color:#9A9F82;"><i class="fas fa-reply" aria-hidden="true"></i> Respuesta Venus:</strong><br>${rev.reply}
            </div>`
         : `<div style="margin-top:10px;display:flex;gap:8px;">
              <input id="reply-input-${rev.id}" type="text" placeholder="Escribe una respuesta..." style="flex:1;border:1.5px solid #e8e0d8;border-radius:10px;padding:7px 12px;font-size:13px;outline:none;" />
@@ -109,12 +109,12 @@
                 <span style="font-weight:700;font-size:15px;">${rev.clientName || 'Clienta'}</span>
                 ${rev.replied ? '<span style="background:#e8f5e9;color:#27ae60;font-size:10px;font-weight:700;border-radius:8px;padding:2px 7px;">✓ Respondida</span>' : ''}
               </div>
-              <div style="font-size:12px;color:#aaa;">${rev.serviceName || ''} · ${dateStr}</div>
+              <div style="font-size:12px;color:var(--muted);">${rev.serviceName || ''} · ${dateStr}</div>
             </div>
             <div style="display:flex;align-items:center;gap:8px;">
               <div>${stars}</div>
-              <button onclick="deleteReview('${rev.id}')" style="background:none;border:none;color:#ccc;cursor:pointer;font-size:13px;" title="Eliminar">
-                <i class="fas fa-trash"></i>
+              <button onclick="deleteReview('${rev.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;width:44px;height:44px;display:inline-flex;align-items:center;justify-content:center;border-radius:10px;" title="Eliminar reseña" aria-label="Eliminar reseña">
+                <i class="fas fa-trash" aria-hidden="true"></i>
               </button>
             </div>
           </div>
@@ -148,9 +148,9 @@
         });
         const d = await r.json();
         if (d.success) loadReviews();
-        else alert('❌ Error al responder: ' + d.error);
+        else alert('Error al responder: ' + d.error);
       } catch (e) {
-        alert('❌ ' + e.message);
+        alert('Error: ' + e.message);
       }
     }
 
@@ -160,7 +160,7 @@
         await fetch(`/api/admin/reviews/${id}`, { method: 'DELETE', credentials: 'include' });
         loadReviews();
       } catch (e) {
-        alert('❌ ' + e.message);
+        alert('Error: ' + e.message);
       }
     }
 

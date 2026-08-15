@@ -6406,3 +6406,29 @@
   color: var(--ink-3, oklch(48% 0.010 80));
   font-style: italic;
 }
+
+/* ===== Tanda 6 (informe a11y): divs interactivos convertidos a <button> =====
+   Reset con :where() (especificidad 0): pisa los estilos UA del botón pero
+   deja ganar a cualquier regla de clase existente en las 4 hojas. */
+:where(button.theme-toggle, button.today-card, button.chip, button.time-slot,
+       button.exp-badge, button.history-item, button.appt-block) {
+  appearance: none;
+  -webkit-appearance: none;
+  background: none;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: inherit;
+}
+:where(button.time-slot) { display: block; width: 100%; }
+:where(button.history-item) { width: 100%; }
+:where(button.appt-block) { width: calc(100% - 8px); }
+
+/* Marca visual de campo obligatorio (informe T6.5) */
+.req-mark {
+  color: var(--error);
+  margin-left: 2px;
+  font-weight: 600;
+}
