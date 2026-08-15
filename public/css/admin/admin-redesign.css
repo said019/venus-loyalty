@@ -289,7 +289,10 @@
 
       .tab-btn.active {
         background: rgba(201, 210, 160, 0.12);
-        color: var(--venus-light);
+        /* --venus-light era olivo pálido sobre tinte pálido: la pestaña activa
+           quedaba ilegible en tema claro (visto en captura real). --ink se
+           adapta solo a cada tema. */
+        color: var(--ink);
       }
 
       .tab-btn.active::after {
@@ -300,12 +303,11 @@
         border-radius: 0 0 8px 8px !important;
       }
 
+      /* El buscador va directo sobre el panel: la caja con borde creaba el
+         efecto tarjeta-dentro-de-tarjeta que el dueño marcó en sus capturas. */
       #panel-services>.row,
       #panel-products>.row {
-        padding: 12px;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: rgba(251, 250, 244, 0.04);
+        padding: 0;
       }
 
       .table-wrap {
