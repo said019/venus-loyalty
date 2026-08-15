@@ -578,27 +578,26 @@
         </div>
       </div>
 
-      <!-- Filtros y búsqueda -->
-      <div class="card" style="padding:16px;margin-bottom:16px;">
-        <div class="row" style="gap:12px;flex-wrap:wrap;">
-          <div style="flex:1;min-width:200px;position:relative;">
-            <i class="fas fa-search" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-dim);"></i>
-            <input type="search" id="search-cards" placeholder="Buscar por nombre o teléfono..." style="padding-left:40px;">
-          </div>
-
-          <!-- SORTING CONTROLS -->
-          <select id="sort-cards" class="filter-select" style="min-width:160px;">
-            <option value="created_at:desc">Recientes</option>
-            <option value="created_at:asc">Antiguos</option>
-            <option value="name:asc">Nombre (A-Z)</option>
-            <option value="name:desc">Nombre (Z-A)</option>
-            <option value="stamps:desc">Más sellos</option>
-            <option value="stamps:asc">Menos sellos</option>
-            <option value="last_visit:desc">Última visita</option>
-          </select>
-
-          <button id="btn-search-cards" class="btn primary"><i class="fas fa-search"></i> Buscar</button>
+      <!-- Filtros y búsqueda — directos sobre el panel, sin tarjeta interior
+           (mandato: un solo nivel de superficie) -->
+      <div class="row" style="gap:12px;flex-wrap:wrap;margin-bottom:16px;">
+        <div style="flex:1;min-width:200px;position:relative;">
+          <i class="fas fa-search" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-dim);"></i>
+          <input type="search" id="search-cards" placeholder="Buscar por nombre o teléfono..." style="padding-left:40px;">
         </div>
+
+        <!-- SORTING CONTROLS -->
+        <select id="sort-cards" class="filter-select" style="min-width:160px;">
+          <option value="created_at:desc">Recientes</option>
+          <option value="created_at:asc">Antiguos</option>
+          <option value="name:asc">Nombre (A-Z)</option>
+          <option value="name:desc">Nombre (Z-A)</option>
+          <option value="stamps:desc">Más sellos</option>
+          <option value="stamps:asc">Menos sellos</option>
+          <option value="last_visit:desc">Última visita</option>
+        </select>
+
+        <button id="btn-search-cards" class="btn primary"><i class="fas fa-search"></i> Buscar</button>
       </div>
 
       <!-- Tabla de tarjetas -->
@@ -7114,13 +7113,13 @@
 
           return `
           <tr data-card-id="${card.id}" class="card-row" style="cursor:pointer;">
-            <td data-label="Cliente">
-              <div style="font-weight:500;">${card.name || '—'}${card.massageActive ? `<span style="display:inline-block;background:#C4936E;color:#fff;font-size:9px;padding:1px 5px;border-radius:4px;margin-left:4px;">🧖 Masajes ${card.massageStamps || 0}/${card.massageMax || 10}</span>` : ''}</div>
+            <td data-label="Cliente" class="card-main">
+              <div style="font-weight:500;">${card.name || '—'}${card.massageActive ? `<span style="display:inline-block;background:#C4936E;color:#fff;font-size:9px;padding:1px 5px;border-radius:4px;margin-left:4px;">Masajes ${card.massageStamps || 0}/${card.massageMax || 10}</span>` : ''}</div>
               ${card.birthdate ? `<div class="muted" style="font-size:11px;"><i class="fas fa-birthday-cake"></i> ${formatBirthday(card.birthdate)}</div>` : ''}
             </td>
-            <td style="font-size:13px;" data-label="Teléfono">${card.phone || '—'}</td>
-            <td style="font-size:12px;" data-label="Última Visita">${lastVisitStr}</td>
-            <td data-label="Sellos">
+            <td style="font-size:13px;" data-label="Teléfono" class="card-meta">${card.phone || '—'}</td>
+            <td style="font-size:12px;" data-label="Última Visita" class="card-meta">${lastVisitStr}</td>
+            <td data-label="Sellos" class="card-meta">
               <div style="display:flex;align-items:center;gap:6px;">
                 <div class="stamp-rail" style="border-radius:4px;height:6px;width:60px;overflow:hidden;">
                   <div style="background:linear-gradient(90deg,#FFD166,#8c9668);height:100%;width:${(card.stamps / card.max) * 100}%;"></div>
@@ -7128,8 +7127,8 @@
                 <span style="font-size:12px;font-weight:500;">${card.stamps}/${card.max}</span>
               </div>
             </td>
-            <td data-label="Acciones">
-              <div style="display:flex;gap:4px;flex-wrap:wrap;">
+            <td data-label="Acciones" class="card-actions">
+              <div class="actions" style="gap:4px;">
                 <button class="btn small" data-action="stamp" style="background:#FFD166;color:#000;font-weight:600;padding:4px 8px;font-size:11px;"><i class="fas fa-star"></i>+1</button>
                 ${card.massageActive ? `<button class="btn small" data-action="massage-stamp" style="background:#C4936E;color:#fff;font-weight:600;padding:4px 8px;font-size:11px;"><i class="fas fa-spa"></i>+1</button>` : ''}
                 <button class="btn small ghost" data-action="view" style="padding:4px 8px;font-size:11px;">Ver</button>
@@ -12037,9 +12036,9 @@
       const html = services.map(s => {
         const cc = categoryColor(s.category);
         return `
-        <tr>
-          <td data-label="Nombre">${s.name}</td>
-          <td data-label="Categoría">
+        <tr class="svc-row">
+          <td data-label="Nombre" class="svc-main">${s.name}</td>
+          <td data-label="Categoría" class="svc-meta">
             <span style="
               display:inline-block;
               padding:4px 10px;
@@ -12052,14 +12051,14 @@
               border:1px solid ${cc.fg}22;
             ">${s.category || 'Sin categoría'}</span>
           </td>
-          <td data-label="Duración">${s.durationMinutes} min</td>
-          <td data-label="Precio">$${s.price}</td>
-          <td data-label="Acciones">
+          <td data-label="Duración" class="svc-meta">${s.durationMinutes} min</td>
+          <td data-label="Precio" class="svc-meta">$${s.price}</td>
+          <td data-label="Acciones" class="svc-actions">
             <div class="actions">
-              <button class="btn small ghost" onclick="editService('${s.id}')" title="Editar">
+              <button class="btn small ghost" style="color:var(--accent-gold);border-color:var(--accent-gold);" onclick="editService('${s.id}')" title="Editar" aria-label="Editar servicio">
                 <i class="fas fa-edit"></i>
               </button>
-              <button class="btn small ghost" style="color:#ef4444;border-color:#ef4444;" onclick="deleteService('${s.id}')" title="Eliminar">
+              <button class="btn small ghost" style="color:var(--error);border-color:var(--error);" onclick="deleteService('${s.id}')" title="Eliminar" aria-label="Eliminar servicio">
                 <i class="fas fa-trash"></i>
               </button>
             </div>

@@ -519,6 +519,9 @@ html[data-theme="dark"]  { color-scheme: dark; }
     display: block;
     text-align: left;
     margin: 0;
+    /* admin-extra:592-594 da width:100% a todo td card-ificado; aquí cada
+       celda mide su contenido para que la línea meta quepa en una sola. */
+    width: auto;
   }
   .data-table tr.svc-row td::before,
   .data-table tr.card-row td::before { content: none; }
@@ -533,9 +536,13 @@ html[data-theme="dark"]  { color-scheme: dark; }
     color: var(--ink, #2b2520);
     overflow-wrap: anywhere;
   }
-  /* Meta secundaria en una sola línea (badge · duración · precio) */
+  /* Meta secundaria en una sola línea (badge · duración · precio).
+     Flex para que el separador '·' (::before) quede en línea aunque el
+     contenido sea un div flex (ej. el riel de sellos de Tarjetas). */
   .data-table tr.svc-row td.svc-meta,
   .data-table tr.card-row td.card-meta {
+    display: flex;
+    align-items: center;
     flex: 0 1 auto;
     font-size: 12.5px;
     color: var(--muted, oklch(48% 0.010 80));
@@ -546,19 +553,32 @@ html[data-theme="dark"]  { color-scheme: dark; }
     margin-right: 8px;
     color: var(--muted, oklch(48% 0.010 80));
   }
-  /* Acciones compactas inline a la derecha de la línea meta */
+  /* Acciones compactas inline a la derecha de la línea meta.
+     flex-direction/padding/border anulan la card-ificación heredada de
+     admin-extra:645-662 (td:last-child en columna con borde superior). */
   .data-table tr.svc-row td.svc-actions,
   .data-table tr.card-row td.card-actions {
     display: flex;
+    flex-direction: row;
     align-items: center;
     flex: 0 0 auto;
     gap: 6px;
     margin-left: auto;
     margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+  }
+  /* El div envoltorio (.actions) se disuelve: los botones pasan a ser
+     items flex directos del td (y el width:100% de admin-redesign:511
+     ya no tiene caja a la que aplicar). */
+  .data-table tr.svc-row td.svc-actions .actions,
+  .data-table tr.card-row td.card-actions .actions {
+    display: contents;
   }
   .data-table tr.svc-row td.svc-actions .btn,
   .data-table tr.card-row td.card-actions .btn {
     flex: 0 0 auto;
+    width: auto;
     min-width: 44px;
     min-height: 44px;
     justify-content: center;
