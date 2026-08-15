@@ -130,9 +130,9 @@
             --shadow-lg: 0 10px 40px rgba(0, 0, 0, 0.12);
             --success: oklch(62% 0.115 155);            /* sage */
             --success-bg: oklch(94% 0.030 155);
-            --warning: oklch(64% 0.090 80);              /* amber tenue */
+            --warning: oklch(50% 0.100 80);              /* amber tenue — 50%: 5.09:1 sobre --warning-bg como texto (64% daba 2.84:1, verificador) */
             --warning-bg: oklch(94% 0.040 80);
-            --error: oklch(58% 0.140 28);                /* rose, no rojo sat */
+            --error: oklch(54% 0.140 28);                /* rose, no rojo sat — 54%: 5.07:1 sobre página, 4.59:1 sobre tarjeta (58% daba 4.29:1, verificador) */
             --error-bg: oklch(95% 0.030 28);
             --info: oklch(58% 0.080 220);
             --info-bg: oklch(94% 0.025 220);
@@ -1581,11 +1581,10 @@
       padding: 9px 10px !important;
       border-radius: 10px !important;
       border: 1px solid var(--line) !important;
-      background: rgba(255, 255, 255, .1) !important;
+      background: var(--card-solid, #fffdf8) !important;
       font-size: 13px !important;
       color: var(--ink) !important;
-      backdrop-filter: blur(3px) !important;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+      font-family: var(--font-body, system-ui, sans-serif) !important;
       box-sizing: border-box !important;
     }
 

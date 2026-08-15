@@ -6641,11 +6641,11 @@
           scales: {
             y: {
               beginAtZero: true,
-              ticks: { color: '#e5e7eb', font: { size: 11 } },
+              ticks: { color: (document.documentElement.getAttribute('data-theme')==='dark'?'#c3c0ae':'#5f624f'), font: { size: 11 } },
               grid: { color: 'rgba(255, 255, 255, 0.05)' }
             },
             x: {
-              ticks: { color: '#e5e7eb', font: { size: 11 } },
+              ticks: { color: (document.documentElement.getAttribute('data-theme')==='dark'?'#c3c0ae':'#5f624f'), font: { size: 11 } },
               grid: { display: false }
             }
           }
@@ -6689,11 +6689,11 @@
           scales: {
             y: {
               beginAtZero: true,
-              ticks: { color: '#e5e7eb', font: { size: 11 } },
+              ticks: { color: (document.documentElement.getAttribute('data-theme')==='dark'?'#c3c0ae':'#5f624f'), font: { size: 11 } },
               grid: { color: 'rgba(255, 255, 255, 0.05)' }
             },
             x: {
-              ticks: { color: '#e5e7eb', font: { size: 10 }, maxRotation: 0 },
+              ticks: { color: (document.documentElement.getAttribute('data-theme')==='dark'?'#c3c0ae':'#5f624f'), font: { size: 10 }, maxRotation: 0 },
               grid: { display: false }
             }
           }
@@ -6809,7 +6809,7 @@
             y: {
               beginAtZero: true,
               ticks: {
-                color: '#e5e7eb',
+                color: (document.documentElement.getAttribute('data-theme')==='dark'?'#c3c0ae':'#5f624f'),
                 font: { size: 11 }
               },
               grid: {
@@ -6818,7 +6818,7 @@
             },
             x: {
               ticks: {
-                color: '#e5e7eb',
+                color: (document.documentElement.getAttribute('data-theme')==='dark'?'#c3c0ae':'#5f624f'),
                 font: { size: 11 }
               },
               grid: {
@@ -6959,7 +6959,7 @@
               y: {
                 beginAtZero: true,
                 ticks: {
-                  color: '#e5e7eb',
+                  color: (document.documentElement.getAttribute('data-theme')==='dark'?'#c3c0ae':'#5f624f'),
                   font: { size: 11 }
                 },
                 grid: {
@@ -6968,7 +6968,7 @@
               },
               x: {
                 ticks: {
-                  color: '#e5e7eb',
+                  color: (document.documentElement.getAttribute('data-theme')==='dark'?'#c3c0ae':'#5f624f'),
                   font: { size: 11 }
                 },
                 grid: {
@@ -10282,10 +10282,10 @@
 
         return `
           <tr>
-            <td style="padding:12px;font-weight:bold;color:#e5e7eb;">${time}</td>
+            <td style="padding:12px;font-weight:bold;color:var(--ink);">${time}</td>
             <td style="padding:12px;">
               <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                <span style="font-weight:600;color:#f3f4f6;">${appt.clientName}</span>
+                <span style="font-weight:600;color:var(--ink);">${appt.clientName}</span>
                 ${formatApptSourceBadge(appt.source)}
                 ${formatApptAssignedBadge(appt.assignedAdminId)}
               </div>
@@ -10396,7 +10396,7 @@
         if (typeof updateAgendaEyebrow === 'function') updateAgendaEyebrow();
       } catch (e) {
         console.error(e);
-        apptsTbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--err-text);">Error cargando citas</td></tr>';
+        apptsTbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--error);">Error cargando citas</td></tr>';
       }
     }
 
@@ -13614,7 +13614,7 @@
                 <tbody>
                   ${productsSold.map(p => `
                     <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
-                      <td style="padding:8px 4px;color:#f3f4f6;">${p.name}</td>
+                      <td style="padding:8px 4px;color:var(--ink);">${p.name}</td>
                       <td style="text-align:center;padding:8px 4px;color:#d1d5db;">${p.qty}</td>
                       <td style="text-align:right;padding:8px 4px;color:#d1d5db;">$${p.price.toLocaleString()}</td>
                       <td style="text-align:right;padding:8px 4px;color:#a78bfa;font-weight:600;">$${(p.subtotal || p.price * p.qty).toLocaleString()}</td>
@@ -13623,7 +13623,7 @@
                 </tbody>
                 <tfoot>
                   <tr>
-                    <td colspan="3" style="text-align:right;padding:8px 4px;font-weight:600;color:#f3f4f6;">Total Productos:</td>
+                    <td colspan="3" style="text-align:right;padding:8px 4px;font-weight:600;color:var(--ink);">Total Productos:</td>
                     <td style="text-align:right;padding:8px 4px;font-weight:700;color:#a78bfa;">$${productsTotal.toLocaleString()}</td>
                   </tr>
                 </tfoot>
@@ -14485,20 +14485,20 @@
             },
             plugins: {
               legend: {
-                labels: { color: '#e5e7eb' }
+                labels: { color: (document.documentElement.getAttribute('data-theme')==='dark'?'#c3c0ae':'#5f624f') }
               }
             },
             scales: {
               x: {
                 grid: { color: 'rgba(255, 255, 255, 0.1)' },
-                ticks: { color: '#e5e7eb' }
+                ticks: { color: (document.documentElement.getAttribute('data-theme')==='dark'?'#c3c0ae':'#5f624f') }
               },
               y: {
                 type: 'linear',
                 display: true,
                 position: 'left',
                 grid: { color: 'rgba(255, 255, 255, 0.1)' },
-                ticks: { color: '#e5e7eb', stepSize: 1 }
+                ticks: { color: (document.documentElement.getAttribute('data-theme')==='dark'?'#c3c0ae':'#5f624f'), stepSize: 1 }
               },
               y1: {
                 type: 'linear',

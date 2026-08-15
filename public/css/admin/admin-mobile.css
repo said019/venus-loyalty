@@ -186,6 +186,14 @@ html[data-theme="dark"]  { color-scheme: dark; }
    ──────────────────────────────────────────────────────────── */
 @media (max-width: 767px) {
 
+  /* Cumpleañeras: sin truncar en móvil. La regla base de admin-extra
+     (nowrap + ellipsis) ganaba por orden de carga; esta hoja carga al
+     final, así que aquí sí gana. (Verificador: intención de S1 repuesta.) */
+  .birthday-info h4 {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
   /* Sidebar: NO se oculta — funciona como drawer (el admin ya tiene
      transform:translateX(-100%) + .open). El botón hamburguesa del
      topbar (toggleSidebar) lo abre. Sólo aseguramos que cuando esté
@@ -1135,7 +1143,7 @@ html[data-theme="dark"]  { color-scheme: dark; }
     grid-area: amount;
     margin-top: 14px !important;
     color: var(--expense-rose) !important;
-    font-family: 'Prata', Georgia, serif;
+    font-family: var(--font-display, Georgia, serif);
     font-size: 21px;
     font-weight: 400;
     letter-spacing: -0.025em;
@@ -1146,7 +1154,7 @@ html[data-theme="dark"]  { color-scheme: dark; }
     margin-bottom: 3px;
     content: "Monto" !important;
     color: var(--muted);
-    font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: var(--font-body, system-ui, sans-serif);
     font-size: 9px;
     font-weight: 700;
     letter-spacing: 0.1em;
