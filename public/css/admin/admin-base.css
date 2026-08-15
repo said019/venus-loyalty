@@ -40,15 +40,17 @@
             --accent-gold-light: #a8b892;
             --accent-rose: #7a8a5a;
             --accent-sage: #a0c9b0;
-            --form-accent: #22c55e;
-            --form-accent-glow: rgba(34, 197, 94, 0.18);
-            --status-confirmed: #2dd4bf;
-            --status-pending: #fbbf24;
-            --status-cancelled: #f87171;
+            /* Semánticos oscuros migrados de Tailwind (teal/amber/red-400)
+               a la paleta OKLCH de marca (DESIGN.md): sage/ámbar/rose. */
+            --form-accent: oklch(72% 0.115 155);
+            --form-accent-glow: oklch(72% 0.115 155 / 0.18);
+            --status-confirmed: oklch(75% 0.115 155);
+            --status-pending: oklch(78% 0.110 80);
+            --status-cancelled: oklch(70% 0.120 28);
             --glass-bg: rgba(255, 255, 255, 0.03);
             --glass-border: rgba(255, 255, 255, 0.08);
             --shadow-soft: 0 4px 30px rgba(0, 0, 0, 0.3);
-            --shadow-glow: 0 0 40px rgba(140, 150, 104, 0.15);
+            /* --shadow-glow retirado (Tanda 7 / anti-patrones): DESIGN.md solo permite sombra en el diálogo */
             --gradient-mesh: radial-gradient(ellipse at 20% 0%, rgba(140, 150, 104, 0.08) 0%, transparent 50%),
                             radial-gradient(ellipse at 80% 100%, rgba(122, 138, 90, 0.06) 0%, transparent 50%),
                             radial-gradient(ellipse at 50% 50%, rgba(168, 184, 146, 0.04) 0%, transparent 70%);
@@ -71,14 +73,14 @@
             --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
             --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.3);
             --shadow-lg: 0 10px 40px rgba(0, 0, 0, 0.4);
-            --success: #2dd4bf;
-            --success-bg: rgba(45, 212, 191, 0.15);
-            --warning: #fbbf24;
-            --warning-bg: rgba(251, 191, 36, 0.15);
-            --error: #f87171;
-            --error-bg: rgba(248, 113, 113, 0.15);
-            --info: #3b82f6;
-            --info-bg: rgba(59, 130, 246, 0.15);
+            --success: oklch(75% 0.115 155);   /* 8.5:1 sobre card oscura */
+            --success-bg: oklch(75% 0.115 155 / 0.15);
+            --warning: oklch(78% 0.110 80);    /* 9.0:1 */
+            --warning-bg: oklch(78% 0.110 80 / 0.15);
+            --error: oklch(70% 0.120 28);      /* 6.5:1 */
+            --error-bg: oklch(70% 0.120 28 / 0.15);
+            --info: oklch(70% 0.070 220);      /* 7.5:1 */
+            --info-bg: oklch(70% 0.070 220 / 0.15);
         }
 
         [data-theme="light"] {
@@ -105,7 +107,7 @@
             --glass-bg: rgba(0, 0, 0, 0.02);
             --glass-border: rgba(0, 0, 0, 0.06);
             --shadow-soft: 0 4px 30px rgba(0, 0, 0, 0.08);
-            --shadow-glow: 0 0 40px rgba(140, 150, 104, 0.12);
+            /* --shadow-glow retirado (Tanda 7 / anti-patrones) */
             --gradient-mesh: radial-gradient(ellipse at 20% 0%, rgba(140, 150, 104, 0.08) 0%, transparent 50%),
                             radial-gradient(ellipse at 80% 100%, rgba(122, 138, 90, 0.06) 0%, transparent 50%),
                             radial-gradient(ellipse at 50% 50%, rgba(168, 184, 146, 0.04) 0%, transparent 70%);
@@ -417,8 +419,8 @@
 
     /* Badge pulse para solicitudes pendientes */
     @keyframes badgePulse {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.5); }
-      50%       { box-shadow: 0 0 0 5px rgba(239,68,68,0); }
+      0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklch, var(--error) 50%, transparent); }
+      50%       { box-shadow: 0 0 0 5px color-mix(in oklch, var(--error) 0%, transparent); }
     }
     .nav-badge.pulse {
       animation: badgePulse 1.8s ease infinite;
@@ -564,7 +566,6 @@
     .topbar-btn:hover {
       background: var(--bg-tertiary);
       color: var(--text-primary);
-      transform: translateY(-2px);
     }
 
     .topbar-btn i {
@@ -694,8 +695,10 @@
       width: 100%;
     }
 
-    /* ===== RESPONSIVE SIDEBAR ===== */
-    @media (max-width: 1024px) {
+    /* ===== RESPONSIVE SIDEBAR =====
+       1024.98: alineado al contrato de banda tablet (verificador de cierre;
+       1024 a secas dejaba un sliver 1024–1024.98 con sidebar fija encimada) */
+    @media (max-width: 1024.98px) {
       .sidebar {
         transform: translateX(-100%);
       }
@@ -864,7 +867,7 @@
     }
 
     /* Mobile card view for citas */
-    @media (max-width: 768px) {
+    @media (max-width: 767.98px) {
       .citas-dia-table-wrap {
         margin: 0;
         padding: 0;
@@ -1109,9 +1112,9 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      background: rgba(251,191,36,0.2);
-      color: #f59e0b;
-      border: 1px solid rgba(251,191,36,0.35);
+      background: var(--warning-bg);
+      color: var(--warning);
+      border: 1px solid color-mix(in oklch, var(--warning) 35%, transparent);
       border-radius: 20px;
       padding: 3px 12px;
       font-size: 12px;
@@ -1199,9 +1202,11 @@
       letter-spacing: 0.4px;
     }
 
-    .method-badge.efectivo  { background:rgba(34,197,94,0.12);  color:#22c55e; border:1px solid rgba(34,197,94,0.2); }
-    .method-badge.tarjeta   { background:rgba(59,130,246,0.12); color:#60a5fa; border:1px solid rgba(59,130,246,0.2); }
-    .method-badge.transferencia { background:rgba(168,85,247,0.12); color:#c084fc; border:1px solid rgba(168,85,247,0.2); }
+    /* Métodos de pago en paleta de marca (antes green/blue/purple-500):
+       efectivo=sage, tarjeta=info slate, transferencia=olivo */
+    .method-badge.efectivo  { background:var(--success-bg); color:var(--success); border:1px solid color-mix(in oklch, var(--success) 20%, transparent); }
+    .method-badge.tarjeta   { background:var(--info-bg); color:var(--info); border:1px solid color-mix(in oklch, var(--info) 20%, transparent); }
+    .method-badge.transferencia { background:color-mix(in oklch, var(--olive) 12%, transparent); color:var(--olive); border:1px solid color-mix(in oklch, var(--olive) 20%, transparent); }
 
     .caja-amount-cell {
       font-family: var(--font-display);
@@ -1259,11 +1264,9 @@
       border-color: transparent;
       color: #000;
       font-weight: 600;
-      box-shadow: 0 8px 24px rgba(140, 150, 104, 0.3);
-    }
-
-    .btn.primary:hover {
-      box-shadow: 0 12px 32px rgba(140, 150, 104, 0.4);
+      /* sombra-glow y :hover con sombra retirados (verificador de cierre:
+         sombra reservada a dialog/.modal-card; la regla 0,2,1 le ganaba
+         al neutralizador .btn:hover de admin-redesign) */
     }
 
     .btn.ghost {
@@ -1291,8 +1294,8 @@
 
     .btn.danger {
       color: var(--status-cancelled);
-      border-color: rgba(248, 113, 113, 0.3);
-      background: rgba(248, 113, 113, 0.1);
+      border-color: color-mix(in oklch, var(--status-cancelled) 30%, transparent);
+      background: color-mix(in oklch, var(--status-cancelled) 10%, transparent);
     }
 
     .btn.danger:hover {
@@ -1327,7 +1330,6 @@
 
     .btn.success:hover {
       filter: brightness(0.95);
-      box-shadow: 0 6px 22px rgba(140, 160, 110, 0.36);
     }
 
     /* Estilo para días de trabajo */
@@ -1411,10 +1413,9 @@
       transition: all 0.3s ease;
     }
 
+    /* Hover solo color/borde (DESIGN.md): sin translateY ni sombra */
     .card:hover {
       border-color: var(--border-glow);
-      transform: translateY(-2px);
-      box-shadow: var(--shadow-glow);
     }
 
     .card::before {
@@ -1511,8 +1512,6 @@
 
     .kpi:hover {
       border-color: var(--border-glow);
-      transform: translateY(-4px);
-      box-shadow: var(--shadow-glow);
     }
 
     .kpi span.value {
@@ -1834,13 +1833,13 @@
     }
 
     .success-message {
-      background: rgba(187, 247, 208, 0.1);
-      border: 1px solid rgba(34, 197, 94, 0.3);
+      background: var(--success-bg);
+      border: 1px solid color-mix(in oklch, var(--success) 30%, transparent);
       border-radius: 10px;
       padding: 10px 12px;
       margin-top: 10px;
       font-size: 13px;
-      color: #bbf7d0;
+      color: var(--success);
     }
 
     dialog {
@@ -2153,23 +2152,19 @@
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
 
-    .modal-footer .btn.small:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    }
+    /* .modal-footer .btn.small:hover (translateY + sombra) retirado —
+       verificador de cierre: DESIGN.md hover = solo color/borde; su
+       especificidad 0,3,1 le ganaba al neutralizador de admin-redesign. */
 
     .modal-footer .btn.primary {
       background: linear-gradient(135deg, var(--venus-green), #a0b070);
       border: none;
     }
 
-    .modal-footer .btn.success {
-      box-shadow: 0 2px 8px rgba(37, 211, 102, 0.3);
-    }
-
+    /* sombras-glow de .modal-footer .btn.success retiradas (verificador
+       de cierre: sombra reservada a dialog/.modal-card) */
     .modal-footer .btn.success:hover {
-      box-shadow: 0 4px 12px rgba(37, 211, 102, 0.4);
-      background: #22c55e;
+      background: var(--success);
     }
 
     .modal-footer .btn.ghost {
@@ -2348,24 +2343,25 @@
       font-weight: 600;
     }
 
+    /* Badges de pago en paleta de marca (antes green/blue/purple/red-500) */
     .payment-efectivo {
-      background: rgba(34, 197, 94, 0.2);
-      color: #22c55e;
+      background: var(--success-bg);
+      color: var(--success);
     }
 
     .payment-tarjeta {
-      background: rgba(59, 130, 246, 0.2);
-      color: #3b82f6;
+      background: var(--info-bg);
+      color: var(--info);
     }
 
     .payment-transferencia {
-      background: rgba(168, 85, 247, 0.2);
-      color: #a855f7;
+      background: color-mix(in oklch, var(--olive) 15%, transparent);
+      color: var(--olive);
     }
 
     .payment-no_pagado {
-      background: rgba(239, 68, 68, 0.2);
-      color: #ef4444;
+      background: var(--error-bg);
+      color: var(--error);
     }
 
     .form-input.readonly {
@@ -2525,7 +2521,7 @@
 
     .history-item.selected .history-item-select {
       opacity: 1;
-      color: #22c55e;
+      color: var(--success);
     }
 
     /* ===== TABS SERVICIOS/PRODUCTOS ===== */
@@ -2651,10 +2647,10 @@
       flex-wrap: wrap;
     }
 
+    /* Aplanado (anti-patrones): los .stat-item viven DENTRO del .card del
+       catálogo — sin tarjeta interior, solo tipografía y espaciado. */
     .stat-item {
-      background: rgba(0, 0, 0, 0.2);
       padding: 12px 20px;
-      border-radius: 10px;
       display: flex;
       flex-direction: column;
       gap: 4px;
@@ -2807,13 +2803,13 @@
     }
 
     .gc-icon.redeemed {
-      background: rgba(34, 197, 94, 0.15);
-      color: #22c55e;
+      background: var(--success-bg);
+      color: var(--success);
     }
 
     .gc-icon.expired {
-      background: rgba(239, 68, 68, 0.1);
-      color: #ef4444;
+      background: var(--error-bg);
+      color: var(--error);
     }
 
     .gc-info h4 {
@@ -2861,13 +2857,13 @@
     }
 
     .gc-status.redeemed {
-      background: rgba(34, 197, 94, 0.15);
-      color: #22c55e;
+      background: var(--success-bg);
+      color: var(--success);
     }
 
     .gc-status.expired {
-      background: rgba(239, 68, 68, 0.15);
-      color: #ef4444;
+      background: var(--error-bg);
+      color: var(--error);
     }
 
     .gc-vigencia {
@@ -2889,15 +2885,15 @@
     }
 
     .gc-vigencia-progress.ok {
-      background: #22c55e;
+      background: var(--success);
     }
 
     .gc-vigencia-progress.warning {
-      background: #fbbf24;
+      background: var(--warning);
     }
 
     .gc-vigencia-progress.danger {
-      background: #ef4444;
+      background: var(--error);
     }
 
     .gc-vigencia-text {
@@ -2906,12 +2902,12 @@
     }
 
     .gc-redeemed-info {
-      background: rgba(34, 197, 94, 0.1);
+      background: var(--success-bg);
       border-radius: 6px;
       padding: 6px 10px;
       margin-top: 8px;
       font-size: 11px;
-      color: #22c55e;
+      color: var(--success);
       display: flex;
       align-items: center;
       gap: 6px;
@@ -3111,7 +3107,7 @@
       background: rgba(255, 255, 255, 0.1);
     }
 
-    @media (max-width: 768px) {
+    @media (max-width: 767.98px) {
       .desktop-only {
         display: none !important;
       }
@@ -3181,7 +3177,7 @@
       right: 4px;
       min-width: 18px;
       height: 18px;
-      background: #ef4444;
+      background: var(--error);
       color: white;
       font-size: 10px;
       font-weight: 700;
@@ -3336,14 +3332,15 @@
       font-size: 18px;
     }
 
+    /* Iconos de notificación en paleta de marca (antes Tailwind 400/500) */
     .notification-icon.cita {
-      background: rgba(59, 130, 246, 0.15);
-      color: #60a5fa;
+      background: var(--info-bg);
+      color: var(--info);
     }
 
     .notification-icon.venta {
-      background: rgba(34, 197, 94, 0.15);
-      color: #22c55e;
+      background: var(--success-bg);
+      color: var(--success);
     }
 
     .notification-icon.tarjeta {
@@ -3352,38 +3349,38 @@
     }
 
     .notification-icon.sello {
-      background: rgba(251, 191, 36, 0.15);
-      color: #fbbf24;
+      background: var(--warning-bg);
+      color: var(--warning);
     }
 
     .notification-icon.giftcard {
-      background: rgba(168, 85, 247, 0.15);
-      color: #a855f7;
+      background: color-mix(in oklch, var(--olive) 15%, transparent);
+      color: var(--olive);
     }
 
     .notification-icon.cumple {
-      background: rgba(239, 68, 68, 0.15);
-      color: #ef4444;
+      background: var(--error-bg);
+      color: var(--error);
     }
 
     .notification-icon.cumpleaños {
-      background: rgba(236, 72, 153, 0.15);
-      color: #ec4899;
+      background: var(--error-bg);
+      color: var(--error);
     }
 
     .notification-icon.premio {
-      background: rgba(34, 197, 94, 0.15);
-      color: #22c55e;
+      background: var(--success-bg);
+      color: var(--success);
     }
 
     .notification-icon.stock {
-      background: rgba(251, 191, 36, 0.15);
-      color: #fbbf24;
+      background: var(--warning-bg);
+      color: var(--warning);
     }
 
     .notification-icon.alerta {
-      background: rgba(239, 68, 68, 0.15);
-      color: #ef4444;
+      background: var(--error-bg);
+      color: var(--error);
     }
 
     .notification-content {
@@ -3684,24 +3681,24 @@
     }
 
     .calendar-event.teal {
-      background: rgba(45, 212, 191, 0.2);
+      background: color-mix(in oklch, var(--status-confirmed) 20%, transparent);
       color: var(--status-confirmed);
     }
 
     .calendar-event.confirmed {
-      background: rgba(45, 212, 191, 0.2);
+      background: color-mix(in oklch, var(--status-confirmed) 20%, transparent);
       color: var(--status-confirmed);
     }
 
     .calendar-event.cancelled {
-      background: rgba(248, 113, 113, 0.2);
+      background: color-mix(in oklch, var(--status-cancelled) 20%, transparent);
       color: var(--status-cancelled);
       opacity: 0.6;
     }
 
     .calendar-event.pending,
     .calendar-event.scheduled {
-      background: rgba(251, 191, 36, 0.2);
+      background: color-mix(in oklch, var(--status-pending) 20%, transparent);
       color: var(--status-pending);
     }
 
@@ -3855,12 +3852,9 @@
         display: inline-block;
       }
 
-      .calendar-events-container {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 2px;
-        justify-content: center;
-      }
+      /* .calendar-events-container borrada (Tanda 4.8): el render emite
+         .day-events (admin.html:9999), que ya tiene esta misma regla móvil
+         más abajo en esta hoja. */
 
       /* Indicador de día seleccionado más visible */
       .calendar-day.selected {
@@ -4042,17 +4036,17 @@
     }
 
     .appointment-status.confirmed {
-      background: rgba(45, 212, 191, 0.15);
+      background: color-mix(in oklch, var(--status-confirmed) 15%, transparent);
       color: var(--status-confirmed);
     }
 
     .appointment-status.pending {
-      background: rgba(251, 191, 36, 0.15);
+      background: color-mix(in oklch, var(--status-pending) 15%, transparent);
       color: var(--status-pending);
     }
 
     .appointment-status.cancelled {
-      background: rgba(248, 113, 113, 0.15);
+      background: color-mix(in oklch, var(--status-cancelled) 15%, transparent);
       color: var(--status-cancelled);
     }
 
@@ -4134,7 +4128,7 @@
     }
 
     .sales-icon.teal {
-      background: rgba(45, 212, 191, 0.15);
+      background: color-mix(in oklch, var(--status-confirmed) 15%, transparent);
       color: var(--status-confirmed);
     }
 
@@ -4240,7 +4234,7 @@
       display: inline;
     }
 
-    @media (max-width: 768px) {
+    @media (max-width: 767.98px) {
       .desktop-only-text {
         display: none;
       }
@@ -4536,7 +4530,6 @@
 
     .exp-session-card:hover {
       border-color: var(--venus);
-      box-shadow: 0 2px 8px rgba(189, 77, 113, 0.1);
     }
 
     .exp-session-header {
@@ -4626,7 +4619,6 @@
 
     .exp-photo-item:hover {
       border-color: var(--venus);
-      transform: scale(1.02);
     }
 
     .exp-photo-item img {
@@ -4646,18 +4638,19 @@
       text-transform: uppercase;
     }
 
+    /* Badges de fotos en paleta de marca (antes orange/green/blue-500) */
     .exp-photo-badge.before {
-      background: #f97316;
+      background: var(--warning);
       color: white;
     }
 
     .exp-photo-badge.after {
-      background: #22c55e;
+      background: var(--success);
       color: white;
     }
 
     .exp-photo-badge.progress {
-      background: #3b82f6;
+      background: var(--info);
       color: white;
     }
 
@@ -5128,7 +5121,7 @@
 
     /* ===== MOBILE CALENDAR & APPOINTMENTS REDESIGN ===== */
 
-    @media (max-width: 768px) {
+    @media (max-width: 767.98px) {
 
       /* --- Summary Stats Row: stack to single column --- */
       #appts-summary-row {
@@ -5505,7 +5498,7 @@
   content: ''; width: 6px; height: 6px; border-radius: 50%;
   background: currentColor;
 }
-.req-status-pending   { background: rgba(251, 191, 36, 0.14); color: #c98a16; }
+.req-status-pending   { background: color-mix(in oklch, var(--status-pending) 14%, transparent); color: #c98a16; }
 .req-status-contacted { background: rgba(74, 111, 134, 0.14); color: #4a6f86; }
 .req-status-booked    { background: rgba(140, 150, 104, 0.16); color: var(--accent-gold); }
 .req-status-rejected  { background: rgba(180, 82, 74, 0.12);  color: #a8524a; }
@@ -5576,8 +5569,8 @@
 .req-btn-primary:hover { background: var(--accent-rose); border-color: var(--accent-rose); }
 
 .req-btn-ok {
-  background: var(--status-confirmed, #14b8a6);
-  border-color: var(--status-confirmed, #14b8a6);
+  background: var(--status-confirmed);
+  border-color: var(--status-confirmed);
   color: #fff;
 }
 .req-btn-ok:hover { filter: brightness(0.95); }
@@ -5997,11 +5990,7 @@
   border-bottom: 1px solid var(--border-color);
 }
 
-/* --- Card hover/lifted: shadow tinted a hue brand --- */
-[data-theme="light"] .card:hover,
-[data-theme="light"] .card-hover:hover {
-  box-shadow: 0 4px 16px rgba(140, 150, 104, 0.10);
-}
+/* Sombra de hover retirada (Tanda 7 / anti-patrones): hover solo color/borde */
 
 /* ============================================================
    Agenda — header + stat strip + day timeline (rediseño 2026-05-20)

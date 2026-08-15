@@ -3,10 +3,10 @@
    Carga DESPUÉS de admin-base, admin-extra y admin-redesign.
    Solo CSS; no toca markup ni JS.
 
-   Breakpoints:
+   Breakpoints (contrato: teléfono ≤767.98 / tablet 768–1024.98):
      - iPhone:  ≤ 480px  (móvil estrecho)
-     - Phone+:  481–767px
-     - iPad:    768–1024px
+     - Phone+:  481–767.98px
+     - iPad:    768–1024.98px
      - Desktop: ≥ 1025px (sin cambios)
 
    Paleta + tokens importados desde admin-base via :root.
@@ -67,7 +67,9 @@ html[data-theme="dark"]  { color-scheme: dark; }
   color: #6b6b5e !important;
 }
 [data-theme="light"] #modal-cobrar-cita .toggle-btn.active {
-  background: #8C9668 !important;
+  /* T: token en vez del sage viejo #8C9668 — en light --olive resuelve a
+     oklch(58% 0.075 120) y el texto blanco pasa de 3.14:1 a >4.5:1. */
+  background: var(--olive, oklch(58% 0.075 120)) !important;
   color: #ffffff !important;
 }
 /* Overrides de los inline #fff, #888, #333 dentro del modal en light.
@@ -103,10 +105,30 @@ html[data-theme="dark"]  { color-scheme: dark; }
   color: #1a1a1f;
 }
 
+/* Cajas heredadas del tema oscuro con blanco-alfa inline (S10 / re-auditoría
+   theming: vista previa de Notificaciones, pasos de Campañas, detalle de
+   pago — admin.html:1279/1284/1507/1538/1556/11641/13660). Sobre crema el
+   blanco al 5-10% desaparece; en light las remapeamos a superficies del
+   tema. El !important es contra el style inline (mismo patrón del bloque
+   de arriba). Los 0.1 anidan dentro de los 0.05: tono casi-blanco para
+   conservar la jerarquía de capas. Dark las conserva tal cual. */
+[data-theme="light"] [style*="background:rgba(255,255,255,0.05)"],
+[data-theme="light"] [style*="background:rgba(255,255,255,0.06)"] {
+  background: var(--bg-tertiary, #f5f2ed) !important;
+}
+[data-theme="light"] [style*="background:rgba(255,255,255,0.1)"] {
+  background: oklch(99% 0.006 88) !important;
+}
+/* Separadores tr del desglose de productos (admin.html:13616): el hairline
+   blanco-alfa también es invisible sobre crema. */
+[data-theme="light"] [style*="border-bottom:1px solid rgba(255,255,255,0.05)"] {
+  border-bottom-color: var(--line, oklch(88% 0.014 88)) !important;
+}
+
 /* ────────────────────────────────────────────────────────────
    GLOBAL TAP TARGETS Y TIPOGRAFÍA (todos los breakpoints ≤ iPad)
    ──────────────────────────────────────────────────────────── */
-@media (max-width: 1024px) {
+@media (max-width: 1024.98px) {
   /* iOS no hace zoom en focus si font-size ≥ 16px.
      Sin lista de types: los 12+ inputs sin type= se escapaban de la lista
      enumerada y Safari hacía zoom (P1-21). Checkbox/radio quedan fuera
@@ -133,7 +155,7 @@ html[data-theme="dark"]  { color-scheme: dark; }
 /* ────────────────────────────────────────────────────────────
    iPad (768 – 1024): sidebar drawer + 2 columnas
    ──────────────────────────────────────────────────────────── */
-@media (min-width: 768px) and (max-width: 1024px) {
+@media (min-width: 768px) and (max-width: 1024.98px) {
   /* Sidebar como drawer overlay, escondido por defecto */
   .sidebar {
     position: fixed;
@@ -184,7 +206,7 @@ html[data-theme="dark"]  { color-scheme: dark; }
 /* ────────────────────────────────────────────────────────────
    iPhone + small phones (≤ 767): bottom-nav + single column
    ──────────────────────────────────────────────────────────── */
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
 
   /* Cumpleañeras: sin truncar en móvil. La regla base de admin-extra
      (nowrap + ellipsis) ganaba por orden de carga; esta hoja carga al
@@ -498,6 +520,21 @@ html[data-theme="dark"]  { color-scheme: dark; }
     overflow-y: visible !important;
   }
 
+  /* Resto de scrolls anidados inline en móvil (re-auditoría responsive):
+     análisis de campaña 300px (hijo de #promo-analysis-results,
+     admin.html:1521), enviados de promo 200px (#promo-sent-list, :1567),
+     desglose de servicios 200px (#report-servicios-list, :1917) y
+     pendientes de caja 400px (#caja-pendientes-list, :2239). El único
+     scroll es el de la página; el !important es contra el max-height
+     inline, igual que la regla de arriba. */
+  #promo-analysis-results [style*="max-height:300px"],
+  #promo-sent-list,
+  #report-servicios-list,
+  #caja-pendientes-list {
+    max-height: none !important;
+    overflow-y: visible !important;
+  }
+
   /* ──────────────────────────────────────────────────────────
      FILAS COMPACTAS DE LISTA — mandato de diseño (Servicios y
      Tarjetas en móvil). CONTRATO con el agente HTML:
@@ -611,6 +648,18 @@ html[data-theme="dark"]  { color-scheme: dark; }
   }
   dialog::backdrop, .modal-backdrop {
     background: oklch(22% 0.012 80 / 0.55);
+  }
+
+  /* Pies de cobro con safe-area (mitad pendiente de P1-1): con la barra
+     de Safari minimizada, el indicador de inicio solapaba el botón
+     Cobrar/Completar Cita. venusDialog y ds-footer ya lo llevan; estos
+     dos no. El !important del pie de #modal-cobrar-cita es contra su
+     padding inline (padding:16px 20px 20px, template en admin.html). */
+  #paymentDialog .dialog-footer {
+    padding-bottom: calc(20px + env(safe-area-inset-bottom));
+  }
+  #modal-cobrar-cita [style*="padding:16px 20px 20px"] {
+    padding-bottom: calc(20px + env(safe-area-inset-bottom)) !important;
   }
 
   /* Iframe POS fullscreen */
@@ -859,7 +908,7 @@ html[data-theme="dark"]  { color-scheme: dark; }
 }
 
 /* Centro de notificaciones: adaptación táctil sin perder jerarquía */
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .notification-dropdown {
     top: calc(var(--topbar-height, 64px) + 8px) !important;
     left: 12px !important;
@@ -892,8 +941,10 @@ html[data-theme="dark"]  { color-scheme: dark; }
 
   .btn-mark-read,
   .notification-close {
-    width: 38px;
-    min-height: 38px;
+    /* 44px: esta regla de clase le ganaba al piso :where() y los dejaba
+       a 44×38 (re-auditoría a11y). */
+    width: 44px;
+    min-height: 44px;
     justify-content: center;
     padding: 0;
     font-size: 14px;
@@ -925,7 +976,7 @@ html[data-theme="dark"]  { color-scheme: dark; }
   }
 
   .notification-footer button {
-    min-height: 38px;
+    min-height: 44px; /* piso táctil: 38px esquivaba el :where() */
     font-size: 11px;
   }
 }
@@ -952,7 +1003,7 @@ html[data-theme="dark"]  { color-scheme: dark; }
    Layout móvil propio. Sobrescribe la conversión genérica de tablas:
    aquí cada movimiento sí tiene jerarquía y acciones contenidas.
    ──────────────────────────────────────────────────────────── */
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   #tab-reports .card.expenses-panel {
     padding: 0 !important;
     overflow: hidden !important;
@@ -1220,7 +1271,7 @@ html[data-theme="dark"]  { color-scheme: dark; }
    cero, así cualquier regla existente puede seguir ajustando
    casos puntuales sin pelear con esta.
    ──────────────────────────────────────────────────────────── */
-@media (max-width: 1024px) {
+@media (max-width: 1024.98px) {
   :where(button, [role="button"], a.btn, .chip, .gc-tab, .day-label,
          .toggle-switch, .cmx-link, .cmx-stamp, .btn-nav, .nav-btn,
          .view-btn, .toggle-btn, .req-deposit__view, .expense-action) {
@@ -1228,6 +1279,34 @@ html[data-theme="dark"]  { color-scheme: dark; }
     min-width: 44px;
   }
   input[type="checkbox"], input[type="radio"] { width: 22px; height: 22px; }
+
+  /* Excepciones que esquivaban el piso :where() por especificidad
+     (re-auditoría a11y): sus reglas base tienen especificidad de clase
+     o de ID y le ganan al piso de especificidad cero. Reglas puntuales
+     con la MISMA especificidad que su regla base — ganan solo por orden
+     de carga (esta hoja va al final), sin escalar especificidad.
+     (.btn-mark-read/.notification-close y .notification-footer button
+     se corrigieron en su propia regla, más arriba en esta hoja.) */
+  .btn-nav, .nav-btn,           /* calendario: base 36×36 (admin-base:3485) */
+  .exp-sigpad-clear {           /* firma expediente: 38px (admin-extra:3226) */
+    min-height: 44px;
+    min-width: 44px;
+  }
+  .btn-mark-read,
+  .notification-close,
+  .notification-footer button {
+    /* redesign les da min-height:36px (clase) y en 768–1024.98px le ganaba
+       al piso :where(); el bloque de teléfono de esta hoja solo cubría
+       ≤767.98px (verificador de cierre). */
+    min-height: 44px;
+  }
+  #expediente-view .btn.small { /* 36px; el ID gana a la lista de clases (admin-extra:2492) */
+    min-height: 44px;
+  }
+  #directSaleDialog .ds-btn-ghost-sm,
+  #directSaleDialog .ds-btn-primary-sm { /* 38px (admin-extra:3413) */
+    min-height: 44px;
+  }
 }
 
 /* ────────────────────────────────────────────────────────────

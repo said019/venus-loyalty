@@ -1,6 +1,4 @@
       :root {
-        --venus-soft: #c9d2a0;
-        --venus-light: #eef1dc;
         --venus-olive: #4a4d3b;
         --venus-coffee: #9a6f4f;
         --bg: #202219;
@@ -11,9 +9,10 @@
         --panel: #25271f;
         --line: rgba(238, 241, 220, 0.16);
         --line-strong: rgba(238, 241, 220, 0.28);
-        --danger: #ef6b68;
-        --warning: #d9aa55;
-        --success: #7bbf82;
+        /* --warning/--success viven ahora en html[data-theme="dark"]:
+           declararlos aquí (:root carga después de admin-base) pisaba los
+           valores AA del tema claro de admin-base (regresión de cascada).
+           --danger se borró: sin consumidores en admin. */
         --radius: 8px;
       }
 
@@ -108,7 +107,7 @@
       .quick-action-btn,
       .modal-btn,
       .day-label {
-        border-radius: 8px;
+        border-radius: var(--radius-sm);
       }
 
       .btn {
@@ -116,14 +115,25 @@
         border-color: var(--line);
         background: rgba(251, 250, 244, 0.07);
         color: var(--ink);
-        transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+        transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
       }
 
       .btn:hover {
         background: rgba(251, 250, 244, 0.11);
         border-color: var(--line-strong);
-        transform: translateY(-1px);
-        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.18);
+      }
+
+      /* DESIGN.md: hover = solo color/borde 120ms. Neutraliza los
+         translateY + sombra de admin-base (.card/.kpi/.topbar-btn) y
+         admin-extra (.today-card); va antes de :active para no matar
+         el feedback de pulsación. */
+      .card:hover,
+      .btn:hover,
+      .today-card:hover,
+      .kpi:hover,
+      .topbar-btn:hover {
+        transform: none;
+        box-shadow: none;
       }
 
       .btn:active,
@@ -133,15 +143,18 @@
         transform: scale(0.98);
       }
 
+      /* DESIGN.md: primario = relleno olivo sólido. El gradiente
+         #737b52→var(--venus) dejaba #fff a 2.84:1 en oscuro; sólido
+         --olive-deep con tinta crema da 5.87:1 (igual que el claro). */
       .btn.primary,
       .quick-action-btn.primary,
       .chip.active,
       .gc-tab.active,
       .tab-btn.active .tab-count {
-        background: linear-gradient(135deg, #737b52, var(--venus));
-        color: #fff;
-        border-color: transparent;
-        box-shadow: 0 16px 34px rgba(140, 150, 104, 0.24);
+        background: var(--olive-deep);
+        color: oklch(97% 0.010 88);
+        border-color: var(--olive-deep);
+        box-shadow: none;
       }
 
       .btn.ghost {
@@ -157,7 +170,7 @@
       .discount-input-wrap input,
       select.filter-select,
       gmp-place-autocomplete input {
-        border-radius: 8px !important;
+        border-radius: var(--radius-sm) !important;
         border: 1px solid var(--line) !important;
         background: rgba(251, 250, 244, 0.07) !important;
         color: var(--ink) !important;
@@ -178,13 +191,10 @@
 
       .card,
       .today-card,
-      .hero-stat,
       .gc-stat,
       .stat-item,
       .gc-item,
       .wallet-card,
-      .modal-card,
-      dialog,
       .notification-dropdown,
       .mobile-menu,
       .offcanvas,
@@ -195,6 +205,16 @@
       .payment-products-list,
       .client-history-panel {
         border-radius: var(--radius) !important;
+        background: var(--card);
+        border: 1px solid var(--line);
+        box-shadow: none;
+      }
+
+      /* DESIGN.md: una sola sombra suave, reservada al diálogo/modal;
+         modales a 22px (--radius-xl). */
+      dialog,
+      .modal-card {
+        border-radius: var(--radius-xl) !important;
         background: var(--card);
         border: 1px solid var(--line);
         box-shadow: 0 20px 48px rgba(0, 0, 0, 0.18);
@@ -234,9 +254,17 @@
         }
       }
 
+      /* DESIGN.md: los KPIs no son tarjetas — tipografía, aire y una
+         regla inferior de 1px (admin-extra ya quitó su chrome; esta capa
+         lo re-aplicaba desde las listas de arriba). */
       .hero-stat {
         min-height: 150px;
         padding: 18px;
+        background: transparent;
+        border: 0;
+        border-bottom: 1px solid var(--line);
+        border-radius: 0;
+        box-shadow: none;
       }
 
       .hero-stat::before {
@@ -548,6 +576,12 @@
         --venus-light: #e7edca;
         --venus-olive: #424635;
         --venus-coffee: #9a6f4f;
+        /* AA: el sage de admin-base (oklch 62%) daba 2.93:1 sobre
+           --success-bg; 50% da 4.81:1 (bg), 5.12:1 (página), 4.86:1
+           (tarjeta) — verificado con cálculo WCAG. --warning claro de
+           admin-base (oklch 50% 0.100 80, 5.09:1) ya cumple y aplica
+           solo al dejar de pisarlo el :root de esta hoja. */
+        --success: oklch(50% 0.115 155);
         --shadow-soft: 0 16px 42px rgba(74, 77, 59, 0.1);
         --shadow-md: 0 18px 44px rgba(74, 77, 59, 0.12);
         --radius: 8px;
@@ -572,6 +606,11 @@
         --panel: #25271f;
         --line: rgba(238, 241, 220, 0.14);
         --border-color: rgba(238, 241, 220, 0.14);
+        /* Trío de estado del tema oscuro: antes vivía en el :root de esta
+           hoja y pisaba los valores AA del claro de admin-base. Aquí solo
+           aplica en oscuro (4.52:1 y 4.59:1 sobre sus fondos de badge). */
+        --warning: #d9aa55;
+        --success: #7bbf82;
         /* T8: variante oscura coherente de los tokens nuevos.
            --olive-deep y las fuentes se comparten con el tema claro. */
         --olive: oklch(68% 0.06 120);
@@ -585,21 +624,16 @@
         font-family: var(--font-body);
       }
 
-      html[data-theme="light"] body {
-        background:
-          linear-gradient(90deg, rgba(74, 77, 59, 0.045) 1px, transparent 1px),
-          linear-gradient(180deg, rgba(74, 77, 59, 0.035) 1px, transparent 1px),
-          radial-gradient(circle at 10% 0%, rgba(201, 210, 160, 0.38), transparent 32%),
-          linear-gradient(145deg, #f6f1e8 0%, #fffdf8 52%, #efe2d4 130%);
-        background-size: 42px 42px, 42px 42px, auto, auto;
-      }
+      /* (El gradiente de página de 4 capas que vivía aquí era código
+         muerto: lo neutralizaba el body !important de la capa unificada.
+         Borrado para que no reviva.) */
 
       .sidebar {
         background:
           linear-gradient(180deg, rgba(255, 253, 248, 0.94), rgba(247, 241, 229, 0.96)),
           linear-gradient(90deg, rgba(115, 123, 82, 0.06), transparent);
         border-right: 1px solid var(--line);
-        box-shadow: 18px 0 46px rgba(74, 77, 59, 0.1);
+        box-shadow: none;
       }
 
       html[data-theme="dark"] .sidebar {
@@ -613,7 +647,7 @@
 
       .sidebar-brand img,
       .sidebar-user-avatar {
-        border-radius: 8px;
+        border-radius: var(--radius-sm);
       }
 
       .sidebar-section-label {
@@ -631,7 +665,7 @@
         align-items: center;
         min-height: 54px;
         padding: 10px 12px !important;
-        border-radius: 8px !important;
+        border-radius: var(--radius-sm) !important;
         color: var(--text-secondary) !important;
       }
 
@@ -658,7 +692,6 @@
 
       .sidebar-nav-item:hover {
         background: rgba(115, 123, 82, 0.08) !important;
-        transform: translateX(2px);
       }
 
       .sidebar-nav-item.is-active {
@@ -673,7 +706,7 @@
 
       .topbar-new {
         border-bottom: 1px solid var(--line);
-        box-shadow: 0 10px 34px rgba(74, 77, 59, 0.08);
+        box-shadow: none;
       }
 
       .topbar-greeting h2,
@@ -722,10 +755,10 @@
         min-height: 132px;
         padding: 18px;
         border: 1px solid var(--line);
-        border-radius: 8px;
+        border-radius: var(--radius);
         background:
           linear-gradient(145deg, rgba(255, 253, 248, 0.9), rgba(247, 241, 229, 0.76));
-        box-shadow: var(--shadow-soft);
+        box-shadow: none;
         overflow: hidden;
       }
 
@@ -802,7 +835,7 @@
       .stat-item {
         background: var(--card);
         border: 1px solid var(--line);
-        box-shadow: var(--shadow-soft);
+        box-shadow: none;
       }
 
       .hero-stat {
@@ -825,8 +858,10 @@
         color: var(--text-primary);
       }
 
+      /* Hover del primario en oscuro (el claro lo fija la capa unificada
+         con !important): --olive-deep oscurecido, crema a 7.32:1. */
       .btn.primary:hover {
-        background: #646b47;
+        background: color-mix(in srgb, var(--olive-deep) 85%, black);
       }
 
       input,
@@ -864,7 +899,7 @@
       }
 
       .quick-action-btn {
-        border-radius: 8px !important;
+        border-radius: var(--radius-sm) !important;
       }
 
       @media (max-width: 1180px) {
@@ -996,7 +1031,7 @@
       html[data-theme="light"] .sidebar {
         background: var(--bg-sidebar) !important;
         border-right: 1px solid rgba(249, 234, 216, 0.20) !important;
-        box-shadow: 18px 0 54px rgba(38, 49, 35, 0.12) !important;
+        box-shadow: none !important;
       }
 
       html[data-theme="light"] .sidebar-brand {
@@ -1005,7 +1040,7 @@
 
       html[data-theme="light"] .sidebar-brand img {
         background: var(--venus-brand-cream) !important;
-        border-radius: 8px !important;
+        border-radius: var(--radius-sm) !important;
         box-shadow: 0 16px 34px rgba(38, 49, 35, 0.16) !important;
       }
 
@@ -1019,13 +1054,12 @@
       }
 
       html[data-theme="light"] .sidebar-nav-item {
-        border-radius: 8px !important;
+        border-radius: var(--radius-sm) !important;
         transition: transform 160ms var(--ease-venus), background 180ms ease, color 180ms ease;
       }
 
       html[data-theme="light"] .sidebar-nav-item:hover {
         background: rgba(249, 234, 216, 0.12) !important;
-        transform: translateY(-1px);
       }
 
       html[data-theme="light"] .sidebar-nav-item.is-active {
@@ -1045,12 +1079,11 @@
       html[data-theme="light"] .topbar {
         background: rgba(251, 247, 239, 0.92) !important;
         border-bottom: 1px solid rgba(104, 114, 92, 0.16) !important;
-        box-shadow: 0 16px 40px rgba(38, 49, 35, 0.07) !important;
+        box-shadow: none !important;
       }
 
       html[data-theme="light"] .card,
       html[data-theme="light"] .today-card,
-      html[data-theme="light"] .hero-stat,
       html[data-theme="light"] .gc-stat,
       html[data-theme="light"] .stat-item,
       html[data-theme="light"] .wallet-card,
@@ -1071,8 +1104,8 @@
       html[data-theme="light"] .gc-tab,
       html[data-theme="light"] .calendar-nav button,
       html[data-theme="light"] .modal-btn {
-        border-radius: 8px !important;
-        transition: transform 160ms var(--ease-venus), box-shadow 180ms var(--ease-venus), background 180ms ease, border-color 180ms ease !important;
+        border-radius: var(--radius-sm) !important;
+        transition: background 120ms ease, border-color 120ms ease, color 120ms ease !important;
       }
 
       html[data-theme="light"] .btn:active,
@@ -1092,7 +1125,7 @@
         background: var(--olive-deep) !important;
         border-color: var(--olive-deep) !important;
         color: oklch(97% 0.010 88) !important;
-        box-shadow: 0 18px 42px rgba(38, 49, 35, 0.14) !important;
+        box-shadow: none !important;
       }
 
       html[data-theme="light"] input,
@@ -1105,7 +1138,7 @@
       html[data-theme="light"] select.filter-select {
         background: rgba(249, 234, 216, 0.72) !important;
         border: 1px solid rgba(104, 114, 92, 0.24) !important;
-        border-radius: 8px !important;
+        border-radius: var(--radius-sm) !important;
         color: var(--ink) !important;
       }
 
@@ -1151,7 +1184,9 @@
 
       html[data-theme="light"] #newApptDialog input::placeholder,
       html[data-theme="light"] #newApptDialog textarea::placeholder {
-        color: rgba(38, 49, 35, 0.48) !important;
+        /* AA: rgba .48 daba 2.68:1; --text-dim (#6b6759) da 4.81:1
+           sobre el input crema compuesto. */
+        color: var(--text-dim) !important;
         opacity: 1 !important;
       }
 

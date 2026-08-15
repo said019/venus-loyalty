@@ -22,14 +22,13 @@
       .stat-item .stat-value.stat-warn { color: oklch(45% 0.110 80); }
       .stamp-rail { background: var(--olive-soft, oklch(94% 0.022 120)); }
     </style>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" media="print" onload="this.media='all'"><noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"></noscript>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
 
   <!-- Firebase removido - ahora usamos PostgreSQL -->
-  <!-- Chart.js for Reports -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Chart.js y html5-qrcode se cargan UNA sola vez (pineados) al final del body
+       (re-auditoría perf: antes se descargaban y ejecutaban dos veces cada uno) -->
 </head>
 
 <body class="checking-auth">
@@ -104,7 +103,7 @@
         <i class="fas fa-bullhorn"></i>
         <span>Marketing</span>
         <small>Checklist diario y campaña</small>
-        <span id="marketing-badge" style="display:none;background:#8C9668;color:#fff;font-size:10px;font-weight:700;border-radius:10px;padding:1px 6px;margin-left:auto;">0</span>
+        <span id="marketing-badge" style="display:none;background:var(--olive);color:#fff;font-size:10px;font-weight:700;border-radius:10px;padding:1px 6px;margin-left:auto;">0</span>
       </button>
       <button class="sidebar-nav-item" data-tab="settings">
         <i class="fas fa-sliders-h"></i>
@@ -235,7 +234,7 @@
     <div class="mobile-menu hidden" id="mobile-menu">
       <div class="mobile-menu-header">
         <span>Menú</span>
-        <button class="close-menu-btn" id="mobile-menu-close" onclick="closeMobileMenu()"><i
+        <button class="close-menu-btn" id="mobile-menu-close" onclick="closeMobileMenu()" aria-label="Cerrar menú"><i
             class="fas fa-times"></i></button>
       </div>
       <div class="mobile-menu-content">
@@ -583,11 +582,11 @@
       <div class="row" style="gap:12px;flex-wrap:wrap;margin-bottom:16px;">
         <div style="flex:1;min-width:200px;position:relative;">
           <i class="fas fa-search" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-dim);"></i>
-          <input type="search" id="search-cards" placeholder="Buscar por nombre o teléfono..." style="padding-left:40px;">
+          <input type="search" id="search-cards" placeholder="Buscar por nombre o teléfono..." aria-label="Buscar clienta por nombre o teléfono" style="padding-left:40px;">
         </div>
 
         <!-- SORTING CONTROLS -->
-        <select id="sort-cards" class="filter-select" style="min-width:160px;">
+        <select id="sort-cards" class="filter-select" aria-label="Ordenar clientas" style="min-width:160px;">
           <option value="created_at:desc">Recientes</option>
           <option value="created_at:asc">Antiguos</option>
           <option value="name:asc">Nombre (A-Z)</option>
@@ -793,7 +792,7 @@
     <section id="tab-reviews" class="card hidden">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px;">
         <h2 style="margin:0;display:flex;align-items:center;gap:10px;">
-          <i class="fas fa-star" style="color:#f5a623;"></i> Reseñas de Clientas
+          <i class="fas fa-star" style="color:oklch(52% 0.11 80);" aria-hidden="true"></i> Reseñas de Clientas
         </h2>
         <div style="display:flex;gap:8px;align-items:center;">
           <select id="reviews-filter" onchange="filterReviews(this.value)" style="border:1.5px solid #e0d8d0;border-radius:10px;padding:6px 12px;font-size:13px;background:#fff;">
@@ -815,7 +814,7 @@
 
       <!-- Lista -->
       <div id="reviews-list" style="display:flex;flex-direction:column;gap:14px;">
-        <div style="text-align:center;padding:40px;color:#aaa;">
+        <div style="text-align:center;padding:40px;color:var(--muted);">
           <i class="fas fa-star" style="font-size:32px;margin-bottom:8px;display:block;"></i>
           Cargando reseñas...
         </div>
@@ -851,7 +850,7 @@
 
       <!-- Configuración del Negocio -->
       <div
-        style="background:rgba(140,150,104,0.1);border:1px solid rgba(140,150,104,0.3);border-radius:12px;padding:14px;margin:12px 0;">
+        style="padding:16px 0 4px;margin:12px 0;border-top:1px solid var(--line);">
         <h3 style="margin:0 0 12px;"><i class="fas fa-store"></i> Datos del Negocio</h3>
         <p class="muted" style="margin:0 0 16px;font-size:12px;">Esta información se muestra en la página de agendar
           citas.</p>
@@ -1055,7 +1054,7 @@
 
       <!-- Datos bancarios para anticipo de cita -->
       <div
-        style="background:rgba(140,150,104,0.1);border:1px solid rgba(140,150,104,0.3);border-radius:12px;padding:14px;margin:12px 0;">
+        style="padding:16px 0 4px;margin:12px 0;border-top:1px solid var(--line);">
         <h3 style="margin:0 0 12px;"><i class="fas fa-university"></i> Anticipo · Datos bancarios</h3>
         <p class="muted" style="margin:0 0 16px;font-size:12px;">
           Se muestran al cliente en /agendar cuando tenga que transferir el anticipo. Si desactivas el anticipo, no se pide comprobante.
@@ -1186,7 +1185,7 @@
       <!-- Mi Google Calendar (multi-cuenta, OAuth por admin) -->
       <div style="background:rgba(140,150,104,0.10);border:1px solid rgba(140,150,104,0.30);border-radius:12px;padding:14px;margin:12px 0;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-          <h3 style="margin:0;"><i class="fab fa-google" style="color:#8C9668;"></i> Mi Google Calendar</h3>
+          <h3 style="margin:0;"><i class="fab fa-google" style="color:var(--olive);"></i> Mi Google Calendar</h3>
           <span id="my-gcal-status-badge" style="font-size:12px;padding:4px 10px;border-radius:20px;background:#e74c3c20;color:#e74c3c;">Desconectado</span>
         </div>
         <p class="muted" style="margin:0 0 12px;font-size:12px;">
@@ -1194,7 +1193,7 @@
         </p>
 
         <div id="my-gcal-disconnected" style="display:flex;gap:8px;">
-          <button class="btn primary" onclick="connectMyGoogleCalendar()" style="background:#8C9668;border-color:#8C9668;">
+          <button class="btn primary" onclick="connectMyGoogleCalendar()" style="background:var(--olive);border-color:var(--olive);">
             <i class="fab fa-google"></i> Conectar mi Gmail
           </button>
         </div>
@@ -1255,7 +1254,7 @@
       <p class="muted" style="margin-top:20px;">Envía notificaciones push a todos los pases en Google Wallet.</p>
 
       <div
-        style="background:rgba(140,150,104,0.1);border:1px solid rgba(140,150,104,0.3);border-radius:12px;padding:14px;margin:12px 0;">
+        style="padding:16px 0 4px;margin:12px 0;border-top:1px solid var(--line);">
         <h3 style="margin:0 0 8px;"><i class="fas fa-mobile-alt"></i> Notificaciones Push</h3>
 
         <form id="push-notification-form">
@@ -1389,7 +1388,7 @@
             <span class="automation-title">Recordatorio de Cumpleaños</span>
           </div>
           <label for="auto-birthday-enabled" class="toggle-switch">
-            <input type="checkbox" id="auto-birthday-enabled" checked>
+            <input type="checkbox" id="auto-birthday-enabled" aria-label="Activar recordatorio de cumpleaños" checked>
             <span class="toggle-slider"></span>
           </label>
         </div>
@@ -1414,7 +1413,7 @@
             <span class="automation-title">Alerta de Inactividad</span>
           </div>
           <label for="auto-inactivity-enabled" class="toggle-switch">
-            <input type="checkbox" id="auto-inactivity-enabled" checked>
+            <input type="checkbox" id="auto-inactivity-enabled" aria-label="Activar alerta de inactividad" checked>
             <span class="toggle-slider"></span>
           </label>
         </div>
@@ -1439,7 +1438,7 @@
             <span class="automation-title">Tarjeta Completada</span>
           </div>
           <label for="auto-completed-enabled" class="toggle-switch">
-            <input type="checkbox" id="auto-completed-enabled" checked>
+            <input type="checkbox" id="auto-completed-enabled" aria-label="Activar aviso de tarjeta completada" checked>
             <span class="toggle-slider"></span>
           </label>
         </div>
@@ -1464,7 +1463,7 @@
             <span class="automation-title">Casi Completa (Motivacional)</span>
           </div>
           <label for="auto-almost-enabled" class="toggle-switch">
-            <input type="checkbox" id="auto-almost-enabled" checked>
+            <input type="checkbox" id="auto-almost-enabled" aria-label="Activar mensaje de tarjeta casi completa" checked>
             <span class="toggle-slider"></span>
           </label>
         </div>
@@ -2512,7 +2511,7 @@
 
           <div class="row" style="gap:12px;">
             <div class="form-group" style="flex:1;">
-              <label class="form-label">Precio de venta</label>
+              <label for="product-price" class="form-label">Precio de venta<span class="req-mark" aria-hidden="true">*</span></label>
               <div style="position:relative;">
                 <span
                   style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);">$</span>
@@ -2521,7 +2520,7 @@
               </div>
             </div>
             <div class="form-group" style="flex:1;">
-              <label class="form-label">Costo (opcional)</label>
+              <label for="product-cost" class="form-label">Costo (opcional)</label>
               <div style="position:relative;">
                 <span
                   style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);">$</span>
@@ -2580,7 +2579,7 @@
               </div>
               <div style="display:grid;grid-template-columns:1fr auto;gap:12px;align-items:end;">
                 <div>
-                  <label style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:8px;padding-left:4px;">Buscar Cliente</label>
+                  <label for="new-appt-client-select" style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:8px;padding-left:4px;">Buscar Cliente</label>
                   <div class="custom-select-wrapper search-input-wrapper" id="client-select-wrapper" style="position:relative;">
                     <svg style="position:absolute;left:14px;top:50%;transform:translateY(-50%);pointer-events:none;" class="search-icon" id="client-search-icon" width="18" height="18" fill="none" stroke="var(--muted)" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
@@ -2608,14 +2607,14 @@
               <div id="client-loyalty-panel" class="hidden" style="margin-top:12px;padding:14px 16px;background:var(--bg-tertiary);border:1px solid var(--line);border-radius:12px;">
                 <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;">
                   <span style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--text-primary);">
-                    <i class="fas fa-id-card" style="color:#8C9668;"></i> Tarjeta de lealtad
+                    <i class="fas fa-id-card" style="color:var(--olive);"></i> Tarjeta de lealtad
                   </span>
-                  <span id="loyalty-stamps-label" style="font-size:12px;font-weight:700;color:#8C9668;">0 / 8 sellos</span>
+                  <span id="loyalty-stamps-label" style="font-size:12px;font-weight:700;color:var(--olive);">0 / 8 sellos</span>
                 </div>
                 <div id="loyalty-stamps-row" style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px;"></div>
                 <div style="display:flex;gap:8px;flex-wrap:wrap;">
                   <a id="loyalty-open-link" href="#" target="_blank" rel="noopener"
-                     style="flex:1;min-width:120px;text-align:center;padding:9px 12px;background:#8C9668;color:#fff;border-radius:8px;font-size:12px;font-weight:600;text-decoration:none;">
+                     style="flex:1;min-width:120px;text-align:center;padding:9px 12px;background:var(--olive);color:#fff;border-radius:8px;font-size:12px;font-weight:600;text-decoration:none;">
                     <i class="fas fa-external-link-alt"></i> Ver tarjeta
                   </a>
                   <button type="button" id="loyalty-copy-link"
@@ -2667,7 +2666,7 @@
               <div style="background:var(--glass-bg);border:1px solid var(--border-color);border-radius:12px;padding:20px;">
                 <div style="display:grid;grid-template-columns:1fr 140px;gap:16px;">
                   <div>
-                    <label style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:8px;padding-left:4px;">Seleccionar Servicio</label>
+                    <label for="new-appt-service" style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:8px;padding-left:4px;">Seleccionar Servicio</label>
                     <div class="custom-select-wrapper" style="position:relative;">
                       <input type="text" id="new-appt-service" class="form-input"
                         placeholder="Buscar o escribir servicio..."
@@ -2678,7 +2677,7 @@
                     </div>
                   </div>
                   <div>
-                    <label style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:8px;padding-left:4px;">Precio Final</label>
+                    <label for="new-appt-price" style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:8px;padding-left:4px;">Precio Final</label>
                     <div style="position:relative;">
                       <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--venus-soft);font-size:14px;font-weight:700;">$</span>
                       <input type="number" id="new-appt-price" class="form-input" placeholder="0" min="0" step="any"
@@ -2702,7 +2701,7 @@
               <h2 style="font-size:18px;font-weight:600;color:var(--ink);letter-spacing:-0.2px;margin:0 0 12px;">Fecha y Horario</h2>
               <div class="grid-date-time" style="align-items:end;">
                 <div style="position:relative;">
-                  <label style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:8px;padding-left:4px;">Seleccionar Fecha</label>
+                  <label for="new-appt-date" style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:8px;padding-left:4px;">Seleccionar Fecha<span class="req-mark" aria-hidden="true">*</span></label>
                   <input type="text" id="new-appt-date" class="form-input date-picker-input" readonly required
                     placeholder="Seleccionar fecha"
                     style="width:100%;padding:12px 14px;background:var(--glass-bg);border:1px solid var(--border-color);border-radius:10px;font-size:14px;cursor:pointer;color:var(--ink);">
@@ -2853,7 +2852,7 @@
             </div>
 
             <div>
-              <label class="form-label">Precio</label>
+              <label for="edit-appt-price" class="form-label">Precio</label>
               <div style="position:relative;">
                 <span
                   style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--venus-soft);font-size:14px;">$</span>
@@ -2894,7 +2893,7 @@
 
             <!-- Asignación a admin/recepcionista -->
             <div class="form-group" style="grid-column:1/3;">
-              <label class="form-label" style="display:flex;align-items:center;gap:8px;">
+              <label for="edit-appt-assigned" class="form-label" style="display:flex;align-items:center;gap:8px;">
                 <i class="fas fa-user-tag" style="color:var(--venus-soft);"></i> ¿Quién atiende? <span class="muted" style="font-weight:400;font-size:11px;">(opcional)</span>
               </label>
               <select id="edit-appt-assigned" class="form-input" style="width:100%;">
@@ -2904,7 +2903,7 @@
 
             <!-- Fuente / origen (marketing) -->
             <div class="form-group" style="grid-column:1/3;">
-              <label class="form-label" style="display:flex;align-items:center;gap:8px;">
+              <label for="edit-appt-source" class="form-label" style="display:flex;align-items:center;gap:8px;">
                 <i class="fas fa-bullhorn" style="color:var(--venus-soft);"></i> ¿Cómo llegó la clienta? <span class="muted" style="font-weight:400;font-size:11px;">(opcional)</span>
               </label>
               <select id="edit-appt-source" class="form-input" style="width:100%;">
@@ -3104,7 +3103,7 @@
 
         <!-- Descuento -->
         <div class="ds-group">
-          <label class="ds-label">Descuento</label>
+          <label for="direct-sale-discount-value" class="ds-label">Descuento</label>
           <div class="ds-discount-row">
             <div class="ds-toggle">
               <button type="button" class="active" onclick="setDirectSaleDiscountType('percent')" id="btn-ds-discount-percent">%</button>
@@ -3186,7 +3185,7 @@
               <input type="text" id="mi-client" class="form-input" placeholder="Ej. María López">
             </div>
             <div>
-              <label class="form-label">Monto</label>
+              <label for="mi-amount" class="form-label">Monto<span class="req-mark" aria-hidden="true">*</span></label>
               <div style="position:relative;">
                 <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);">$</span>
                 <input type="number" id="mi-amount" class="form-input" required min="1" step="any" style="padding-left:26px;" placeholder="650">
@@ -3258,7 +3257,7 @@
 
             <!-- Monto -->
             <div>
-              <label class="form-label">Monto</label>
+              <label for="expense-amount" class="form-label">Monto<span class="req-mark" aria-hidden="true">*</span></label>
               <div style="position:relative;">
                 <span
                   style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--venus-soft);font-size:14px;">$</span>
@@ -3426,8 +3425,8 @@
               <div id="cm-phone-display" class="cmx-phone">—</div>
               <div id="cm-phone-edit" class="hidden" style="display:flex;gap:6px;align-items:center;margin-top:4px;">
                 <input type="tel" id="cm-phone-input" class="cmx-input" style="flex:1;" placeholder="10 dígitos">
-                <button id="cm-phone-save" class="cmx-btn cmx-btn-olive" style="padding:8px 12px;">✓</button>
-                <button id="cm-phone-cancel" class="cmx-btn cmx-btn-ghost" style="padding:8px 10px;">✕</button>
+                <button id="cm-phone-save" class="cmx-btn cmx-btn-olive" style="padding:8px 12px;" aria-label="Guardar teléfono">✓</button>
+                <button id="cm-phone-cancel" class="cmx-btn cmx-btn-ghost" style="padding:8px 10px;" aria-label="Cancelar edición de teléfono">✕</button>
               </div>
             </div>
           </div>
@@ -3809,12 +3808,12 @@
       <div class="exp-dialog-content">
         <div class="exp-dialog-header">
           <h3><i class="fas fa-spa"></i> Nueva Sesión de Tratamiento</h3>
-          <button type="button" class="btn small ghost" onclick="document.getElementById('newSessionDialog').close()">✕</button>
+          <button type="button" class="btn small ghost" onclick="document.getElementById('newSessionDialog').close()" aria-label="Cerrar">✕</button>
         </div>
         <form id="form-new-session">
           <div class="exp-form-grid">
             <div class="exp-form-group">
-              <label for="session-treatment-type">Tipo de tratamiento *</label>
+              <label for="session-treatment-type">Tipo de tratamiento *<span class="req-mark" aria-hidden="true">*</span></label>
               <select id="session-treatment-type" class="form-input" required>
                 <option value="">Seleccionar...</option>
                 <option value="facial">Facial</option>
@@ -3897,7 +3896,7 @@
 
     <!-- Modal: Ver foto ampliada -->
     <div id="photo-lightbox" class="photo-lightbox hidden" onclick="closeLightbox()">
-      <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+      <button class="lightbox-close" onclick="closeLightbox()" aria-label="Cerrar foto">✕</button>
       <img id="lightbox-img" src="" alt="Foto ampliada">
       <div class="lightbox-info">
         <span id="lightbox-date"></span>
@@ -3913,7 +3912,7 @@
   <div class="offcanvas" id="modules-offcanvas">
     <div class="offcanvas-header">
       <h3 class="offcanvas-title"><i class="fas fa-sliders-h"></i> Personalizar Dashboard</h3>
-      <button class="btn small ghost" id="close-offcanvas">✕</button>
+      <button class="btn small ghost" id="close-offcanvas" aria-label="Cerrar panel de personalización">✕</button>
     </div>
 
     <p class="muted" style="font-size: 13px; margin-bottom: 20px;">
@@ -3928,7 +3927,7 @@
           <span class="module-label">KPIs Principales</span>
         </div>
         <label class="toggle-switch">
-          <input type="checkbox" data-module="kpis" checked>
+          <input type="checkbox" data-module="kpis" aria-label="Mostrar KPIs Principales" checked>
           <span class="toggle-slider"></span>
         </label>
       </div>
@@ -3939,7 +3938,7 @@
           <span class="module-label">Cumpleaños</span>
         </div>
         <label class="toggle-switch">
-          <input type="checkbox" data-module="birthdays" checked>
+          <input type="checkbox" data-module="birthdays" aria-label="Mostrar Cumpleaños" checked>
           <span class="toggle-slider"></span>
         </label>
       </div>
@@ -3950,7 +3949,7 @@
           <span class="module-label">Gráfica de Actividad</span>
         </div>
         <label class="toggle-switch">
-          <input type="checkbox" data-module="activity" checked>
+          <input type="checkbox" data-module="activity" aria-label="Mostrar Gráfica de Actividad" checked>
           <span class="toggle-slider"></span>
         </label>
       </div>
@@ -3961,7 +3960,7 @@
           <span class="module-label">Top Clientes</span>
         </div>
         <label class="toggle-switch">
-          <input type="checkbox" data-module="topClients" checked>
+          <input type="checkbox" data-module="topClients" aria-label="Mostrar Top Clientes" checked>
           <span class="toggle-slider"></span>
         </label>
       </div>
@@ -3972,7 +3971,7 @@
           <span class="module-label">Estado de Wallets</span>
         </div>
         <label class="toggle-switch">
-          <input type="checkbox" data-module="walletStats" checked>
+          <input type="checkbox" data-module="walletStats" aria-label="Mostrar Estado de Wallets" checked>
           <span class="toggle-slider"></span>
         </label>
       </div>
@@ -3983,7 +3982,7 @@
           <span class="module-label">KPIs Avanzados</span>
         </div>
         <label class="toggle-switch">
-          <input type="checkbox" data-module="newKPIs" checked>
+          <input type="checkbox" data-module="newKPIs" aria-label="Mostrar KPIs Avanzados" checked>
           <span class="toggle-slider"></span>
         </label>
       </div>
@@ -4031,7 +4030,7 @@
             <input type="number" id="service-duration" class="form-input" required min="10" step="5" value="60">
           </div>
           <div class="form-group" style="flex:1;">
-            <label class="form-label">Precio</label>
+            <label for="service-price" class="form-label">Precio<span class="req-mark" aria-hidden="true">*</span></label>
             <div style="position:relative;">
               <span
                 style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px;">$</span>
@@ -4861,8 +4860,9 @@
         const fields = qs.map(function (q, idx) {
           const qkey = 'q' + (idx + 1);
           const val = ans[qkey] || '';
-          return '<div class="exp-form-group"><label>' + (idx + 1) + '. ' + expEsc(q) + '</label>' +
-            '<textarea class="form-input" rows="2" data-cond="' + expEsc(cond) + '" data-qkey="' + qkey + '">' + expEsc(val) + '</textarea></div>';
+          const fieldId = 'exp-q-' + String(cond).replace(/[^a-zA-Z0-9_-]/g, '') + '-' + qkey;
+          return '<div class="exp-form-group"><label for="' + fieldId + '">' + (idx + 1) + '. ' + expEsc(q) + '</label>' +
+            '<textarea id="' + fieldId + '" class="form-input" rows="2" data-cond="' + expEsc(cond) + '" data-qkey="' + qkey + '">' + expEsc(val) + '</textarea></div>';
         }).join('');
         return '<div class="exp-cond-block"><h4 class="exp-cond-block-title">' + expEsc(title) + '</h4>' + fields + '</div>';
       }).join('');
@@ -6407,7 +6407,6 @@
     }
 
     /* ===== METRICS (Firestore) - MEJORADO CON FILTROS ===== */
-    let activityChart = null;
 
     async function loadMetrics(range = 'week') {
       try {
@@ -6452,8 +6451,9 @@
         if (kpiRate) kpiRate.textContent = rate + '%';
 
         // Cargar componentes adicionales
+        // (el gráfico #activity-chart lo pinta ÚNICAMENTE loadDashboardActivityChart
+        //  vía loadDashboardStats — re-auditoría perf: antes competían 2 cargadores)
         await loadTopClients();
-        await loadActivityChart(range);
         await loadWalletStats();
 
         // Fetch ALL cards for Birthdays & Report
@@ -6737,10 +6737,9 @@
       if (kpiAvg) kpiAvg.textContent = "5.2";
       if (kpiRate) kpiRate.textContent = "13%";
 
-      // Actualizar gráfica
-      renderChart(labels, dataStamps);
-
       // Simular Top Clientes
+      // (la gráfica de ejemplo ya no se pinta aquí: el canvas #activity-chart
+      //  tiene un solo dueño, loadDashboardActivityChart)
       renderSampleTopClients();
 
       // Guardar datos para reporte
@@ -6753,81 +6752,6 @@
         rate: "13",
         range: range
       };
-    }
-
-    function renderChart(labels, data) {
-      const canvas = document.getElementById('activity-chart');
-      if (!canvas) return;
-
-      // Destruir TODOS los charts previos
-      if (activityChart) {
-        activityChart.destroy();
-        activityChart = null;
-      }
-      if (window.myActivityChart) {
-        window.myActivityChart.destroy();
-        window.myActivityChart = null;
-      }
-      const existingChart = Chart.getChart(canvas);
-      if (existingChart) {
-        existingChart.destroy();
-      }
-
-      activityChart = new Chart(canvas, {
-        type: 'line',
-        data: {
-          labels: labels,
-          datasets: [{
-            label: 'Sellos',
-            data: data,
-            borderColor: '#8c9668',
-            backgroundColor: 'rgba(140, 150, 104, 0.15)',
-            tension: 0.4,
-            fill: true,
-            pointBackgroundColor: '#8c9668',
-            pointBorderColor: '#fff',
-            pointBorderWidth: 2,
-            pointRadius: 4,
-            pointHoverRadius: 6
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              backgroundColor: 'rgba(0, 0, 0, 0.8)',
-              padding: 10,
-              titleColor: '#fff',
-              bodyColor: '#fff',
-              borderColor: '#8c9668',
-              borderWidth: 1
-            }
-          },
-          scales: {
-            y: {
-              beginAtZero: true,
-              ticks: {
-                color: (document.documentElement.getAttribute('data-theme')==='dark'?'#c3c0ae':'#5f624f'),
-                font: { size: 11 }
-              },
-              grid: {
-                color: 'rgba(255, 255, 255, 0.1)'
-              }
-            },
-            x: {
-              ticks: {
-                color: (document.documentElement.getAttribute('data-theme')==='dark'?'#c3c0ae':'#5f624f'),
-                font: { size: 11 }
-              },
-              grid: {
-                display: false
-              }
-            }
-          }
-        }
-      });
     }
 
     function renderSampleTopClients() {
@@ -6895,96 +6819,6 @@
       }
     }
 
-    async function loadActivityChart(range = 'week') {
-      try {
-        const response = await fetch(`/api/admin/activity-${range}`, {
-          credentials: 'include'
-        });
-
-        if (!response.ok) {
-          throw new Error('API no disponible');
-        }
-
-        const data = await response.json();
-        const canvas = document.getElementById('activity-chart');
-        if (!canvas) return;
-
-        // Destruir TODOS los charts previos que usen este canvas
-        if (activityChart) {
-          activityChart.destroy();
-          activityChart = null;
-        }
-        if (window.myActivityChart) {
-          window.myActivityChart.destroy();
-          window.myActivityChart = null;
-        }
-        const existingChart = Chart.getChart(canvas);
-        if (existingChart) {
-          existingChart.destroy();
-        }
-
-        activityChart = new Chart(canvas, {
-          type: 'line',
-          data: {
-            labels: data.labels || ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
-            datasets: [{
-              label: 'Sellos',
-              data: data.stamps || [0, 0, 0, 0, 0, 0, 0],
-              borderColor: '#8c9668',
-              backgroundColor: 'rgba(140, 150, 104, 0.15)',
-              tension: 0.4,
-              fill: true,
-              pointBackgroundColor: '#8c9668',
-              pointBorderColor: '#fff',
-              pointBorderWidth: 2,
-              pointRadius: 4,
-              pointHoverRadius: 6
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: { display: false },
-              tooltip: {
-                backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                padding: 10,
-                titleColor: '#fff',
-                bodyColor: '#fff',
-                borderColor: '#8c9668',
-                borderWidth: 1
-              }
-            },
-            scales: {
-              y: {
-                beginAtZero: true,
-                ticks: {
-                  color: (document.documentElement.getAttribute('data-theme')==='dark'?'#c3c0ae':'#5f624f'),
-                  font: { size: 11 }
-                },
-                grid: {
-                  color: 'rgba(255, 255, 255, 0.1)'
-                }
-              },
-              x: {
-                ticks: {
-                  color: (document.documentElement.getAttribute('data-theme')==='dark'?'#c3c0ae':'#5f624f'),
-                  font: { size: 11 }
-                },
-                grid: {
-                  display: false
-                }
-              }
-            }
-          }
-        });
-      } catch (error) {
-        console.error('Error cargando gráfica:', error);
-        // Si falla, no hacemos nada ya que loadSampleData ya renderizó una gráfica
-      }
-    }
-
-    /* ===== WALLET STATS MEJORADO ===== */
     async function loadWalletStats() {
       try {
         // Primero intentar con el nuevo endpoint de device-stats
@@ -7122,7 +6956,7 @@
             <td data-label="Sellos" class="card-meta">
               <div style="display:flex;align-items:center;gap:6px;">
                 <div class="stamp-rail" style="border-radius:4px;height:6px;width:60px;overflow:hidden;">
-                  <div style="background:linear-gradient(90deg,#FFD166,#8c9668);height:100%;width:${(card.stamps / card.max) * 100}%;"></div>
+                  <div style="background:linear-gradient(90deg,#FFD166,var(--olive));height:100%;width:${(card.stamps / card.max) * 100}%;"></div>
                 </div>
                 <span style="font-size:12px;font-weight:500;">${card.stamps}/${card.max}</span>
               </div>
@@ -7766,13 +7600,13 @@
       if (card.stamps >= card.max) {
         statusText = '¡Tarjeta completa! Lista para canjear';
       } else if (remaining === 1) {
-        statusText = '⚡ ¡Solo falta 1 sello!';
+        statusText = '<i class="fas fa-bolt" aria-hidden="true"></i> ¡Solo falta 1 sello!';
       } else if (remaining <= 3) {
         statusText = `Faltan ${remaining} sellos`;
       } else {
         statusText = `Faltan ${remaining} sellos para completar`;
       }
-      document.getElementById('cm-status-text').textContent = statusText;
+      document.getElementById('cm-status-text').innerHTML = statusText; // statusText es estático (sin datos de usuario)
 
       const hasMassage = card.massageActive;
 
@@ -7791,11 +7625,11 @@
         const mPct = Math.min((ms / mm) * 100, 100);
         let mStatus = '';
         if (ms >= mm) {
-          mStatus = '🎁🎁 ¡Membresía completa! 2 regalos desbloqueados';
+          mStatus = '<i class="fas fa-gift" aria-hidden="true"></i> ¡Membresía completa! 2 regalos desbloqueados';
         } else if (ms >= 5) {
-          mStatus = `🎁 1er regalo ✓ — Faltan ${mm - ms} para el 2do`;
+          mStatus = `<i class="fas fa-gift" aria-hidden="true"></i> 1er regalo <i class="fas fa-check" aria-hidden="true"></i> — Faltan ${mm - ms} para el 2do`;
         } else {
-          mStatus = `🎁 Próximo regalo en sesión 5 (faltan ${5 - ms})`;
+          mStatus = `<i class="fas fa-gift" aria-hidden="true"></i> Próximo regalo en sesión 5 (faltan ${5 - ms})`;
         }
 
         const hasGoogleMassage = !!card.massageWalletUrl;
@@ -7808,7 +7642,7 @@
         massageSection.innerHTML = `
           <div style="background:rgba(196,147,110,0.15);border:1px solid rgba(196,147,110,0.3);border-radius:12px;padding:14px;margin-bottom:16px;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-              <span style="font-size:13px;color:#C4936E;font-weight:600;">🧖 Masajes</span>
+              <span style="font-size:13px;color:#C4936E;font-weight:600;"><i class="fas fa-spa" aria-hidden="true"></i> Masajes</span>
               <span style="font-weight:700;font-size:18px;color:#C4936E;">${ms} / ${mm}</span>
             </div>
             <div style="background:rgba(255,255,255,0.1);border-radius:8px;height:8px;overflow:hidden;">
@@ -7967,7 +7801,7 @@
 
         if (res.status === 409 && json.error === 'phone_change_needs_confirmation') {
           const ok = await venusConfirm(
-            `⚠️ Esta clienta tiene ${json.activeAppointments} cita(s) activa(s).\n\n` +
+            `Esta clienta tiene ${json.activeAppointments} cita(s) activa(s).\n\n` +
             `Si cambias el teléfono ahora, TODAS esas citas se actualizarán al nuevo número (${json.newPhone}).\n` +
             `Las notificaciones futuras también irán al nuevo número.\n\n` +
             `Actual: ${json.currentPhone}\nNuevo:  ${json.newPhone}\n\n` +
@@ -8169,7 +8003,7 @@
       const phone = card.phone ? card.phone.replace(/[^0-9]/g, '') : '';
 
       if (!phone) {
-        await venusAlert('⚠️ La clienta no tiene teléfono registrado.');
+        await venusAlert('La clienta no tiene teléfono registrado.');
         return;
       }
 
@@ -8229,8 +8063,8 @@
 
         const isGift = data.massageStamps === 5 || data.massageStamps === 10;
         const msg = isGift
-          ? `🎁 ¡Sesión ${data.massageStamps} de masaje! Regalo desbloqueado.`
-          : `💆 Sesión de masaje registrada (${data.massageStamps}/${data.massageMax})`;
+          ? `¡Sesión ${data.massageStamps} de masaje! Regalo desbloqueado.`
+          : `Sesión de masaje registrada (${data.massageStamps}/${data.massageMax})`;
         await venusAlert(msg);
       } catch (e) {
         await venusAlert('Error: ' + e.message);
@@ -8292,14 +8126,14 @@
           if (waData.success) {
             const toast = document.createElement('div');
             toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#C4936E,#a87350);color:#fff;padding:12px 24px;border-radius:12px;font-size:14px;font-weight:600;z-index:99999;box-shadow:0 4px 16px rgba(196,147,110,0.5);display:flex;align-items:center;gap:8px;';
-            toast.innerHTML = '<i class="fas fa-spa"></i> Membresía enviada a ' + name + ' 🧖‍♀️';
+            toast.innerHTML = '<i class="fas fa-spa"></i> Membresía enviada a ' + name;
             document.body.appendChild(toast);
             setTimeout(() => toast.remove(), 4000);
           } else {
             throw new Error(waData.error || 'Membresía creada pero no se pudo enviar el WhatsApp');
           }
         } else {
-          await venusAlert('⚠️ Membresía emitida, pero la clienta no tiene teléfono registrado.\n\nLink: ' + cardLink);
+          await venusAlert('Membresía emitida, pero la clienta no tiene teléfono registrado.\n\nLink: ' + cardLink);
         }
 
         btn.innerHTML = '<i class="fas fa-check"></i> ¡Membresía emitida!';
@@ -9396,7 +9230,7 @@
       const staff = await loadStaffOnce();
       const opts = ['<option value="">— Sin asignar —</option>'];
       for (const a of staff) {
-        const icon = a.hasCalendar ? ' 📅' : '';
+        const icon = a.hasCalendar ? ' · calendario' : '';
         const roleLabel = a.role === 'recepcion' ? ' · recepción' : (a.role === 'admin' ? ' · admin' : '');
         opts.push(`<option value="${a.id}">${a.name}${roleLabel}${icon}</option>`);
       }
@@ -9452,7 +9286,7 @@
           const filled = i < stamps;
           dots += `<span style="width:20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:10px;${
             filled
-              ? 'background:#8C9668;color:#fff;'
+              ? 'background:var(--olive);color:#fff;'
               : 'background:var(--bg-secondary);border:1.5px solid var(--line-2);color:var(--text-muted);'
           }">${filled ? '<i class="fas fa-check"></i>' : ''}</span>`;
         }
@@ -10136,7 +9970,7 @@
       const staff = (typeof _staffCache !== 'undefined' && Array.isArray(_staffCache)) ? _staffCache : [];
       const a = staff.find(s => s.id === assignedAdminId);
       const name = a ? a.name : 'Asignada';
-      return `<span title="Atiende: ${name}" style="display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:999px;font-size:10px;font-weight:700;color:#8C9668;background:#8C96681A;border:1px solid #8C966833;letter-spacing:.3px;">
+      return `<span title="Atiende: ${name}" style="display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:999px;font-size:10px;font-weight:700;color:var(--olive);background:color-mix(in srgb, var(--olive) 10%, transparent);border:1px solid color-mix(in srgb, var(--olive) 20%, transparent);letter-spacing:.3px;">
         <i class="fas fa-user-tag" style="font-size:9px;"></i>→ ${name}
       </span>`;
     }
@@ -10289,9 +10123,9 @@
                 ${formatApptSourceBadge(appt.source)}
                 ${formatApptAssignedBadge(appt.assignedAdminId)}
               </div>
-              <div style="font-size:0.85em;color:#9ca3af;">${appt.clientPhone}</div>
+              <div style="font-size:0.85em;color:var(--muted);">${appt.clientPhone}</div>
             </td>
-            <td style="padding:12px;color:#d1d5db;">${appt.serviceName}</td>
+            <td style="padding:12px;color:var(--muted);">${appt.serviceName}</td>
             <td style="padding:12px;">
               <select
                 onchange="updateAppointmentStatus('${appt.id}', this.value)"
@@ -10332,7 +10166,7 @@
                   <button onclick="viewPaymentDetails('${appt.id}')" title="Ver detalle de pago" style="background:none;border:none;color:#60a5fa;cursor:pointer;padding:2px 4px;font-size:0.85em;">
                     <i class="fas fa-eye" aria-hidden="true"></i>
                   </button>
-                  <button onclick="openPaymentModal('${appt.id}', '${appt.clientName.replace(/'/g, "\\'")}', '${appt.serviceName.replace(/'/g, "\\'")}', ${appt.totalPaid || 0}, true)" title="Editar pago" style="background:none;border:none;color:#9ca3af;cursor:pointer;padding:0;font-size:0.8em;">
+                  <button onclick="openPaymentModal('${appt.id}', '${appt.clientName.replace(/'/g, "\\'")}', '${appt.serviceName.replace(/'/g, "\\'")}', ${appt.totalPaid || 0}, true)" title="Editar pago" style="background:none;border:none;color:var(--muted);cursor:pointer;padding:0;font-size:0.8em;">
                     <i class="fas fa-pencil-alt" aria-hidden="true"></i>
                   </button>
                 </div>
@@ -13599,32 +13433,32 @@
           const productsTotal = productsSold.reduce((sum, p) => sum + (p.subtotal || p.price * p.qty), 0);
           productsHtml = `
             <div style="margin:16px 0;background:rgba(139,92,246,0.1);border-radius:12px;padding:12px;">
-              <h4 style="margin:0 0 10px;font-size:14px;color:#a78bfa;display:flex;align-items:center;gap:6px;">
+              <h4 style="margin:0 0 10px;font-size:14px;color:var(--muted);display:flex;align-items:center;gap:6px;">
                 <i class="fas fa-shopping-bag"></i> Productos Vendidos
               </h4>
               <table style="width:100%;font-size:12px;border-collapse:collapse;">
                 <thead>
                   <tr style="border-bottom:1px solid rgba(255,255,255,0.1);">
-                    <th style="text-align:left;padding:6px 4px;color:#9ca3af;">Producto</th>
-                    <th style="text-align:center;padding:6px 4px;color:#9ca3af;">Cant.</th>
-                    <th style="text-align:right;padding:6px 4px;color:#9ca3af;">Precio</th>
-                    <th style="text-align:right;padding:6px 4px;color:#9ca3af;">Subtotal</th>
+                    <th style="text-align:left;padding:6px 4px;color:var(--muted);">Producto</th>
+                    <th style="text-align:center;padding:6px 4px;color:var(--muted);">Cant.</th>
+                    <th style="text-align:right;padding:6px 4px;color:var(--muted);">Precio</th>
+                    <th style="text-align:right;padding:6px 4px;color:var(--muted);">Subtotal</th>
                   </tr>
                 </thead>
                 <tbody>
                   ${productsSold.map(p => `
                     <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
                       <td style="padding:8px 4px;color:var(--ink);">${p.name}</td>
-                      <td style="text-align:center;padding:8px 4px;color:#d1d5db;">${p.qty}</td>
-                      <td style="text-align:right;padding:8px 4px;color:#d1d5db;">$${p.price.toLocaleString()}</td>
-                      <td style="text-align:right;padding:8px 4px;color:#a78bfa;font-weight:600;">$${(p.subtotal || p.price * p.qty).toLocaleString()}</td>
+                      <td style="text-align:center;padding:8px 4px;color:var(--muted);">${p.qty}</td>
+                      <td style="text-align:right;padding:8px 4px;color:var(--muted);">$${p.price.toLocaleString()}</td>
+                      <td style="text-align:right;padding:8px 4px;color:var(--ink);font-weight:600;">$${(p.subtotal || p.price * p.qty).toLocaleString()}</td>
                     </tr>
                   `).join('')}
                 </tbody>
                 <tfoot>
                   <tr>
                     <td colspan="3" style="text-align:right;padding:8px 4px;font-weight:600;color:var(--ink);">Total Productos:</td>
-                    <td style="text-align:right;padding:8px 4px;font-weight:700;color:#a78bfa;">$${productsTotal.toLocaleString()}</td>
+                    <td style="text-align:right;padding:8px 4px;font-weight:700;color:var(--ink);">$${productsTotal.toLocaleString()}</td>
                   </tr>
                 </tfoot>
               </table>
@@ -13657,7 +13491,7 @@
             ${appt.discountAmount > 0 ? `<div class="payment-total-row discount"><span>Descuento (${appt.discountType === 'percent' ? appt.discountValue + '%' : '$' + appt.discountValue})</span><span>-$${appt.discountAmount.toLocaleString()}</span></div>` : ''}
             <div class="payment-total-row grand"><span>Total Pagado</span><span>$${(appt.totalPaid || 0).toLocaleString()}</span></div>
           </div>
-          <div style="margin-top:16px;padding:12px;background:rgba(255,255,255,0.05);border-radius:8px;font-size:12px;color:#9ca3af;">
+          <div style="margin-top:16px;padding:12px;background:rgba(255,255,255,0.05);border-radius:8px;font-size:12px;color:var(--muted);">
             <div style="display:flex;justify-content:space-between;">
               <span><i class="fas fa-credit-card"></i> ${methodLabels[appt.paymentMethod] || appt.paymentMethod || 'N/A'}</span>
               <span><i class="fas fa-clock"></i> ${appt.paidAt ? new Date(appt.paidAt).toLocaleString('es-MX') : 'N/A'}</span>
@@ -13862,18 +13696,18 @@
       panel.innerHTML = `
         <form id="ds-create-product-form" class="ds-create-form">
           <div class="ds-create-title"><i class="fas fa-plus"></i> Crear producto nuevo</div>
-          <input type="text" id="ds-new-name" class="ds-input" placeholder="Nombre" required>
+          <input type="text" id="ds-new-name" class="ds-input" placeholder="Nombre *" aria-label="Nombre del producto nuevo (obligatorio)" required>
           <div class="ds-create-row">
-            <select id="ds-new-category" class="ds-input" required>
+            <select id="ds-new-category" class="ds-input" aria-label="Categoría del producto nuevo" required>
               <option value="skincare">Skincare</option>
               <option value="maquillaje">Maquillaje</option>
               <option value="corporal">Corporal</option>
               <option value="cabello">Cabello</option>
               <option value="otro" selected>Otro</option>
             </select>
-            <input type="number" id="ds-new-price" class="ds-input" placeholder="Precio" min="0" step="any" required>
+            <input type="number" id="ds-new-price" class="ds-input" placeholder="Precio *" aria-label="Precio del producto nuevo (obligatorio)" min="0" step="any" required>
           </div>
-          <input type="number" id="ds-new-stock" class="ds-input" placeholder="Stock inicial" min="0" required>
+          <input type="number" id="ds-new-stock" class="ds-input" placeholder="Stock inicial *" aria-label="Stock inicial del producto nuevo (obligatorio)" min="0" required>
           <div class="ds-create-actions">
             <button type="button" class="ds-btn-ghost-sm" id="ds-create-cancel-btn">Cancelar</button>
             <button type="submit" class="ds-btn-primary-sm" id="ds-create-submit-btn">Crear y agregar</button>
@@ -14456,8 +14290,9 @@
               {
                 label: 'Citas',
                 data: data.map(d => d.appointments),
-                borderColor: '#8c9668', // Venus
-                backgroundColor: 'rgba(140, 150, 104, 0.1)',
+                // var(--olive) resuelto a hex (canvas no lee var()): #74814d light / #939e74 dark
+                borderColor: (document.documentElement.getAttribute('data-theme')==='dark'?'#939e74':'#74814d'),
+                backgroundColor: 'rgba(116, 129, 77, 0.12)',
                 borderWidth: 2,
                 tension: 0.4,
                 fill: true,
@@ -16719,7 +16554,7 @@
           <button class="btn primary" id="btn-request-camera" style="margin-bottom: 10px;">
             <i class="fas fa-camera"></i> Permitir acceso a cámara
           </button>
-          <p style="font-size: 12px; color: #999;">
+          <p style="font-size: 12px; color: var(--muted);">
             Necesitamos acceso a tu cámara para escanear códigos QR
           </p>
         </div>
@@ -17318,7 +17153,7 @@
             }
             #modal-cobrar-cita .cobro-input:focus {
               outline: none;
-              border-color: #8C9668;
+              border-color: var(--olive);
             }
             #modal-cobrar-cita .toggle-btn {
               padding: 10px 16px;
@@ -17330,8 +17165,8 @@
               transition: all 0.2s;
             }
             #modal-cobrar-cita .toggle-btn.active {
-              background: #8C9668;
-              border-color: #8C9668;
+              background: var(--olive);
+              border-color: var(--olive);
               color: #fff;
             }
             #modal-cobrar-cita .toggle-btn:first-child { border-radius: 8px 0 0 8px; }
@@ -17380,7 +17215,7 @@
                     <div class="cobro-label">Servicio</div>
                     <div class="cobro-value">${cita.serviceName || 'Servicio'}</div>
                     <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
-                      <span style="color:#8C9668;font-size:15px;font-weight:700;">$${precioServicioGlobal.toFixed(0)}</span>
+                      <span style="color:var(--olive);font-size:15px;font-weight:700;">$${precioServicioGlobal.toFixed(0)}</span>
                       <button onclick="editarPrecioServicio()" style="background:none;border:none;color:#666;cursor:pointer;padding:0;width:44px;height:44px;display:inline-flex;align-items:center;justify-content:center;" aria-label="Editar precio">
                         <i class="fas fa-pencil-alt" aria-hidden="true" style="font-size:11px;"></i>
                       </button>
@@ -17392,7 +17227,7 @@
                 <!-- Productos -->
                 <div class="cobro-card">
                   <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
-                    <i class="fas fa-shopping-bag" style="color:#8C9668;"></i>
+                    <i class="fas fa-shopping-bag" style="color:var(--olive);"></i>
                     <span style="font-size:14px;font-weight:600;color:#fff;">Productos</span>
                   </div>
                   <div style="display:flex;gap:8px;margin-bottom:12px;">
@@ -17411,7 +17246,7 @@
                     </select>
                     <input type="number" id="cantidad-producto" value="1" min="1" class="cobro-input" style="width:60px;text-align:center;">
                     <button onclick="agregarProductoCobro()" 
-                      style="padding:12px 16px;background:#8C9668;color:#fff;border:none;border-radius:8px;cursor:pointer;" aria-label="Agregar producto">
+                      style="padding:12px 16px;background:var(--olive);color:#fff;border:none;border-radius:8px;cursor:pointer;" aria-label="Agregar producto">
                       <i class="fas fa-plus" aria-hidden="true"></i>
                     </button>
                   </div>
@@ -17423,7 +17258,7 @@
                 <!-- Descuento -->
                 <div class="cobro-card">
                   <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
-                    <i class="fas fa-percent" style="color:#8C9668;"></i>
+                    <i class="fas fa-percent" style="color:var(--olive);"></i>
                     <span style="font-size:14px;font-weight:600;color:#fff;">Descuento</span>
                   </div>
                   <div style="display:flex;gap:8px;align-items:center;">
@@ -17454,15 +17289,15 @@
                     <span id="resumen-subtotal" style="color:#fff;font-size:14px;">$${precioServicioGlobal.toFixed(0)}</span>
                   </div>
                   <div style="display:flex;justify-content:space-between;padding:12px 0 4px;">
-                    <span style="color:#8C9668;font-size:16px;font-weight:700;">Total</span>
-                    <span id="total-cobro" style="color:#8C9668;font-size:22px;font-weight:800;">$${precioServicioGlobal.toFixed(0)}</span>
+                    <span style="color:var(--olive);font-size:16px;font-weight:700;">Total</span>
+                    <span id="total-cobro" style="color:var(--olive);font-size:22px;font-weight:800;">$${precioServicioGlobal.toFixed(0)}</span>
                   </div>
                 </div>
 
                 <!-- Método de Pago -->
                 <div style="margin-bottom:8px;">
-                  <label style="display:block;font-size:12px;color:#888;margin-bottom:8px;">
-                    Método de Pago <span style="color:#e74c3c;">*</span>
+                  <label for="cobrar-metodo" style="display:block;font-size:12px;color:#888;margin-bottom:8px;">
+                    Método de Pago <span class="req-mark" aria-hidden="true">*</span>
                   </label>
                   <select id="cobrar-metodo" class="cobro-input">
                     <option value="efectivo">Efectivo</option>
@@ -17475,7 +17310,7 @@
               <!-- Footer -->
               <div style="padding:16px 20px 20px;border-top:1px solid #333;display:flex;gap:12px;">
                 <button onclick="procesarCobroCitaActual()" id="btn-completar-cita"
-                  style="flex:2;padding:16px;background:#8C9668;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+                  style="flex:2;padding:16px;background:var(--olive);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
                   <i class="fas fa-check"></i> Completar Cita <span id="btn-total">$${precioServicioGlobal.toFixed(0)}</span>
                 </button>
                 <button onclick="document.getElementById('modal-cobrar-cita').remove()" 
@@ -17516,15 +17351,15 @@
           if (resumenEl && (barExtra.depositReceiptUrl || (barExtra.preorderItems || []).length)) {
             const depLinea = barExtra.depositReceiptUrl
               ? `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
-                   <span>💵 Anticipo $${barExtra.depositAmount || 100} · ${({ awaiting_review: 'por validar', confirmed: 'confirmado', rejected: 'RECHAZADO' })[barExtra.depositStatus] || barExtra.depositStatus || ''}</span>
-                   <a href="${barExtra.depositReceiptUrl}" target="_blank" rel="noopener" style="color:#8C9668;text-decoration:underline;">Ver comprobante</a>
+                   <span><i class="fas fa-money-bill-wave" aria-hidden="true"></i> Anticipo $${barExtra.depositAmount || 100} · ${({ awaiting_review: 'por validar', confirmed: 'confirmado', rejected: 'RECHAZADO' })[barExtra.depositStatus] || barExtra.depositStatus || ''}</span>
+                   <a href="${barExtra.depositReceiptUrl}" target="_blank" rel="noopener" style="color:var(--olive);text-decoration:underline;">Ver comprobante</a>
                  </div>`
               : '';
             resumenEl.insertAdjacentHTML('beforebegin', `
               <div style="background:rgba(140,150,104,0.12);border:1px solid rgba(140,150,104,0.35);border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:13px;color:#ddd;">
-                <div style="font-weight:600;color:#C1D7AE;">☕ Pedido de barra apartado al agendar</div>
+                <div style="font-weight:600;color:#C1D7AE;"><i class="fas fa-mug-hot" aria-hidden="true"></i> Pedido de barra apartado al agendar</div>
                 ${(barExtra.preorderItems || []).map(it => `<div>· ${it.qty || 1}× ${(it.name || '').replace(/</g, '&lt;')} — $${it.price || 0}</div>`).join('')}
-                ${(parseFloat(barExtra.discountAmount) || 0) > 0 ? `<div style="color:#aaa;">Descuento bebida (10%): −$${barExtra.discountAmount} (ya aplicado abajo)</div>` : ''}
+                ${(parseFloat(barExtra.discountAmount) || 0) > 0 ? `<div style="color:var(--muted);">Descuento bebida (10%): −$${barExtra.discountAmount} (ya aplicado abajo)</div>` : ''}
                 ${depLinea}
               </div>`);
           }
@@ -17630,7 +17465,7 @@
               <span style="width:28px;text-align:center;font-size:14px;font-weight:600;color:var(--text-primary);">${p.cantidad}</span>
               <button onclick="cambiarCantidadProducto('${p.id}', 1)" style="width:44px;height:44px;border:1px solid var(--line-2);border-radius:6px;background:var(--bg-tertiary);cursor:pointer;font-size:18px;color:var(--text-primary);">+</button>
             </div>
-            <span style="font-weight:700;color:#8C9668;font-size:14px;min-width:55px;text-align:right;">$${(p.precio * p.cantidad).toFixed(0)}</span>
+            <span style="font-weight:700;color:var(--olive);font-size:14px;min-width:55px;text-align:right;">$${(p.precio * p.cantidad).toFixed(0)}</span>
             <button onclick="eliminarProductoCobro('${p.id}')" style="background:none;border:none;color:#e74c3c;cursor:pointer;padding:12px;" aria-label="Quitar producto">
               <i class="fas fa-trash-alt" aria-hidden="true" style="font-size:12px;"></i>
             </button>
@@ -17799,117 +17634,6 @@
     }
     window.procesarCobroCitaActual = procesarCobroCitaActual;
 
-    // Modal de venta rápida (para productos sin cita)
-    function abrirVentaRapida() {
-      const html = `
-        <div class="modal" id="modal-venta-rapida" style="display:flex;">
-          <div class="modal-box" style="max-width:450px;">
-            <div class="modal-header">
-              <h3><i class="fas fa-shopping-cart"></i> Venta Rápida</h3>
-              <button class="modal-close" onclick="document.getElementById('modal-venta-rapida').remove()">×</button>
-            </div>
-            <div class="modal-body">
-              <div class="form-group">
-                <label for="venta-concepto">Concepto / Producto</label>
-                <input type="text" id="venta-concepto" class="form-input" placeholder="Ej: Crema hidratante, Serum...">
-              </div>
-              
-              <div class="form-group">
-                <label for="venta-cliente">Cliente (opcional)</label>
-                <input type="text" id="venta-cliente" class="form-input" placeholder="Nombre del cliente">
-              </div>
-              
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-                <div class="form-group">
-                  <label for="venta-monto">Monto</label>
-                  <input type="number" id="venta-monto" class="form-input" step="0.01" min="0" placeholder="0.00">
-                </div>
-                
-                <div class="form-group">
-                  <label for="venta-metodo">Método de pago</label>
-                  <select id="venta-metodo" class="form-input">
-                    <option value="efectivo">Efectivo</option>
-                    <option value="tarjeta">Tarjeta</option>
-                    <option value="transferencia">Transferencia</option>
-                  </select>
-                </div>
-              </div>
-
-              <div class="form-group">
-                <label for="venta-notas">Notas (opcional)</label>
-                <textarea id="venta-notas" class="form-input" rows="2" placeholder="Notas adicionales..."></textarea>
-              </div>
-            </div>
-            <div class="modal-footer">
-              <button class="btn ghost" onclick="document.getElementById('modal-venta-rapida').remove()">Cancelar</button>
-              <button class="btn primary" onclick="procesarVentaRapida()">
-                <i class="fas fa-check"></i> Registrar Venta
-              </button>
-            </div>
-          </div>
-        </div>
-      `;
-
-      document.body.insertAdjacentHTML('beforeend', html);
-    }
-
-    async function procesarVentaRapida() {
-      const concepto = document.getElementById('venta-concepto').value.trim();
-      const cliente = document.getElementById('venta-cliente').value.trim() || 'Venta directa';
-      const monto = parseFloat(document.getElementById('venta-monto').value) || 0;
-      const metodo = document.getElementById('venta-metodo').value;
-      const notas = document.getElementById('venta-notas').value.trim();
-
-      if (!concepto) {
-        showNotification('Ingresa el concepto de la venta', 'warning');
-        return;
-      }
-
-      if (monto <= 0) {
-        showNotification('Ingresa un monto válido', 'warning');
-        return;
-      }
-
-      try {
-        // Crear una cita "rápida" para registrar la venta
-        const hoy = new Date().toISOString().split('T')[0];
-        const ahora = new Date().toTimeString().slice(0, 5);
-
-        const res = await fetch('/api/appointments', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({
-            clientName: cliente,
-            clientPhone: '',
-            serviceName: concepto,
-            date: hoy,
-            time: ahora,
-            durationMinutes: 0,
-            status: 'completed',
-            totalPaid: monto,
-            paymentMethod: metodo,
-            source: 'venta_rapida',
-            productsSold: notas ? [{ note: notas }] : null
-          })
-        });
-
-        const json = await res.json();
-        
-        if (json.success) {
-          showNotification('¡Venta registrada correctamente!', 'success');
-          document.getElementById('modal-venta-rapida').remove();
-          cargarCaja();
-        } else {
-          showNotification(json.message || 'Error al registrar venta', 'error');
-        }
-
-      } catch (err) {
-        console.error('[Venta Rápida] Error:', err);
-        showNotification('Error de conexión', 'error');
-      }
-    }
-
     function verDetalleCaja(id, tipo) {
       // Solo las citas tienen ficha. Venta rápida y café son tickets de otra
       // tabla: abrirles el modal de cita mostraba un detalle vacío o roto.
@@ -17934,8 +17658,6 @@
     window.filtrarCaja = filtrarCaja;
     window.abrirCobrarCita = abrirCobrarCita;
     window.procesarCobroCita = procesarCobroCita;
-    window.abrirVentaRapida = abrirVentaRapida;
-    window.procesarVentaRapida = procesarVentaRapida;
     window.verDetalleCaja = verDetalleCaja;
 
     // ========== SECCIÓN DE REPORTES DE VENTAS ==========
@@ -19333,12 +19055,13 @@
         document.body.appendChild(container);
       }
 
-      // Colores por tipo
+      // Colores por tipo — tokens de marca por tema (antes teal/red/amber/blue-500
+      // fijos; mismo patrón tinte+tinta que los toasts de admin-base.css:5901)
       const colors = {
-        success: { bg: 'rgba(20, 184, 166, 0.95)', icon: 'check-circle' },
-        error: { bg: 'rgba(239, 68, 68, 0.95)', icon: 'times-circle' },
-        warning: { bg: 'rgba(245, 158, 11, 0.95)', icon: 'exclamation-triangle' },
-        info: { bg: 'rgba(59, 130, 246, 0.95)', icon: 'info-circle' }
+        success: { bg: 'var(--success-bg)', fg: 'var(--success)', icon: 'check-circle' },
+        error: { bg: 'var(--error-bg)', fg: 'var(--error)', icon: 'times-circle' },
+        warning: { bg: 'var(--warning-bg)', fg: 'var(--warning)', icon: 'exclamation-triangle' },
+        info: { bg: 'var(--info-bg)', fg: 'var(--info)', icon: 'info-circle' }
       };
       const theme = colors[type] || colors.info;
 
@@ -19346,7 +19069,7 @@
       const toast = document.createElement('div');
       toast.style.cssText = `
         background: ${theme.bg};
-        color: white;
+        color: ${theme.fg};
         padding: 14px 20px;
         border-radius: 12px;
         box-shadow: 0 10px 30px rgba(0,0,0,0.2);
@@ -19359,7 +19082,7 @@
         opacity: 0;
         transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         backdrop-filter: blur(8px);
-        border: 1px solid rgba(255,255,255,0.1);
+        border: 1px solid color-mix(in oklch, ${theme.fg} 30%, transparent);
         pointer-events: auto;
         min-width: 300px;
         max-width: 400px;
@@ -19368,7 +19091,7 @@
       toast.innerHTML = `
         <i class="fas fa-${theme.icon}" style="font-size: 18px;"></i>
         <span style="flex:1;line-height:1.4;">${message}</span>
-        <button onclick="this.parentElement.remove()" style="background:none;border:none;color:white;cursor:pointer;opacity:0.7;padding:4px;" aria-label="Cerrar">
+        <button onclick="this.parentElement.remove()" style="background:none;border:none;color:inherit;cursor:pointer;opacity:0.7;padding:4px;" aria-label="Cerrar">
           <i class="fas fa-times" aria-hidden="true"></i>
         </button>
       `;
@@ -19965,13 +19688,13 @@
           const items = mktTasks.filter(t => t.section === sec)
             .sort((a, b) => (a.due_date || '9999') < (b.due_date || '9999') ? -1 :
                             (a.due_date || '9999') > (b.due_date || '9999') ? 1 : a.sort - b.sort);
-          html += '<h3 style="margin:18px 0 8px;font-size:14px;letter-spacing:.5px;text-transform:uppercase;color:#8C9668;">' + mktEsc(sec) + '</h3>';
+          html += '<h3 style="margin:18px 0 8px;font-size:14px;letter-spacing:.5px;text-transform:uppercase;color:var(--olive);">' + mktEsc(sec) + '</h3>';
           items.forEach(t => {
             const overdue = t.due_date && t.due_date < today && !t.done;
             const isToday = t.due_date === today;
             let badgeHtml = '';
             if (t.frequency === 'daily') {
-              badgeHtml = '<span style="font-size:11px;background:#8C966822;color:#6b7a4e;border-radius:8px;padding:1px 8px;">diaria</span>';
+              badgeHtml = '<span style="font-size:11px;background:color-mix(in srgb, var(--olive) 13%, transparent);color:#6b7a4e;border-radius:8px;padding:1px 8px;">diaria</span>';
             } else if (t.due_date) {
               const d = new Date(t.due_date + 'T12:00:00');
               const label = d.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' });
@@ -19985,7 +19708,7 @@
               (t.done ? 'opacity:.55;' : '') + 'transition:background .15s;" ' +
               'onmouseover="this.style.background=\'rgba(140,150,104,0.07)\'" onmouseout="this.style.background=\'\'">' +
               '<input type="checkbox" ' + (t.done ? 'checked' : '') +
-              ' onchange="toggleMarketingTask(' + t.id + ')" style="margin-top:3px;width:17px;height:17px;accent-color:#8C9668;flex:none;">' +
+              ' onchange="toggleMarketingTask(' + t.id + ')" style="margin-top:3px;width:17px;height:17px;accent-color:var(--olive);flex:none;">' +
               '<span style="flex:1;">' +
               '<span style="font-weight:600;' + (t.done ? 'text-decoration:line-through;' : '') + '">' + mktEsc(t.title) + '</span> ' + badgeHtml +
               (t.detail ? '<br><span class="muted" style="font-size:12px;">' + mktEsc(t.detail) + '</span>' : '') +

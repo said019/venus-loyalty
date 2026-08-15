@@ -96,7 +96,6 @@
       .dialog-close:hover {
         background: var(--bg-tertiary);
         color: var(--text-primary);
-        transform: rotate(90deg);
       }
 
       /* Dialog Content - Área de scroll */
@@ -280,12 +279,12 @@
         font-weight: 600;
         cursor: pointer;
         transition: all 0.25s;
-        box-shadow: 0 8px 24px rgba(140, 150, 104, 0.3);
       }
 
+      /* verificador de cierre: translateY + sombras-glow retirados
+         (DESIGN.md: hover = solo color/borde; sombra solo en diálogo) */
       .submit-btn:hover, .dialog-footer .btn.primary:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 12px 32px rgba(140, 150, 104, 0.4);
+        filter: brightness(0.95);
       }
 
       .submit-btn:active, .dialog-footer .btn.primary:active {
@@ -580,92 +579,11 @@
         text-overflow: ellipsis;
       }
 
-      /* Responsive table */
-      @media (max-width: 767.98px) {
-        .data-table thead {
-          display: none;
-        }
-
-        .data-table,
-        .data-table tbody,
-        .data-table tr,
-        .data-table td {
-          display: block;
-          width: 100%;
-        }
-
-        .data-table tr {
-          margin-bottom: 20px;
-          border: 1px solid rgba(140, 150, 104, 0.3);
-          border-radius: 16px;
-          padding: 16px;
-          background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
-        }
-
-        .data-table td {
-          padding: 0;
-          border: none;
-          position: relative;
-          padding-left: 0;
-          text-align: left;
-          margin-bottom: 12px;
-        }
-
-        .data-table td:last-child {
-          margin-bottom: 0;
-        }
-
-        .data-table td::before {
-          content: attr(data-label);
-          display: block;
-          font-weight: 600;
-          color: var(--venus-soft);
-          font-size: 11px;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-          margin-bottom: 4px;
-        }
-
-        /* First cell (time) - make it prominent */
-        .data-table td:first-child {
-          font-size: 28px;
-          font-weight: 700;
-          color: var(--venus-soft);
-          margin-bottom: 16px;
-          padding-bottom: 12px;
-          border-bottom: 1px solid rgba(140, 150, 104, 0.2);
-        }
-
-        .data-table td:first-child::before {
-          font-size: 10px;
-          color: var(--muted);
-        }
-
-        /* Actions cell - full width buttons */
-        .data-table td .actions,
-        .data-table td:last-child {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-          margin-top: 16px;
-          padding-top: 12px;
-          border-top: 1px solid rgba(140, 150, 104, 0.1);
-        }
-
-        .data-table td .actions button,
-        .data-table td:last-child button {
-          width: 100%;
-          justify-content: center;
-          padding: 12px 16px;
-          font-size: 15px;
-          border-radius: 12px;
-        }
-
-        /* Hide label for actions */
-        .data-table td:last-child::before {
-          display: none;
-        }
-      }
+      /* Bloque viejo de transformación de tablas RETIRADO (re-auditoría
+         responsive): la card-ificación móvil de .data-table vive ahora en
+         admin-mobile.css (sistema nuevo, carga al final). Productos y
+         Detalle de Ventas emiten data-label + class="data-table" y quedan
+         cubiertas por ese sistema. */
 
       .day-number {
         font-size: 20px;
@@ -1029,7 +947,6 @@
       .appt-block:hover {
         z-index: 20;
         border-color: var(--border-glow, var(--accent-gold));
-        box-shadow: 0 6px 20px rgba(140, 150, 104, 0.14);
       }
       .appt-block .ab-head {
         font-weight: 600;
@@ -1651,10 +1568,9 @@
       /* Sin franja lateral de color (::before) ni --tc-color por tarjeta:
          bordes laterales de acento prohibidos (DESIGN.md, informe T7).
          La diferenciación queda en el icono, en olivo vía admin-redesign. */
+        /* Hover solo color/borde (DESIGN.md): sin translateY ni sombra */
         .today-card:hover {
           border-color: var(--tc-color, var(--venus));
-        transform: translateY(-3px);
-          box-shadow: 0 8px 24px rgba(0,0,0,0.18);
       }
 
       .today-card-icon {
@@ -2344,7 +2260,6 @@
 
       .quick-action-btn.primary:hover {
         background: var(--venus-soft);
-        transform: scale(1.1);
       }
 
       @media (max-width: 600px) {
@@ -3108,8 +3023,9 @@
         #exp-action-wa span { display: none; } /* en cel solo icono de WA */
       }
 
-      @media (min-width: 481px) and (max-width: 1024px) {
-        /* tablet: el menú ⋯ no se necesita, hay espacio */
+      @media (min-width: 481px) and (max-width: 1024.98px) {
+        /* tablet: el menú ⋯ no se necesita, hay espacio
+           (1024.98: contrato de banda tablet, verificador de cierre) */
         #exp-action-menu { display: none; }
       }
 

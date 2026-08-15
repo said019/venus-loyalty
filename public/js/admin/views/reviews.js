@@ -5,6 +5,11 @@
 // este script (solo lo usan estas funciones; verificado: sin refs externas).
 
     /* ===== RESEÑAS ===== */
+    // Dorado AA para estrellas/histograma: ≥3:1 en AMBOS temas
+    // (re-auditoría a11y: #f5a623 daba 1.74:1; 52% pasaba en claro pero daba
+    // 2.47:1 sobre la tarjeta oscura — 58% da 3.73:1 claro / 3.18:1 oscuro,
+    // verificado con cálculo WCAG). Estrella vacía: var(--line-strong).
+    const REVIEWS_GOLD = 'oklch(58% 0.11 80)';
     let reviewsCache = [];
     let reviewsStats = {};
 
@@ -43,12 +48,14 @@
 
       const stars = Math.round(stats.avgRating || 0);
       const starsHtml = Array.from({length:5}, (_,i) =>
-        `<span style="color:${i < stars ? '#f5a623' : '#ddd'}">★</span>`
+        `<span style="color:${i < stars ? REVIEWS_GOLD : 'var(--line-strong)'}">★</span>`
       ).join('');
 
+      // Histograma SIN tarjetas interiores (re-auditoría anti-patrones:
+      // un solo nivel de superficie — tipografía + espaciado, sin chrome).
       el.innerHTML = `
-        <div style="background:linear-gradient(135deg,#f5a62320,#f5a62308);border:1px solid #f5a62330;border-radius:14px;padding:16px;text-align:center;">
-          <div style="font-size:32px;font-weight:700;color:#f5a623;">${stats.avgRating || 0}</div>
+        <div style="padding:14px;text-align:center;">
+          <div style="font-size:32px;font-weight:700;color:${REVIEWS_GOLD};">${stats.avgRating || 0}</div>
           <div style="font-size:18px;margin:4px 0;">${starsHtml}</div>
           <div style="font-size:12px;color:var(--muted);">${stats.total} reseña${stats.total !== 1 ? 's' : ''}</div>
         </div>
@@ -56,13 +63,13 @@
           const count = (stats.dist || {})[n] || 0;
           const pct   = stats.total > 0 ? Math.round(count / stats.total * 100) : 0;
           return `
-            <div style="background:#fff;border:1px solid #f0ece8;border-radius:14px;padding:14px;">
+            <div style="padding:14px 4px;">
               <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-                <span style="font-size:16px;color:#f5a623;">${'★'.repeat(n)}</span>
+                <span style="font-size:16px;color:${REVIEWS_GOLD};">${'★'.repeat(n)}</span>
                 <span style="font-size:12px;color:var(--muted);">${n} estrella${n>1?'s':''}</span>
               </div>
-              <div style="background:#f0ece8;border-radius:4px;height:6px;margin-bottom:4px;">
-                <div style="background:#f5a623;height:6px;border-radius:4px;width:${pct}%;transition:width .4s;"></div>
+              <div style="background:var(--line);border-radius:4px;height:6px;margin-bottom:4px;">
+                <div style="background:${REVIEWS_GOLD};height:6px;border-radius:4px;width:${pct}%;transition:width .4s;"></div>
               </div>
               <div style="font-size:12px;color:var(--muted);">${count} (${pct}%)</div>
             </div>`;
@@ -81,11 +88,11 @@
 
     function renderReviewCard(rev) {
       const stars = Array.from({length:5}, (_,i) =>
-        `<span style="color:${i < (rev.rating||0) ? '#f5a623' : '#ddd'};font-size:18px;">★</span>`
+        `<span style="color:${i < (rev.rating||0) ? REVIEWS_GOLD : 'var(--line-strong)'};font-size:18px;">★</span>`
       ).join('');
 
       const chipsHtml = (rev.highlights || []).map(h =>
-        `<span style="background:#f5f0eb;border:1px solid #e8e0d8;border-radius:16px;padding:3px 10px;font-size:12px;color:#666;">${h}</span>`
+        `<span style="background:var(--olive-soft);border:1px solid var(--line);border-radius:16px;padding:3px 10px;font-size:12px;color:var(--muted);">${h}</span>`
       ).join('');
 
       const dateStr = rev.createdAt
@@ -93,21 +100,23 @@
         : '';
 
       const replyHtml = rev.replied
-        ? `<div style="background:#f5f0eb;border-left:3px solid #9A9F82;border-radius:0 10px 10px 0;padding:10px 14px;margin-top:10px;font-size:13px;color:#555;">
-             <strong style="color:#9A9F82;"><i class="fas fa-reply" aria-hidden="true"></i> Respuesta Venus:</strong><br>${rev.reply}
+        ? `<div style="background:var(--olive-soft);border-radius:10px;padding:10px 14px;margin-top:10px;font-size:13px;color:var(--muted);">
+             <strong style="color:var(--ink);"><i class="fas fa-reply" aria-hidden="true"></i> Respuesta Venus:</strong><br>${rev.reply}
            </div>`
         : `<div style="margin-top:10px;display:flex;gap:8px;">
-             <input id="reply-input-${rev.id}" type="text" placeholder="Escribe una respuesta..." style="flex:1;border:1.5px solid #e8e0d8;border-radius:10px;padding:7px 12px;font-size:13px;outline:none;" />
-             <button onclick="sendReviewReply('${rev.id}')" style="background:#9A9F82;color:#fff;border:none;border-radius:10px;padding:7px 14px;font-size:12px;cursor:pointer;font-weight:600;">Responder</button>
+             <input id="reply-input-${rev.id}" type="text" placeholder="Escribe una respuesta..." aria-label="Respuesta a la reseña" style="flex:1;border:1.5px solid var(--line-strong);border-radius:10px;padding:7px 12px;font-size:13px;outline:none;" />
+             <button onclick="sendReviewReply('${rev.id}')" style="background:var(--olive-deep);color:#fff;border:none;border-radius:10px;padding:7px 14px;font-size:12px;cursor:pointer;font-weight:600;">Responder</button>
            </div>`;
 
+      // Fila plana (sin tarjeta anidada dentro del section.card de Reseñas):
+      // espaciado + regla inferior de 1px.
       return `
-        <div style="background:#fff;border:1px solid #f0ece8;border-radius:16px;padding:18px 20px;">
+        <div style="padding:16px 4px;border-bottom:1px solid var(--line);">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
             <div>
               <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px;">
                 <span style="font-weight:700;font-size:15px;">${rev.clientName || 'Clienta'}</span>
-                ${rev.replied ? '<span style="background:#e8f5e9;color:#27ae60;font-size:10px;font-weight:700;border-radius:8px;padding:2px 7px;">✓ Respondida</span>' : ''}
+                ${rev.replied ? '<span style="background:oklch(94% 0.022 120);color:oklch(40% 0.085 120);font-size:10px;font-weight:700;border-radius:8px;padding:2px 7px;"><i class="fas fa-check" aria-hidden="true"></i> Respondida</span>' : ''}
               </div>
               <div style="font-size:12px;color:var(--muted);">${rev.serviceName || ''} · ${dateStr}</div>
             </div>
@@ -121,7 +130,7 @@
 
           ${chipsHtml ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;">${chipsHtml}</div>` : ''}
 
-          ${rev.comment ? `<p style="margin-top:10px;font-size:14px;color:#444;line-height:1.55;">${rev.comment}</p>` : ''}
+          ${rev.comment ? `<p style="margin-top:10px;font-size:14px;color:var(--ink);line-height:1.55;">${rev.comment}</p>` : ''}
 
           ${replyHtml}
         </div>`;
