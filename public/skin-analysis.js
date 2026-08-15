@@ -1011,8 +1011,10 @@
         try {
             fillPDFTemplate(a);
 
-            // Traer el template al viewport (invisible) para que html2canvas lo capture bien
-            root.classList.add('rendering');
+            // Ya NO se mueve el template al viewport. html2pdf monta su propia
+            // copia en pantalla para fotografiarla; moverlo aquí era innecesario
+            // y además le metía position/opacity al clon, que es lo que dejaba
+            // el PDF en blanco. El escondite vive en #pdf-stage.
 
             // Esperar a que fonts y layout estabilicen
             if (document.fonts?.ready) {
@@ -1051,17 +1053,28 @@
                     windowWidth: 794,
                 },
                 jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
-                pagebreak: { mode: ['avoid-all', 'css'], before: '#pdf-page-2' },
+                // UN solo mecanismo de corte. Antes se combinaban 'css' + 'avoid-all'
+                // + este selector: como cada .pdf-page mide exactamente una hoja,
+                // los tres se sumaban y metían hojas en blanco intercaladas.
+                pagebreak: { mode: [], before: '#pdf-page-2' },
             };
 
+            // Red de seguridad: si el lienzo sale de 0px, el PDF saldría en blanco
+            // SIN error (así fue el bug del 14-ago). Preferimos fallar ruidosamente.
+            const worker = html2pdf().set(opts).from(root).toCanvas();
+            const canvas = await worker.get('canvas');
+            if (!canvas || !canvas.width || !canvas.height) {
+                throw new Error(`el template se midió en ${canvas?.width || 0}x${canvas?.height || 0}px, el PDF habría salido en blanco`);
+            }
+
             if (mode === 'download') {
-                await html2pdf().set(opts).from(root).toPdf().get('pdf').then(pdf => {
+                await worker.toPdf().get('pdf').then(pdf => {
                     stampPageNumbers(pdf);
                     pdf.save(filename);
                 });
             } else {
                 // Share: genera blob y usa navigator.share si está disponible
-                const blob = await html2pdf().set(opts).from(root).toPdf().get('pdf').then(pdf => {
+                const blob = await worker.toPdf().get('pdf').then(pdf => {
                     stampPageNumbers(pdf);
                     return pdf.output('blob');
                 });
@@ -1098,9 +1111,8 @@
             }
         } catch (err) {
             console.error('[PDF] Error generando:', err);
-            alert(`No se pudo generar el PDF: ${err.message}`);
+            feedbackDetail('err', `No se pudo generar el PDF: ${err.message}`);
         } finally {
-            root.classList.remove('rendering');
             btn.disabled = false;
             btn.innerHTML = oldHTML;
             showLoading(false);

@@ -1557,10 +1557,27 @@
            Se renderiza off-screen y se pasa a html2pdf
            ═══════════════════════════════════════════════════════════ */
 
-        #pdf-root {
+        /* ⚠️ POR QUÉ EL PDF SALÍA EN BLANCO (arreglado 14-ago-2026)
+           html2pdf NO fotografía #pdf-root: lo CLONA (conservando id y clases)
+           y mete el clon en un contenedor propio con height:auto, y fotografía
+           ESE contenedor.
+           Antes #pdf-root llevaba position:absolute + opacity:0 para esconderse.
+           El clon heredaba ambas: al estar fuera de flujo, el contenedor medía
+           altura CERO -> html2canvas devolvía un lienzo de 0px -> html2pdf
+           calculaba "0 páginas" -> nunca llamaba a addImage -> jsPDF entregaba
+           su página inicial vacía. Resultado: un PDF de 3KB en blanco.
+
+           SOLUCIÓN: el escondite vive ahora en #pdf-stage, un envoltorio que la
+           librería NUNCA clona. #pdf-root queda en flujo normal, así que su clon
+           sí aporta altura real. Sin depender de nombres internos de la librería. */
+        #pdf-stage {
             position: absolute;
             top: 0;
             left: -20000px;
+            width: 210mm;
+        }
+
+        #pdf-root {
             width: 210mm;
             background: #ffffff;
             color: #1a1a1a;
@@ -1570,25 +1587,17 @@
             padding: 0;
         }
 
-        /* Durante render: ponemos el elemento en viewport pero invisible al usuario */
-        #pdf-root.rendering {
-            left: 0;
-            top: 0;
-            opacity: 0;
-            pointer-events: none;
-            z-index: 9999;
-        }
-
+        /* OJO: sin page-break-after aquí. Como .pdf-page mide EXACTAMENTE una
+           hoja (297mm), html2pdf calculaba un relleno de una página completa
+           después de cada una y metía hojas en blanco intercaladas. El único
+           corte lo maneja la opción "before: #pdf-page-2" en skin-analysis.js. */
         .pdf-page {
             padding: 18mm 16mm;
             width: 210mm;
             min-height: 297mm;
             box-sizing: border-box;
             background: #ffffff;
-            page-break-after: always;
         }
-
-        .pdf-page:last-child { page-break-after: auto; }
 
         /* Venus header */
         .pdf-header {
@@ -2380,8 +2389,12 @@
         <div class="caption" id="lightbox-caption"></div>
     </div>
 
-    <!-- ════════ PDF TEMPLATE (off-screen) ════════ -->
-    <div id="pdf-root" aria-hidden="true">
+    <!-- ════════ PDF TEMPLATE (off-screen) ════════
+         #pdf-stage es el que esconde todo fuera de pantalla. #pdf-root NO debe
+         llevar posicionamiento: html2pdf lo clona y necesita que aporte altura
+         real, o el PDF sale en blanco (ver comentario del CSS arriba). -->
+    <div id="pdf-stage" aria-hidden="true">
+    <div id="pdf-root">
         <!-- Página 1 -->
         <div class="pdf-page" id="pdf-page-1">
             <header class="pdf-header">
@@ -2494,9 +2507,10 @@
             </footer>
         </div>
     </div>
+    </div><!-- /#pdf-stage -->
 
     <!-- ?v= sube cada vez que cambia el JS: garantiza que el HTML nuevo nunca
          se empareje con un JS viejo guardado en el navegador. -->
-    <script src="/skin-analysis.js?v=20260814b" defer></script>
+    <script src="/skin-analysis.js?v=20260814c" defer></script>
 </body>
 </html>
