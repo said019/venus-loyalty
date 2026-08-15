@@ -3426,6 +3426,10 @@
                 <button id="cm-phone-cancel" class="cmx-btn cmx-btn-ghost" style="padding:8px 10px;min-height:auto;">✕</button>
               </div>
             </div>
+            <div>
+              <div class="cmx-label">Cumpleaños</div>
+              <div id="cm-birthday" class="cmx-phone">—</div>
+            </div>
           </div>
 
           <!-- Sellos con barra de progreso -->
@@ -7747,6 +7751,13 @@
       document.getElementById('cm-phone-display').textContent = card.phone || '—';
       document.getElementById('cm-phone-input').value = card.phone || '';
       document.getElementById('cm-stamps').textContent = `${card.stamps} / ${card.max}`;
+
+      // Cumpleaños: la API lo manda como `birthdate` (capa compat) sobre la
+      // columna `birthday` de Prisma. Mismo formato "9 oct" de la tabla, más el año.
+      const cmBirthday = card.birthdate || card.birthday;
+      document.getElementById('cm-birthday').textContent = cmBirthday
+        ? `${formatBirthday(cmBirthday)} ${String(cmBirthday).split('-')[0]}`
+        : '—';
       
       // Resetear estado de edición de teléfono
       document.getElementById('cm-phone-display').classList.remove('hidden');
