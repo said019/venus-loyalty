@@ -59,17 +59,8 @@
         gap: 14px;
       }
 
-      .dialog-title-icon {
-        width: 48px;
-        height: 48px;
-        background: linear-gradient(135deg, #8c9668 0%, #a8b892 100%);
-        border-radius: 14px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 22px;
-        box-shadow: 0 8px 20px rgba(140, 150, 104, 0.3);
-      }
+      /* .dialog-title-icon borrado (auditoría 2026-08): 0 usos en
+         admin.html/js — era el otro gradiente sage muerto. */
 
       .dialog-title-text {
         font-family: var(--font-display), serif;
@@ -270,9 +261,13 @@
         align-items: center;
         justify-content: center;
         gap: 10px;
-        background: linear-gradient(135deg, #8c9668 0%, #a8b892 100%);
+        /* AA ambos temas (auditoría 2026-08): sólido --olive-deep
+           (oklch 48% .085 120, compartido light/dark) + tinta crema =
+           5.92:1. El gradiente sage #8c9668→#a8b892 daba 3.14:1 (light)
+           y 2.11:1 (dark) con blanco en el botón Cobrar. */
+        background: var(--olive-deep, #576429);
         border: none;
-        color: white;
+        color: oklch(97% 0.010 88);
         padding: 16px 24px;
         border-radius: 12px;
         font-size: 15px;

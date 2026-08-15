@@ -67,18 +67,22 @@ html[data-theme="dark"]  { color-scheme: dark; }
   color: #6b6b5e !important;
 }
 [data-theme="light"] #modal-cobrar-cita .toggle-btn.active {
-  /* T: token en vez del sage viejo #8C9668 — en light --olive resuelve a
-     oklch(58% 0.075 120) y el texto blanco pasa de 3.14:1 a >4.5:1. */
-  background: var(--olive, oklch(58% 0.075 120)) !important;
+  /* AA real (auditoría 2026-08): con var(--olive) (58%) el blanco daba
+     4.21:1 — el comentario anterior afirmaba >4.5:1 sin verificarlo.
+     --olive-deep (oklch 48% .085 120) da 6.44:1 con #fff. */
+  background: var(--olive-deep, #576429) !important;
   color: #ffffff !important;
 }
 /* Overrides de los inline #fff, #888, #333 dentro del modal en light.
-   Excepción: los rellenos olivo (#8C9668, ej. "Completar Cita") conservan
-   su texto claro — el barrido los pintaba casi negro y el botón primario
-   se leía como deshabilitado justo al cobrar. */
+   Excepción: los rellenos olivo (hoy background:var(--olive) inline en
+   los botones "Agregar producto" / "Completar Cita") conservan su texto
+   claro — el barrido los pintaba casi negro y el botón primario se leía
+   como deshabilitado justo al cobrar. El guard viejo apuntaba al sage
+   muerto #8C9668; ahora matchea var(--olive)/var(--olive-deep). Si el
+   HTML pierde esos inline, el selector no matchea nada y queda inerte. */
 [data-theme="light"] #modal-cobrar-cita h3,
-[data-theme="light"] #modal-cobrar-cita span[style*="color:#fff"],
-[data-theme="light"] #modal-cobrar-cita [style*="color:#fff"]:not([style*="background:#8C9668"]) {
+[data-theme="light"] #modal-cobrar-cita span[style*="color:#fff"]:not([style*="background:var(--olive)"]),
+[data-theme="light"] #modal-cobrar-cita [style*="color:#fff"]:not([style*="background:var(--olive)"]) {
   color: #1a1a1f !important;
 }
 [data-theme="light"] #modal-cobrar-cita [style*="color:#888"],

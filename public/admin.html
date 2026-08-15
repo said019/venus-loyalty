@@ -21,6 +21,123 @@
       /* Colores que antes vivían inline (informe S2/T3): ahora en clases con tokens */
       .stat-item .stat-value.stat-warn { color: oklch(45% 0.110 80); }
       .stamp-rail { background: var(--olive-soft, oklch(94% 0.022 120)); }
+
+      /* ===== Citas: botones de acción (tabla del día) =====
+         Antes: gradientes Tailwind inline (#10b981/#059669, #3b82f6/#2563eb,
+         #ef4444/#dc2626) con onmouseover transform+sombra. Ahora: patrón
+         tinte+tinta con tokens y hover por CSS sin transform/sombra.
+         Tintas claras recalculadas (verificador oklch): --success/--info de
+         base dan 2.93/3.52:1 sobre su *-bg; 50% L da 4.81/4.93:1 (AA). En
+         oscuro los tokens ya pasan (6.5/5.5:1) y se restauran abajo. */
+      .appt-action {
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-size: 0.85em;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        border: 1px solid transparent;
+        cursor: pointer;
+        transition: filter 0.15s ease, border-color 0.15s ease;
+      }
+      .appt-action.success { background: var(--success-bg); color: oklch(50% 0.115 155); border-color: color-mix(in oklch, var(--success) 35%, transparent); }
+      .appt-action.info    { background: var(--info-bg);    color: oklch(50% 0.080 220); border-color: color-mix(in oklch, var(--info) 35%, transparent); }
+      .appt-action.error   { background: var(--error-bg);   color: var(--error);         border-color: color-mix(in oklch, var(--error) 35%, transparent); }
+      :root[data-theme="dark"] .appt-action.success { color: var(--success); }
+      /* Dark sobre tinte .15: los tokens base (70% L) quedan cortos sobre el
+         tinte (info 4.13, error 3.91, verificador) — se suben a 75/76% L:
+         info 4.96, error 4.86 sobre card. */
+      :root[data-theme="dark"] .appt-action.info    { color: oklch(75% 0.070 220); }
+      :root[data-theme="dark"] .appt-action.error   { color: oklch(76% 0.120 28); }
+      /* Verde marca WhatsApp (no Tailwind): conserva gradiente e identidad
+         pero en la pareja boutique AA — #25D366→#128C7E daba 1.98/4.14:1
+         con blanco; estos stops dan 4.81/6.16:1 (verificador). */
+      .appt-action.wa { background: linear-gradient(135deg, oklch(54% 0.115 152) 0%, oklch(48% 0.100 172) 100%); color: #fff; }
+      /* Hover sin transform/sombra: brightness mueve tinta y tinte a la par,
+         el ratio se conserva >4.5 (4.81 → ~4.7 con 0.96). */
+      .appt-action:hover { filter: brightness(0.96); }
+      :root[data-theme="dark"] .appt-action:hover { filter: brightness(1.12); }
+      .appt-action.wa:hover,
+      :root[data-theme="dark"] .appt-action.wa:hover { filter: brightness(0.94); }
+
+      /* Tarjetas compactas del panel de citas: hover por borde, sin scale. */
+      .appt-mini-card {
+        background: var(--glass-bg);
+        border: 1px solid var(--border-color);
+        padding: 14px;
+        border-radius: 14px;
+        transition: border-color 0.15s ease;
+      }
+      .appt-mini-card:hover { border-color: var(--border-glow, var(--line-hover)); }
+
+      /* ===== Expediente · historial de skin-analysis =====
+         Chips de severidad y círculo de score: antes hex crudos (#ef4444,
+         #d97706, #ca8a04, #16a34a) con texto 2.6-3.2:1. Ahora pares
+         tinte+tinta AA con los mismos tokens de estado. */
+      .skin-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 600;
+        border: 1px solid transparent;
+      }
+      .skin-score-badge {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        font-size: 18px;
+        border: 1px solid transparent;
+      }
+      .skin-chip.sev-crit, .skin-score-badge.sev-crit {
+        color: var(--error); background: var(--error-bg);
+        border-color: color-mix(in oklch, var(--error) 30%, transparent);
+      }
+      /* Dark: --error (70% L) da 3.91:1 sobre su tinte .15; 76% L da
+         4.86:1 sobre card (verificador). */
+      :root[data-theme="dark"] .skin-chip.sev-crit,
+      :root[data-theme="dark"] .skin-score-badge.sev-crit { color: oklch(76% 0.120 28); }
+      .skin-chip.sev-warn, .skin-score-badge.sev-warn {
+        color: var(--warning); background: var(--warning-bg);
+        border-color: color-mix(in oklch, var(--warning) 30%, transparent);
+      }
+      .skin-chip.sev-good, .skin-score-badge.sev-good {
+        color: oklch(50% 0.115 155); background: var(--success-bg);
+        border-color: color-mix(in oklch, var(--success) 30%, transparent);
+      }
+      :root[data-theme="dark"] .skin-chip.sev-good,
+      :root[data-theme="dark"] .skin-score-badge.sev-good { color: var(--success); }
+      .skin-chip.sev-neutral, .skin-score-badge.sev-neutral {
+        color: oklch(48% 0.010 88); background: oklch(94% 0.006 88);
+        border-color: oklch(86% 0.010 88);
+      }
+      :root[data-theme="dark"] .skin-chip.sev-neutral,
+      :root[data-theme="dark"] .skin-score-badge.sev-neutral {
+        color: var(--muted); background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(255, 255, 255, 0.14);
+      }
+
+      /* ===== Vista Día: citas cortas =====
+         El bloque lleva min-height:44px inline (target táctil); ≤45 min
+         recibe .ab-compact: compacta padding/línea y oculta el teléfono
+         para que hora+clienta y servicio queden siempre visibles. */
+      .appt-block.ab-compact { padding: 4px 10px; line-height: 1.2; }
+      .appt-block.ab-compact .ab-head,
+      .appt-block.ab-compact .ab-svc {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .appt-block.ab-compact .ab-svc { margin-top: 0; }
+      .appt-block.ab-compact .ab-meta { display: none; }
     </style>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" media="print" onload="this.media='all'"><noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"></noscript>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -5098,7 +5215,7 @@
         renderExpedienteSkinAnalysis(list);
       } catch (e) {
         console.error('[Expediente skin] Error:', e);
-        cont.innerHTML = '<div class="muted" style="text-align:center;padding:24px;font-size:13px;color:#ef4444;">No se pudieron cargar los análisis.</div>';
+        cont.innerHTML = '<div class="muted" style="text-align:center;padding:24px;font-size:13px;color:var(--error);">No se pudieron cargar los análisis.</div>';
       }
     }
 
@@ -5114,24 +5231,26 @@
           </div>`;
         return;
       }
-      const scoreColor = (s) => {
-        if (s == null) return '#9ca3af';
-        if (s >= 80) return '#16a34a';
-        if (s >= 60) return '#d97706';
-        return '#ef4444';
+      // Severidad → clase tinte+tinta AA (tokens de estado; antes hex crudos
+      // con texto a 2.6-3.2:1 sobre su tinte).
+      const scoreSevClass = (s) => {
+        if (s == null) return 'sev-neutral';
+        if (s >= 80) return 'sev-good';
+        if (s >= 60) return 'sev-warn';
+        return 'sev-crit';
       };
-      const sevColor = { critical: '#ef4444', concern: '#d97706', moderate: '#ca8a04', good: '#16a34a', excellent: '#16a34a' };
+      const sevClass = { critical: 'sev-crit', concern: 'sev-warn', moderate: 'sev-warn', good: 'sev-good', excellent: 'sev-good' };
       cont.innerHTML = list.map(a => {
         const fecha = a.analyzedAt ? new Date(a.analyzedAt).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }) : '—';
         const score = (a.overallScore != null) ? a.overallScore : null;
         const concerns = Array.isArray(a.scores) ? a.scores : [];
         const chips = concerns.map(s => `
-          <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;color:${sevColor[s.severity] || '#6b7280'};background:${(sevColor[s.severity] || '#6b7280')}1a;border:1px solid ${(sevColor[s.severity] || '#6b7280')}33;">
+          <span class="skin-chip ${sevClass[s.severity] || 'sev-neutral'}">
             ${s.labelEs || s.metric}
           </span>`).join('');
         return `
           <div style="border:1px solid var(--border,#eee);border-radius:12px;padding:14px 16px;margin-bottom:10px;display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;">
-            <div style="width:56px;height:56px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;color:#fff;background:${scoreColor(score)};">
+            <div class="skin-score-badge ${scoreSevClass(score)}">
               ${score != null ? score : '—'}
             </div>
             <div style="flex:1;min-width:180px;">
@@ -6620,6 +6739,9 @@
       const ctx = document.getElementById('day-distribution-chart');
       if (dayChart) dayChart.destroy();
 
+      // --olive resuelto por tema (mismo patrón ternario que los ejes):
+      // dark oklch(68% .06 120) → rgb(147,158,116) · light oklch(58% .075 120) → rgb(116,129,77)
+      const dayIsDark = document.documentElement.getAttribute('data-theme') === 'dark';
       dayChart = new Chart(ctx, {
         type: 'bar',
         data: {
@@ -6627,8 +6749,8 @@
           datasets: [{
             label: 'Visitas',
             data: dayCounts,
-            backgroundColor: 'rgba(140, 150, 104, 0.6)',
-            borderColor: 'rgb(140, 150, 104)',
+            backgroundColor: dayIsDark ? 'rgba(147, 158, 116, 0.6)' : 'rgba(116, 129, 77, 0.6)',
+            borderColor: dayIsDark ? 'rgb(147, 158, 116)' : 'rgb(116, 129, 77)',
             borderWidth: 1
           }]
         },
@@ -6641,11 +6763,11 @@
           scales: {
             y: {
               beginAtZero: true,
-              ticks: { color: (document.documentElement.getAttribute('data-theme')==='dark'?'#c3c0ae':'#5f624f'), font: { size: 11 } },
-              grid: { color: 'rgba(255, 255, 255, 0.05)' }
+              ticks: { color: (dayIsDark?'#c3c0ae':'#5f624f'), font: { size: 11 } },
+              grid: { color: (dayIsDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(26, 26, 31, 0.08)') }
             },
             x: {
-              ticks: { color: (document.documentElement.getAttribute('data-theme')==='dark'?'#c3c0ae':'#5f624f'), font: { size: 11 } },
+              ticks: { color: (dayIsDark?'#c3c0ae':'#5f624f'), font: { size: 11 } },
               grid: { display: false }
             }
           }
@@ -6667,6 +6789,8 @@
       const ctx = document.getElementById('hour-distribution-chart');
       if (hourChart) hourChart.destroy();
 
+      // --olive resuelto por tema (mismo patrón ternario que los ejes).
+      const hourIsDark = document.documentElement.getAttribute('data-theme') === 'dark';
       hourChart = new Chart(ctx, {
         type: 'line',
         data: {
@@ -6674,8 +6798,8 @@
           datasets: [{
             label: 'Visitas',
             data: hourCounts,
-            borderColor: 'rgb(140, 150, 104)',
-            backgroundColor: 'rgba(140, 150, 104, 0.1)',
+            borderColor: hourIsDark ? 'rgb(147, 158, 116)' : 'rgb(116, 129, 77)',
+            backgroundColor: hourIsDark ? 'rgba(147, 158, 116, 0.1)' : 'rgba(116, 129, 77, 0.1)',
             tension: 0.4,
             fill: true
           }]
@@ -6689,11 +6813,11 @@
           scales: {
             y: {
               beginAtZero: true,
-              ticks: { color: (document.documentElement.getAttribute('data-theme')==='dark'?'#c3c0ae':'#5f624f'), font: { size: 11 } },
-              grid: { color: 'rgba(255, 255, 255, 0.05)' }
+              ticks: { color: (hourIsDark?'#c3c0ae':'#5f624f'), font: { size: 11 } },
+              grid: { color: (hourIsDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(26, 26, 31, 0.08)') }
             },
             x: {
-              ticks: { color: (document.documentElement.getAttribute('data-theme')==='dark'?'#c3c0ae':'#5f624f'), font: { size: 10 }, maxRotation: 0 },
+              ticks: { color: (hourIsDark?'#c3c0ae':'#5f624f'), font: { size: 10 }, maxRotation: 0 },
               grid: { display: false }
             }
           }
@@ -9679,8 +9803,11 @@
         const top = ((apptH - 8) * 60) + (apptM || 0);
         const height = (appt.durationMinutes || 60);
         const status = appt.status || 'scheduled';
+        // ≤45 min: min-height táctil de 44px y modo compacto (oculta el
+        // teléfono, garantiza hora+clienta y servicio visibles).
+        const compactCls = height <= 45 ? ' ab-compact' : '';
 
-        bodyHTML += `<button type="button" class="appt-block status-${status}" style="top:${top}px; height:${height}px;"
+        bodyHTML += `<button type="button" class="appt-block status-${status}${compactCls}" style="top:${top}px; height:${height}px; min-height:44px;"
                         onclick="event.stopPropagation(); editAppointment('${appt.id}')" title="${appt.clientName}">
               <div class="ab-head">${appt.time} · ${appt.clientName}</div>
               <div class="ab-svc">${appt.serviceName}</div>
@@ -10043,7 +10170,7 @@
             const escapedName = (appt.clientName || '').replace(/'/g, "\\'");
             const escapedService = (appt.serviceName || '').replace(/'/g, "\\'");
             return `
-              <div style="background:var(--glass-bg);border:1px solid var(--border-color);padding:14px;border-radius:14px;transition:transform 0.15s;" onmouseenter="this.style.transform='scale(1.02)'" onmouseleave="this.style.transform='scale(1)'">
+              <div class="appt-mini-card">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
                   <div style="display:flex;align-items:center;gap:10px;">
                     <div style="width:36px;height:36px;border-radius:50%;background:rgba(140,150,104,0.2);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:var(--venus-soft);">${initials}</div>
@@ -10154,7 +10281,7 @@
             <td style="padding:12px;">
               <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
                 ${appt.status !== 'completed' ? `
-                <button onclick="openPaymentModal('${appt.id}', '${appt.clientName.replace(/'/g, "\\'") || ''}', '${appt.serviceName.replace(/'/g, "\\'") || ''}', ${appt.price || 0})" class="btn-icon" style="background:linear-gradient(135deg, #10b981 0%, #059669 100%);color:white;padding:6px 12px;border-radius:8px;font-size:0.85em;display:flex;align-items:center;gap:6px;border:none;cursor:pointer;transition:all 0.2s;box-shadow:0 2px 4px rgba(16,185,129,0.3);" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 8px rgba(16,185,129,0.4)'" onmouseout="this.style.transform='';this.style.boxShadow='0 2px 4px rgba(16,185,129,0.3)'">
+                <button onclick="openPaymentModal('${appt.id}', '${appt.clientName.replace(/'/g, "\\'") || ''}', '${appt.serviceName.replace(/'/g, "\\'") || ''}', ${appt.price || 0})" class="btn-icon appt-action success">
                   <i class="fas fa-money-bill-wave"></i> Pagar
                 </button>
                 ` : `
@@ -10171,13 +10298,13 @@
                   </button>
                 </div>
                 `}
-                <button onclick="sendWhatsAppAttendanceSurvey('${appt.id}')" class="btn-icon" style="background:linear-gradient(135deg, #25D366 0%, #128C7E 100%);color:white;padding:6px 12px;border-radius:8px;font-size:0.85em;display:flex;align-items:center;gap:6px;border:none;cursor:pointer;transition:all 0.2s;box-shadow:0 2px 4px rgba(37,211,102,0.3);" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 8px rgba(37,211,102,0.4)'" onmouseout="this.style.transform='';this.style.boxShadow='0 2px 4px rgba(37,211,102,0.3)'" title="Enviar encuesta de asistencia por WhatsApp">
+                <button onclick="sendWhatsAppAttendanceSurvey('${appt.id}')" class="btn-icon appt-action wa" title="Enviar encuesta de asistencia por WhatsApp">
                   <i class="fab fa-whatsapp"></i> WhatsApp
                 </button>
-                <button onclick="editAppointment('${appt.id}')" class="btn-icon" style="background:linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);color:white;padding:6px 12px;border-radius:8px;font-size:0.85em;display:flex;align-items:center;gap:6px;border:none;cursor:pointer;transition:all 0.2s;box-shadow:0 2px 4px rgba(59,130,246,0.3);" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 8px rgba(59,130,246,0.4)'" onmouseout="this.style.transform='';this.style.boxShadow='0 2px 4px rgba(59,130,246,0.3)'">
+                <button onclick="editAppointment('${appt.id}')" class="btn-icon appt-action info">
                   <i class="fas fa-edit"></i> Modificar
                 </button>
-                <button onclick="cancelAppointment('${appt.id}')" class="btn-icon" style="background:linear-gradient(135deg, #ef4444 0%, #dc2626 100%);color:white;padding:6px 12px;border-radius:8px;font-size:0.85em;display:flex;align-items:center;gap:6px;border:none;cursor:pointer;transition:all 0.2s;box-shadow:0 2px 4px rgba(239,68,68,0.3);" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 8px rgba(239,68,68,0.4)'" onmouseout="this.style.transform='';this.style.boxShadow='0 2px 4px rgba(239,68,68,0.3)'">
+                <button onclick="cancelAppointment('${appt.id}')" class="btn-icon appt-action error">
                   <i class="fas fa-times-circle"></i> Cancelar
                 </button>
               </div>
@@ -14325,14 +14452,14 @@
             },
             scales: {
               x: {
-                grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                grid: { color: (document.documentElement.getAttribute('data-theme')==='dark'?'rgba(255, 255, 255, 0.1)':'rgba(26, 26, 31, 0.08)') },
                 ticks: { color: (document.documentElement.getAttribute('data-theme')==='dark'?'#c3c0ae':'#5f624f') }
               },
               y: {
                 type: 'linear',
                 display: true,
                 position: 'left',
-                grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                grid: { color: (document.documentElement.getAttribute('data-theme')==='dark'?'rgba(255, 255, 255, 0.1)':'rgba(26, 26, 31, 0.08)') },
                 ticks: { color: (document.documentElement.getAttribute('data-theme')==='dark'?'#c3c0ae':'#5f624f'), stepSize: 1 }
               },
               y1: {
@@ -17164,10 +17291,16 @@
               font-size: 13px;
               transition: all 0.2s;
             }
-            #modal-cobrar-cita .toggle-btn.active {
-              background: var(--olive);
-              border-color: var(--olive);
-              color: #fff;
+            /* Activo = mismo par que .btn.primary: --olive-deep + tinta crema,
+               5.87:1 en ambos temas (var(--olive) con #fff daba 4.21:1 claro /
+               2.84:1 oscuro). La variante [data-theme="light"] con !important
+               empata especificidad con el override de admin-mobile.css:69 y
+               gana por orden (este bloque de estilos se inyecta después). */
+            #modal-cobrar-cita .toggle-btn.active,
+            [data-theme="light"] #modal-cobrar-cita .toggle-btn.active {
+              background: var(--olive-deep) !important;
+              border-color: var(--olive-deep) !important;
+              color: oklch(97% 0.010 88) !important;
             }
             #modal-cobrar-cita .toggle-btn:first-child { border-radius: 8px 0 0 8px; }
             #modal-cobrar-cita .toggle-btn:last-child { border-radius: 0 8px 8px 0; }
@@ -17245,8 +17378,8 @@
                       }).join('')}
                     </select>
                     <input type="number" id="cantidad-producto" value="1" min="1" class="cobro-input" style="width:60px;text-align:center;">
-                    <button onclick="agregarProductoCobro()" 
-                      style="padding:12px 16px;background:var(--olive);color:#fff;border:none;border-radius:8px;cursor:pointer;" aria-label="Agregar producto">
+                    <button onclick="agregarProductoCobro()" class="btn primary"
+                      style="padding:12px 16px;border:none;border-radius:8px;cursor:pointer;" aria-label="Agregar producto">
                       <i class="fas fa-plus" aria-hidden="true"></i>
                     </button>
                   </div>
@@ -17309,8 +17442,8 @@
 
               <!-- Footer -->
               <div style="padding:16px 20px 20px;border-top:1px solid #333;display:flex;gap:12px;">
-                <button onclick="procesarCobroCitaActual()" id="btn-completar-cita"
-                  style="flex:2;padding:16px;background:var(--olive);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+                <button onclick="procesarCobroCitaActual()" id="btn-completar-cita" class="btn primary"
+                  style="flex:2;padding:16px;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
                   <i class="fas fa-check"></i> Completar Cita <span id="btn-total">$${precioServicioGlobal.toFixed(0)}</span>
                 </button>
                 <button onclick="document.getElementById('modal-cobrar-cita').remove()" 

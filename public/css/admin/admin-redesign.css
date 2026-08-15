@@ -192,7 +192,6 @@
       .card,
       .today-card,
       .gc-stat,
-      .stat-item,
       .gc-item,
       .wallet-card,
       .notification-dropdown,
@@ -735,6 +734,15 @@
         text-transform: uppercase;
       }
 
+      /* AA (auditoría 2026-08): en light var(--venus)→olive 58% daba
+         3.94:1 sobre #fbf7ef. --olive-deep (oklch 48% .085 120) da
+         6.03:1 sobre página y 5.54:1 sobre tarjeta. En dark se conserva
+         var(--venus)→olive 68% (5.53:1 página / 4.78:1 tarjeta). */
+      html[data-theme="light"] .admin-eyebrow,
+      html[data-theme="light"] .clarity-kicker {
+        color: var(--olive-deep);
+      }
+
       .admin-hero-copy {
         margin: 6px 0 0;
         max-width: 56ch;
@@ -828,11 +836,12 @@
         color: var(--venus);
       }
 
+      /* .stat-item fuera de esta lista (anti-patrones): vive DENTRO del
+         .card del catálogo — plano, sin tarjeta interior (admin-base). */
       .today-card,
       .card,
       .wallet-card,
-      .gc-stat,
-      .stat-item {
+      .gc-stat {
         background: var(--card);
         border: 1px solid var(--line);
         box-shadow: none;
@@ -1085,7 +1094,6 @@
       html[data-theme="light"] .card,
       html[data-theme="light"] .today-card,
       html[data-theme="light"] .gc-stat,
-      html[data-theme="light"] .stat-item,
       html[data-theme="light"] .wallet-card,
       html[data-theme="light"] .notification-dropdown,
       html[data-theme="light"] .table-wrap,
@@ -1258,8 +1266,11 @@
         color: var(--ink) !important;
       }
 
+      /* El submit-btn ya no lleva el gradiente sage claro (compensado
+         antes con tinta oscura): ahora es sólido --olive-deep en
+         admin-extra, así que la tinta correcta es crema (5.92:1). */
       html[data-theme="light"] #newApptDialog .submit-btn {
-        color: var(--ink) !important;
+        color: oklch(97% 0.010 88) !important;
       }
 
       html[data-theme="light"] #tab-caja .card {
