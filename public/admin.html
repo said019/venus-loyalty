@@ -9730,6 +9730,48 @@
       }
     }
 
+    // Reparte en carriles lado a lado las citas que se traslapan. Sin esto, dos
+    // citas a la misma hora se dibujaban una encima de otra (.appt-block usa
+    // left:4px/right:4px) y la de abajo quedaba INVISIBLE: el viernes 14-ago
+    // Alondra Anaya desaparecía bajo Paola isabel, y Diana Diaz bajo Alexa Andrea.
+    // Devuelve cada cita con {top, height, lane, lanes} ya calculados.
+    function layoutApptLanes(appts) {
+      const items = [];
+      (appts || []).forEach(appt => {
+        if (!appt.time) return;
+        const [h, m] = appt.time.split(':').map(Number);
+        if (h < 8 || h > 20) return;
+        const top = ((h - 8) * 60) + (m || 0);
+        const height = Math.max(appt.durationMinutes || 60, 20);
+        items.push({ appt, top, height, end: top + height, lane: 0, lanes: 1 });
+      });
+
+      items.sort((a, b) => a.top - b.top || a.end - b.end);
+
+      // Grupo = cadena de citas que se traslapan entre sí. Dentro del grupo,
+      // cada cita toma el primer carril que ya quedó libre.
+      let group = [];
+      let laneEnds = []; // minuto en que se libera cada carril
+      const closeGroup = () => {
+        const total = laneEnds.length || 1;
+        group.forEach(it => { it.lanes = total; });
+        group = [];
+        laneEnds = [];
+      };
+
+      items.forEach(it => {
+        if (laneEnds.length && it.top >= Math.max(...laneEnds)) closeGroup();
+        let lane = laneEnds.findIndex(end => end <= it.top);
+        if (lane === -1) { laneEnds.push(it.end); lane = laneEnds.length - 1; }
+        else laneEnds[lane] = it.end;
+        it.lane = lane;
+        group.push(it);
+      });
+      closeGroup();
+
+      return items;
+    }
+
     function renderWeeklyCalendar() {
       const calendarContainer = document.getElementById('monthly-calendar');
       calendarContainer.innerHTML = '';
@@ -9777,17 +9819,13 @@
         const dayStr = toLocalDateString(day);
         const dailyAppts = (allAppointments || []).filter(a => a.date === dayStr && a.status !== 'cancelled');
 
-        dailyAppts.forEach(appt => {
-          if (!appt.time) return;
-          const [apptH, apptM] = appt.time.split(':').map(Number);
-          if (apptH < 8 || apptH > 20) return;
-
-          const top = ((apptH - 8) * 60) + (apptM || 0);
-          const height = (appt.durationMinutes || 60);
+        layoutApptLanes(dailyAppts).forEach(({ appt, top, height, lane, lanes }) => {
           const status = appt.status || 'scheduled';
+          const w = 100 / lanes;
+          const shortCls = height < 45 ? ' is-short' : '';
 
-          bodyHTML += `<div class="appt-block status-${status}" style="top:${top}px; height:${height}px;"
-                          onclick="event.stopPropagation(); editAppointment('${appt.id}')" title="${appt.clientName} - ${appt.serviceName}">
+          bodyHTML += `<div class="appt-block status-${status}${shortCls}" style="top:${top}px; height:${height}px; left:calc(${lane * w}% + 3px); width:calc(${w}% - 6px); right:auto;"
+                          onclick="event.stopPropagation(); editAppointment('${appt.id}')" title="${appt.time} · ${appt.clientName} - ${appt.serviceName}">
                 <strong>${appt.time}</strong> ${appt.clientName}
             </div>`;
         });
@@ -9844,17 +9882,13 @@
       const dayStr = toLocalDateString(d);
       const dailyAppts = (allAppointments || []).filter(a => a.date === dayStr && a.status !== 'cancelled');
 
-      dailyAppts.forEach(appt => {
-        if (!appt.time) return;
-        const [apptH, apptM] = appt.time.split(':').map(Number);
-        if (apptH < 8 || apptH > 20) return;
-
-        const top = ((apptH - 8) * 60) + (apptM || 0);
-        const height = (appt.durationMinutes || 60);
+      layoutApptLanes(dailyAppts).forEach(({ appt, top, height, lane, lanes }) => {
         const status = appt.status || 'scheduled';
+        const w = 100 / lanes;
+        const shortCls = height < 45 ? ' is-short' : '';
 
-        bodyHTML += `<div class="appt-block status-${status}" style="top:${top}px; height:${height}px;"
-                        onclick="event.stopPropagation(); editAppointment('${appt.id}')" title="${appt.clientName}">
+        bodyHTML += `<div class="appt-block status-${status}${shortCls}" style="top:${top}px; height:${height}px; left:calc(${lane * w}% + 3px); width:calc(${w}% - 6px); right:auto;"
+                        onclick="event.stopPropagation(); editAppointment('${appt.id}')" title="${appt.time} · ${appt.clientName}">
               <div class="ab-head">${appt.time} · ${appt.clientName}</div>
               <div class="ab-svc">${appt.serviceName}</div>
               <div class="ab-meta">${appt.clientPhone}</div>

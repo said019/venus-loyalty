@@ -1001,6 +1001,17 @@
         border-color: var(--border-glow, var(--accent-gold));
         box-shadow: 0 6px 20px rgba(140, 150, 104, 0.14);
       }
+
+      /* Citas de 30 min o menos: el bloque mide 30px de alto y con el padding
+         normal solo alcanzaba a verse la hora — el nombre quedaba recortado.
+         Se colapsa a un renglón con elipsis (el nombre completo va en title). */
+      .appt-block.is-short {
+        padding: 4px 8px;
+        font-size: 11px;
+        line-height: 1.2;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+      }
       .appt-block .ab-head {
         font-weight: 600;
         font-size: 12.5px;
