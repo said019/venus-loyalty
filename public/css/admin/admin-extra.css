@@ -2737,6 +2737,63 @@
         font-size: 14px;
         color: var(--exp-ink-2);
       }
+
+      /* ---------- Citas previas (Resumen del expediente) ---------- */
+      .exp-appts { margin-top: 18px; }
+      .exp-appt-list { list-style: none; margin: 0; padding: 0; }
+      .exp-appt {
+        display: flex;
+        align-items: baseline;
+        gap: 14px;
+        padding: 11px 0;
+        border-bottom: 1px solid var(--exp-line);
+      }
+      .exp-appt:last-child { border-bottom: 0; }
+      /* Canceladas y no-show: siguen visibles, pero sin competir con las reales. */
+      .exp-appt.is-muted { opacity: 0.55; }
+      .exp-appt-when {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        flex: 0 0 92px;
+        font-size: 13px;
+        color: var(--exp-ink-2);
+        font-variant-numeric: tabular-nums;
+      }
+      .exp-appt-when strong { color: var(--exp-ink); font-weight: 600; }
+      .exp-appt-main {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        flex: 1;
+        min-width: 0;
+      }
+      .exp-appt-svc {
+        font-size: 14px;
+        color: var(--exp-ink);
+        overflow-wrap: anywhere;
+      }
+      .exp-appt-status {
+        font-size: 12px;
+        color: var(--exp-ink-3);
+      }
+      .exp-appt-paid {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--exp-ink);
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+      .exp-appts-toggle {
+        margin-top: 12px;
+        background: none;
+        border: 0;
+        padding: 6px 0;
+        font: 600 13px/1 'DM Sans', system-ui, sans-serif;
+        color: var(--exp-olive-d);
+        cursor: pointer;
+      }
+      .exp-appts-toggle:hover { text-decoration: underline; }
       .exp-kv {
         display: flex;
         justify-content: space-between;

@@ -3593,6 +3593,7 @@
           <div class="exp-hairline-group">
             <h3 class="exp-section-title">Visitas</h3>
             <div id="exp-resumen-visits"></div>
+            <div id="exp-resumen-appts" class="exp-appts"></div>
           </div>
         </section>
 
@@ -4291,6 +4292,9 @@
 
       // Cargar datos del expediente (legacy + digital).
       await loadExpedienteData(cardId);
+      // Después de loadExpedienteData: updateExpedienteSummary() reescribe el
+      // renglón de KPIs, así que el contador de Citas se llena al final.
+      try { await loadExpedienteAppointments(cardId); } catch (e) { console.error('[Expediente] Error en citas previas:', e); }
       try { await loadExpedienteDigital(cardId); } catch (e) { console.error('[Expediente digital] Error al cargar:', e); }
     }
 
@@ -4492,10 +4496,124 @@
           '<div class="exp-kpi-row">' +
             '<div class="exp-kpi"><span class="exp-kpi-num">' + totalSessions + '</span><small>Sesiones</small></div>' +
             '<div class="exp-kpi"><span class="exp-kpi-num">' + totalPhotos + '</span><small>Fotos</small></div>' +
+            // Lo llena loadExpedienteAppointments(), que va a otro endpoint.
+            '<div class="exp-kpi"><span class="exp-kpi-num" id="exp-kpi-appts">…</span><small>Citas</small></div>' +
           '</div>' +
           '<p class="exp-kpi-note">' + expEsc(lastSessionStr) + '</p>';
       }
     }
+
+    // ===== Citas previas dentro del expediente =====
+    // Antes solo se veían al abrir el diálogo de agendar. Reusa el mismo
+    // endpoint (/api/appointments/client), pero pidiendo las canceladas y
+    // hasta 50 — dos cosas que el flujo de agendar no pide y sigue sin ver.
+    let expedienteApptsCache = [];
+    let expedienteApptsExpanded = false;
+    const EXP_APPTS_PREVIEW = 10;
+
+    const EXP_APPT_STATUS = {
+      completed:    { label: 'Completada',  icon: 'fa-check-circle' },
+      confirmed:    { label: 'Confirmada',  icon: 'fa-check' },
+      scheduled:    { label: 'Agendada',    icon: 'fa-calendar-check' },
+      pending:      { label: 'Pendiente',   icon: 'fa-clock' },
+      rescheduling: { label: 'Reagendando', icon: 'fa-rotate' },
+      no_show:      { label: 'No asistió',  icon: 'fa-user-slash' },
+      cancelled:    { label: 'Cancelada',   icon: 'fa-times-circle' }
+    };
+
+    async function loadExpedienteAppointments(cardId) {
+      const listEl = document.getElementById('exp-resumen-appts');
+      if (!listEl) return;
+
+      expedienteApptsCache = [];
+      expedienteApptsExpanded = false;
+
+      // El endpoint busca por teléfono o por nombre, igual que al agendar.
+      const card = window.cardsCache ? window.cardsCache[cardId] : null;
+      const search = (card && (card.phone || card.name)) || '';
+      if (!search) {
+        listEl.innerHTML = '<p class="exp-muted-note">No se pudo cargar el historial de citas.</p>';
+        return;
+      }
+
+      listEl.innerHTML = '<p class="exp-muted-note">Cargando citas…</p>';
+
+      try {
+        const res = await fetch(`/api/appointments/client?search=${encodeURIComponent(search)}&includeCancelled=1&limit=50`);
+        const json = await res.json();
+        if (!json.success) throw new Error(json.error || 'respuesta sin success');
+        expedienteApptsCache = (json.data || []).slice()
+          .sort((a, b) => new Date(b.startDateTime) - new Date(a.startDateTime));
+      } catch (e) {
+        console.error('[Expediente] Error cargando citas:', e);
+        listEl.innerHTML = '<p class="exp-muted-note">No se pudieron cargar las citas.</p>';
+        return;
+      }
+
+      const kpi = document.getElementById('exp-kpi-appts');
+      if (kpi) kpi.textContent = expedienteApptsCache.length;
+
+      renderExpedienteAppointments();
+    }
+
+    function renderExpedienteAppointments() {
+      const listEl = document.getElementById('exp-resumen-appts');
+      if (!listEl) return;
+
+      const total = expedienteApptsCache.length;
+      if (total === 0) {
+        listEl.innerHTML = '<p class="exp-muted-note">Sin citas registradas.</p>';
+        return;
+      }
+
+      const visibles = expedienteApptsExpanded
+        ? expedienteApptsCache
+        : expedienteApptsCache.slice(0, EXP_APPTS_PREVIEW);
+
+      const filas = visibles.map(appt => {
+        const st = EXP_APPT_STATUS[appt.status] || { label: appt.status || '—', icon: 'fa-clipboard' };
+
+        // Se arma desde `date` ("YYYY-MM-DD") y no desde startDateTime para que
+        // el navegador no corra la fecha un día por zona horaria.
+        let fecha;
+        if (appt.date && /^\d{4}-\d{2}-\d{2}$/.test(appt.date)) {
+          const [yy, mm, dd] = appt.date.split('-').map(Number);
+          fecha = new Date(yy, mm - 1, dd).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' });
+        } else {
+          fecha = new Date(appt.startDateTime).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' });
+        }
+
+        const hora = appt.time || '';
+        const pagado = Number(appt.totalPaid || 0);
+        const apagada = (appt.status === 'cancelled' || appt.status === 'no_show') ? ' is-muted' : '';
+
+        return '<li class="exp-appt' + apagada + '">' +
+            '<div class="exp-appt-when"><strong>' + expEsc(fecha) + '</strong>' +
+              (hora ? '<span>' + expEsc(hora) + '</span>' : '') + '</div>' +
+            '<div class="exp-appt-main">' +
+              '<span class="exp-appt-svc">' + expEsc(appt.serviceName || 'Servicio') + '</span>' +
+              '<span class="exp-appt-status"><i class="fas ' + st.icon + '"></i> ' + expEsc(st.label) + '</span>' +
+            '</div>' +
+            (pagado > 0 ? '<div class="exp-appt-paid">$' + pagado.toLocaleString('es-MX') + '</div>' : '') +
+          '</li>';
+      }).join('');
+
+      const ocultas = total - visibles.length;
+      let toggle = '';
+      if (expedienteApptsExpanded) {
+        toggle = '<button type="button" class="exp-appts-toggle" onclick="expToggleAppointments()">Ver menos</button>';
+      } else if (ocultas > 0) {
+        toggle = '<button type="button" class="exp-appts-toggle" onclick="expToggleAppointments()">Ver todas (' + total + ')</button>';
+      }
+
+      listEl.innerHTML = '<ul class="exp-appt-list">' + filas + '</ul>' + toggle;
+    }
+
+    function expToggleAppointments() {
+      expedienteApptsExpanded = !expedienteApptsExpanded;
+      renderExpedienteAppointments();
+    }
+    window.expToggleAppointments = expToggleAppointments;
 
     // Actualizar áreas para comparación
     function updateCompareAreas() {
