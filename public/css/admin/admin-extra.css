@@ -3070,17 +3070,46 @@
       }
 
       /* ---------- Responsive ---------- */
+      /* TELÉFONO: el expediente es una CAPA de pantalla completa. Antes vivía
+         en flujo dentro de .wrap (padding + max-width del admin) y debajo del
+         hueco que dejaba la topbar oculta: arrancaba a 120px del borde superior
+         y medía 346px de los 402 de ancho — 240px vacíos arriba y franjas a los
+         lados (queja del dueño con captura real). Ahora ocupa el viewport
+         entero, con scroll propio, y el ritmo interno se compacta. */
+      @media (max-width: 767.98px) {
+        #expediente-view:not(.hidden) {
+          position: fixed;
+          inset: 0;
+          z-index: 700;            /* sobre topbar (600) y nav inferior */
+          overflow-y: auto;
+          -webkit-overflow-scrolling: touch;
+          overscroll-behavior: contain;
+          min-height: 0;
+        }
+        body.exp-open { overflow: hidden; } /* la página de atrás no scrollea */
+        body.exp-open .mobile-nav,
+        body.exp-open .bottom-nav { display: none; }
+      }
+
       @media (max-width: 480px) {
-        .exp-view-header { padding: 12px 16px 0; padding-top: calc(12px + env(safe-area-inset-top, 0px)); }
+        .exp-view-header { padding: 10px 16px 0; padding-top: calc(10px + env(safe-area-inset-top, 0px)); }
+        .exp-view-identity { margin-top: 10px; }
         .exp-view-name { font-size: 24px; }
         .exp-back-label { display: none; }
         .exp-sections-bar { margin: 0 -16px; padding-left: 16px; padding-right: 16px; }
-        .exp-view-body { padding: 22px 16px 88px; }
+        .exp-view-body { padding: 14px 16px calc(24px + env(safe-area-inset-bottom, 0px)); }
+        /* ritmo compacto: los grupos respiraban 22px arriba y 22px abajo,
+           más 14px del título, más 10px por fila — una fila de un dato medía
+           ~86px. Ahora ~52px, y los grupos 14px. */
+        .exp-hairline-group { padding: 14px 0; }
+        .exp-hairline-group:first-child { padding-top: 0; }
+        .exp-section-title { margin: 0 0 8px; }
+        .exp-kv { padding: 8px 0; }
         .exp-form-grid { grid-template-columns: 1fr; }
         .exp-photos-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
         .exp-compare-container { flex-direction: column; gap: 18px; }
-        .exp-kpi-row { gap: 28px; }
-        .exp-kpi-num { font-size: 26px; }
+        .exp-kpi-row { gap: 24px; padding-bottom: 12px; }
+        .exp-kpi-num { font-size: 24px; }
         /* El botón Enviar ficha SÍ se ve en cel: es la acción primaria de la cosmetóloga. */
         /* El menú ⋯ solo reúne WhatsApp (acción secundaria). */
         #exp-action-wa span { display: none; } /* en cel solo icono de WA */
