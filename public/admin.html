@@ -14,9 +14,14 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Venus Admin">
-    <meta name="theme-color" content="#8c9668">
-    <link href="https://fonts.googleapis.com/css2?family=Prata&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <meta name="theme-color" content="#74814d">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/admin/admin-base.css">
+    <style>
+      /* Colores que antes vivían inline (informe S2/T3): ahora en clases con tokens */
+      .stat-item .stat-value.stat-warn { color: oklch(45% 0.110 80); }
+      .stamp-rail { background: var(--olive-soft, oklch(94% 0.022 120)); }
+    </style>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
@@ -306,6 +311,40 @@
         </article>
       </div>
 
+      <!-- Sección HOY (arriba de los KPIs mensuales: glance-and-act, informe P1-22/T7) -->
+      <div class="today-grid">
+        <div class="today-card citas-card" onclick="switchTab('tab-appointments')" style="cursor:pointer;">
+          <div class="today-card-icon citas">
+            <i class="fas fa-calendar-check"></i>
+          </div>
+          <div class="today-card-info">
+            <h4 id="today-appointments">0</h4>
+            <p>Citas hoy</p>
+          </div>
+            <span class="today-card-action"><i class="fas fa-arrow-right"></i></span>
+        </div>
+        <div class="today-card pending-card" onclick="switchTab('tab-appointments')" style="cursor:pointer;">
+          <div class="today-card-icon pendientes">
+            <i class="fas fa-clock"></i>
+          </div>
+          <div class="today-card-info">
+            <h4 id="today-pending">0</h4>
+            <p>Por confirmar</p>
+          </div>
+            <span class="today-card-action"><i class="fas fa-arrow-right"></i></span>
+        </div>
+        <div class="today-card income-card" onclick="switchTab('tab-caja')" style="cursor:pointer;">
+          <div class="today-card-icon ingresos">
+            <i class="fas fa-dollar-sign"></i>
+          </div>
+          <div class="today-card-info">
+            <h4 id="today-income">$0</h4>
+            <p>Ingresos hoy</p>
+          </div>
+            <span class="today-card-action"><i class="fas fa-arrow-right"></i></span>
+        </div>
+      </div>
+
       <!-- Hero Stats -->
       <div class="hero-stats">
         <div class="hero-stat">
@@ -342,40 +381,6 @@
           </div>
           <div class="hero-stat-value" id="stat-return-rate">0%</div>
           <div class="hero-stat-label">Tasa de retorno</div>
-        </div>
-      </div>
-
-      <!-- Sección HOY -->
-      <div class="today-grid">
-        <div class="today-card citas-card" onclick="switchTab('tab-appointments')" style="cursor:pointer;">
-          <div class="today-card-icon citas">
-            <i class="fas fa-calendar-check"></i>
-          </div>
-          <div class="today-card-info">
-            <h4 id="today-appointments">0</h4>
-            <p>Citas hoy</p>
-          </div>
-            <span class="today-card-action"><i class="fas fa-arrow-right"></i></span>
-        </div>
-        <div class="today-card pending-card" onclick="switchTab('tab-appointments')" style="cursor:pointer;">
-          <div class="today-card-icon pendientes">
-            <i class="fas fa-clock"></i>
-          </div>
-          <div class="today-card-info">
-            <h4 id="today-pending">0</h4>
-            <p>Por confirmar</p>
-          </div>
-            <span class="today-card-action"><i class="fas fa-arrow-right"></i></span>
-        </div>
-        <div class="today-card income-card" onclick="switchTab('tab-caja')" style="cursor:pointer;">
-          <div class="today-card-icon ingresos">
-            <i class="fas fa-dollar-sign"></i>
-          </div>
-          <div class="today-card-info">
-            <h4 id="today-income">$0</h4>
-            <p>Ingresos hoy</p>
-          </div>
-            <span class="today-card-action"><i class="fas fa-arrow-right"></i></span>
         </div>
       </div>
 
@@ -578,7 +583,7 @@
         <div class="row" style="gap:12px;flex-wrap:wrap;">
           <div style="flex:1;min-width:200px;position:relative;">
             <i class="fas fa-search" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-dim);"></i>
-            <input id="search-cards" placeholder="Buscar por nombre o teléfono..." style="padding-left:40px;">
+            <input type="search" id="search-cards" placeholder="Buscar por nombre o teléfono..." style="padding-left:40px;">
           </div>
 
           <!-- SORTING CONTROLS -->
@@ -703,7 +708,7 @@
             </div>
 
             <button type="submit" class="btn primary" style="width:100%;">
-              <i class="fas fa-sparkles"></i> Generar Gift Card
+              <i class="fas fa-wand-magic-sparkles"></i> Generar Gift Card
             </button>
           </form>
 
@@ -807,7 +812,7 @@
       </div>
 
       <!-- Estadísticas -->
-      <div id="reviews-stats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:24px;"></div>
+      <div id="reviews-stats" data-keep-cols style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:24px;"></div>
 
       <!-- Lista -->
       <div id="reviews-list" style="display:flex;flex-direction:column;gap:14px;">
@@ -1294,7 +1299,7 @@
         </div>
 
         <div id="push-error" class="hidden"
-          style="background:rgba(254,202,202,0.1);border:1px solid rgba(153,27,27,0.3);border-radius:10px;padding:10px 12px;margin-top:12px;font-size:13px;color:#fecaca;">
+          style="background:rgba(254,202,202,0.1);border:1px solid rgba(153,27,27,0.3);border-radius:10px;padding:10px 12px;margin-top:12px;font-size:13px;color:var(--error);">
           Error al enviar notificación
         </div>
       </div>
@@ -1620,7 +1625,7 @@
       </div>
 
       <!-- Stats compactas -->
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:16px;">
+      <div data-keep-cols style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:16px;">
         <div class="kpi">
           <span class="value" id="req-pending">0</span>
           <span><i class="fas fa-clock"></i> Pendientes</span>
@@ -1974,7 +1979,7 @@
       </div>
 
         <!-- Estadísticas -->
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:20px;">
+        <div data-keep-cols style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:20px;">
           <div class="card">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
               <span style="font-size:12px;color:var(--muted);text-transform:uppercase;font-weight:600;">Total
@@ -2173,7 +2178,7 @@
       </div>
 
       <!-- Totales del día -->
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:24px;">
+      <div data-keep-cols style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:24px;">
         <!-- Efectivo -->
         <div class="card" style="background:linear-gradient(135deg, #2F3E2B 0%, #4A5D3F 100%);border:none;">
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
@@ -2254,7 +2259,7 @@
           </div>
         </div>
         
-        <div class="table-wrap" style="max-height:400px;overflow-y:auto;">
+        <div class="table-wrap" style="overflow-y:auto;">
           <table class="data-table" style="font-size:12px;">
             <thead style="position:sticky;top:0;background:var(--bg-card);z-index:1;">
               <tr>
@@ -2290,13 +2295,13 @@
     <!-- TAB: Reportes -->
     <section id="tab-services" class="tab-content hidden">
       <div class="header-actions">
-        <h2><i class="fas fa-sparkles"></i> Catálogo</h2>
+        <h2><i class="fas fa-wand-magic-sparkles"></i> Catálogo</h2>
       </div>
 
       <!-- Tabs Header -->
       <div class="tabs-header" style="margin-bottom:0;border-radius:12px 12px 0 0;">
         <button class="tab-btn active" onclick="switchCatalogTab('services')" id="btn-tab-services">
-          <i class="fas fa-sparkles"></i> Servicios
+          <i class="fas fa-wand-magic-sparkles"></i> Servicios
           <span class="tab-count" id="services-count">0</span>
         </button>
         <button class="tab-btn" onclick="switchCatalogTab('products')" id="btn-tab-products">
@@ -2351,7 +2356,7 @@
               <span class="stat-label">Valor inventario</span>
             </div>
             <div class="stat-item">
-              <span class="stat-value" id="stat-products-low" style="color:#fbbf24;">0</span>
+              <span class="stat-value stat-warn" id="stat-products-low">0</span>
               <span class="stat-label">Stock bajo</span>
             </div>
           </div>
@@ -2696,7 +2701,7 @@
             <!-- SECTION: Fecha y Hora -->
             <section>
               <h2 style="font-size:18px;font-weight:600;color:var(--ink);letter-spacing:-0.2px;margin:0 0 12px;">Fecha y Horario</h2>
-              <div class="grid-date-time" style="display:grid;grid-template-columns:1.5fr 100px 90px 1fr;gap:12px;align-items:end;">
+              <div class="grid-date-time" style="align-items:end;">
                 <div style="position:relative;">
                   <label style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:8px;padding-left:4px;">Seleccionar Fecha</label>
                   <input type="text" id="new-appt-date" class="form-input date-picker-input" readonly required
@@ -2930,7 +2935,7 @@
         <h3><i class="fas fa-receipt"></i> Cobrar Servicio</h3>
       </div>
 
-      <div style="padding:0 20px 20px;">
+      <div class="dialog-content" style="padding:0 20px 20px;">
         <!-- Info cliente y servicio -->
         <div class="payment-info-row">
           <div class="payment-info-box">
@@ -3422,8 +3427,8 @@
               <div id="cm-phone-display" class="cmx-phone">—</div>
               <div id="cm-phone-edit" class="hidden" style="display:flex;gap:6px;align-items:center;margin-top:4px;">
                 <input type="tel" id="cm-phone-input" class="cmx-input" style="flex:1;" placeholder="10 dígitos">
-                <button id="cm-phone-save" class="cmx-btn cmx-btn-olive" style="padding:8px 12px;min-height:auto;">✓</button>
-                <button id="cm-phone-cancel" class="cmx-btn cmx-btn-ghost" style="padding:8px 10px;min-height:auto;">✕</button>
+                <button id="cm-phone-save" class="cmx-btn cmx-btn-olive" style="padding:8px 12px;">✓</button>
+                <button id="cm-phone-cancel" class="cmx-btn cmx-btn-ghost" style="padding:8px 10px;">✕</button>
               </div>
             </div>
           </div>
@@ -3467,7 +3472,7 @@
           <details class="cmx-details" style="border-top:1px solid var(--cm-line);">
             <summary><i class="fas fa-sticky-note"></i> Notas del cliente</summary>
             <textarea id="cm-notes" class="cmx-textarea" rows="2" placeholder="Agregar notas..." style="resize:none;"></textarea>
-            <button id="cm-save-notes" class="cmx-btn cmx-btn-ghost" style="margin-top:8px;font-size:12px;padding:9px 14px;min-height:auto;width:auto;display:inline-flex;"><i class="fas fa-save"></i> Guardar nota</button>
+            <button id="cm-save-notes" class="cmx-btn cmx-btn-ghost" style="margin-top:8px;font-size:12px;padding:9px 14px;width:auto;display:inline-flex;"><i class="fas fa-save"></i> Guardar nota</button>
           </details>
 
           <!-- QR (colapsable) -->
@@ -3513,7 +3518,7 @@
         <div id="notify-form-container" class="notify-form-container hidden" style="margin-top:16px;">
           <span class="notify-form-header"><i class="fas fa-bell"></i> Push Individual</span>
           <div class="input-group">
-            <input id="notify-title" class="notify-input" placeholder="Título" value="Recordatorio Venus">
+            <input type="text" id="notify-title" class="notify-input" placeholder="Título" value="Recordatorio Venus">
             <span class="input-icon"><i class="fas fa-thumbtack"></i></span>
           </div>
           <div class="input-group">
@@ -3998,7 +4003,7 @@
     <div class="modal-card">
       <div class="modal-header">
         <h3 id="modal-service-title">Nuevo Servicio</h3>
-        <span class="close-modal" id="close-modal-service">&times;</span>
+        <button type="button" class="btn small ghost" id="close-modal-service" aria-label="Cerrar"><i class="fas fa-times"></i></button>
       </div>
 
       <form id="form-service">
@@ -7117,7 +7122,7 @@
             <td style="font-size:12px;">${lastVisitStr}</td>
             <td>
               <div style="display:flex;align-items:center;gap:6px;">
-                <div style="background:rgba(255,255,255,0.1);border-radius:4px;height:6px;width:60px;overflow:hidden;">
+                <div class="stamp-rail" style="border-radius:4px;height:6px;width:60px;overflow:hidden;">
                   <div style="background:linear-gradient(90deg,#FFD166,#8c9668);height:100%;width:${(card.stamps / card.max) * 100}%;"></div>
                 </div>
                 <span style="font-size:12px;font-weight:500;">${card.stamps}/${card.max}</span>
@@ -7141,7 +7146,7 @@
       } catch (error) {
         console.error('Error:', error);
         document.getElementById('cards-tbody').innerHTML =
-          `<tr><td colspan="8" style="text-align:center;padding:12px;color:#fecaca;">Error: ${error.message}</td></tr>`;
+          `<tr><td colspan="8" style="text-align:center;padding:12px;color:var(--error);">Error: ${error.message}</td></tr>`;
       }
     }
 
@@ -7695,7 +7700,7 @@
               <td>${n.title}</td>
               <td>${typeEmojis[n.type] || n.type}</td>
               <td>${n.googleSent}/${n.cardsSent}</td>
-              <td>${n.errors > 0 ? `<span style="color:#fecaca">${n.errors}</span>` : '0'}</td>
+              <td>${n.errors > 0 ? `<span style="color:var(--error)">${n.errors}</span>` : '0'}</td>
             </tr>
           `;
         }).join('');
@@ -7703,7 +7708,7 @@
       } catch (error) {
         console.error('Error:', error);
         document.getElementById('notifications-history').innerHTML =
-          `<tr><td colspan="5" style="text-align:center;padding:12px;color:#fecaca;">Error cargando historial</td></tr>`;
+          `<tr><td colspan="5" style="text-align:center;padding:12px;color:var(--error);">Error cargando historial</td></tr>`;
       }
     }
 
@@ -9506,7 +9511,7 @@
           historyPanel.classList.remove('hidden');
           historyCount.textContent = '(0)';
           historyHint.textContent = '¡Primera visita!';
-          historyList.innerHTML = '<div class="history-empty"><i class="fas fa-sparkles"></i> Nueva clienta</div>';
+          historyList.innerHTML = '<div class="history-empty"><i class="fas fa-wand-magic-sparkles"></i> Nueva clienta</div>';
           historyContent.style.display = 'block';
           historyHeader.classList.add('expanded');
         }
@@ -12914,7 +12919,7 @@
             <div style="margin-top:14px;font-size:11px;font-weight:700;letter-spacing:0.34em;text-transform:uppercase;color:rgba(140,150,104,0.95);">Gift Card</div>
             <div style="margin:3px 0 18px;font-size:10px;letter-spacing:0.28em;text-transform:uppercase;color:rgba(251,247,239,0.5);">Venus Cosmetología</div>
 
-            <div style="font-family:'Prata',Georgia,'Times New Roman',serif;font-size:26px;line-height:1.18;font-weight:400;color:#fbf7ef;max-width:18ch;">
+            <div style="font-family:'Playfair Display',Georgia,'Times New Roman',serif;font-size:26px;line-height:1.18;font-weight:500;color:#fbf7ef;max-width:18ch;">
               ${gc.serviceName}
             </div>
 
@@ -13380,7 +13385,7 @@
         return;
       }
 
-      const icons = { 'skincare': '<i class="fas fa-pump-soap"></i>', 'maquillaje': '<i class="fas fa-palette"></i>', 'corporal': '<i class="fas fa-sparkles"></i>', 'cabello': '<i class="fas fa-cut"></i>', 'otro': '<i class="fas fa-box"></i>' };
+      const icons = { 'skincare': '<i class="fas fa-pump-soap"></i>', 'maquillaje': '<i class="fas fa-palette"></i>', 'corporal': '<i class="fas fa-wand-magic-sparkles"></i>', 'cabello': '<i class="fas fa-cut"></i>', 'otro': '<i class="fas fa-box"></i>' };
 
       list.innerHTML = paymentProducts.map(p => {
         const icon = icons[p.category] || '<i class="fas fa-box"></i>';
@@ -15273,7 +15278,7 @@
             <header class="req-head">
               <div class="req-name">
                 <span class="req-client">${req.clientName}</span>
-                ${req.isNewClient ? '<span class="req-tag-new"><i class="fas fa-sparkles"></i> Nueva</span>' : ''}
+                ${req.isNewClient ? '<span class="req-tag-new"><i class="fas fa-wand-magic-sparkles"></i> Nueva</span>' : ''}
               </div>
               <span class="req-status req-status-${s.cls}">${s.label}</span>
             </header>
@@ -17104,7 +17109,7 @@
 
         return `
           <tr>
-            <td style="font-family:'Prata',serif;font-weight:600;">${t.hora}</td>
+            <td style="font-family:'Playfair Display',serif;font-weight:600;">${t.hora}</td>
             <td>${tipoBadge}</td>
             <td style="font-weight:500;">${t.cliente}</td>
             <td style="color:var(--muted);">${t.concepto}</td>
@@ -17330,21 +17335,21 @@
             }
             #modal-cobrar-cita .toggle-btn:first-child { border-radius: 8px 0 0 8px; }
             #modal-cobrar-cita .toggle-btn:last-child { border-radius: 0 8px 8px 0; }
-            @media (max-width: 768px) {
+            @media (max-width: 767.98px) {
               #modal-cobrar-cita {
                 padding: 0 !important;
               }
               #modal-cobrar-cita .cobro-modal {
                 width: 100%;
                 max-width: 100%;
-                max-height: 100vh;
-                height: 100vh;
+                max-height: 100dvh;
+                height: 100dvh;
                 border-radius: 0;
               }
               #modal-cobrar-cita .cobro-scroll { padding: 16px; }
               #modal-cobrar-cita .info-grid { grid-template-columns: 1fr !important; }
             }
-            @media (min-width: 769px) and (max-width: 1024px) {
+            @media (min-width: 768px) and (max-width: 1024.98px) {
               #modal-cobrar-cita .cobro-modal {
                 max-width: 420px;
                 width: 90%;
@@ -17375,7 +17380,7 @@
                     <div class="cobro-value">${cita.serviceName || 'Servicio'}</div>
                     <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
                       <span style="color:#8C9668;font-size:15px;font-weight:700;">$${precioServicioGlobal.toFixed(0)}</span>
-                      <button onclick="editarPrecioServicio()" style="background:none;border:none;color:#666;cursor:pointer;padding:2px;">
+                      <button onclick="editarPrecioServicio()" style="background:none;border:none;color:#666;cursor:pointer;padding:0;width:44px;height:44px;display:inline-flex;align-items:center;justify-content:center;">
                         <i class="fas fa-pencil-alt" style="font-size:11px;"></i>
                       </button>
                     </div>
@@ -17619,13 +17624,13 @@
               <div style="font-size:13px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.nombre}</div>
               <div style="font-size:11px;color:var(--text-muted);">$${p.precio.toFixed(0)} c/u</div>
             </div>
-            <div style="display:flex;align-items:center;gap:6px;">
-              <button onclick="cambiarCantidadProducto('${p.id}', -1)" style="width:28px;height:28px;border:1px solid var(--line-2);border-radius:6px;background:var(--bg-tertiary);cursor:pointer;font-size:14px;color:var(--text-primary);">−</button>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <button onclick="cambiarCantidadProducto('${p.id}', -1)" style="width:44px;height:44px;border:1px solid var(--line-2);border-radius:6px;background:var(--bg-tertiary);cursor:pointer;font-size:18px;color:var(--text-primary);">−</button>
               <span style="width:28px;text-align:center;font-size:14px;font-weight:600;color:var(--text-primary);">${p.cantidad}</span>
-              <button onclick="cambiarCantidadProducto('${p.id}', 1)" style="width:28px;height:28px;border:1px solid var(--line-2);border-radius:6px;background:var(--bg-tertiary);cursor:pointer;font-size:14px;color:var(--text-primary);">+</button>
+              <button onclick="cambiarCantidadProducto('${p.id}', 1)" style="width:44px;height:44px;border:1px solid var(--line-2);border-radius:6px;background:var(--bg-tertiary);cursor:pointer;font-size:18px;color:var(--text-primary);">+</button>
             </div>
             <span style="font-weight:700;color:#8C9668;font-size:14px;min-width:55px;text-align:right;">$${(p.precio * p.cantidad).toFixed(0)}</span>
-            <button onclick="eliminarProductoCobro('${p.id}')" style="background:none;border:none;color:#e74c3c;cursor:pointer;padding:4px;">
+            <button onclick="eliminarProductoCobro('${p.id}')" style="background:none;border:none;color:#e74c3c;cursor:pointer;padding:12px;">
               <i class="fas fa-trash-alt" style="font-size:12px;"></i>
             </button>
           </div>

@@ -1,5 +1,19 @@
+        /* ============================================================
+           CONTRATO DE BREAKPOINTS (aplica a las 4 hojas admin):
+           - Teléfono: @media (max-width: 767.98px)
+           - Tablet:   @media (min-width: 768px) and (max-width: 1024.98px)
+           No introducir cortes nuevos fuera de este contrato.
+           ============================================================ */
         :root {
             --transition-speed: 0.4s;
+            /* Tipografía del sistema (DESIGN.md: Playfair Display + DM Sans) */
+            --font-display: 'Playfair Display', Georgia, serif;
+            --font-body: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            /* Anillo de foco accesible (≥3:1 sobre crema) */
+            --focus-ring: #656c5a;
+            /* Tintas secundarias validadas (admin-extra.css:2436 = 6.36:1) */
+            --ink-2: oklch(45% 0.012 80);
+            --ink-3: oklch(48% 0.010 80);
             /* Compatibilidad con código existente */
             --venus: #8c9668;
             --venus-soft: #a8b892;
@@ -141,8 +155,8 @@
             padding: 0;
             background: var(--bg-primary);
             color: var(--text-primary);
-            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
-            overflow-x: hidden;
+            font-family: var(--font-body);
+            overflow-x: clip;
             max-width: 100vw;
             transition: background-color var(--transition-speed), color var(--transition-speed);
         }
@@ -224,7 +238,7 @@
     }
 
     .sidebar-brand-text h1 {
-      font-family: 'Playfair Display', serif;
+      font-family: var(--font-display);
       font-size: 22px;
       font-weight: 600;
       margin: 0;
@@ -480,8 +494,6 @@
       right: 0;
       height: var(--topbar-height);
       background: var(--bg-topbar);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
       border-bottom: 1px solid var(--border-color);
       z-index: 90;
       display: flex;
@@ -514,7 +526,7 @@
     }
 
     .topbar-greeting h2 {
-      font-family: 'Playfair Display', serif;
+      font-family: var(--font-display);
       font-size: 28px;
       font-weight: 500;
       margin: 0;
@@ -625,7 +637,7 @@
       height: 30px;
       background: linear-gradient(135deg, var(--accent-gold) 0%, var(--accent-gold-light) 100%);
       border-radius: 50%;
-      transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+      transition: transform 0.3s ease;
       box-shadow: 0 4px 12px rgba(140, 150, 104, 0.4);
     }
 
@@ -811,32 +823,12 @@
         padding: 20px 16px;
       }
 
-      .card {
-        padding: 20px;
-      }
-
       .birthday-item {
         flex-wrap: wrap;
-        align-items: flex-start;
       }
 
       .birthday-badge {
         margin-left: auto;
-      }
-
-      .birthday-info h4 {
-        white-space: normal;
-      }
-    }
-
-    @media (max-width: 480px) {
-      .card {
-        padding: 16px;
-      }
-
-      .birthday-badge {
-        font-size: 10px;
-        padding: 4px 8px;
       }
     }
 
@@ -932,12 +924,12 @@
     }
 
     /* Fix payment dialog responsive */
-    @media (max-width: 768px) {
+    @media (max-width: 767.98px) {
       #paymentDialog {
         max-width: 100% !important;
         width: 100% !important;
-        height: 100vh !important;
-        max-height: 100vh !important;
+        height: 100dvh !important;
+        max-height: 100dvh !important;
         border-radius: 0 !important;
         margin: 0 !important;
         top: 0 !important;
@@ -950,25 +942,8 @@
         flex-direction: column;
       }
 
-      #paymentDialog .pay-dialog-footer {
-        flex-direction: column;
-        padding: 16px;
-      }
-
       #paymentDialog .btn-cobrar {
         width: 100%;
-      }
-
-      #directSaleDialog {
-        max-width: 100% !important;
-        width: 100% !important;
-        height: 100vh !important;
-        max-height: 100vh !important;
-        border-radius: 0 !important;
-        margin: 0 !important;
-        top: 0 !important;
-        left: 0 !important;
-        transform: none !important;
       }
 
       .payment-info-row {
@@ -989,7 +964,7 @@
       }
     }
 
-    @media (min-width: 769px) and (max-width: 1024px) {
+    @media (min-width: 768px) and (max-width: 1024.98px) {
       #paymentDialog {
         max-width: 90% !important;
         width: 460px !important;
@@ -1101,7 +1076,7 @@
     }
 
     .caja-card-amount {
-      font-family: 'Playfair Display', serif;
+      font-family: var(--font-display);
       font-size: 26px;
       font-weight: 700;
       color: #fff;
@@ -1229,7 +1204,7 @@
     .method-badge.transferencia { background:rgba(168,85,247,0.12); color:#c084fc; border:1px solid rgba(168,85,247,0.2); }
 
     .caja-amount-cell {
-      font-family: 'Playfair Display', serif;
+      font-family: var(--font-display);
       font-size: 15px;
       font-weight: 700;
       color: var(--venus-soft);
@@ -1309,9 +1284,9 @@
 
     .btn.small.is-active,
     .caja-filter-btn.is-active {
-      background: var(--venus) !important;
-      color: #fff !important;
-      border-color: var(--venus) !important;
+      background: oklch(48% 0.085 120) !important;
+      color: oklch(97% 0.010 88) !important;
+      border-color: oklch(48% 0.085 120) !important;
     }
 
     .btn.danger {
@@ -1365,8 +1340,9 @@
       align-items: center;
       gap: 6px;
       padding: 8px 16px;
-      background: #e8eaf6;
-      color: #5c6bc0;
+      min-height: 44px;
+      background: oklch(94% 0.022 120);
+      color: oklch(40% 0.085 120);
       border: 2px solid transparent;
       border-radius: 8px;
       font-size: 13px;
@@ -1377,14 +1353,13 @@
     }
 
     .day-label:hover {
-      background: #c5cae9;
+      background: oklch(90% 0.030 120);
     }
 
     .day-checkbox:checked+.day-label {
-      background: #5c6bc0;
-      color: white;
-      border-color: #5c6bc0;
-      box-shadow: 0 2px 8px rgba(92, 107, 192, 0.3);
+      background: oklch(48% 0.085 120);
+      color: oklch(97% 0.010 88);
+      border-color: oklch(48% 0.085 120);
     }
 
     .day-label .checkmark {
@@ -1456,7 +1431,7 @@
 
     .card h2 {
       margin: 0 0 12px;
-      font-family: 'Playfair Display', serif;
+      font-family: var(--font-display);
       font-size: 22px;
       font-weight: 500;
       color: var(--text-primary);
@@ -1464,7 +1439,7 @@
 
     .card h3 {
       margin: 0 0 12px;
-      font-family: 'Playfair Display', serif;
+      font-family: var(--font-display);
       font-size: 18px;
       font-weight: 500;
       color: var(--text-primary);
@@ -1541,7 +1516,7 @@
     }
 
     .kpi span.value {
-      font-family: 'Playfair Display', serif;
+      font-family: var(--font-display);
       font-size: 36px;
       font-weight: 700;
       color: var(--ink);
@@ -1642,10 +1617,12 @@
       position: relative;
     }
 
-    /* Asegurar que el contenedor principal no se desborde */
+    /* Asegurar que el contenedor principal no se desborde
+       (clip recorta igual que hidden pero no crea contenedor de scroll:
+       mantiene vivo el position:sticky del expediente) */
     .wrap {
       max-width: 100%;
-      overflow-x: hidden;
+      overflow-x: clip;
     }
 
     .card {
@@ -1686,7 +1663,6 @@
       padding: 14px 12px;
       border-bottom: 1px solid var(--line);
       text-align: left;
-      white-space: nowrap;
       color: var(--ink);
       visibility: visible !important;
     }
@@ -1697,6 +1673,8 @@
       text-transform: uppercase;
       letter-spacing: 0.5px;
       color: var(--muted);
+      /* nowrap solo en encabezados (cortos); en td anulaba el word-break móvil */
+      white-space: nowrap;
     }
 
     tr {
@@ -1761,7 +1739,7 @@
       text-align: center;
       margin: 0 auto;
       /* Centrado */
-      font-family: 'Poppins', sans-serif;
+      font-family: var(--font-body);
     }
 
     .gift-card-visual::before {
@@ -1996,27 +1974,33 @@
       color: #f3f3f3;
     }
 
-    /* Toggle Switch */
+    /* Toggle Switch — área táctil 44px, estado apagado visible (WCAG 1.4.11) y foco dibujable */
     .toggle-switch {
       position: relative;
+      display: inline-flex;
+      align-items: center;
       width: 48px;
-      height: 26px;
+      min-height: 44px;
     }
 
     .toggle-switch input {
+      position: absolute;
       opacity: 0;
-      width: 0;
-      height: 0;
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      cursor: pointer;
     }
 
     .toggle-slider {
-      position: absolute;
+      position: relative;
+      display: block;
+      flex: 0 0 auto;
       cursor: pointer;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background-color: rgba(255, 255, 255, 0.2);
+      width: 48px;
+      height: 26px;
+      background-color: rgba(38, 49, 35, 0.28);
+      border: 1px solid rgba(38, 49, 35, 0.32);
       transition: .3s;
       border-radius: 34px;
     }
@@ -2029,8 +2013,14 @@
       left: 3px;
       bottom: 3px;
       background-color: white;
+      box-shadow: 0 0 0 1px rgba(38, 49, 35, 0.25);
       transition: .3s;
       border-radius: 50%;
+    }
+
+    .toggle-switch input:focus-visible+.toggle-slider {
+      outline: 2px solid var(--focus-ring);
+      outline-offset: 2px;
     }
 
     .toggle-switch input:checked+.toggle-slider {
@@ -2064,8 +2054,6 @@
 
     .modal-card {
       background: var(--bg-card);
-      backdrop-filter: blur(20px) saturate(180%);
-      -webkit-backdrop-filter: blur(20px) saturate(180%);
       border-radius: var(--radius-lg);
       border: 1px solid var(--line);
       padding: 24px;
@@ -2090,7 +2078,7 @@
       .modal-card {
         width: 100%;
         max-width: 100%;
-        max-height: 95vh;
+        max-height: 95dvh;
         border-radius: var(--radius-lg) var(--radius-lg) 0 0;
         padding: 20px 16px;
         padding-bottom: calc(20px + env(safe-area-inset-bottom));
@@ -2641,19 +2629,20 @@
       font-size: 12px;
     }
 
+    /* Pareja invertida: tinte claro de fondo + tinta oscura del mismo tono (AA) */
     .stock-ok {
-      background: rgba(34, 197, 94, 0.15);
-      color: #22c55e;
+      background: oklch(94% 0.022 120);
+      color: oklch(40% 0.085 120);
     }
 
     .stock-low {
-      background: rgba(251, 191, 36, 0.15);
-      color: #fbbf24;
+      background: oklch(94% 0.045 80);
+      color: oklch(45% 0.110 80);
     }
 
     .stock-out {
-      background: rgba(239, 68, 68, 0.15);
-      color: #ef4444;
+      background: oklch(94% 0.030 28);
+      color: oklch(45% 0.140 28);
     }
 
     .stats-bar {
@@ -3469,7 +3458,7 @@
 
     .calendar-title-section h2 {
       margin: 0;
-      font-family: 'Playfair Display', serif;
+      font-family: var(--font-display);
       font-size: 24px;
       font-weight: 500;
       color: var(--text-primary);
@@ -3483,7 +3472,7 @@
     }
 
     .calendar-month {
-      font-family: 'Playfair Display', serif;
+      font-family: var(--font-display);
       font-size: 24px;
       font-weight: 500;
       color: var(--text-primary);
@@ -3495,8 +3484,10 @@
     }
 
     .btn-nav, .nav-btn {
-      width: 36px;
-      height: 36px;
+      width: auto;
+      height: auto;
+      min-width: 36px;
+      min-height: 36px;
       border-radius: 10px;
       background: var(--glass-bg);
       border: 1px solid var(--border-color);
@@ -3872,10 +3863,6 @@
         justify-content: center;
       }
 
-      .event-more {
-        display: none;
-      }
-
       /* Indicador de día seleccionado más visible */
       .calendar-day.selected {
         background: rgba(140, 150, 104, 0.25);
@@ -3948,7 +3935,7 @@
     }
 
     .section-title {
-      font-family: 'Playfair Display', serif;
+      font-family: var(--font-display);
       font-size: 18px;
       font-weight: 500;
       color: var(--text-primary);
@@ -4239,13 +4226,13 @@
       background: rgba(255, 255, 255, 0.25);
     }
 
-    /* Focus states accesibles */
+    /* Focus states accesibles (≥3:1 sobre crema con --focus-ring) */
     button:focus-visible,
     a:focus-visible,
     input:focus-visible,
     select:focus-visible,
     textarea:focus-visible {
-      outline: 2px solid var(--venus);
+      outline: 2px solid var(--focus-ring);
       outline-offset: 2px;
     }
 
@@ -5239,7 +5226,7 @@
         border-radius: 10px !important;
       }
 
-      /* Event dots: clean row of dots */
+      /* Event dots: informativos, no interactivos (el tap va al día completo) */
       .calendar-event {
         height: 4px !important;
         width: 4px !important;
@@ -5249,18 +5236,16 @@
         display: inline-block !important;
         font-size: 0 !important;
         padding: 0 !important;
+        pointer-events: none;
       }
 
-      .calendar-events-container {
+      .day-events {
         display: flex !important;
+        flex-direction: row;
         flex-wrap: wrap !important;
         gap: 2px !important;
         justify-content: center !important;
         padding: 2px 0 !important;
-      }
-
-      .event-more {
-        display: none !important;
       }
 
       /* --- Appointments sidebar: full width below calendar --- */
@@ -5317,37 +5302,10 @@
         font-size: 10px !important;
       }
 
-      /* Status dropdown: pill style, right-aligned */
-      #appts-cards-container > div select {
-        font-size: 9px !important;
-        padding: 5px 10px !important;
-        min-width: 82px !important;
-        border-radius: 999px !important;
-        letter-spacing: 0.3px !important;
-      }
-
       /* Action buttons row: full width, generous touch targets */
       #appts-cards-container > div > div:last-child {
         gap: 6px !important;
         padding-top: 10px !important;
-      }
-
-      #appts-cards-container > div > div:last-child button {
-        min-height: 38px !important;
-        font-size: 10px !important;
-        border-radius: 10px !important;
-        padding: 8px 6px !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        gap: 4px !important;
-      }
-
-      /* Edit icon button: square */
-      #appts-cards-container > div > div:last-child button:last-child {
-        flex: 0 0 38px !important;
-        min-width: 38px !important;
-        padding: 8px !important;
       }
 
       /* Add new appointment CTA: tighter on mobile */
@@ -5383,6 +5341,38 @@
       }
     }
 
+    /* Rescate táctil de tarjetas de cita: teléfono Y tablet (contrato ≤1024.98px).
+       Son los controles de cobrar/confirmar/WhatsApp: mínimo 44px y texto legible */
+    @media (max-width: 1024.98px) {
+      /* Status dropdown: pill style, right-aligned */
+      #appts-cards-container > div select {
+        font-size: 16px !important;
+        padding: 5px 10px !important;
+        min-width: 82px !important;
+        min-height: 44px;
+        border-radius: 999px !important;
+        letter-spacing: 0.3px !important;
+      }
+
+      #appts-cards-container > div > div:last-child button {
+        min-height: 44px !important;
+        font-size: 10px !important;
+        border-radius: 10px !important;
+        padding: 8px 6px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 4px !important;
+      }
+
+      /* Edit icon button: square */
+      #appts-cards-container > div > div:last-child button:last-child {
+        flex: 0 0 44px !important;
+        min-width: 44px !important;
+        padding: 8px !important;
+      }
+    }
+
     /* Mostrar solo icono en pantallas muy angostas para no romper layout */
     @media (max-width: 420px) {
       #btn-reconcile-polls span {
@@ -5405,7 +5395,8 @@
       }
 
       .calendar-day {
-        min-height: 42px !important;
+        /* sin !important: deja ganar el min-height:56px de admin-mobile.css */
+        min-height: 42px;
       }
 
       .day-number {
@@ -5488,7 +5479,7 @@
 }
 .req-name { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .req-client {
-  font-family: "Playfair Display", serif;
+  font-family: var(--font-display);
   font-size: 20px; font-weight: 500; letter-spacing: -0.01em;
   color: var(--text-primary);
 }
@@ -6054,7 +6045,7 @@
 }
 
 .agenda-title {
-  font-family: "Playfair Display", serif;
+  font-family: var(--font-display);
   font-size: clamp(28px, 3.6vw, 40px);
   font-weight: 500;
   letter-spacing: -0.015em;
@@ -6108,7 +6099,7 @@
   color: var(--text-muted);
 }
 .ssi-val {
-  font-family: "Playfair Display", serif;
+  font-family: var(--font-display);
   font-weight: 500;
   font-size: 28px;
   line-height: 1;
@@ -6247,7 +6238,7 @@
 
 /* ---- Topbar date (cuando estamos en Agenda) ---- */
 .topbar-date {
-  font-family: "DM Sans", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-weight: 500;
   font-size: 15px;
   color: var(--text-secondary);
@@ -6412,6 +6403,6 @@
 .req-preorder__note {
   margin: 6px 0 0;
   font-size: 11.5px;
-  color: var(--ink-3, oklch(60% 0.010 80));
+  color: var(--ink-3, oklch(48% 0.010 80));
   font-style: italic;
 }

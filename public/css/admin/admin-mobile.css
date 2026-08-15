@@ -70,10 +70,13 @@ html[data-theme="dark"]  { color-scheme: dark; }
   background: #8C9668 !important;
   color: #ffffff !important;
 }
-/* Overrides de los inline #fff, #888, #333 dentro del modal en light */
+/* Overrides de los inline #fff, #888, #333 dentro del modal en light.
+   Excepción: los rellenos olivo (#8C9668, ej. "Completar Cita") conservan
+   su texto claro — el barrido los pintaba casi negro y el botón primario
+   se leía como deshabilitado justo al cobrar. */
 [data-theme="light"] #modal-cobrar-cita h3,
 [data-theme="light"] #modal-cobrar-cita span[style*="color:#fff"],
-[data-theme="light"] #modal-cobrar-cita [style*="color:#fff"] {
+[data-theme="light"] #modal-cobrar-cita [style*="color:#fff"]:not([style*="background:#8C9668"]) {
   color: #1a1a1f !important;
 }
 [data-theme="light"] #modal-cobrar-cita [style*="color:#888"],
@@ -104,10 +107,12 @@ html[data-theme="dark"]  { color-scheme: dark; }
    GLOBAL TAP TARGETS Y TIPOGRAFÍA (todos los breakpoints ≤ iPad)
    ──────────────────────────────────────────────────────────── */
 @media (max-width: 1024px) {
-  /* iOS no hace zoom en focus si font-size ≥ 16px */
-  .input, input[type="text"], input[type="email"], input[type="tel"],
-  input[type="password"], input[type="number"], input[type="date"],
-  input[type="time"], input[type="search"], textarea, select {
+  /* iOS no hace zoom en focus si font-size ≥ 16px.
+     Sin lista de types: los 12+ inputs sin type= se escapaban de la lista
+     enumerada y Safari hacía zoom (P1-21). Checkbox/radio quedan fuera
+     (tienen tamaño propio en el piso táctil al final del archivo). */
+  .input, input:not([type="checkbox"]):not([type="radio"]),
+  select, textarea {
     font-size: 16px !important;
     min-height: 44px;
   }
@@ -161,8 +166,8 @@ html[data-theme="dark"]  { color-scheme: dark; }
     max-width: 100%;
   }
 
-  /* KPIs en 2 columnas iPad */
-  .kpi-grid, .stats-grid, .summary-grid,
+  /* KPIs en 2 columnas iPad
+     (.kpi-grid/.stats-grid/.summary-grid borrados: 0 usos en admin.html) */
   [class*="grid"][class*="cols-4"] {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
@@ -247,8 +252,6 @@ html[data-theme="dark"]  { color-scheme: dark; }
     bottom: 0;
     z-index: 100;
     background: oklch(99% 0.006 88 / 0.96);
-    backdrop-filter: blur(14px) saturate(1.4);
-    -webkit-backdrop-filter: blur(14px) saturate(1.4);
     border-top: 1px solid oklch(88% 0.014 88);
     padding: 8px 4px calc(8px + env(safe-area-inset-bottom));
     gap: 0;
@@ -293,8 +296,8 @@ html[data-theme="dark"]  { color-scheme: dark; }
   /* Hamburger button no se usa cuando hay bottom-nav */
   .mobile-menu-btn { display: none !important; }
 
-  /* KPIs y stats: 2 columnas en phone */
-  .kpi-grid, .stats-grid, .summary-grid,
+  /* KPIs y stats: 2 columnas en phone
+     (.kpi-grid/.stats-grid/.summary-grid borrados: 0 usos en admin.html) */
   [class*="grid"][class*="cols-3"],
   [class*="grid"][class*="cols-4"] {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
@@ -321,17 +324,31 @@ html[data-theme="dark"]  { color-scheme: dark; }
     border-radius: 14px !important;
   }
 
-  /* Forms: single column */
+  /* Forms: single column.
+     Las 6 subcadenas extra colapsan los grids inline que escapaban al
+     parche original (S2: horarios de Ajustes, datos bancarios, buscador
+     de cliente, fila Fecha/Hora de Nueva Cita, recordatorios WhatsApp).
+     [data-keep-cols] excluye los grids que SÍ funcionan en móvil
+     (auto-fit) — ese atributo lo pone el agente HTML. NO generalizar a
+     [style*="grid-template-columns"]: rompería los auto-fit. */
   .form-grid, .form-row,
   [style*="grid-template-columns:1fr 1fr"],
-  [style*="grid-template-columns: 1fr 1fr"] {
+  [style*="grid-template-columns: 1fr 1fr"],
+  [style*="grid-template-columns:64px 1fr 8px 1fr"]:not([data-keep-cols]),
+  [style*="grid-template-columns:2fr 1fr"]:not([data-keep-cols]),
+  [style*="grid-template-columns:1fr auto"]:not([data-keep-cols]),
+  [style*="grid-template-columns:1fr 140px"]:not([data-keep-cols]),
+  [style*="grid-template-columns:1.5fr 100px 90px 1fr"]:not([data-keep-cols]),
+  [style*="grid-template-columns:repeat(3,1fr)"]:not([data-keep-cols]) {
     grid-template-columns: 1fr !important;
     gap: 12px !important;
   }
 
-  /* Tablas → cards apilables. Solo si la tabla tiene <thead> y <td>.
-     Necesita que cada <td> tenga data-label (la mayoría sí lo tiene).
-     Como fallback, usamos scroll horizontal con cue visual. */
+  /* Tablas → cards apilables (solo <table class="data-table">).
+     Cada <td> necesita data-label para pintar su rótulo; sin data-label
+     la celda se muestra como bloque SIN rótulo (regla más abajo).
+     Los wrappers (.table-wrap, etc.) solo dan overflow-x auto — no
+     existe ningún cue visual de scroll. */
   .data-table-wrap, .table-wrap,
   .scroll-x, .table-scroll {
     overflow-x: auto;
@@ -351,11 +368,20 @@ html[data-theme="dark"]  { color-scheme: dark; }
   .data-table tbody { display: block; }
   .data-table tr {
     display: block;
-    background: oklch(99% 0.006 88);
     border: 1px solid oklch(88% 0.014 88);
     border-radius: 12px;
     padding: 12px 14px;
     margin-bottom: 10px;
+  }
+  /* Fondo por tema (T8/P1-19): el crema hardcodeado dejaba el texto
+     #fffdf8 del tema oscuro a ~1.0:1. Las filas-lista compactas
+     (.svc-row/.card-row, ver abajo) van planas, sin fondo de tarjeta. */
+  html[data-theme="light"] .data-table tr:not(.svc-row):not(.card-row) {
+    background: oklch(99% 0.006 88);
+  }
+  html[data-theme="dark"] .data-table tr:not(.svc-row):not(.card-row) {
+    background: var(--bg-card, #2d2f24);
+    border-color: var(--line, rgba(238, 241, 220, 0.14));
   }
   .data-table td {
     /* grid label|valor: el label queda fijo a la izquierda y el VALOR
@@ -370,20 +396,34 @@ html[data-theme="dark"]  { color-scheme: dark; }
     border: none !important;
     text-align: right;
     font-size: 13px;
+    /* El nowrap global de admin-base:1689 dejaba inertes los cortes de
+       línea de abajo (P1-18): normal les devuelve el efecto. */
+    white-space: normal;
     overflow-wrap: anywhere;
     word-break: break-word;
   }
-  .data-table td:not(:last-child) {
+  /* Separador entre celdas por tema (T8). El !important es el que ya
+     traía la regla (necesario contra el border:none !important de td).
+     Solo tbody: el tfoot va en flex y las filas-lista no llevan
+     separadores internos. */
+  html[data-theme="light"] .data-table tbody tr:not(.svc-row):not(.card-row) td:not(:last-child) {
     border-bottom: 1px solid oklch(93.5% 0.014 88) !important;
+  }
+  html[data-theme="dark"] .data-table tbody tr:not(.svc-row):not(.card-row) td:not(:last-child) {
+    border-bottom: 1px solid var(--line, rgba(238, 241, 220, 0.14)) !important;
   }
   .data-table td::before {
     content: attr(data-label);
-    color: oklch(60% 0.010 80);
+    /* 6.36:1 — el valor ya validado en #expediente-view (P1-12) */
+    color: var(--ink-3, oklch(48% 0.010 80));
     font-size: 11px;
     font-weight: 600;
     letter-spacing: 0.06em;
     text-transform: uppercase;
     text-align: left;
+  }
+  html[data-theme="dark"] .data-table td::before {
+    color: var(--text-muted, #aaa894);
   }
 
   /* Primera celda = NOMBRE del registro: título de la card a todo lo ancho,
@@ -423,6 +463,106 @@ html[data-theme="dark"]  { color-scheme: dark; }
     text-align: left;
   }
   .data-table td:not([data-label])::before { content: none; }
+
+  /* Totales del <tfoot> (Tanda 1): la card-ificación los dejaba
+     huérfanos — sin display propio quedaban en table-footer-group
+     dentro de una tabla block. Fila flex legible: etiqueta + importes. */
+  .data-table tfoot { display: block; }
+  .data-table tfoot tr {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 4px 12px;
+  }
+  .data-table tfoot td {
+    display: block;
+    flex: 0 1 auto;
+    text-align: left;
+  }
+  .data-table tfoot td:empty { display: none; }
+
+  /* Historial de Caja fuera del scroll anidado de 400px (Tanda 1;
+     el !important lo pide el informe para ganarle al max-height inline
+     de admin.html:2257). */
+  #tab-caja .table-wrap {
+    max-height: none !important;
+    overflow-y: visible !important;
+  }
+
+  /* ──────────────────────────────────────────────────────────
+     FILAS COMPACTAS DE LISTA — mandato de diseño (Servicios y
+     Tarjetas en móvil). CONTRATO con el agente HTML:
+       Servicios: tr.svc-row  + td.svc-main / td.svc-meta / td.svc-actions
+       Tarjetas:  tr.card-row + td.card-main / td.card-meta / td.card-actions
+     (tr.card-row YA existe en el renderer de Tarjetas, admin.html:7111;
+      la tabla de Tarjetas además necesita class="data-table".)
+     Fila plana sobre el panel (sin chrome de tarjeta anidada): nombre
+     con wrap a todo lo ancho, meta "60 min · $700" en una línea,
+     acciones de icono ≥44px inline a la derecha, separador hairline.
+     ────────────────────────────────────────────────────────── */
+  .data-table tr.svc-row,
+  .data-table tr.card-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: 10px;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--line, oklch(88% 0.014 88));
+    border-radius: 0;
+    padding: 4px 2px;
+    margin-bottom: 0;
+  }
+  .data-table tr.svc-row td,
+  .data-table tr.card-row td {
+    display: block;
+    text-align: left;
+    margin: 0;
+  }
+  .data-table tr.svc-row td::before,
+  .data-table tr.card-row td::before { content: none; }
+
+  /* Nombre: línea propia, fuerte, con wrap (nunca recorte) */
+  .data-table tr.svc-row td.svc-main,
+  .data-table tr.card-row td.card-main {
+    flex: 1 1 100%;
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--ink, #2b2520);
+    overflow-wrap: anywhere;
+  }
+  /* Meta secundaria en una sola línea (badge · duración · precio) */
+  .data-table tr.svc-row td.svc-meta,
+  .data-table tr.card-row td.card-meta {
+    flex: 0 1 auto;
+    font-size: 12.5px;
+    color: var(--muted, oklch(48% 0.010 80));
+  }
+  .data-table tr.svc-row td.svc-meta + td.svc-meta::before,
+  .data-table tr.card-row td.card-meta + td.card-meta::before {
+    content: '·';
+    margin-right: 8px;
+    color: var(--muted, oklch(48% 0.010 80));
+  }
+  /* Acciones compactas inline a la derecha de la línea meta */
+  .data-table tr.svc-row td.svc-actions,
+  .data-table tr.card-row td.card-actions {
+    display: flex;
+    align-items: center;
+    flex: 0 0 auto;
+    gap: 6px;
+    margin-left: auto;
+    margin-top: 0;
+  }
+  .data-table tr.svc-row td.svc-actions .btn,
+  .data-table tr.card-row td.card-actions .btn {
+    flex: 0 0 auto;
+    min-width: 44px;
+    min-height: 44px;
+    justify-content: center;
+  }
 
   /* Modales fullscreen sheet en mobile */
   dialog, .modal, .dialog {
@@ -597,6 +737,12 @@ html[data-theme="dark"]  { color-scheme: dark; }
     padding: 10px 6px;
     font-size: 12px;
   }
+  /* Vista Día: una sola cabecera — que use todo el ancho, igual que su
+     columna (que trae flex:1 inline). Antes quedaba aplastada a 110px. */
+  .day-headers .day-header-cell:only-child {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
 
   /* Grid de días: cada columna 110px, no se aplastan */
   .days-grid { min-width: max-content; }
@@ -633,12 +779,17 @@ html[data-theme="dark"]  { color-scheme: dark; }
     z-index: 16;
     pointer-events: none;
   }
+  /* Vista Día (una sola columna): el hint de deslizar no aplica.
+     En navegadores sin :has() simplemente se conserva el hint. */
+  .time-grid-container:has(.day-column:only-child)::after { content: none; }
 
   /* La vista MES también: días más chicos pero legibles */
   .calendar-grid-container { overflow-x: hidden; }
   .weekdays-header .weekday { font-size: 10px; padding: 6px 2px; }
   .calendar-grid .calendar-day, .calendar-grid > * {
-    min-height: 56px;
+    /* !important: admin-base:5407 fija 42px !important y esta regla
+       perdía sin él (P2 del informe: celdas de la vista Mes) */
+    min-height: 56px !important;
     font-size: 12px;
   }
 
@@ -997,7 +1148,7 @@ html[data-theme="dark"]  { color-scheme: dark; }
     flex: 1 1 0;
     width: auto !important;
     min-width: 0;
-    min-height: 42px;
+    min-height: 44px;
     padding: 0 10px;
     border-radius: 10px;
     font-size: 11.5px;
@@ -1032,4 +1183,35 @@ html[data-theme="dark"]  { color-scheme: dark; }
     min-height: 150px;
     padding: 22px 16px;
   }
+}
+
+/* ────────────────────────────────────────────────────────────
+   PISO TÁCTIL GENÉRICO 44px (Tanda 2 del informe).
+   Sustituye la dependencia de la lista enumerada de clases: todo
+   control nuevo nace dentro del piso. :where() = especificidad
+   cero, así cualquier regla existente puede seguir ajustando
+   casos puntuales sin pelear con esta.
+   ──────────────────────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  :where(button, [role="button"], a.btn, .chip, .gc-tab, .day-label,
+         .toggle-switch, .cmx-link, .cmx-stamp, .btn-nav, .nav-btn,
+         .view-btn, .toggle-btn, .req-deposit__view, .expense-action) {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  input[type="checkbox"], input[type="radio"] { width: 22px; height: 22px; }
+}
+
+/* ────────────────────────────────────────────────────────────
+   Afordancias que solo existían con :hover (Tanda 2 / P1-27):
+   en pantalla táctil no hay hover, así que se muestran siempre.
+   ──────────────────────────────────────────────────────────── */
+@media (hover: none) {
+  .exp-photo-delete {
+    opacity: 1;
+    width: 44px;
+    height: 44px;
+  }
+  .today-card-action { opacity: 0.55; }
+  .time-slot::after { display: block; }
 }

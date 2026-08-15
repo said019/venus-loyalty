@@ -1,6 +1,4 @@
       :root {
-        --venus: #8c9668;
-        --venus-green: #8c9668;
         --venus-soft: #c9d2a0;
         --venus-light: #eef1dc;
         --venus-olive: #4a4d3b;
@@ -21,11 +19,7 @@
 
       html,
       body {
-        background:
-          linear-gradient(90deg, rgba(238, 241, 220, 0.035) 1px, transparent 1px),
-          linear-gradient(180deg, rgba(238, 241, 220, 0.028) 1px, transparent 1px),
-          linear-gradient(145deg, #1e2018 0%, #2b2d22 54%, #3d3228 130%);
-        background-size: 44px 44px, 44px 44px, auto;
+        background: var(--bg);
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
       }
 
@@ -43,8 +37,6 @@
         padding: 12px 18px;
         background: rgba(32, 34, 25, 0.86);
         border-bottom: 1px solid var(--line);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
       }
 
       .brand img {
@@ -178,9 +170,10 @@
       .form-input:focus,
       .notify-input:focus,
       .notify-textarea:focus {
-        outline: none;
-        border-color: var(--venus-soft) !important;
-        box-shadow: 0 0 0 3px rgba(201, 210, 160, 0.18) !important;
+        outline: 2px solid var(--focus-ring);
+        outline-offset: 1px;
+        border-color: var(--focus-ring) !important;
+        box-shadow: none !important;
       }
 
       .card,
@@ -232,6 +225,15 @@
         gap: 12px;
       }
 
+      /* T4/T7: jerarquía KPI solo en escritorio. El colapso móvil
+         (2 col ≤767.98px, 1 col ≤480px) vive en las media queries de abajo
+         y en admin-extra; una declaración base aquí las mataría (S1). */
+      @media (min-width: 901px) {
+        .hero-stats {
+          grid-template-columns: 1.6fr 1fr 1fr;
+        }
+      }
+
       .hero-stat {
         min-height: 150px;
         padding: 18px;
@@ -260,7 +262,7 @@
       }
 
       .today-grid {
-        grid-template-columns: 1.2fr 1fr 1fr;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
       }
 
       .today-card {
@@ -275,7 +277,7 @@
       }
 
       .dash-grid {
-        grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+        grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.65fr);
         gap: 18px;
       }
 
@@ -473,7 +475,7 @@
         }
       }
 
-      @media (max-width: 760px) {
+      @media (max-width: 767.98px) {
         .wrap {
           padding: 12px 12px 84px;
         }
@@ -532,7 +534,7 @@
         --text-muted: #8a866f;
         --ink: #28291f;
         --muted: #6b6f5a;
-        --text-dim: #96917c;
+        --text-dim: #6b6759;
         --card: rgba(255, 253, 248, 0.94);
         --card-solid: #fffdf8;
         --panel: #faf5eb;
@@ -568,11 +570,17 @@
         --panel: #25271f;
         --line: rgba(238, 241, 220, 0.14);
         --border-color: rgba(238, 241, 220, 0.14);
+        /* T8: variante oscura coherente de los tokens nuevos.
+           --olive-deep y las fuentes se comparten con el tema claro. */
+        --olive: oklch(68% 0.06 120);
+        --olive-soft: oklch(32% 0.028 120);
+        --ink-3: oklch(80% 0.010 80);
+        --focus-ring: oklch(74% 0.05 120);
       }
 
       html[data-theme="light"] body,
       html[data-theme="dark"] body {
-        font-family: var(--font-body, "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
+        font-family: var(--font-body);
       }
 
       html[data-theme="light"] body {
@@ -632,7 +640,7 @@
 
       .sidebar-nav-item span:not(.nav-badge):not(#reviews-badge) {
         font-weight: 700;
-        color: var(--text-primary);
+        color: var(--venus-brand-cream);
         line-height: 1.1;
       }
 
@@ -668,7 +676,7 @@
 
       .topbar-greeting h2,
       #dash-greeting {
-        font-family: var(--font-body, "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
+        font-family: var(--font-body);
         font-weight: 800;
         letter-spacing: 0;
       }
@@ -785,11 +793,6 @@
         color: var(--venus);
       }
 
-      .hero-stats {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-      }
-
-      .hero-stat,
       .today-card,
       .card,
       .wallet-card,
@@ -811,14 +814,6 @@
         letter-spacing: 0.08em;
       }
 
-      .today-grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-      }
-
-      .dash-grid {
-        grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.65fr);
-      }
-
       .card-header,
       .modal-header {
         border-bottom-color: var(--line);
@@ -826,11 +821,6 @@
 
       .card-title {
         color: var(--text-primary);
-      }
-
-      .btn.primary {
-        background: #737b52;
-        border-color: #737b52;
       }
 
       .btn.primary:hover {
@@ -886,10 +876,13 @@
       }
 
       @media (max-width: 900px) {
-        .hero-stats,
         .today-grid,
         .dash-grid {
           grid-template-columns: 1fr;
+        }
+
+        .hero-stat {
+          min-height: 92px;
         }
       }
 
@@ -921,10 +914,21 @@
          ============================================================ */
       :root,
       html[data-theme="light"] {
-        --venus-brand-sage: #8b947d;
+        /* Tokens fundacionales — este archivo es el dueño (T5) */
+        --font-display: 'Playfair Display', Georgia, serif;
+        --font-body: 'DM Sans', system-ui, sans-serif;
+        --olive: oklch(58% 0.075 120);
+        --olive-deep: oklch(48% 0.085 120);
+        --olive-soft: oklch(94% 0.022 120);
+        --ink-3: oklch(48% 0.010 80);
+        --focus-ring: #656c5a;
+        /* Alias de compatibilidad para consumidores de otras hojas */
+        --venus-brand-sage: var(--olive);
         --venus-brand-cream: #f9ead8;
-        --venus: #8b947d;
-        --venus-green: #8b947d;
+        --venus: var(--olive);
+        --venus-green: var(--olive);
+        --accent-gold: var(--olive);
+        --accent-gold-light: var(--olive);
         --venus-soft: #5f694f;
         --venus-light: #eef1e5;
         --venus-olive: #263123;
@@ -934,13 +938,13 @@
         --bg-tertiary: #efe4d6;
         --bg-card: linear-gradient(180deg, rgba(249, 234, 216, 0.96), rgba(251, 247, 239, 0.9));
         --bg-card-hover: linear-gradient(180deg, rgba(249, 234, 216, 1), rgba(251, 247, 239, 0.96));
-        --bg-sidebar: linear-gradient(180deg, #8b947d 0%, #68725c 100%);
+        --bg-sidebar: linear-gradient(180deg, #656c5a 0%, #565e49 100%);
         --bg-topbar: rgba(251, 247, 239, 0.92);
         --text-primary: #263123;
         --text-secondary: rgba(38, 49, 35, 0.72);
-        --text-muted: rgba(38, 49, 35, 0.60);
+        --text-muted: rgba(38, 49, 35, 0.72);
         --ink: #263123;
-        --muted: rgba(38, 49, 35, 0.62);
+        --muted: rgba(38, 49, 35, 0.72);
         --line: rgba(104, 114, 92, 0.16);
         --line-hover: rgba(104, 114, 92, 0.30);
         --border-color: rgba(104, 114, 92, 0.16);
@@ -950,10 +954,10 @@
         --shadow-soft: 0 20px 48px rgba(38, 49, 35, 0.10);
         --shadow-md: 0 18px 42px rgba(38, 49, 35, 0.12);
         --shadow-lg: 0 28px 70px rgba(38, 49, 35, 0.16);
-        --radius: 8px;
-        --radius-sm: 8px;
-        --radius-lg: 12px;
-        --radius-xl: 14px;
+        --radius: 16px;
+        --radius-sm: 12px;
+        --radius-lg: 16px;
+        --radius-xl: 22px;
         --ease-venus: cubic-bezier(0.23, 1, 0.32, 1);
       }
 
@@ -963,7 +967,7 @@
       input,
       select,
       textarea {
-        font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+        font-family: var(--font-body) !important;
       }
 
       h1,
@@ -977,18 +981,13 @@
       .gc-stat-value,
       .wallet-card-value,
       .modal-title {
-        font-family: 'Prata', Georgia, serif !important;
+        font-family: var(--font-display) !important;
         font-weight: 400 !important;
         letter-spacing: 0 !important;
       }
 
       html[data-theme="light"] body {
-        background:
-          radial-gradient(circle at 86% 8%, rgba(139, 148, 125, 0.18), transparent 28rem),
-          linear-gradient(90deg, rgba(104, 114, 92, 0.045) 1px, transparent 1px),
-          linear-gradient(180deg, rgba(104, 114, 92, 0.035) 1px, transparent 1px),
-          #fbf7ef !important;
-        background-size: auto, 56px 56px, 56px 56px, auto !important;
+        background: oklch(96.5% 0.012 88) !important;
         color: var(--text-primary) !important;
       }
 
@@ -1012,6 +1011,7 @@
       html[data-theme="light"] .sidebar-brand-text span,
       html[data-theme="light"] .sidebar-section-label,
       html[data-theme="light"] .sidebar-nav-item,
+      html[data-theme="light"] .sidebar-nav-item i,
       html[data-theme="light"] .sidebar-nav-item small {
         color: var(--venus-brand-cream) !important;
       }
@@ -1043,8 +1043,6 @@
       html[data-theme="light"] .topbar {
         background: rgba(251, 247, 239, 0.92) !important;
         border-bottom: 1px solid rgba(104, 114, 92, 0.16) !important;
-        backdrop-filter: blur(18px) !important;
-        -webkit-backdrop-filter: blur(18px) !important;
         box-shadow: 0 16px 40px rgba(38, 49, 35, 0.07) !important;
       }
 
@@ -1054,15 +1052,13 @@
       html[data-theme="light"] .gc-stat,
       html[data-theme="light"] .stat-item,
       html[data-theme="light"] .wallet-card,
-      html[data-theme="light"] .modal-card,
-      html[data-theme="light"] dialog,
       html[data-theme="light"] .notification-dropdown,
       html[data-theme="light"] .table-wrap,
       html[data-theme="light"] .clarity-card {
         background: var(--card) !important;
         border: 1px solid rgba(104, 114, 92, 0.16) !important;
-        border-radius: 8px !important;
-        box-shadow: var(--shadow-soft) !important;
+        border-radius: var(--radius) !important;
+        box-shadow: none !important;
       }
 
       html[data-theme="light"] .btn,
@@ -1091,9 +1087,9 @@
       html[data-theme="light"] .chip.active,
       html[data-theme="light"] .gc-tab.active,
       html[data-theme="light"] .tab-btn.active .tab-count {
-        background: var(--venus-brand-sage) !important;
-        border-color: var(--venus-brand-sage) !important;
-        color: var(--venus-brand-cream) !important;
+        background: var(--olive-deep) !important;
+        border-color: var(--olive-deep) !important;
+        color: oklch(97% 0.010 88) !important;
         box-shadow: 0 18px 42px rgba(38, 49, 35, 0.14) !important;
       }
 
@@ -1115,8 +1111,8 @@
       html[data-theme="light"] select:focus,
       html[data-theme="light"] textarea:focus,
       html[data-theme="light"] .form-input:focus {
-        border-color: var(--venus-brand-sage) !important;
-        box-shadow: 0 0 0 4px rgba(139, 148, 125, 0.16) !important;
+        border-color: var(--focus-ring) !important;
+        box-shadow: none !important;
       }
 
       html[data-theme="light"] thead {
@@ -1400,7 +1396,7 @@
 .notification-header h3 {
   margin: 0 !important;
   color: var(--ink) !important;
-  font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+  font-family: var(--font-body) !important;
   font-size: 16px !important;
   font-weight: 750 !important;
   line-height: 1.2;
@@ -1646,7 +1642,7 @@ button.notification-item.unread::before {
 .notification-empty h4 {
   margin: 0 0 5px;
   color: var(--ink);
-  font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+  font-family: var(--font-body) !important;
   font-size: 14px;
   font-weight: 750 !important;
 }
@@ -1780,7 +1776,7 @@ html[data-theme="light"] button.notification-item.unread {
 #tab-reports .expenses-panel-header h3 {
   margin: 0;
   color: var(--ink);
-  font-family: 'Prata', Georgia, serif;
+  font-family: var(--font-display);
   font-size: 22px;
   font-weight: 400;
   letter-spacing: -0.02em;
@@ -1862,7 +1858,7 @@ html[data-theme="light"] button.notification-item.unread {
   display: block;
   overflow: hidden;
   color: var(--ink);
-  font-family: 'Prata', Georgia, serif;
+  font-family: var(--font-display);
   font-size: clamp(19px, 2vw, 25px);
   font-variant-numeric: tabular-nums;
   font-weight: 400;
