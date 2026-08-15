@@ -3472,6 +3472,41 @@
         background: var(--cm-surface); color: var(--cm-ink);
         border: 1px solid var(--cm-line); border-radius: 22px;
         box-shadow: 0 24px 60px oklch(20% 0.012 80 / 0.24); padding: 22px;
+        max-width: 420px; /* antes inline en el markup: anulaba el modo hoja inferior */
+      }
+      /* En teléfono el modal es una HOJA INFERIOR compacta, no una tarjeta
+         gigante flotando al centro (queja del dueño con captura real): anclada
+         abajo, solo tan alta como su contenido, esquinas redondas solo arriba.
+         La especificidad de ID de .cmx-card pisaba las reglas genéricas de
+         .modal-card, por eso el modo hoja no le aplicaba a ESTE modal. */
+      @media (max-width: 767.98px) {
+        #card-modal-backdrop { align-items: flex-end; padding: 0; }
+        #card-modal-backdrop .cmx-card {
+          width: 100%; max-width: 100%;
+          border-radius: 22px 22px 0 0;
+          border-left: 0; border-right: 0; border-bottom: 0;
+          padding: 14px 18px calc(12px + env(safe-area-inset-bottom));
+          max-height: 78dvh; overflow-y: auto;
+          animation: cmxSheetUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        /* compactar el ritmo vertical: la hoja debe medir ~2/3 de pantalla,
+           no cubrirla completa (queja del dueño con captura real) */
+        #card-modal-backdrop .cmx-head { margin-bottom: 2px; }
+        #card-modal-backdrop .cmx-title { font-size: 19px; }
+        #card-modal-backdrop .cmx-name { font-size: 19px; }
+        #card-modal-backdrop .cmx-label { margin-bottom: 2px; }
+        #card-modal-backdrop .cmx-panel { padding: 12px 14px; }
+        #card-modal-backdrop .cmx-kpi { padding: 8px 6px; }
+        #card-modal-backdrop .cmx-membership { margin-top: 8px; padding: 11px 14px; min-height: 44px; }
+        #card-modal-backdrop .cmx-details summary { padding: 9px 0; }
+        #card-modal-backdrop .cmx-links { margin-top: 8px; padding-top: 8px; }
+      }
+      @keyframes cmxSheetUp {
+        from { opacity: 0.4; transform: translateY(24px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #card-modal-backdrop .cmx-card { animation: none; }
       }
       #card-modal-backdrop .cmx-head { display:flex; align-items:center; gap:12px; margin-bottom:6px; }
       #card-modal-backdrop .cmx-avatar { width:38px; height:38px; border-radius:12px; background:var(--cm-olive-soft); color:var(--cm-olive-deep); display:flex; align-items:center; justify-content:center; font-size:16px; flex:none; }
@@ -3516,7 +3551,7 @@
       #card-modal-backdrop .cmx-link.is-danger { color:var(--cm-err); }
     </style>
     <div id="card-modal-backdrop" class="modal-backdrop hidden">
-      <div class="modal-card cmx-card" style="max-width:420px;">
+      <div class="modal-card cmx-card">
 
         <!-- Header con acciones rápidas -->
         <div class="cmx-head">
@@ -3531,9 +3566,11 @@
         <!-- Info del cliente -->
         <div class="modal-body" style="padding:0;">
 
-          <!-- Datos principales -->
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px;">
-            <div>
+          <!-- Datos principales: nombre a lo ancho; teléfono y cumpleaños
+               comparten fila también en móvil (data-keep-cols evita que el
+               parche genérico los apile y duplique el alto de la hoja). -->
+          <div data-keep-cols style="display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;margin-bottom:14px;">
+            <div style="grid-column:1/-1;">
               <div class="cmx-label">Nombre</div>
               <div id="cm-name" class="cmx-name">—</div>
             </div>
