@@ -2230,7 +2230,33 @@
 
         <!-- Tabla de ventas -->
         <div class="card">
-          <h3 style="margin-bottom:16px;font-size:15px;"><i class="fas fa-list"></i> Detalle de Ventas</h3>
+          <div class="report-sales-head">
+            <h3 style="margin:0;font-size:15px;"><i class="fas fa-list"></i> Detalle de Ventas</h3>
+            <span id="report-sales-summary" class="report-sales-summary"></span>
+          </div>
+          <!-- Filtros rápidos de la tabla: los últimos pagos primero (hoy arriba,
+               luego ayer…), buscar por clienta/servicio y acotar a un día. -->
+          <div class="report-sales-filters">
+            <label class="report-sales-search">
+              <i class="fas fa-search" aria-hidden="true"></i>
+              <input type="search" id="report-sales-search" class="form-input" placeholder="Buscar clienta o servicio…" autocomplete="off" oninput="filtrarTablaReporte()">
+            </label>
+            <label class="report-sales-day">
+              <span class="visually-hidden">Filtrar por día</span>
+              <input type="date" id="report-sales-day" class="form-input" onchange="filtrarTablaReporte()" aria-label="Filtrar por día">
+            </label>
+            <label class="report-sales-order">
+              <span class="visually-hidden">Orden</span>
+              <select id="report-sales-order" class="form-input" onchange="filtrarTablaReporte()" aria-label="Orden de la tabla">
+                <option value="desc" selected>Más recientes primero</option>
+                <option value="asc">Más antiguos primero</option>
+                <option value="monto">Mayor monto primero</option>
+              </select>
+            </label>
+            <button type="button" class="btn ghost small" id="report-sales-clear" onclick="limpiarFiltrosTablaReporte()" hidden>
+              <i class="fas fa-times" aria-hidden="true"></i> Limpiar
+            </button>
+          </div>
           <div class="table-wrap">
             <table class="data-table">
               <thead>
@@ -18460,8 +18486,11 @@
       // 5. Renderizar gráfica por servicios
       renderServicesChart(serviciosOrdenados);
 
-      // 6. Renderizar tabla detallada
-      renderExcelTable(ventas);
+      // 6. Renderizar tabla detallada — pasa por el filtro para que salga
+      //    ordenada (últimos pagos primero) y respete filtros ya elegidos.
+      //    reportData ya está asignado en ambos flujos (mes y rango).
+      if (Array.isArray(reportData) && reportData.length) filtrarTablaReporte();
+      else renderExcelTable(ventas);
     }
 
     function renderIngresosEgresosChart(ingresos, egresos) {
@@ -18640,17 +18669,69 @@
       }
     }
 
+    // Fecha efectiva de una venta (paidAt manda; startDateTime como respaldo).
+    function fechaVenta(v) {
+      const t = new Date(v.paidAt || v.startDateTime || 0).getTime();
+      return Number.isFinite(t) ? t : 0;
+    }
+    // "2026-08-15" en hora LOCAL (para comparar con el <input type=date>).
+    function claveDiaLocal(ts) {
+      const d = new Date(ts);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+    function normTexto(s) {
+      return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    }
+
     function filtrarTablaReporte() {
-      const paymentFilter = document.getElementById('filter-payment-method').value;
       if (!reportData) return;
+      const $id = (i) => document.getElementById(i);
+      const paymentFilter = $id('filter-payment-method')?.value || '';
+      const texto = normTexto($id('report-sales-search')?.value.trim());
+      const dia = $id('report-sales-day')?.value || '';
+      const orden = $id('report-sales-order')?.value || 'desc';
+
+      let ventas = reportData.slice();
 
       // Comparar normalizado: el filtro "Tarjeta" debe traer también los cobros
       // guardados como tarjeta_credito / tarjeta_debito.
-      const filteredVentas = paymentFilter
-        ? reportData.filter(v => normalizarMetodoPago(v.paymentMethod) === normalizarMetodoPago(paymentFilter))
-        : reportData;
+      if (paymentFilter) {
+        ventas = ventas.filter(v => normalizarMetodoPago(v.paymentMethod) === normalizarMetodoPago(paymentFilter));
+      }
+      if (dia) {
+        ventas = ventas.filter(v => claveDiaLocal(fechaVenta(v)) === dia);
+      }
+      if (texto) {
+        ventas = ventas.filter(v => normTexto(v.clientName).includes(texto) || normTexto(v.serviceName).includes(texto));
+      }
 
-      renderExcelTable(filteredVentas);
+      // Orden: por default los ÚLTIMOS pagos primero (hoy arriba, luego ayer…).
+      // Antes la tabla salía en el orden crudo de la API (lo más viejo arriba).
+      if (orden === 'asc') ventas.sort((a, b) => fechaVenta(a) - fechaVenta(b));
+      else if (orden === 'monto') ventas.sort((a, b) => (parseFloat(b.totalPaid) || 0) - (parseFloat(a.totalPaid) || 0));
+      else ventas.sort((a, b) => fechaVenta(b) - fechaVenta(a));
+
+      renderExcelTable(ventas);
+
+      // Resumen de lo que se está viendo + botón Limpiar solo si hay filtros activos.
+      const hayFiltros = !!(paymentFilter || texto || dia || orden !== 'desc');
+      const clear = $id('report-sales-clear');
+      if (clear) clear.hidden = !hayFiltros;
+      const sum = $id('report-sales-summary');
+      if (sum) {
+        const total = ventas.reduce((s, v) => s + (parseFloat(v.totalPaid) || 0), 0);
+        sum.textContent = `${ventas.length} pago${ventas.length === 1 ? '' : 's'} · $${total.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`
+          + (hayFiltros ? ' (filtrado)' : '');
+      }
+    }
+
+    function limpiarFiltrosTablaReporte() {
+      const $id = (i) => document.getElementById(i);
+      if ($id('report-sales-search')) $id('report-sales-search').value = '';
+      if ($id('report-sales-day')) $id('report-sales-day').value = '';
+      if ($id('report-sales-order')) $id('report-sales-order').value = 'desc';
+      if ($id('filter-payment-method')) $id('filter-payment-method').value = '';
+      filtrarTablaReporte();
     }
 
     // ========== FILTRO POR FECHAS PERSONALIZADO ==========
