@@ -824,162 +824,276 @@
         blue: 'Poros y producción de sebo', red: 'Vascularidad',
         brown: 'Manchas y melanina', positive: 'Textura ampliada',
         negative: 'Relieve y arrugas', aging_simu: 'Simulación de envejecimiento',
+        rgb: 'Luz natural', normal: 'Luz natural', polarized: 'Luz polarizada',
     };
+    const SEV_ES = { excellent: 'Excelente', good: 'Bueno', moderate: 'Moderado', concern: 'A tratar', critical: 'Crítico' };
+
+    function pdfScoreQual(n) {
+        n = Number(n);
+        if (!Number.isFinite(n)) return '';
+        if (n >= 85) return 'Excelente estado general';
+        if (n >= 70) return 'Buen estado general';
+        if (n >= 55) return 'Estado moderado, con áreas a trabajar';
+        if (n >= 40) return 'Requiere atención en varias áreas';
+        return 'Requiere atención prioritaria';
+    }
+
+    // Cabecera y pie de una hoja del PDF. `cont` = hoja de continuación (cabecera compacta).
+    function pdfPageShell(a, cont, fecha) {
+        const name = escapeHtml(a.card?.name || a.clientName || 'Sin nombre');
+        return `
+          <header class="pdf-header">
+            <div class="pdf-header-brand">
+              <img class="pdf-logo" src="/assets/logo.png" alt="Venus">
+              <div>
+                <div class="pdf-brand-name">Venus</div>
+                <div class="pdf-brand-tag">Cosmetología · San Juan del Río</div>
+              </div>
+            </div>
+            <div class="pdf-header-date">
+              <strong>${cont ? name : 'Análisis clínico de piel'}</strong>
+              <div>${cont ? 'Análisis clínico de piel · ' : ''}${fecha}</div>
+            </div>
+          </header>
+          <div class="pdf-page-body"></div>
+          <footer class="pdf-footer">
+            <span class="pdf-footer-brand">Venus Cosmetología</span>
+            <span>WhatsApp 427 165 7595 · @venuscosmetologia</span>
+            <span class="pdf-footer-page"></span>
+          </footer>`;
+    }
+
+    // Reparte los .pdf-block en hojas A4 midiendo su alto real. Un bloque que no
+    // cabe en la hoja actual pasa entero a la siguiente (nunca se parte). Los
+    // bloques con data-pdf-keep-with-next se mantienen junto al siguiente.
+    function pdfPaginate(a, fecha) {
+        const src = $('pdf-blocks');
+        const out = $('pdf-pages');
+        out.innerHTML = '';
+        const blocks = [...src.children];
+
+        // Altura útil de una hoja: 297mm - padding (14mm arriba + 22mm abajo) - cabecera.
+        const mm = (v) => v * 96 / 25.4;
+        const PAGE_H = mm(297);
+        const PAD_TOP = mm(14), PAD_BOTTOM = mm(22);
+
+        let page = null, body = null, used = 0, avail = 0, count = 0;
+
+        const newPage = () => {
+            const cont = count > 0;
+            page = document.createElement('div');
+            page.className = 'pdf-page' + (cont ? ' is-continuation' : '');
+            page.innerHTML = pdfPageShell(a, cont, fecha);
+            out.appendChild(page);
+            body = page.querySelector('.pdf-page-body');
+            count++;
+            const headerH = page.querySelector('.pdf-header').getBoundingClientRect().height;
+            avail = PAGE_H - PAD_TOP - PAD_BOTTOM - headerH;
+            used = 0;
+        };
+
+        // Medimos cada bloque en su sitio (ya está en el DOM dentro de #pdf-blocks,
+        // con el mismo ancho útil que tendrá en la hoja).
+        const heights = blocks.map(b => {
+            const r = b.getBoundingClientRect();
+            const cs = getComputedStyle(b);
+            return r.height + parseFloat(cs.marginBottom || 0);
+        });
+
+        newPage();
+        for (let i = 0; i < blocks.length; i++) {
+            const b = blocks[i];
+            let need = heights[i];
+            // keep-with-next: reserva también el alto del siguiente bloque
+            if (b.hasAttribute('data-pdf-keep-with-next') && i + 1 < blocks.length) need += heights[i + 1];
+            if (used > 0 && used + need > avail) newPage();
+            body.appendChild(b);
+            used += heights[i];
+        }
+        src.innerHTML = '';
+
+        // Numeración en el pie (además del sello vectorial que pone jsPDF).
+        const pages = out.querySelectorAll('.pdf-page');
+        pages.forEach((p, i) => { p.querySelector('.pdf-footer-page').textContent = `Página ${i + 1} de ${pages.length}`; });
+        return pages.length;
+    }
 
     function fillPDFTemplate(a) {
         const cardName = a.card?.name || a.clientName || 'Sin nombre';
         const cardPhone = a.card?.phone || a.clientPhone || '—';
         const analyzedAt = a.analyzedAt ? new Date(a.analyzedAt) : new Date();
         const fecha = analyzedAt.toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
-
-        $('pdf-date').textContent = fecha;
-        $('pdf-date-2').textContent = fecha;
-        $('pdf-client-name').textContent = cardName;
-        $('pdf-client-name-2').textContent = cardName;
-
-        const metaParts = [];
-        if (a.ageReal) metaParts.push(`<strong>${a.ageReal} años</strong>`);
-        metaParts.push(`Tel. ${escapeHtml(cardPhone)}`);
-        if (a.skinType) metaParts.push(`Piel <strong>${escapeHtml(a.skinType)}</strong>`);
-        if (a.skinColor) metaParts.push(`Fototipo <strong>${escapeHtml(a.skinColor)}</strong>`);
-        $('pdf-client-meta').innerHTML = metaParts.join(' &nbsp;·&nbsp; ');
-
-        $('pdf-score').textContent = a.overallScore != null ? Math.round(Number(a.overallScore)) : '—';
-
-        // Summary grid (4 celdas)
-        $('pdf-summary').innerHTML = `
-            <div class="pdf-summary-cell"><dt>Tipo de piel</dt><dd>${escapeHtml(a.skinType || '—')}</dd></div>
-            <div class="pdf-summary-cell"><dt>Fototipo</dt><dd>${escapeHtml(a.skinColor || '—')}</dd></div>
-            <div class="pdf-summary-cell"><dt>Rostro</dt><dd>${escapeHtml(a.faceShape || '—')}</dd></div>
-            <div class="pdf-summary-cell"><dt>Edad biológica</dt><dd>${a.ageBiological ?? '—'}${a.ageBiological && a.ageReal ? ` <span style="font-size:9pt;color:#999">(${a.ageBiological < a.ageReal ? '−' : '+'}${Math.abs(a.ageBiological - a.ageReal)})</span>` : ''}</dd></div>
-        `;
-
-        // AI narrative
         const ai = a.aiRecommendations;
-        if (ai && ai.headline && ai.summary) {
-            $('pdf-headline').textContent = ai.headline;
-            $('pdf-summary-text').textContent = ai.summary;
-            $('pdf-narrative-block').style.display = 'block';
-        } else {
-            $('pdf-narrative-block').style.display = 'none';
-        }
+        const scoreNum = a.overallScore != null ? Math.round(Number(a.overallScore)) : null;
 
-        // Concerns (top 3 critical/concern)
         const sorted = [...(a.scores || [])].sort((x, y) => {
             const so = SEVERITY_ORDER[x.severity] - SEVERITY_ORDER[y.severity];
             return so !== 0 ? so : Number(x.score) - Number(y.score);
         });
         const whyMap = {};
-        if (ai && Array.isArray(ai.concerns)) {
-            ai.concerns.forEach(c => { if (c.metric) whyMap[c.metric] = c.why; });
-        }
+        if (ai && Array.isArray(ai.concerns)) ai.concerns.forEach(c => { if (c.metric) whyMap[c.metric] = c.why; });
         const topConcerns = sorted.filter(s => s.severity === 'critical' || s.severity === 'concern').slice(0, 3);
 
-        if (topConcerns.length === 0) {
-            $('pdf-concerns').innerHTML = `
-                <div class="pdf-concern" style="border-left-color:#6e7a4e">
-                    <div class="pdf-concern-label">A+</div>
-                    <div class="pdf-concern-main">
-                        <div class="name">Piel saludable</div>
-                        <div class="why">Todas las métricas en rango óptimo.</div>
-                    </div>
-                    <div class="pdf-concern-score">${a.overallScore != null ? Math.round(Number(a.overallScore)) : '—'}<small>/100</small></div>
-                </div>
-            `;
-        } else {
-            $('pdf-concerns').innerHTML = topConcerns.map((c, idx) => `
-                <div class="pdf-concern ${c.severity}">
-                    <div class="pdf-concern-label">${String(idx + 1).padStart(2, '0')}</div>
-                    <div class="pdf-concern-main">
-                        <div class="name">${escapeHtml(c.labelEs)}</div>
-                        <div class="why">${escapeHtml(whyMap[c.metric] || (c.severity === 'critical' ? 'Requiere atención inmediata.' : 'Área a trabajar con tratamiento.'))}</div>
-                    </div>
-                    <div class="pdf-concern-score">${Math.round(Number(c.score))}<small>/100</small></div>
-                </div>
-            `).join('');
-        }
+        const B = []; // bloques HTML en orden
 
-        // Panel completo de métricas — antes el PDF solo mandaba las 3
-        // preocupaciones principales y perdía el resto (hasta 10 de 13).
-        const metricsTitle = $('pdf-metrics-title');
-        const metricsGrid = $('pdf-metrics');
-        if (metricsTitle) metricsTitle.textContent = `Panel completo — ${sorted.length} métrica${sorted.length === 1 ? '' : 's'}`;
-        if (metricsGrid) metricsGrid.innerHTML = sorted.map(s => `
-            <div class="pdf-metric-cell sev-${s.severity}">
-                <span class="label">${escapeHtml(s.labelEs)}</span>
-                <span class="score">${Math.round(Number(s.score))}</span>
+        // 1) Portada: clienta + score
+        const metaParts = [];
+        if (a.ageReal) metaParts.push(`<strong>${a.ageReal} años</strong>`);
+        metaParts.push(`Tel. ${escapeHtml(cardPhone)}`);
+        if (a.skinType) metaParts.push(`Piel <strong>${escapeHtml(a.skinType)}</strong>`);
+        if (a.skinColor) metaParts.push(`Fototipo <strong>${escapeHtml(a.skinColor)}</strong>`);
+        B.push(`
+          <div class="pdf-block pdf-hero">
+            <div>
+              <div class="pdf-hero-eyebrow">Reporte personalizado · tecnología multiespectral</div>
+              <div class="pdf-client-name">${escapeHtml(cardName)}</div>
+              <div class="pdf-client-meta">${metaParts.join(' &nbsp;·&nbsp; ')}</div>
             </div>
-        `).join('');
+            <div class="pdf-score-big">
+              <div class="pdf-score-number">${scoreNum ?? '—'}<small>/100</small></div>
+              <div class="pdf-score-label">Score general</div>
+              ${scoreNum != null ? `<div class="pdf-score-qual">${pdfScoreQual(scoreNum)}</div>` : ''}
+            </div>
+          </div>`);
 
-        // Treatments
-        const treatments = Array.isArray(ai?.recommendations) ? ai.recommendations : [];
-        if (treatments.length > 0) {
-            $('pdf-treatments').innerHTML = treatments.map((t) => `
-                <div class="pdf-treatment">
-                    <div>
-                        <div class="name">${escapeHtml(t.treatment || '—')}</div>
-                        <div class="why">${escapeHtml(t.why || '')}</div>
-                    </div>
-                    <div class="pdf-treatment-meta">
-                        <strong>${t.sessions ?? '—'}</strong>
-                        <div>${t.sessions ? 'sesiones' : ''}</div>
-                        <div style="margin-top:4px;letter-spacing:1px;text-transform:uppercase;font-size:8pt;color:#8c9668;font-weight:700;">${escapeHtml(t.frequency || '')}</div>
-                    </div>
+        // 2) Resumen de 4 datos
+        const edadBio = a.ageBiological != null ? a.ageBiological : null;
+        const delta = (edadBio != null && a.ageReal) ? ` <span>(${edadBio < a.ageReal ? '−' : '+'}${Math.abs(edadBio - a.ageReal)} vs. real)</span>` : '';
+        B.push(`
+          <dl class="pdf-block pdf-summary-grid">
+            <div class="pdf-summary-cell"><dt>Tipo de piel</dt><dd>${escapeHtml(a.skinType || '—')}</dd></div>
+            <div class="pdf-summary-cell"><dt>Fototipo</dt><dd>${escapeHtml(a.skinColor || '—')}</dd></div>
+            <div class="pdf-summary-cell"><dt>Rostro</dt><dd>${escapeHtml(a.faceShape || '—')}</dd></div>
+            <div class="pdf-summary-cell"><dt>Edad biológica</dt><dd>${edadBio ?? '—'}${delta}</dd></div>
+          </dl>`);
+
+        // 3) Narrativa IA
+        if (ai && ai.headline && ai.summary) {
+            B.push(`
+              <div class="pdf-block">
+                <h2 class="pdf-h2">Interpretación clínica <small>Asistida por IA</small></h2>
+                <div class="pdf-narrative">
+                  <div class="pdf-narrative-headline">${escapeHtml(ai.headline)}</div>
+                  <p class="pdf-narrative-summary">${escapeHtml(ai.summary)}</p>
                 </div>
-            `).join('');
-            $('pdf-treatments-block').style.display = 'block';
-        } else {
-            $('pdf-treatments-block').style.display = 'none';
+              </div>`);
         }
 
-        // Home care
+        // 4) Preocupaciones principales
+        let concernsHTML;
+        if (sorted.length === 0) {
+            concernsHTML = `<div class="pdf-concern healthy"><div class="pdf-concern-label">—</div><div class="pdf-concern-main"><div class="name">Sin métricas legibles</div><div class="why">El aparato no devolvió datos suficientes para este análisis.</div></div><div class="pdf-concern-score">—</div></div>`;
+        } else if (topConcerns.length === 0) {
+            concernsHTML = `<div class="pdf-concern healthy"><div class="pdf-concern-label">A+</div><div class="pdf-concern-main"><div class="name">Piel saludable</div><div class="why">Todas las métricas en rango óptimo.</div></div><div class="pdf-concern-score">${scoreNum ?? '—'}<small>/100</small><span class="sev">Óptimo</span></div></div>`;
+        } else {
+            concernsHTML = topConcerns.map((c, i) => `
+              <div class="pdf-concern ${c.severity}">
+                <div class="pdf-concern-label">${String(i + 1).padStart(2, '0')}</div>
+                <div class="pdf-concern-main">
+                  <div class="name">${escapeHtml(c.labelEs)}</div>
+                  <div class="why">${escapeHtml(whyMap[c.metric] || (c.severity === 'critical' ? 'Requiere atención prioritaria.' : 'Área a trabajar con tratamiento.'))}</div>
+                </div>
+                <div class="pdf-concern-score">${Math.round(Number(c.score))}<small>/100</small><span class="sev">${SEV_ES[c.severity] || ''}</span></div>
+              </div>`).join('');
+        }
+        B.push(`
+          <div class="pdf-block">
+            <h2 class="pdf-h2">Principales preocupaciones <small>${topConcerns.length ? topConcerns.length + ' de ' + sorted.length + ' métricas' : ''}</small></h2>
+            <div class="pdf-concerns-list">${concernsHTML}</div>
+          </div>`);
+
+        // 5) Panel completo de métricas (con barra)
+        if (sorted.length) {
+            B.push(`
+              <div class="pdf-block">
+                <h2 class="pdf-h2">Panel completo <small>${sorted.length} métrica${sorted.length === 1 ? '' : 's'} clínica${sorted.length === 1 ? '' : 's'}</small></h2>
+                <div class="pdf-metrics-grid">
+                  ${sorted.map(s => { const n = Math.round(Number(s.score)); const w = Math.max(0, Math.min(100, n)); return `
+                    <div class="pdf-metric-cell sev-${s.severity}">
+                      <span class="label">${escapeHtml(s.labelEs)}</span>
+                      <span class="score">${n}</span>
+                      <span class="bar"><i style="width:${w}%"></i></span>
+                    </div>`; }).join('')}
+                </div>
+                <div class="pdf-metrics-legend">
+                  <span class="l-excellent">Excelente</span><span class="l-good">Bueno</span><span class="l-moderate">Moderado</span><span class="l-concern">A tratar</span><span class="l-critical">Crítico</span>
+                </div>
+              </div>`);
+        }
+
+        // 6) Plan de tratamiento
+        const treatments = Array.isArray(ai?.recommendations) ? ai.recommendations : [];
+        if (treatments.length) {
+            B.push(`
+              <div class="pdf-block">
+                <h2 class="pdf-h2">Plan de tratamiento sugerido <small>${treatments.length} tratamiento${treatments.length === 1 ? '' : 's'}</small></h2>
+                <div class="pdf-treatments">
+                  ${treatments.map(t => `
+                    <div class="pdf-treatment">
+                      <div><div class="name">${escapeHtml(t.treatment || '—')}</div>${t.why ? `<div class="why">${escapeHtml(t.why)}</div>` : ''}</div>
+                      <div class="pdf-treatment-meta"><strong>${t.sessions ?? '—'}</strong><span class="u">${t.sessions ? (t.sessions === 1 ? 'sesión' : 'sesiones') : ''}</span>${t.frequency ? `<span class="f">${escapeHtml(t.frequency)}</span>` : ''}</div>
+                    </div>`).join('')}
+                </div>
+              </div>`);
+        }
+
+        // 7) Rutina en casa
         const homecare = Array.isArray(ai?.homeCare) ? ai.homeCare : [];
-        if (homecare.length > 0) {
-            $('pdf-homecare').innerHTML = homecare.map(tip => `<li>${escapeHtml(tip)}</li>`).join('');
-            $('pdf-homecare-block').style.display = 'block';
-        } else {
-            $('pdf-homecare-block').style.display = 'none';
+        if (homecare.length) {
+            B.push(`
+              <div class="pdf-block">
+                <h2 class="pdf-h2">Rutina en casa <small>Protocolo personalizado</small></h2>
+                <ul class="pdf-homecare">${homecare.map(t => `<li>${escapeHtml(t)}</li>`).join('')}</ul>
+              </div>`);
         }
 
-        // Next analysis
+        // 8) Cierre: próximo análisis + firma + aviso (un solo bloque para que no se separen)
         const weeks = ai?.nextAnalysisIn;
+        let nextHTML = '';
         if (weeks && Number.isFinite(weeks)) {
-            const future = new Date();
-            future.setDate(future.getDate() + (weeks * 7));
+            const future = new Date(); future.setDate(future.getDate() + weeks * 7);
             const fechaFutura = future.toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
-            $('pdf-next-value').textContent = `En ${weeks} semanas — alrededor del ${fechaFutura}`;
-            $('pdf-next-block').style.display = 'flex';
-        } else {
-            $('pdf-next-block').style.display = 'none';
+            nextHTML = `<div class="pdf-next"><div class="pdf-next-label">Próximo análisis recomendado</div><div class="pdf-next-value">En ${weeks} semanas · alrededor del ${fechaFutura}</div></div>`;
         }
+        B.push(`
+          <div class="pdf-block">
+            ${nextHTML}
+            <div class="pdf-signature">
+              <div>
+                <div class="pdf-sig-line"></div>
+                <div class="pdf-sig-name">Alondra Osorno</div>
+                <div class="pdf-sig-title">Cosmetóloga profesional</div>
+                <div class="pdf-sig-clinic">Venus Cosmetología</div>
+              </div>
+              <div class="pdf-sig-cta"><strong>Agenda tu siguiente sesión</strong>WhatsApp 427 165 7595<br>San Juan del Río, Querétaro</div>
+            </div>
+          </div>
+          <div class="pdf-block pdf-disclaimer">Este reporte es resultado de un análisis multiespectral con tecnología Yiyuan Skin Analyzer. No sustituye una valoración dermatológica. Si alguna métrica presenta score crítico (&lt;30), agenda una valoración con especialista médico.</div>`);
 
-        // Gallery page (solo si hay imágenes) — usa proxy para evitar CORS taint
-        const images = a.images || [];
-        if (images.length > 0) {
-            const shown = images.slice(0, 12); // el aparato entrega máx. 11 tipos — ya no se recorta a 9
-            $('pdf-gallery').innerHTML = shown.map(img => {
+        // 9) Galería multiespectral: en bloques de 6 (3×2) para que llene hojas enteras
+        const images = (a.images || []).slice(0, 12);
+        if (images.length) {
+            const item = (img) => {
                 const proxied = `/api/skin-analysis/image-proxy?url=${encodeURIComponent(img.originalUrl)}`;
                 const purpose = IMAGE_PURPOSE_ES[img.imageType] || '';
-                return `
-                <div class="pdf-gallery-item">
-                    <img src="${proxied}" alt="${escapeHtml(img.labelEs)}">
-                    <div class="pdf-gallery-cap"><strong>${escapeHtml(img.labelEs)}</strong>${purpose ? `<span>${escapeHtml(purpose)}</span>` : ''}</div>
-                </div>`;
-            }).join('');
-            $('pdf-page-2').style.display = 'block';
-        } else {
-            $('pdf-page-2').style.display = 'none';
+                return `<div class="pdf-gallery-item"><img src="${proxied}" alt="${escapeHtml(img.labelEs)}"><div class="pdf-gallery-cap"><strong>${escapeHtml(img.labelEs)}</strong>${purpose ? `<span>${escapeHtml(purpose)}</span>` : ''}</div></div>`;
+            };
+            // Título + intro en su propio bloque (pegado a la primera fila), y
+            // luego FILAS de 3 imágenes como bloques independientes: así la
+            // galería rellena el aire que quede en la hoja anterior en vez de
+            // saltar entera y dejar media hoja en blanco.
+            B.push(`
+              <div class="pdf-block" data-pdf-keep-with-next>
+                <h2 class="pdf-h2">Capturas multiespectrales <small>${images.length} imagen${images.length === 1 ? '' : 'es'}</small></h2>
+                <p class="pdf-gallery-intro" style="margin-bottom:0">Capturas obtenidas con iluminación polarizada, ultravioleta y canales cromáticos dedicados. Permiten detectar daño subdérmico, vascularidad y pigmentación no visibles a simple vista.</p>
+              </div>`);
+            for (let i = 0; i < images.length; i += 3) {
+                B.push(`<div class="pdf-block pdf-gallery-grid" style="margin-bottom:10px">${images.slice(i, i + 3).map(item).join('')}</div>`);
+            }
         }
-    }
 
-    function stampPageNumbers(pdf) {
-        const total = pdf.internal.getNumberOfPages();
-        for (let i = 1; i <= total; i++) {
-            pdf.setPage(i);
-            pdf.setFontSize(8);
-            pdf.setTextColor(150, 150, 150);
-            pdf.text(`Página ${i} de ${total}`, 194, 289, { align: 'right' }); // dentro del padding inferior de .pdf-page
-        }
+        $('pdf-blocks').innerHTML = B.join('');
+        return pdfPaginate(a, fecha);
     }
 
     function pdfFilename(a) {
@@ -1067,7 +1181,9 @@
                 // UN solo mecanismo de corte. Antes se combinaban 'css' + 'avoid-all'
                 // + este selector: como cada .pdf-page mide exactamente una hoja,
                 // los tres se sumaban y metían hojas en blanco intercaladas.
-                pagebreak: { mode: [], before: '#pdf-page-2' },
+                // Cada .pdf-page es una hoja A4 exacta armada por pdfPaginate(): el
+                // único corte válido es entre hojas.
+                pagebreak: { mode: [], before: '.pdf-page + .pdf-page' },
             };
 
             // Red de seguridad: si el lienzo sale de 0px, el PDF saldría en blanco
@@ -1080,13 +1196,11 @@
 
             if (mode === 'download') {
                 await worker.toPdf().get('pdf').then(pdf => {
-                    stampPageNumbers(pdf);
                     pdf.save(filename);
                 });
             } else {
                 // Share: genera blob y usa navigator.share si está disponible
                 const blob = await worker.toPdf().get('pdf').then(pdf => {
-                    stampPageNumbers(pdf);
                     return pdf.output('blob');
                 });
                 const file = new File([blob], filename, { type: 'application/pdf' });

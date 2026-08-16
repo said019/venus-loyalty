@@ -1553,23 +1553,20 @@
         }
 
         /* ═══════════════════════════════════════════════════════════
-           PDF TEMPLATE (light theme, A4 portrait, print-friendly)
-           Se renderiza off-screen y se pasa a html2pdf
+           PDF TEMPLATE — Reporte clínico Venus (A4 vertical, impresión)
+           Rediseño 16-ago-2026. Reglas de esta plantilla:
+             · PAGINACIÓN EXPLÍCITA: fillPDFTemplate() reparte los bloques
+               (.pdf-block) en hojas .pdf-page midiendo su alto real. Nada se
+               parte por la mitad; una sección que no cabe pasa entera a la
+               siguiente hoja. html2pdf solo corta en los .pdf-page.
+             · Identidad Venus (DESIGN.md): crema/avena + olivo, Playfair para
+               títulos, DM Sans para cuerpo, hairlines, sin sombras.
+             · Sin colores hex de terceros: severidad con una rampa propia.
+             · Se renderiza off-screen (#pdf-stage) y html2pdf lo CLONA — por
+               eso #pdf-root NO lleva posicionamiento (ver historia del bug
+               "PDF en blanco" del 14-ago).
            ═══════════════════════════════════════════════════════════ */
 
-        /* ⚠️ POR QUÉ EL PDF SALÍA EN BLANCO (arreglado 14-ago-2026)
-           html2pdf NO fotografía #pdf-root: lo CLONA (conservando id y clases)
-           y mete el clon en un contenedor propio con height:auto, y fotografía
-           ESE contenedor.
-           Antes #pdf-root llevaba position:absolute + opacity:0 para esconderse.
-           El clon heredaba ambas: al estar fuera de flujo, el contenedor medía
-           altura CERO -> html2canvas devolvía un lienzo de 0px -> html2pdf
-           calculaba "0 páginas" -> nunca llamaba a addImage -> jsPDF entregaba
-           su página inicial vacía. Resultado: un PDF de 3KB en blanco.
-
-           SOLUCIÓN: el escondite vive ahora en #pdf-stage, un envoltorio que la
-           librería NUNCA clona. #pdf-root queda en flujo normal, así que su clon
-           sí aporta altura real. Sin depender de nombres internos de la librería. */
         #pdf-stage {
             position: absolute;
             top: 0;
@@ -1578,514 +1575,205 @@
         }
 
         #pdf-root {
+            --p-bg: #ffffff;
+            --p-paper: #faf8f2;       /* crema muy suave para paneles */
+            --p-paper-2: #f3f0e6;
+            --p-ink: #1e1f19;
+            --p-ink-2: #4a4b42;
+            --p-ink-3: #6f7066;
+            --p-line: #e6e2d5;
+            --p-line-2: #d6d1bf;
+            --p-olive: #6d7657;
+            --p-olive-deep: #4f5840;
+            --p-olive-soft: #eef0e6;
+            /* rampa de severidad propia (impresión): verde salvia → ámbar → arcilla → rosa */
+            --p-sev-excellent: #5f8a5a;
+            --p-sev-good: #7f9b4f;
+            --p-sev-moderate: #b8912e;
+            --p-sev-concern: #c2743a;
+            --p-sev-critical: #b8534e;
             width: 210mm;
-            background: #ffffff;
-            color: #1a1a1a;
-            font-family: 'DM Sans', sans-serif;
-            font-size: 11pt;
-            line-height: 1.5;
+            background: var(--p-bg);
+            color: var(--p-ink);
+            font-family: 'DM Sans', system-ui, sans-serif;
+            font-size: 10.5pt;
+            line-height: 1.45;
             padding: 0;
         }
 
-        /* OJO: sin page-break-after aquí. Como .pdf-page mide EXACTAMENTE una
-           hoja (297mm), html2pdf calculaba un relleno de una página completa
-           después de cada una y metía hojas en blanco intercaladas. El único
-           corte lo maneja la opción "before: #pdf-page-2" en skin-analysis.js. */
+        /* Cada hoja A4 exacta. La paginación en JS garantiza que el
+           contenido no la desborde; el pie va anclado abajo. */
         .pdf-page {
-            padding: 18mm 16mm;
+            position: relative;
             width: 210mm;
-            min-height: 297mm;
+            height: 297mm;
             box-sizing: border-box;
-            background: #ffffff;
+            padding: 14mm 16mm 22mm;
+            background: var(--p-bg);
+            overflow: hidden;
         }
+        .pdf-page + .pdf-page { page-break-before: always; }
 
-        /* Venus header */
+        /* ---- Cabecera de hoja ---- */
         .pdf-header {
             display: flex;
-            align-items: center;
+            align-items: flex-end;
             justify-content: space-between;
-            padding-bottom: 14px;
-            border-bottom: 1.5px solid #8c9668;
-            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1.5px solid var(--p-olive);
+            margin-bottom: 18px;
         }
-
-        .pdf-header-brand {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-        }
-
-        .pdf-logo {
-            width: 52px;
-            height: 52px;
-            object-fit: contain;
-        }
-
+        .pdf-header-brand { display: flex; align-items: center; gap: 12px; }
+        .pdf-logo { width: 44px; height: 44px; object-fit: contain; }
         .pdf-brand-name {
-            font-family: 'Playfair Display', serif;
-            font-size: 22pt;
-            font-weight: 500;
-            color: #1a1a1a;
-            letter-spacing: -0.4px;
-            line-height: 1;
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: 19pt; font-weight: 500; letter-spacing: -0.3px; line-height: 1;
         }
-
         .pdf-brand-tag {
-            font-size: 8pt;
-            letter-spacing: 2.5px;
-            text-transform: uppercase;
-            color: #8c9668;
-            font-weight: 700;
-            margin-top: 4px;
+            font-size: 7.5pt; letter-spacing: 2.2px; text-transform: uppercase;
+            color: var(--p-olive); font-weight: 600; margin-top: 4px;
         }
-
-        .pdf-header-date {
-            text-align: right;
-            font-size: 9pt;
-            color: #555;
-        }
-
+        .pdf-header-date { text-align: right; font-size: 8.5pt; color: var(--p-ink-3); line-height: 1.4; }
         .pdf-header-date strong {
-            font-family: 'Playfair Display', serif;
-            display: block;
-            font-size: 11pt;
-            color: #1a1a1a;
-            letter-spacing: -0.2px;
-            font-weight: 500;
-            margin-bottom: 2px;
+            display: block; font-family: 'Playfair Display', Georgia, serif;
+            font-size: 10.5pt; color: var(--p-ink); font-weight: 500; letter-spacing: -0.1px;
         }
+        /* cabecera reducida en hojas de continuación */
+        .pdf-page.is-continuation .pdf-header { margin-bottom: 14px; }
+        .pdf-page.is-continuation .pdf-logo { width: 32px; height: 32px; }
+        .pdf-page.is-continuation .pdf-brand-name { font-size: 14pt; }
 
-        /* Title */
-        .pdf-title {
-            text-align: center;
-            font-family: 'Playfair Display', serif;
-            font-size: 16pt;
-            font-weight: 400;
-            font-style: italic;
-            color: #6e7a4e;
-            letter-spacing: -0.3px;
-            margin-bottom: 22px;
-        }
-
-        /* Client block */
-        .pdf-client-block {
-            background: #f7f6f0;
-            border-left: 3px solid #8c9668;
-            padding: 16px 20px;
-            margin-bottom: 22px;
-            display: grid;
-            grid-template-columns: 1fr auto;
-            gap: 16px;
-            align-items: center;
-        }
-
-        .pdf-client-name {
-            font-family: 'Playfair Display', serif;
-            font-size: 22pt;
-            font-weight: 500;
-            letter-spacing: -0.5px;
-            color: #1a1a1a;
-            line-height: 1;
-            margin-bottom: 6px;
-        }
-
-        .pdf-client-meta {
-            font-size: 9.5pt;
-            color: #666;
-            letter-spacing: 0.2px;
-        }
-
-        .pdf-client-meta strong { color: #1a1a1a; font-weight: 600; }
-
-        .pdf-score-big {
-            text-align: center;
-            padding: 0 8px;
-        }
-
-        .pdf-score-number {
-            font-family: 'Playfair Display', serif;
-            font-size: 44pt;
-            font-weight: 500;
-            letter-spacing: -1.5px;
-            color: #8c9668;
-            line-height: 1;
-        }
-
-        .pdf-score-label {
-            font-size: 7.5pt;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            color: #8c9668;
-            font-weight: 700;
-            margin-top: 4px;
-        }
-
-        /* Summary grid */
-        .pdf-summary-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 1px;
-            background: #ddd;
-            border: 1px solid #ddd;
-            margin-bottom: 24px;
-        }
-
-        .pdf-summary-cell {
-            background: #fff;
-            padding: 12px 14px;
-        }
-
-        .pdf-summary-cell dt {
-            font-size: 7.5pt;
-            font-weight: 700;
-            letter-spacing: 1.8px;
-            text-transform: uppercase;
-            color: #8c9668;
-            margin-bottom: 4px;
-        }
-
-        .pdf-summary-cell dd {
-            font-family: 'Playfair Display', serif;
-            font-size: 13pt;
-            font-weight: 500;
-            letter-spacing: -0.2px;
-            color: #1a1a1a;
-        }
-
-        /* Section title */
-        .pdf-h2 {
-            font-family: 'Playfair Display', serif;
-            font-size: 14pt;
-            font-weight: 500;
-            letter-spacing: -0.3px;
-            color: #1a1a1a;
-            padding-bottom: 6px;
-            margin-bottom: 12px;
-            border-bottom: 1px solid #e0ddd0;
-        }
-
-        /* Narrative */
-        .pdf-narrative {
-            background: #fdfcf8;
-            border: 1px solid #ebe8dc;
-            padding: 18px 22px;
-            margin-bottom: 22px;
-            border-radius: 2px;
-        }
-
-        .pdf-narrative-headline {
-            font-family: 'Playfair Display', serif;
-            font-size: 16pt;
-            font-weight: 500;
-            letter-spacing: -0.4px;
-            color: #1a1a1a;
-            line-height: 1.2;
-            margin-bottom: 10px;
-        }
-
-        .pdf-narrative-summary {
-            font-size: 10.5pt;
-            line-height: 1.55;
-            color: #333;
-        }
-
-        /* Concerns */
-        .pdf-concerns-list {
-            display: grid;
-            gap: 10px;
-            margin-bottom: 22px;
-        }
-
-        .pdf-concern {
-            display: grid;
-            grid-template-columns: auto 1fr auto;
-            gap: 16px;
-            align-items: center;
-            padding: 12px 14px;
-            background: #fafaf7;
-            border-left: 3px solid #e0a25b;
-        }
-
-        .pdf-concern.critical { border-left-color: #c75a5a; }
-
-        .pdf-concern-label {
-            font-family: 'Playfair Display', serif;
-            font-size: 18pt;
-            font-weight: 500;
-            color: #999;
-            min-width: 28px;
-        }
-
-        .pdf-concern-main .name {
-            font-family: 'Playfair Display', serif;
-            font-size: 13pt;
-            font-weight: 500;
-            color: #1a1a1a;
-            margin-bottom: 2px;
-            letter-spacing: -0.2px;
-        }
-
-        .pdf-concern-main .why {
-            font-size: 9.5pt;
-            color: #555;
-            line-height: 1.4;
-        }
-
-        .pdf-concern-score {
-            font-family: 'Playfair Display', serif;
-            font-size: 18pt;
-            font-weight: 500;
-            color: #1a1a1a;
-        }
-
-        .pdf-concern-score small {
-            font-family: 'DM Sans', sans-serif;
-            font-size: 8pt;
-            color: #999;
-            font-weight: 400;
-        }
-
-        /* Panel completo de métricas — antes el PDF solo llevaba las 3
-           preocupaciones principales y el resto (hasta 10 de 13) se perdía. */
-        .pdf-metrics-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
-            margin-bottom: 22px;
-        }
-
-        .pdf-metric-cell {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
-            padding: 8px 10px;
-            background: #fafaf7;
-            border-left: 3px solid #93a768;
-            font-size: 8.5pt;
-            page-break-inside: avoid;
-        }
-
-        .pdf-metric-cell.sev-excellent { border-left-color: #6e8f5e; }
-        .pdf-metric-cell.sev-good      { border-left-color: #93a768; }
-        .pdf-metric-cell.sev-moderate  { border-left-color: #d1a13a; }
-        .pdf-metric-cell.sev-concern   { border-left-color: #e0a25b; }
-        .pdf-metric-cell.sev-critical  { border-left-color: #c75a5a; }
-        .pdf-metric-cell .label { color: #333; }
-        .pdf-metric-cell .score { font-family: 'Playfair Display', serif; font-weight: 500; color: #1a1a1a; }
-
-        /* Treatments */
-        .pdf-treatments {
-            display: grid;
-            gap: 8px;
-            margin-bottom: 22px;
-        }
-
-        .pdf-treatment {
-            display: grid;
-            grid-template-columns: 1fr auto;
-            gap: 12px;
-            padding: 12px 16px;
-            background: #ffffff;
-            border: 1px solid #e0ddd0;
-            border-left: 3px solid #8c9668;
-        }
-
-        .pdf-treatment .name {
-            font-family: 'Playfair Display', serif;
-            font-size: 12pt;
-            font-weight: 500;
-            color: #1a1a1a;
-            margin-bottom: 2px;
-        }
-
-        .pdf-treatment .why {
-            font-size: 9.5pt;
-            color: #555;
-            line-height: 1.4;
-        }
-
-        .pdf-treatment-meta {
-            text-align: right;
-            font-size: 9pt;
-            color: #666;
-            min-width: 110px;
-        }
-
-        .pdf-treatment-meta strong {
-            font-family: 'Playfair Display', serif;
-            display: block;
-            font-size: 14pt;
-            color: #6e7a4e;
-            font-weight: 500;
-            line-height: 1;
-        }
-
-        /* Home care */
-        .pdf-homecare {
-            padding-left: 0;
-            list-style: none;
-            counter-reset: pdfhc;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-bottom: 24px;
-        }
-
-        .pdf-homecare li {
-            counter-increment: pdfhc;
-            position: relative;
-            padding: 10px 14px 10px 40px;
-            background: #fafaf7;
-            border: 1px solid #ebe8dc;
-            font-size: 9.5pt;
-            line-height: 1.4;
-            color: #333;
-        }
-
-        .pdf-homecare li::before {
-            content: counter(pdfhc, decimal-leading-zero);
-            position: absolute;
-            left: 12px;
-            top: 10px;
-            font-family: 'Playfair Display', serif;
-            font-size: 11pt;
-            color: #8c9668;
-            font-weight: 500;
-        }
-
-        /* Next */
-        .pdf-next {
-            padding: 12px 18px;
-            background: #f7f6f0;
-            border-left: 3px solid #8c9668;
-            margin-bottom: 26px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .pdf-next-label {
-            font-size: 7.5pt;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            color: #8c9668;
-            font-weight: 700;
-        }
-
-        .pdf-next-value {
-            font-family: 'Playfair Display', serif;
-            font-size: 12pt;
-            color: #1a1a1a;
-            font-weight: 500;
-        }
-
-        /* Signature */
-        .pdf-signature {
-            margin-top: 34px;
-            padding-top: 22px;
-            border-top: 1px solid #e0ddd0;
-        }
-
-        .pdf-sig-line {
-            width: 220px;
-            height: 1.5px;
-            background: #1a1a1a;
-            margin: 36px 0 8px;
-        }
-
-        .pdf-sig-name {
-            font-family: 'Playfair Display', serif;
-            font-size: 14pt;
-            font-weight: 500;
-            color: #1a1a1a;
-            letter-spacing: -0.2px;
-            line-height: 1.1;
-        }
-
-        .pdf-sig-title {
-            font-size: 9pt;
-            color: #666;
-            margin-top: 2px;
-        }
-
-        .pdf-sig-clinic {
-            font-size: 8.5pt;
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-            color: #8c9668;
-            font-weight: 700;
-            margin-top: 4px;
-        }
-
-        .pdf-sig-cta {
-            margin-top: 8px;
-            font-size: 8.5pt;
-            color: #8c9668;
-            font-weight: 600;
-        }
-
-        /* Footer */
+        /* ---- Pie de hoja, anclado ---- */
         .pdf-footer {
-            margin-top: 22px;
-            padding-top: 14px;
-            border-top: 1px solid #ebe8dc;
-            display: flex;
-            justify-content: space-between;
-            font-size: 8pt;
-            color: #999;
-            letter-spacing: 0.3px;
+            position: absolute;
+            left: 16mm; right: 16mm; bottom: 10mm;
+            display: flex; justify-content: space-between; align-items: baseline;
+            padding-top: 8px; border-top: 1px solid var(--p-line);
+            font-size: 7.5pt; color: var(--p-ink-3); letter-spacing: 0.2px;
         }
+        .pdf-footer-brand { font-weight: 600; color: var(--p-ink-2); }
+        .pdf-footer-page { font-variant-numeric: tabular-nums; }
 
-        .pdf-footer-brand { font-weight: 600; color: #555; }
+        /* ---- Bloques (unidades de paginación) ---- */
+        .pdf-block { margin-bottom: 16px; }
+        .pdf-block:last-child { margin-bottom: 0; }
 
-        /* Page 2 for images */
-        .pdf-gallery-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 8px;
-            margin-top: 14px;
+        .pdf-h2 {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: 12.5pt; font-weight: 500; letter-spacing: -0.2px;
+            color: var(--p-ink); margin: 0 0 8px;
+            display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
         }
+        .pdf-h2 small { font-family: 'DM Sans', sans-serif; font-size: 7.5pt; letter-spacing: 1.6px; text-transform: uppercase; color: var(--p-ink-3); font-weight: 600; }
 
-        .pdf-gallery-item {
-            border: 1px solid #e0ddd0;
-            background: #f7f6f0;
+        /* Portada: clienta + score */
+        .pdf-hero {
+            display: grid; grid-template-columns: 1fr auto; gap: 18px; align-items: center;
+            padding: 16px 20px; background: var(--p-paper); border: 1px solid var(--p-line); border-radius: 10px;
         }
+        .pdf-hero-eyebrow { font-size: 7.5pt; letter-spacing: 2px; text-transform: uppercase; color: var(--p-olive); font-weight: 600; margin-bottom: 4px; }
+        .pdf-client-name {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: 22pt; font-weight: 500; letter-spacing: -0.4px; line-height: 1.05; margin: 0 0 6px;
+        }
+        .pdf-client-meta { font-size: 9pt; color: var(--p-ink-3); }
+        .pdf-client-meta strong { color: var(--p-ink); font-weight: 600; }
+        .pdf-score-big { text-align: center; padding: 6px 14px 6px 22px; border-left: 1px solid var(--p-line-2); }
+        .pdf-score-number {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: 40pt; font-weight: 500; letter-spacing: -1.5px; line-height: 1; color: var(--p-olive-deep);
+        }
+        .pdf-score-number small { font-family: 'DM Sans', sans-serif; font-size: 11pt; color: var(--p-ink-3); letter-spacing: 0; }
+        .pdf-score-label { font-size: 7pt; letter-spacing: 2px; text-transform: uppercase; color: var(--p-olive); font-weight: 600; margin-top: 4px; }
+        .pdf-score-qual { font-size: 8.5pt; color: var(--p-ink-2); margin-top: 2px; }
 
-        .pdf-gallery-item img {
-            width: 100%;
-            aspect-ratio: 1;
-            object-fit: cover;
-            display: block;
-        }
+        /* Resumen: 4 datos */
+        .pdf-summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; border-top: 1px solid var(--p-line); border-bottom: 1px solid var(--p-line); margin: 0; padding: 0; }
+        .pdf-summary-cell { padding: 10px 12px; border-right: 1px solid var(--p-line); }
+        .pdf-summary-cell:last-child { border-right: 0; }
+        .pdf-summary-cell dt { font-size: 7pt; letter-spacing: 1.8px; text-transform: uppercase; color: var(--p-ink-3); font-weight: 600; margin: 0 0 3px; }
+        .pdf-summary-cell dd { margin: 0; font-family: 'Playfair Display', Georgia, serif; font-size: 12pt; font-weight: 500; letter-spacing: -0.2px; }
+        .pdf-summary-cell dd span { font-family: 'DM Sans', sans-serif; font-size: 8pt; color: var(--p-ink-3); }
 
-        .pdf-gallery-cap {
-            padding: 5px 8px;
-            letter-spacing: 0.2px;
-        }
+        /* Narrativa IA */
+        .pdf-narrative { padding: 14px 18px; background: var(--p-olive-soft); border-radius: 10px; }
+        .pdf-narrative-headline { font-family: 'Playfair Display', Georgia, serif; font-size: 13.5pt; font-weight: 500; letter-spacing: -0.3px; line-height: 1.25; margin: 0 0 8px; }
+        .pdf-narrative-summary { font-size: 10pt; line-height: 1.55; color: var(--p-ink-2); margin: 0; }
 
-        .pdf-gallery-cap strong {
-            display: block;
-            font-size: 7.5pt;
-            color: #1a1a1a;
+        /* Preocupaciones principales */
+        .pdf-concerns-list { display: grid; gap: 8px; }
+        .pdf-concern {
+            display: grid; grid-template-columns: 34px 1fr auto; gap: 12px; align-items: center;
+            padding: 10px 14px; border: 1px solid var(--p-line); border-radius: 8px; background: var(--p-bg);
         }
+        .pdf-concern-label { font-family: 'Playfair Display', Georgia, serif; font-size: 16pt; font-weight: 500; color: var(--p-ink-3); }
+        .pdf-concern-main .name { font-family: 'Playfair Display', Georgia, serif; font-size: 12pt; font-weight: 500; letter-spacing: -0.2px; }
+        .pdf-concern-main .why { font-size: 9pt; color: var(--p-ink-2); line-height: 1.4; margin-top: 2px; }
+        .pdf-concern-score { text-align: right; font-family: 'Playfair Display', Georgia, serif; font-size: 16pt; font-weight: 500; }
+        .pdf-concern-score small { font-family: 'DM Sans', sans-serif; font-size: 7.5pt; color: var(--p-ink-3); }
+        .pdf-concern-score .sev { display: block; font-family: 'DM Sans', sans-serif; font-size: 7pt; letter-spacing: 1.4px; text-transform: uppercase; font-weight: 600; margin-top: 2px; }
+        .pdf-concern.critical .pdf-concern-score, .pdf-concern.critical .sev { color: var(--p-sev-critical); }
+        .pdf-concern.concern .pdf-concern-score, .pdf-concern.concern .sev { color: var(--p-sev-concern); }
+        .pdf-concern.healthy .pdf-concern-score, .pdf-concern.healthy .sev { color: var(--p-sev-excellent); }
 
-        .pdf-gallery-cap span {
-            display: block;
-            font-size: 6.5pt;
-            color: #8c9668;
-            margin-top: 1px;
-        }
+        /* Panel completo de métricas: 2 columnas, barra de nivel */
+        .pdf-metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 18px; }
+        .pdf-metric-cell { display: grid; grid-template-columns: 1fr 34px; grid-template-rows: auto 4px; gap: 3px 10px; align-items: baseline; padding: 6px 0; border-bottom: 1px solid var(--p-line); }
+        .pdf-metric-cell .label { font-size: 9.5pt; color: var(--p-ink-2); }
+        .pdf-metric-cell .score { font-family: 'Playfair Display', Georgia, serif; font-size: 11pt; font-weight: 500; text-align: right; font-variant-numeric: tabular-nums; }
+        .pdf-metric-cell .bar { grid-column: 1 / -1; height: 4px; background: var(--p-paper-2); border-radius: 2px; overflow: hidden; }
+        .pdf-metric-cell .bar i { display: block; height: 100%; border-radius: 2px; }
+        .pdf-metric-cell.sev-excellent .bar i { background: var(--p-sev-excellent); }
+        .pdf-metric-cell.sev-good      .bar i { background: var(--p-sev-good); }
+        .pdf-metric-cell.sev-moderate  .bar i { background: var(--p-sev-moderate); }
+        .pdf-metric-cell.sev-concern   .bar i { background: var(--p-sev-concern); }
+        .pdf-metric-cell.sev-critical  .bar i { background: var(--p-sev-critical); }
+        .pdf-metric-cell.sev-critical .score, .pdf-metric-cell.sev-concern .score { color: var(--p-sev-concern); }
+        .pdf-metric-cell.sev-critical .score { color: var(--p-sev-critical); }
+        .pdf-metrics-legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 8px; font-size: 7.5pt; color: var(--p-ink-3); }
+        .pdf-metrics-legend span::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+        .pdf-metrics-legend .l-excellent::before { background: var(--p-sev-excellent); }
+        .pdf-metrics-legend .l-good::before { background: var(--p-sev-good); }
+        .pdf-metrics-legend .l-moderate::before { background: var(--p-sev-moderate); }
+        .pdf-metrics-legend .l-concern::before { background: var(--p-sev-concern); }
+        .pdf-metrics-legend .l-critical::before { background: var(--p-sev-critical); }
 
-        .pdf-disclaimer {
-            background: #fdfcf8;
-            border: 1px solid #ebe8dc;
-            padding: 10px 14px;
-            font-size: 8pt;
-            color: #666;
-            line-height: 1.4;
-            margin-top: 14px;
-        }
+        /* Plan de tratamiento */
+        .pdf-treatments { display: grid; gap: 8px; }
+        .pdf-treatment { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; padding: 10px 14px; border: 1px solid var(--p-line); border-radius: 8px; }
+        .pdf-treatment .name { font-family: 'Playfair Display', Georgia, serif; font-size: 11.5pt; font-weight: 500; }
+        .pdf-treatment .why { font-size: 9pt; color: var(--p-ink-2); line-height: 1.4; margin-top: 2px; }
+        .pdf-treatment-meta { text-align: right; min-width: 92px; }
+        .pdf-treatment-meta strong { display: block; font-family: 'Playfair Display', Georgia, serif; font-size: 15pt; color: var(--p-olive-deep); font-weight: 500; line-height: 1; }
+        .pdf-treatment-meta .u { font-size: 8pt; color: var(--p-ink-3); }
+        .pdf-treatment-meta .f { display: block; margin-top: 4px; font-size: 7pt; letter-spacing: 1.2px; text-transform: uppercase; color: var(--p-olive); font-weight: 600; }
+
+        /* Rutina en casa */
+        .pdf-homecare { list-style: none; padding: 0; margin: 0; counter-reset: pdfhc; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .pdf-homecare li { counter-increment: pdfhc; position: relative; padding: 9px 12px 9px 36px; background: var(--p-paper); border-radius: 8px; font-size: 9.5pt; line-height: 1.4; color: var(--p-ink-2); }
+        .pdf-homecare li::before { content: counter(pdfhc, decimal-leading-zero); position: absolute; left: 12px; top: 9px; font-family: 'Playfair Display', Georgia, serif; font-size: 10.5pt; color: var(--p-olive); font-weight: 500; }
+
+        /* Próximo análisis + firma (van juntos como bloque de cierre) */
+        .pdf-next { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; background: var(--p-olive-soft); border-radius: 8px; margin-bottom: 14px; }
+        .pdf-next-label { font-size: 7pt; letter-spacing: 2px; text-transform: uppercase; color: var(--p-olive); font-weight: 600; }
+        .pdf-next-value { font-family: 'Playfair Display', Georgia, serif; font-size: 11pt; font-weight: 500; }
+        .pdf-signature { display: grid; grid-template-columns: 1fr auto; gap: 18px; align-items: end; padding-top: 12px; border-top: 1px solid var(--p-line); }
+        .pdf-sig-line { width: 200px; height: 1px; background: var(--p-ink); margin: 26px 0 6px; }
+        .pdf-sig-name { font-family: 'Playfair Display', Georgia, serif; font-size: 12.5pt; font-weight: 500; letter-spacing: -0.2px; line-height: 1.1; }
+        .pdf-sig-title { font-size: 8.5pt; color: var(--p-ink-3); margin-top: 2px; }
+        .pdf-sig-clinic { font-size: 7.5pt; letter-spacing: 1.5px; text-transform: uppercase; color: var(--p-olive); font-weight: 600; margin-top: 3px; }
+        .pdf-sig-cta { text-align: right; font-size: 8.5pt; color: var(--p-ink-2); max-width: 62mm; line-height: 1.4; }
+        .pdf-sig-cta strong { display: block; color: var(--p-olive-deep); font-weight: 600; }
+        .pdf-disclaimer { font-size: 7.5pt; color: var(--p-ink-3); line-height: 1.45; padding: 8px 12px; background: var(--p-paper); border-radius: 6px; }
+
+        /* Galería multiespectral: llena la hoja (3 columnas, filas de 2 → 6 por hoja) */
+        .pdf-gallery-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .pdf-gallery-item { border: 1px solid var(--p-line); border-radius: 8px; overflow: hidden; background: var(--p-paper); page-break-inside: avoid; }
+        .pdf-gallery-item img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; background: var(--p-paper-2); }
+        .pdf-gallery-cap { padding: 7px 9px 8px; }
+        .pdf-gallery-cap strong { display: block; font-size: 8.5pt; }
+        .pdf-gallery-cap span { display: block; font-size: 7.5pt; color: var(--p-olive); margin-top: 1px; }
+        .pdf-gallery-intro { font-size: 9pt; color: var(--p-ink-2); line-height: 1.5; margin: 0 0 12px; max-width: 70ch; }
 
         /* ────── UTILITY ────── */
         .hidden { display: none !important; }
@@ -2390,127 +2078,23 @@
     </div>
 
     <!-- ════════ PDF TEMPLATE (off-screen) ════════
-         #pdf-stage es el que esconde todo fuera de pantalla. #pdf-root NO debe
-         llevar posicionamiento: html2pdf lo clona y necesita que aporte altura
-         real, o el PDF sale en blanco (ver comentario del CSS arriba). -->
+         #pdf-stage esconde todo fuera de pantalla. #pdf-root NO lleva
+         posicionamiento: html2pdf lo clona y necesita que aporte altura real.
+         Los .pdf-block se escriben en #pdf-blocks (una lista plana) y
+         fillPDFTemplate() los reparte en hojas .pdf-page midiendo su alto:
+         ninguna sección se parte por la mitad. -->
     <div id="pdf-stage" aria-hidden="true">
     <div id="pdf-root">
-        <!-- Página 1 -->
-        <div class="pdf-page" id="pdf-page-1">
-            <header class="pdf-header">
-                <div class="pdf-header-brand">
-                    <img class="pdf-logo" src="/assets/logo.png" alt="Venus">
-                    <div>
-                        <div class="pdf-brand-name">Venus</div>
-                        <div class="pdf-brand-tag">Cosmetología · SJR</div>
-                    </div>
-                </div>
-                <div class="pdf-header-date">
-                    <strong>Análisis Clínico de Piel</strong>
-                    <div id="pdf-date"></div>
-                </div>
-            </header>
-
-            <div class="pdf-title">Reporte personalizado con tecnología multiespectral</div>
-
-            <div class="pdf-client-block">
-                <div>
-                    <div class="pdf-client-name" id="pdf-client-name"></div>
-                    <div class="pdf-client-meta" id="pdf-client-meta"></div>
-                </div>
-                <div class="pdf-score-big">
-                    <div class="pdf-score-number" id="pdf-score"></div>
-                    <div class="pdf-score-label">Score general</div>
-                </div>
-            </div>
-
-            <dl class="pdf-summary-grid" id="pdf-summary"></dl>
-
-            <div id="pdf-narrative-block" style="display:none;">
-                <h2 class="pdf-h2">Interpretación clínica</h2>
-                <div class="pdf-narrative">
-                    <div class="pdf-narrative-headline" id="pdf-headline"></div>
-                    <div class="pdf-narrative-summary" id="pdf-summary-text"></div>
-                </div>
-            </div>
-
-            <h2 class="pdf-h2">Principales preocupaciones</h2>
-            <div class="pdf-concerns-list" id="pdf-concerns"></div>
-
-            <h2 class="pdf-h2" id="pdf-metrics-title">Panel completo</h2>
-            <div class="pdf-metrics-grid" id="pdf-metrics"></div>
-
-            <div id="pdf-treatments-block" style="display:none;">
-                <h2 class="pdf-h2">Plan de tratamiento sugerido</h2>
-                <div class="pdf-treatments" id="pdf-treatments"></div>
-            </div>
-
-            <div id="pdf-homecare-block" style="display:none;">
-                <h2 class="pdf-h2">Rutina en casa</h2>
-                <ul class="pdf-homecare" id="pdf-homecare"></ul>
-            </div>
-
-            <div class="pdf-next" id="pdf-next-block" style="display:none;">
-                <div>
-                    <div class="pdf-next-label">Próximo análisis recomendado</div>
-                    <div class="pdf-next-value" id="pdf-next-value"></div>
-                </div>
-            </div>
-
-            <div class="pdf-signature">
-                <div class="pdf-sig-line"></div>
-                <div class="pdf-sig-name">Alondra Osorno</div>
-                <div class="pdf-sig-title">Cosmetóloga profesional</div>
-                <div class="pdf-sig-clinic">Venus Cosmetología</div>
-                <div class="pdf-sig-cta">📅 Agenda tu siguiente sesión por WhatsApp: 427 165 7595</div>
-            </div>
-
-            <div class="pdf-disclaimer">
-                Este reporte es resultado de un análisis multiespectral con tecnología Yiyuan Skin Analyzer. No sustituye una valoración dermatológica. Si alguna métrica presenta score crítico (&lt;30), agenda una valoración con especialista médico.
-            </div>
-
-            <footer class="pdf-footer">
-                <span class="pdf-footer-brand">Venus Cosmetología</span>
-                <span>San Juan del Río, Querétaro</span>
-                <span>WhatsApp 427 165 7595 · @venuscosmetologia</span>
-            </footer>
-        </div>
-
-        <!-- Página 2: imágenes multiespectrales -->
-        <div class="pdf-page" id="pdf-page-2" style="display:none;">
-            <header class="pdf-header">
-                <div class="pdf-header-brand">
-                    <img class="pdf-logo" src="/assets/logo.png" alt="Venus">
-                    <div>
-                        <div class="pdf-brand-name">Venus</div>
-                        <div class="pdf-brand-tag">Imágenes Clínicas</div>
-                    </div>
-                </div>
-                <div class="pdf-header-date">
-                    <strong id="pdf-client-name-2"></strong>
-                    <div id="pdf-date-2"></div>
-                </div>
-            </header>
-
-            <div class="pdf-title">Capturas multiespectrales</div>
-
-            <div class="pdf-gallery-grid" id="pdf-gallery"></div>
-
-            <div class="pdf-disclaimer" style="margin-top:22px;">
-                Capturas obtenidas con iluminación polarizada, ultravioleta y canales cromáticos dedicados. Permiten detectar daño subdérmico, vascularidad y pigmentación no visibles a simple vista.
-            </div>
-
-            <footer class="pdf-footer">
-                <span class="pdf-footer-brand">Venus Cosmetología</span>
-                <span>San Juan del Río, Querétaro</span>
-                <span>WhatsApp 427 165 7595 · @venuscosmetologia</span>
-            </footer>
-        </div>
+        <!-- Los bloques se generan por JS aquí y luego se mueven a hojas.
+             Este contenedor queda vacío tras paginar. -->
+        <div id="pdf-blocks" style="width:210mm;padding:0 16mm;box-sizing:border-box;"></div>
+        <!-- Las hojas paginadas se insertan aquí. -->
+        <div id="pdf-pages"></div>
     </div>
     </div><!-- /#pdf-stage -->
 
     <!-- ?v= sube cada vez que cambia el JS: garantiza que el HTML nuevo nunca
          se empareje con un JS viejo guardado en el navegador. -->
-    <script src="/skin-analysis.js?v=20260814d" defer></script>
+    <script src="/skin-analysis.js?v=20260816a" defer></script>
 </body>
 </html>
