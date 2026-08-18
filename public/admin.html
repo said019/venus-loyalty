@@ -17146,7 +17146,7 @@
                 tipo: 'cafe',
                 hora: new Date(venta.createdAt).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }),
                 cliente: venta.folio || 'Coffee Bar',
-                concepto: concepto || 'Venus Coffee Bar',
+                concepto: concepto || 'Venus The Coffee Bar',
                 monto: monto,
                 metodo: metodo,
                 id: venta.id
@@ -18347,7 +18347,7 @@
           id: s.id,
           paidAt: s.createdAt,
           clientName: s.folio,
-          serviceName: 'Venus Coffee Bar',
+          serviceName: 'Venus The Coffee Bar',
           paymentMethod: s.paymentMethod,
           totalPaid: parseFloat(s.total),
           serviceAmount: parseFloat(s.subtotal),
@@ -18358,20 +18358,33 @@
       // Ingresos manuales + ventas directas de producto (tabla sales, sin cita).
       // Antes eran invisibles: el reporte solo leía citas + café.
       const manualSales = (manualJson && manualJson.success ? manualJson.data || [] : [])
-        .map(s => ({
-          id: s.id,
-          paidAt: s.date,
-          clientName: s.clientName || 'Ingreso manual',
-          serviceName: s.serviceName || (parseFloat(s.productsAmount) > 0 ? 'Venta de productos' : 'Ingreso manual'),
-          paymentMethod: s.paymentMethod,
-          totalPaid: parseFloat(s.totalAmount ?? s.total) || 0,
-          serviceAmount: parseFloat(s.serviceAmount) || 0,
-          discountAmount: parseFloat(s.discountAmount) || 0,
+        .map(s => {
           // Sin esto, la Venta Rápida salía como "SERVICIO" en la tabla del
           // reporte: la columna Tipo mira productsSold y no se traía.
-          productsSold: s.productsSold || s.products || [],
-          _isManualSale: true
-        }));
+          const items = s.productsSold || s.products || [];
+          // Una Venta Rápida hecha SOLO de bebidas/alimentos de barra
+          // (ids "coffee:…") es cafetería: debe registrarse en los reportes
+          // como Venus The Coffee Bar, igual que las ventas del POS del café.
+          // Antes caía como "Venta de productos" y el desglose por servicio
+          // no se la sumaba al café. Mezclada con retail se queda como
+          // productos (el ticket no se puede partir en dos renglones).
+          const esSoloBarra = items.length > 0 && items.every(p => String(p.productId || '').startsWith('coffee:'));
+          return {
+            id: s.id,
+            paidAt: s.date,
+            clientName: s.clientName || 'Ingreso manual',
+            serviceName: esSoloBarra
+              ? 'Venus The Coffee Bar'
+              : (s.serviceName || (parseFloat(s.productsAmount) > 0 ? 'Venta de productos' : 'Ingreso manual')),
+            paymentMethod: s.paymentMethod,
+            totalPaid: parseFloat(s.totalAmount ?? s.total) || 0,
+            serviceAmount: parseFloat(s.serviceAmount) || 0,
+            discountAmount: parseFloat(s.discountAmount) || 0,
+            productsSold: items,
+            _isCoffeeSale: esSoloBarra || undefined,
+            _isManualSale: true
+          };
+        });
 
       console.log('[REPORTS] Citas:', ventasCitas.length, '| Coffee:', coffeeSales.length, '| Manuales/directas:', manualSales.length);
 
