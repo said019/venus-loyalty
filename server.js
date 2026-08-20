@@ -93,6 +93,7 @@ import { getEvolutionClient } from './src/services/whatsapp-evolution.js';
 // 📋 Expedientes de Clientas
 import clientRecordsRouter from './src/routes/clientRecords.js';
 import expedientesRouter from './src/routes/expedientes.js';
+import packagesRouter from './src/routes/packages.js';
 
 // NOTA (11 jul 2026, decisión del negocio): la ficha clínica NO se envía
 // automáticamente al agendar. Se envía SOLO manual desde el expediente
@@ -701,6 +702,7 @@ app.use('/api/webhook/evolution', webhookEvolution);
 app.use('/api/client-records', clientRecordsRouter);
 // 📋 Expedientes digitales (fichas, consentimientos, diagnóstico, láser, documentos Drive)
 app.use('/api/expedientes', expedientesRouter);
+app.use('/api/packages', packagesRouter);
 
 // ☕ Venus The Coffee Bar - POS
 app.use('/api/pos', coffeePosRouter);

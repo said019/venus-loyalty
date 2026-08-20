@@ -2459,6 +2459,10 @@
           <i class="fas fa-shopping-bag"></i> Productos
           <span class="tab-count" id="products-count">0</span>
         </button>
+        <button class="tab-btn" onclick="switchCatalogTab('packages')" id="btn-tab-packages">
+          <i class="fas fa-layer-group"></i> Paquetes
+          <span class="tab-count" id="packages-count">0</span>
+        </button>
       </div>
 
       <div class="card" style="border-radius:0 0 12px 12px;margin-top:0;">
@@ -2544,8 +2548,91 @@
           </div>
         </div>
 
+        <!-- Panel: Paquetes de sesiones -->
+        <div id="panel-packages" class="tab-panel">
+          <div class="row" style="gap:12px;margin-bottom:6px;flex-wrap:wrap;align-items:center;">
+            <p class="muted" style="flex:1;min-width:220px;margin:0;font-size:12.5px;">
+              Paquetes de sesiones (láser, faciales, corporales). Se venden desde la ficha de la clienta y cada sesión se descuenta con registro de quién y cuándo.
+            </p>
+            <button class="btn primary" onclick="openPackageDialog()"><i class="fas fa-plus"></i> Nuevo Paquete</button>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Paquete</th>
+                  <th>Sesiones</th>
+                  <th>Precio</th>
+                  <th>Vigencia</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="packages-tbody">
+                <tr><td colspan="5" class="muted" style="text-align:center;padding:20px;">Cargando...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
       </div>
     </section>
+
+    <!-- Diálogo: crear/editar paquete -->
+    <dialog id="packageDialog" class="venus-dialog" style="max-width:430px;width:92vw;border:1px solid var(--line);border-radius:16px;padding:22px;">
+      <h3 id="package-dialog-title" style="margin:0 0 14px;">Nuevo paquete</h3>
+      <form id="package-form" method="dialog">
+        <input type="hidden" id="pkg-id">
+        <label for="pkg-name">Nombre<span class="req-mark" aria-hidden="true">*</span></label>
+        <input type="text" id="pkg-name" class="form-input" placeholder="Drenaje linfático · 10 sesiones" required>
+        <label for="pkg-service" style="margin-top:10px;">Servicio al que aplica (opcional)</label>
+        <input type="text" id="pkg-service" class="form-input" placeholder="Drenaje Linfático Abdomen">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
+          <div>
+            <label for="pkg-sessions">Sesiones<span class="req-mark" aria-hidden="true">*</span></label>
+            <input type="number" id="pkg-sessions" class="form-input" min="1" placeholder="10" required>
+          </div>
+          <div>
+            <label for="pkg-price">Precio ($)<span class="req-mark" aria-hidden="true">*</span></label>
+            <input type="number" id="pkg-price" class="form-input" min="0" step="0.01" placeholder="3000" required>
+          </div>
+        </div>
+        <label for="pkg-validity" style="margin-top:10px;">Vigencia en días (vacío = no vence)</label>
+        <input type="number" id="pkg-validity" class="form-input" min="1" placeholder="180">
+        <div style="display:flex;gap:10px;margin-top:16px;justify-content:flex-end;">
+          <button type="button" class="btn ghost" onclick="document.getElementById('packageDialog').close()">Cancelar</button>
+          <button type="submit" class="btn primary"><i class="fas fa-save"></i> Guardar</button>
+        </div>
+      </form>
+    </dialog>
+
+    <!-- Diálogo: vender paquete a la clienta -->
+    <dialog id="sellPackageDialog" class="venus-dialog" style="max-width:430px;width:92vw;border:1px solid var(--line);border-radius:16px;padding:22px;">
+      <h3 style="margin:0 0 4px;">Vender paquete</h3>
+      <p id="sell-pkg-client" class="muted" style="margin:0 0 14px;font-size:13px;">—</p>
+      <form id="sell-package-form" method="dialog">
+        <label for="sell-pkg-select">Paquete<span class="req-mark" aria-hidden="true">*</span></label>
+        <select id="sell-pkg-select" class="form-input" required></select>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
+          <div>
+            <label for="sell-pkg-method">Método de pago<span class="req-mark" aria-hidden="true">*</span></label>
+            <select id="sell-pkg-method" class="form-input" required>
+              <option value="efectivo">Efectivo</option>
+              <option value="tarjeta">Tarjeta</option>
+              <option value="transferencia">Transferencia</option>
+            </select>
+          </div>
+          <div>
+            <label for="sell-pkg-price">Cobrado ($)</label>
+            <input type="number" id="sell-pkg-price" class="form-input" min="0" step="0.01" placeholder="precio de lista">
+          </div>
+        </div>
+        <p class="muted" style="margin:10px 0 0;font-size:11.5px;">La venta se registra en Reportes al instante.</p>
+        <div style="display:flex;gap:10px;margin-top:16px;justify-content:flex-end;">
+          <button type="button" class="btn ghost" onclick="document.getElementById('sellPackageDialog').close()">Cancelar</button>
+          <button type="submit" class="btn primary"><i class="fas fa-cash-register"></i> Vender</button>
+        </div>
+      </form>
+    </dialog>
 
     <!-- ===== MARKETING — checklist diario ===== -->
     <section id="tab-marketing" class="card hidden">
@@ -3646,6 +3733,17 @@
             <div class="cmx-label" style="color:var(--cm-olive-deep);margin-bottom:5px;"><i class="fas fa-calendar"></i> Próxima cita</div>
             <div id="cm-next-appt-date" style="font-family:'Playfair Display',Georgia,serif;font-size:19px;font-weight:600;color:var(--cm-olive-deep);">—</div>
             <div id="cm-next-appt-service" style="font-size:13px;margin-top:2px;color:var(--cm-ink-2);">—</div>
+          </div>
+
+          <!-- Paquetes de sesiones -->
+          <div class="cmx-panel" style="margin-bottom:16px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+              <span class="cmx-label" style="margin:0;"><i class="fas fa-layer-group"></i> Paquetes</span>
+              <button class="btn small ghost" onclick="openSellPackageDialog()" style="font-size:11px;padding:4px 10px;"><i class="fas fa-plus"></i> Vender</button>
+            </div>
+            <div id="cm-packages-list" style="display:flex;flex-direction:column;gap:8px;">
+              <span class="muted" style="font-size:12px;">Cargando…</span>
+            </div>
           </div>
 
           <!-- Stats rápidos -->
@@ -7911,6 +8009,7 @@
     async function openCardModal(card) {
       window.currentCardId = card.id;
       currentCardId = card.id;
+      loadCardPackages(card.id);
 
       // Datos básicos
       document.getElementById('cm-id').textContent = card.id;
@@ -12647,6 +12746,10 @@
         document.getElementById('btn-tab-services').classList.add('active');
         document.getElementById('panel-services').classList.add('active');
         loadServicesTable();
+      } else if (tab === 'packages') {
+        document.getElementById('btn-tab-packages').classList.add('active');
+        document.getElementById('panel-packages').classList.add('active');
+        loadPackagesTable();
       } else {
         document.getElementById('btn-tab-products').classList.add('active');
         document.getElementById('panel-products').classList.add('active');
@@ -12656,6 +12759,193 @@
 
     // Hacer función global
     window.switchCatalogTab = switchCatalogTab;
+
+    // ══════════ PAQUETES DE SESIONES ══════════
+    let packagesCache = [];
+
+    async function loadPackagesTable() {
+      const tbody = document.getElementById('packages-tbody');
+      if (!tbody) return;
+      try {
+        const res = await apiFetch('/api/packages?all=1');
+        const json = await res.json();
+        if (!json.success) throw new Error(json.error);
+        packagesCache = json.data || [];
+        document.getElementById('packages-count').textContent = packagesCache.filter(p => p.isActive).length;
+        if (!packagesCache.length) {
+          tbody.innerHTML = '<tr><td colspan="5" class="muted" style="text-align:center;padding:26px;">Sin paquetes todavía. Crea el primero: los que hoy viven en la descripción del servicio ("Paquete 10 sesiones $3000") pueden llevar control real aquí.</td></tr>';
+          return;
+        }
+        tbody.innerHTML = packagesCache.map(p => `
+          <tr${p.isActive ? '' : ' style="opacity:0.5;"'}>
+            <td data-label="Paquete">${p.name}${p.serviceName ? `<div class="muted" style="font-size:11px;">${p.serviceName}</div>` : ''}${p.isActive ? '' : ' <span style="font-size:10px;font-weight:700;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:1px 6px;">INACTIVO</span>'}</td>
+            <td data-label="Sesiones">${p.sessionsTotal}</td>
+            <td data-label="Precio">$${Number(p.price).toLocaleString('es-MX')}</td>
+            <td data-label="Vigencia">${p.validityDays ? p.validityDays + ' días' : 'No vence'}</td>
+            <td data-label="Acciones">
+              <div class="actions">
+                <button class="btn small ghost" onclick="openPackageDialog('${p.id}')" title="Editar" aria-label="Editar paquete"><i class="fas fa-edit"></i></button>
+                <button class="btn small ghost" onclick="togglePackage('${p.id}', ${p.isActive ? 'false' : 'true'})" title="${p.isActive ? 'Desactivar' : 'Reactivar'}" aria-label="${p.isActive ? 'Desactivar' : 'Reactivar'} paquete" style="color:${p.isActive ? 'var(--error)' : 'var(--olive)'};border-color:currentColor;"><i class="fas fa-${p.isActive ? 'box-archive' : 'rotate-left'}"></i></button>
+              </div>
+            </td>
+          </tr>`).join('');
+      } catch (e) {
+        console.error('[PACKAGES]', e);
+        tbody.innerHTML = '<tr><td colspan="5" class="muted" style="text-align:center;padding:20px;">Error cargando paquetes</td></tr>';
+      }
+    }
+    window.loadPackagesTable = loadPackagesTable;
+
+    window.openPackageDialog = function (id) {
+      const dlg = document.getElementById('packageDialog');
+      const p = id ? packagesCache.find(x => x.id === id) : null;
+      document.getElementById('package-dialog-title').textContent = p ? 'Editar paquete' : 'Nuevo paquete';
+      document.getElementById('pkg-id').value = p ? p.id : '';
+      document.getElementById('pkg-name').value = p ? p.name : '';
+      document.getElementById('pkg-service').value = p ? (p.serviceName || '') : '';
+      document.getElementById('pkg-sessions').value = p ? p.sessionsTotal : '';
+      document.getElementById('pkg-price').value = p ? Number(p.price) : '';
+      document.getElementById('pkg-validity').value = p && p.validityDays ? p.validityDays : '';
+      dlg.showModal();
+    };
+
+    document.getElementById('package-form')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const id = document.getElementById('pkg-id').value;
+      const body = {
+        name: document.getElementById('pkg-name').value.trim(),
+        serviceName: document.getElementById('pkg-service').value.trim() || null,
+        sessionsTotal: parseInt(document.getElementById('pkg-sessions').value, 10),
+        price: parseFloat(document.getElementById('pkg-price').value),
+        validityDays: document.getElementById('pkg-validity').value || null,
+      };
+      try {
+        const res = await apiFetch(id ? `/api/packages/${id}` : '/api/packages', {
+          method: id ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+        });
+        const json = await res.json();
+        if (!json.success) throw new Error(json.error);
+        document.getElementById('packageDialog').close();
+        loadPackagesTable();
+      } catch (err) { await venusAlert('No se pudo guardar el paquete: ' + err.message); }
+    });
+
+    window.togglePackage = async function (id, activar) {
+      try {
+        const res = await apiFetch(`/api/packages/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ isActive: activar === true || activar === 'true' }) });
+        const json = await res.json();
+        if (!json.success) throw new Error(json.error);
+        loadPackagesTable();
+      } catch (err) { await venusAlert('No se pudo cambiar el paquete: ' + err.message); }
+    };
+
+    // ── Saldos en el modal de clienta ──
+    window.loadCardPackages = async function (cardId) {
+      const list = document.getElementById('cm-packages-list');
+      if (!list) return;
+      list.innerHTML = '<span class="muted" style="font-size:12px;">Cargando…</span>';
+      try {
+        const res = await apiFetch(`/api/packages/card/${cardId}`);
+        const json = await res.json();
+        if (!json.success) throw new Error(json.error);
+        const compras = (json.data || []).filter(c => c.status !== 'cancelled');
+        if (!compras.length) {
+          list.innerHTML = '<span class="muted" style="font-size:12px;">Sin paquetes. Véndele uno con el botón de arriba.</span>';
+          return;
+        }
+        const ETIQUETA = { active: '', exhausted: 'TERMINADO', expired: 'VENCIDO' };
+        list.innerHTML = compras.map(c => {
+          const pct = Math.min(100, Math.round((c.sessionsUsed / c.sessionsTotal) * 100));
+          const chip = ETIQUETA[c.status] ? `<span style="font-size:9.5px;font-weight:700;letter-spacing:0.05em;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:1px 5px;margin-left:6px;">${ETIQUETA[c.status]}</span>` : '';
+          const vence = c.expiresAt ? `· vence ${new Date(String(c.expiresAt).slice(0, 10) + 'T12:00:00').toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })}` : '';
+          return `
+          <div style="border:1px solid var(--line);border-radius:10px;padding:10px 12px;${c.status !== 'active' ? 'opacity:0.6;' : ''}">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;">
+              <span style="font-size:13px;font-weight:600;">${c.packageName || 'Paquete'}${chip}</span>
+              <span style="font-size:13px;font-weight:700;white-space:nowrap;">${c.sessionsUsed} / ${c.sessionsTotal}</span>
+            </div>
+            <div class="cmx-track" style="margin:7px 0;"><div class="cmx-fill" style="width:${pct}%;"></div></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+              <span class="muted" style="font-size:11px;">${c.sessionsRemaining} por usar ${vence}</span>
+              <div style="display:flex;gap:6px;">
+                ${c.sessionsUsed > 0 ? `<button class="btn small ghost" style="font-size:10.5px;padding:3px 8px;" onclick="revertPackageUse('${c.id}')" title="Deshacer último descuento"><i class="fas fa-rotate-left"></i></button>` : ''}
+                ${c.status === 'active' ? `<button class="btn small primary" style="font-size:11px;padding:4px 10px;" onclick="usePackageSession('${c.id}')"><i class="fas fa-check"></i> Usar sesión</button>` : ''}
+              </div>
+            </div>
+          </div>`;
+        }).join('');
+      } catch (e) {
+        console.error('[CM PACKAGES]', e);
+        list.innerHTML = '<span class="muted" style="font-size:12px;">No se pudieron cargar los paquetes</span>';
+      }
+    };
+
+    window.usePackageSession = async function (purchaseId) {
+      if (!(await venusConfirm('¿Descontar 1 sesión de este paquete?', { title: 'Usar sesión', okLabel: 'Descontar' }))) return;
+      try {
+        const res = await apiFetch(`/api/packages/purchase/${purchaseId}/use`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
+        const json = await res.json();
+        if (!json.success) {
+          const NICE = { sin_sesiones: 'Este paquete ya no tiene sesiones.', paquete_vencido: 'Este paquete ya venció.' };
+          throw new Error(NICE[json.error] || json.error);
+        }
+        loadCardPackages(window.currentCardId);
+      } catch (err) { await venusAlert(String(err.message || err)); }
+    };
+
+    window.revertPackageUse = async function (purchaseId) {
+      if (!(await venusConfirm('¿Deshacer el último descuento de sesión?', { title: 'Deshacer', okLabel: 'Deshacer' }))) return;
+      try {
+        const res = await apiFetch(`/api/packages/purchase/${purchaseId}/revert-use`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
+        const json = await res.json();
+        if (!json.success) throw new Error(json.error);
+        loadCardPackages(window.currentCardId);
+      } catch (err) { await venusAlert('No se pudo deshacer: ' + err.message); }
+    };
+
+    window.openSellPackageDialog = async function () {
+      const dlg = document.getElementById('sellPackageDialog');
+      const sel = document.getElementById('sell-pkg-select');
+      const cliente = document.getElementById('cm-name')?.textContent || '';
+      document.getElementById('sell-pkg-client').textContent = cliente ? `Para: ${cliente}` : '';
+      sel.innerHTML = '<option value="">Cargando…</option>';
+      dlg.showModal();
+      try {
+        const res = await apiFetch('/api/packages');
+        const json = await res.json();
+        const activos = (json.data || []).filter(p => p.isActive);
+        if (!activos.length) {
+          sel.innerHTML = '<option value="">No hay paquetes: créalos en Servicios → Paquetes</option>';
+          return;
+        }
+        sel.innerHTML = activos.map(p => `<option value="${p.id}" data-price="${Number(p.price)}">${p.name} · ${p.sessionsTotal} sesiones · $${Number(p.price).toLocaleString('es-MX')}</option>`).join('');
+        document.getElementById('sell-pkg-price').placeholder = `$${Number(activos[0].price).toLocaleString('es-MX')} (lista)`;
+        sel.onchange = () => {
+          const opt = sel.selectedOptions[0];
+          if (opt) document.getElementById('sell-pkg-price').placeholder = `$${Number(opt.dataset.price).toLocaleString('es-MX')} (lista)`;
+        };
+      } catch (e) { sel.innerHTML = '<option value="">Error cargando paquetes</option>'; }
+    };
+
+    document.getElementById('sell-package-form')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const packageId = document.getElementById('sell-pkg-select').value;
+      if (!packageId) return;
+      const body = {
+        packageId,
+        paymentMethod: document.getElementById('sell-pkg-method').value,
+        pricePaid: document.getElementById('sell-pkg-price').value || undefined,
+      };
+      try {
+        const res = await apiFetch(`/api/packages/card/${window.currentCardId}/sell`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        const json = await res.json();
+        if (!json.success) throw new Error(json.error);
+        document.getElementById('sellPackageDialog').close();
+        document.getElementById('sell-pkg-price').value = '';
+        loadCardPackages(window.currentCardId);
+        await venusAlert('Paquete vendido y registrado en Reportes ✓');
+      } catch (err) { await venusAlert('No se pudo vender: ' + err.message); }
+    });
 
     // Cargar servicios al abrir la pestaña de Catálogo
     document.querySelectorAll('.nav a[data-tab="catalog"], .nav a[data-tab="services"]').forEach(link => {

@@ -1082,3 +1082,86 @@ model Touchpoint {
   @@index([channel])
   @@map("touchpoints")
 }
+
+// ── Paquetes de sesiones (láser, faciales, corporales) ──────────────────
+// El catálogo ya vendía "paquetes" como texto en la descripción del
+// servicio ("Paquete 10 sesiones $3000") sin ningún control de saldo: el
+// conteo vivía en la cabeza de la dueña. Fuente #1 de conflictos.
+
+model SessionPackage {
+  id            String   @id @default(cuid())
+  name          String // "Drenaje linfático · 10 sesiones"
+  serviceName   String? // servicio al que aplica (informativo)
+  sessionsTotal Int
+  price         Decimal  @db.Decimal(10, 2)
+  validityDays  Int? // vigencia desde la compra; null = no vence
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  purchases ClientPackage[]
+
+  @@map("session_packages")
+}
+
+model ClientPackage {
+  id            String         @id @default(cuid())
+  cardId        String // clienta (Card.id)
+  packageId     String
+  package       SessionPackage @relation(fields: [packageId], references: [id])
+  sessionsTotal Int // copiado al comprar: el catálogo puede cambiar después
+  sessionsUsed  Int            @default(0)
+  pricePaid     Decimal        @db.Decimal(10, 2)
+  paymentMethod String?
+  purchasedAt   DateTime       @default(now())
+  expiresAt     DateTime?
+  status        String         @default("active") // active | exhausted | expired | cancelled
+
+  uses PackageUse[]
+
+  @@index([cardId])
+  @@map("client_packages")
+}
+
+model PackageUse {
+  id              String        @id @default(cuid())
+  clientPackageId String
+  clientPackage   ClientPackage @relation(fields: [clientPackageId], references: [id], onDelete: Cascade)
+  appointmentId   String?
+  usedAt          DateTime      @default(now())
+  by              String? // quién descontó (admin/recepcion)
+  note            String?
+
+  @@map("package_uses")
+}
+
+// ── Checklist de marketing (tablas creadas por SQL crudo del módulo de
+// marketing; se declaran aquí mapeadas EXACTAS para que `db push` no
+// intente tirarlas — deriva detectada el 20-ago-2026 con 24 filas vivas).
+
+model MarketingTask {
+  id        Int       @id @default(autoincrement())
+  section   String
+  title     String
+  detail    String?
+  frequency String    @default("once")
+  dueDate   DateTime? @map("due_date") @db.Date
+  sort      Int       @default(0)
+  active    Boolean   @default(true)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+
+  logs MarketingTaskLog[]
+
+  @@map("marketing_tasks")
+}
+
+model MarketingTaskLog {
+  id        Int           @id @default(autoincrement())
+  taskId    Int           @map("task_id")
+  task      MarketingTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  doneDate  DateTime      @map("done_date") @db.Date
+  createdAt DateTime      @default(now()) @map("created_at") @db.Timestamp(6)
+
+  @@unique([taskId, doneDate])
+  @@map("marketing_task_logs")
+}
