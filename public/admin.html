@@ -669,6 +669,7 @@
         </div>
         <div style="display:flex;gap:8px;">
           <button id="btn-reload-cards" class="btn ghost" aria-label="Recargar tarjetas"><i class="fas fa-sync-alt" aria-hidden="true"></i></button>
+          <button class="btn ghost" onclick="exportCardsCSV()" title="Descargar todas las clientas en CSV" aria-label="Exportar clientas a CSV"><i class="fas fa-file-csv" aria-hidden="true"></i></button>
           <button id="btn-scan-card" class="btn primary"><i class="fas fa-qrcode"></i> Escanear</button>
         </div>
       </div>
@@ -1805,6 +1806,9 @@
             <button class="btn small ghost" onclick="clearAppointmentsCache(); loadMonthAppointments(true); loadAppointments(true); loadMonthStats(true);" title="Actualizar">
               <i class="fas fa-sync" aria-hidden="true"></i>
             </button>
+            <button class="btn small ghost" onclick="openBlocksDialog()" title="Bloquear horarios (comida, vacaciones, mantenimiento)">
+              <i class="fas fa-ban" aria-hidden="true"></i><span class="agenda-cta-txt"> Bloquear</span>
+            </button>
             <button class="btn primary agenda-cta" id="btn-new-appointment-header">
               <i class="fas fa-plus"></i><span>Nueva cita</span>
             </button>
@@ -2632,6 +2636,44 @@
           <button type="submit" class="btn primary"><i class="fas fa-cash-register"></i> Vender</button>
         </div>
       </form>
+    </dialog>
+
+    <!-- Diálogo: bloqueos de horario -->
+    <dialog id="blocksDialog" class="venus-dialog" style="max-width:470px;width:94vw;border:1px solid var(--line);border-radius:16px;padding:22px;">
+      <h3 style="margin:0 0 4px;">Bloquear horario</h3>
+      <p class="muted" style="margin:0 0 14px;font-size:12.5px;">Comida, vacaciones, mantenimiento del aparato. Los horarios bloqueados dejan de ofrecerse en /agendar.</p>
+      <form id="block-form" method="dialog">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+          <div style="grid-column:1/-1;">
+            <label for="block-date">Fecha (vacío = todos los días)</label>
+            <input type="date" id="block-date" class="form-input">
+          </div>
+          <div>
+            <label for="block-start">Desde<span class="req-mark" aria-hidden="true">*</span></label>
+            <input type="time" id="block-start" class="form-input" required step="1800">
+          </div>
+          <div>
+            <label for="block-end">Hasta<span class="req-mark" aria-hidden="true">*</span></label>
+            <input type="time" id="block-end" class="form-input" required step="1800">
+          </div>
+          <div style="align-self:end;">
+            <button type="submit" class="btn primary" style="width:100%;"><i class="fas fa-ban"></i> Bloquear</button>
+          </div>
+          <div style="grid-column:1/-1;">
+            <label for="block-reason">Motivo (opcional)</label>
+            <input type="text" id="block-reason" class="form-input" placeholder="Comida, curso, mantenimiento…">
+          </div>
+        </div>
+      </form>
+      <div style="margin-top:16px;border-top:1px solid var(--line);padding-top:12px;">
+        <div class="cmx-label" style="margin-bottom:8px;">Bloqueos activos</div>
+        <div id="blocks-list" style="display:flex;flex-direction:column;gap:6px;max-height:220px;overflow-y:auto;">
+          <span class="muted" style="font-size:12px;">Cargando…</span>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;margin-top:14px;">
+        <button type="button" class="btn ghost" onclick="document.getElementById('blocksDialog').close()">Cerrar</button>
+      </div>
     </dialog>
 
     <!-- ===== MARKETING — checklist diario ===== -->
@@ -3759,6 +3801,10 @@
             <div class="cmx-kpi">
               <div id="cm-last-visit" class="cmx-kpi-num" style="font-size:15px;">—</div>
               <div class="cmx-kpi-lbl">Última visita</div>
+            </div>
+            <div class="cmx-kpi">
+              <div id="cm-noshow-count" class="cmx-kpi-num">—</div>
+              <div class="cmx-kpi-lbl">No asistió</div>
             </div>
           </div>
 
@@ -8299,6 +8345,22 @@
       document.getElementById('cm-cycles-completed').textContent = '...';
       document.getElementById('cm-last-visit').textContent = '...';
 
+      // No-shows: para decidir si a esta clienta se le pide anticipo aunque
+      // sea frecuente. Silencioso si falla (dato secundario).
+      const cmNoShow = document.getElementById('cm-noshow-count');
+      if (cmNoShow && card.phone) {
+        cmNoShow.textContent = '—';
+        apiFetch(`/api/appointments/client?phone=${encodeURIComponent(card.phone)}`)
+          .then(r => r.json())
+          .then(j => {
+            const citas = j.data || j.appointments || [];
+            const n = citas.filter(a => a.status === 'no_show').length;
+            cmNoShow.textContent = n;
+            cmNoShow.style.color = n >= 2 ? '#b0563f' : '';
+          })
+          .catch(() => {});
+      }
+
       try {
         // Cargar eventos de la tarjeta para calcular stats reales
         const eventsRes = await fetch(`/api/events/${card.id}`);
@@ -12760,6 +12822,117 @@
     // Hacer función global
     window.switchCatalogTab = switchCatalogTab;
 
+    // ══════════ BLOQUEOS DE HORARIO ══════════
+    // El backend (/api/calendar/blocks) existía y /agendar lo respeta desde
+    // siempre, pero no había NINGUNA forma de crear un bloqueo desde el admin:
+    // un control que existía y no se podía operar.
+    window.openBlocksDialog = function () {
+      document.getElementById('blocksDialog').showModal();
+      loadBlocksList();
+    };
+
+    async function loadBlocksList() {
+      const list = document.getElementById('blocks-list');
+      try {
+        const res = await apiFetch('/api/calendar/blocks');
+        const json = await res.json();
+        const blocks = json.data || [];
+        if (!blocks.length) { list.innerHTML = '<span class="muted" style="font-size:12px;">Sin bloqueos activos.</span>'; return; }
+        const DIAS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+        list.innerHTML = blocks.map(b => {
+          const cuando = b.date
+            ? new Date(String(b.date).slice(0, 10) + 'T12:00:00').toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })
+            : (b.dayOfWeek !== null && b.dayOfWeek !== undefined ? `Cada ${DIAS[b.dayOfWeek]}` : 'Todos los días');
+          return `
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;border:1px solid var(--line);border-radius:8px;padding:8px 10px;">
+            <span style="font-size:12.5px;"><strong>${cuando}</strong> · ${b.startTime}–${b.endTime}${b.reason ? ` · <span class="muted">${b.reason}</span>` : ''}</span>
+            <button class="btn small ghost" style="color:var(--error);border-color:var(--error);padding:3px 8px;font-size:11px;" onclick="deleteBlock('${b.id}')" aria-label="Quitar bloqueo"><i class="fas fa-times"></i></button>
+          </div>`;
+        }).join('');
+      } catch (e) { list.innerHTML = '<span class="muted" style="font-size:12px;">Error cargando bloqueos</span>'; }
+    }
+
+    document.getElementById('block-form')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const body = {
+        date: document.getElementById('block-date').value || null,
+        startTime: document.getElementById('block-start').value,
+        endTime: document.getElementById('block-end').value,
+        reason: document.getElementById('block-reason').value.trim() || null,
+      };
+      if (!body.startTime || !body.endTime) return;
+      if (body.endTime <= body.startTime) { await venusAlert('La hora final debe ser mayor que la inicial'); return; }
+      try {
+        const res = await apiFetch('/api/calendar/blocks', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        const json = await res.json();
+        if (!json.success) throw new Error(json.error);
+        document.getElementById('block-reason').value = '';
+        loadBlocksList();
+      } catch (err) { await venusAlert('No se pudo crear el bloqueo: ' + err.message); }
+    });
+
+    window.deleteBlock = async function (id) {
+      try {
+        const res = await apiFetch(`/api/calendar/blocks/${id}`, { method: 'DELETE' });
+        const json = await res.json();
+        if (!json.success) throw new Error(json.error);
+        loadBlocksList();
+      } catch (err) { await venusAlert('No se pudo quitar: ' + err.message); }
+    };
+
+    // ══════════ SIGUIENTE SESIÓN AL COBRAR ══════════
+    // En tratamientos seriados (láser, faciales, drenaje) el momento de mayor
+    // conversión para la siguiente cita es el cobro. Ofrece agendarla a 4
+    // semanas con la clienta y el servicio ya puestos.
+    window.ofrecerSiguienteSesion = async function (appointmentId) {
+      try {
+        const appt = (window.allAppointments || []).find(a => a.id === appointmentId);
+        if (!appt || !appt.clientName) return;
+        const quiere = await venusConfirm(
+          `¿Agendar la siguiente sesión de ${appt.serviceName || 'su servicio'} para ${appt.clientName}? Se propone en 4 semanas, misma hora.`,
+          { title: 'Siguiente sesión', okLabel: 'Agendar' }
+        );
+        if (!quiere) return;
+        const base = new Date((appt.date || '') + 'T12:00:00');
+        base.setDate(base.getDate() + 28);
+        const fecha = toLocalDateString(base);
+        const hora = (appt.time || '10:00');
+        openNewApptDialogWithDate(fecha, hora);
+        // Prellenar DESPUÉS de abrir: el diálogo se sanea al abrirse.
+        setTimeout(() => {
+          const c = document.getElementById('new-appt-client-select');
+          if (c) { c.value = appt.clientName; c.dataset.phone = appt.clientPhone || ''; }
+          window.selectedClientPhone = appt.clientPhone || '';
+          const svc = document.getElementById('new-appt-service');
+          if (svc && appt.serviceName) svc.value = appt.serviceName;
+        }, 150);
+      } catch (e) { console.error('[NEXT SESSION]', e); }
+    };
+
+    // ══════════ EXPORTAR CLIENTAS A CSV ══════════
+    window.exportCardsCSV = async function () {
+      try {
+        const res = await apiFetch('/api/admin/cards-firebase?limit=1000');
+        const json = await res.json();
+        const items = json.items || [];
+        const esc = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
+        const filas = [['Nombre', 'Teléfono', 'Sellos', 'Máximo', 'Última visita', 'Cumpleaños', 'Creada'].join(',')];
+        for (const c of items) {
+          filas.push([esc(c.name), esc(c.phone), c.stamps ?? 0, c.max ?? 8,
+            esc(c.lastVisit ? String(c.lastVisit).slice(0, 10) : ''),
+            esc(c.birthdate || c.birthday || ''),
+            esc(c.createdAt ? String(c.createdAt).slice(0, 10) : '')].join(','));
+        }
+        const blob = new Blob(['\ufeff' + filas.join('\n')], { type: 'text/csv;charset=utf-8' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        const d = new Date();
+        a.download = `clientas-venus-${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}.csv`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+      } catch (e) { await venusAlert('No se pudo exportar: ' + e.message); }
+    };
+
     // ══════════ PAQUETES DE SESIONES ══════════
     let packagesCache = [];
 
@@ -14131,6 +14304,9 @@
             showNotification('¡Pago registrado correctamente!', 'success');
           else 
             await venusAlert('¡Pago registrado correctamente!');
+
+          // Momento de mayor conversión: ofrecer la siguiente sesión
+          if (typeof ofrecerSiguienteSesion === 'function') ofrecerSiguienteSesion(appointmentId);
         } else {
           if (window.showNotification)
             showNotification('Error: ' + json.error, 'error');
