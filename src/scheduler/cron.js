@@ -81,6 +81,53 @@ export function startScheduler() {
     // webhook de forma confiable. Barremos el store y confirmamos/cancelamos/
     // reagendamos según el voto. Idempotente y sin enviar mensajes a clientas.
     // ========================================================================
+    // ── Felicitación de cumpleaños (10 AM México) ─────────────────────────
+    // APAGADA por defecto: solo corre si el dueño la prende en Ajustes
+    // (Setting 'birthday-greeting'). Guard de última corrida para no duplicar
+    // si el server se reinicia dentro de la misma hora.
+    cron.schedule('0 16 * * *', async () => {   // 16 UTC = 10 AM México
+        try {
+            const toggle = await prisma.setting.findUnique({ where: { key: 'birthday-greeting' } });
+            if (!(toggle && toggle.value && toggle.value.enabled)) return;
+
+            const hoyMx = getTodayDateMexico();               // YYYY-MM-DD
+            const guard = await prisma.setting.findUnique({ where: { key: 'birthday-greeting-last-run' } });
+            if (guard && guard.value && guard.value.date === hoyMx) return;
+
+            const mmdd = hoyMx.slice(5);                      // MM-DD
+            const cards = await prisma.card.findMany({ where: { birthdate: { not: null } } });
+            const cumples = cards.filter(c => c.birthdate && String(c.birthdate).slice(5, 10) === mmdd && c.phone);
+
+            await prisma.setting.upsert({
+                where: { key: 'birthday-greeting-last-run' },
+                update: { value: { date: hoyMx } },
+                create: { key: 'birthday-greeting-last-run', value: { date: hoyMx } },
+            });
+
+            if (cumples.length === 0) return;
+            console.log(`🎂 [BIRTHDAY] ${cumples.length} cumpleañera(s) hoy`);
+
+            for (const c of cumples) {
+                const nombre = String(c.name || '').split(' ')[0];
+                const msg = `🎂 ¡Feliz cumpleaños, ${nombre}!\n\nDe parte de todo el equipo de Venus Cosmetología te deseamos un día precioso. Gracias por dejarnos ser parte de tu cuidado. 🌿`;
+                try {
+                    const r = await WhatsAppService.sendText(c.phone, msg);
+                    console.log(`🎂 [BIRTHDAY] ${c.name}: ${r && r.success ? 'enviado' : 'falló'}`);
+                    await NotificationsRepo.create({
+                        type: 'CUMPLE', title: 'Felicitación enviada',
+                        message: `${c.name} recibió su felicitación de cumpleaños`,
+                        entityId: c.id,
+                    }).catch(() => {});
+                } catch (err) {
+                    console.error(`🎂 [BIRTHDAY] Error con ${c.name}:`, err.message);
+                }
+                await new Promise(r => setTimeout(r, 1500));
+            }
+        } catch (e) {
+            console.error('🎂 [BIRTHDAY] Error del job:', e.message);
+        }
+    });
+
     cron.schedule('*/3 * * * *', async () => {
         try {
             const { changes } = await reconcilePollVotes({ apply: true });

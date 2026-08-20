@@ -1926,6 +1926,16 @@ app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
     // Actualizar en BD usando repositorio
     await AppointmentsRepo.update(id, updateData);
 
+    // Aviso de reagendo: si cambió fecha u hora, la clienta debe enterarse al
+    // momento (antes solo se enteraba con la encuesta del día, o nunca).
+    // notifyClient:false en el body lo silencia para correcciones internas.
+    const cambioFechaHora = (appointment.date !== date) || (appointment.time !== time);
+    if (cambioFechaHora && req.body.notifyClient !== false && appointment.clientPhone) {
+      WhatsAppService.sendReagendamientoConfirmado({ ...appointment, ...updateData })
+        .then(r => console.log(`[PATCH] 📅 Aviso de reagendo ${r.success ? 'enviado' : 'falló'} → ${appointment.clientName}`))
+        .catch(err => console.error('[PATCH] ❌ Aviso de reagendo:', err.message));
+    }
+
     // ⭐ ACTUALIZAR GOOGLE CALENDAR si hay eventos asociados
     const startDateTimeMX = `${date}T${time}:00-06:00`;
     const duration = durationMinutes || 60;
@@ -5211,12 +5221,31 @@ app.get("/api/admin/cards-firebase", adminAuth, requireRole("admin"), async (req
       ]
     } : {};
 
+    // Orden: el dropdown del admin manda sort/order pero el servidor los
+    // ignoraba (siempre createdAt desc — 'Nombre A-Z' y compañía no hacían
+    // nada). filter=dormidas: clientas sin visita en 60+ días, la lista de
+    // retención más barata que existe.
+    const SORT_FIELDS = { created_at: 'createdAt', name: 'name', stamps: 'stamps', last_visit: 'lastVisit' };
+    const sortField = SORT_FIELDS[req.query.sort] || 'createdAt';
+    const sortOrder = req.query.order === 'asc' ? 'asc' : 'desc';
+
+    if (req.query.filter === 'dormidas') {
+      const corte = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
+      where.AND = [
+        { OR: [{ lastVisit: { lt: corte } }, { lastVisit: null, createdAt: { lt: corte } }] },
+      ];
+    }
+
+    const orderBy = req.query.filter === 'dormidas'
+      ? [{ lastVisit: { sort: 'asc', nulls: 'first' } }]
+      : [{ [sortField]: sortOrder }];
+
     const [items, total] = await Promise.all([
       prisma.card.findMany({
         where,
         skip,
         take: limit,
-        orderBy: { createdAt: 'desc' }
+        orderBy
       }),
       prisma.card.count({ where })
     ]);
@@ -5232,6 +5261,28 @@ app.get("/api/admin/cards-firebase", adminAuth, requireRole("admin"), async (req
     console.error("[CARDS-FIREBASE]", e);
     res.status(500).json({ error: e.message });
   }
+});
+
+// Felicitación de cumpleaños por WhatsApp — interruptor (APAGADO por
+// defecto: ningún mensaje automático nuevo sale sin que el dueño lo prenda).
+app.get('/api/admin/config/birthday-greeting', adminAuth, async (req, res) => {
+  try {
+    const row = await prisma.setting.findUnique({ where: { key: 'birthday-greeting' } });
+    res.json({ success: true, enabled: !!(row && row.value && row.value.enabled) });
+  } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+app.post('/api/admin/config/birthday-greeting', adminAuth, requireRole("admin"), async (req, res) => {
+  try {
+    const enabled = req.body && req.body.enabled === true;
+    await prisma.setting.upsert({
+      where: { key: 'birthday-greeting' },
+      update: { value: { enabled } },
+      create: { key: 'birthday-greeting', value: { enabled } },
+    });
+    console.log(`[BIRTHDAY] Felicitaciones automáticas: ${enabled ? 'ENCENDIDAS' : 'apagadas'}`);
+    res.json({ success: true, enabled });
+  } catch (e) { res.status(500).json({ success: false, error: e.message }); }
 });
 
 // ⭐ NUEVO: Endpoint para corregir campo lastVisit en tarjetas existentes
