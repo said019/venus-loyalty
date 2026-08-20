@@ -1472,3 +1472,19 @@ html[data-theme="dark"]  { color-scheme: dark; }
     justify-content: center;
   }
 }
+
+/* ── AGENDA móvil: el "+ Agendar" siempre visible se traslucía bajo
+   las citas (fondo con tinte translúcido sobre la retícula). Base
+   opaca bajo el tinte, sin cambiar el color aparente de la cita. ── */
+@media (max-width: 767.98px) {
+  .appt-block { z-index: 2; }
+
+  .appt-block::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: var(--bg-primary);
+    z-index: -1;
+  }
+}
