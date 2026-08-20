@@ -2151,3 +2151,43 @@ html[data-theme="dark"] #tab-reports .expenses-panel {
     border-top: 1px solid var(--line);
   }
 }
+
+/* ────────────────────────────────────────────────────────────
+   TEMA CLARO · contrapartes de --venus-light
+   El bloque base (oscuro) pinta títulos de tabs-tarjeta, iconos y
+   contadores con --venus-light; en claro ese token es #eef1e5, casi
+   idéntico al fondo crema: Ajustes, Datos del Negocio, Google
+   Calendar, WhatsApp, los contadores de wallet y varios iconos
+   quedaban invisibles. Los colores inline de otros tabs no se tocan
+   (sin !important: el inline sigue ganando).
+   ──────────────────────────────────────────────────────────── */
+html[data-theme="light"] .card h2,
+html[data-theme="light"] .card h3,
+html[data-theme="light"] .modal-header h3,
+html[data-theme="light"] .offcanvas-title,
+html[data-theme="light"] .notify-form-header {
+  color: var(--venus-olive);
+}
+
+html[data-theme="light"] .scanner-option-icon.loyalty,
+html[data-theme="light"] .scanner-result-icon.loyalty,
+html[data-theme="light"] .gc-icon.pending,
+html[data-theme="light"] .notification-icon.cita,
+html[data-theme="light"] .today-card-icon.citas,
+html[data-theme="light"] .top-client-stamps .count,
+html[data-theme="light"] .wallet-card-value,
+html[data-theme="light"] .card-header-link,
+html[data-theme="light"] .notification-footer button:hover {
+  color: var(--venus-soft);
+}
+
+/* El componente de direcciones de Google llega tarde (script asíncrono)
+   o nunca (sin key / canal beta caído). Mientras no se defina, que el
+   hueco se vea como campo y no como vacío. */
+gmp-place-autocomplete:not(:defined) {
+  display: block;
+  min-height: 46px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg-card);
+}

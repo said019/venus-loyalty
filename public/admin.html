@@ -15698,6 +15698,8 @@
           document.getElementById('biz-address').value = d.address || '';
           const autocompleteEl = document.getElementById('biz-address-autocomplete');
           if (autocompleteEl) autocompleteEl.value = d.address || '';
+          const manualEl = document.getElementById('biz-address-manual');
+          if (manualEl) manualEl.value = d.address || '';
 
           document.getElementById('biz-maps-url').value = d.mapsUrl || '';
           document.getElementById('biz-open').value = d.openTime || '09:00';
@@ -15796,6 +15798,29 @@
     // Inicializar Google Places Autocomplete con el nuevo componente web
     let autocompleteInitialized = false;
     let selectedPlaceData = null;
+    let mapsRetries = 0;
+
+    // Si Google Maps no llega (sin key, sin red, canal beta caído), la
+    // dirección no puede quedarse invisible: input normal que alimenta el
+    // campo oculto y genera la URL de Maps por búsqueda de texto.
+    window.activarDireccionManual = function () {
+      const comp = document.getElementById('biz-address-autocomplete');
+      if (!comp || document.getElementById('biz-address-manual')) return;
+      const hidden = document.getElementById('biz-address');
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.id = 'biz-address-manual';
+      input.className = 'form-input';
+      input.placeholder = comp.getAttribute('placeholder') || 'Calle, número, colonia, ciudad';
+      input.value = (hidden && hidden.value) || '';
+      input.addEventListener('input', () => { if (hidden) hidden.value = input.value; });
+      input.addEventListener('change', () => {
+        const dir = input.value.trim();
+        if (dir) document.getElementById('biz-maps-url').value = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(dir)}`;
+      });
+      comp.replaceWith(input);
+      console.warn('[MAPS] Autocomplete no disponible: dirección en modo manual');
+    };
 
     window.initAddressAutocomplete = function () {
       if (autocompleteInitialized) return;
@@ -15810,6 +15835,8 @@
 
       // Verificar si Google Maps API está cargada
       if (typeof google === 'undefined' || !google.maps) {
+        mapsRetries += 1;
+        if (mapsRetries > 20) { window.activarDireccionManual(); return; }
         console.log('[MAPS] API no disponible aún, reintentando...');
         setTimeout(initAddressAutocomplete, 500);
         return;
@@ -17002,12 +17029,18 @@
               window.initAddressAutocomplete();
             }
           };
+          script.onerror = () => {
+            console.error('[MAPS] Falló la carga del script de Maps');
+            if (window.activarDireccionManual) window.activarDireccionManual();
+          };
           document.head.appendChild(script);
         } else {
           console.warn('[MAPS] No se encontró API key de Google Maps');
+          if (window.activarDireccionManual) window.activarDireccionManual();
         }
       } catch (error) {
         console.error('[MAPS] Error cargando API key:', error);
+        if (window.activarDireccionManual) window.activarDireccionManual();
       }
     }
 
