@@ -5552,9 +5552,12 @@ app.post("/api/stamp/:cardId", basicAuth, async (req, res) => {
       console.error(`[GOOGLE WALLET] ❌ Error actualizando stamp:`, googleError.message);
     }
 
-    // Notificar Apple
+    // Notificar Apple. updatePassAndNotify (y no notifyCardUpdate a secas)
+    // para que también escriba la bitácora apple_updates, como la ruta de
+    // admin: sin ella el iPhone recibía el push, preguntaba "¿qué cambió?"
+    // y el servidor respondía "nada" — el pase se quedaba viejo.
     try {
-      await appleWebService.notifyCardUpdate(cardId);
+      await appleWebService.updatePassAndNotify(cardId, card.stamps, newStamps);
     } catch (err) {
       console.error("[APPLE] Error notificando:", err);
     }
