@@ -1933,14 +1933,14 @@
       </div>
 
       <!-- Selector de Mes (estilo Excel tabs) -->
-      <div class="card" style="padding:12px;margin-bottom:16px;">
+      <div class="card report-month-card" style="padding:12px;margin-bottom:16px;">
         <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;" id="report-month-tabs">
           <!-- Se generan dinámicamente -->
         </div>
       </div>
 
       <!-- Filtro de Fechas Personalizado -->
-      <div class="card"
+      <div class="card report-filter-card"
         style="padding:16px;margin-bottom:16px;background:linear-gradient(135deg, rgba(140,150,104,0.1) 0%, rgba(140,150,104,0.05) 100%);border:1px solid rgba(140,150,104,0.2);">
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
           <div style="display:flex;align-items:center;gap:8px;">
@@ -18298,6 +18298,11 @@
       }
 
       container.innerHTML = tabs.join('');
+
+      // En el carril deslizable el mes activo debe quedar a la vista
+      // (sin scrollIntoView: movería la página entera, no solo el carril).
+      const activo = container.querySelector('.btn.primary');
+      if (activo) container.scrollLeft = Math.max(0, activo.offsetLeft - (container.clientWidth - activo.offsetWidth) / 2);
     }
 
     async function selectReportMonth(year, month) {

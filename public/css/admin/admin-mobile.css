@@ -1326,3 +1326,124 @@ html[data-theme="dark"]  { color-scheme: dark; }
   .today-card-action { opacity: 0.55; }
   .time-slot::after { display: block; }
 }
+
+/* ────────────────────────────────────────────────────────────
+   REPORTES · VENTAS (móvil)
+   La cabecera de acciones desbordaba el viewport (435px en 430),
+   las pastillas de mes se encimaban y el filtro de fechas era una
+   nube de flex-wrap sin retícula.
+   ──────────────────────────────────────────────────────────── */
+@media (max-width: 767.98px) {
+
+  /* Acciones de cabecera: retícula fija. Registrar ingreso es la
+     acción principal y toma la fila completa. */
+  #tab-reports .header-actions > div {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    width: 100%;
+  }
+
+  #tab-reports .header-actions > div .btn {
+    width: 100%;
+    min-height: 46px;
+    justify-content: center;
+  }
+
+  #tab-reports .header-actions > div .btn[onclick*="openManualIncomeDialog"] {
+    order: -1;
+    grid-column: 1 / -1;
+  }
+
+  /* Pastillas de mes: min-width:44px (piso táctil) sustituye el
+     mínimo automático de flexbox y dejaba encoger cada pastilla por
+     debajo de su texto. El carril desliza; las pastillas no encogen. */
+  #report-month-tabs .btn {
+    flex: 0 0 auto;
+  }
+
+  /* El carril no necesita disfraz de tarjeta: pastillas al aire. */
+  #tab-reports .report-month-card {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin-bottom: 14px !important;
+  }
+
+  #report-month-tabs {
+    padding: 2px 2px 6px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  #report-month-tabs::-webkit-scrollbar { display: none; }
+
+  /* Filtro de fechas: Desde|Hasta, luego Filtrar|Limpiar, y los
+     atajos en una fila de tres. Etiquetas arriba de su campo. */
+  .report-filter-card { padding: 16px 14px !important; }
+
+  .report-filter-card > div:first-child {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 10px;
+  }
+
+  .report-filter-card > div:first-child > div:nth-child(1) { grid-column: 1 / -1; }
+
+  .report-filter-card > div:first-child > div:nth-child(2) {
+    grid-column: 1 / -1;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 10px;
+  }
+
+  .report-filter-card > div:first-child > div:nth-child(2) > div {
+    display: flex !important;
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 4px;
+  }
+
+  .report-filter-card input[type="date"] {
+    width: 100%;
+    min-height: 44px;
+    box-sizing: border-box;
+  }
+
+  .report-filter-card > div:first-child > div:nth-child(2) > .btn {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .report-filter-card > div:first-child > div:nth-child(3) {
+    grid-column: 1 / -1;
+    margin-left: 0 !important;
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .report-filter-card > div:first-child > div:nth-child(3) .btn {
+    width: 100%;
+    min-height: 40px;
+    padding: 6px 4px !important;
+    white-space: nowrap;
+  }
+
+  /* Los paneles beige dentro de la tarjeta resumen eran tarjeta
+     sobre tarjeta: en móvil se aplanan a secciones. Mismo selector
+     que el re-tematizado de admin-redesign para ganarle por orden. */
+  #tab-reports .card div[style*="background:rgba(255,255,255,0.1"],
+  #tab-reports .card div[style*="background: rgba(255,255,255,0.1"],
+  html[data-theme="light"] #tab-reports .card div[style*="background:rgba(255,255,255,0.1"],
+  html[data-theme="light"] #tab-reports .card div[style*="background: rgba(255,255,255,0.1"] {
+    background: transparent !important;
+    border-radius: 0 !important;
+    padding: 12px 0 0 !important;
+  }
+}
+
+@media (max-width: 480px) {
+  #tab-reports > .card:not(.expenses-panel):not(.report-month-card) { padding: 16px 14px; }
+}
