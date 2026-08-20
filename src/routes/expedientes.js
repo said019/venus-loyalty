@@ -303,7 +303,10 @@ router.post('/:cardId/laser-sessions', async (req, res) => {
   try {
     const record = await ensureRecord(req.params.cardId);
     const { date, staffName, zone, frequency, fluence, laserIntensity, observations, signature } = req.body || {};
-    const data = { recordId: record.id, date: date ? new Date(date) : new Date(), staffName, zone, frequency, fluence, laserIntensity, observations };
+    // 'YYYY-MM-DD' pelón se volvería medianoche UTC (= 6pm del día anterior
+    // en México). Mediodía -06:00, mismo patrón que /api/manual-incomes.
+    const fechaSesion = /^\d{4}-\d{2}-\d{2}$/.test(String(date || '')) ? new Date(`${date}T12:00:00-06:00`) : (date ? new Date(date) : new Date());
+    const data = { recordId: record.id, date: fechaSesion, staffName, zone, frequency, fluence, laserIntensity, observations };
     if (signature?.startsWith('data:image/png;base64,')) { data.signatureClient = signature; data.signedAt = new Date(); }
     const session = await prisma.laserSessionLog.create({ data });
     res.json({ success: true, session });
@@ -316,7 +319,8 @@ router.put('/:cardId/laser-sessions/:id', async (req, res) => {
     const existing = await prisma.laserSessionLog.findUnique({ where: { id: req.params.id } });
     if (!existing || existing.recordId !== record.id) return fail(res, 404, 'sesion_no_encontrada');
     const { date, staffName, zone, frequency, fluence, laserIntensity, observations, signature } = req.body || {};
-    const data = { date: date ? new Date(date) : undefined, staffName, zone, frequency, fluence, laserIntensity, observations };
+    const fechaSesion = /^\d{4}-\d{2}-\d{2}$/.test(String(date || '')) ? new Date(`${date}T12:00:00-06:00`) : (date ? new Date(date) : undefined);
+    const data = { date: fechaSesion, staffName, zone, frequency, fluence, laserIntensity, observations };
     if (signature?.startsWith('data:image/png;base64,')) { data.signatureClient = signature; data.signedAt = new Date(); }
     const session = await prisma.laserSessionLog.update({ where: { id: req.params.id }, data });
     res.json({ success: true, session });

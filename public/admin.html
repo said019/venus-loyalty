@@ -5995,7 +5995,10 @@
         return;
       }
       tb.innerHTML = sessions.map(function (s) {
-        const fecha = s.date ? new Date(s.date).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
+        // s.date viene como medianoche UTC (filas viejas) o mediodía -06:00
+        // (nuevas): tomar solo la parte de fecha y anclar a mediodía local,
+        // si no la lista mostraba el día anterior al del formulario.
+        const fecha = s.date ? new Date(String(s.date).slice(0, 10) + 'T12:00:00').toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
         const params = [s.frequency, s.fluence, s.laserIntensity, s.staffName].filter(Boolean).map(expEsc).join(' · ');
         const obs = s.observations ? '<div class="exp-laser-obs">' + expEsc(String(s.observations).slice(0, 120)) + (s.observations.length > 120 ? '…' : '') + '</div>' : '';
         const sigBadge = s.signedAt ? '<span class="exp-stacked-sig" title="Firmada por la clienta"><i class="fas fa-check"></i> Firmada</span>' : '';
@@ -10092,6 +10095,18 @@
       loadClients();
       generateHourMinuteOptions();
       if (typeof populateStaffSelect === 'function') populateStaffSelect('new-appt-assigned', '');
+
+      // Mismo saneo que openNewAppointmentModal: sin esto, la clienta y el
+      // servicio del intento anterior quedaban puestos al abrir desde un slot.
+      const staleClient = document.getElementById('new-appt-client-select');
+      const staleService = document.getElementById('new-appt-service');
+      const stalePrice = document.getElementById('new-appt-price');
+      if (staleClient) { staleClient.value = ''; staleClient.dataset.phone = ''; staleClient.dataset.clientId = ''; }
+      if (staleService) staleService.value = '';
+      if (stalePrice) stalePrice.value = '';
+      selectedClientPhone = '';
+      window.selectedClientPhone = '';
+      if (typeof clearClientSelectedFeedback === 'function') clearClientSelectedFeedback();
 
       if (newApptCalendar && typeof newApptCalendar.selectDate === 'function') {
         newApptCalendar.selectDate(dateIso);
@@ -16830,7 +16845,7 @@
             return bday === todayMD;
           });
 
-          const notifiedKey = `birthdays_${today.toISOString().split('T')[0]}`;
+          const notifiedKey = `birthdays_${toLocalDateString(today)}`;
           if (localStorage.getItem(notifiedKey)) return;
 
           birthdays.forEach(c => {
@@ -18044,8 +18059,8 @@
       const primerDiaMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
       const dateFromEl = document.getElementById('report-date-from');
       const dateToEl = document.getElementById('report-date-to');
-      if (dateFromEl) dateFromEl.value = primerDiaMes.toISOString().split('T')[0];
-      if (dateToEl) dateToEl.value = hoy.toISOString().split('T')[0];
+      if (dateFromEl) dateFromEl.value = toLocalDateString(primerDiaMes);
+      if (dateToEl) dateToEl.value = toLocalDateString(hoy);
     }
     // Función para mostrar/ocultar detalle de productos en reportes
     function toggleProductosDetail(index) {
@@ -18811,17 +18826,19 @@
       const now = new Date();
       let from, to;
 
+      // Fecha LOCAL siempre: toISOString es UTC y después de las 6pm en
+      // México "hoy" se volvía mañana → el filtro Hoy mostraba $0 en la noche.
       if (tipo === 'hoy') {
-        from = to = now.toISOString().split('T')[0];
+        from = to = toLocalDateString(now);
       } else if (tipo === 'semana') {
         const dayOfWeek = now.getDay();
         const startOfWeek = new Date(now);
         startOfWeek.setDate(now.getDate() - dayOfWeek);
-        from = startOfWeek.toISOString().split('T')[0];
-        to = now.toISOString().split('T')[0];
+        from = toLocalDateString(startOfWeek);
+        to = toLocalDateString(now);
       } else if (tipo === 'mes') {
         from = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
-        to = now.toISOString().split('T')[0];
+        to = toLocalDateString(now);
       }
 
       document.getElementById('report-date-from').value = from;

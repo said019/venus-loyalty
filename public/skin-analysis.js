@@ -1104,7 +1104,9 @@
             .replace(/[^a-z0-9]+/g, '-')
             .replace(/^-|-$/g, '');
         const d = a.analyzedAt ? new Date(a.analyzedAt) : new Date();
-        const ymd = d.toISOString().slice(0, 10);
+        // Día LOCAL: con toISOString (UTC) un análisis en la noche salía
+        // con el archivo fechado mañana.
+        const ymd = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
         return `venus-skin-${name}-${ymd}.pdf`;
     }
 
