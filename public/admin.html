@@ -665,7 +665,7 @@
       <div class="header-actions" style="margin-bottom:20px;">
         <div>
           <h3 style="margin:0;font-size:18px;font-weight:600;">Tarjetas de lealtad</h3>
-          <p class="muted" style="margin:4px 0 0;font-size:13px;">Gestiona todas las tarjetas de tus clientas.</p>
+          <p class="muted" id="cards-subtitle" style="margin:4px 0 0;font-size:13px;">Gestiona todas las tarjetas de tus clientas.</p>
         </div>
         <div style="display:flex;gap:8px;">
           <button id="btn-reload-cards" class="btn ghost" aria-label="Recargar tarjetas"><i class="fas fa-sync-alt" aria-hidden="true"></i></button>
@@ -697,14 +697,14 @@
 
       <!-- Filtros y búsqueda — directos sobre el panel, sin tarjeta interior
            (mandato: un solo nivel de superficie) -->
-      <div class="row" style="gap:12px;flex-wrap:wrap;margin-bottom:16px;">
-        <div style="flex:1;min-width:200px;position:relative;">
+      <div class="row" style="gap:12px;flex-wrap:wrap;margin-bottom:16px;align-items:center;">
+        <div style="flex:1 1 260px;min-width:200px;position:relative;">
           <i class="fas fa-search" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-dim);"></i>
-          <input type="search" id="search-cards" placeholder="Buscar por nombre o teléfono..." aria-label="Buscar clienta por nombre o teléfono" style="padding-left:40px;">
+          <input type="search" id="search-cards" placeholder="Buscar por nombre o teléfono… filtra al escribir" aria-label="Buscar clienta por nombre o teléfono" style="padding-left:40px;">
         </div>
 
         <!-- SORTING CONTROLS -->
-        <select id="sort-cards" class="filter-select" aria-label="Ordenar clientas" style="min-width:160px;">
+        <select id="sort-cards" class="filter-select" aria-label="Ordenar clientas" style="flex:0 1 210px;min-width:160px;width:auto;">
           <option value="created_at:desc">Recientes</option>
           <option value="dormidas">💤 Dormidas (60+ días)</option>
           <option value="created_at:asc">Antiguos</option>
@@ -715,7 +715,6 @@
           <option value="last_visit:desc">Última visita</option>
         </select>
 
-        <button id="btn-search-cards" class="btn primary"><i class="fas fa-search"></i> Buscar</button>
       </div>
 
       <!-- Tabla de tarjetas -->
@@ -724,16 +723,15 @@
           <table class="data-table">
             <thead>
               <tr>
-                <th>Cliente</th>
-                <th>Teléfono</th>
-                <th>Última Visita</th>
+                <th>Clienta</th>
+                <th>Última visita</th>
                 <th>Sellos</th>
-                <th style="width:140px;text-align:center;">Acciones</th>
+                <th style="width:272px;text-align:right;">Acciones</th>
               </tr>
             </thead>
             <tbody id="cards-tbody">
               <tr>
-                <td colspan="5" style="text-align:center;padding:40px;" class="muted">
+                <td colspan="4" style="text-align:center;padding:40px;" class="muted">
                   <i class="fas fa-spinner fa-spin" style="font-size:24px;margin-bottom:10px;display:block;opacity:0.5;"></i>
                   Cargando tarjetas...
                 </td>
@@ -745,9 +743,11 @@
 
       <!-- Paginación -->
       <div class="row" style="justify-content:space-between;margin-top:16px;align-items:center;">
-        <button id="btn-prev-page" class="btn small ghost"><i class="fas fa-chevron-left"></i> Anterior</button>
-        <span id="page-info" class="muted" style="font-size:13px;">Página 1</span>
-        <button id="btn-next-page" class="btn small ghost">Siguiente <i class="fas fa-chevron-right"></i></button>
+        <span id="page-info" class="muted" style="font-size:12.5px;">—</span>
+        <div style="display:flex;gap:8px;">
+          <button id="btn-prev-page" class="btn small ghost" aria-label="Página anterior" style="min-width:38px;"><i class="fas fa-chevron-left" aria-hidden="true"></i></button>
+          <button id="btn-next-page" class="btn small ghost" aria-label="Página siguiente" style="min-width:38px;"><i class="fas fa-chevron-right" aria-hidden="true"></i></button>
+        </div>
       </div>
 
       </div>
@@ -7391,7 +7391,7 @@
         const tbody = document.getElementById('cards-tbody');
 
         if (!data.items || data.items.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:12px;" class="muted">No hay tarjetas</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:26px;" class="muted">No hay tarjetas</td></tr>`;
           return;
         }
 
@@ -7406,50 +7406,87 @@
         checkBirthdays(data.items);
 
         tbody.innerHTML = data.items.map(card => {
-          // Formatear última visita
+          // Última visita relativa + detección de dormida (60+ días)
           let lastVisitStr = '—';
+          let diasSinVenir = null;
           const lastVisitField = card.lastVisit || card.last_visit || card.updatedAt || card.updated_at;
-
           if (lastVisitField) {
             const lastDate = new Date(lastVisitField);
-            const now = new Date();
-            const diffDays = Math.floor((now - lastDate) / (1000 * 60 * 60 * 24));
-
-            if (diffDays === 0) lastVisitStr = 'Hoy';
-            else if (diffDays === 1) lastVisitStr = 'Ayer';
-            else if (diffDays < 7) lastVisitStr = `Hace ${diffDays} días`;
+            diasSinVenir = Math.floor((new Date() - lastDate) / 86400000);
+            if (diasSinVenir === 0) lastVisitStr = 'Hoy';
+            else if (diasSinVenir === 1) lastVisitStr = 'Ayer';
+            else if (diasSinVenir < 7) lastVisitStr = `Hace ${diasSinVenir} días`;
             else lastVisitStr = lastDate.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' });
           }
+          const dormida = diasSinVenir !== null && diasSinVenir >= 60;
+
+          // Iniciales para el avatar
+          const iniciales = String(card.name || '?').trim().split(/\s+/).slice(0, 2).map(w => (w[0] || '')).join('').toUpperCase() || '?';
+
+          // Teléfono legible: 427 224 6406 (la lada 52/521 se omite en pantalla)
+          let telFmt = card.phone || '—';
+          if (card.phone) {
+            const d = String(card.phone).replace(/\D/g, '').replace(/^521?/, '');
+            telFmt = d.length === 10 ? `${d.slice(0, 3)} ${d.slice(3, 6)} ${d.slice(6)}` : card.phone;
+          }
+
+          // Sellos como puntos llenos/vacíos
+          const maxS = Math.max(1, Math.min(card.max || 8, 12));
+          let puntos = '';
+          for (let i = 0; i < maxS; i++) {
+            puntos += i < (card.stamps || 0)
+              ? '<span style="width:9px;height:9px;border-radius:999px;background:var(--olive,#8c9668);"></span>'
+              : '<span style="width:9px;height:9px;border-radius:999px;border:1.4px solid rgba(104,114,92,0.35);box-sizing:border-box;"></span>';
+          }
+
+          const chipMasajes = card.massageActive
+            ? `<span style="font-size:10px;font-weight:700;letter-spacing:0.05em;color:#7a5c42;background:rgba(196,147,110,0.22);border-radius:6px;padding:2px 7px;white-space:nowrap;">MASAJES ${card.massageStamps || 0}/${card.massageMax || 10}</span>`
+            : '';
+          const chipDormida = dormida
+            ? `<span style="font-size:10px;font-weight:700;letter-spacing:0.05em;color:#8a6a3b;background:rgba(255,209,102,0.30);border-radius:6px;padding:2px 7px;white-space:nowrap;">DORMIDA · ${diasSinVenir} DÍAS</span>`
+            : '';
 
           return `
           <tr data-card-id="${card.id}" class="card-row" style="cursor:pointer;">
-            <td data-label="Cliente" class="card-main">
-              <div style="font-weight:500;">${card.name || '—'}${card.massageActive ? `<span style="display:inline-block;background:#C4936E;color:#fff;font-size:9px;padding:1px 5px;border-radius:4px;margin-left:4px;">Masajes ${card.massageStamps || 0}/${card.massageMax || 10}</span>` : ''}</div>
-              ${card.birthdate ? `<div class="muted" style="font-size:11px;"><i class="fas fa-birthday-cake"></i> ${formatBirthday(card.birthdate)}</div>` : ''}
-            </td>
-            <td style="font-size:13px;" data-label="Teléfono" class="card-meta">${card.phone || '—'}</td>
-            <td style="font-size:12px;" data-label="Última Visita" class="card-meta">${lastVisitStr}</td>
-            <td data-label="Sellos" class="card-meta">
-              <div style="display:flex;align-items:center;gap:6px;">
-                <div class="stamp-rail" style="border-radius:4px;height:6px;width:60px;overflow:hidden;">
-                  <div style="background:linear-gradient(90deg,#FFD166,var(--olive));height:100%;width:${(card.stamps / card.max) * 100}%;"></div>
+            <td data-label="Clienta" class="card-main">
+              <div style="display:flex;align-items:center;gap:13px;min-width:0;">
+                <div class="cl-avatar" style="width:40px;height:40px;border-radius:999px;background:rgba(140,150,104,0.18);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:13.5px;color:var(--venus-soft,#5f694f);flex-shrink:0;">${iniciales}</div>
+                <div style="display:flex;flex-direction:column;gap:2px;min-width:0;">
+                  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                    <span style="font-weight:600;font-size:14.5px;">${card.name || '—'}</span>
+                    ${chipMasajes}
+                  </div>
+                  <span style="font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums;">${telFmt}${card.birthdate ? ` · <i class="fas fa-birthday-cake" aria-hidden="true" style="font-size:10px;"></i> ${formatBirthday(card.birthdate)}` : ''}</span>
                 </div>
-                <span style="font-size:12px;font-weight:500;">${card.stamps}/${card.max}</span>
+              </div>
+            </td>
+            <td data-label="Última visita" class="card-meta">
+              <div style="display:flex;flex-direction:column;gap:3px;align-items:flex-start;">
+                <span style="font-size:13px;">${lastVisitStr}</span>
+                ${chipDormida}
+              </div>
+            </td>
+            <td data-label="Sellos" class="card-meta">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <div style="display:flex;gap:4px;">${puntos}</div>
+                <span style="font-size:12.5px;font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums;">${card.stamps || 0}/${card.max || 8}</span>
               </div>
             </td>
             <td data-label="Acciones" class="card-actions">
-              <div class="actions" style="gap:4px;">
-                <button class="btn small" data-action="stamp" style="background:#FFD166;color:#000;font-weight:600;padding:4px 8px;font-size:11px;"><i class="fas fa-star"></i>+1</button>
-                ${card.massageActive ? `<button class="btn small" data-action="massage-stamp" style="background:#C4936E;color:#fff;font-weight:600;padding:4px 8px;font-size:11px;"><i class="fas fa-spa"></i>+1</button>` : ''}
-                <button class="btn small ghost" data-action="view" style="padding:4px 8px;font-size:11px;">Ver</button>
-                ${card.phone ? `<a class="btn small ghost" href="https://wa.me/${String(card.phone).replace(/\D/g, '')}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="padding:4px 8px;font-size:11px;color:#1f7a43;border-color:#1f7a4355;" title="Abrir WhatsApp" aria-label="Abrir WhatsApp con ${card.name}"><i class="fab fa-whatsapp" aria-hidden="true"></i></a>` : ''}
+              <div class="actions" style="gap:7px;justify-content:flex-end;flex-wrap:nowrap;">
+                <button class="btn small" data-action="stamp" style="background:rgba(255,209,102,0.28);border:1px solid rgba(104,114,92,0.22);color:var(--ink);font-weight:700;padding:6px 13px;font-size:12px;" title="Sumar sello" aria-label="Sumar sello a ${card.name || 'clienta'}"><i class="fas fa-star" style="color:#b8860b;" aria-hidden="true"></i> Sello</button>
+                ${card.massageActive ? `<button class="btn small ghost" data-action="massage-stamp" style="color:#7a5c42;border-color:rgba(196,147,110,0.5);padding:6px 10px;font-size:12px;" title="Sumar masaje" aria-label="Sumar masaje a ${card.name || 'clienta'}"><i class="fas fa-spa" aria-hidden="true"></i></button>` : ''}
+                ${card.phone ? `<a class="btn small ghost" href="https://wa.me/${String(card.phone).replace(/\D/g, '')}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="padding:6px 10px;font-size:13px;color:#1f7a43;border-color:rgba(31,122,67,0.30);" title="Abrir WhatsApp" aria-label="Abrir WhatsApp con ${card.name || 'clienta'}"><i class="fab fa-whatsapp" aria-hidden="true"></i></a>` : ''}
+                <button class="btn small ghost" data-action="view" style="padding:6px 13px;font-size:12px;" aria-label="Ver ficha de ${card.name || 'clienta'}">Ver <i class="fas fa-chevron-right" aria-hidden="true" style="font-size:9px;color:var(--venus-soft);"></i></button>
               </div>
             </td>
           </tr>
         `}).join('');
 
+        const desde = (data.page - 1) * 100 + 1;   // límite fijo del endpoint
         document.getElementById('page-info').textContent =
-          `Página ${data.page} de ${data.totalPages} (${data.total} total)`;
+          data.total ? `${desde}–${desde + data.items.length - 1} de ${data.total} clientas` : 'Sin clientas';
+        actualizarSubtituloClientas(data.total);
         document.getElementById('btn-prev-page').disabled = data.page === 1;
         document.getElementById('btn-next-page').disabled = data.page === data.totalPages;
         currentPage = data.page;
@@ -7485,8 +7522,25 @@
       }, 300);
     });
 
-    // Mantener funcionalidad del botón de búsqueda
-    searchBtn.addEventListener('click', () => loadCards(1));
+    // (El botón Buscar se retiró: la búsqueda filtra al escribir.)
+    if (searchBtn) searchBtn.addEventListener('click', () => loadCards(1));
+
+    // Subtítulo con conteos: total + dormidas (el conteo de dormidas se
+    // consulta una vez por sesión; el botón de recargar lo refresca).
+    let _dormidasTotalCache = null;
+    window.actualizarSubtituloClientas = async function (total) {
+      const el = document.getElementById('cards-subtitle');
+      if (!el) return;
+      if (_dormidasTotalCache === null) {
+        try {
+          const r = await fetch('/api/admin/cards-firebase?filter=dormidas&limit=1', { credentials: 'include' });
+          const j = await r.json();
+          _dormidasTotalCache = j.total || 0;
+        } catch (e) { _dormidasTotalCache = -1; }
+      }
+      el.textContent = `${total} clientas` + (_dormidasTotalCache > 0 ? ` · ${_dormidasTotalCache} dormidas` : '');
+    };
+    document.getElementById('btn-reload-cards')?.addEventListener('click', () => { _dormidasTotalCache = null; });
 
     // Enter key también busca
     searchInput.addEventListener('keypress', (e) => {
