@@ -4368,13 +4368,16 @@
           
           console.log('[Agendar] Cliente prellenado:', clientName, 'Teléfono:', clientPhone);
           
-          // Prellenar fecha con hoy si está vacía
-          if (dateInput && !dateInput.value) {
+          // Prellenar fecha con hoy si está vacía. dataset.isoDate es lo
+          // que lee el submit: si solo se escribe el value visible, la cita
+          // se guarda con la fecha rancia del último uso del diálogo.
+          if (dateInput && (!dateInput.value || !dateInput.dataset.isoDate)) {
             const today = new Date();
             const year = today.getFullYear();
             const month = String(today.getMonth() + 1).padStart(2, '0');
             const day = String(today.getDate()).padStart(2, '0');
-            dateInput.value = `${year}-${month}-${day}`;
+            dateInput.value = `${today.getDate()}/${today.getMonth() + 1}/${year}`;
+            dateInput.dataset.isoDate = `${year}-${month}-${day}`;
           }
           
           // Mostrar el modal
@@ -10094,7 +10097,11 @@
         newApptCalendar.selectDate(dateIso);
       } else {
         const dateInput = document.getElementById('new-appt-date');
-        if (dateInput) dateInput.value = dateIso;
+        if (dateInput) {
+          const [yy, mm, dd] = dateIso.split('-').map(Number);
+          dateInput.value = `${dd}/${mm}/${yy}`;
+          dateInput.dataset.isoDate = dateIso;
+        }
       }
 
       const [h, m] = timeStr.split(':');
@@ -11502,11 +11509,13 @@
       generateHourMinuteOptions();
       if (typeof populateStaffSelect === 'function') populateStaffSelect('new-appt-assigned', '');
 
-      // Establecer fecha de hoy por defecto
-      const today = new Date();
-      const dateStr = today.toISOString().split('T')[0];
-      const dateInput = document.getElementById('new-appt-date');
-      if (dateInput) dateInput.value = dateStr;
+      // Establecer fecha de hoy por defecto. Por la única puerta que
+      // siembra las DOS caras del campo: el texto visible y dataset.isoDate
+      // (lo que lee el submit). toISOString() aquí era UTC: después de las
+      // 6pm en México sembraba la fecha de mañana.
+      if (newApptCalendar && typeof newApptCalendar.selectDate === 'function') {
+        newApptCalendar.selectDate(toLocalDateString(new Date()));
+      }
 
       // Limpiar campos
       const clientInput = document.getElementById('new-appt-client-select');
