@@ -2191,3 +2191,175 @@ gmp-place-autocomplete:not(:defined) {
   border-radius: 10px;
   background: var(--bg-card);
 }
+
+/* ────────────────────────────────────────────────────────────
+   AJUSTES · rediseño (ago-2026)
+   La vista era una sola tarjeta gigante con paneles teñidos de
+   azul-Google y verde-WhatsApp, inputs desparejos y el componente
+   de direcciones de Google en negro (sigue el color-scheme del
+   navegador, no el del sitio). Solo CSS: los ids/estructura que
+   usa el JS no se tocan.
+   ──────────────────────────────────────────────────────────── */
+
+/* La sección respira sobre el fondo de la página, sin sarcófago. */
+#tab-settings.card {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  padding: 4px 2px 40px !important;
+  max-width: 980px;
+}
+
+#tab-settings::before { display: none !important; }
+
+#tab-settings .header-actions h2 {
+  font-size: 27px;
+  letter-spacing: -0.015em;
+}
+
+#tab-settings .header-actions p.muted {
+  font-size: 13px;
+}
+
+/* Subnav como control segmentado limpio */
+#tab-settings .subnav {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  padding: 5px;
+  background: var(--bg-tertiary, rgba(239, 228, 214, 0.7));
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  margin: 18px 0 6px;
+}
+
+#tab-settings .subnav-btn {
+  min-height: 44px;
+  border-radius: 10px;
+  font-weight: 600;
+  justify-content: center;
+}
+
+/* Ritmo editorial: cada bloque abre con aire y una línea fina.
+   (Los divs traen el border-top inline; aquí solo se armoniza.) */
+#tab-settings .subpane > div {
+  margin-top: 8px;
+}
+
+#tab-settings h3 {
+  font-size: 19px;
+  letter-spacing: -0.01em;
+}
+
+#tab-settings h3 i {
+  font-size: 15px;
+  color: var(--venus-soft);
+  margin-right: 6px;
+}
+
+/* Formularios: todos los campos con la misma voz */
+#tab-settings label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-secondary);
+  margin: 0 0 6px;
+}
+
+#tab-settings input[type="text"],
+#tab-settings input[type="tel"],
+#tab-settings input[type="url"],
+#tab-settings input[type="number"],
+#tab-settings input[type="password"],
+#tab-settings select,
+#tab-settings textarea {
+  width: 100%;
+  min-height: 46px;
+  padding: 10px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--ink);
+  font-size: 14px;
+  box-sizing: border-box;
+  transition: border-color 120ms ease-out;
+}
+
+#tab-settings input:focus-visible,
+#tab-settings select:focus-visible,
+#tab-settings textarea:focus-visible {
+  outline: 2px solid var(--olive, #8c9668);
+  outline-offset: 1px;
+  border-color: transparent;
+}
+
+#tab-settings input[readonly] {
+  color: var(--text-muted);
+  background: var(--bg-tertiary, rgba(239, 228, 214, 0.5));
+}
+
+#tab-settings small.muted {
+  display: block;
+  margin-top: 5px;
+  font-size: 11.5px;
+}
+
+/* El componente de Google renderiza su propio input y de noche se
+   pintaba negro: se fuerza esquema claro y se recorta a nuestra caja. */
+#tab-settings gmp-place-autocomplete {
+  display: block;
+  color-scheme: light;
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  min-height: 46px;
+}
+
+/* Filas de interruptor (Pedir anticipo, exención, etc.) */
+#tab-settings form > div[style*="rgba(140,150,104,0.06"] {
+  border: 1px solid var(--line) !important;
+  border-radius: 10px !important;
+  background: var(--bg-card) !important;
+}
+
+#tab-settings input[type="checkbox"] {
+  accent-color: var(--olive, #8c9668);
+}
+
+/* Integraciones: fuera los teñidos azul/verde — superficie Venus,
+   marca solo en el icono. Los tres paneles comparten el inline
+   'border-radius:12px' que sirve de gancho. */
+#tab-settings [data-subpane="settings-integrations"] > div[style*="border-radius:12px"] {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 14px !important;
+  padding: 18px 20px !important;
+  margin: 14px 0 !important;
+}
+
+/* Chips de estado de integraciones: tipografía firme */
+#tab-settings [data-subpane="settings-integrations"] span[id$="-status-badge"] {
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+/* Avanzado: los botones de debug en retícula pareja */
+#tab-settings [data-subpane="settings-advanced"] div[style*="flex-wrap"] {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
+}
+
+#tab-settings [data-subpane="settings-advanced"] .btn {
+  width: 100%;
+  min-height: 44px;
+  justify-content: center;
+}
+
+/* Éxitos de guardado */
+#tab-settings .success-message {
+  border-radius: 10px;
+  padding: 10px 14px;
+}

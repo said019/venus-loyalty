@@ -1447,3 +1447,28 @@ html[data-theme="dark"]  { color-scheme: dark; }
 @media (max-width: 480px) {
   #tab-reports > .card:not(.expenses-panel):not(.report-month-card) { padding: 16px 14px; }
 }
+
+/* ── AJUSTES · rediseño móvil ── */
+@media (max-width: 767.98px) {
+  #tab-settings.card { padding: 0 0 34px !important; }
+
+  #tab-settings .subnav { grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 4px; }
+  #tab-settings .subnav-btn { font-size: 12.5px; padding: 8px 4px; }
+
+  /* Pares de campos a una columna */
+  #tab-settings form div[style*="grid-template-columns:1fr 1fr"],
+  #tab-settings form div[style*="grid-template-columns:2fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  #tab-settings [data-subpane="settings-integrations"] > div[style*="border-radius:12px"] {
+    padding: 16px 14px !important;
+  }
+
+  #tab-settings [data-subpane="settings-integrations"] .btn,
+  #tab-settings form button[type="submit"] {
+    width: 100%;
+    min-height: 46px;
+    justify-content: center;
+  }
+}
