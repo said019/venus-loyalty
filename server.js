@@ -1844,6 +1844,18 @@ app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
       const appointment = await AppointmentsRepo.findById(id);
       if (!appointment) return res.status(404).json({ success: false, error: 'Cita no encontrada' });
 
+      // Cambio de servicio al cobrar (misma regla que POST /payment): la cita
+      // y el reporte deben quedar con el servicio que de verdad se hizo.
+      if (req.body.serviceName && String(req.body.serviceName).trim() && req.body.serviceName !== appointment.serviceName) {
+        const nuevoServicio = String(req.body.serviceName).trim();
+        await AppointmentsRepo.update(id, {
+          serviceName: nuevoServicio,
+          ...(req.body.serviceId ? { serviceId: String(req.body.serviceId) } : {}),
+        });
+        console.log(`[PATCH] Servicio cambiado al cobrar: "${appointment.serviceName}" → "${nuevoServicio}"`);
+        appointment.serviceName = nuevoServicio;
+      }
+
       // Actualizar cita a completada
       await AppointmentsRepo.complete(id, {
         total: parseFloat(totalPaid) || 0,

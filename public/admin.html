@@ -18116,6 +18116,7 @@
         productosDisponibles = jsonProductos.success ? jsonProductos.data : [];
         const servicios = jsonServicios.success ? jsonServicios.data : [];
         productosEnCobro = [];
+        window.cobroServicioSel = null;   // cambio de servicio: nada elegido aún
         
         console.log('[Cobrar] Servicios cargados:', servicios.length, servicios.map(s => ({id: s.id, name: s.name, price: s.price})));
         console.log('[Cobrar] Cita:', cita.id, 'serviceId:', cita.serviceId, 'serviceName:', cita.serviceName);
@@ -18290,7 +18291,16 @@
                   </div>
                   <div class="cobro-card" style="margin-bottom:0;">
                     <div class="cobro-label">Servicio</div>
-                    <div class="cobro-value">${cita.serviceName || 'Servicio'}</div>
+                    <div style="display:flex;align-items:flex-start;gap:4px;">
+                      <div class="cobro-value" id="cobro-servicio-nombre" style="flex:1;min-width:0;">${cita.serviceName || 'Servicio'}</div>
+                      <button onclick="editarServicioCobro()" style="background:none;border:none;color:#666;cursor:pointer;padding:0;width:34px;height:34px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;" title="Cambiar servicio" aria-label="Cambiar servicio">
+                        <i class="fas fa-pencil-alt" aria-hidden="true" style="font-size:11px;"></i>
+                      </button>
+                    </div>
+                    <select id="select-servicio-cobro" class="cobro-input" style="display:none;width:100%;margin-top:6px;font-size:13px;" onchange="aplicarServicioCobro(this)">
+                      <option value="">Elegir otro servicio…</option>
+                      ${servicios.filter(sv => sv.isActive !== false).map(sv => `<option value="${sv.id}" data-precio="${parseFloat(sv.price) || 0}" data-nombre="${sv.name}">${sv.name} · $${(parseFloat(sv.price) || 0).toFixed(0)}</option>`).join('')}
+                    </select>
                     <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
                       <span style="color:var(--olive);font-size:15px;font-weight:700;">$${precioServicioGlobal.toFixed(0)}</span>
                       <button onclick="editarPrecioServicio()" style="background:none;border:none;color:#666;cursor:pointer;padding:0;width:44px;height:44px;display:inline-flex;align-items:center;justify-content:center;" aria-label="Editar precio">
@@ -18310,9 +18320,19 @@
                   <div style="display:flex;gap:8px;margin-bottom:12px;">
                     <select id="select-producto" class="cobro-input" style="flex:1;">
                       <option value="">Agregar producto o café...</option>
-                      ${productosDisponibles.length ? `<optgroup label="Productos">${productosDisponibles.map(p => `<option value="${p.id}" data-precio="${p.price}" data-nombre="${p.name}">
-                        ${p.name} - $${parseFloat(p.price).toFixed(0)}
-                      </option>`).join('')}</optgroup>` : ''}
+                      ${(() => {
+                        const CATS_RETAIL = { skincare: 'Skincare', maquillaje: 'Maquillaje', corporal: 'Corporal' };
+                        const porGrupo = {};
+                        productosDisponibles.forEach(p => {
+                          const g = CATS_RETAIL[(p.category || '').toLowerCase()] || 'Otros productos';
+                          (porGrupo[g] = porGrupo[g] || []).push(p);
+                        });
+                        return ['Skincare', 'Maquillaje', 'Corporal', 'Otros productos'].map(g => {
+                          const items = porGrupo[g];
+                          if (!items || !items.length) return '';
+                          return `<optgroup label="${g}">${items.map(p => `<option value="${p.id}" data-precio="${p.price}" data-nombre="${p.name}">${p.name} - $${parseFloat(p.price).toFixed(0)}</option>`).join('')}</optgroup>`;
+                        }).join('');
+                      })()}
                       ${['Café caliente', 'Café frío', 'Panadería', 'Extras', 'Café'].map(grupo => {
                         const items = cafeItems.filter(c => c.grupo === grupo);
                         if (!items.length) return '';
@@ -18449,6 +18469,32 @@
     }
 
     // Editar precio del servicio
+    // Cambiar el SERVICIO en el modal Registrar Pago: el lápiz junto al
+    // nombre alterna el select (ya viene rendereado con el catálogo activo).
+    window.editarServicioCobro = function () {
+      const sel = document.getElementById('select-servicio-cobro');
+      if (sel) sel.style.display = sel.style.display === 'none' ? 'block' : 'none';
+    };
+
+    window.aplicarServicioCobro = function (sel) {
+      const opt = sel.selectedOptions[0];
+      if (!opt || !opt.value) return;
+      const nombre = opt.dataset.nombre;
+      const precio = parseFloat(opt.dataset.precio) || 0;
+      window.cobroServicioSel = { id: opt.value, name: nombre };
+      const nom = document.getElementById('cobro-servicio-nombre');
+      if (nom) nom.textContent = nombre;
+      precioServicioGlobal = precio;
+      const hid = document.getElementById('precio-servicio');
+      if (hid) hid.value = precio;
+      const res = document.getElementById('resumen-servicio');
+      if (res) res.textContent = '$' + precio.toFixed(0);
+      const filaPrecio = nom ? nom.closest('.cobro-card')?.querySelector('span[style*="font-weight:700"]') : null;
+      if (filaPrecio) filaPrecio.textContent = '$' + precio.toFixed(0);
+      sel.style.display = 'none';
+      if (typeof actualizarTotalCobro === 'function') actualizarTotalCobro();
+    };
+
     async function editarPrecioServicio() {
       const nuevoP = await venusPrompt('Nuevo precio del servicio:', { defaultValue: precioServicioGlobal, inputType: 'number' });
       if (nuevoP !== null && !isNaN(parseFloat(nuevoP))) {
@@ -18655,6 +18701,8 @@
           credentials: 'include',
           body: JSON.stringify({
             status: 'completed',  // Marcar como completada al cobrar
+            serviceName: (window.cobroServicioSel && window.cobroServicioSel.name) || undefined,
+            serviceId: (window.cobroServicioSel && window.cobroServicioSel.id) || undefined,
             totalPaid: totalFinal,
             paymentMethod: metodo,
             discount: descuentoValor > 0 ? descuentoValor : null,
