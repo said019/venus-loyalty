@@ -1324,6 +1324,19 @@ app.post('/api/appointments/:id/payment', adminAuth, async (req, res) => {
       return res.json({ success: false, error: 'Cita no encontrada' });
     }
 
+    // Cambio de servicio a la hora de cobrar (la clienta pidió otra cosa al
+    // llegar): se actualiza la cita y el objeto en memoria, para que el Sale
+    // del reporte (más abajo usa appointment.serviceName) salga con el bueno.
+    if (req.body.serviceName && String(req.body.serviceName).trim() && req.body.serviceName !== appointment.serviceName) {
+      const nuevoServicio = String(req.body.serviceName).trim();
+      await AppointmentsRepo.update(id, {
+        serviceName: nuevoServicio,
+        ...(req.body.serviceId ? { serviceId: String(req.body.serviceId) } : {}),
+      });
+      console.log(`[PAYMENT] Servicio cambiado al cobrar: "${appointment.serviceName}" → "${nuevoServicio}"`);
+      appointment.serviceName = nuevoServicio;
+    }
+
     // Actualizar cita con datos de pago
     const paymentData = {
       status: 'completed',

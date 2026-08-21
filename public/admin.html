@@ -3228,7 +3228,13 @@
           </div>
           <div class="payment-info-box">
             <div class="payment-info-label">Servicio</div>
-            <div class="payment-info-value" id="payment-service-name">-</div>
+            <div style="display:flex;align-items:flex-start;gap:6px;">
+              <div class="payment-info-value" id="payment-service-name" style="flex:1;min-width:0;">-</div>
+              <button class="btn-edit-price" onclick="toggleServiceEdit()" title="Cambiar servicio" aria-label="Cambiar servicio" style="flex-shrink:0;">
+                <i class="fas fa-pencil" aria-hidden="true" style="font-size:12px;"></i>
+              </button>
+            </div>
+            <select id="payment-service-select" style="display:none;width:100%;margin-top:6px;font-size:13px;padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg-card);color:var(--ink);"></select>
             <div class="payment-price-row">
               <span class="payment-price-display" id="payment-price-display">$0</span>
               <input type="number" class="payment-price-input" id="payment-price-input" min="0" step="any">
@@ -13914,7 +13920,43 @@
 
     let paymentProducts = [];
     let paymentServicePrice = 0;
+    let paymentServiceName = '';
+    let paymentServiceId = null;
+    let paymentServicesCache = null;
     let allProductsForPayment = [];
+
+    // Cambiar el SERVICIO al cobrar (la clienta pidió otra cosa al llegar).
+    // El lápiz alterna un select con el catálogo activo; elegir uno actualiza
+    // nombre y precio (el precio sigue siendo editable con su propio lápiz).
+    window.toggleServiceEdit = async function () {
+      const sel = document.getElementById('payment-service-select');
+      if (!sel) return;
+      if (sel.style.display !== 'none') { sel.style.display = 'none'; return; }
+      if (!paymentServicesCache) {
+        try {
+          const res = await apiFetch('/api/services');
+          const json = await res.json();
+          paymentServicesCache = (json.data || json.services || []).filter(sv => sv.isActive !== false);
+        } catch (e) { console.error('[PAYMENT] servicios:', e); return; }
+      }
+      sel.innerHTML = '<option value="">Elegir otro servicio…</option>' + paymentServicesCache.map(sv =>
+        `<option value="${sv.id}" data-price="${parseFloat(sv.price) || 0}" ${sv.name === paymentServiceName ? 'selected' : ''}>${sv.name} · $${parseFloat(sv.price) || 0}</option>`
+      ).join('');
+      sel.style.display = 'block';
+      sel.onchange = () => {
+        const opt = sel.selectedOptions[0];
+        if (!opt || !opt.value) return;
+        paymentServiceId = opt.value;
+        paymentServiceName = opt.textContent.split(' · $')[0];
+        paymentServicePrice = parseFloat(opt.dataset.price) || 0;
+        document.getElementById('payment-service-name').textContent = paymentServiceName;
+        document.getElementById('payment-price-display').textContent = '$' + paymentServicePrice.toLocaleString();
+        const priceInput = document.getElementById('payment-price-input');
+        if (priceInput) priceInput.value = paymentServicePrice;
+        sel.style.display = 'none';
+        calculateTotals();
+      };
+    };
     let discountType = 'percent';
     let isPriceEditing = false;
 
@@ -13924,8 +13966,11 @@
         const json = await res.json();
 
         if (json.success) {
+          // La categoría real del producto como grupo del selector: antes todo
+          // caía en un solo 'Productos' y no se distinguía skincare de corporal.
+          const CATS_RETAIL = { skincare: 'Skincare', maquillaje: 'Maquillaje', corporal: 'Corporal' };
           allProductsForPayment = (json.data || []).filter(p => p.stock > 0)
-            .map(p => ({ ...p, grupo: 'Productos' }));
+            .map(p => ({ ...p, grupo: CATS_RETAIL[(p.category || '').toLowerCase()] || 'Otros productos' }));
         }
       } catch (error) {
         console.error('Error loading products for payment:', error);
@@ -13958,7 +14003,7 @@
 
       select.innerHTML = '<option value="">Agregar producto o café...</option>';
 
-      const ORDEN = ['Productos', 'Café caliente', 'Café frío', 'Panadería', 'Extras', 'Café'];
+      const ORDEN = ['Skincare', 'Maquillaje', 'Corporal', 'Otros productos', 'Productos', 'Café caliente', 'Café frío', 'Panadería', 'Extras', 'Café'];
       ORDEN.forEach(grupo => {
         const items = allProductsForPayment.filter(p => (p.grupo || 'Productos') === grupo);
         if (!items.length) return;
@@ -13990,6 +14035,10 @@
       
       // Asegurar que paymentServicePrice se inicializa correctamente
       paymentServicePrice = parseFloat(servicePrice) || 0;
+      paymentServiceName = serviceName || '';
+      paymentServiceId = null;
+      const svcSel = document.getElementById('payment-service-select');
+      if (svcSel) svcSel.style.display = 'none';
 
       document.getElementById('payment-appointment-id').value = appointmentId;
       document.getElementById('payment-client-name').textContent = clientName || '-';
@@ -14330,6 +14379,8 @@
           credentials: 'include',
           body: JSON.stringify({
             paymentMethod,
+            serviceName: paymentServiceName || undefined,
+            serviceId: paymentServiceId || undefined,
             serviceAmount: servicePrice,
             productsAmount: productsTotal,
             subtotal,
