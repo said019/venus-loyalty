@@ -7376,6 +7376,13 @@
       return `${d} ${months[m - 1]}`;
     }
 
+    // El nombre viene de /api/issue (registro público, sin sanitizar) y se
+    // interpola en innerHTML — sin escape, un nombre con HTML corre script
+    // en la sesión del admin al abrir la lista
+    function escHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
     async function loadCards(page = 1) {
       try {
         const searchQuery = document.getElementById('search-cards').value;
@@ -7459,7 +7466,7 @@
                 <div class="cl-avatar" style="width:40px;height:40px;border-radius:999px;background:rgba(140,150,104,0.18);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:13.5px;color:var(--venus-soft,#5f694f);flex-shrink:0;">${iniciales}</div>
                 <div style="display:flex;flex-direction:column;gap:2px;min-width:0;">
                   <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                    <span style="font-weight:600;font-size:14.5px;">${card.name || '—'}</span>
+                    <span style="font-weight:600;font-size:14.5px;">${escHtml(card.name || '—')}</span>
                     ${chipMasajes}
                   </div>
                   <span style="font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums;">${telFmt}${card.birthdate ? ` · <i class="fas fa-birthday-cake" aria-hidden="true" style="font-size:10px;"></i> ${formatBirthday(card.birthdate)}` : ''}</span>
@@ -7480,10 +7487,12 @@
             </td>
             <td data-label="Acciones" class="card-actions">
               <div class="actions" style="gap:7px;justify-content:flex-end;flex-wrap:nowrap;">
-                <button class="btn small" data-action="stamp" style="background:rgba(255,209,102,0.28);border:1px solid rgba(104,114,92,0.22);color:var(--ink);font-weight:700;padding:6px 13px;font-size:12px;" title="Sumar sello" aria-label="Sumar sello a ${card.name || 'clienta'}"><i class="fas fa-star" style="color:#b8860b;" aria-hidden="true"></i> Sello</button>
-                ${card.massageActive ? `<button class="btn small ghost" data-action="massage-stamp" style="color:#7a5c42;border-color:rgba(196,147,110,0.5);padding:6px 10px;font-size:12px;" title="Sumar masaje" aria-label="Sumar masaje a ${card.name || 'clienta'}"><i class="fas fa-spa" aria-hidden="true"></i></button>` : ''}
-                ${card.phone ? `<a class="btn small ghost" href="https://wa.me/${String(card.phone).replace(/\D/g, '')}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="padding:6px 10px;font-size:13px;color:#1f7a43;border-color:rgba(31,122,67,0.30);" title="Abrir WhatsApp" aria-label="Abrir WhatsApp con ${card.name || 'clienta'}"><i class="fab fa-whatsapp" aria-hidden="true"></i></a>` : ''}
-                <button class="btn small ghost" data-action="view" style="padding:6px 13px;font-size:12px;" aria-label="Ver ficha de ${card.name || 'clienta'}">Ver <i class="fas fa-chevron-right" aria-hidden="true" style="font-size:9px;color:var(--venus-soft);"></i></button>
+                <button class="btn small" data-action="stamp" style="background:rgba(255,209,102,0.28);border:1px solid rgba(104,114,92,0.22);color:var(--ink);font-weight:700;padding:6px 13px;font-size:12px;" title="Sumar sello" aria-label="Sumar sello a ${escHtml(card.name || 'clienta')}"><i class="fas fa-star" style="color:#b8860b;" aria-hidden="true"></i> Sello</button>
+                ${card.massageActive ? ((card.massageStamps || 0) >= (card.massageMax || 10)
+                  ? `<button class="btn small ghost" data-action="massage-renew" style="color:#7a5c42;border-color:rgba(196,147,110,0.5);padding:6px 10px;font-size:12px;" title="Renovar membresía de masajes" aria-label="Renovar membresía de masajes de ${escHtml(card.name || 'clienta')}"><i class="fas fa-sync-alt" aria-hidden="true"></i></button>`
+                  : `<button class="btn small ghost" data-action="massage-stamp" style="color:#7a5c42;border-color:rgba(196,147,110,0.5);padding:6px 10px;font-size:12px;" title="Sumar masaje" aria-label="Sumar masaje a ${escHtml(card.name || 'clienta')}"><i class="fas fa-spa" aria-hidden="true"></i></button>`) : ''}
+                ${card.phone ? `<a class="btn small ghost" href="https://wa.me/${String(card.phone).replace(/\D/g, '')}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="padding:6px 10px;font-size:13px;color:#1f7a43;border-color:rgba(31,122,67,0.30);" title="Abrir WhatsApp" aria-label="Abrir WhatsApp con ${escHtml(card.name || 'clienta')}"><i class="fab fa-whatsapp" aria-hidden="true"></i></a>` : ''}
+                <button class="btn small ghost" data-action="view" style="padding:6px 13px;font-size:12px;" aria-label="Ver ficha de ${escHtml(card.name || 'clienta')}">Ver <i class="fas fa-chevron-right" aria-hidden="true" style="font-size:9px;color:var(--venus-soft);"></i></button>
               </div>
             </td>
           </tr>
@@ -7583,6 +7592,9 @@
           break;
         case 'massage-stamp':
           await massageStampCard(cardId);
+          break;
+        case 'massage-renew':
+          await renewMassageMembership(cardId);
           break;
         case 'redeem':
           await redeemCard(cardId);
@@ -8600,7 +8612,7 @@
         if (data.success) {
           const toast = document.createElement('div');
           toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#25D366,#128C7E);color:#fff;padding:12px 24px;border-radius:12px;font-size:14px;font-weight:600;z-index:99999;box-shadow:0 4px 16px rgba(37,211,102,0.4);display:flex;align-items:center;gap:8px;';
-          toast.innerHTML = '<i class="fab fa-whatsapp"></i> Link de masajes enviado a ' + name;
+          toast.innerHTML = '<i class="fab fa-whatsapp"></i> Link de masajes enviado a ' + escHtml(name);
           document.body.appendChild(toast);
           setTimeout(() => toast.remove(), 4000);
         } else {
@@ -8634,7 +8646,7 @@
           if (updated) openCardModal(updated);
         }
 
-        const isGift = data.massageStamps === 5 || data.massageStamps === 10;
+        const isGift = data.massageStamps === 5 || data.massageStamps >= data.massageMax;
         const msg = isGift
           ? `¡Sesión ${data.massageStamps} de masaje! Regalo desbloqueado.`
           : `Sesión de masaje registrada (${data.massageStamps}/${data.massageMax})`;
@@ -8645,17 +8657,20 @@
     }
 
     /* ===== RENOVAR MEMBRESÍA MASAJES ===== */
+    let renewMassageInFlight = false;
     async function renewMassageMembership(cardId) {
+      if (renewMassageInFlight) return; // doble clic mientras el POST viaja
       const card = cardsCache[cardId];
       const name = card?.name || 'la clienta';
       const mm = card?.massageMax || 10;
       const completadas = (card?.massageCycles || 0) + 1;
 
       if (!(await venusConfirm(
-        `¿Renovar la membresía de masajes de ${name}?\n\n• El contador vuelve a 0 de ${mm} (misma tarjeta en Wallet)\n• Queda registrado que ya completó ${completadas}\n• Se le avisará por WhatsApp`,
+        `¿Renovar la membresía de masajes de ${name}?\n\n• Entrega sus 2 regalos ANTES de renovar — el estado de regalos se reinicia\n• El contador vuelve a 0 de ${mm} (misma tarjeta en Wallet)\n• Queda registrado que ya completó ${completadas === 1 ? '1 membresía' : completadas + ' membresías'}\n• Se le avisará por WhatsApp`,
         { title: 'Renovar membresía', okLabel: 'Renovar' }
       ))) return;
 
+      renewMassageInFlight = true;
       try {
         const r = await fetch(`/api/admin/cards/${cardId}/renew-massage`, {
           method: 'POST',
@@ -8665,19 +8680,29 @@
         const data = await r.json();
         if (!r.ok || !data.ok) throw new Error(data.error || 'No se pudo renovar la membresía');
 
-        await loadCards(currentPage);
+        // La respuesta del servidor es la verdad: parchar el cache/la tarjeta
+        // local ANTES del refetch, para que el modal no se quede en 10/10 si la
+        // clienta cae fuera de la página recargada (búsqueda/paginación activa)
+        const patch = { massageStamps: 0, massageCycles: data.massageCycles };
+        if (cardsCache[cardId]) Object.assign(cardsCache[cardId], patch);
+        const fallback = card ? Object.assign(card, patch) : null;
+
+        // El refetch es cosmético — si falla, la renovación ya quedó hecha
+        try { await loadCards(currentPage); } catch (_) {}
         if (currentCardId === cardId) {
-          const updated = cardsCache[cardId];
+          const updated = cardsCache[cardId] || fallback;
           if (updated) openCardModal(updated);
         }
 
-        // Aviso por WhatsApp — si falla, la renovación ya quedó hecha
-        const phone = card?.phone ? card.phone.replace(/[^0-9]/g, '') : '';
+        // Aviso por WhatsApp — nombre/teléfono de la respuesta si el cache ya no los tiene
+        const clienteName = card?.name || data.name || 'la clienta';
+        const phone = String(card?.phone || data.phone || '').replace(/[^0-9]/g, '');
         const vuelta = data.massageCycles + 1;
+        let nota = 'Sin teléfono registrado para avisar por WhatsApp.';
         if (phone) {
           const cardLink = `${window.location.origin}/card/${cardId}`;
           const message =
-            `Hola ${name} 🌸\n\n` +
+            `Hola ${clienteName} 🌸\n\n` +
             `¡Tu *membresía de masajes Venus* se renovó! 🧖‍♀️✨\n\n` +
             `🪨 *${data.massageMax} sesiones nuevas* te esperan\n` +
             `🎁 Con regalos en la sesión 5 y ${data.massageMax}\n\n` +
@@ -8691,15 +8716,16 @@
             });
             const waData = await waRes.json();
             if (!waData.success) throw new Error(waData.error || 'no se pudo enviar');
-            await venusAlert(`Membresía renovada — ${name} va en su ${vuelta}ª membresía (0/${data.massageMax}). Aviso enviado por WhatsApp.`);
+            nota = 'Aviso enviado por WhatsApp.';
           } catch (waErr) {
-            await venusAlert(`Membresía renovada (0/${data.massageMax}), pero no se pudo enviar el WhatsApp: ${waErr.message}`);
+            nota = 'No se pudo enviar el WhatsApp: ' + waErr.message;
           }
-        } else {
-          await venusAlert(`Membresía renovada — ${name} va en su ${vuelta}ª membresía (0/${data.massageMax}). Sin teléfono registrado para avisar por WhatsApp.`);
         }
+        await venusAlert(`Membresía renovada — ${clienteName} va en su ${vuelta}ª membresía (0/${data.massageMax}). ${nota}`);
       } catch (e) {
         await venusAlert('Error: ' + e.message);
+      } finally {
+        renewMassageInFlight = false;
       }
     }
 
@@ -8758,7 +8784,7 @@
           if (waData.success) {
             const toast = document.createElement('div');
             toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#C4936E,#a87350);color:#fff;padding:12px 24px;border-radius:12px;font-size:14px;font-weight:600;z-index:99999;box-shadow:0 4px 16px rgba(196,147,110,0.5);display:flex;align-items:center;gap:8px;';
-            toast.innerHTML = '<i class="fas fa-spa"></i> Membresía enviada a ' + name;
+            toast.innerHTML = '<i class="fas fa-spa"></i> Membresía enviada a ' + escHtml(name);
             document.body.appendChild(toast);
             setTimeout(() => toast.remove(), 4000);
           } else {

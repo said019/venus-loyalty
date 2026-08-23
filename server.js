@@ -4133,10 +4133,12 @@ app.post("/api/admin/massage-stamp", adminAuth, async (req, res) => {
     // Push a Apple Wallet
     try {
       let customMsg = null;
-      if (newStamps === 5) {
-        customMsg = `🎁 ¡Felicidades ${card.name}! Llevas 5 masajes — tienes un regalo especial esperándote.`;
-      } else if (newStamps >= card.massageMax) {
+      // La rama de completar va PRIMERO: en una membresía de 5 sesiones, la
+      // sesión 5 es el final — debe avisar renovación, no "regalo intermedio"
+      if (newStamps >= card.massageMax) {
         customMsg = `🎁🎉 ¡Increíble ${card.name}! Completaste tus ${card.massageMax} masajes — recoge tu segundo regalo y pregunta por la renovación de tu membresía 🌸`;
+      } else if (newStamps === 5) {
+        customMsg = `🎁 ¡Felicidades ${card.name}! Llevas 5 masajes — tienes un regalo especial esperándote.`;
       } else {
         customMsg = `💆 Sesión de masaje registrada — llevas ${newStamps} de ${card.massageMax}.`;
       }
@@ -4162,25 +4164,35 @@ app.post('/api/admin/cards/:id/renew-massage', adminAuth, async (req, res) => {
     if (!card.massageActive) return res.status(400).json({ error: 'No tiene membresía de masajes activa' });
 
     const max = card.massageMax || 10;
-    if ((card.massageStamps || 0) < max) {
-      return res.status(400).json({ error: `Aún no completa la membresía (${card.massageStamps || 0}/${max}) — se renueva al terminarla` });
+    const stamps = card.massageStamps || 0;
+    if (stamps < max) {
+      return res.status(400).json({ error: `Aún no completa la membresía (${stamps}/${max}) — se renueva al terminarla` });
     }
 
-    const newCycles = (card.massageCycles || 0) + 1;
-
-    // Un solo write: contador a 0 y ciclo completado sumado. Prisma actualiza
-    // cards.updatedAt en este mismo write, que es lo que decide la frescura de
-    // los pases de Apple (fsGetLastUpdate en lib/apple-webservice.js).
-    await prisma.card.update({
-      where: { id: cardId },
-      data: { massageStamps: 0, massageCycles: newCycles }
+    // Write condicionado a que SIGA completa: dos renovaciones simultáneas no
+    // pueden sumar dos ciclos ni mandar doble aviso (la segunda no matchea).
+    // Prisma actualiza cards.updatedAt en este mismo write, que es lo que
+    // decide la frescura de los pases de Apple (fsGetLastUpdate en
+    // lib/apple-webservice.js). lastVisit: renovar es una visita pagada — sin
+    // esto la clienta seguiría apareciendo en el filtro de "dormidas".
+    const renewed = await prisma.card.updateMany({
+      where: { id: cardId, massageActive: true, massageStamps: { gte: max } },
+      data: { massageStamps: 0, massageCycles: { increment: 1 }, lastVisit: new Date() }
     });
+    if (renewed.count === 0) {
+      return res.status(409).json({ error: 'La membresía ya fue renovada hace un momento' });
+    }
 
-    await fsAddEvent(cardId, 'MASSAGE_RENEWED', { by: 'admin', massageCycles: newCycles });
+    const fresh = await prisma.card.findUnique({ where: { id: cardId }, select: { massageCycles: true } });
+    const newCycles = fresh?.massageCycles ?? (card.massageCycles || 0) + 1;
+
+    await fsAddEvent(cardId, 'MASSAGE_RENEWED', {
+      by: req.admin?.email || 'admin',
+      note: `ciclo ${newCycles} — contador a 0/${max}`
+    });
 
     // Actualizar Google Wallet (mismo objeto, contador a 0)
     try {
-      const { updateLoyaltyObject } = await import('./lib/google.js');
       await updateLoyaltyObject(`${cardId}-massage`, card.name, 0, max, 'massage');
       console.log(`[GOOGLE WALLET] ✅ Membresía de masajes renovada: ${cardId} (ciclo ${newCycles})`);
     } catch (googleError) {
@@ -4195,7 +4207,9 @@ app.post('/api/admin/cards/:id/renew-massage', adminAuth, async (req, res) => {
       console.error('[APPLE] Error notificando renovación de masaje:', err);
     }
 
-    res.json({ ok: true, cardId, massageStamps: 0, massageMax: max, massageCycles: newCycles });
+    // name/phone van en la respuesta porque el front puede tener el cache
+    // recién vaciado (búsqueda/paginación) y aun así necesita avisar por WhatsApp
+    res.json({ ok: true, cardId, name: card.name || null, phone: card.phone || null, massageStamps: 0, massageMax: max, massageCycles: newCycles });
   } catch (e) {
     console.error('[ADMIN RENEW MASSAGE]', e);
     res.status(500).json({ error: e.message });
