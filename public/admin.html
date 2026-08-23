@@ -7446,7 +7446,7 @@
           }
 
           const chipMasajes = card.massageActive
-            ? `<span style="font-size:10px;font-weight:700;letter-spacing:0.05em;color:#7a5c42;background:rgba(196,147,110,0.22);border-radius:6px;padding:2px 7px;white-space:nowrap;">MASAJES ${card.massageStamps || 0}/${card.massageMax || 10}</span>`
+            ? `<span style="font-size:10px;font-weight:700;letter-spacing:0.05em;color:#7a5c42;background:rgba(196,147,110,0.22);border-radius:6px;padding:2px 7px;white-space:nowrap;">MASAJES ${card.massageStamps || 0}/${card.massageMax || 10}${(card.massageCycles || 0) > 0 ? ' · ' + ((card.massageCycles || 0) + 1) + 'ª' : ''}</span>`
             : '';
           const chipDormida = dormida
             ? `<span style="font-size:10px;font-weight:700;letter-spacing:0.05em;color:#8a6a3b;background:rgba(255,209,102,0.30);border-radius:6px;padding:2px 7px;white-space:nowrap;">DORMIDA · ${diasSinVenir} DÍAS</span>`
@@ -8167,10 +8167,12 @@
       if (hasMassage) {
         const ms = card.massageStamps || 0;
         const mm = card.massageMax || 10;
+        const mCycles = card.massageCycles || 0;
+        const mComplete = ms >= mm;
         const mPct = Math.min((ms / mm) * 100, 100);
         let mStatus = '';
-        if (ms >= mm) {
-          mStatus = '<i class="fas fa-gift" aria-hidden="true"></i> ¡Membresía completa! 2 regalos desbloqueados';
+        if (mComplete) {
+          mStatus = '<i class="fas fa-gift" aria-hidden="true"></i> ¡Membresía completa! 2 regalos desbloqueados — lista para renovar';
         } else if (ms >= 5) {
           mStatus = `<i class="fas fa-gift" aria-hidden="true"></i> 1er regalo <i class="fas fa-check" aria-hidden="true"></i> — Faltan ${mm - ms} para el 2do`;
         } else {
@@ -8184,19 +8186,29 @@
               <i class="fab fa-google"></i> Generar Google Wallet Masajes
             </button>`;
 
+        const mCycleChip = mCycles > 0
+          ? `<span style="font-size:10px;font-weight:700;letter-spacing:0.05em;color:#7a5c42;background:rgba(196,147,110,0.25);border-radius:6px;padding:2px 7px;margin-left:6px;white-space:nowrap;">${mCycles + 1}ª MEMBRESÍA</span>`
+          : '';
+
+        const mMainBtnHtml = mComplete
+          ? `<button onclick="renewMassageMembership('${card.id}')" class="btn small" style="margin-top:8px;width:100%;background:linear-gradient(135deg,#C4936E,#a87350);color:#fff;font-weight:700;padding:8px;border-radius:8px;">
+              <i class="fas fa-sync-alt"></i> Renovar membresía (nuevas ${mm} sesiones)
+            </button>`
+          : `<button onclick="massageStampCard('${card.id}')" class="btn small" style="margin-top:8px;width:100%;background:#C4936E;color:#fff;font-weight:600;padding:8px;border-radius:8px;">
+              <i class="fas fa-spa"></i> Agregar sesión de masaje
+            </button>`;
+
         massageSection.innerHTML = `
           <div style="background:rgba(196,147,110,0.15);border:1px solid rgba(196,147,110,0.3);border-radius:12px;padding:14px;margin-bottom:16px;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-              <span style="font-size:13px;color:#C4936E;font-weight:600;"><i class="fas fa-spa" aria-hidden="true"></i> Masajes</span>
+              <span style="font-size:13px;color:#C4936E;font-weight:600;"><i class="fas fa-spa" aria-hidden="true"></i> Masajes${mCycleChip}</span>
               <span style="font-weight:700;font-size:18px;color:#C4936E;">${ms} / ${mm}</span>
             </div>
             <div style="background:rgba(255,255,255,0.1);border-radius:8px;height:8px;overflow:hidden;">
               <div style="background:linear-gradient(90deg,#C4936E,#a87350);height:100%;width:${mPct}%;transition:width 0.3s;border-radius:8px;"></div>
             </div>
             <div class="muted" style="font-size:11px;margin-top:6px;text-align:center;">${mStatus}</div>
-            <button onclick="massageStampCard('${card.id}')" class="btn small" style="margin-top:8px;width:100%;background:#C4936E;color:#fff;font-weight:600;padding:8px;border-radius:8px;">
-              <i class="fas fa-spa"></i> Agregar sesión de masaje
-            </button>
+            ${mMainBtnHtml}
             <button onclick="resendMassageLink('${card.id}')" class="btn small" style="margin-top:6px;width:100%;background:rgba(37,211,102,0.2);color:#25D366;font-weight:600;padding:7px;border-radius:8px;font-size:11px;">
               <i class="fab fa-whatsapp"></i> Reenviar link de masajes por WhatsApp
             </button>
@@ -8627,6 +8639,65 @@
           ? `¡Sesión ${data.massageStamps} de masaje! Regalo desbloqueado.`
           : `Sesión de masaje registrada (${data.massageStamps}/${data.massageMax})`;
         await venusAlert(msg);
+      } catch (e) {
+        await venusAlert('Error: ' + e.message);
+      }
+    }
+
+    /* ===== RENOVAR MEMBRESÍA MASAJES ===== */
+    async function renewMassageMembership(cardId) {
+      const card = cardsCache[cardId];
+      const name = card?.name || 'la clienta';
+      const mm = card?.massageMax || 10;
+      const completadas = (card?.massageCycles || 0) + 1;
+
+      if (!(await venusConfirm(
+        `¿Renovar la membresía de masajes de ${name}?\n\n• El contador vuelve a 0 de ${mm} (misma tarjeta en Wallet)\n• Queda registrado que ya completó ${completadas}\n• Se le avisará por WhatsApp`,
+        { title: 'Renovar membresía', okLabel: 'Renovar' }
+      ))) return;
+
+      try {
+        const r = await fetch(`/api/admin/cards/${cardId}/renew-massage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include'
+        });
+        const data = await r.json();
+        if (!r.ok || !data.ok) throw new Error(data.error || 'No se pudo renovar la membresía');
+
+        await loadCards(currentPage);
+        if (currentCardId === cardId) {
+          const updated = cardsCache[cardId];
+          if (updated) openCardModal(updated);
+        }
+
+        // Aviso por WhatsApp — si falla, la renovación ya quedó hecha
+        const phone = card?.phone ? card.phone.replace(/[^0-9]/g, '') : '';
+        const vuelta = data.massageCycles + 1;
+        if (phone) {
+          const cardLink = `${window.location.origin}/card/${cardId}`;
+          const message =
+            `Hola ${name} 🌸\n\n` +
+            `¡Tu *membresía de masajes Venus* se renovó! 🧖‍♀️✨\n\n` +
+            `🪨 *${data.massageMax} sesiones nuevas* te esperan\n` +
+            `🎁 Con regalos en la sesión 5 y ${data.massageMax}\n\n` +
+            `Tu tarjeta digital es la misma:\n${cardLink}\n\n` +
+            `_Venus Cosmetología — Sierra del Eje Pte. 7, Villas del Parque, San Juan del Río_`;
+          try {
+            const waRes = await fetch('/api/whatsapp/send', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ phone, message })
+            });
+            const waData = await waRes.json();
+            if (!waData.success) throw new Error(waData.error || 'no se pudo enviar');
+            await venusAlert(`Membresía renovada — ${name} va en su ${vuelta}ª membresía (0/${data.massageMax}). Aviso enviado por WhatsApp.`);
+          } catch (waErr) {
+            await venusAlert(`Membresía renovada (0/${data.massageMax}), pero no se pudo enviar el WhatsApp: ${waErr.message}`);
+          }
+        } else {
+          await venusAlert(`Membresía renovada — ${name} va en su ${vuelta}ª membresía (0/${data.massageMax}). Sin teléfono registrado para avisar por WhatsApp.`);
+        }
       } catch (e) {
         await venusAlert('Error: ' + e.message);
       }

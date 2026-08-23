@@ -4135,8 +4135,8 @@ app.post("/api/admin/massage-stamp", adminAuth, async (req, res) => {
       let customMsg = null;
       if (newStamps === 5) {
         customMsg = `🎁 ¡Felicidades ${card.name}! Llevas 5 masajes — tienes un regalo especial esperándote.`;
-      } else if (newStamps === 10) {
-        customMsg = `🎁🎉 ¡Increíble ${card.name}! Completaste 10 masajes — ¡tu segundo regalo te espera!`;
+      } else if (newStamps >= card.massageMax) {
+        customMsg = `🎁🎉 ¡Increíble ${card.name}! Completaste tus ${card.massageMax} masajes — recoge tu segundo regalo y pregunta por la renovación de tu membresía 🌸`;
       } else {
         customMsg = `💆 Sesión de masaje registrada — llevas ${newStamps} de ${card.massageMax}.`;
       }
@@ -4149,6 +4149,55 @@ app.post("/api/admin/massage-stamp", adminAuth, async (req, res) => {
     res.json({ ok: true, cardId, massageStamps: newStamps, massageMax: card.massageMax });
   } catch (e) {
     console.error("[ADMIN MASSAGE STAMP]", e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /api/admin/cards/:id/renew-massage — renovar membresía de masajes (nueva vuelta, misma tarjeta en Wallet)
+app.post('/api/admin/cards/:id/renew-massage', adminAuth, async (req, res) => {
+  try {
+    const cardId = req.params.id;
+    const card = await fsGetCard(cardId);
+    if (!card) return res.status(404).json({ error: 'card not found' });
+    if (!card.massageActive) return res.status(400).json({ error: 'No tiene membresía de masajes activa' });
+
+    const max = card.massageMax || 10;
+    if ((card.massageStamps || 0) < max) {
+      return res.status(400).json({ error: `Aún no completa la membresía (${card.massageStamps || 0}/${max}) — se renueva al terminarla` });
+    }
+
+    const newCycles = (card.massageCycles || 0) + 1;
+
+    // Un solo write: contador a 0 y ciclo completado sumado. Prisma actualiza
+    // cards.updatedAt en este mismo write, que es lo que decide la frescura de
+    // los pases de Apple (fsGetLastUpdate en lib/apple-webservice.js).
+    await prisma.card.update({
+      where: { id: cardId },
+      data: { massageStamps: 0, massageCycles: newCycles }
+    });
+
+    await fsAddEvent(cardId, 'MASSAGE_RENEWED', { by: 'admin', massageCycles: newCycles });
+
+    // Actualizar Google Wallet (mismo objeto, contador a 0)
+    try {
+      const { updateLoyaltyObject } = await import('./lib/google.js');
+      await updateLoyaltyObject(`${cardId}-massage`, card.name, 0, max, 'massage');
+      console.log(`[GOOGLE WALLET] ✅ Membresía de masajes renovada: ${cardId} (ciclo ${newCycles})`);
+    } catch (googleError) {
+      console.error('[GOOGLE WALLET] ❌ Error renovando masajes:', googleError.message);
+    }
+
+    // Push a Apple Wallet (mismo pase, contador a 0)
+    try {
+      const customMsg = `🌸 ¡Tu membresía de masajes se renovó, ${card.name}! Te esperan ${max} sesiones nuevas con regalos en la 5 y la ${max}.`;
+      await appleWebService.updatePassAndNotify(`${cardId}-massage`, card.massageStamps, 0, customMsg);
+    } catch (err) {
+      console.error('[APPLE] Error notificando renovación de masaje:', err);
+    }
+
+    res.json({ ok: true, cardId, massageStamps: 0, massageMax: max, massageCycles: newCycles });
+  } catch (e) {
+    console.error('[ADMIN RENEW MASSAGE]', e);
     res.status(500).json({ error: e.message });
   }
 });
