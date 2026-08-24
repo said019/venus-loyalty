@@ -15017,15 +15017,28 @@
           <div class="ds-cart-item">
             <div class="ds-cart-info">
               <span class="ds-cart-name">${p.name}</span>
-              <span class="ds-cart-meta">$${p.price.toLocaleString()} × ${p.qty}</span>
+              <span class="ds-cart-meta">$<input type="number" class="ds-cart-price" value="${p.price}" min="0" step="1" inputmode="decimal" aria-label="Precio unitario" title="Toca para ajustar el precio" oninput="updateDirectSalePrice('${p.id}', this.value)"> × ${p.qty}</span>
             </div>
-            <div class="ds-cart-subtotal">$${subtotal.toLocaleString()}</div>
+            <div class="ds-cart-subtotal" id="ds-subtotal-${p.id}">$${subtotal.toLocaleString()}</div>
             <button onclick="removeProductFromDirectSale('${p.id}')" class="ds-cart-remove" title="Quitar">
               <i class="fas fa-times" aria-hidden="true"></i>
             </button>
           </div>
         `;
       }).join('');
+    }
+
+    // El precio de cada partida es editable al cobrar (precio de ese día,
+    // promociones de mostrador): actualiza el modelo y los totales SIN
+    // re-render — re-pintar la lista le quitaría el foco al input a media
+    // escritura. El precio editado viaja en productsSold al guardar.
+    function updateDirectSalePrice(productId, value) {
+      const p = directSaleProducts.find(x => x.id === productId);
+      if (!p) return;
+      p.price = Math.max(0, parseFloat(value) || 0);
+      const sub = document.getElementById('ds-subtotal-' + productId);
+      if (sub) sub.textContent = '$' + (p.price * p.qty).toLocaleString();
+      calculateDirectSaleTotals();
     }
 
     function setDirectSaleDiscountType(type) {
