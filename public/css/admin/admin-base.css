@@ -2530,14 +2530,20 @@
       overflow-x: hidden;
     }
 
+    /* Tabs planas sobre el fondo (lienzo aprobado): sin franja-tarjeta detrás */
     .tabs-header {
       display: flex;
       border-bottom: 1px solid var(--line);
-      background: rgba(0, 0, 0, 0.2);
-      border-radius: 12px 12px 0 0;
-      overflow: hidden;
+      background: transparent;
+      border-radius: 0;
       position: relative;
       z-index: 1;
+    }
+
+    /* Encabezados de grupo del catálogo (Servicios agrupado por categoría):
+       solo existen en móvil — en escritorio la columna Categoría sigue viva */
+    tr.svc-group {
+      display: none;
     }
 
     .tab-btn {

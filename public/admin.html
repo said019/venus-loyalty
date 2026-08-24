@@ -2453,8 +2453,8 @@
         <h2><i class="fas fa-wand-magic-sparkles"></i> Catálogo</h2>
       </div>
 
-      <!-- Tabs Header -->
-      <div class="tabs-header" style="margin-bottom:0;border-radius:12px 12px 0 0;">
+      <!-- Tabs Header: planas sobre el fondo (diseño aprobado en el lienzo — sin tarjeta detrás) -->
+      <div class="tabs-header">
         <button class="tab-btn active" onclick="switchCatalogTab('services')" id="btn-tab-services">
           <i class="fas fa-wand-magic-sparkles"></i> Servicios
           <span class="tab-count" id="services-count">0</span>
@@ -2469,7 +2469,9 @@
         </button>
       </div>
 
-      <div class="card" style="border-radius:0 0 12px 12px;margin-top:0;">
+      <!-- Sin .card envolvente: buscador y botones van sobre el fondo; solo
+           .table-wrap (que ya es tarjeta en ambos temas) conserva chrome -->
+      <div class="catalog-panels" style="margin-top:16px;">
 
         <!-- Panel: Servicios -->
         <div id="panel-services" class="tab-panel active">
@@ -12642,13 +12644,35 @@
         return;
       }
 
-      const html = services.map(s => {
+      // Agrupar por categoría (diseño aprobado, Opción A): en móvil cada grupo
+      // lleva su encabezado y las filas omiten el chip repetido; en escritorio
+      // los encabezados van ocultos y la columna Categoría sigue igual.
+      const grupos = new Map();
+      services.forEach(s => {
+        const k = s.category || 'Sin categoría';
+        if (!grupos.has(k)) grupos.set(k, []);
+        grupos.get(k).push(s);
+      });
+
+      const html = [...grupos.entries()]
+        .sort((a, b) => a[0].localeCompare(b[0], 'es'))
+        .map(([cat, items]) => {
+          const gc = categoryColor(cat);
+          const header = `
+        <tr class="svc-group">
+          <td colspan="5">
+            <span class="svc-group-name" style="color:${gc.fg};">${cat}</span>
+            <span class="svc-group-count">${items.length}</span>
+            <span class="svc-group-line"></span>
+          </td>
+        </tr>`;
+          return header + items.map(s => {
         const cc = categoryColor(s.category);
         const inactivo = s.isActive === false || s.active === false;
         return `
         <tr class="svc-row"${inactivo ? ' style="opacity:0.5;"' : ''}>
           <td data-label="Nombre" class="svc-main">${s.name}${inactivo ? ' <span style="font-size:10px;font-weight:700;letter-spacing:0.06em;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:1px 6px;margin-left:6px;">INACTIVO</span>' : ''}</td>
-          <td data-label="Categoría" class="svc-meta">
+          <td data-label="Categoría" class="svc-meta svc-cat">
             <span style="
               display:inline-block;
               padding:4px 10px;
@@ -12676,6 +12700,8 @@
         </tr>
       `;
       }).join('');
+        })
+        .join('');
 
       console.log('[RENDER] HTML generado, longitud:', html.length);
       servicesTbody.innerHTML = html;
@@ -13343,8 +13369,8 @@
         const stockWarning = p.stock <= (p.minStock || 5) && p.stock > 0 ? ' (bajo)' : '';
 
         return `
-          <tr>
-            <td data-label="Producto">
+          <tr class="svc-row">
+            <td data-label="Producto" class="svc-main">
               <div class="product-cell">
                 <div class="product-img"><i class="fas fa-box"></i></div>
                 <div>
@@ -13353,10 +13379,10 @@
                 </div>
               </div>
             </td>
-            <td style="text-transform:capitalize;" data-label="Categoría">${p.category}</td>
-            <td style="font-weight:600;color:var(--venus-soft);" data-label="Precio">$${p.price}</td>
-            <td data-label="Stock"><span class="stock ${stockClass}">${p.stock} uds${stockWarning}</span></td>
-            <td data-label="Acciones">
+            <td style="text-transform:capitalize;" data-label="Categoría" class="svc-meta">${p.category}</td>
+            <td style="font-weight:600;color:var(--venus-soft);" data-label="Precio" class="svc-meta">$${p.price}</td>
+            <td data-label="Stock" class="svc-meta"><span class="stock ${stockClass}">${p.stock} uds${stockWarning}</span></td>
+            <td data-label="Acciones" class="svc-actions">
               <div class="actions" style="display:flex;gap:6px;">
                 <button class="btn small ghost" onclick="editProduct('${p.id}')">Editar</button>
                 <button class="btn small ghost" style="color:#ef4444;" onclick="deleteProduct('${p.id}')">Eliminar</button>
