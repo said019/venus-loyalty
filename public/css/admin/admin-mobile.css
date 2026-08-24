@@ -671,6 +671,18 @@ html[data-theme="dark"]  { color-scheme: dark; }
     background: var(--line, rgba(74, 77, 59, 0.13));
     align-self: center;
   }
+  /* La lista del catálogo va PLANA sobre el fondo (lienzo aprobado): la
+     tarjeta envolvente de .table-wrap sobraba — filas con hairline bastan.
+     El #id le gana a los overrides temáticos con !important de redesign. */
+  #tab-services .table-wrap {
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+  /* Cada celda heredaba 7px arriba/abajo del td genérico card-ificado:
+     entre nombre, meta y acciones sumaba ~28px de aire por fila */
+  .data-table tr.svc-row td { padding: 2px 0 !important; }
   /* La fila no repite el chip de categoría: lo dice el encabezado del grupo */
   .data-table tr.svc-row td.svc-cat { display: none; }
   /* Productos compactos: el icono de caja no cabe en la fila de lista */
