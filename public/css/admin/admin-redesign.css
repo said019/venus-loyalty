@@ -2363,3 +2363,15 @@ gmp-place-autocomplete:not(:defined) {
   border-radius: 10px;
   padding: 10px 14px;
 }
+
+/* Los stats del catálogo quedaron sobre el fondo al quitar la tarjeta
+   envolvente: venus-soft a 28px sobre crema era casi invisible. Tinta
+   olivo firme (y ámbar para stock bajo); el !important le gana a
+   posibles variantes por tema. En móvil admin-mobile (carga después)
+   los deja en 14px tinta. */
+.stats-bar .stat-item .stat-value {
+  color: var(--venus, #737b52) !important;
+}
+.stats-bar .stat-item .stat-value.stat-warn {
+  color: var(--warning, oklch(50% 0.100 80)) !important;
+}

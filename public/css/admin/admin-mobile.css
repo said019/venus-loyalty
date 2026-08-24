@@ -687,7 +687,21 @@ html[data-theme="dark"]  { color-scheme: dark; }
     align-items: baseline;
     gap: 5px;
   }
-  .stats-bar .stat-item .stat-value { font-size: 14px; }
+  /* !important: la regla genérica de KPIs (línea ~343) pone 22px !important
+     a todo .stat-value, y admin-redesign lo vuelve Playfair 400 (ilegible a
+     14px sobre crema). Aquí es una línea de resumen, no un tile. */
+  .stats-bar .stat-item .stat-value {
+    font-size: 14px !important;
+    font-family: inherit !important;
+    font-weight: 700 !important;
+    color: var(--ink, #28291f) !important;
+  }
+  .stats-bar .stat-item .stat-value.stat-warn {
+    color: var(--warning, oklch(50% 0.100 80)) !important;
+  }
+  /* El chip de categoría oculto seguía regalando su separador '·' a la
+     siguiente celda meta: la primera línea salía como '· 15 min' */
+  .data-table tr.svc-row td.svc-cat + td.svc-meta::before { content: none; }
 
   /* Modales fullscreen sheet en mobile */
   dialog, .modal, .dialog {
