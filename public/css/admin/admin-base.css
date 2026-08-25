@@ -1428,6 +1428,10 @@
       background: radial-gradient(circle, var(--accent-gold) 0%, transparent 70%);
       opacity: 0.05;
       transform: translate(30%, -30%);
+      /* Es adorno: sin esto se comía los clics de lo que viva en la esquina
+         superior derecha de CUALQUIER .card (ej. el selector de fecha de
+         Caja — verificado con elementFromPoint: el clic llegaba al .card) */
+      pointer-events: none;
     }
 
     .card h2 {
