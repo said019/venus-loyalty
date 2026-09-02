@@ -664,7 +664,23 @@ app.get(['/mi-tarjeta', '/tarjeta', '/unete'], (_req, res) => {
 
 // { index:false } evita que express.static intercepte / antes de los
 // handlers de arriba.
-app.use(express.static("public", { index: false }));
+// Caché de estáticos: el servidor vive en Europa y cada archivo costaba un
+// viaje (~400ms) en CADA visita porque todo salía con max-age=0. HTML siempre
+// fresco (los deploys se ven al instante); css/js con revalidación en fondo
+// (la visita repetida pinta con lo cacheado y se actualiza sola); imágenes y
+// fuentes, una semana.
+app.use(express.static("public", {
+  index: false,
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-cache');
+    } else if (/\.(png|jpe?g|webp|svg|ico|woff2?)$/i.test(filePath)) {
+      res.setHeader('Cache-Control', 'public, max-age=604800, stale-while-revalidate=2592000');
+    } else if (/\.(css|js)$/i.test(filePath)) {
+      res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=86400');
+    }
+  },
+}));
 app.get("/api/qr", async (req, res) => {
   try {
     const text = String(req.query.text || "");

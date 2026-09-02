@@ -19206,9 +19206,7 @@
     async function selectReportMonth(year, month) {
       currentReportMonth = { year, month };
       initReportMonthTabs();
-      await cargarReportesMes();
-      // Recargar gastos del mes seleccionado
-      if (typeof loadExpenses === 'function') loadExpenses();
+      await cargarReportesMes();   // pinta ventas Y gastos del mes en un viaje
     }
 
     // Color del borde de los charts (gap entre segmentos) según el tema activo.
@@ -19308,25 +19306,34 @@
 
         console.log('[REPORTS] Cargando mes:', firstDay, 'a', lastDayStr);
 
-        const todasLasVentas = await fetchVentasRango(firstDay, lastDayStr);
+        // Un solo viaje: ventas y gastos en paralelo (el servidor vive en
+        // Europa; encadenarlos costaba ~400ms extra por eslabón). Los mismos
+        // gastos pintan el Resumen Financiero Y el panel de Gastos del mes —
+        // antes se pedían TRES veces por carga.
+        const [todasLasVentas, gastosMes] = await Promise.all([
+          fetchVentasRango(firstDay, lastDayStr),
+          fetchGastosRango(firstDay, lastDayStr),
+        ]);
         reportData = todasLasVentas;
-        const totalEgresos = await fetchTotalEgresos(firstDay, lastDayStr);
+        const totalEgresos = gastosMes.reduce((s, g) => s + (parseFloat(g.amount) || 0), 0);
         renderExcelReport(todasLasVentas, totalEgresos);
+        // El panel de Gastos, de los datos ya traídos (el orden importa: la
+        // Utilidad Neta se calcula leyendo el total de ventas ya renderizado).
+        renderExpenses(gastosMes);
+        calculateExpenseStats(gastosMes);
       } catch (error) {
         console.error('[REPORTS] Error cargando mes:', error);
       }
     }
 
-    // Suma de gastos del rango para el Resumen Financiero y la dona.
-    async function fetchTotalEgresos(from, to) {
+    // Gastos del rango (lista completa; el total se deriva de aquí).
+    async function fetchGastosRango(from, to) {
       try {
         const res = await apiFetch(`/api/expenses?from=${from}&to=${to}`);
         const json = await res.json();
-        if (json.success && Array.isArray(json.data)) {
-          return json.data.reduce((s, g) => s + (parseFloat(g.amount) || 0), 0);
-        }
+        if (json.success && Array.isArray(json.data)) return json.data;
       } catch (e) { console.warn('[REPORTS] gastos no disponibles:', e); }
-      return 0;
+      return [];
     }
 
     // Renderer ÚNICO del reporte de Ventas (vista por mes Y por rango):
@@ -20202,8 +20209,9 @@
       tab.addEventListener('click', () => {
         setTimeout(async () => {
           if (typeof initReportMonthTabs === 'function') initReportMonthTabs();
+          // cargarReportesMes ya pinta también el panel de Gastos con los
+          // mismos datos: el loadExpenses() que seguía aquí duplicaba el viaje.
           if (typeof cargarReportesMes === 'function') await cargarReportesMes();
-          if (typeof loadExpenses === 'function') loadExpenses();
         }, 100);
       });
     });
