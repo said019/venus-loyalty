@@ -20076,7 +20076,9 @@
       const title = document.getElementById('expense-modal-title');
       if (title) title.textContent = 'Nuevo Gasto';
       const dateInput = document.getElementById('expense-date');
-      if (dateInput) dateInput.valueAsDate = new Date();
+      // Fecha LOCAL: valueAsDate interpreta UTC y después de las 6pm sembraba
+      // mañana. Y sí se puede elegir CUALQUIER fecha, también de meses pasados.
+      if (dateInput) dateInput.value = toLocalDateString(new Date());
       if (expenseDialog) expenseDialog.showModal();
     };
 
@@ -20158,9 +20160,21 @@
           const json = await res.json();
 
           if (json.success) {
-            await venusAlert(currentExpenseId ? 'Gasto actualizado' : 'Gasto registrado');
             closeExpenseModal();
-            loadExpenses();
+
+            // Si el gasto es de OTRO mes (ej. anotar agosto ya en septiembre),
+            // saltar a ese mes para que se vea registrado — antes se guardaba
+            // bien pero la lista recargaba el mes en pantalla y "desaparecía".
+            const [gy, gm] = String(data.date).split('-').map(Number);
+            const esOtroMes = gy && gm && (gy !== currentReportMonth.year || gm !== currentReportMonth.month);
+            const MESES_G = ['', 'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+            await venusAlert((currentExpenseId ? 'Gasto actualizado' : 'Gasto registrado') + (esOtroMes ? ` en ${MESES_G[gm]} de ${gy} — te llevo a ese mes` : ''));
+
+            if (esOtroMes && typeof selectReportMonth === 'function') {
+              selectReportMonth(gy, gm);
+            } else {
+              loadExpenses();
+            }
           } else {
             await venusAlert('Error: ' + json.error);
           }
