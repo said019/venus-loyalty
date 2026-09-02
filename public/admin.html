@@ -20136,8 +20136,14 @@
     };
 
     if (formExpense) {
+      let guardandoGasto = false;   // seguro anti doble-clic: cada tap extra creaba OTRO gasto
       formExpense.addEventListener('submit', async (e) => {
         e.preventDefault();
+        if (guardandoGasto) return;
+        guardandoGasto = true;
+        const btnGuardar = formExpense.querySelector('button[type="submit"]');
+        const labelOriginal = btnGuardar ? btnGuardar.innerHTML : '';
+        if (btnGuardar) { btnGuardar.disabled = true; btnGuardar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando…'; }
 
         const data = {
           date: document.getElementById('expense-date').value,
@@ -20181,6 +20187,9 @@
         } catch (error) {
           console.error('Error:', error);
           await venusAlert('Error guardando gasto');
+        } finally {
+          guardandoGasto = false;
+          if (btnGuardar) { btnGuardar.disabled = false; btnGuardar.innerHTML = labelOriginal; }
         }
       });
     }
