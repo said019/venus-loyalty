@@ -255,6 +255,20 @@ async function fsUpdateCard(cardId, data) {
   return snap.data();
 }
 
+// Una cita COBRADA es una visita real: antes lastVisit solo se movía al
+// poner sello o canjear, así que una clienta que viene cada mes sin sello
+// (Sarai, caso del 2-sep-2026) aparecía como "dormida" desde marzo.
+async function tocarUltimaVisita(clientPhone) {
+  if (!clientPhone) return;
+  try {
+    const r = await prisma.card.updateMany({
+      where: { phone: String(clientPhone) },
+      data: { lastVisit: new Date() },
+    });
+    if (r.count) console.log(`[VISITA] lastVisit actualizada para ${clientPhone}`);
+  } catch (e) { console.warn('[VISITA] no se pudo tocar lastVisit:', e.message); }
+}
+
 async function fsUpdateCardStamps(cardId, stamps) {
   return fsUpdateCard(cardId, {
     stamps,
@@ -1368,6 +1382,7 @@ app.post('/api/appointments/:id/payment', adminAuth, async (req, res) => {
     };
 
     console.log('[PAYMENT] Guardando pago para cita', id, ':', paymentData);
+    tocarUltimaVisita(appointment.clientPhone);
 
     // Actualizar cita a completada con datos de pago
     await AppointmentsRepo.complete(id, {
@@ -1859,6 +1874,7 @@ app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
 
       const appointment = await AppointmentsRepo.findById(id);
       if (!appointment) return res.status(404).json({ success: false, error: 'Cita no encontrada' });
+      tocarUltimaVisita(appointment.clientPhone);
 
       // Cambio de servicio al cobrar (misma regla que POST /payment): la cita
       // y el reporte deben quedar con el servicio que de verdad se hizo.
@@ -4131,7 +4147,7 @@ app.post("/api/admin/massage-stamp", adminAuth, async (req, res) => {
 
     await prisma.card.update({
       where: { id: cardId },
-      data: { massageStamps: newStamps }
+      data: { massageStamps: newStamps, lastVisit: new Date() }
     });
 
     await fsAddEvent(cardId, "MASSAGE_STAMP", { by: "admin", massageStamps: newStamps });
