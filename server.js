@@ -94,6 +94,7 @@ import { getEvolutionClient } from './src/services/whatsapp-evolution.js';
 import clientRecordsRouter from './src/routes/clientRecords.js';
 import expedientesRouter from './src/routes/expedientes.js';
 import packagesRouter from './src/routes/packages.js';
+import creditsRouter, { aplicarCreditoEnCobro } from './src/routes/credits.js';
 
 // NOTA (11 jul 2026, decisión del negocio): la ficha clínica NO se envía
 // automáticamente al agendar. Se envía SOLO manual desde el expediente
@@ -267,6 +268,47 @@ async function tocarUltimaVisita(clientPhone) {
     });
     if (r.count) console.log(`[VISITA] lastVisit actualizada para ${clientPhone}`);
   } catch (e) { console.warn('[VISITA] no se pudo tocar lastVisit:', e.message); }
+}
+
+// ── Apartado (saldo a favor) en el cobro de una cita ─────────────────────
+// Se descuenta el saldo ANTES de cerrar el cobro, a propósito: si el cobro
+// tronara después, `deshacerApartado` revierte el movimiento. Un saldo
+// gastado de más se ve en la ficha y se deshace con un botón; un ingreso
+// perdido en silencio, no.
+async function cobrarConApartado(appointment, req) {
+  const pedido = parseFloat(req.body.creditApplied) || 0;
+  if (pedido <= 0) return null;
+  const r = await aplicarCreditoEnCobro({
+    cardId: appointment.cardId,
+    clientPhone: appointment.clientPhone,
+    amount: pedido,
+    appointmentId: appointment.id,
+    by: (req.admin && (req.admin.email || req.admin.role)) || 'admin',
+    note: `Cobro de ${appointment.serviceName || 'cita'}`,
+  });
+  console.log(`[APARTADO] Aplicados $${pedido} a la cita ${appointment.id} → saldo $${r.balance}`);
+  return { movementId: r.movement.id, monto: pedido };
+}
+
+// Traduce los errores del apartado a algo que la recepcionista entienda.
+function mensajeApartado(e) {
+  if (e && e.code === 'P2002') return 'Esta cita ya tenía saldo apartado aplicado';
+  return {
+    saldo_insuficiente: 'La clienta ya no tiene ese saldo apartado — vuelve a abrir el cobro',
+    clienta_no_encontrada: 'No encontré la tarjeta de la clienta para descontar el apartado',
+    monto_invalido: 'El monto del apartado no es válido',
+  }[e && e.message] || null;
+}
+
+async function deshacerApartado(aplicado) {
+  if (!aplicado) return;
+  try {
+    await prisma.clientCredit.update({
+      where: { id: aplicado.movementId },
+      data: { revertedAt: new Date(), revertedBy: 'sistema (cobro fallido)', sourceRef: null },
+    });
+    console.warn(`[APARTADO] Cobro fallido: devueltos $${aplicado.monto} al saldo`);
+  } catch (e) { console.error('[APARTADO] no se pudo devolver el saldo:', e.message); }
 }
 
 async function fsUpdateCardStamps(cardId, stamps) {
@@ -733,6 +775,7 @@ app.use('/api/client-records', clientRecordsRouter);
 // 📋 Expedientes digitales (fichas, consentimientos, diagnóstico, láser, documentos Drive)
 app.use('/api/expedientes', expedientesRouter);
 app.use('/api/packages', packagesRouter);
+app.use('/api/credits', creditsRouter);
 
 // ☕ Venus The Coffee Bar - POS
 app.use('/api/pos', coffeePosRouter);
@@ -1384,13 +1427,29 @@ app.post('/api/appointments/:id/payment', adminAuth, async (req, res) => {
     console.log('[PAYMENT] Guardando pago para cita', id, ':', paymentData);
     tocarUltimaVisita(appointment.clientPhone);
 
+    // Apartado: saldo a favor que la clienta dejó antes (ver cobrarConApartado).
+    let apartadoAplicado = null;
+    try {
+      apartadoAplicado = await cobrarConApartado(appointment, req);
+    } catch (e) {
+      const msg = mensajeApartado(e);
+      if (msg) return res.status(409).json({ success: false, error: msg });
+      throw e;
+    }
+
     // Actualizar cita a completada con datos de pago
-    await AppointmentsRepo.complete(id, {
-      total: parseFloat(totalAmount) || 0,
-      method: paymentMethod,
-      discount: discountAmount ? parseFloat(discountAmount) : null,
-      products: productsSold || []
-    });
+    try {
+      await AppointmentsRepo.complete(id, {
+        total: parseFloat(totalAmount) || 0,
+        method: paymentMethod,
+        discount: discountAmount ? parseFloat(discountAmount) : null,
+        products: productsSold || [],
+        creditApplied: apartadoAplicado ? apartadoAplicado.monto : undefined
+      });
+    } catch (e) {
+      await deshacerApartado(apartadoAplicado);
+      throw e;
+    }
 
     // Descontar stock de productos vendidos usando Prisma
     if (productsSold && productsSold.length > 0) {
@@ -1888,13 +1947,30 @@ app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
         appointment.serviceName = nuevoServicio;
       }
 
+      // Apartado: la clienta ya había dejado dinero a cuenta. Se descuenta
+      // antes de cerrar el cobro (ver cobrarConApartado).
+      let apartadoAplicado = null;
+      try {
+        apartadoAplicado = await cobrarConApartado(appointment, req);
+      } catch (e) {
+        const msg = mensajeApartado(e);
+        if (msg) return res.status(409).json({ success: false, error: msg });
+        throw e;
+      }
+
       // Actualizar cita a completada
-      await AppointmentsRepo.complete(id, {
-        total: parseFloat(totalPaid) || 0,
-        method: paymentMethod,
-        discount: discount ? parseFloat(discount) : null,
-        products: productsSold || [] // productsSold tiene quantity, name, etc.
-      });
+      try {
+        await AppointmentsRepo.complete(id, {
+          total: parseFloat(totalPaid) || 0,
+          method: paymentMethod,
+          discount: discount ? parseFloat(discount) : null,
+          products: productsSold || [], // productsSold tiene quantity, name, etc.
+          creditApplied: apartadoAplicado ? apartadoAplicado.monto : undefined
+        });
+      } catch (e) {
+        await deshacerApartado(apartadoAplicado);
+        throw e;
+      }
 
       // Calcular montos para reporte de ventas
       const productsTotal = (productsSold || []).reduce((sum, p) => sum + (p.subtotal || 0), 0);

@@ -363,6 +363,9 @@ export const AppointmentsRepo = {
         paymentMethod: paymentData.method,
         discount: paymentData.discount || null,
         productsSold: paymentData.products || null,
+        // Apartado aplicado. undefined (no null) cuando no viene: así un
+        // cobro sin saldo no borra lo que otro camino ya hubiera escrito.
+        creditApplied: paymentData.creditApplied != null ? paymentData.creditApplied : undefined,
         updatedAt: new Date(),
       }
     });

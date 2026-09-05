@@ -59,6 +59,7 @@ model Card {
   skinAnalyses SkinAnalysis[]
   touchpoints  Touchpoint[]
   challenges   Challenge[]
+  credits      ClientCredit[]
 
   @@map("cards")
 }
@@ -97,6 +98,11 @@ model Appointment {
   totalPaid     Decimal? @db.Decimal(10, 2)
   paymentMethod String? // efectivo, tarjeta, transferencia
   discount      Decimal? @db.Decimal(10, 2)
+  // Saldo a favor (apartado) aplicado a esta cita. totalPaid es lo que la
+  // clienta pagó HOY; creditApplied es lo que ya había dejado antes. Se
+  // guarda aquí para que Caja y Reportes expliquen por qué el facial salió
+  // en $300 y no en $800, sin consultas extra.
+  creditApplied Decimal? @db.Decimal(10, 2)
 
   // Google Calendar
   googleCalendarEventId  String?
@@ -1133,6 +1139,43 @@ model PackageUse {
   note            String?
 
   @@map("package_uses")
+}
+
+// ===== APARTADOS (saldo a favor) =====
+// La clienta deja dinero hoy a cuenta de su próxima cita. Se guarda como
+// BITÁCORA de movimientos, no como un número en la clienta: el saldo se
+// calcula sumando, así nunca se desincroniza (la lección de lastVisit) y
+// siempre se sabe quién movió qué, cuándo y por qué.
+//
+// `amount` lleva signo: positivo cuando entra dinero (depósito), negativo
+// cuando sale (aplicado a una cita o devuelto). El signo lo pone SIEMPRE el
+// servidor según el tipo, nunca el cliente.
+model ClientCredit {
+  id            String  @id @default(cuid())
+  cardId        String
+  card          Card    @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  clientPhone   String? // copia al momento del movimiento (la clienta puede cambiar de número)
+  type          String // deposito | aplicacion | devolucion
+  amount        Decimal @db.Decimal(10, 2)
+  paymentMethod String? // efectivo | tarjeta | transferencia (depósito y devolución)
+  appointmentId String? // cita donde se aplicó
+  saleId        String? // venta creada al depositar (para poder deshacer un dedazo)
+  note          String?
+
+  // Llave de idempotencia ("appt:<id>", "booking:<id>"): impide que cobrar
+  // dos veces la misma cita —o validar dos veces el mismo comprobante—
+  // gaste el saldo dos veces. Es la guarda, no un adorno.
+  sourceRef String? @unique
+
+  createdBy  String?
+  createdAt  DateTime  @default(now())
+  // Deshacer no borra el renglón: lo marca. El dinero deja rastro siempre.
+  revertedAt DateTime?
+  revertedBy String?
+
+  @@index([cardId])
+  @@index([createdAt])
+  @@map("client_credits")
 }
 
 // ── Checklist de marketing (tablas creadas por SQL crudo del módulo de
