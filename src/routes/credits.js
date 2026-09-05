@@ -134,32 +134,34 @@ router.get('/pending', async (req, res) => {
 // POST /api/credits/card/:cardId/deposit — la clienta deja dinero.
 // Además del renglón crea un `Sale` para que el dinero aparezca en Reportes
 // HOY (mismo camino que la venta de paquetes: tercera fuente, sin cita).
-router.post('/card/:cardId/deposit', async (req, res) => {
+export async function registrarApartado({ cardId, amount, paymentMethod, note, sourceRef, by }) {
+  const monto = centavos(amount);
+  if (!Number.isFinite(monto) || monto <= 0) throw new Error('monto_invalido');
+  if (!METODOS.includes(paymentMethod)) throw new Error('metodo_invalido');
+
+  const card = await prisma.card.findUnique({ where: { id: cardId } });
+  if (!card) throw new Error('clienta_no_encontrada');
+
+  // La venta primero: si el renglón choca contra sourceRef (depósito
+  // duplicado), se borra la venta y no queda un ingreso fantasma.
+  const venta = await prisma.sale.create({
+    data: {
+      clientName: card.name,
+      clientPhone: card.phone,
+      serviceName: `Apartado — ${card.name}`,
+      serviceAmount: monto,
+      productsAmount: 0,
+      subtotal: monto,
+      total: monto,
+      totalAmount: monto,
+      paymentMethod,
+      date: new Date(),
+    },
+  });
+
+  let mov;
   try {
-    const { amount, paymentMethod, note, sourceRef } = req.body || {};
-    const monto = centavos(amount);
-    if (!Number.isFinite(monto) || monto <= 0) return fail(res, 400, 'Monto inválido');
-    if (!METODOS.includes(paymentMethod)) return fail(res, 400, 'Método de pago inválido');
-
-    const card = await prisma.card.findUnique({ where: { id: req.params.cardId } });
-    if (!card) return fail(res, 404, 'Clienta no encontrada');
-
-    const venta = await prisma.sale.create({
-      data: {
-        clientName: card.name,
-        clientPhone: card.phone,
-        serviceName: `Apartado — ${card.name}`,
-        serviceAmount: monto,
-        productsAmount: 0,
-        subtotal: monto,
-        total: monto,
-        totalAmount: monto,
-        paymentMethod,
-        date: new Date(),
-      },
-    });
-
-    const mov = await prisma.clientCredit.create({
+    mov = await prisma.clientCredit.create({
       data: {
         cardId: card.id,
         clientPhone: card.phone,
@@ -169,14 +171,29 @@ router.post('/card/:cardId/deposit', async (req, res) => {
         note: note ? String(note).slice(0, 300) : null,
         saleId: venta.id,
         sourceRef: sourceRef || null,
-        createdBy: quienEs(req),
+        createdBy: by || 'admin',
       },
     });
-
-    const balance = await saldoDe(prisma, card.id);
-    console.log(`[CREDITS] Apartado de $${monto} (${paymentMethod}) para ${card.name} → saldo $${balance}`);
-    res.json({ success: true, data: { movement: serializar(mov), balance } });
   } catch (e) {
+    await prisma.sale.delete({ where: { id: venta.id } }).catch(() => {});
+    throw e;
+  }
+
+  const balance = await saldoDe(prisma, card.id);
+  console.log(`[CREDITS] Apartado de $${monto} (${paymentMethod}) para ${card.name} → saldo $${balance}`);
+  return { movement: mov, balance, card };
+}
+
+router.post('/card/:cardId/deposit', async (req, res) => {
+  try {
+    const { amount, paymentMethod, note, sourceRef } = req.body || {};
+    const r = await registrarApartado({
+      cardId: req.params.cardId, amount, paymentMethod, note, sourceRef, by: quienEs(req),
+    });
+    res.json({ success: true, data: { movement: serializar(r.movement), balance: r.balance } });
+  } catch (e) {
+    const conocidos = { monto_invalido: 400, metodo_invalido: 400, clienta_no_encontrada: 404 };
+    if (conocidos[e.message]) return fail(res, conocidos[e.message], e.message);
     // Choque de sourceRef: ya se había registrado ese mismo depósito.
     if (e.code === 'P2002') return fail(res, 409, 'ese_deposito_ya_existe');
     console.error('[CREDITS DEPOSIT]', e); return fail(res, 500, e.message);

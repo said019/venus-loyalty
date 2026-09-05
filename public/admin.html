@@ -2040,6 +2040,16 @@
             </div>
           </div>
 
+          <!-- Apartados sin usar: dinero que YA entró (el día que lo dejaron)
+               pero que todavía es de las clientas. Informativo: no suma. -->
+          <div id="report-apartados" style="display:none;background:rgba(255,255,255,0.06);border:1px dashed rgba(255,255,255,0.28);border-radius:10px;padding:10px 12px;margin-bottom:12px;">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;">
+              <span style="font-size:12px;color:rgba(255,255,255,0.75);">Apartados sin usar</span>
+              <span id="report-apartados-total" style="font-size:14px;font-weight:700;color:#E8D9C5;">$0.00</span>
+            </div>
+            <div id="report-apartados-detalle" style="font-size:11px;color:rgba(255,255,255,0.55);margin-top:3px;">—</div>
+          </div>
+
           <!-- Ingresos por Servicios -->
           <div style="background:rgba(255,255,255,0.1);border-radius:10px;padding:12px;">
             <div style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.7);margin-bottom:8px;">Ingresos por
@@ -18857,7 +18867,7 @@
           if (resumenEl && (barExtra.depositReceiptUrl || (barExtra.preorderItems || []).length)) {
             const depLinea = barExtra.depositReceiptUrl
               ? `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
-                   <span><i class="fas fa-money-bill-wave" aria-hidden="true"></i> Anticipo $${barExtra.depositAmount || 100} · ${({ awaiting_review: 'por validar', confirmed: 'confirmado', rejected: 'RECHAZADO' })[barExtra.depositStatus] || barExtra.depositStatus || ''}</span>
+                   <span><i class="fas fa-money-bill-wave" aria-hidden="true"></i> Anticipo $${barExtra.depositAmount || 100} · ${({ awaiting_review: 'por validar', confirmed: 'confirmado — ya está en su saldo a favor', rejected: 'RECHAZADO' })[barExtra.depositStatus] || barExtra.depositStatus || ''}</span>
                    <a href="${barExtra.depositReceiptUrl}" target="_blank" rel="noopener" style="color:var(--olive);text-decoration:underline;">Ver comprobante</a>
                  </div>`
               : '';
@@ -19645,9 +19655,12 @@
         // Europa; encadenarlos costaba ~400ms extra por eslabón). Los mismos
         // gastos pintan el Resumen Financiero Y el panel de Gastos del mes —
         // antes se pedían TRES veces por carga.
-        const [todasLasVentas, gastosMes] = await Promise.all([
+        const [todasLasVentas, gastosMes, apartados] = await Promise.all([
           fetchVentasRango(firstDay, lastDayStr),
           fetchGastosRango(firstDay, lastDayStr),
+          // Va en el mismo viaje para no costar latencia; si falla, el
+          // reporte sale igual (por eso el catch aquí y no afuera).
+          fetchApartadosPendientes(),
         ]);
         reportData = todasLasVentas;
         const totalEgresos = gastosMes.reduce((s, g) => s + (parseFloat(g.amount) || 0), 0);
@@ -19656,9 +19669,37 @@
         // Utilidad Neta se calcula leyendo el total de ventas ya renderizado).
         renderExpenses(gastosMes);
         calculateExpenseStats(gastosMes);
+        renderApartadosPendientes(apartados);
       } catch (error) {
         console.error('[REPORTS] Error cargando mes:', error);
       }
+    }
+
+    // Apartados sin usar: dinero que ya entró a la caja pero que sigue
+    // siendo de las clientas. No suma a ingresos (ya se contó el día que lo
+    // dejaron); se muestra para que la dueña sepa cuánto trae encima.
+    async function fetchApartadosPendientes() {
+      try {
+        const res = await apiFetch('/api/credits/pending');
+        const json = await res.json();
+        if (json.success && json.data) return json.data;
+      } catch (e) { console.warn('[REPORTS] apartados no disponibles:', e); }
+      return null;
+    }
+
+    function renderApartadosPendientes(datos) {
+      const caja = document.getElementById('report-apartados');
+      if (!caja) return;
+      const total = datos ? Number(datos.total) || 0 : 0;
+      if (!datos || total <= 0) { caja.style.display = 'none'; return; }
+      const clientas = datos.clientas || [];
+      const nombres = clientas.slice(0, 3).map(c => c.name.split(' ')[0]).join(', ');
+      const resto = clientas.length > 3 ? ` y ${clientas.length - 3} más` : '';
+      document.getElementById('report-apartados-total').textContent =
+        '$' + total.toLocaleString('es-MX', { minimumFractionDigits: 2 });
+      document.getElementById('report-apartados-detalle').textContent =
+        `${clientas.length} ${clientas.length === 1 ? 'clienta' : 'clientas'} · ${nombres}${resto}`;
+      caja.style.display = 'block';
     }
 
     // Gastos del rango (lista completa; el total se deriva de aquí).

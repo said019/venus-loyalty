@@ -94,7 +94,7 @@ import { getEvolutionClient } from './src/services/whatsapp-evolution.js';
 import clientRecordsRouter from './src/routes/clientRecords.js';
 import expedientesRouter from './src/routes/expedientes.js';
 import packagesRouter from './src/routes/packages.js';
-import creditsRouter, { aplicarCreditoEnCobro } from './src/routes/credits.js';
+import creditsRouter, { aplicarCreditoEnCobro, registrarApartado } from './src/routes/credits.js';
 
 // NOTA (11 jul 2026, decisión del negocio): la ficha clínica NO se envía
 // automáticamente al agendar. Se envía SOLO manual desde el expediente
@@ -298,6 +298,52 @@ function mensajeApartado(e) {
     clienta_no_encontrada: 'No encontré la tarjeta de la clienta para descontar el apartado',
     monto_invalido: 'El monto del apartado no es válido',
   }[e && e.message] || null;
+}
+
+// El anticipo de $100 de /agendar dejaba de existir después de validarlo:
+// se MOSTRABA al cobrar ("Anticipo $100 · confirmado") pero nadie lo
+// restaba, así que había que acordarse a mano. Ahora, al validar el
+// comprobante, ese dinero entra como saldo a favor de la clienta y el día
+// de la cita se descuenta solo.
+//
+// Idempotente por sourceRef ("booking:<id>"): validar dos veces el mismo
+// comprobante no puede acreditar $200.
+async function acreditarAnticipoWeb(requestId, quien) {
+  try {
+    const row = await prisma.setting.findUnique({ where: { key: `booking_extra_${requestId}` } });
+    const extra = (row && typeof row.value === 'object') ? row.value : null;
+    if (!extra || extra.depositStatus !== 'confirmed') return;
+
+    const monto = parseFloat(extra.depositAmount) || 100;
+    if (monto <= 0) return;
+
+    const doc = await firestore.collection('booking_requests').doc(requestId).get();
+    if (!doc.exists) return;
+    const d = doc.data();
+
+    // La clienta puede ser nueva y no tener tarjeta todavía; en ese caso el
+    // enganche se reintenta al agendar (segunda llamada, misma sourceRef).
+    let card = null;
+    if (d.cardId) card = await prisma.card.findUnique({ where: { id: d.cardId } });
+    if (!card && d.clientPhone) card = await prisma.card.findFirst({ where: { phone: String(d.clientPhone) } });
+    if (!card) {
+      console.warn(`[ANTICIPO] Sin tarjeta para ${d.clientName || requestId}: no se pudo acreditar todavía`);
+      return;
+    }
+
+    await registrarApartado({
+      cardId: card.id,
+      amount: monto,
+      paymentMethod: 'transferencia',
+      note: `Anticipo de /agendar — ${d.serviceName || 'cita'}`,
+      sourceRef: `booking:${requestId}`,
+      by: quien || 'admin',
+    });
+    console.log(`[ANTICIPO] $${monto} acreditados a ${card.name} como saldo a favor`);
+  } catch (e) {
+    if (e && e.code === 'P2002') return; // ya estaba acreditado
+    console.warn('[ANTICIPO] no se pudo acreditar:', e.message);
+  }
 }
 
 async function deshacerApartado(aplicado) {
@@ -5066,6 +5112,13 @@ app.patch('/api/booking-requests/:id/deposit', adminAuth, async (req, res) => {
     extra.depositReviewedBy = req.admin?.email || 'admin';
     if (action === 'reject' && reason) extra.depositRejectReason = reason;
     await prisma.setting.upsert({ where: { key }, create: { key, value: extra }, update: { value: extra } });
+
+    // Validado el comprobante, el dinero se vuelve saldo a favor de la
+    // clienta: el día de la cita se descuenta solo.
+    if (action === 'confirm') {
+      await acreditarAnticipoWeb(req.params.id, req.admin?.email || 'admin');
+    }
+
     res.json({ success: true, depositStatus: extra.depositStatus });
   } catch (error) {
     console.error('[deposit review]', error);
@@ -5083,6 +5136,12 @@ app.post('/api/booking-requests/:id/booked', adminAuth, async (req, res) => {
     }
 
     const requestData = requestDoc.data();
+
+    // Segundo intento de acreditar el anticipo: si al validar el comprobante
+    // la clienta todavía no tenía tarjeta, para ahora ya la tiene. La misma
+    // sourceRef impide que se acredite dos veces.
+    acreditarAnticipoWeb(req.params.id, req.admin?.email || 'admin')
+      .catch(e => console.warn('[ANTICIPO] reintento falló:', e.message));
 
     // Construir startDateTime y endDateTime con timezone de México
     const startDateTime = `${requestData.date}T${requestData.time}:00-06:00`;
