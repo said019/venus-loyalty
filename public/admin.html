@@ -18185,11 +18185,16 @@
 
             sumarAMetodo(metodo, monto);
 
+            // Si se aplicó saldo apartado, el monto del día es menor que el
+            // precio del servicio: se dice aquí para que el corte se entienda
+            // ("¿por qué el facial salió en $300?").
+            const apartadoCita = parseFloat(cita.creditApplied) || 0;
+
             transacciones.push({
               tipo: 'cita',
               hora: cita.time || '--:--',
               cliente: cita.clientName || 'Cliente',
-              concepto: cita.serviceName || 'Servicio',
+              concepto: (cita.serviceName || 'Servicio') + (apartadoCita > 0 ? ` · $${apartadoCita.toLocaleString('es-MX')} de apartado` : ''),
               monto: monto,
               metodo: metodo,
               id: cita.id
@@ -18204,21 +18209,25 @@
             const jsonVentas = await resVentas.json();
             if (jsonVentas.success && jsonVentas.data) {
               jsonVentas.data.forEach(venta => {
-                // Venta directa (Venta Rápida): sin cita y sin servicio.
-                // Antes se filtraba por `venta.type === 'direct'`, pero el modelo
-                // Sale nunca tuvo columna `type`: la condición jamás se cumplía y
-                // las ventas de mostrador no aparecían en el corte.
-                if (!venta.appointmentId && !venta.serviceName) {
+                // Ventas sin cita: mostrador (sin servicio), paquetes y
+                // apartados (con servicio). Antes se exigía `!serviceName`, así
+                // que un paquete vendido o un apartado salían en Reportes pero
+                // NO en el corte del día: la caja no cuadraba con el reporte.
+                // (El filtro original era `venta.type === 'direct'`, y el modelo
+                // Sale nunca tuvo columna `type`: no entraba ni el mostrador.)
+                if (!venta.appointmentId) {
                    const monto = parseFloat(venta.totalAmount) || 0;
                    const metodo = (venta.paymentMethod || 'efectivo').toLowerCase();
+                   const servicio = venta.serviceName || '';
+                   const esApartado = servicio.startsWith('Apartado');
 
                    sumarAMetodo(metodo, monto);
 
                    transacciones.push({
-                     tipo: 'producto',
+                     tipo: esApartado ? 'apartado' : (servicio ? 'paquete' : 'producto'),
                      hora: new Date(venta.createdAt).toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'}),
                      cliente: venta.clientName || 'Venta Mostrador',
-                     concepto: (venta.productsSold || []).map(p => p.name).join(', ') || 'Venta Directa',
+                     concepto: servicio || (venta.productsSold || []).map(p => p.name).join(', ') || 'Venta Directa',
                      monto: monto,
                      metodo: metodo,
                      id: venta.id
@@ -18405,7 +18414,9 @@
         const TIPO_BADGES = {
           cita: '<span class="status-badge confirmed" style="font-size:10px;"><i class="fas fa-calendar-check"></i> Cita</span>',
           cafe: '<span class="status-badge" style="font-size:10px;background:#f3e5d8;color:#7b4b28;"><i class="fas fa-mug-hot"></i> Café</span>',
-          producto: '<span class="status-badge pending" style="font-size:10px;"><i class="fas fa-shopping-bag"></i> Producto</span>'
+          producto: '<span class="status-badge pending" style="font-size:10px;"><i class="fas fa-shopping-bag"></i> Producto</span>',
+          apartado: '<span class="status-badge" style="font-size:10px;background:#e8e3d5;color:#5d6b3f;"><i class="fas fa-piggy-bank"></i> Apartado</span>',
+          paquete: '<span class="status-badge" style="font-size:10px;background:#e3e8d5;color:#4f5f34;"><i class="fas fa-layer-group"></i> Paquete</span>'
         };
         const tipoBadge = TIPO_BADGES[t.tipo] || TIPO_BADGES.producto;
 
@@ -19581,9 +19592,13 @@
         console.error('[REPORTS] Error citas:', apptJson.error);
       }
 
-      // Citas completadas con pago
+      // Citas completadas con pago. Si el apartado cubrió TODO el servicio,
+      // totalPaid es 0 (ese dinero se contó el día que lo dejó): sin la
+      // segunda condición la cita desaparecía del reporte y parecía no
+      // cobrada.
       const ventasCitas = (apptJson.data || []).filter(a =>
-        a.status === 'completed' && a.totalPaid && a.paymentMethod
+        a.status === 'completed' && a.paymentMethod &&
+        (a.totalPaid || Number(a.creditApplied) > 0)
       );
 
       // Ventas cafetería (excluir canceladas) → normalizar al mismo formato
@@ -19940,7 +19955,7 @@
           <tr>
             <td style="white-space:nowrap;" data-label="Fecha de pago">${fechaStr}</td>
             <td data-label="Cliente">${v.clientName || 'Sin nombre'}</td>
-            <td data-label="Servicio">${v.serviceName || '-'}</td>
+            <td data-label="Servicio">${v.serviceName || '-'}${Number(v.creditApplied) > 0 ? ` <span style="font-size:10px;color:#6B8E23;white-space:nowrap;">· $${Number(v.creditApplied).toLocaleString('es-MX')} de apartado</span>` : ''}</td>
             <td data-label="Tipo"><span style="font-size:10px;padding:2px 6px;border-radius:4px;background:${tipoColor.bg};color:${tipoColor.fg}">${tipo}</span></td>
             <td data-label="Forma de pago">${formaPago}</td>
             <td data-label="Cuenta Bancaria">${cuentaBancaria}</td>
