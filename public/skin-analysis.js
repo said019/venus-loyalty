@@ -887,7 +887,8 @@
             out.appendChild(page);
             body = page.querySelector('.pdf-page-body');
             count++;
-            const headerH = page.querySelector('.pdf-header').getBoundingClientRect().height;
+            const header = page.querySelector('.pdf-header');
+            const headerH = header.getBoundingClientRect().height + parseFloat(getComputedStyle(header).marginBottom || 0);
             avail = PAGE_H - PAD_TOP - PAD_BOTTOM - headerH;
             used = 0;
         };
@@ -1133,17 +1134,12 @@
         window.scrollTo(0, 0);
 
         try {
-            fillPDFTemplate(a);
-
-            // Ya NO se mueve el template al viewport. html2pdf monta su propia
-            // copia en pantalla para fotografiarla; moverlo aquí era innecesario
-            // y además le metía position/opacity al clon, que es lo que dejaba
-            // el PDF en blanco. El escondite vive en #pdf-stage.
-
             // Esperar a que fonts y layout estabilicen
             if (document.fonts?.ready) {
                 try { await document.fonts.ready; } catch { /* ignore */ }
             }
+
+            fillPDFTemplate(a);
 
             // Esperar imágenes (logo + capturas del proxy)
             const pdfImages = root.querySelectorAll('img');
@@ -1180,20 +1176,39 @@
                     scrollY: 0,
                 },
                 jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
-                // UN solo mecanismo de corte. Antes se combinaban 'css' + 'avoid-all'
-                // + este selector: como cada .pdf-page mide exactamente una hoja,
-                // los tres se sumaban y metían hojas en blanco intercaladas.
-                // Cada .pdf-page es una hoja A4 exacta armada por pdfPaginate(): el
-                // único corte válido es entre hojas.
-                pagebreak: { mode: [], before: '.pdf-page + .pdf-page' },
+                // Las hojas ya tienen su tamaño A4. El plugin de saltos redondea
+                // a píxeles enteros y puede insertar una hoja vacía entre ellas.
+                pagebreak: { mode: [] },
             };
 
             // Red de seguridad: si el lienzo sale de 0px, el PDF saldría en blanco
             // SIN error (así fue el bug del 14-ago). Preferimos fallar ruidosamente.
-            const worker = html2pdf().set(opts).from(root).toCanvas();
+            const worker = html2pdf().set(opts).from(root).toContainer();
+            const container = await worker.get('container');
+            // html2pdf centra el contenedor con margin:auto. html2canvas mide
+            // su posición antes de clonar a windowWidth:794: en una pantalla
+            // ancha esa posición cambia y recorta el lado izquierdo. Anclar
+            // antes de medir mantiene el mismo origen en ambos documentos.
+            Object.assign(container.style, { left: '0', right: 'auto', margin: '0' });
+            await worker.toCanvas();
             const canvas = await worker.get('canvas');
             if (!canvas || !canvas.width || !canvas.height) {
                 throw new Error(`el template se midió en ${canvas?.width || 0}x${canvas?.height || 0}px, el PDF habría salido en blanco`);
+            }
+
+            // A4 mide fracciones de píxel. html2canvas redondea hacia arriba,
+            // mientras que jsPDF corta hacia abajo: los píxeles sobrantes
+            // creaban una última hoja casi vacía. Ajustar la imagen completa
+            // al número exacto de hojas conserva también el último pie.
+            const pageSize = await worker.get('pageSize');
+            const pageCount = root.querySelectorAll('.pdf-page').length;
+            const rasterHeight = Math.floor(canvas.width * pageSize.inner.ratio) * pageCount;
+            if (canvas.height !== rasterHeight) {
+                const aligned = document.createElement('canvas');
+                aligned.width = canvas.width;
+                aligned.height = rasterHeight;
+                aligned.getContext('2d').drawImage(canvas, 0, 0, aligned.width, aligned.height);
+                await worker.set({ canvas: aligned });
             }
 
             if (mode === 'download') {
