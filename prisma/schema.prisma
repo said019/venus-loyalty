@@ -1158,7 +1158,10 @@ model ClientCredit {
   type          String // deposito | aplicacion | devolucion
   amount        Decimal @db.Decimal(10, 2)
   paymentMethod String? // efectivo | tarjeta | transferencia (depósito y devolución)
-  appointmentId String? // cita donde se aplicó
+  // Significado según `type`: en una `aplicacion` es la cita donde se gastó
+  // el saldo; en un `deposito` es la cita PARA la que se dejó el anticipo
+  // (opcional — sin ella el dinero queda como saldo suelto).
+  appointmentId String?
   saleId        String? // venta creada al depositar (para poder deshacer un dedazo)
   note          String?
 

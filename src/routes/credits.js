@@ -12,6 +12,7 @@
 import express from 'express';
 import { prisma } from '../db/index.js';
 import { adminAuth, requireRole } from '../../lib/auth.js';
+import { mismoTelefono } from '../utils/phone.js';
 
 const router = express.Router();
 router.use(adminAuth);
@@ -75,7 +76,29 @@ router.get('/card/:cardId', async (req, res) => {
     const balance = centavos(
       movimientos.filter(m => !m.revertedAt).reduce((s, m) => s + Number(m.amount), 0)
     );
-    res.json({ success: true, data: { balance, movements: movimientos.map(serializar) } });
+
+    // Los movimientos ligados a una cita traen su fecha y servicio, para que
+    // la ficha pueda decir "para su cita del 14 oct" sin que el navegador
+    // tenga que pedir cada cita por separado.
+    const ids = [...new Set(movimientos.map(m => m.appointmentId).filter(Boolean))];
+    const citas = ids.length
+      ? await prisma.appointment.findMany({
+          where: { id: { in: ids } },
+          select: { id: true, date: true, time: true, serviceName: true },
+        })
+      : [];
+    const porId = new Map(citas.map(c => [c.id, c]));
+
+    res.json({
+      success: true,
+      data: {
+        balance,
+        movements: movimientos.map(m => ({
+          ...serializar(m),
+          appointment: porId.get(m.appointmentId) || null,
+        })),
+      },
+    });
   } catch (e) { console.error('[CREDITS CARD]', e); return fail(res, 500, e.message); }
 });
 
@@ -85,9 +108,28 @@ router.get('/card/:cardId', async (req, res) => {
 router.get('/lookup', async (req, res) => {
   try {
     const card = await resolverCard({ cardId: req.query.cardId, clientPhone: req.query.phone });
-    if (!card) return res.json({ success: true, data: { balance: 0, cardId: null } });
+    if (!card) return res.json({ success: true, data: { balance: 0, earmarked: 0, cardId: null } });
     const balance = await saldoDe(prisma, card.id);
-    res.json({ success: true, data: { balance, cardId: card.id, name: card.name } });
+
+    // Cuánto de ese saldo se dejó apuntando a ESTA cita. Sirve para que el
+    // cobro diga "dejó $500 para esta cita" en vez de un saldo genérico.
+    // Se topa contra el saldo: si ese dinero ya se gastó en otra cita, no
+    // se puede volver a ofrecer.
+    let earmarked = 0;
+    if (req.query.appointmentId) {
+      const r = await prisma.clientCredit.aggregate({
+        where: {
+          cardId: card.id,
+          type: 'deposito',
+          appointmentId: String(req.query.appointmentId),
+          revertedAt: null,
+        },
+        _sum: { amount: true },
+      });
+      earmarked = Math.min(centavos(r._sum.amount || 0), balance);
+    }
+
+    res.json({ success: true, data: { balance, earmarked, cardId: card.id, name: card.name } });
   } catch (e) { console.error('[CREDITS LOOKUP]', e); return fail(res, 500, e.message); }
 });
 
@@ -134,13 +176,26 @@ router.get('/pending', async (req, res) => {
 // POST /api/credits/card/:cardId/deposit — la clienta deja dinero.
 // Además del renglón crea un `Sale` para que el dinero aparezca en Reportes
 // HOY (mismo camino que la venta de paquetes: tercera fuente, sin cita).
-export async function registrarApartado({ cardId, amount, paymentMethod, note, sourceRef, by }) {
+export async function registrarApartado({ cardId, amount, paymentMethod, note, sourceRef, by, appointmentId }) {
   const monto = centavos(amount);
   if (!Number.isFinite(monto) || monto <= 0) throw new Error('monto_invalido');
   if (!METODOS.includes(paymentMethod)) throw new Error('metodo_invalido');
 
   const card = await prisma.card.findUnique({ where: { id: cardId } });
   if (!card) throw new Error('clienta_no_encontrada');
+
+  // Cita a la que va dirigido el anticipo. Es opcional: sin ella el dinero
+  // queda como saldo suelto, que es como funcionaba antes. Se valida que la
+  // cita exista y que sea de ESTA clienta — un id equivocado dejaría el
+  // dinero apuntando a la cita de otra persona, y el cobro de esa otra cita
+  // lo ofrecería pre-aplicado.
+  let citaId = null;
+  if (appointmentId) {
+    const cita = await prisma.appointment.findUnique({ where: { id: String(appointmentId) } });
+    if (!cita) throw new Error('cita_no_encontrada');
+    if (!mismoTelefono(cita.clientPhone, card.phone)) throw new Error('cita_de_otra_clienta');
+    citaId = cita.id;
+  }
 
   // La venta primero: si el renglón choca contra sourceRef (depósito
   // duplicado), se borra la venta y no queda un ingreso fantasma.
@@ -169,6 +224,7 @@ export async function registrarApartado({ cardId, amount, paymentMethod, note, s
         amount: monto,
         paymentMethod,
         note: note ? String(note).slice(0, 300) : null,
+        appointmentId: citaId,
         saleId: venta.id,
         sourceRef: sourceRef || null,
         createdBy: by || 'admin',
@@ -180,19 +236,22 @@ export async function registrarApartado({ cardId, amount, paymentMethod, note, s
   }
 
   const balance = await saldoDe(prisma, card.id);
-  console.log(`[CREDITS] Apartado de $${monto} (${paymentMethod}) para ${card.name} → saldo $${balance}`);
+  console.log(`[CREDITS] Apartado de $${monto} (${paymentMethod}) para ${card.name}${citaId ? ` → cita ${citaId}` : ''} → saldo $${balance}`);
   return { movement: mov, balance, card };
 }
 
 router.post('/card/:cardId/deposit', async (req, res) => {
   try {
-    const { amount, paymentMethod, note, sourceRef } = req.body || {};
+    const { amount, paymentMethod, note, sourceRef, appointmentId } = req.body || {};
     const r = await registrarApartado({
-      cardId: req.params.cardId, amount, paymentMethod, note, sourceRef, by: quienEs(req),
+      cardId: req.params.cardId, amount, paymentMethod, note, sourceRef, appointmentId, by: quienEs(req),
     });
     res.json({ success: true, data: { movement: serializar(r.movement), balance: r.balance } });
   } catch (e) {
-    const conocidos = { monto_invalido: 400, metodo_invalido: 400, clienta_no_encontrada: 404 };
+    const conocidos = {
+      monto_invalido: 400, metodo_invalido: 400, clienta_no_encontrada: 404,
+      cita_no_encontrada: 404, cita_de_otra_clienta: 409,
+    };
     if (conocidos[e.message]) return fail(res, conocidos[e.message], e.message);
     // Choque de sourceRef: ya se había registrado ese mismo depósito.
     if (e.code === 'P2002') return fail(res, 409, 'ese_deposito_ya_existe');
