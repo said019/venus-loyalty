@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark" data-report-mode="public">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <title>Tu análisis de piel — Venus Cosmetología</title>
+    <meta name="robots" content="noindex, nofollow, noarchive">
+    <meta name="referrer" content="no-referrer">
+    <link rel="icon" href="/assets/logo.png">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.3/html2pdf.bundle.min.js"></script>
+    <link rel="stylesheet" href="/css/skin-analysis.css?v=20260906c">
+</head>
+<body>
+    <div class="container">
+        <nav aria-label="Venus Cosmetología">
+            <div class="brand">
+                <div class="brand-mark">VS</div>
+                <div>
+                    <div class="brand-name">Venus Skin</div>
+                    <div class="brand-sub">Tu análisis de piel</div>
+                </div>
+            </div>
+        </nav>
+        <p class="report-intro">Consulta tus resultados, recomendaciones e imágenes. Puedes guardar una copia con el botón Descargar PDF.</p>
+        <section id="report-error" class="ai-block hidden" role="alert">
+            <h1 class="ai-headline">No pudimos abrir este análisis</h1>
+            <p class="ai-summary">Revisa el enlace o solicita uno nuevo a Venus Cosmetología.</p>
+        </section>
+        <!-- ════════ DETAIL VIEW ════════ -->
+        <main id="view-detail" class="hidden">
+            <header class="hero">
+                <div class="hero-avatar" id="d-avatar"></div>
+                <div class="hero-info">
+                    <h1 id="d-name"></h1>
+                    <div class="hero-meta" id="d-meta"></div>
+                </div>
+                <div class="hero-score">
+                    <div>
+                        <span class="hero-score-number" id="d-score"></span>
+                        <span class="hero-score-over">/100</span>
+                    </div>
+                    <span class="hero-score-label">Score general</span>
+                </div>
+            </header>
+
+            <dl class="summary-grid" id="d-summary"></dl>
+
+            <!-- ═══ AI NARRATIVE ═══ -->
+            <section class="ai-block hidden" id="d-ai-block">
+                <div class="ai-ribbon">
+                    <span class="ai-dot"></span>
+                    <span>Interpretación clínica</span>
+                    <span class="ai-divider"></span>
+                    <span class="ai-sub">Generada con IA</span>
+                </div>
+                <h2 class="ai-headline" id="d-ai-headline"></h2>
+                <p class="ai-summary" id="d-ai-summary"></p>
+            </section>
+
+            <h2 class="section-title">
+                Principales preocupaciones
+                <span class="sub" id="d-concerns-sub"></span>
+            </h2>
+            <div class="concerns-row" id="d-concerns"></div>
+
+            <h2 class="section-title">
+                Análisis completo
+                <span class="sub" id="d-bento-count"></span>
+            </h2>
+            <div class="bento" id="d-bento"></div>
+
+            <!-- ═══ TREATMENT RECOMMENDATIONS ═══ -->
+            <section class="hidden" id="d-treatments-section">
+                <h2 class="section-title">
+                    Tratamientos recomendados
+                    <span class="sub" id="d-treatments-sub"></span>
+                </h2>
+                <div class="treatments-list" id="d-treatments"></div>
+            </section>
+
+            <!-- ═══ HOME CARE ═══ -->
+            <section class="hidden" id="d-homecare-section">
+                <h2 class="section-title">
+                    Rutina en casa
+                    <span class="sub">Protocolo personalizado</span>
+                </h2>
+                <ol class="homecare-list" id="d-homecare"></ol>
+            </section>
+
+            <!-- ═══ NEXT ANALYSIS BADGE ═══ -->
+            <div class="next-analysis hidden" id="d-next-analysis-box">
+                <div class="next-icon"><i class="fas fa-calendar-plus"></i></div>
+                <div>
+                    <div class="next-label">Próximo análisis recomendado</div>
+                    <div class="next-value" id="d-next-analysis-value"></div>
+                </div>
+            </div>
+
+            <h2 class="section-title">
+                Imágenes multiespectrales
+                <span class="sub" id="d-images-count"></span>
+            </h2>
+            <div class="gallery-strip" id="d-gallery"></div>
+
+            <p class="report-note">Este análisis de piel no sustituye una valoración dermatológica.</p>
+            <div class="actions-bar report-download">
+                <button class="btn btn-primary" id="btn-download-pdf">
+                    <i class="fas fa-file-pdf"></i>
+                    Descargar PDF
+                </button>
+            </div>
+        </main>
+    </div>
+
+    <!-- Loading overlay -->
+    <div class="loading" id="loading">
+        <div class="loading-spinner"></div>
+        <p id="loading-title">Cargando tu análisis</p>
+        <small id="loading-sub">Preparando tus resultados e imágenes</small>
+    </div>
+
+    <!-- Toast de la vista de detalle (equivalente a #feedback del scanner) -->
+    <div class="feedback feedback-toast" id="d-feedback" style="display:none;"></div>
+
+    <!-- Lightbox -->
+    <div class="lightbox" id="lightbox">
+        <button class="close" id="lightbox-close"><i class="fas fa-times"></i></button>
+        <img id="lightbox-img" alt="">
+        <div class="caption" id="lightbox-caption"></div>
+    </div>
+
+    <!-- ════════ PDF TEMPLATE (off-screen) ════════
+         #pdf-stage esconde todo fuera de pantalla. #pdf-root NO lleva
+         posicionamiento: html2pdf lo clona y necesita que aporte altura real.
+         Los .pdf-block se escriben en #pdf-blocks (una lista plana) y
+         fillPDFTemplate() los reparte en hojas .pdf-page midiendo su alto:
+         ninguna sección se parte por la mitad. -->
+    <div id="pdf-stage" aria-hidden="true">
+    <div id="pdf-root">
+        <!-- Los bloques se generan por JS aquí y luego se mueven a hojas.
+             Este contenedor queda vacío tras paginar. -->
+        <div id="pdf-blocks" style="width:210mm;padding:0 16mm;box-sizing:border-box;"></div>
+        <!-- Las hojas paginadas se insertan aquí. -->
+        <div id="pdf-pages"></div>
+    </div>
+    </div><!-- /#pdf-stage -->
+
+    <!-- ?v= sube cada vez que cambia el JS: garantiza que el HTML nuevo nunca
+         se empareje con un JS viejo guardado en el navegador. -->
+    <script src="/skin-analysis.js?v=20260906c" defer></script>
+</body>
+</html>

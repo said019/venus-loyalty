@@ -313,7 +313,50 @@ router.get('/by-card/:cardId', adminAuth, async (req, res) => {
     }
 });
 
-router.get('/:id', async (req, res) => {
+// Enlace de lectura para la clienta: solo el reporte solicitado. No incluye
+// teléfono, correo, tarjeta, IDs del aparato ni datos administrativos.
+router.get('/public/:id', async (req, res) => {
+    res.set('Cache-Control', 'private, no-store');
+    res.set('X-Robots-Tag', 'noindex, nofollow, noarchive');
+    try {
+        const analysis = await prisma.skinAnalysis.findUnique({
+            where: { id: req.params.id },
+            select: {
+                clientName: true, analyzedAt: true, ageReal: true, ageBiological: true,
+                skinType: true, skinColor: true, faceShape: true, overallScore: true,
+                aiRecommendations: true,
+                card: { select: { name: true } },
+                scores: {
+                    orderBy: { score: 'asc' },
+                    select: { metric: true, labelEs: true, score: true, severity: true, count: true },
+                },
+                images: {
+                    orderBy: { createdAt: 'asc' },
+                    select: { imageType: true, labelEs: true, originalUrl: true },
+                },
+            },
+        });
+        if (!analysis) return res.status(404).json({ success: false, error: 'Análisis no encontrado' });
+        const { card, aiRecommendations: ai, ...report } = analysis;
+        return res.json({
+            success: true,
+            data: {
+                ...report,
+                clientName: card?.name || report.clientName,
+                aiRecommendations: ai ? {
+                    headline: ai.headline, summary: ai.summary,
+                    concerns: ai.concerns, recommendations: ai.recommendations,
+                    homeCare: ai.homeCare, nextAnalysisIn: ai.nextAnalysisIn,
+                } : null,
+            },
+        });
+    } catch (err) {
+        console.error('[SkinAnalysis /public] Error:', err.message);
+        return res.status(500).json({ success: false, error: 'No se pudo cargar el análisis' });
+    }
+});
+
+router.get('/:id', adminAuth, async (req, res) => {
     try {
         const analysis = await prisma.skinAnalysis.findUnique({
             where: { id: req.params.id },

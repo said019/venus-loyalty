@@ -22,9 +22,12 @@
     const params = new URLSearchParams(location.search);
     const viewAnalysisId = params.get('view');
     const cardIdParam = params.get('cardId');
+    const isPublicReport = document.documentElement.dataset.reportMode === 'public';
 
     if (viewAnalysisId) {
         document.addEventListener('DOMContentLoaded', () => loadDetail(viewAnalysisId));
+    } else if (isPublicReport) {
+        document.addEventListener('DOMContentLoaded', () => $('report-error').classList.remove('hidden'));
     } else {
         document.addEventListener('DOMContentLoaded', () => initScanner(cardIdParam));
     }
@@ -568,23 +571,34 @@
     const SEVERITY_ORDER = { critical: 0, concern: 1, moderate: 2, good: 3, excellent: 4 };
 
     async function loadDetail(id) {
-        $('view-scanner').classList.add('hidden');
+        $('view-scanner')?.classList.add('hidden');
         $('view-detail').classList.remove('hidden');
         showLoading(true, { title: 'Cargando reporte', sub: 'Obteniendo el análisis guardado…' });
 
         try {
-            const res = await fetch(`/api/skin-analysis/${id}`, { credentials: 'include' });
-            if (res.status === 401) {
+            const endpoint = isPublicReport ? `/api/skin-analysis/public/${encodeURIComponent(id)}` : `/api/skin-analysis/${encodeURIComponent(id)}`;
+            const res = await fetch(endpoint, { credentials: isPublicReport ? 'omit' : 'include' });
+            if (res.status === 401 && !isPublicReport) {
                 location.href = '/admin-login.html';
                 return;
             }
             const json = await res.json();
             if (!res.ok || !json.success) {
+                if (isPublicReport) {
+                    $('view-detail').classList.add('hidden');
+                    $('report-error').classList.remove('hidden');
+                    return;
+                }
                 feedbackDetail('err', json.error || 'No se pudo cargar el análisis');
                 return;
             }
             renderDetail(json.data);
         } catch (err) {
+            if (isPublicReport) {
+                $('view-detail').classList.add('hidden');
+                $('report-error').classList.remove('hidden');
+                return;
+            }
             feedbackDetail('err', `Error de red: ${err.message}`);
         } finally {
             showLoading(false);
@@ -602,10 +616,10 @@
         const analyzedAt = a.analyzedAt ? new Date(a.analyzedAt) : null;
         const fecha = analyzedAt ? analyzedAt.toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }) : '—';
         $('d-meta').innerHTML = `
-            <span><i class="fas fa-phone"></i> ${escapeHtml(cardPhone)}</span>
+            ${!isPublicReport ? `<span><i class="fas fa-phone"></i> ${escapeHtml(cardPhone)}</span>` : ''}
             <span><i class="fas fa-calendar-alt"></i> ${fecha}</span>
             ${a.ageReal ? `<span><i class="fas fa-user"></i> ${a.ageReal} años</span>` : ''}
-            ${a.card ? `<a href="/admin.html" style="color:var(--accent-soft);text-decoration:none"><i class="fas fa-id-card"></i> Card vinculada</a>` : ''}
+            ${!isPublicReport && a.card ? `<a href="/admin.html" style="color:var(--accent-soft);text-decoration:none"><i class="fas fa-id-card"></i> Card vinculada</a>` : ''}
         `;
 
         // Summary grid
@@ -725,14 +739,21 @@
         });
 
         // WhatsApp button
-        $('btn-whatsapp').addEventListener('click', () => sendWhatsAppSummary(a));
+        $('btn-whatsapp')?.addEventListener('click', () => shareReportLink(a));
+        $('btn-copy-link')?.addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(publicReportUrl(a));
+                feedbackDetail('ok', 'Enlace copiado. La clienta podrá ver su análisis y descargar el PDF.');
+            } catch {
+                feedbackDetail('err', 'No se pudo copiar el enlace. Usa Compartir por WhatsApp.');
+            }
+        });
 
         // Regenerate narrative
-        $('btn-regenerate').addEventListener('click', () => regenerateNarrative(a.id));
+        $('btn-regenerate')?.addEventListener('click', () => regenerateNarrative(a.id));
 
         // PDF buttons
-        $('btn-download-pdf').addEventListener('click', () => generatePDF(a, 'download'));
-        $('btn-share-pdf').addEventListener('click', () => generatePDF(a, 'share'));
+        $('btn-download-pdf').addEventListener('click', () => generatePDF(a));
 
         // Guardar análisis en state para reusar en PDF
         state.currentAnalysis = a;
@@ -762,7 +783,9 @@
             aiBlock.classList.remove('hidden');
             aiBlock.classList.add('ai-block-empty');
             $('d-ai-headline').textContent = 'Interpretación IA no disponible';
-            $('d-ai-summary').textContent = 'No se generó una narrativa clínica para este análisis. Los datos numéricos completos siguen disponibles abajo — usa "Regenerar narrativa IA" para intentarlo de nuevo.';
+            $('d-ai-summary').textContent = isPublicReport
+                ? 'Los resultados e imágenes de tu análisis están disponibles abajo. Consulta tus dudas con Venus Cosmetología.'
+                : 'No se generó una narrativa clínica para este análisis. Los datos numéricos completos siguen disponibles abajo — usa "Regenerar narrativa IA" para intentarlo de nuevo.';
         }
 
         state.concernsWhyMap = concernsWhyMap;
@@ -940,7 +963,7 @@
         // 1) Portada: clienta + score
         const metaParts = [];
         if (a.ageReal) metaParts.push(`<strong>${a.ageReal} años</strong>`);
-        metaParts.push(`Tel. ${escapeHtml(cardPhone)}`);
+        if (!isPublicReport) metaParts.push(`Tel. ${escapeHtml(cardPhone)}`);
         if (a.skinType) metaParts.push(`Piel <strong>${escapeHtml(a.skinType)}</strong>`);
         if (a.skinColor) metaParts.push(`Fototipo <strong>${escapeHtml(a.skinColor)}</strong>`);
         B.push(`
@@ -1111,17 +1134,17 @@
         return `venus-skin-${name}-${ymd}.pdf`;
     }
 
-    async function generatePDF(a, mode) {
+    async function generatePDF(a) {
         if (!window.html2pdf) {
             alert('La librería de PDF no cargó. Recarga la página.');
             return;
         }
 
-        const btn = mode === 'download' ? $('btn-download-pdf') : $('btn-share-pdf');
+        const btn = $('btn-download-pdf');
         const oldHTML = btn.innerHTML;
         btn.disabled = true;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generando…';
-        showLoading(true);
+        showLoading(true, { title: 'Preparando tu PDF', sub: 'Cargando resultados e imágenes…' });
 
         const root = $('pdf-root');
 
@@ -1221,46 +1244,7 @@
                 await worker.set({ canvas: aligned });
             }
 
-            if (mode === 'download') {
-                await worker.toPdf().get('pdf').then(pdf => {
-                    pdf.save(filename);
-                });
-            } else {
-                // Share: genera blob y usa navigator.share si está disponible
-                const blob = await worker.toPdf().get('pdf').then(pdf => {
-                    return pdf.output('blob');
-                });
-                const file = new File([blob], filename, { type: 'application/pdf' });
-
-                if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                    await navigator.share({
-                        files: [file],
-                        title: `Análisis de piel — ${a.card?.name || a.clientName || ''}`,
-                        text: 'Tu análisis clínico de Venus Cosmetología.',
-                    });
-                } else {
-                    // Fallback: descarga + abre WhatsApp Web con mensaje
-                    const url = URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = filename;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    setTimeout(() => URL.revokeObjectURL(url), 1500);
-
-                    const phone = (a.card?.phone || a.clientPhone || '').replace(/\D/g, '');
-                    if (phone) {
-                        // "wa.me/...?text=" nunca puede adjuntar un archivo — antes el
-                        // mensaje decía "Adjunto el PDF" cuando en realidad no llevaba nada.
-                        const msg = `Hola ${a.card?.name || a.clientName || ''} 🌸, tu análisis de piel de Venus Cosmetología ya está listo. Te comparto el PDF a continuación en este chat.`;
-                        setTimeout(() => {
-                            window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
-                            feedbackDetail('ok', 'PDF descargado — arrástralo a la conversación de WhatsApp que se acaba de abrir.');
-                        }, 800);
-                    }
-                }
-            }
+            await worker.toPdf().get('pdf').then(pdf => pdf.save(filename));
         } catch (err) {
             console.error('[PDF] Error generando:', err);
             feedbackDetail('err', `No se pudo generar el PDF: ${err.message}`);
@@ -1309,67 +1293,16 @@
         $('lightbox-img').src = '';
     }
 
-    function scoreQualifier(score) {
-        const n = Number(score);
-        if (!Number.isFinite(n)) return '';
-        if (n >= 85) return ' (Excelente)';
-        if (n >= 70) return ' (Bueno)';
-        if (n >= 55) return ' (Moderado)';
-        if (n >= 40) return ' (Requiere atención)';
-        return ' (Crítico)';
+    function publicReportUrl(a) {
+        return `${location.origin}/skin-report.html?view=${encodeURIComponent(a.id)}`;
     }
 
-    function sendWhatsAppSummary(a) {
-        const phone = a.card?.phone || a.clientPhone;
-        if (!phone) {
-            feedbackDetail('err', 'Esta clienta no tiene teléfono vinculado');
-            return;
-        }
-
+    function shareReportLink(a) {
+        const phone = (a.card?.phone || a.clientPhone || '').replace(/\D/g, '');
+        const destination = phone.length === 10 ? `52${phone}` : phone;
         const name = a.card?.name || a.clientName || '';
-        const score = a.overallScore ?? '—';
-        const skinType = a.skinType || '—';
-        const ai = a.aiRecommendations;
-        // Antes el mensaje terminaba sin firma ni forma de responder — en un
-        // chat de WhatsApp con mucho tráfico, nada marcaba esto como oficial.
-        const cierre = `Agenda tu siguiente sesión escribiéndonos por aquí mismo 💬\n— Venus Cosmetología, San Juan del Río`;
-
-        let msg;
-
-        if (ai && ai.summary) {
-            // Versión rica con narrativa IA
-            const treatmentsTxt = Array.isArray(ai.recommendations)
-                ? ai.recommendations
-                    .slice(0, 3)
-                    .map((t, i) => `${i + 1}. *${t.treatment}* — ${t.sessions} sesiones ${t.frequency ? `(${t.frequency})` : ''}`)
-                    .join('\n')
-                : '';
-
-            msg = `Hola ${name} 🌸\n\n*Tu análisis de piel — Venus Cosmetología*\n\n` +
-                `${ai.summary}\n\n` +
-                `*Score general:* ${score}/100${scoreQualifier(score)}\n` +
-                `*Tipo de piel:* ${skinType}\n\n` +
-                (treatmentsTxt ? `*Tratamientos recomendados:*\n${treatmentsTxt}\n\n` : '') +
-                (ai.nextAnalysisIn ? `*Próximo análisis sugerido:* en ${ai.nextAnalysisIn} semanas\n\n` : '') +
-                cierre;
-        } else {
-            // Fallback sin IA
-            const concerns = [...(a.scores || [])]
-                .filter(s => s.severity === 'critical' || s.severity === 'concern')
-                .sort((x, y) => Number(x.score) - Number(y.score))
-                .slice(0, 3)
-                .map(s => `• ${s.labelEs}: ${Math.round(Number(s.score))}/100`)
-                .join('\n');
-
-            msg = `Hola ${name} 🌸\n\nAquí está el resumen de tu análisis de piel en Venus Cosmetología:\n\n` +
-                `*Score general:* ${score}/100${scoreQualifier(score)}\n` +
-                `*Tipo de piel:* ${skinType}\n\n` +
-                (concerns ? `*Áreas a mejorar:*\n${concerns}\n\n` : '') +
-                cierre;
-        }
-
-        const url = `https://wa.me/${phone.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`;
-        window.open(url, '_blank');
+        const message = `Hola ${name}, tu análisis de piel de Venus Cosmetología está listo. Puedes ver tus resultados y descargar tu PDF aquí:\n${publicReportUrl(a)}`;
+        window.open(`https://wa.me/${destination}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
     }
 
 })();

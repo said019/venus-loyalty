@@ -10,7 +10,7 @@ const { chromium } = require('playwright');
 const publicDir = path.resolve(__dirname, '../public');
 const outputDir = fs.mkdtempSync(path.join(os.tmpdir(), 'venus-skin-pdf-'));
 const fixture = {
-  id: 'pdf-test', clientName: 'Paciente de prueba', clientPhone: '',
+  id: 'pdf-test', clientName: 'Paciente de prueba', clientPhone: '5550000000',
   analyzedAt: '2026-09-06T12:00:00', ageReal: 25, ageBiological: 24,
   skinType: 'Mixta', skinColor: 'Blanca clara', faceShape: 'Ovalada alargada (申)', overallScore: 74,
   scores: Array.from({ length: 13 }, (_, i) => ({
@@ -35,6 +35,7 @@ const fixture = {
     executablePath: process.env.CHROME_BIN || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
   });
   try {
+    for (const reportMode of ['admin', 'public']) {
     for (const width of [390, 794, 1440, 1920]) {
       const page = await browser.newPage({ viewport: { width, height: 900 }, acceptDownloads: true });
       const errors = [];
@@ -43,6 +44,11 @@ const fixture = {
       await page.route('**/*', async route => {
         const url = new URL(route.request().url());
         if (url.pathname === '/api/skin-analysis/pdf-test') return route.fulfill({ json: { success: true, data: fixture } });
+        if (url.pathname === '/api/skin-analysis/public/pdf-test') {
+          const { id, clientPhone, ...report } = fixture;
+          return route.fulfill({ json: { success: true, data: report } });
+        }
+        if (url.pathname.startsWith('/api/skin-analysis/public/')) return route.fulfill({ status: 404, json: { success: false } });
         if (url.pathname === '/api/skin-analysis/image-proxy') {
           return failImages ? route.fulfill({ status: 403, body: 'dominio no permitido' })
             : route.fulfill({ path: path.join(publicDir, 'assets/logo.png') });
@@ -59,7 +65,8 @@ const fixture = {
         // Fuentes e iconos no intervienen en la prueba de coordenadas de captura.
         return route.fulfill({ body: '', contentType: 'text/plain' });
       });
-      await page.goto('http://skin.test/skin-analysis.html?view=pdf-test');
+      const pageName = reportMode === 'public' ? 'skin-report.html' : 'skin-analysis.html';
+      await page.goto(`http://skin.test/${pageName}?view=pdf-test`);
       await page.waitForFunction(() => document.querySelector('#d-name').textContent === 'Paciente de prueba');
       await page.evaluate(() => {
         const workerPrototype = window.html2pdf.Worker.prototype;
@@ -79,20 +86,20 @@ const fixture = {
             Object.assign(window.pdfTest, { minX, maxX, width: canvas.width });
           });
         };
-        // Simula el receptor del archivo; nunca abre ni envía una conversación.
-        navigator.canShare = () => true;
-        navigator.share = async ({ files }) => { window.sharedPdfSize = files[0].size; };
+        // Captura la intención de compartir sin abrir ni enviar mensajes reales.
+        Object.defineProperty(navigator, 'clipboard', { value: { writeText: async text => { window.copiedLink = text; } }, configurable: true });
+        window.open = url => { window.whatsappUrl = url; };
       });
-      for (const mode of ['download', 'share']) {
+      for (const mode of ['download']) {
         const button = page.locator(`#btn-${mode}-pdf`);
         await button.scrollIntoViewIfNeeded();
         const scrollBefore = await page.evaluate(() => window.scrollY);
         const downloadPromise = mode === 'download' ? page.waitForEvent('download') : null;
         await button.click();
-        if (downloadPromise) await (await downloadPromise).saveAs(path.join(outputDir, `skin-${width}.pdf`));
-        await page.waitForFunction(() => !document.querySelector('#btn-download-pdf').disabled && !document.querySelector('#btn-share-pdf').disabled);
+        if (downloadPromise) await (await downloadPromise).saveAs(path.join(outputDir, `skin-${reportMode}-${width}.pdf`));
+        await page.waitForFunction(() => !document.querySelector('#btn-download-pdf').disabled);
         const result = await page.evaluate(() => ({
-          ...window.pdfTest, sharedPdfSize: window.sharedPdfSize, scroll: window.scrollY,
+          ...window.pdfTest, scroll: window.scrollY,
           sheets: document.querySelectorAll('#pdf-pages > .pdf-page').length,
           loadedImages: [...document.querySelectorAll('#pdf-pages .pdf-gallery-item img')].filter(img => img.complete && img.naturalWidth > 0).length,
           overlap: [...document.querySelectorAll('#pdf-pages > .pdf-page')].some(p =>
@@ -104,9 +111,21 @@ const fixture = {
         assert.ok(result.minX > 70 && result.maxX < result.width - 70, 'Ambos márgenes deben conservarse en la imagen exportada');
         assert.equal(result.overlap, false, 'El contenido no debe tapar el pie de página');
         assert.ok(Math.abs(result.scroll - scrollBefore) <= 1, 'Debe restaurar el scroll');
-        if (mode === 'share') assert.ok(result.sharedPdfSize > 10000, 'Compartir debe generar un PDF');
         assert.deepEqual(errors, []);
-        console.log(`OK ${width}px ${mode}: ${result.pages} hojas, márgenes completos`);
+        console.log(`OK ${reportMode} ${width}px ${mode}: ${result.pages} hojas, márgenes completos`);
+      }
+      if (reportMode === 'public') {
+        assert.equal(await page.locator('a[href*="admin"], #view-scanner, #btn-copy-link, #btn-whatsapp, #btn-regenerate').count(), 0);
+        assert.deepEqual((await page.getByRole('button').allTextContents()).map(text => text.trim()), ['Descargar PDF']);
+        assert.equal(await page.locator('#d-meta').textContent().then(text => text.includes(fixture.clientPhone)), false);
+      } else if (width === 390) {
+        await page.locator('#btn-copy-link').click();
+        assert.equal(await page.evaluate(() => window.copiedLink), 'http://skin.test/skin-report.html?view=pdf-test');
+        await page.locator('#btn-whatsapp').click();
+        const sharedUrl = new URL(await page.evaluate(() => window.whatsappUrl));
+        assert.equal(sharedUrl.hostname, 'wa.me');
+        assert.equal(sharedUrl.pathname, '/525550000000');
+        assert.ok(sharedUrl.searchParams.get('text').includes('http://skin.test/skin-report.html?view=pdf-test'));
       }
       if (width === 390) {
         failImages = true;
@@ -120,7 +139,17 @@ const fixture = {
         assert.equal(await page.locator('#btn-download-pdf').isEnabled(), true);
         console.log('OK imagen fallida: error visible, descarga incompleta bloqueada');
       }
+      if (reportMode === 'public' && width === 390) {
+        for (const suffix of ['', '?view=missing']) {
+          await page.goto(`http://skin.test/skin-report.html${suffix}`);
+          await page.locator('#report-error').waitFor({ state: 'visible' });
+          assert.equal(await page.getByRole('button', { name: 'Descargar PDF' }).isVisible(), false);
+          assert.equal(await page.locator('#view-scanner').count(), 0);
+        }
+        console.log('OK enlace público incompleto o inexistente: estado de error sin scanner');
+      }
       await page.close();
+    }
     }
     console.log(`PDFs de prueba: ${outputDir}`);
   } finally {
