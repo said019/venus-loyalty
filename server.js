@@ -748,6 +748,10 @@ app.get('/api/public/moji-test', async (req, res) => {
     res.json({ success: true, data: row ? row.value : null });
   } catch (e) { res.status(500).json({ success: false, error: e.message }); }
 });
+// Atajo tecleable: el link real trae un token largo y en el aparato hay que
+// escribirlo a mano en pantalla. Redirige SIEMPRE al https absoluto — si el
+// navegador entra por http, sin contexto seguro no hay cámara.
+app.get('/cam', (_req, res) => res.redirect(302, `https://venuscosmetologia.com.mx/moji-test.html?t=${MOJI_TEST_TOKEN}`));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
