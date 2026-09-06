@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Prueba de cámara · Moji</title>
+<style>
+  :root{--olivo:#6b7a4a;--crema:#f6f2ea;--tinta:#2b2b2b;--linea:#d9d2c3;--rojo:#9b3b3b;--verde:#3d6b3d}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--crema);color:var(--tinta);font:17px/1.45 -apple-system,system-ui,Roboto,sans-serif}
+  main{max-width:820px;margin:0 auto;padding:22px 18px 60px}
+  h1{font:600 28px/1.1 Georgia,serif;margin:0 0 4px}
+  .sub{color:#6d6d6d;font-size:14px;margin:0 0 18px}
+  button{min-height:56px;padding:0 20px;border:1px solid var(--linea);border-radius:12px;background:#fff;color:var(--tinta);font-size:17px;cursor:pointer}
+  button.primario{background:var(--olivo);color:#fff;border-color:var(--olivo);font-weight:600;width:100%;font-size:19px}
+  button:disabled{opacity:.5}
+  .fila{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}
+  section{background:#fff;border:1px solid var(--linea);border-radius:14px;padding:14px 16px;margin:14px 0}
+  section h2{font-size:15px;letter-spacing:.04em;text-transform:uppercase;color:#6d6d6d;margin:0 0 8px}
+  .kv{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:15px}
+  .kv b{font-weight:600}
+  .ok{color:var(--verde)}.mal{color:var(--rojo)}
+  video,img.foto{width:100%;max-height:52vh;background:#111;border-radius:10px;object-fit:contain}
+  pre{white-space:pre-wrap;word-break:break-all;font-size:12px;background:#f3efe6;border-radius:10px;padding:10px;max-height:40vh;overflow:auto}
+  .estado{font-size:15px;margin:8px 0;min-height:1.4em}
+  .camara{border-top:1px solid var(--linea);padding:10px 0}
+  .camara:first-child{border-top:0}
+</style>
+</head>
+<body>
+<main>
+  <h1>Prueba de cámara</h1>
+  <p class="sub">Abre esto en el navegador del Moji. Un solo botón: pide permiso, revisa cada cámara, toma una foto y manda el reporte a Venus.</p>
+
+  <button class="primario" id="todo">Probar todo y enviar</button>
+  <div class="estado" id="estado">Listo.</div>
+
+  <section>
+    <h2>Navegador</h2>
+    <div class="kv" id="nav"></div>
+  </section>
+
+  <section>
+    <h2>Cámaras</h2>
+    <div id="camaras"><span class="sub">Aún nada. Toca el botón de arriba.</span></div>
+  </section>
+
+  <section>
+    <h2>Vista en vivo</h2>
+    <video id="video" autoplay playsinline muted></video>
+    <div class="fila">
+      <button id="foto">Tomar foto de esta cámara</button>
+      <button id="usb">Ver dispositivos USB</button>
+    </div>
+    <div class="estado" id="fotoInfo"></div>
+    <img class="foto" id="fotoImg" alt="" hidden>
+  </section>
+
+  <section>
+    <h2>Reporte</h2>
+    <div class="fila"><button id="enviar">Enviar reporte a Venus</button></div>
+    <div class="estado" id="envioInfo"></div>
+    <pre id="reporte">—</pre>
+  </section>
+</main>
+
+<script>
+(() => {
+  const $ = (s) => document.querySelector(s);
+  const token = new URLSearchParams(location.search).get('t') || '';
+  const R = { creado: new Date().toISOString(), navegador: {}, camaras: [], fotos: [], usb: [], errores: [] };
+  let streamActual = null, trackActual = null, camActual = null;
+
+  const estado = (t, mal) => { const e = $('#estado'); e.textContent = t; e.className = 'estado ' + (mal ? 'mal' : ''); };
+  const error = (paso, e) => { const msg = (e && (e.name ? e.name + ': ' : '') + (e.message || e)) || String(e); R.errores.push({ paso, msg }); console.warn(paso, e); return msg; };
+  const pintarReporte = () => { $('#reporte').textContent = JSON.stringify(R, (k, v) => k === 'miniatura' && typeof v === 'string' ? `[jpeg ${Math.round(v.length * 0.75 / 1024)} KB]` : v, 1); };
+
+  // ── 0· Qué navegador es ──
+  function navegador() {
+    const n = {
+      userAgent: navigator.userAgent,
+      https: location.protocol === 'https:',
+      secureContext: !!window.isSecureContext,
+      mediaDevices: !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia),
+      enumerateDevices: !!(navigator.mediaDevices && navigator.mediaDevices.enumerateDevices),
+      imageCapture: typeof window.ImageCapture === 'function',
+      webUSB: !!navigator.usb,
+      webSerial: !!navigator.serial,
+      pantalla: `${screen.width}×${screen.height} @${devicePixelRatio}`,
+      idioma: navigator.language,
+    };
+    R.navegador = n;
+    $('#nav').innerHTML = Object.entries(n).map(([k, v]) =>
+      `<b>${k}</b><span class="${v === true ? 'ok' : v === false ? 'mal' : ''}">${v === true ? 'sí' : v === false ? 'NO' : v}</span>`).join('');
+  }
+
+  async function detener() {
+    if (streamActual) { streamActual.getTracks().forEach(t => t.stop()); streamActual = null; trackActual = null; }
+  }
+
+  // ── 1· Abrir una cámara pidiendo la máxima resolución ──
+  async function abrir(deviceId) {
+    await detener();
+    const constraints = { audio: false, video: { deviceId: deviceId ? { exact: deviceId } : undefined, width: { ideal: 7680 }, height: { ideal: 4320 } } };
+    const s = await navigator.mediaDevices.getUserMedia(constraints);
+    streamActual = s; trackActual = s.getVideoTracks()[0]; camActual = deviceId;
+    $('#video').srcObject = s;
+    await new Promise(r => setTimeout(r, 600)); // que negocie la resolución real
+    const settings = trackActual.getSettings ? trackActual.getSettings() : {};
+    let caps = {};
+    try { caps = trackActual.getCapabilities ? trackActual.getCapabilities() : {}; } catch (e) { error('getCapabilities', e); }
+    return {
+      deviceId, label: trackActual.label,
+      real: { ancho: settings.width, alto: settings.height, fps: settings.frameRate, facing: settings.facingMode },
+      maximo: { ancho: caps.width && caps.width.max, alto: caps.height && caps.height.max, fps: caps.frameRate && caps.frameRate.max, facing: caps.facingMode },
+    };
+  }
+
+  // ── 2· Foto: ImageCapture (resolución del sensor) o cuadro del video ──
+  async function foto() {
+    if (!trackActual) throw new Error('no hay cámara abierta');
+    let blob, via;
+    if (window.ImageCapture) {
+      try { blob = await new ImageCapture(trackActual).takePhoto(); via = 'ImageCapture.takePhoto'; }
+      catch (e) { error('takePhoto', e); }
+    }
+    if (!blob) {
+      const v = $('#video'); const c = document.createElement('canvas');
+      c.width = v.videoWidth; c.height = v.videoHeight;
+      c.getContext('2d').drawImage(v, 0, 0);
+      blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.92)); via = 'canvas(video)';
+    }
+    const url = URL.createObjectURL(blob);
+    const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
+    const w = img.naturalWidth, h = img.naturalHeight;
+    // Miniatura chica para el reporte (para VER qué cámara es, no para medir)
+    const esc = Math.min(1, 640 / Math.max(w, h));
+    const c2 = document.createElement('canvas'); c2.width = Math.round(w * esc); c2.height = Math.round(h * esc);
+    c2.getContext('2d').drawImage(img, 0, 0, c2.width, c2.height);
+    const mini = c2.toDataURL('image/jpeg', 0.6);
+    $('#fotoImg').src = url; $('#fotoImg').hidden = false;
+    $('#fotoInfo').textContent = `Foto ${w}×${h} · ${Math.round(blob.size / 1024)} KB · vía ${via}`;
+    const f = { deviceId: camActual, label: trackActual.label, ancho: w, alto: h, bytes: blob.size, via, miniatura: mini };
+    R.fotos.push(f); pintarReporte();
+    return f;
+  }
+
+  // ── 3· USB (abre un selector del sistema; solo para leer VID/PID) ──
+  async function usb() {
+    if (!navigator.usb) { $('#fotoInfo').textContent = 'Este navegador no tiene WebUSB.'; return; }
+    try {
+      const d = await navigator.usb.requestDevice({ filters: [] });
+      const info = { vendorId: d.vendorId.toString(16), productId: d.productId.toString(16), producto: d.productName, fabricante: d.manufacturerName, clases: (d.configuration ? d.configuration.interfaces : []).map(i => i.alternate && i.alternate.interfaceClass) };
+      R.usb.push(info); pintarReporte();
+      $('#fotoInfo').textContent = `USB: ${info.producto || '?'} (${info.vendorId}:${info.productId})`;
+    } catch (e) { $('#fotoInfo').textContent = 'USB: ' + error('webusb', e); pintarReporte(); }
+  }
+
+  // ── 4· Mandar el reporte ──
+  async function enviar() {
+    R.enviado = new Date().toISOString();
+    try {
+      const r = await fetch('/api/public/moji-test?t=' + encodeURIComponent(token), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(R) });
+      const j = await r.json().catch(() => ({}));
+      $('#envioInfo').innerHTML = r.ok && j.success ? '<span class="ok">Reporte enviado a Venus ✓</span>' : `<span class="mal">No se pudo enviar (${r.status}${j.error ? ': ' + j.error : ''})</span>`;
+    } catch (e) { $('#envioInfo').innerHTML = `<span class="mal">Sin conexión con Venus: ${error('enviar', e)}</span>`; }
+  }
+
+  // ── Todo de un jalón ──
+  async function todo() {
+    const b = $('#todo'); b.disabled = true;
+    R.camaras = []; R.fotos = []; R.errores = [];
+    navegador();
+    try {
+      if (!R.navegador.mediaDevices) throw new Error('este navegador no expone cámaras (getUserMedia)');
+      estado('Pidiendo permiso de cámara…');
+      await abrir(undefined); // desbloquea los nombres de las cámaras
+      const lista = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'videoinput');
+      $('#camaras').innerHTML = lista.length ? '' : '<span class="mal">No se encontró ninguna cámara.</span>';
+      for (const [i, d] of lista.entries()) {
+        estado(`Cámara ${i + 1} de ${lista.length}: ${d.label || d.deviceId.slice(0, 8)}…`);
+        const fila = document.createElement('div'); fila.className = 'camara';
+        try {
+          const info = await abrir(d.deviceId);
+          R.camaras.push(info);
+          let f = null;
+          try { f = await foto(); } catch (e) { error('foto ' + (d.label || i), e); }
+          fila.innerHTML = `<b>${info.label || 'cámara ' + (i + 1)}</b><div class="kv">
+            <b>en vivo</b><span>${info.real.ancho}×${info.real.alto} @${info.real.fps || '?'}fps ${info.real.facing || ''}</span>
+            <b>máximo</b><span>${info.maximo.ancho || '?'}×${info.maximo.alto || '?'}</span>
+            <b>foto</b><span>${f ? `${f.ancho}×${f.alto} (${f.via})` : '<span class="mal">falló</span>'}</span></div>
+            <div class="fila"><button data-id="${d.deviceId}">Ver esta cámara</button></div>`;
+        } catch (e) {
+          R.camaras.push({ deviceId: d.deviceId, label: d.label, error: error('abrir ' + (d.label || i), e) });
+          fila.innerHTML = `<b>${d.label || 'cámara ' + (i + 1)}</b> <span class="mal">no se pudo abrir: ${e.name || e}</span>`;
+        }
+        $('#camaras').appendChild(fila);
+      }
+      $('#camaras').querySelectorAll('button[data-id]').forEach(bt => bt.onclick = () => abrir(bt.dataset.id).then(() => estado('Cámara abierta.')).catch(e => estado(error('abrir', e), true)));
+      pintarReporte();
+      estado('Enviando reporte…');
+      await enviar();
+      estado(`Listo: ${R.camaras.length} cámara(s), ${R.fotos.length} foto(s), ${R.errores.length} error(es).`, R.errores.length > 0);
+    } catch (e) {
+      estado('Se detuvo: ' + error('todo', e), true);
+      pintarReporte(); await enviar();
+    } finally { b.disabled = false; }
+  }
+
+  $('#todo').onclick = todo;
+  $('#foto').onclick = () => foto().catch(e => { $('#fotoInfo').textContent = 'Foto: ' + error('foto', e); });
+  $('#usb').onclick = usb;
+  $('#enviar').onclick = () => { pintarReporte(); enviar(); };
+  navegador(); pintarReporte();
+})();
+</script>
+</body>
+</html>

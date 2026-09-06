@@ -725,6 +725,30 @@ app.set("trust proxy", true);
 // ========== MIDDLEWARES GLOBALES ==========
 app.use(cors({ origin: true, credentials: true }));
 // ✅ 1. BODY PARSERS PRIMERO (antes de cualquier middleware que use req.body)
+// ── Prueba de cámara del Moji (diagnóstico) ──────────────────────────────
+// La página pública /moji-test.html corre en el navegador del skin analyzer
+// y manda aquí lo que ve: cámaras, resolución real y máxima, y una foto
+// chica de cada una. Va ANTES del express.json() global porque ese trae el
+// tope de 100kb y la miniatura no cabe. Token fijo en la URL para que no lo
+// escriba cualquiera; se guarda como Setting y se lee con el mismo token.
+const MOJI_TEST_TOKEN = '61508435890a6bf0159dfe66';
+app.post('/api/public/moji-test', express.json({ limit: '3mb' }), async (req, res) => {
+  if (req.query.t !== MOJI_TEST_TOKEN) return res.status(403).json({ success: false, error: 'token' });
+  try {
+    const value = { ...req.body, recibido: new Date().toISOString(), ip: req.ip };
+    await prisma.setting.upsert({ where: { key: 'moji-camera-test' }, create: { key: 'moji-camera-test', value }, update: { value } });
+    console.log(`[MOJI-TEST] reporte recibido: ${(value.camaras || []).length} cámara(s), ${(value.fotos || []).length} foto(s), ${(value.errores || []).length} error(es)`);
+    res.json({ success: true });
+  } catch (e) { console.error('[MOJI-TEST]', e); res.status(500).json({ success: false, error: e.message }); }
+});
+app.get('/api/public/moji-test', async (req, res) => {
+  if (req.query.t !== MOJI_TEST_TOKEN) return res.status(403).json({ success: false, error: 'token' });
+  try {
+    const row = await prisma.setting.findUnique({ where: { key: 'moji-camera-test' } });
+    res.json({ success: true, data: row ? row.value : null });
+  } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
