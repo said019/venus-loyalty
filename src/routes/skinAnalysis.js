@@ -237,7 +237,7 @@ router.post('/import', adminAuth, async (req, res) => {
 
 /**
  * GET /api/skin-analysis/image-proxy?url=<yiyuanUrl>
- * Proxy para imágenes de zm.yiyuan.ai — necesario para que html2canvas
+ * Proxy para imágenes de Yiyuan — necesario para que html2canvas
  * pueda incluirlas en el PDF sin CORS taint.
  * IMPORTANTE: este route debe ir ANTES del /:id catch-all.
  * Whitelist: solo dominios Yiyuan oficiales.
@@ -252,7 +252,8 @@ router.get('/image-proxy', async (req, res) => {
         let parsed;
         try { parsed = new URL(raw); } catch { return res.status(400).send('url inválida'); }
 
-        const allowed = ['zm.yiyuan.ai', 'yiyuan.ai'];
+        // Los análisis actuales guardan las capturas en m.yiyuan.ai.
+        const allowed = ['zm.yiyuan.ai', 'm.yiyuan.ai', 'yiyuan.ai'];
         if (!allowed.includes(parsed.hostname)) {
             return res.status(403).send('dominio no permitido');
         }

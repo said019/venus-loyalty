@@ -38,11 +38,15 @@ const fixture = {
     for (const width of [390, 794, 1440, 1920]) {
       const page = await browser.newPage({ viewport: { width, height: 900 }, acceptDownloads: true });
       const errors = [];
+      let failImages = false;
       page.on('pageerror', error => errors.push(error.message));
       await page.route('**/*', async route => {
         const url = new URL(route.request().url());
         if (url.pathname === '/api/skin-analysis/pdf-test') return route.fulfill({ json: { success: true, data: fixture } });
-        if (url.pathname === '/api/skin-analysis/image-proxy') return route.fulfill({ path: path.join(publicDir, 'assets/logo.png') });
+        if (url.pathname === '/api/skin-analysis/image-proxy') {
+          return failImages ? route.fulfill({ status: 403, body: 'dominio no permitido' })
+            : route.fulfill({ path: path.join(publicDir, 'assets/logo.png') });
+        }
         if (url.hostname === 'skin.test') {
           const file = path.join(publicDir, url.pathname);
           if (fs.existsSync(file)) return route.fulfill({ path: file });
@@ -90,17 +94,31 @@ const fixture = {
         const result = await page.evaluate(() => ({
           ...window.pdfTest, sharedPdfSize: window.sharedPdfSize, scroll: window.scrollY,
           sheets: document.querySelectorAll('#pdf-pages > .pdf-page').length,
+          loadedImages: [...document.querySelectorAll('#pdf-pages .pdf-gallery-item img')].filter(img => img.complete && img.naturalWidth > 0).length,
           overlap: [...document.querySelectorAll('#pdf-pages > .pdf-page')].some(p =>
             p.querySelector('.pdf-page-body').getBoundingClientRect().bottom > p.querySelector('.pdf-footer').getBoundingClientRect().top),
         }));
         assert.ok(result.sheets >= 3, 'El reporte debe probar varias hojas y capturas');
         assert.equal(result.pages, result.sheets, 'No debe haber páginas adicionales');
+        assert.equal(result.loadedImages, fixture.images.length, 'Todas las capturas deben estar cargadas');
         assert.ok(result.minX > 70 && result.maxX < result.width - 70, 'Ambos márgenes deben conservarse en la imagen exportada');
         assert.equal(result.overlap, false, 'El contenido no debe tapar el pie de página');
         assert.ok(Math.abs(result.scroll - scrollBefore) <= 1, 'Debe restaurar el scroll');
         if (mode === 'share') assert.ok(result.sharedPdfSize > 10000, 'Compartir debe generar un PDF');
         assert.deepEqual(errors, []);
         console.log(`OK ${width}px ${mode}: ${result.pages} hojas, márgenes completos`);
+      }
+      if (width === 390) {
+        failImages = true;
+        await page.reload();
+        await page.waitForFunction(() => document.querySelector('#d-name').textContent === 'Paciente de prueba');
+        let downloaded = false;
+        page.on('download', () => { downloaded = true; });
+        await page.locator('#btn-download-pdf').click();
+        await page.waitForFunction(() => document.querySelector('#d-feedback').textContent.includes('No se pudo cargar la imagen'));
+        assert.equal(downloaded, false, 'No debe descargar un PDF sin las imágenes');
+        assert.equal(await page.locator('#btn-download-pdf').isEnabled(), true);
+        console.log('OK imagen fallida: error visible, descarga incompleta bloqueada');
       }
       await page.close();
     }

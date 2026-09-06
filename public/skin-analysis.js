@@ -1144,14 +1144,24 @@
             // Esperar imágenes (logo + capturas del proxy)
             const pdfImages = root.querySelectorAll('img');
             await Promise.all(
-                Array.from(pdfImages).map(img => {
-                    if (img.complete && img.naturalWidth > 0) return Promise.resolve();
-                    return new Promise(resolve => {
-                        const done = () => resolve();
-                        img.addEventListener('load', done, { once: true });
-                        img.addEventListener('error', done, { once: true });
-                        setTimeout(resolve, 6000);
-                    });
+                Array.from(pdfImages).map(async img => {
+                    const message = `No se pudo cargar la imagen «${img.alt || 'captura'}». Intenta descargar de nuevo.`;
+                    if (!img.complete) {
+                        await new Promise((resolve, reject) => {
+                            const cleanup = () => {
+                                clearTimeout(timer);
+                                img.removeEventListener('load', loaded);
+                                img.removeEventListener('error', failed);
+                            };
+                            const loaded = () => { cleanup(); resolve(); };
+                            const failed = () => { cleanup(); reject(new Error(message)); };
+                            const timer = setTimeout(failed, 30000);
+                            img.addEventListener('load', loaded, { once: true });
+                            img.addEventListener('error', failed, { once: true });
+                        });
+                    }
+                    if (!img.naturalWidth) throw new Error(message);
+                    try { await img.decode(); } catch { throw new Error(message); }
                 })
             );
 
