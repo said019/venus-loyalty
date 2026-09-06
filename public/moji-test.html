@@ -28,6 +28,27 @@
 </style>
 </head>
 <body>
+<script>
+// Latido en JavaScript viejito (sin fetch, sin flechas): lo manda CUALQUIER
+// navegador al cargar, aunque el script principal de abajo ni compile. Y si
+// ese script truena al leerse, window.onerror lo atrapa y manda el mensaje.
+(function () {
+  var t = (location.search.match(/[?&]t=([^&]+)/) || [])[1] || '';
+  function ping(extra) {
+    try {
+      var x = new XMLHttpRequest();
+      x.open('GET', '/api/public/moji-ping?t=' + t + '&ua=' + encodeURIComponent(navigator.userAgent) + (extra || ''), true);
+      x.send();
+    } catch (e) {}
+  }
+  window.onerror = function (msg, src, line, col) {
+    ping('&e=' + encodeURIComponent((msg || 'error') + ' @' + line + ':' + col));
+    var s = document.getElementById('estado');
+    if (s) { s.textContent = 'Error del navegador: ' + msg; s.className = 'estado mal'; }
+  };
+  ping();
+})();
+</script>
 <main>
   <h1>Prueba de cámara</h1>
   <p class="sub">Abre esto en el navegador del Moji. Un solo botón: pide permiso, revisa cada cámara, toma una foto y manda el reporte a Venus.</p>

@@ -735,7 +735,9 @@ const MOJI_TEST_TOKEN = '61508435890a6bf0159dfe66';
 app.post('/api/public/moji-test', express.json({ limit: '3mb' }), async (req, res) => {
   if (req.query.t !== MOJI_TEST_TOKEN) return res.status(403).json({ success: false, error: 'token' });
   try {
-    const value = { ...req.body, recibido: new Date().toISOString(), ip: req.ip };
+    const previo = await prisma.setting.findUnique({ where: { key: 'moji-camera-test' } });
+    const pings = (previo && previo.value && previo.value.pings) || [];
+    const value = { ...req.body, pings, recibido: new Date().toISOString(), ip: req.ip };
     await prisma.setting.upsert({ where: { key: 'moji-camera-test' }, create: { key: 'moji-camera-test', value }, update: { value } });
     console.log(`[MOJI-TEST] reporte recibido: ${(value.camaras || []).length} cámara(s), ${(value.fotos || []).length} foto(s), ${(value.errores || []).length} error(es)`);
     res.json({ success: true });
@@ -747,6 +749,27 @@ app.get('/api/public/moji-test', async (req, res) => {
     const row = await prisma.setting.findUnique({ where: { key: 'moji-camera-test' } });
     res.json({ success: true, data: row ? row.value : null });
   } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+// Latido de la página: un GET que manda un script ES5 al cargar, para saber
+// si el Moji siquiera LLEGÓ a la página (y con qué navegador) aunque el
+// script principal no compile. Si trae `e`, es el error de ese script.
+app.get('/api/public/moji-ping', async (req, res) => {
+  if (req.query.t !== MOJI_TEST_TOKEN) return res.status(403).end();
+  try {
+    const row = await prisma.setting.findUnique({ where: { key: 'moji-camera-test' } });
+    const prev = (row && row.value && typeof row.value === 'object') ? row.value : {};
+    const ping = {
+      cuando: new Date().toISOString(),
+      ua: String(req.query.ua || req.headers['user-agent'] || '').slice(0, 300),
+      error: req.query.e ? String(req.query.e).slice(0, 300) : undefined,
+      ip: req.ip,
+    };
+    const pings = [...(prev.pings || []).slice(-9), ping];
+    const value = { ...prev, pings };
+    await prisma.setting.upsert({ where: { key: 'moji-camera-test' }, create: { key: 'moji-camera-test', value }, update: { value } });
+    console.log(`[MOJI-PING] ${ping.ua}${ping.error ? ' · ERROR: ' + ping.error : ''}`);
+    res.set('Cache-Control', 'no-store').status(204).end();
+  } catch (e) { console.error('[MOJI-PING]', e); res.status(500).end(); }
 });
 // Atajo tecleable: el link real trae un token largo y en el aparato hay que
 // escribirlo a mano en pantalla. Redirige SIEMPRE al https absoluto — si el
