@@ -3,7 +3,7 @@
 // Usa la MISMA service account que Calendar/Wallet (lib/google.js loadServiceAccount).
 // Estructura: carpeta raíz (GOOGLE_DRIVE_EXPEDIENTES_FOLDER_ID, compartida con la SA)
 //   └── "{Nombre} – {teléfono}" (una carpeta por clienta, creada on-demand)
-import { google } from 'googleapis';
+import { google } from './googleApis.js';
 import { loadServiceAccount } from '../../lib/google.js';
 
 const ROOT_FOLDER_ID = process.env.GOOGLE_DRIVE_EXPEDIENTES_FOLDER_ID;

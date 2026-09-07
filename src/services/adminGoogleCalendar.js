@@ -11,7 +11,7 @@
 // (GOOGLE_REDIRECT_URI) — se distingue por el parámetro `state`.
 // Si state = "adm_<adminId>" → este módulo. Sin state → legacy singleton.
 //
-import { google } from 'googleapis';
+import { google } from './googleApis.js';
 import { prisma } from '../db/index.js';
 
 // ─────────────────────────────────────────────

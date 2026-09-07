@@ -7,7 +7,7 @@
 // ambos están configurados, pero este toma prioridad cuando está
 // conectado (is_connected = true).
 //
-import { google } from 'googleapis';
+import { google } from './googleApis.js';
 import { prisma } from '../db/index.js';
 
 // ─────────────────────────────────────────────
