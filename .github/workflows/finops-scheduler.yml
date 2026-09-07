@@ -1,0 +1,19 @@
+name: FinOps scheduler regression
+on:
+  pull_request:
+    paths: ['package.json', 'package-lock.json', 'src/scheduler/**', 'tests/**', 'scripts/finops-scheduler.cjs', '.github/workflows/finops-scheduler.yml']
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: node --experimental-vm-modules scripts/finops-scheduler.cjs
