@@ -1,5 +1,5 @@
 // src/services/googleCalendarService.js
-import { google } from 'googleapis';
+import { google } from './googleApis.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { loadServiceAccount } from '../../lib/google.js';
