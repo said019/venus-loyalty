@@ -1,11 +1,18 @@
 // tests/leadTime.test.js
 // Run: node --test tests/leadTime.test.js
-import { test } from 'node:test';
+import { test, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { validateLeadTime, LEAD_TIME_RULE } from '../src/utils/leadTime.js';
 
 // Helper: construye un Date desde "YYYY-MM-DD HH:MM" interpretado como hora MX (-06:00)
 const mx = (s) => new Date(s.replace(' ', 'T') + ':00-06:00');
+
+// The current implementation obtains todayMexicoStr() from the ambient clock,
+// independently of the injected `now`. Freeze the fixture's calendar day too;
+// otherwise this historical test changes result as real time passes.
+beforeEach(t => {
+    t.mock.timers.enable({ apis: ['Date'], now: mx('2026-05-20 12:00') });
+});
 
 test('slot futuro (día siguiente) no aplica lead time', () => {
     const r = validateLeadTime({
