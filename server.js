@@ -346,6 +346,64 @@ async function acreditarAnticipoWeb(requestId, quien) {
   }
 }
 
+// Apartado dejado AL COBRAR para la próxima cita ("pago el facial y te dejo
+// $300 para el láser"). Corre DESPUÉS de cerrar el cobro y nunca lo deshace:
+// deshacer un cobro ya guardado abriría la puerta a cobrar dos veces. Si
+// falla, la respuesta lleva depositError y el modal avisa que se registre
+// a mano. Idempotente por sourceRef: un doble toque no deja dos apartados.
+async function cardDeCita(appointment) {
+  if (appointment.cardId) {
+    const c = await prisma.card.findUnique({ where: { id: appointment.cardId } });
+    if (c) return c;
+  }
+  const digitos = String(appointment.clientPhone || '').replace(/\D/g, '');
+  if (digitos.length < 10) return null;
+  // En esta base conviven 10 y 12 dígitos (con y sin 52): comparar por cola.
+  return prisma.card.findFirst({ where: { phone: { endsWith: digitos.slice(-10) } } });
+}
+
+async function apartarAlCobrar(appointment, req) {
+  const nd = req.body && req.body.newDeposit;
+  const monto = nd ? parseFloat(nd.amount) : 0;
+  if (!(monto > 0)) return null;
+  try {
+    const card = await cardDeCita(appointment);
+    if (!card) throw new Error('clienta_no_encontrada');
+    const METODOS = ['efectivo', 'tarjeta', 'transferencia'];
+    const metodo = METODOS.includes(nd.paymentMethod) ? nd.paymentMethod : req.body.paymentMethod;
+    const r = await registrarApartado({
+      cardId: card.id,
+      amount: monto,
+      paymentMethod: metodo,
+      note: `Dejado al cobrar ${appointment.serviceName || 'cita'}`,
+      sourceRef: `appt-deposit:${appointment.id}`,
+      by: (req.admin && (req.admin.email || req.admin.role)) || 'admin',
+      appointmentId: nd.appointmentId || undefined,
+    });
+    console.log(`[APARTADO] $${monto} dejados al cobrar la cita ${appointment.id} → saldo $${r.balance}`);
+    return { ok: true, amount: monto, balance: r.balance };
+  } catch (e) {
+    if (e && e.code === 'P2002') return { ok: true, amount: monto, repetido: true };
+    const msg = {
+      clienta_no_encontrada: 'no encontré la tarjeta de la clienta',
+      cita_no_encontrada: 'la cita elegida ya no existe',
+      cita_de_otra_clienta: 'la cita elegida es de otra clienta',
+      metodo_invalido: 'método de pago inválido',
+      monto_invalido: 'monto inválido',
+    }[e && e.message] || (e && e.message) || 'error';
+    console.warn(`[APARTADO] no se pudo apartar al cobrar la cita ${appointment.id}: ${msg}`);
+    return { ok: false, error: msg };
+  }
+}
+
+// Arma la respuesta del cobro con el resultado del apartado nuevo (si hubo).
+function respuestaCobro(apartadoNuevo) {
+  const out = { success: true };
+  if (apartadoNuevo && apartadoNuevo.ok) out.deposit = { amount: apartadoNuevo.amount, balance: apartadoNuevo.balance };
+  if (apartadoNuevo && !apartadoNuevo.ok) out.depositError = apartadoNuevo.error;
+  return out;
+}
+
 async function deshacerApartado(aplicado) {
   if (!aplicado) return;
   try {
@@ -1579,7 +1637,8 @@ app.post('/api/appointments/:id/payment', adminAuth, async (req, res) => {
       date: new Date()
     });
 
-    res.json({ success: true });
+    const apartadoNuevo = await apartarAlCobrar(appointment, req);
+    res.json(respuestaCobro(apartadoNuevo));
   } catch (error) {
     console.error('Error saving payment:', error);
     res.json({ success: false, error: error.message });
@@ -2098,7 +2157,9 @@ app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
         // No fallamos el request si falla el registro de venta auxiliar
       }
 
-      return res.json({ success: true });
+      // Apartado dejado hoy para la próxima cita (ver apartarAlCobrar).
+      const apartadoNuevo = await apartarAlCobrar(appointment, req);
+      return res.json(respuestaCobro(apartadoNuevo));
     }
 
     const { serviceId, serviceName, date, time, durationMinutes } = req.body;

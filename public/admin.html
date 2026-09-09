@@ -13511,14 +13511,18 @@
     // Llena el selector "¿Para cuál cita?" con las citas FUTURAS de la clienta.
     // Reusa el endpoint del historial de citas; el filtro a futuro se hace aquí
     // porque apartar dinero para una cita que ya pasó no tiene sentido.
-    async function cargarCitasParaApartado(cardId, telefono) {
-      const sel = document.getElementById('credit-appt');
-      const hint = document.getElementById('credit-appt-hint');
+    // `destino` permite usarla desde otro lugar (el cobro): ids del select y
+    // del texto de ayuda, y una cita a excluir — la que se está cobrando no
+    // puede ser "la próxima".
+    async function cargarCitasParaApartado(cardId, telefono, destino) {
+      const sel = document.getElementById((destino && destino.sel) || 'credit-appt');
+      const hint = document.getElementById((destino && destino.hint) || 'credit-appt-hint');
+      const excluir = destino && destino.excluirCita ? String(destino.excluirCita) : null;
       if (!sel) return;
       sel.innerHTML = '<option value="">Sin cita — queda como saldo a favor</option>';
-      if (!cardId) { hint.textContent = 'Elige a la clienta para ver sus próximas citas.'; return; }
+      if (!cardId && !telefono) { hint.textContent = 'Elige a la clienta para ver sus próximas citas.'; return; }
 
-      const card = window.cardsCache ? window.cardsCache[cardId] : null;
+      const card = cardId && window.cardsCache ? window.cardsCache[cardId] : null;
       const busqueda = (card && card.phone) || telefono || (card && card.name) || '';
       if (!busqueda) { hint.textContent = 'Sin teléfono para buscar sus citas.'; return; }
 
@@ -13529,6 +13533,7 @@
         const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
         const futuras = (json.data || [])
           .filter(a => {
+            if (excluir && String(a.id) === excluir) return false;
             if (!a.date || !/^\d{4}-\d{2}-\d{2}$/.test(a.date)) return false;
             const [y, m, d] = a.date.split('-').map(Number);
             return new Date(y, m - 1, d) >= hoy;
@@ -18602,6 +18607,8 @@
         productosEnCobro = [];
         window.cobroServicioSel = null;   // cambio de servicio: nada elegido aún
         window.cobroApartado = null;      // saldo a favor: se consulta abajo
+        window.cobroCitaActual = { id: cita.id, cardId: cita.cardId || null, clientPhone: cita.clientPhone || '' };
+        citasNuevoApartadoCargadas = false;
         
         console.log('[Cobrar] Servicios cargados:', servicios.length, servicios.map(s => ({id: s.id, name: s.name, price: s.price})));
         console.log('[Cobrar] Cita:', cita.id, 'serviceId:', cita.serviceId, 'serviceName:', cita.serviceName);
@@ -18872,6 +18879,39 @@
                   </div>
                 </div>
 
+                <!-- Dejar apartado para la PRÓXIMA cita, junto con este cobro
+                     ("pago el facial y te dejo $300 para el láser"). Plegado
+                     para no estorbar en el cobro normal. -->
+                <div class="cobro-card" id="cobro-nuevo-apartado" style="border:1px dashed rgba(140,150,104,.45);">
+                  <button type="button" onclick="alternarNuevoApartado()"
+                    style="width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;background:transparent;border:none;color:#fff;padding:0;cursor:pointer;min-height:44px;text-align:left;">
+                    <span style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;"><i class="fas fa-piggy-bank" style="color:var(--olive);"></i> Dejar apartado para la próxima cita</span>
+                    <span id="cobro-nuevo-apartado-icono" style="color:var(--olive);font-size:20px;font-weight:700;line-height:1;">+</span>
+                  </button>
+                  <div id="cobro-nuevo-apartado-cuerpo" style="display:none;margin-top:12px;">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                      <div>
+                        <label for="cobro-nuevo-apartado-monto" style="display:block;font-size:12px;color:#888;margin-bottom:6px;">Monto ($)</label>
+                        <input type="number" id="cobro-nuevo-apartado-monto" class="cobro-input" min="0" step="1" inputmode="decimal" placeholder="0" oninput="actualizarTotalCobro()">
+                      </div>
+                      <div>
+                        <label for="cobro-nuevo-apartado-metodo" style="display:block;font-size:12px;color:#888;margin-bottom:6px;">Método</label>
+                        <select id="cobro-nuevo-apartado-metodo" class="cobro-input">
+                          <option value="">Igual que el cobro</option>
+                          <option value="efectivo">Efectivo</option>
+                          <option value="tarjeta">Tarjeta</option>
+                          <option value="transferencia">Transferencia</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div style="margin-top:10px;">
+                      <label for="cobro-nuevo-apartado-cita" style="display:block;font-size:12px;color:#888;margin-bottom:6px;">¿Para cuál cita? (opcional)</label>
+                      <select id="cobro-nuevo-apartado-cita" class="cobro-input"><option value="">Sin cita — queda como saldo a favor</option></select>
+                      <div id="cobro-nuevo-apartado-hint" style="font-size:11.5px;color:#888;margin-top:6px;"></div>
+                    </div>
+                  </div>
+                </div>
+
                 <!-- Resumen -->
                 <div class="cobro-card" style="background:var(--bg-secondary);">
                   <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #333;">
@@ -18898,6 +18938,18 @@
                   <div style="display:flex;justify-content:space-between;padding:12px 0 4px;">
                     <span style="color:var(--olive);font-size:16px;font-weight:700;">Total</span>
                     <span id="total-cobro" style="color:var(--olive);font-size:22px;font-weight:800;">$${precioServicioGlobal.toFixed(0)}</span>
+                  </div>
+                  <!-- Solo cuando se deja apartado: la cita se guarda con su
+                       total; lo que entra HOY a la caja es la suma. -->
+                  <div id="resumen-nuevo-apartado" style="display:none;">
+                    <div style="display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid #333;">
+                      <span style="color:#888;font-size:13px;">Apartado para próxima cita</span>
+                      <span id="valor-nuevo-apartado" style="color:var(--olive);font-size:14px;">+$0</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;padding:8px 0 2px;">
+                      <span style="color:#fff;font-size:15px;font-weight:700;">A cobrar hoy</span>
+                      <span id="total-cobrar-hoy" style="color:#fff;font-size:20px;font-weight:800;">$0</span>
+                    </div>
                   </div>
                 </div>
 
@@ -19165,9 +19217,20 @@
       const elDescuento = document.getElementById('resumen-descuento');
       const elValorDescuento = document.getElementById('valor-descuento');
       
+      // Apartado que deja HOY para la próxima cita: no es parte de la cita
+      // (esa se guarda con su total), pero sí del dinero que entra ahora.
+      const nuevoApartado = leerNuevoApartado();
+      const aCobrarHoy = total + nuevoApartado;
+      const elResNuevo = document.getElementById('resumen-nuevo-apartado');
+      if (elResNuevo) {
+        elResNuevo.style.display = nuevoApartado > 0 ? 'block' : 'none';
+        const v = document.getElementById('valor-nuevo-apartado'); if (v) v.textContent = `+$${nuevoApartado.toFixed(0)}`;
+        const h = document.getElementById('total-cobrar-hoy'); if (h) h.textContent = `$${aCobrarHoy.toFixed(0)}`;
+      }
+
       if (elSubtotal) elSubtotal.textContent = `$${subtotal.toFixed(0)}`;
       if (elTotal) elTotal.textContent = `$${total.toFixed(0)}`;
-      if (elBtnTotal) elBtnTotal.textContent = `$${total.toFixed(0)}`;
+      if (elBtnTotal) elBtnTotal.textContent = `$${aCobrarHoy.toFixed(0)}`;
       
       // Mostrar/ocultar descuento
       if (elDescuento && elValorDescuento) {
@@ -19239,6 +19302,40 @@
     }
     window.alternarApartadoCobro = alternarApartadoCobro;
 
+    // ── Dejar apartado para la próxima cita, dentro del cobro ──────────
+    function leerNuevoApartado() {
+      const el = document.getElementById('cobro-nuevo-apartado-monto');
+      const n = el ? Math.round(parseFloat(el.value)) : 0;
+      return Number.isFinite(n) && n > 0 ? n : 0;
+    }
+
+    let citasNuevoApartadoCargadas = false;
+    function alternarNuevoApartado() {
+      const cuerpo = document.getElementById('cobro-nuevo-apartado-cuerpo');
+      const icono = document.getElementById('cobro-nuevo-apartado-icono');
+      if (!cuerpo) return;
+      const abrir = cuerpo.style.display === 'none';
+      cuerpo.style.display = abrir ? 'block' : 'none';
+      if (icono) icono.textContent = abrir ? '−' : '+';
+      if (abrir) {
+        // Las citas futuras se piden solo la primera vez que se abre: en un
+        // cobro normal nadie las necesita y sería un viaje al servidor de más.
+        if (!citasNuevoApartadoCargadas) {
+          citasNuevoApartadoCargadas = true;
+          const c = window.cobroCitaActual || {};
+          cargarCitasParaApartado(c.cardId, c.clientPhone, {
+            sel: 'cobro-nuevo-apartado-cita', hint: 'cobro-nuevo-apartado-hint', excluirCita: c.id,
+          });
+        }
+        const m = document.getElementById('cobro-nuevo-apartado-monto'); if (m) m.focus();
+      } else {
+        // Plegar = cancelar: sin monto, sin apartado.
+        const m = document.getElementById('cobro-nuevo-apartado-monto'); if (m) m.value = '';
+        actualizarTotalCobro();
+      }
+    }
+    window.alternarNuevoApartado = alternarNuevoApartado;
+
     async function procesarCobroCita(citaId) {
       console.log('[Procesar Cobro] Iniciando cobro para cita:', citaId);
       
@@ -19270,6 +19367,7 @@
         ? Math.min(apCobro.saldo, totalAntesDeApartado)
         : 0;
       const totalFinal = Math.max(0, totalAntesDeApartado - apartadoAplicado);
+      const nuevoApartadoMonto = leerNuevoApartado();
 
       if (totalFinal < 0) {
         showNotification('El monto a cobrar no puede ser negativo', 'warning');
@@ -19298,6 +19396,13 @@
             paymentMethod: metodo,
             discount: descuentoValor > 0 ? descuentoValor : null,
             creditApplied: apartadoAplicado > 0 ? apartadoAplicado : undefined,
+            // Apartado que deja HOY para la próxima cita. Va en el mismo
+            // viaje: el servidor cierra el cobro y luego lo registra.
+            newDeposit: nuevoApartadoMonto > 0 ? {
+              amount: nuevoApartadoMonto,
+              paymentMethod: (document.getElementById('cobro-nuevo-apartado-metodo') || {}).value || metodo,
+              appointmentId: (document.getElementById('cobro-nuevo-apartado-cita') || {}).value || undefined,
+            } : undefined,
             productsSold: productosData
           })
         });
@@ -19328,7 +19433,16 @@
           }
 
           productosEnCobro = []; // Limpiar
-          showNotification('¡Pago registrado correctamente!', 'success');
+          if (json.depositError) {
+            // El cobro SÍ quedó; el apartado no. No se deshace el cobro
+            // (abriría la puerta a cobrar dos veces): se avisa y se
+            // registra a mano desde la ficha.
+            showNotification(`Pago registrado, pero el apartado NO se guardó: ${json.depositError}. Regístralo desde su ficha.`, 'warning');
+          } else if (json.deposit && json.deposit.amount > 0) {
+            showNotification(`¡Pago registrado! Apartado de $${Number(json.deposit.amount).toLocaleString('es-MX')} guardado para su próxima cita.`, 'success');
+          } else {
+            showNotification('¡Pago registrado correctamente!', 'success');
+          }
           cargarCaja(); // Recargar la caja
         } else {
           // El servidor manda `error` (ej. saldo insuficiente); sin esto la
