@@ -4303,6 +4303,42 @@ app.get('/api/public/card/:id/packages', async (req, res) => {
   }
 });
 
+// GET /api/public/card/:id/credits — saldo a favor de la clienta para su
+// tarjeta: cuánto tiene y, si dejó anticipo apuntando a una cita, para
+// cuál. Solo el saldo y los anticipos ligados a citas vivas; nada de la
+// bitácora. Sin sesión, como el resto de la tarjeta; no-store + noindex.
+app.get('/api/public/card/:id/credits', async (req, res) => {
+  res.set('Cache-Control', 'private, no-store');
+  res.set('X-Robots-Tag', 'noindex, nofollow, noarchive');
+  try {
+    const card = await prisma.card.findUnique({ where: { id: req.params.id }, select: { id: true } });
+    if (!card) return res.status(404).json({ success: false, error: 'Tarjeta no encontrada' });
+    const agg = await prisma.clientCredit.aggregate({ where: { cardId: card.id, revertedAt: null }, _sum: { amount: true } });
+    const balance = Math.round((Number(agg._sum.amount) || 0) * 100) / 100;
+    let earmarks = [];
+    if (balance > 0) {
+      const depositos = await prisma.clientCredit.findMany({
+        where: { cardId: card.id, revertedAt: null, type: 'deposito', appointmentId: { not: null } },
+        select: { amount: true, appointmentId: true },
+      });
+      if (depositos.length) {
+        const citas = await prisma.appointment.findMany({
+          where: { id: { in: [...new Set(depositos.map(d => d.appointmentId))] }, status: { notIn: ['completed', 'cancelled', 'no_show'] } },
+          select: { id: true, date: true, time: true, serviceName: true },
+        });
+        const porId = new Map(citas.map(c => [c.id, c]));
+        earmarks = depositos
+          .filter(d => porId.has(d.appointmentId))
+          .map(d => ({ amount: Math.min(Number(d.amount) || 0, balance), ...porId.get(d.appointmentId) }));
+      }
+    }
+    res.json({ success: true, data: { balance, earmarks } });
+  } catch (e) {
+    console.error('[CREDITS PUBLIC]', e);
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
 // GET /api/public/card/:id/apple.pkpass — download Apple Wallet pass
 app.get('/api/public/card/:id/apple.pkpass', async (req, res) => {
   try {
