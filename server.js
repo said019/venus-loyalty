@@ -832,6 +832,8 @@ app.get('/api/public/moji-ping', async (req, res) => {
 // Atajo tecleable: el link real trae un token largo y en el aparato hay que
 // escribirlo a mano en pantalla. Redirige SIEMPRE al https absoluto — si el
 // navegador entra por http, sin contexto seguro no hay cámara.
+// Atajo tecleable para la captura de fotos desde el skin analyzer.
+app.get('/captura', (_req, res) => res.redirect(302, '/captura.html'));
 app.get('/cam', (_req, res) => res.redirect(302, `https://venuscosmetologia.com.mx/moji-test.html?t=${MOJI_TEST_TOKEN}`));
 
 app.use(express.json());

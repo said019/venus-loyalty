@@ -106,7 +106,10 @@ basta la luz blanca, que la app oficial deja encendida al abrirse.
 - **Auth admin:** cookie httpOnly `adm` (JWT), `POST /api/admin/login {email,
   password}`. Rutas admin usan `adminAuth`; recepción tiene `role: 'recepcion'`.
 
-## 6. Siguiente build propuesto (aprobación del dueño pendiente)
+## 6. `/captura` — CONSTRUIDO el 10-sep-2026 (`public/captura.html`, atajo `GET /captura`)
+
+Lo de abajo era la propuesta; se construyó tal cual con estas notas: login embebido en la página (POST /api/admin/login → cookie `adm`; la sesión se detecta con GET /api/admin/me), rotación del sensor con botón "Girar" guardada en localStorage (arranca en 90°), foto por `ImageCapture.takePhoto()` con fallback a canvas del video, siempre re-dibujada en canvas para aplicar la rotación y salir JPEG 0.92, anti doble-toque, y sin `?.`/`??`. Verificado en Chrome con cámara simulada (11 casos, incluido el multipart real). Pendiente: probarlo en el Moji.
+
 
 **`public/captura.html` → `venuscosmetologia.com.mx/captura`** para abrirse en
 el Moji (1080×1920, Chrome 70, tacto):
