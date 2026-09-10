@@ -4004,6 +4004,10 @@
           <div class="exp-hairline-group">
             <h3 class="exp-section-title">Datos clave</h3>
             <div id="exp-resumen-keydata"></div>
+            <h3 class="exp-section-title" style="margin-top:18px;">Lo que quiere mejorar y su rutina</h3>
+            <div id="exp-resumen-perfil"></div>
+            <h3 class="exp-section-title" style="margin-top:18px;">Para la consulta</h3>
+            <div id="exp-resumen-recos"></div>
           </div>
           <div class="exp-hairline-group">
             <h3 class="exp-section-title">Estado de documentos</h3>
@@ -4919,7 +4923,7 @@
             '<div class="exp-kpi"><span class="exp-kpi-num">' + totalSessions + '</span><small>Sesiones</small></div>' +
             '<div class="exp-kpi"><span class="exp-kpi-num">' + totalPhotos + '</span><small>Fotos</small></div>' +
             // Lo llena loadExpedienteAppointments(), que va a otro endpoint.
-            '<div class="exp-kpi"><span class="exp-kpi-num" id="exp-kpi-appts">…</span><small>Citas</small></div>' +
+            '<div class="exp-kpi"><span class="exp-kpi-num" id="exp-kpi-appts">' + (expedienteApptsLoaded ? expedienteApptsCache.length : '…') + '</span><small>Citas</small></div>' +
           '</div>' +
           '<p class="exp-kpi-note">' + expEsc(lastSessionStr) + '</p>';
       }
@@ -4930,6 +4934,9 @@
     // endpoint (/api/appointments/client), pero pidiendo las canceladas y
     // hasta 50 — dos cosas que el flujo de agendar no pide y sigue sin ver.
     let expedienteApptsCache = [];
+    // true solo cuando el historial de citas ya se trajo del servidor: el
+    // renglón de KPIs se reconstruye después y no debe volver a poner "…".
+    let expedienteApptsLoaded = false;
     let expedienteApptsExpanded = false;
     const EXP_APPTS_PREVIEW = 10;
 
@@ -4943,15 +4950,36 @@
       cancelled:    { label: 'Cancelada',   icon: 'fa-times-circle' }
     };
 
+    // Tarjeta de la clienta para el expediente: lista → expediente ya cargado
+    // → servidor. El último paso es lo que hace funcionar el deep-link.
+    async function expResolverCard(cardId) {
+      const enLista = window.cardsCache ? window.cardsCache[cardId] : null;
+      if (enLista && (enLista.phone || enLista.name)) return enLista;
+      const dig = (typeof expedienteDigitalCache !== 'undefined' && expedienteDigitalCache) ? expedienteDigitalCache.card : null;
+      if (dig && dig.id === cardId && (dig.phone || dig.name)) return dig;
+      try {
+        const res = await expApi('/api/expedientes/' + encodeURIComponent(cardId));
+        const j = await res.json();
+        if (j && j.success && j.card) return j.card;
+      } catch (e) { console.warn('[Expediente] no se pudo resolver la tarjeta:', e); }
+      return null;
+    }
+
     async function loadExpedienteAppointments(cardId) {
       const listEl = document.getElementById('exp-resumen-appts');
       if (!listEl) return;
 
       expedienteApptsCache = [];
+      expedienteApptsLoaded = false;
       expedienteApptsExpanded = false;
 
       // El endpoint busca por teléfono o por nombre, igual que al agendar.
-      const card = window.cardsCache ? window.cardsCache[cardId] : null;
+      // Antes el teléfono se leía SOLO de la lista de Clientas (cardsCache):
+      // al entrar por URL directa la lista aún no había cargado, el resumen
+      // decía "No se pudo cargar" y el contador se quedaba en "…". Ahora la
+      // tarjeta se resuelve con lo que trae el propio expediente y, si
+      // tampoco está, se pide al servidor.
+      const card = await expResolverCard(cardId);
       const search = (card && (card.phone || card.name)) || '';
       if (!search) {
         listEl.innerHTML = '<p class="exp-muted-note">No se pudo cargar el historial de citas.</p>';
@@ -4972,6 +5000,7 @@
         return;
       }
 
+      expedienteApptsLoaded = true;
       const kpi = document.getElementById('exp-kpi-appts');
       if (kpi) kpi.textContent = expedienteApptsCache.length;
 
@@ -5687,8 +5716,12 @@
             <button type="button" class="btn small ghost" onclick="expViewSkinAnalysis('${a.id}')" style="flex-shrink:0;">
               <i class="fas fa-up-right-from-square"></i> Ver completo
             </button>
+            <div id="exp-skin-sug-${a.id}" style="flex-basis:100%;"></div>
           </div>`;
       }).join('');
+      // Las sugerencias piden el catálogo (una vez) y se pintan después, para
+      // no retrasar la lista.
+      list.forEach(a => expSugerirTratamientos(a.id, a.scores));
     }
 
     // Abrir el analyzer para ESTA clienta (queda vinculado por ?cardId)
@@ -5753,6 +5786,11 @@
         }
       }
 
+      // Lo que quiere mejorar, su rutina y lo que contestó — la ficha lo
+      // captura todo y el resumen lo escondía en tres renglones.
+      renderResumenPerfil(intake);
+      renderResumenRecos(intake);
+
       // Estado de documentos (ficha + consentimiento).
       const docsEl = document.getElementById('exp-resumen-docs');
       if (docsEl) {
@@ -5769,6 +5807,171 @@
       // Visitas (KPIs)
       updateExpedienteSummary(record);
     }
+
+    // ----- Perfil: lo que quiere mejorar y su rutina (desde la ficha firmada) -----
+    // Los títulos de cada cuestionario ya viven en EXP_COND_TITLES (pestaña Tratamientos).
+    function renderResumenPerfil(intake) {
+      const el = document.getElementById('exp-resumen-perfil');
+      if (!el) return;
+      if (!intake || intake.status !== 'signed') {
+        el.innerHTML = '<p class="exp-muted-note">Se llena con la Ficha Clínica.</p>';
+        return;
+      }
+      const idata = intake.interestData || {};
+      const kv = (k, v) => v ? '<div class="exp-kv"><span class="exp-kv-k">' + expEsc(k) + '</span><span class="exp-kv-v">' + expEsc(v) + '</span></div>' : '';
+      const lista = (a) => Array.isArray(a) ? a.filter(Boolean).join(', ') : (a || '');
+      const detalle = (o) => o && o.value ? (o.detail ? String(o.detail) : 'Sí') : '';
+      const ciclo = idata.cicloMenstrual ? ({ IR: 'Irregular', R: 'Regular' }[String(idata.cicloMenstrual).toUpperCase()] || idata.cicloMenstrual) : '';
+      const ps = idata.protectorSolar && idata.protectorSolar.timesPerDay != null ? Number(idata.protectorSolar.timesPerDay) : null;
+      const cuestionarios = Object.keys(intake.questionnaires || {})
+        .filter(k => intake.questionnaires[k] && Object.values(intake.questionnaires[k]).some(v => String(v || '').trim()))
+        .map(k => EXP_COND_TITLES[k] || k).join(', ');
+      el.innerHTML =
+        kv('Quiere mejorar', [intake.skinCondition, intake.conditionSince ? 'desde ' + intake.conditionSince : ''].filter(Boolean).join(' · ')) +
+        kv('Tratamientos previos', [intake.previousTreatments, intake.treatmentReactions ? 'reacción: ' + intake.treatmentReactions : ''].filter(Boolean).join(' · ')) +
+        kv('Rutina de día', lista(intake.routineDay)) +
+        kv('Rutina de noche', lista(intake.routineNight)) +
+        kv('Protector solar', ps != null ? (ps + (ps === 1 ? ' vez' : ' veces') + ' al día') : '') +
+        kv('Vitaminas / suplementos', detalle(idata.vitaminas)) +
+        kv('Anticonceptivos', idata.anticonceptivos && idata.anticonceptivos.value ? 'Sí' : '') +
+        kv('Ciclo menstrual', ciclo) +
+        kv('Implantes o dispositivos', detalle(idata.implantes)) +
+        kv('Intervenciones estéticas', detalle(idata.intervenciones)) +
+        kv('Cuestionarios respondidos', cuestionarios) +
+        kv('Llegó por', intake.referralSource) +
+        kv('Fotos', intake.photoConsent ? 'Autorizó fotos' : 'NO autorizó fotos')
+        || '<p class="exp-muted-note">La ficha no trae estos datos.</p>';
+    }
+
+    // ----- Para la consulta: señales derivadas de lo que contestó -----
+    // Son recordatorios para la cosmetóloga (hábitos que cambian resultados),
+    // NO diagnóstico. Cada una dice de dónde salió, para que se pueda
+    // conversar con la clienta con su propia respuesta enfrente.
+    function expRecomendaciones(intake) {
+      if (!intake || intake.status !== 'signed') return [];
+      const out = [];
+      const q = intake.questionnaires || {};
+      const idata = intake.interestData || {};
+      const dia = (intake.routineDay || []).join(' ').toLowerCase();
+      const noche = (intake.routineNight || []).join(' ').toLowerCase();
+      const t = (v) => String(v || '').trim().toLowerCase();
+      const si = (v) => /^\s*(s[ií]|claro|a veces|casi siempre|siempre)\b/.test(t(v));
+      const add = (texto, fuente) => out.push({ texto, fuente });
+
+      const a = q.acne || {};
+      if (t(a.q3) && !/seman|diario|cada d|cada uso|\b[123] ?d/.test(t(a.q3))) add('Lavar brochas y esponjas cada semana', 'brochas: ' + a.q3);
+      if (t(a.q5) && /jab[oó]n|agua|toalla|nada|^no\b/.test(t(a.q5)) && !/desmaquill|micelar|aceite|b[aá]lsamo|limpiador/.test(t(a.q5))) add('Desmaquillante o limpiador adecuado antes del jabón', 'se desmaquilla con: ' + a.q5);
+      if (t(a.q6) && !/seman|diario|cada d|\b[123] ?d|dos|tres/.test(t(a.q6))) add('Cambiar fundas de almohada cada semana', 'fundas: ' + a.q6);
+      if (si(a.q8)) add('No manipular lesiones: deja manchas y cicatrices', 'pellizca lesiones: ' + a.q8);
+      if (si(a.q2)) add('Base no comedogénica y doble limpieza de noche', 'base todos los días: ' + a.q2);
+      if (/alta|mucha|much|diario|frecuent|bastante/.test(t(a.q1))) add('Bajar lácteos, embutidos y azúcares', 'dieta: ' + a.q1);
+      if (/alto|mucho|elevado/.test(t(a.q7))) add('Estrés alto: considerarlo en el pronóstico', 'estrés: ' + a.q7);
+
+      const pg = q.pigmentaciones || {};
+      if (/s[ií]|mucho|bastante|diario/.test(t(pg.q2))) add('Exposición solar alta: protector y reaplicación son la base', 'sol: ' + pg.q2);
+      if (si(pg.q4)) add('Mucha luz azul: protector con filtro de luz visible', 'pantallas: ' + pg.q4);
+      if (si(pg.q5)) add('Medicamentos fotosensibilizantes: cuidado con peelings y luz', 'medicamentos: ' + pg.q5);
+
+      const en = q.envejecimiento || {};
+      if (si(en.q4)) add('Fuma: afecta colágeno y cicatrización', 'fuma: ' + en.q4);
+      if (/boca abajo|de lado|costado/.test(t(en.q3))) add('Duerme de lado o boca abajo: marcas de compresión', 'posición: ' + en.q3);
+
+      const oi = q.ojerasInflamadas || {};
+      if (/mal|poc|regular|no duermo|insomn/.test(t(oi.q2))) add('Sueño de mala calidad: influye en ojeras e inflamación', 'sueño: ' + oi.q2);
+      const op = q.ojerasPigmentadas || {};
+      if (si(op.q2)) add('Se frota los ojos: pigmentación por fricción', 'frota ojos: ' + op.q2);
+
+      const ps = idata.protectorSolar || {};
+      const veces = Number(ps.timesPerDay);
+      if (Number.isFinite(veces) && veces < 2) add('Reaplicar protector solar (mínimo 2 veces al día)', 'hoy: ' + veces + (veces === 1 ? ' vez' : ' veces') + ' al día');
+      if (dia && !/bloqueador|protector|fps|spf|solar/.test(dia)) add('No usa protector solar de día', 'rutina de día');
+      if (noche && !/desmaquill|micelar|limpiador|aceite/.test(noche)) add('Sin desmaquillante en la rutina de noche', 'rutina de noche');
+      return out;
+    }
+
+    function renderResumenRecos(intake) {
+      const el = document.getElementById('exp-resumen-recos');
+      if (!el) return;
+      if (!intake || intake.status !== 'signed') { el.innerHTML = '<p class="exp-muted-note">Se llena con la Ficha Clínica.</p>'; return; }
+      const recos = expRecomendaciones(intake);
+      if (!recos.length) { el.innerHTML = '<p class="exp-muted-note">Sin señales en el cuestionario ni en la rutina.</p>'; return; }
+      el.innerHTML = recos.map(r =>
+        '<div class="exp-kv" style="display:block;">' +
+          '<div class="exp-kv-v" style="text-align:left;">' + expEsc(r.texto) + '</div>' +
+          '<div class="exp-kv-k" style="font-size:12px;margin-top:2px;">' + expEsc(r.fuente) + '</div>' +
+        '</div>').join('');
+    }
+
+    // ----- Sugerencias desde el Moji: métrica en atención → TU servicio -----
+    // El analizador dice "poros: crítico"; esto busca en tu catálogo real qué
+    // servicio lo atiende (por palabra clave, sin inventar nombres) y, si
+    // existe, el paquete de sesiones ligado. Se muestra como sugerencia para
+    // la consulta, no como prescripción.
+    const EXP_METRIC_KEYS = {
+      acne:        ['acn'],
+      blackhead:   ['limpieza profunda', 'limpieza'],
+      pore:        ['limpieza profunda', 'limpieza', 'hidrafacial'],
+      spot:        ['pigmentaci', 'despigment'],
+      pigment:     ['pigmentaci', 'despigment'],
+      uv_spot:     ['pigmentaci', 'despigment'],
+      pockmark:    ['dermapen', 'microneedl'],
+      wrinkle:     ['colágeno', 'colageno', 'radiofrec', 'hifu'],
+      collagen:    ['colágeno', 'colageno', 'radiofrec', 'hifu'],
+      texture:     ['dermapen', 'peeling', 'limpieza profunda'],
+      ext_water:   ['hidrataci'],
+      sensitive:   ['oxigen', 'calmante', 'sensible'],
+      dark_circle: ['ojeras', 'contorno'],
+    };
+    // Se memoriza la PROMESA, no el resultado: varios análisis piden el
+    // catálogo al mismo tiempo y solo debe salir una petición.
+    let expCatalogoPromesa = null;
+    function expCatalogo() {
+      if (!expCatalogoPromesa) {
+        expCatalogoPromesa = Promise.all([
+          expApi('/api/services').then(r => r.json()).catch(() => ({})),
+          expApi('/api/packages').then(r => r.json()).catch(() => ({})),
+        ]).then(([rs, rp]) => ({
+          services: (rs && rs.data) || [],
+          packages: ((rp && rp.data) || []).filter(p => p.isActive !== false),
+        })).catch(err => { expCatalogoPromesa = null; throw err; });
+      }
+      return expCatalogoPromesa;
+    }
+    function expServicioPara(metric, services) {
+      const keys = EXP_METRIC_KEYS[metric] || [];
+      const cands = services.filter(s => s && s.name && s.isActive !== false && !/depilaci|skin analyzer|seguimiento/i.test(s.name));
+      for (const k of keys) {
+        const hit = cands
+          .filter(s => s.name.toLowerCase().includes(k))
+          .sort((x, y) => (Number(x.price) || 0) - (Number(y.price) || 0))[0];
+        if (hit) return hit;
+      }
+      return null;
+    }
+    async function expSugerirTratamientos(analysisId, scores) {
+      const el = document.getElementById('exp-skin-sug-' + analysisId);
+      if (!el) return;
+      const atencion = (scores || []).filter(s => s && (s.severity === 'critical' || s.severity === 'concern'));
+      if (!atencion.length) { el.innerHTML = ''; return; }
+      let cat;
+      try { cat = await expCatalogo(); } catch (e) { el.innerHTML = ''; return; }
+      const vistos = new Set(); const filas = [];
+      for (const s of atencion) {
+        const srv = expServicioPara(s.metric, cat.services);
+        if (!srv || vistos.has(srv.id)) continue;
+        vistos.add(srv.id);
+        const paq = cat.packages.find(p => [p.serviceName, p.name].filter(Boolean).some(n => String(n).toLowerCase().includes(srv.name.toLowerCase())));
+        filas.push(
+          '<div class="exp-kv"><span class="exp-kv-k">' + expEsc(s.labelEs || s.metric) + '</span>' +
+          '<span class="exp-kv-v">' + expEsc(srv.name) + (srv.price ? ' · $' + Number(srv.price).toLocaleString('es-MX') : '') +
+          (paq ? '<br><span style="font-size:12px;color:var(--exp-ink-3);">Paquete: ' + expEsc(paq.name) + ' · ' + paq.sessionsTotal + ' sesiones · $' + Number(paq.price).toLocaleString('es-MX') + '</span>' : '') +
+          '</span></div>');
+      }
+      el.innerHTML = filas.length
+        ? '<div style="margin-top:10px;padding-top:8px;border-top:1px dashed var(--exp-line,#ddd);"><div class="exp-kv-k" style="font-size:12px;margin-bottom:4px;"><i class="fas fa-lightbulb"></i> Sugerencia para la consulta, según tu catálogo</div>' + filas.join('') + '</div>'
+        : '';
+    }
+    window.expSugerirTratamientos = expSugerirTratamientos;
 
     // Construye el badge HTML de estado de la ficha (reutilizado en Resumen).
     function fichaStatusBadge(intake, record) {
