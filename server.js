@@ -4261,6 +4261,48 @@ app.get('/api/public/card/:id/skin-analyses', async (req, res) => {
   }
 });
 
+// GET /api/public/card/:id/packages — los paquetes de sesiones de la
+// clienta, para su tarjeta pública: "te quedan 4 de 10". Es dinero que ya
+// pagó y que se pierde por olvido si no lo ve. El estado se deriva en vivo
+// (misma regla que src/routes/packages.js): la columna status puede quedar
+// vieja si la vigencia venció sin que nadie tocara la fila. Sin sesión, como
+// el resto de la tarjeta; no-store + noindex.
+app.get('/api/public/card/:id/packages', async (req, res) => {
+  res.set('Cache-Control', 'private, no-store');
+  res.set('X-Robots-Tag', 'noindex, nofollow, noarchive');
+  try {
+    const card = await prisma.card.findUnique({ where: { id: req.params.id }, select: { id: true } });
+    if (!card) return res.status(404).json({ success: false, error: 'Tarjeta no encontrada' });
+    const rows = await prisma.clientPackage.findMany({
+      where: { cardId: card.id, status: { not: 'cancelled' } },
+      include: { package: { select: { name: true, serviceName: true } } },
+      orderBy: { purchasedAt: 'desc' },
+      take: 10,
+    });
+    const ahora = Date.now();
+    const data = rows.map(cp => {
+      const restantes = Math.max(0, cp.sessionsTotal - cp.sessionsUsed);
+      const vencido = cp.expiresAt && new Date(cp.expiresAt).getTime() < ahora;
+      const status = cp.sessionsUsed >= cp.sessionsTotal ? 'exhausted' : (vencido ? 'expired' : 'active');
+      return {
+        id: cp.id,
+        name: (cp.package && cp.package.name) || 'Paquete',
+        serviceName: (cp.package && cp.package.serviceName) || null,
+        sessionsTotal: cp.sessionsTotal,
+        sessionsUsed: cp.sessionsUsed,
+        sessionsRemaining: restantes,
+        status,
+        purchasedAt: cp.purchasedAt,
+        expiresAt: cp.expiresAt,
+      };
+    });
+    res.json({ success: true, data });
+  } catch (e) {
+    console.error('[PACKAGES PUBLIC]', e);
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
 // GET /api/public/card/:id/apple.pkpass — download Apple Wallet pass
 app.get('/api/public/card/:id/apple.pkpass', async (req, res) => {
   try {

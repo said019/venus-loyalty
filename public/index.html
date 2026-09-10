@@ -3226,6 +3226,20 @@
             </div>
           </div>
 
+          <!-- Tus paquetes: sesiones que ya pagó y le faltan por usar. Oculto
+               si no tiene ninguno. -->
+          <div class="animate-fade-in-up" id="packages-block" style="animation-delay: 0.12s; display:none;">
+            <div class="info-card">
+              <h3 class="text-venus-cream font-playfair text-lg font-semibold mb-4 flex items-center gap-2">
+                <svg class="w-5 h-5 text-venus-olive" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7l8-4 8 4M4 7v10l8 4m-8-14l8 4m0 0l8-4m-8 4v10m8-14v10l-8 4"/>
+                </svg>
+                Tus paquetes
+              </h3>
+              <div id="packages-list" class="space-y-3"></div>
+            </div>
+          </div>
+
           <!-- Historial de Citas -->
           <div class="animate-fade-in-up" style="animation-delay: 0.15s;">
             <div class="info-card">
@@ -3487,6 +3501,52 @@
     }
 
     // Load appointments history
+    // Paquetes de sesiones de la clienta: "te quedan 4 de 10". Es lo que ya
+    // pagó; si no lo ve, se le olvida y el paquete se vence. Si no tiene
+    // ninguno, el bloque no aparece.
+    async function loadPackages(cardId) {
+      const block = document.getElementById('packages-block');
+      const list = document.getElementById('packages-list');
+      if (!block || !list || !cardId) return;
+      try {
+        const res = await fetch(`/api/public/card/${encodeURIComponent(cardId)}/packages`);
+        const json = await res.json();
+        const rows = (json && json.success && Array.isArray(json.data)) ? json.data : [];
+        if (!rows.length) { block.style.display = 'none'; return; }
+        const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+        const fechaCorta = (iso) => iso ? new Date(iso).toLocaleDateString('es-MX', { day: 'numeric', month: 'long' }) : '';
+        const orden = { active: 0, exhausted: 1, expired: 2 };
+        rows.sort((a, b) => (orden[a.status] ?? 3) - (orden[b.status] ?? 3));
+        list.innerHTML = rows.map(p => {
+          const total = Number(p.sessionsTotal) || 0, usadas = Number(p.sessionsUsed) || 0, quedan = Number(p.sessionsRemaining) || 0;
+          const pct = total ? Math.min(100, Math.round((usadas / total) * 100)) : 0;
+          const activo = p.status === 'active';
+          let linea, chip = '';
+          if (activo) {
+            linea = `Te quedan <span class="text-venus-cream font-semibold">${quedan}</span> de ${total} sesiones` + (p.expiresAt ? ` · vence el ${esc(fechaCorta(p.expiresAt))}` : '');
+          } else if (p.status === 'exhausted') {
+            linea = `Completado · ${total} de ${total} sesiones`; chip = 'Completado';
+          } else {
+            linea = `Venció el ${esc(fechaCorta(p.expiresAt))} · usaste ${usadas} de ${total}`; chip = 'Vencido';
+          }
+          return `
+            <div class="px-3 py-3 border border-white/10 rounded-xl ${activo ? '' : 'opacity-60'}">
+              <div class="flex items-center justify-between gap-2">
+                <div class="text-venus-cream font-medium text-sm">${esc(p.name)}${p.serviceName ? ` <span class="text-venus-cream/50">· ${esc(p.serviceName)}</span>` : ''}</div>
+                ${chip ? `<span class="text-venus-cream/60 text-xs border border-white/10 rounded-md px-2 py-0.5">${chip}</span>` : ''}
+              </div>
+              <div class="mt-2 h-1.5 rounded-full bg-white/10 overflow-hidden"><div class="h-full bg-venus-olive" style="width:${pct}%"></div></div>
+              <div class="mt-2 text-venus-cream/60 text-xs">${linea}</div>
+              ${activo && quedan > 0 ? `<a href="/agendar.html" class="inline-block mt-2 text-venus-olive text-sm hover:underline">Agendar mi siguiente sesión →</a>` : ''}
+            </div>`;
+        }).join('');
+        block.style.display = '';
+      } catch (e) {
+        console.warn('[paquetes] no se pudieron cargar:', e);
+        block.style.display = 'none';
+      }
+    }
+
     // Análisis de piel de la clienta (skin analyzer). Cada uno enlaza a su
     // reporte público. Si no hay ninguno, el bloque no aparece.
     const SKIN_TYPE_ES = { mid_oil: 'Mixta grasa', mid_dry: 'Mixta seca', oil: 'Grasa', oily: 'Grasa', dry: 'Seca', neutral: 'Normal', normal: 'Normal', mixed: 'Mixta' };
@@ -3641,6 +3701,7 @@
       if (phone) {
         loadAppointments(phone);
         loadSkinAnalyses(cardId);
+        loadPackages(cardId);
       }
 
       // Render stamps with stamp.png images (4x2 grid = 8 stamps)
