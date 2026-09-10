@@ -4237,6 +4237,30 @@ app.get('/api/public/card/:id', async (req, res) => {
   }
 });
 
+// GET /api/public/card/:id/skin-analyses — los análisis de piel de la
+// clienta, para su tarjeta pública. Solo lo mínimo para listar y enlazar al
+// reporte público (/skin-report.html?view=<id>); el detalle sigue saliendo
+// por /api/skin-analysis/public/:id. Sin sesión, como el resto de la tarjeta:
+// el cardId ya es la llave de esa página y los ids son cuid, no adivinables.
+app.get('/api/public/card/:id/skin-analyses', async (req, res) => {
+  res.set('Cache-Control', 'private, no-store');
+  res.set('X-Robots-Tag', 'noindex, nofollow, noarchive');
+  try {
+    const card = await prisma.card.findUnique({ where: { id: req.params.id }, select: { id: true, phone: true } });
+    if (!card) return res.status(404).json({ success: false, error: 'Tarjeta no encontrada' });
+    const rows = await prisma.skinAnalysis.findMany({
+      where: { OR: [{ cardId: card.id }, ...(card.phone ? [{ clientPhone: card.phone }] : [])] },
+      orderBy: { analyzedAt: 'desc' },
+      take: 12,
+      select: { id: true, analyzedAt: true, overallScore: true, skinType: true, ageBiological: true },
+    });
+    res.json({ success: true, data: rows });
+  } catch (e) {
+    console.error('[SKIN PUBLIC LIST]', e);
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
 // GET /api/public/card/:id/apple.pkpass — download Apple Wallet pass
 app.get('/api/public/card/:id/apple.pkpass', async (req, res) => {
   try {

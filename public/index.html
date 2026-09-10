@@ -3241,6 +3241,20 @@
             </div>
           </div>
 
+          <!-- Tu piel: análisis del skin analyzer, con link al reporte. Oculto
+               hasta saber que hay al menos uno. -->
+          <div class="animate-fade-in-up" id="skin-block" style="animation-delay: 0.18s; display:none;">
+            <div class="info-card">
+              <h3 class="text-venus-cream font-playfair text-lg font-semibold mb-4 flex items-center gap-2">
+                <svg class="w-5 h-5 text-venus-olive" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                </svg>
+                Tu piel
+              </h3>
+              <div id="skin-list" class="space-y-3"></div>
+            </div>
+          </div>
+
           <!-- Wallet Buttons -->
           <div class="animate-fade-in-up space-y-3" style="animation-delay: 0.2s;">
             <a id="gwallet" href="#" class="w-full flex items-center justify-center gap-3 px-4 py-3.5 bg-white hover:bg-gray-50 text-gray-900 rounded-xl font-medium transition-colors border border-gray-200 shadow-sm">
@@ -3473,6 +3487,44 @@
     }
 
     // Load appointments history
+    // Análisis de piel de la clienta (skin analyzer). Cada uno enlaza a su
+    // reporte público. Si no hay ninguno, el bloque no aparece.
+    const SKIN_TYPE_ES = { mid_oil: 'Mixta grasa', mid_dry: 'Mixta seca', oil: 'Grasa', oily: 'Grasa', dry: 'Seca', neutral: 'Normal', normal: 'Normal', mixed: 'Mixta' };
+    async function loadSkinAnalyses(cardId) {
+      const block = document.getElementById('skin-block');
+      const list = document.getElementById('skin-list');
+      if (!block || !list || !cardId) return;
+      try {
+        const res = await fetch(`/api/public/card/${encodeURIComponent(cardId)}/skin-analyses`);
+        const json = await res.json();
+        const rows = (json && json.success && Array.isArray(json.data)) ? json.data : [];
+        if (!rows.length) { block.style.display = 'none'; return; }
+        const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+        list.innerHTML = rows.map((a, i) => {
+          const fecha = a.analyzedAt ? new Date(a.analyzedAt).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+          const piel = a.skinType ? (SKIN_TYPE_ES[String(a.skinType).toLowerCase()] || a.skinType) : '';
+          const meta = [piel ? 'Piel ' + piel : '', a.ageBiological != null ? 'Edad de piel ' + a.ageBiological : ''].filter(Boolean).join(' · ');
+          const score = a.overallScore != null ? a.overallScore : '—';
+          return `
+            <a href="/skin-report.html?view=${encodeURIComponent(a.id)}" target="_blank" rel="noopener"
+               class="flex items-center gap-3 px-3 py-3 border border-white/10 hover:bg-white/5 rounded-xl transition-colors">
+              <div class="w-12 h-12 rounded-full bg-venus-olive/20 flex items-center justify-center flex-shrink-0">
+                <span class="text-venus-cream font-semibold">${esc(score)}</span>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="text-venus-cream font-medium text-sm">${i === 0 ? 'Tu último análisis' : 'Análisis'} · ${esc(fecha)}</div>
+                <div class="text-venus-cream/60 text-xs">${esc(meta) || 'Toca para ver tu reporte'}</div>
+              </div>
+              <span class="text-venus-olive text-sm whitespace-nowrap">Ver reporte →</span>
+            </a>`;
+        }).join('');
+        block.style.display = '';
+      } catch (e) {
+        console.warn('[skin] no se pudieron cargar los análisis:', e);
+        block.style.display = 'none';
+      }
+    }
+
     async function loadAppointments(phone) {
       const appointmentsList = document.getElementById('appointments-list');
       
@@ -3588,6 +3640,7 @@
       // Load appointments history
       if (phone) {
         loadAppointments(phone);
+        loadSkinAnalyses(cardId);
       }
 
       // Render stamps with stamp.png images (4x2 grid = 8 stamps)
