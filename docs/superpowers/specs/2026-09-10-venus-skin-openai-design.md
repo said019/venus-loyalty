@@ -1,12 +1,14 @@
 # Venus Skin IA — primera entrega con OpenAI
 
-Fecha: 10 de septiembre de 2026. Estado: diseño para revisión del dueño; no implementado ni desplegado.
+Fecha: 10 de septiembre de 2026. Estado: enfoque general aprobado por el dueño; contenido de la valoración en revisión antes de programar. No implementado ni desplegado.
 
 ## Decisión de producto
 
 Crear una asesora de piel de Venus que combine fotografías, respuestas de la clienta, antecedentes relevantes y protocolos revisados. La primera versión apoya al personal: prepara observaciones, preguntas y propuestas; una persona autorizada revisa el resultado antes de entregarlo. No se presenta como dermatóloga ni emite diagnósticos o mediciones instrumentales a partir de una foto.
 
 El dueño pidió una app propia que sustituya el uso cotidiano de Moji y eligió OpenAI, la tecnología de ChatGPT. El inicio no requiere borrar Moji ni reemplazar de golpe los expedientes y reportes existentes.
+
+La definición funcional de lo que se analiza está en [Qué debe analizar Venus Skin IA](2026-09-10-venus-skin-analysis-catalog.md): calidad de captura, 13 áreas de valoración, contexto, prioridades, cuidados revisables y seguimiento. Ese documento define observaciones y límites; no acredita capacidades ya validadas.
 
 ## Alternativas consideradas
 
@@ -108,4 +110,4 @@ La app original queda instalada como respaldo. No se promete aún reemplazo func
 
 ## Revisión
 
-Autorrevisión documental: alcance separado por entregas, estados de fallo, datos mínimos, límites de hardware y autorización explícitos. Falta la revisión del dueño de este documento para pasar al plan de implementación. Este documento no afirma que el motor, la app final o su precisión ya estén comprobados.
+Autorrevisión documental: alcance separado por entregas, estados de fallo, datos mínimos, límites de hardware y autorización explícitos. El dueño aprobó el enfoque y pidió definir primero qué analiza la asesora. El catálogo funcional adjunto queda para revisión antes de pasar al plan de implementación. Este documento no afirma que el motor, la app final o su precisión ya estén comprobados.
