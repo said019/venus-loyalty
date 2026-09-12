@@ -3226,6 +3226,67 @@
             </div>
           </div>
 
+          <!-- Tu próxima cita: la confirmación que sí ve entre visita y visita.
+               Se llena desde loadAppointments; oculto si no hay cita futura. -->
+          <div class="animate-fade-in-up" id="next-appt-block" style="animation-delay: 0.1s; display:none;">
+            <div class="info-card" style="border:1px solid rgba(140,150,104,.45);">
+              <h3 class="text-venus-cream font-playfair text-lg font-semibold mb-3 flex items-center gap-2">
+                <svg class="w-5 h-5 text-venus-olive" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+                Tu próxima cita
+              </h3>
+              <div id="next-appt"></div>
+            </div>
+          </div>
+
+          <!-- Membresía de masajes: su segunda tarjeta, solo si la tiene activa. -->
+          <div class="animate-fade-in-up" id="massage-block" style="animation-delay: 0.11s; display:none;">
+            <div class="info-card">
+              <h3 class="text-venus-cream font-playfair text-lg font-semibold mb-3 flex items-center gap-2">
+                <svg class="w-5 h-5 text-venus-olive" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                </svg>
+                Tu membresía de masajes
+              </h3>
+              <div id="massage-grid" class="stamps-grid" style="margin-bottom:10px;"></div>
+              <div class="flex items-center justify-between gap-2">
+                <div class="text-venus-cream/70 text-sm" id="massage-info"></div>
+                <div class="flex gap-2">
+                  <a id="massage-gwallet" href="#" target="_blank" rel="noopener" class="text-venus-olive text-sm hover:underline" style="display:none;">Google Wallet</a>
+                  <a id="massage-applewallet" href="#" class="text-venus-olive text-sm hover:underline" style="display:none;">Apple Wallet</a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tus paquetes: sesiones que ya pagó y le faltan por usar. Oculto
+               si no tiene ninguno. -->
+          <div class="animate-fade-in-up" id="packages-block" style="animation-delay: 0.12s; display:none;">
+            <div class="info-card">
+              <h3 class="text-venus-cream font-playfair text-lg font-semibold mb-4 flex items-center gap-2">
+                <svg class="w-5 h-5 text-venus-olive" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7l8-4 8 4M4 7v10l8 4m-8-14l8 4m0 0l8-4m-8 4v10m8-14v10l-8 4"/>
+                </svg>
+                Tus paquetes
+              </h3>
+              <div id="packages-list" class="space-y-3"></div>
+            </div>
+          </div>
+
+          <!-- Tu saldo a favor: dinero que dejó a cuenta. Oculto si es cero. -->
+          <div class="animate-fade-in-up" id="credit-block" style="animation-delay: 0.13s; display:none;">
+            <div class="info-card">
+              <h3 class="text-venus-cream font-playfair text-lg font-semibold mb-3 flex items-center gap-2">
+                <svg class="w-5 h-5 text-venus-olive" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                Tu saldo a favor
+              </h3>
+              <div id="credit-info"></div>
+            </div>
+          </div>
+
           <!-- Historial de Citas -->
           <div class="animate-fade-in-up" style="animation-delay: 0.15s;">
             <div class="info-card">
@@ -3238,6 +3299,20 @@
               <div id="appointments-list" class="space-y-3">
                 <div class="text-venus-cream/50 text-sm text-center py-4">Cargando historial...</div>
               </div>
+            </div>
+          </div>
+
+          <!-- Tu piel: análisis del skin analyzer, con link al reporte. Oculto
+               hasta saber que hay al menos uno. -->
+          <div class="animate-fade-in-up" id="skin-block" style="animation-delay: 0.18s; display:none;">
+            <div class="info-card">
+              <h3 class="text-venus-cream font-playfair text-lg font-semibold mb-4 flex items-center gap-2">
+                <svg class="w-5 h-5 text-venus-olive" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                </svg>
+                Tu piel
+              </h3>
+              <div id="skin-list" class="space-y-3"></div>
             </div>
           </div>
 
@@ -3473,6 +3548,174 @@
     }
 
     // Load appointments history
+    // Fecha local desde "YYYY-MM-DD" (nunca por Date(iso): a las 6pm de
+    // México ya sería el día siguiente).
+    function fechaLocal(ymd) {
+      const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(ymd || ''));
+      return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : null;
+    }
+    const ESC = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+    const WHATSAPP_ESTUDIO = '524271657595';
+
+    // Su próxima cita, destacada. Lo que sostiene el compromiso entre el
+    // WhatsApp del día anterior y la silla: verla cada vez que abre su tarjeta.
+    function renderNextAppointment(appointments, nombre) {
+      const block = document.getElementById('next-appt-block');
+      const el = document.getElementById('next-appt');
+      if (!block || !el) return;
+      const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+      const futuras = (appointments || [])
+        .filter(a => !['completed', 'completada', 'cancelled', 'cancelada', 'no_show'].includes(String(a.status || '').toLowerCase()))
+        .map(a => ({ a, d: fechaLocal(a.date) }))
+        .filter(x => x.d && x.d >= hoy)
+        .sort((x, y) => (x.d - y.d) || String(x.a.time || '').localeCompare(String(y.a.time || '')));
+      if (!futuras.length) { block.style.display = 'none'; return; }
+      const { a, d } = futuras[0];
+      const fecha = d.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' });
+      const confirmada = String(a.status || '').toLowerCase() === 'confirmed';
+      const texto = `Hola, soy ${nombre || ''}. Sobre mi cita del ${fecha}${a.time ? ' a las ' + a.time : ''} (${a.serviceName || 'servicio'}): `;
+      el.innerHTML = `
+        <div class="text-venus-cream font-semibold text-base">${ESC(fecha)}${a.time ? ` · ${ESC(a.time)}` : ''}</div>
+        <div class="text-venus-cream/70 text-sm mt-1">${ESC(a.serviceName || 'Servicio')}${confirmada ? ' <span class="text-venus-olive text-xs border border-white/10 rounded-md px-2 py-0.5 ml-1">Confirmada</span>' : ''}</div>
+        <a href="https://wa.me/${WHATSAPP_ESTUDIO}?text=${encodeURIComponent(texto)}" target="_blank" rel="noopener" class="inline-block mt-3 text-venus-olive text-sm hover:underline">¿Cambio de planes? Escríbenos →</a>`;
+      block.style.display = '';
+    }
+
+    // Saldo a favor: lo que dejó a cuenta y para qué cita, si lo apuntó.
+    async function loadCredits(cardId) {
+      const block = document.getElementById('credit-block');
+      const el = document.getElementById('credit-info');
+      if (!block || !el || !cardId) return;
+      try {
+        const res = await fetch(`/api/public/card/${encodeURIComponent(cardId)}/credits`);
+        const json = await res.json();
+        const data = (json && json.success && json.data) || {};
+        const saldo = Number(data.balance) || 0;
+        if (saldo <= 0) { block.style.display = 'none'; return; }
+        const pesos = (n) => '$' + Number(n).toLocaleString('es-MX', { maximumFractionDigits: 0 });
+        const apartados = (data.earmarks || []).map(e => {
+          const d = fechaLocal(e.date);
+          const f = d ? d.toLocaleDateString('es-MX', { day: 'numeric', month: 'long' }) : '';
+          return `<div class="text-venus-cream/60 text-xs mt-1">${ESC(pesos(e.amount))} apartados para tu ${ESC(e.serviceName || 'cita')}${f ? ' del ' + ESC(f) : ''}</div>`;
+        }).join('');
+        el.innerHTML = `
+          <div class="text-venus-cream font-semibold text-2xl">${ESC(pesos(saldo))}</div>
+          <div class="text-venus-cream/70 text-sm mt-1">Se descuenta solo en tu próxima cita</div>
+          ${apartados}`;
+        block.style.display = '';
+      } catch (e) {
+        console.warn('[saldo] no se pudo cargar:', e);
+        block.style.display = 'none';
+      }
+    }
+
+    // Membresía de masajes: segunda tarjeta de sellos, solo si está activa.
+    function renderMassage(data, cardId) {
+      const block = document.getElementById('massage-block');
+      const grid = document.getElementById('massage-grid');
+      const info = document.getElementById('massage-info');
+      if (!block || !grid || !info) return;
+      if (!data || !data.massageActive) { block.style.display = 'none'; return; }
+      const total = Number(data.massageMax) || 10;
+      const usados = Math.min(total, Number(data.massageStamps) || 0);
+      grid.innerHTML = '';
+      for (let i = 1; i <= total; i++) {
+        const div = document.createElement('div');
+        div.className = i <= usados ? 'stamp active' : 'stamp inactive';
+        if (i <= usados) { const img = document.createElement('img'); img.src = '/assets/stamp.png'; img.alt = `Masaje ${i}`; div.appendChild(img); }
+        grid.appendChild(div);
+      }
+      info.textContent = usados >= total ? `${usados} de ${total} · ¡tu siguiente masaje es gratis!` : `${usados} de ${total} · te faltan ${total - usados}`;
+      const g = document.getElementById('massage-gwallet'), ap = document.getElementById('massage-applewallet');
+      if (g) { if (data.massageWalletUrl) { g.href = data.massageWalletUrl; g.style.display = ''; } else g.style.display = 'none'; }
+      if (ap) { ap.href = `/api/public/card/${encodeURIComponent(cardId)}/massage.pkpass`; ap.style.display = ''; }
+      block.style.display = '';
+    }
+
+    // Paquetes de sesiones de la clienta: "te quedan 4 de 10". Es lo que ya
+    // pagó; si no lo ve, se le olvida y el paquete se vence. Si no tiene
+    // ninguno, el bloque no aparece.
+    async function loadPackages(cardId) {
+      const block = document.getElementById('packages-block');
+      const list = document.getElementById('packages-list');
+      if (!block || !list || !cardId) return;
+      try {
+        const res = await fetch(`/api/public/card/${encodeURIComponent(cardId)}/packages`);
+        const json = await res.json();
+        const rows = (json && json.success && Array.isArray(json.data)) ? json.data : [];
+        if (!rows.length) { block.style.display = 'none'; return; }
+        const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+        const fechaCorta = (iso) => iso ? new Date(iso).toLocaleDateString('es-MX', { day: 'numeric', month: 'long' }) : '';
+        const orden = { active: 0, exhausted: 1, expired: 2 };
+        rows.sort((a, b) => (orden[a.status] ?? 3) - (orden[b.status] ?? 3));
+        list.innerHTML = rows.map(p => {
+          const total = Number(p.sessionsTotal) || 0, usadas = Number(p.sessionsUsed) || 0, quedan = Number(p.sessionsRemaining) || 0;
+          const pct = total ? Math.min(100, Math.round((usadas / total) * 100)) : 0;
+          const activo = p.status === 'active';
+          let linea, chip = '';
+          if (activo) {
+            linea = `Te quedan <span class="text-venus-cream font-semibold">${quedan}</span> de ${total} sesiones` + (p.expiresAt ? ` · vence el ${esc(fechaCorta(p.expiresAt))}` : '');
+          } else if (p.status === 'exhausted') {
+            linea = `Completado · ${total} de ${total} sesiones`; chip = 'Completado';
+          } else {
+            linea = `Venció el ${esc(fechaCorta(p.expiresAt))} · usaste ${usadas} de ${total}`; chip = 'Vencido';
+          }
+          return `
+            <div class="px-3 py-3 border border-white/10 rounded-xl ${activo ? '' : 'opacity-60'}">
+              <div class="flex items-center justify-between gap-2">
+                <div class="text-venus-cream font-medium text-sm">${esc(p.name)}${p.serviceName ? ` <span class="text-venus-cream/50">· ${esc(p.serviceName)}</span>` : ''}</div>
+                ${chip ? `<span class="text-venus-cream/60 text-xs border border-white/10 rounded-md px-2 py-0.5">${chip}</span>` : ''}
+              </div>
+              <div class="mt-2 h-1.5 rounded-full bg-white/10 overflow-hidden"><div class="h-full bg-venus-olive" style="width:${pct}%"></div></div>
+              <div class="mt-2 text-venus-cream/60 text-xs">${linea}</div>
+              ${activo && quedan > 0 ? `<a href="/agendar.html" class="inline-block mt-2 text-venus-olive text-sm hover:underline">Agendar mi siguiente sesión →</a>` : ''}
+            </div>`;
+        }).join('');
+        block.style.display = '';
+      } catch (e) {
+        console.warn('[paquetes] no se pudieron cargar:', e);
+        block.style.display = 'none';
+      }
+    }
+
+    // Análisis de piel de la clienta (skin analyzer). Cada uno enlaza a su
+    // reporte público. Si no hay ninguno, el bloque no aparece.
+    const SKIN_TYPE_ES = { mid_oil: 'Mixta grasa', mid_dry: 'Mixta seca', oil: 'Grasa', oily: 'Grasa', dry: 'Seca', neutral: 'Normal', normal: 'Normal', mixed: 'Mixta' };
+    async function loadSkinAnalyses(cardId) {
+      const block = document.getElementById('skin-block');
+      const list = document.getElementById('skin-list');
+      if (!block || !list || !cardId) return;
+      try {
+        const res = await fetch(`/api/public/card/${encodeURIComponent(cardId)}/skin-analyses`);
+        const json = await res.json();
+        const rows = (json && json.success && Array.isArray(json.data)) ? json.data : [];
+        if (!rows.length) { block.style.display = 'none'; return; }
+        const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+        list.innerHTML = rows.map((a, i) => {
+          const fecha = a.analyzedAt ? new Date(a.analyzedAt).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+          const piel = a.skinType ? (SKIN_TYPE_ES[String(a.skinType).toLowerCase()] || a.skinType) : '';
+          const meta = [piel ? 'Piel ' + piel : '', a.ageBiological != null ? 'Edad de piel ' + a.ageBiological : ''].filter(Boolean).join(' · ');
+          const score = a.overallScore != null ? a.overallScore : '—';
+          return `
+            <a href="/skin-report.html?view=${encodeURIComponent(a.id)}" target="_blank" rel="noopener"
+               class="flex items-center gap-3 px-3 py-3 border border-white/10 hover:bg-white/5 rounded-xl transition-colors">
+              <div class="w-12 h-12 rounded-full bg-venus-olive/20 flex items-center justify-center flex-shrink-0">
+                <span class="text-venus-cream font-semibold">${esc(score)}</span>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="text-venus-cream font-medium text-sm">${i === 0 ? 'Tu último análisis' : 'Análisis'} · ${esc(fecha)}</div>
+                <div class="text-venus-cream/60 text-xs">${esc(meta) || 'Toca para ver tu reporte'}</div>
+              </div>
+              <span class="text-venus-olive text-sm whitespace-nowrap">Ver reporte →</span>
+            </a>`;
+        }).join('');
+        block.style.display = '';
+      } catch (e) {
+        console.warn('[skin] no se pudieron cargar los análisis:', e);
+        block.style.display = 'none';
+      }
+    }
+
     async function loadAppointments(phone) {
       const appointmentsList = document.getElementById('appointments-list');
       
@@ -3493,13 +3736,17 @@
           return;
         }
 
+        // Con la lista cruda: la const `appointments` de abajo aún no existe aquí.
+        renderNextAppointment(data.appointments, (document.getElementById('profile-name') || {}).textContent);
+
         // Sort by date descending and take last 5
         const appointments = data.appointments
           .sort((a, b) => new Date(b.date || b.createdAt) - new Date(a.date || a.createdAt))
           .slice(0, 5);
 
         appointmentsList.innerHTML = appointments.map(apt => {
-          const date = new Date(apt.date || apt.createdAt);
+          // fechaLocal: "2026-09-17" por Date() es UTC y en México cae el 16.
+          const date = fechaLocal(apt.date) || new Date(apt.createdAt);
           const formattedDate = date.toLocaleDateString('es-MX', { 
             weekday: 'short', 
             day: 'numeric', 
@@ -3588,6 +3835,10 @@
       // Load appointments history
       if (phone) {
         loadAppointments(phone);
+        loadSkinAnalyses(cardId);
+        loadPackages(cardId);
+        loadCredits(cardId);
+        renderMassage(data, cardId);
       }
 
       // Render stamps with stamp.png images (4x2 grid = 8 stamps)

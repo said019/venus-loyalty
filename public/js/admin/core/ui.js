@@ -96,11 +96,23 @@
           if (typeof loadBusinessConfig === 'function') loadBusinessConfig();
           if (typeof loadNotificationsHistory === 'function') loadNotificationsHistory();
         } else if (tabName === 'caja') {
-          if (typeof loadCajaData === 'function') loadCajaData();
+          // Los nombres reales viven en el <script> inline de admin.html.
+          // Aquí decía loadCajaData()/loadReports()/loadNotificationsPanel(),
+          // que no existen en ninguna parte: el guard `typeof` los silenciaba
+          // y abrir /admin/caja o /admin/ventas escribiendo la URL dejaba la
+          // vista vacía para siempre, sin un solo error en consola. Al hacer
+          // clic en la pestaña sí cargaba (ese camino es otro listener), y por
+          // eso el bug pasó desapercibido. Lo vigila tests/admin-tab-loaders.
+          if (typeof cargarCaja === 'function') cargarCaja();
         } else if (tabName === 'reports') {
-          if (typeof loadReports === 'function') loadReports();
+          // initReportsTab solo llena los dos campos de fecha; quien de
+          // verdad trae los datos es cargarReportesMes. Se llaman los mismos
+          // tres que dispara el clic en la pestaña, en el mismo orden.
+          if (typeof initReportsTab === 'function') initReportsTab();
+          if (typeof initReportMonthTabs === 'function') initReportMonthTabs();
+          if (typeof cargarReportesMes === 'function') cargarReportesMes();
         } else if (tabName === 'notifications') {
-          if (typeof loadNotificationsPanel === 'function') loadNotificationsPanel();
+          if (typeof loadNotificationsHistory === 'function') loadNotificationsHistory();
         }
       } catch(e) {
         console.warn('Error cargando datos del tab:', tabName, e);

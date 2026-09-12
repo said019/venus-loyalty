@@ -94,6 +94,7 @@ import { getEvolutionClient } from './src/services/whatsapp-evolution.js';
 import clientRecordsRouter from './src/routes/clientRecords.js';
 import expedientesRouter from './src/routes/expedientes.js';
 import packagesRouter from './src/routes/packages.js';
+import creditsRouter, { aplicarCreditoEnCobro, registrarApartado } from './src/routes/credits.js';
 
 // NOTA (11 jul 2026, decisión del negocio): la ficha clínica NO se envía
 // automáticamente al agendar. Se envía SOLO manual desde el expediente
@@ -258,6 +259,165 @@ async function fsUpdateCard(cardId, data) {
   );
   const snap = await firestore.collection(COL_CARDS).doc(cardId).get();
   return snap.data();
+}
+
+// Una cita COBRADA es una visita real: antes lastVisit solo se movía al
+// poner sello o canjear, así que una clienta que viene cada mes sin sello
+// (Sarai, caso del 2-sep-2026) aparecía como "dormida" desde marzo.
+async function tocarUltimaVisita(clientPhone) {
+  if (!clientPhone) return;
+  try {
+    const r = await prisma.card.updateMany({
+      where: { phone: String(clientPhone) },
+      data: { lastVisit: new Date() },
+    });
+    if (r.count) console.log(`[VISITA] lastVisit actualizada para ${clientPhone}`);
+  } catch (e) { console.warn('[VISITA] no se pudo tocar lastVisit:', e.message); }
+}
+
+// ── Apartado (saldo a favor) en el cobro de una cita ─────────────────────
+// Se descuenta el saldo ANTES de cerrar el cobro, a propósito: si el cobro
+// tronara después, `deshacerApartado` revierte el movimiento. Un saldo
+// gastado de más se ve en la ficha y se deshace con un botón; un ingreso
+// perdido en silencio, no.
+async function cobrarConApartado(appointment, req) {
+  const pedido = parseFloat(req.body.creditApplied) || 0;
+  if (pedido <= 0) return null;
+  const r = await aplicarCreditoEnCobro({
+    cardId: appointment.cardId,
+    clientPhone: appointment.clientPhone,
+    amount: pedido,
+    appointmentId: appointment.id,
+    by: (req.admin && (req.admin.email || req.admin.role)) || 'admin',
+    note: `Cobro de ${appointment.serviceName || 'cita'}`,
+  });
+  console.log(`[APARTADO] Aplicados $${pedido} a la cita ${appointment.id} → saldo $${r.balance}`);
+  return { movementId: r.movement.id, monto: pedido };
+}
+
+// Traduce los errores del apartado a algo que la recepcionista entienda.
+function mensajeApartado(e) {
+  if (e && e.code === 'P2002') return 'Esta cita ya tenía saldo apartado aplicado';
+  return {
+    saldo_insuficiente: 'La clienta ya no tiene ese saldo apartado — vuelve a abrir el cobro',
+    clienta_no_encontrada: 'No encontré la tarjeta de la clienta para descontar el apartado',
+    monto_invalido: 'El monto del apartado no es válido',
+  }[e && e.message] || null;
+}
+
+// El anticipo de $100 de /agendar dejaba de existir después de validarlo:
+// se MOSTRABA al cobrar ("Anticipo $100 · confirmado") pero nadie lo
+// restaba, así que había que acordarse a mano. Ahora, al validar el
+// comprobante, ese dinero entra como saldo a favor de la clienta y el día
+// de la cita se descuenta solo.
+//
+// Idempotente por sourceRef ("booking:<id>"): validar dos veces el mismo
+// comprobante no puede acreditar $200.
+async function acreditarAnticipoWeb(requestId, quien) {
+  try {
+    const row = await prisma.setting.findUnique({ where: { key: `booking_extra_${requestId}` } });
+    const extra = (row && typeof row.value === 'object') ? row.value : null;
+    if (!extra || extra.depositStatus !== 'confirmed') return;
+
+    const monto = parseFloat(extra.depositAmount) || 100;
+    if (monto <= 0) return;
+
+    const doc = await firestore.collection('booking_requests').doc(requestId).get();
+    if (!doc.exists) return;
+    const d = doc.data();
+
+    // La clienta puede ser nueva y no tener tarjeta todavía; en ese caso el
+    // enganche se reintenta al agendar (segunda llamada, misma sourceRef).
+    let card = null;
+    if (d.cardId) card = await prisma.card.findUnique({ where: { id: d.cardId } });
+    if (!card && d.clientPhone) card = await prisma.card.findFirst({ where: { phone: String(d.clientPhone) } });
+    if (!card) {
+      console.warn(`[ANTICIPO] Sin tarjeta para ${d.clientName || requestId}: no se pudo acreditar todavía`);
+      return;
+    }
+
+    await registrarApartado({
+      cardId: card.id,
+      amount: monto,
+      paymentMethod: 'transferencia',
+      note: `Anticipo de /agendar — ${d.serviceName || 'cita'}`,
+      sourceRef: `booking:${requestId}`,
+      by: quien || 'admin',
+    });
+    console.log(`[ANTICIPO] $${monto} acreditados a ${card.name} como saldo a favor`);
+  } catch (e) {
+    if (e && e.code === 'P2002') return; // ya estaba acreditado
+    console.warn('[ANTICIPO] no se pudo acreditar:', e.message);
+  }
+}
+
+// Apartado dejado AL COBRAR para la próxima cita ("pago el facial y te dejo
+// $300 para el láser"). Corre DESPUÉS de cerrar el cobro y nunca lo deshace:
+// deshacer un cobro ya guardado abriría la puerta a cobrar dos veces. Si
+// falla, la respuesta lleva depositError y el modal avisa que se registre
+// a mano. Idempotente por sourceRef: un doble toque no deja dos apartados.
+async function cardDeCita(appointment) {
+  if (appointment.cardId) {
+    const c = await prisma.card.findUnique({ where: { id: appointment.cardId } });
+    if (c) return c;
+  }
+  const digitos = String(appointment.clientPhone || '').replace(/\D/g, '');
+  if (digitos.length < 10) return null;
+  // En esta base conviven 10 y 12 dígitos (con y sin 52): comparar por cola.
+  return prisma.card.findFirst({ where: { phone: { endsWith: digitos.slice(-10) } } });
+}
+
+async function apartarAlCobrar(appointment, req) {
+  const nd = req.body && req.body.newDeposit;
+  const monto = nd ? parseFloat(nd.amount) : 0;
+  if (!(monto > 0)) return null;
+  try {
+    const card = await cardDeCita(appointment);
+    if (!card) throw new Error('clienta_no_encontrada');
+    const METODOS = ['efectivo', 'tarjeta', 'transferencia'];
+    const metodo = METODOS.includes(nd.paymentMethod) ? nd.paymentMethod : req.body.paymentMethod;
+    const r = await registrarApartado({
+      cardId: card.id,
+      amount: monto,
+      paymentMethod: metodo,
+      note: `Dejado al cobrar ${appointment.serviceName || 'cita'}`,
+      sourceRef: `appt-deposit:${appointment.id}`,
+      by: (req.admin && (req.admin.email || req.admin.role)) || 'admin',
+      appointmentId: nd.appointmentId || undefined,
+    });
+    console.log(`[APARTADO] $${monto} dejados al cobrar la cita ${appointment.id} → saldo $${r.balance}`);
+    return { ok: true, amount: monto, balance: r.balance };
+  } catch (e) {
+    if (e && e.code === 'P2002') return { ok: true, amount: monto, repetido: true };
+    const msg = {
+      clienta_no_encontrada: 'no encontré la tarjeta de la clienta',
+      cita_no_encontrada: 'la cita elegida ya no existe',
+      cita_de_otra_clienta: 'la cita elegida es de otra clienta',
+      metodo_invalido: 'método de pago inválido',
+      monto_invalido: 'monto inválido',
+    }[e && e.message] || (e && e.message) || 'error';
+    console.warn(`[APARTADO] no se pudo apartar al cobrar la cita ${appointment.id}: ${msg}`);
+    return { ok: false, error: msg };
+  }
+}
+
+// Arma la respuesta del cobro con el resultado del apartado nuevo (si hubo).
+function respuestaCobro(apartadoNuevo) {
+  const out = { success: true };
+  if (apartadoNuevo && apartadoNuevo.ok) out.deposit = { amount: apartadoNuevo.amount, balance: apartadoNuevo.balance };
+  if (apartadoNuevo && !apartadoNuevo.ok) out.depositError = apartadoNuevo.error;
+  return out;
+}
+
+async function deshacerApartado(aplicado) {
+  if (!aplicado) return;
+  try {
+    await prisma.clientCredit.update({
+      where: { id: aplicado.movementId },
+      data: { revertedAt: new Date(), revertedBy: 'sistema (cobro fallido)', sourceRef: null },
+    });
+    console.warn(`[APARTADO] Cobro fallido: devueltos $${aplicado.monto} al saldo`);
+  } catch (e) { console.error('[APARTADO] no se pudo devolver el saldo:', e.message); }
 }
 
 async function fsUpdateCardStamps(cardId, stamps) {
@@ -641,6 +801,59 @@ app.use('/api/skin-advisor', cookieParser(), createSkinAdvisorRouter({
   expectedOrigin: process.env.SKIN_ADVISOR_ORIGIN || '',
 }));
 // ✅ 1. BODY PARSERS PRIMERO (antes de cualquier middleware que use req.body)
+// ── Prueba de cámara del Moji (diagnóstico) ──────────────────────────────
+// La página pública /moji-test.html corre en el navegador del skin analyzer
+// y manda aquí lo que ve: cámaras, resolución real y máxima, y una foto
+// chica de cada una. Va ANTES del express.json() global porque ese trae el
+// tope de 100kb y la miniatura no cabe. Token fijo en la URL para que no lo
+// escriba cualquiera; se guarda como Setting y se lee con el mismo token.
+const MOJI_TEST_TOKEN = '61508435890a6bf0159dfe66';
+app.post('/api/public/moji-test', express.json({ limit: '3mb' }), async (req, res) => {
+  if (req.query.t !== MOJI_TEST_TOKEN) return res.status(403).json({ success: false, error: 'token' });
+  try {
+    const previo = await prisma.setting.findUnique({ where: { key: 'moji-camera-test' } });
+    const pings = (previo && previo.value && previo.value.pings) || [];
+    const value = { ...req.body, pings, recibido: new Date().toISOString(), ip: req.ip };
+    await prisma.setting.upsert({ where: { key: 'moji-camera-test' }, create: { key: 'moji-camera-test', value }, update: { value } });
+    console.log(`[MOJI-TEST] reporte recibido: ${(value.camaras || []).length} cámara(s), ${(value.fotos || []).length} foto(s), ${(value.errores || []).length} error(es)`);
+    res.json({ success: true });
+  } catch (e) { console.error('[MOJI-TEST]', e); res.status(500).json({ success: false, error: e.message }); }
+});
+app.get('/api/public/moji-test', async (req, res) => {
+  if (req.query.t !== MOJI_TEST_TOKEN) return res.status(403).json({ success: false, error: 'token' });
+  try {
+    const row = await prisma.setting.findUnique({ where: { key: 'moji-camera-test' } });
+    res.json({ success: true, data: row ? row.value : null });
+  } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+// Latido de la página: un GET que manda un script ES5 al cargar, para saber
+// si el Moji siquiera LLEGÓ a la página (y con qué navegador) aunque el
+// script principal no compile. Si trae `e`, es el error de ese script.
+app.get('/api/public/moji-ping', async (req, res) => {
+  if (req.query.t !== MOJI_TEST_TOKEN) return res.status(403).end();
+  try {
+    const row = await prisma.setting.findUnique({ where: { key: 'moji-camera-test' } });
+    const prev = (row && row.value && typeof row.value === 'object') ? row.value : {};
+    const ping = {
+      cuando: new Date().toISOString(),
+      ua: String(req.query.ua || req.headers['user-agent'] || '').slice(0, 300),
+      error: req.query.e ? String(req.query.e).slice(0, 300) : undefined,
+      ip: req.ip,
+    };
+    const pings = [...(prev.pings || []).slice(-9), ping];
+    const value = { ...prev, pings };
+    await prisma.setting.upsert({ where: { key: 'moji-camera-test' }, create: { key: 'moji-camera-test', value }, update: { value } });
+    console.log(`[MOJI-PING] ${ping.ua}${ping.error ? ' · ERROR: ' + ping.error : ''}`);
+    res.set('Cache-Control', 'no-store').status(204).end();
+  } catch (e) { console.error('[MOJI-PING]', e); res.status(500).end(); }
+});
+// Atajo tecleable: el link real trae un token largo y en el aparato hay que
+// escribirlo a mano en pantalla. Redirige SIEMPRE al https absoluto — si el
+// navegador entra por http, sin contexto seguro no hay cámara.
+// Atajo tecleable para la captura de fotos desde el skin analyzer.
+app.get('/captura', (_req, res) => res.redirect(302, '/captura.html'));
+app.get('/cam', (_req, res) => res.redirect(302, `https://venuscosmetologia.com.mx/moji-test.html?t=${MOJI_TEST_TOKEN}`));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -682,7 +895,23 @@ app.get(['/mi-tarjeta', '/tarjeta', '/unete'], (_req, res) => {
 
 // { index:false } evita que express.static intercepte / antes de los
 // handlers de arriba.
-app.use(express.static("public", { index: false }));
+// Caché de estáticos: el servidor vive en Europa y cada archivo costaba un
+// viaje (~400ms) en CADA visita porque todo salía con max-age=0. HTML siempre
+// fresco (los deploys se ven al instante); css/js con revalidación en fondo
+// (la visita repetida pinta con lo cacheado y se actualiza sola); imágenes y
+// fuentes, una semana.
+app.use(express.static("public", {
+  index: false,
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-cache');
+    } else if (/\.(png|jpe?g|webp|svg|ico|woff2?)$/i.test(filePath)) {
+      res.setHeader('Cache-Control', 'public, max-age=604800, stale-while-revalidate=2592000');
+    } else if (/\.(css|js)$/i.test(filePath)) {
+      res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=86400');
+    }
+  },
+}));
 app.get("/api/qr", async (req, res) => {
   try {
     const text = String(req.query.text || "");
@@ -721,6 +950,7 @@ app.use('/api/client-records', clientRecordsRouter);
 // 📋 Expedientes digitales (fichas, consentimientos, diagnóstico, láser, documentos Drive)
 app.use('/api/expedientes', expedientesRouter);
 app.use('/api/packages', packagesRouter);
+app.use('/api/credits', creditsRouter);
 
 // ☕ Venus The Coffee Bar - POS
 app.use('/api/pos', coffeePosRouter);
@@ -1370,14 +1600,31 @@ app.post('/api/appointments/:id/payment', adminAuth, async (req, res) => {
     };
 
     console.log('[PAYMENT] Guardando pago para cita', id, ':', paymentData);
+    tocarUltimaVisita(appointment.clientPhone);
+
+    // Apartado: saldo a favor que la clienta dejó antes (ver cobrarConApartado).
+    let apartadoAplicado = null;
+    try {
+      apartadoAplicado = await cobrarConApartado(appointment, req);
+    } catch (e) {
+      const msg = mensajeApartado(e);
+      if (msg) return res.status(409).json({ success: false, error: msg });
+      throw e;
+    }
 
     // Actualizar cita a completada con datos de pago
-    await AppointmentsRepo.complete(id, {
-      total: parseFloat(totalAmount) || 0,
-      method: paymentMethod,
-      discount: discountAmount ? parseFloat(discountAmount) : null,
-      products: productsSold || []
-    });
+    try {
+      await AppointmentsRepo.complete(id, {
+        total: parseFloat(totalAmount) || 0,
+        method: paymentMethod,
+        discount: discountAmount ? parseFloat(discountAmount) : null,
+        products: productsSold || [],
+        creditApplied: apartadoAplicado ? apartadoAplicado.monto : undefined
+      });
+    } catch (e) {
+      await deshacerApartado(apartadoAplicado);
+      throw e;
+    }
 
     // Descontar stock de productos vendidos usando Prisma
     if (productsSold && productsSold.length > 0) {
@@ -1410,7 +1657,8 @@ app.post('/api/appointments/:id/payment', adminAuth, async (req, res) => {
       date: new Date()
     });
 
-    res.json({ success: true });
+    const apartadoNuevo = await apartarAlCobrar(appointment, req);
+    res.json(respuestaCobro(apartadoNuevo));
   } catch (error) {
     console.error('Error saving payment:', error);
     res.json({ success: false, error: error.message });
@@ -1861,6 +2109,7 @@ app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
 
       const appointment = await AppointmentsRepo.findById(id);
       if (!appointment) return res.status(404).json({ success: false, error: 'Cita no encontrada' });
+      tocarUltimaVisita(appointment.clientPhone);
 
       // Cambio de servicio al cobrar (misma regla que POST /payment): la cita
       // y el reporte deben quedar con el servicio que de verdad se hizo.
@@ -1874,13 +2123,30 @@ app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
         appointment.serviceName = nuevoServicio;
       }
 
+      // Apartado: la clienta ya había dejado dinero a cuenta. Se descuenta
+      // antes de cerrar el cobro (ver cobrarConApartado).
+      let apartadoAplicado = null;
+      try {
+        apartadoAplicado = await cobrarConApartado(appointment, req);
+      } catch (e) {
+        const msg = mensajeApartado(e);
+        if (msg) return res.status(409).json({ success: false, error: msg });
+        throw e;
+      }
+
       // Actualizar cita a completada
-      await AppointmentsRepo.complete(id, {
-        total: parseFloat(totalPaid) || 0,
-        method: paymentMethod,
-        discount: discount ? parseFloat(discount) : null,
-        products: productsSold || [] // productsSold tiene quantity, name, etc.
-      });
+      try {
+        await AppointmentsRepo.complete(id, {
+          total: parseFloat(totalPaid) || 0,
+          method: paymentMethod,
+          discount: discount ? parseFloat(discount) : null,
+          products: productsSold || [], // productsSold tiene quantity, name, etc.
+          creditApplied: apartadoAplicado ? apartadoAplicado.monto : undefined
+        });
+      } catch (e) {
+        await deshacerApartado(apartadoAplicado);
+        throw e;
+      }
 
       // Calcular montos para reporte de ventas
       const productsTotal = (productsSold || []).reduce((sum, p) => sum + (p.subtotal || 0), 0);
@@ -1911,7 +2177,9 @@ app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
         // No fallamos el request si falla el registro de venta auxiliar
       }
 
-      return res.json({ success: true });
+      // Apartado dejado hoy para la próxima cita (ver apartarAlCobrar).
+      const apartadoNuevo = await apartarAlCobrar(appointment, req);
+      return res.json(respuestaCobro(apartadoNuevo));
     }
 
     const { serviceId, serviceName, date, time, durationMinutes } = req.body;
@@ -3989,6 +4257,108 @@ app.get('/api/public/card/:id', async (req, res) => {
   }
 });
 
+// GET /api/public/card/:id/skin-analyses — los análisis de piel de la
+// clienta, para su tarjeta pública. Solo lo mínimo para listar y enlazar al
+// reporte público (/skin-report.html?view=<id>); el detalle sigue saliendo
+// por /api/skin-analysis/public/:id. Sin sesión, como el resto de la tarjeta:
+// el cardId ya es la llave de esa página y los ids son cuid, no adivinables.
+app.get('/api/public/card/:id/skin-analyses', async (req, res) => {
+  res.set('Cache-Control', 'private, no-store');
+  res.set('X-Robots-Tag', 'noindex, nofollow, noarchive');
+  try {
+    const card = await prisma.card.findUnique({ where: { id: req.params.id }, select: { id: true, phone: true } });
+    if (!card) return res.status(404).json({ success: false, error: 'Tarjeta no encontrada' });
+    const rows = await prisma.skinAnalysis.findMany({
+      where: { OR: [{ cardId: card.id }, ...(card.phone ? [{ clientPhone: card.phone }] : [])] },
+      orderBy: { analyzedAt: 'desc' },
+      take: 12,
+      select: { id: true, analyzedAt: true, overallScore: true, skinType: true, ageBiological: true },
+    });
+    res.json({ success: true, data: rows });
+  } catch (e) {
+    console.error('[SKIN PUBLIC LIST]', e);
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// GET /api/public/card/:id/packages — los paquetes de sesiones de la
+// clienta, para su tarjeta pública: "te quedan 4 de 10". Es dinero que ya
+// pagó y que se pierde por olvido si no lo ve. El estado se deriva en vivo
+// (misma regla que src/routes/packages.js): la columna status puede quedar
+// vieja si la vigencia venció sin que nadie tocara la fila. Sin sesión, como
+// el resto de la tarjeta; no-store + noindex.
+app.get('/api/public/card/:id/packages', async (req, res) => {
+  res.set('Cache-Control', 'private, no-store');
+  res.set('X-Robots-Tag', 'noindex, nofollow, noarchive');
+  try {
+    const card = await prisma.card.findUnique({ where: { id: req.params.id }, select: { id: true } });
+    if (!card) return res.status(404).json({ success: false, error: 'Tarjeta no encontrada' });
+    const rows = await prisma.clientPackage.findMany({
+      where: { cardId: card.id, status: { not: 'cancelled' } },
+      include: { package: { select: { name: true, serviceName: true } } },
+      orderBy: { purchasedAt: 'desc' },
+      take: 10,
+    });
+    const ahora = Date.now();
+    const data = rows.map(cp => {
+      const restantes = Math.max(0, cp.sessionsTotal - cp.sessionsUsed);
+      const vencido = cp.expiresAt && new Date(cp.expiresAt).getTime() < ahora;
+      const status = cp.sessionsUsed >= cp.sessionsTotal ? 'exhausted' : (vencido ? 'expired' : 'active');
+      return {
+        id: cp.id,
+        name: (cp.package && cp.package.name) || 'Paquete',
+        serviceName: (cp.package && cp.package.serviceName) || null,
+        sessionsTotal: cp.sessionsTotal,
+        sessionsUsed: cp.sessionsUsed,
+        sessionsRemaining: restantes,
+        status,
+        purchasedAt: cp.purchasedAt,
+        expiresAt: cp.expiresAt,
+      };
+    });
+    res.json({ success: true, data });
+  } catch (e) {
+    console.error('[PACKAGES PUBLIC]', e);
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// GET /api/public/card/:id/credits — saldo a favor de la clienta para su
+// tarjeta: cuánto tiene y, si dejó anticipo apuntando a una cita, para
+// cuál. Solo el saldo y los anticipos ligados a citas vivas; nada de la
+// bitácora. Sin sesión, como el resto de la tarjeta; no-store + noindex.
+app.get('/api/public/card/:id/credits', async (req, res) => {
+  res.set('Cache-Control', 'private, no-store');
+  res.set('X-Robots-Tag', 'noindex, nofollow, noarchive');
+  try {
+    const card = await prisma.card.findUnique({ where: { id: req.params.id }, select: { id: true } });
+    if (!card) return res.status(404).json({ success: false, error: 'Tarjeta no encontrada' });
+    const agg = await prisma.clientCredit.aggregate({ where: { cardId: card.id, revertedAt: null }, _sum: { amount: true } });
+    const balance = Math.round((Number(agg._sum.amount) || 0) * 100) / 100;
+    let earmarks = [];
+    if (balance > 0) {
+      const depositos = await prisma.clientCredit.findMany({
+        where: { cardId: card.id, revertedAt: null, type: 'deposito', appointmentId: { not: null } },
+        select: { amount: true, appointmentId: true },
+      });
+      if (depositos.length) {
+        const citas = await prisma.appointment.findMany({
+          where: { id: { in: [...new Set(depositos.map(d => d.appointmentId))] }, status: { notIn: ['completed', 'cancelled', 'no_show'] } },
+          select: { id: true, date: true, time: true, serviceName: true },
+        });
+        const porId = new Map(citas.map(c => [c.id, c]));
+        earmarks = depositos
+          .filter(d => porId.has(d.appointmentId))
+          .map(d => ({ amount: Math.min(Number(d.amount) || 0, balance), ...porId.get(d.appointmentId) }));
+      }
+    }
+    res.json({ success: true, data: { balance, earmarks } });
+  } catch (e) {
+    console.error('[CREDITS PUBLIC]', e);
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
 // GET /api/public/card/:id/apple.pkpass — download Apple Wallet pass
 app.get('/api/public/card/:id/apple.pkpass', async (req, res) => {
   try {
@@ -4133,7 +4503,7 @@ app.post("/api/admin/massage-stamp", adminAuth, async (req, res) => {
 
     await prisma.card.update({
       where: { id: cardId },
-      data: { massageStamps: newStamps }
+      data: { massageStamps: newStamps, lastVisit: new Date() }
     });
 
     await fsAddEvent(cardId, "MASSAGE_STAMP", { by: "admin", massageStamps: newStamps });
@@ -4976,6 +5346,13 @@ app.patch('/api/booking-requests/:id/deposit', adminAuth, async (req, res) => {
     extra.depositReviewedBy = req.admin?.email || 'admin';
     if (action === 'reject' && reason) extra.depositRejectReason = reason;
     await prisma.setting.upsert({ where: { key }, create: { key, value: extra }, update: { value: extra } });
+
+    // Validado el comprobante, el dinero se vuelve saldo a favor de la
+    // clienta: el día de la cita se descuenta solo.
+    if (action === 'confirm') {
+      await acreditarAnticipoWeb(req.params.id, req.admin?.email || 'admin');
+    }
+
     res.json({ success: true, depositStatus: extra.depositStatus });
   } catch (error) {
     console.error('[deposit review]', error);
@@ -4993,6 +5370,12 @@ app.post('/api/booking-requests/:id/booked', adminAuth, async (req, res) => {
     }
 
     const requestData = requestDoc.data();
+
+    // Segundo intento de acreditar el anticipo: si al validar el comprobante
+    // la clienta todavía no tenía tarjeta, para ahora ya la tiene. La misma
+    // sourceRef impide que se acredite dos veces.
+    acreditarAnticipoWeb(req.params.id, req.admin?.email || 'admin')
+      .catch(e => console.warn('[ANTICIPO] reintento falló:', e.message));
 
     // Construir startDateTime y endDateTime con timezone de México
     const startDateTime = `${requestData.date}T${requestData.time}:00-06:00`;

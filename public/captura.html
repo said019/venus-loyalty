@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Captura · Venus</title>
+<!--
+  Captura de fotos de seguimiento desde el skin analyzer (Moji A3):
+  RK3399, Android 8.1, Chrome 70. La cámara del análisis se ve por
+  getUserMedia; las luces NO se pueden tocar desde web. La foto cae en el
+  expediente de la clienta (Fotos → antes/después/progreso).
+
+  Chrome 70: NADA de `?.` ni `??` ni replaceAll — una sola rompe todo el
+  script sin error visible. async/await, template literals y fetch sí hay.
+-->
+<style>
+  :root{--olivo:#6b7a4a;--crema:#f6f2ea;--tinta:#2b2b2b;--linea:#d9d2c3;--rojo:#9b3b3b;--verde:#3d6b3d}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--crema);color:var(--tinta);font:18px/1.4 -apple-system,system-ui,Roboto,sans-serif}
+  main{max-width:720px;margin:0 auto;padding:18px 16px 40px}
+  h1{font:600 30px/1.1 Georgia,serif;margin:0 0 2px}
+  .sub{color:#6d6d6d;font-size:15px;margin:0 0 14px}
+  button,.btn{min-height:60px;padding:0 20px;border:1px solid var(--linea);border-radius:14px;background:#fff;color:var(--tinta);font-size:19px;cursor:pointer}
+  .primario{background:var(--olivo);color:#fff;border-color:var(--olivo);font-weight:600;width:100%;font-size:22px;min-height:68px}
+  .primario:disabled{opacity:.55}
+  input,select{width:100%;min-height:58px;padding:0 14px;border:1px solid var(--linea);border-radius:12px;font-size:19px;background:#fff;color:var(--tinta)}
+  label{display:block;font-size:14px;color:#6d6d6d;margin:10px 0 6px;text-transform:uppercase;letter-spacing:.04em}
+  section{background:#fff;border:1px solid var(--linea);border-radius:16px;padding:16px;margin:12px 0}
+  .fila{display:flex;gap:10px;flex-wrap:wrap}
+  .fila > *{flex:1;min-width:140px}
+  .lista button{display:block;width:100%;text-align:left;margin:6px 0;min-height:64px}
+  .lista small{color:#6d6d6d;margin-left:8px}
+  .estado{min-height:1.5em;font-size:16px;margin:8px 0}
+  .ok{color:var(--verde)} .mal{color:var(--rojo)}
+  .vista{position:relative;width:100%;background:#111;border-radius:14px;overflow:hidden;aspect-ratio:3/4}
+  .vista video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform-origin:center}
+  .guia{position:absolute;left:50%;top:50%;width:62%;height:78%;transform:translate(-50%,-50%);border:3px dashed rgba(255,255,255,.7);border-radius:50%;pointer-events:none}
+  .chips{display:flex;gap:8px;flex-wrap:wrap}
+  .chips button{flex:1;min-width:110px}
+  .chips button.on{background:var(--olivo);color:#fff;border-color:var(--olivo)}
+  img.mini{width:100%;border-radius:14px;margin-top:10px}
+  .oculto{display:none !important}
+  .pie{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:8px;font-size:15px;color:#6d6d6d}
+</style>
+</head>
+<body>
+<main>
+  <h1>Captura</h1>
+  <p class="sub">Foto de seguimiento directo al expediente de la clienta.</p>
+
+  <!-- 0 · Sesión -->
+  <section id="s-login" class="oculto">
+    <label for="email">Correo</label><input id="email" type="email" autocomplete="username" inputmode="email">
+    <label for="pass">Contraseña</label><input id="pass" type="password" autocomplete="current-password">
+    <div style="height:12px"></div>
+    <button class="primario" id="b-login">Entrar</button>
+    <div class="estado" id="e-login"></div>
+  </section>
+
+  <!-- 1 · Clienta -->
+  <section id="s-clienta" class="oculto">
+    <label for="q">¿Para quién es la foto?</label>
+    <input id="q" type="search" placeholder="Nombre o teléfono" autocomplete="off">
+    <div class="lista" id="resultados"></div>
+    <div class="estado" id="e-clienta"></div>
+  </section>
+
+  <!-- 2 · Cámara -->
+  <section id="s-camara" class="oculto">
+    <div class="pie"><strong id="nombre-clienta" style="color:var(--tinta);font-size:18px"></strong><button id="b-cambiar" style="min-height:44px;font-size:15px">Cambiar clienta</button></div>
+    <div class="vista" style="margin-top:8px"><video id="video" autoplay playsinline muted></video><div class="guia"></div></div>
+    <div class="pie"><span id="e-camara">Abriendo cámara…</span><button id="b-girar" style="min-height:44px;font-size:15px">Girar</button></div>
+
+    <label>Tipo</label>
+    <div class="chips" id="tipo">
+      <button data-v="before">Antes</button><button data-v="progress" class="on">Progreso</button><button data-v="after">Después</button>
+    </div>
+    <div class="fila">
+      <div><label for="categoria">Categoría</label>
+        <select id="categoria"><option value="facial">Facial</option><option value="corporal">Corporal</option><option value="depilacion">Depilación</option></select></div>
+      <div><label for="area">Zona</label><input id="area" placeholder="frente, mejilla, axila…"></div>
+    </div>
+    <label for="desc">Nota (opcional)</label><input id="desc" placeholder="luz blanca, sin maquillaje…">
+    <div style="height:14px"></div>
+    <button class="primario" id="b-tomar">📷 Tomar y guardar</button>
+    <div class="estado" id="e-tomar"></div>
+    <img class="mini oculto" id="mini" alt="">
+    <div class="fila oculto" id="despues"><button id="b-otra">Otra foto</button><button id="b-ficha">Ver expediente</button></div>
+  </section>
+</main>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var estado = function (id, txt, mal) { var e = $(id); if (!e) return; e.textContent = txt || ''; e.className = 'estado ' + (mal ? 'mal' : (txt ? 'ok' : '')); };
+  var muestra = function (id, si) { var e = $(id); if (e) e.classList.toggle('oculto', !si); };
+  var clienta = null, recordId = null, stream = null, track = null, tipo = 'progress', guardando = false;
+  var rotacion = Number(localStorage.getItem('capturaRotacion') || 90); // el sensor llega girado 90°
+
+  // ── 0 · sesión ──
+  async function haySesion() {
+    try { var r = await fetch('/api/admin/me', { credentials: 'include' }); return r.status === 200; } catch (e) { return false; }
+  }
+  async function entrar() {
+    estado('e-login', 'Entrando…');
+    try {
+      var r = await fetch('/api/admin/login', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: $('email').value.trim(), password: $('pass').value }) });
+      if (!r.ok) { estado('e-login', 'Correo o contraseña incorrectos.', true); return; }
+      estado('e-login', ''); muestra('s-login', false); muestra('s-clienta', true); $('q').focus();
+    } catch (e) { estado('e-login', 'Sin conexión con Venus.', true); }
+  }
+
+  // ── 1 · clienta ──
+  var timer = null;
+  async function buscar(texto) {
+    clearTimeout(timer);
+    var cont = $('resultados'); var q = (texto || '').trim();
+    if (q.length < 2) { cont.innerHTML = ''; return; }
+    timer = setTimeout(async function () {
+      try {
+        var r = await fetch('/api/admin/cards-firebase?page=1&limit=6&q=' + encodeURIComponent(q), { credentials: 'include' });
+        if (r.status === 401) { muestra('s-clienta', false); muestra('s-login', true); return; }
+        var j = await r.json(); var items = j.items || [];
+        cont.innerHTML = '';
+        if (!items.length) { cont.innerHTML = '<div class="estado">Sin resultados</div>'; return; }
+        items.forEach(function (c) {
+          var b = document.createElement('button');
+          b.innerHTML = esc(c.name) + '<small>' + esc(c.phone || '') + '</small>';
+          b.onclick = function () { elegir(c); };
+          cont.appendChild(b);
+        });
+      } catch (e) { cont.innerHTML = '<div class="estado mal">Error buscando</div>'; }
+    }, 250);
+  }
+  async function elegir(c) {
+    clienta = c; recordId = null;
+    estado('e-clienta', 'Abriendo su expediente…');
+    try {
+      var r = await fetch('/api/client-records/card/' + encodeURIComponent(c.id), { credentials: 'include' });
+      var j = await r.json(); var rec = (j && j.success && j.data) ? j.data : j;
+      if (!rec || !rec.id) throw new Error('sin expediente');
+      recordId = rec.id;
+    } catch (e) { estado('e-clienta', 'No se pudo abrir el expediente de ' + c.name, true); return; }
+    estado('e-clienta', ''); $('nombre-clienta').textContent = c.name;
+    muestra('s-clienta', false); muestra('s-camara', true);
+    muestra('mini', false); muestra('despues', false); estado('e-tomar', '');
+    abrirCamara();
+  }
+
+  // ── 2 · cámara ──
+  function aplicarRotacion() { $('video').style.transform = 'rotate(' + rotacion + 'deg)' + (rotacion % 180 ? ' scale(1.34)' : ''); }
+  async function abrirCamara() {
+    if (stream) return;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: 'environment', width: { ideal: 2064 }, height: { ideal: 1548 } } });
+      track = stream.getVideoTracks()[0]; $('video').srcObject = stream; aplicarRotacion();
+      var s = track.getSettings ? track.getSettings() : {};
+      $('e-camara').textContent = 'Cámara lista · ' + (s.width || '?') + '×' + (s.height || '?');
+    } catch (e) { $('e-camara').textContent = 'No se pudo abrir la cámara: ' + (e.name || e); }
+  }
+  function cerrarCamara() { if (stream) { stream.getTracks().forEach(function (t) { t.stop(); }); stream = null; track = null; } }
+
+  // Foto a resolución del sensor si se puede, si no el cuadro del video;
+  // siempre pasa por canvas para aplicar la rotación y salir como JPEG.
+  async function tomarBlob() {
+    var fuente = null;
+    if (window.ImageCapture && track) { try { fuente = await new ImageCapture(track).takePhoto(); } catch (e) { fuente = null; } }
+    var img = document.createElement('img');
+    if (fuente) {
+      var url = URL.createObjectURL(fuente);
+      await new Promise(function (res, rej) { img.onload = res; img.onerror = rej; img.src = url; });
+    }
+    var w = fuente ? img.naturalWidth : $('video').videoWidth, h = fuente ? img.naturalHeight : $('video').videoHeight;
+    if (!w || !h) throw new Error('la cámara no entregó imagen');
+    var gira = rotacion % 180 !== 0;
+    var c = document.createElement('canvas'); c.width = gira ? h : w; c.height = gira ? w : h;
+    var ctx = c.getContext('2d'); ctx.translate(c.width / 2, c.height / 2); ctx.rotate(rotacion * Math.PI / 180);
+    ctx.drawImage(fuente ? img : $('video'), -w / 2, -h / 2, w, h);
+    return new Promise(function (res) { c.toBlob(function (b) { res({ blob: b, w: c.width, h: c.height }); }, 'image/jpeg', 0.92); });
+  }
+
+  async function tomar() {
+    if (guardando || !recordId) return;
+    guardando = true; $('b-tomar').disabled = true; estado('e-tomar', 'Tomando…');
+    try {
+      var f = await tomarBlob();
+      estado('e-tomar', 'Guardando en el expediente…');
+      var fd = new FormData();
+      fd.append('photo', f.blob, 'captura-' + Date.now() + '.jpg');
+      fd.append('type', tipo); fd.append('category', $('categoria').value);
+      fd.append('area', $('area').value.trim()); fd.append('description', $('desc').value.trim());
+      var r = await fetch('/api/client-records/' + encodeURIComponent(recordId) + '/photos', { method: 'POST', credentials: 'include', body: fd });
+      var j = await r.json();
+      if (!r.ok || !j.success) throw new Error((j && j.error) || ('HTTP ' + r.status));
+      $('mini').src = URL.createObjectURL(f.blob); muestra('mini', true); muestra('despues', true);
+      estado('e-tomar', 'Guardada en el expediente de ' + clienta.name + ' · ' + f.w + '×' + f.h);
+    } catch (e) { estado('e-tomar', 'No se guardó: ' + (e.message || e), true); }
+    finally { guardando = false; $('b-tomar').disabled = false; }
+  }
+
+  // ── eventos ──
+  $('b-login').onclick = entrar;
+  $('pass').onkeydown = function (e) { if (e.key === 'Enter') entrar(); };
+  $('q').oninput = function () { buscar($('q').value); };
+  $('b-cambiar').onclick = function () { cerrarCamara(); muestra('s-camara', false); muestra('s-clienta', true); $('q').value = ''; $('resultados').innerHTML = ''; $('q').focus(); };
+  $('b-girar').onclick = function () { rotacion = (rotacion + 90) % 360; localStorage.setItem('capturaRotacion', String(rotacion)); aplicarRotacion(); };
+  Array.prototype.forEach.call($('tipo').querySelectorAll('button'), function (b) {
+    b.onclick = function () { tipo = b.getAttribute('data-v'); Array.prototype.forEach.call($('tipo').querySelectorAll('button'), function (x) { x.classList.toggle('on', x === b); }); };
+  });
+  $('b-tomar').onclick = tomar;
+  $('b-otra').onclick = function () { muestra('mini', false); muestra('despues', false); estado('e-tomar', ''); };
+  $('b-ficha').onclick = function () { if (clienta) window.open('/admin/clientas/' + encodeURIComponent(clienta.id), '_blank'); };
+  window.addEventListener('pagehide', cerrarCamara);
+  function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (ch) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]; }); }
+
+  (async function () {
+    if (await haySesion()) { muestra('s-clienta', true); $('q').focus(); } else { muestra('s-login', true); }
+  })();
+})();
+</script>
+</body>
+</html>

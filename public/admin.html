@@ -2040,6 +2040,16 @@
             </div>
           </div>
 
+          <!-- Apartados sin usar: dinero que YA entró (el día que lo dejaron)
+               pero que todavía es de las clientas. Informativo: no suma. -->
+          <div id="report-apartados" style="display:none;background:rgba(255,255,255,0.06);border:1px dashed rgba(255,255,255,0.28);border-radius:10px;padding:10px 12px;margin-bottom:12px;">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;">
+              <span style="font-size:12px;color:rgba(255,255,255,0.75);">Apartados sin usar</span>
+              <span id="report-apartados-total" style="font-size:14px;font-weight:700;color:#E8D9C5;">$0.00</span>
+            </div>
+            <div id="report-apartados-detalle" style="font-size:11px;color:rgba(255,255,255,0.55);margin-top:3px;">—</div>
+          </div>
+
           <!-- Ingresos por Servicios -->
           <div style="background:rgba(255,255,255,0.1);border-radius:10px;padding:12px;">
             <div style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.7);margin-bottom:8px;">Ingresos por
@@ -2310,6 +2320,9 @@
         <div style="display:flex;gap:8px;">
           <button class="btn ghost" onclick="cargarCaja()">
             <i class="fas fa-sync"></i> Actualizar
+          </button>
+          <button class="btn ghost" onclick="openCreditDialog('deposit', { pickClient: true })">
+            <i class="fas fa-piggy-bank"></i> Apartado
           </button>
           <button class="btn primary" onclick="openDirectSaleModal()">
             <i class="fas fa-plus"></i> Venta Rápida
@@ -2636,6 +2649,49 @@
         <div style="display:flex;gap:10px;margin-top:16px;justify-content:flex-end;">
           <button type="button" class="btn ghost" onclick="document.getElementById('sellPackageDialog').close()">Cancelar</button>
           <button type="submit" class="btn primary"><i class="fas fa-cash-register"></i> Vender</button>
+        </div>
+      </form>
+    </dialog>
+
+    <!-- Diálogo: apartar dinero / devolverlo (saldo a favor) -->
+    <dialog id="creditDialog" class="venus-dialog" style="max-width:430px;width:92vw;border:1px solid var(--line);border-radius:16px;padding:22px;">
+      <h3 id="credit-dlg-title" style="margin:0 0 4px;">Apartar dinero</h3>
+      <p id="credit-dlg-client" class="muted" style="margin:0 0 14px;font-size:13px;">—</p>
+      <div id="credit-search-wrap" style="display:none;margin-bottom:12px;">
+        <label for="credit-search">Clienta<span class="req-mark" aria-hidden="true">*</span></label>
+        <input type="text" id="credit-search" class="form-input" placeholder="Escribe el nombre…" autocomplete="off">
+        <div id="credit-search-results" style="display:flex;flex-direction:column;gap:4px;margin-top:6px;"></div>
+      </div>
+      <form id="credit-form" method="dialog">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div>
+            <label for="credit-amount">Monto ($)<span class="req-mark" aria-hidden="true">*</span></label>
+            <input type="number" id="credit-amount" class="form-input" min="1" step="0.01" required inputmode="decimal">
+          </div>
+          <div>
+            <label for="credit-method">Método<span class="req-mark" aria-hidden="true">*</span></label>
+            <select id="credit-method" class="form-input" required>
+              <option value="efectivo">Efectivo</option>
+              <option value="tarjeta">Tarjeta</option>
+              <option value="transferencia">Transferencia</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-top:10px;" id="credit-appt-wrap">
+          <label for="credit-appt">¿Para cuál cita? (opcional)</label>
+          <select id="credit-appt" class="form-input">
+            <option value="">Sin cita — queda como saldo a favor</option>
+          </select>
+          <p class="muted" id="credit-appt-hint" style="margin:4px 0 0;font-size:11px;">Elige a la clienta para ver sus próximas citas.</p>
+        </div>
+        <div style="margin-top:10px;">
+          <label for="credit-note" id="credit-note-label">Nota (opcional)</label>
+          <input type="text" id="credit-note" class="form-input" maxlength="120" placeholder="para su facial de octubre">
+        </div>
+        <p id="credit-dlg-hint" class="muted" style="margin:10px 0 0;font-size:11.5px;">El dinero entra a Reportes de hoy y se descuenta solo en su próxima cita.</p>
+        <div style="display:flex;gap:10px;margin-top:16px;justify-content:flex-end;">
+          <button type="button" class="btn ghost" onclick="document.getElementById('creditDialog').close()">Cancelar</button>
+          <button type="submit" class="btn primary" id="credit-dlg-ok"><i class="fas fa-piggy-bank"></i> Apartar</button>
         </div>
       </form>
     </dialog>
@@ -3203,6 +3259,7 @@
 
             <!-- Botones -->
             <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:8px;grid-column:1/3;">
+              <button type="button" class="btn ghost" id="btn-edit-appt-anticipo" onclick="registrarAnticipoDesdeCita()" title="Registrar lo que ya pagó por esta cita" style="margin-right:auto;"><i class="fas fa-piggy-bank"></i> Ya pagó / anticipo</button>
               <button type="button" class="btn ghost" id="btn-cancel-edit-appt">Cancelar</button>
               <button type="submit" class="btn primary">Guardar Cambios</button>
             </div>
@@ -3796,6 +3853,20 @@
             </div>
           </div>
 
+          <!-- Apartado: dinero que la clienta dejó a cuenta -->
+          <div class="cmx-panel" style="margin-bottom:16px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;">
+              <span class="cmx-label" style="margin:0;"><i class="fas fa-piggy-bank"></i> Saldo a favor</span>
+              <div style="display:flex;gap:6px;">
+                <button class="btn small ghost" id="cm-credit-refund" onclick="openCreditDialog('refund')" style="font-size:11px;padding:4px 10px;display:none;"><i class="fas fa-rotate-left"></i> Devolver</button>
+                <button class="btn small ghost" onclick="openCreditDialog('deposit')" style="font-size:11px;padding:4px 10px;"><i class="fas fa-plus"></i> Apartar</button>
+              </div>
+            </div>
+            <div id="cm-credit-body">
+              <span class="muted" style="font-size:12px;">Cargando…</span>
+            </div>
+          </div>
+
           <!-- Stats rápidos -->
           <div class="cmx-panel cmx-kpis" style="margin-bottom:16px;">
             <div class="cmx-kpi">
@@ -3933,8 +4004,14 @@
             <div id="exp-resumen-alerts"></div>
           </div>
           <div class="exp-hairline-group">
-            <h3 class="exp-section-title">Datos clave</h3>
+            <h3 class="exp-section-title">Perfil de piel (IA)</h3>
+            <div id="exp-resumen-piel"><p class="exp-muted-note">Cargando análisis…</p></div>
+            <h3 class="exp-section-title" style="margin-top:18px;">Datos clave</h3>
             <div id="exp-resumen-keydata"></div>
+            <h3 class="exp-section-title" style="margin-top:18px;">Lo que quiere mejorar y su rutina</h3>
+            <div id="exp-resumen-perfil"></div>
+            <h3 class="exp-section-title" style="margin-top:18px;">Para la consulta</h3>
+            <div id="exp-resumen-recos"></div>
           </div>
           <div class="exp-hairline-group">
             <h3 class="exp-section-title">Estado de documentos</h3>
@@ -4854,7 +4931,7 @@
             '<div class="exp-kpi"><span class="exp-kpi-num">' + totalSessions + '</span><small>Sesiones</small></div>' +
             '<div class="exp-kpi"><span class="exp-kpi-num">' + totalPhotos + '</span><small>Fotos</small></div>' +
             // Lo llena loadExpedienteAppointments(), que va a otro endpoint.
-            '<div class="exp-kpi"><span class="exp-kpi-num" id="exp-kpi-appts">…</span><small>Citas</small></div>' +
+            '<div class="exp-kpi"><span class="exp-kpi-num" id="exp-kpi-appts">' + (expedienteApptsLoaded ? expedienteApptsCache.length : '…') + '</span><small>Citas</small></div>' +
           '</div>' +
           '<p class="exp-kpi-note">' + expEsc(lastSessionStr) + '</p>';
       }
@@ -4865,6 +4942,9 @@
     // endpoint (/api/appointments/client), pero pidiendo las canceladas y
     // hasta 50 — dos cosas que el flujo de agendar no pide y sigue sin ver.
     let expedienteApptsCache = [];
+    // true solo cuando el historial de citas ya se trajo del servidor: el
+    // renglón de KPIs se reconstruye después y no debe volver a poner "…".
+    let expedienteApptsLoaded = false;
     let expedienteApptsExpanded = false;
     const EXP_APPTS_PREVIEW = 10;
 
@@ -4878,15 +4958,36 @@
       cancelled:    { label: 'Cancelada',   icon: 'fa-times-circle' }
     };
 
+    // Tarjeta de la clienta para el expediente: lista → expediente ya cargado
+    // → servidor. El último paso es lo que hace funcionar el deep-link.
+    async function expResolverCard(cardId) {
+      const enLista = window.cardsCache ? window.cardsCache[cardId] : null;
+      if (enLista && (enLista.phone || enLista.name)) return enLista;
+      const dig = (typeof expedienteDigitalCache !== 'undefined' && expedienteDigitalCache) ? expedienteDigitalCache.card : null;
+      if (dig && dig.id === cardId && (dig.phone || dig.name)) return dig;
+      try {
+        const res = await expApi('/api/expedientes/' + encodeURIComponent(cardId));
+        const j = await res.json();
+        if (j && j.success && j.card) return j.card;
+      } catch (e) { console.warn('[Expediente] no se pudo resolver la tarjeta:', e); }
+      return null;
+    }
+
     async function loadExpedienteAppointments(cardId) {
       const listEl = document.getElementById('exp-resumen-appts');
       if (!listEl) return;
 
       expedienteApptsCache = [];
+      expedienteApptsLoaded = false;
       expedienteApptsExpanded = false;
 
       // El endpoint busca por teléfono o por nombre, igual que al agendar.
-      const card = window.cardsCache ? window.cardsCache[cardId] : null;
+      // Antes el teléfono se leía SOLO de la lista de Clientas (cardsCache):
+      // al entrar por URL directa la lista aún no había cargado, el resumen
+      // decía "No se pudo cargar" y el contador se quedaba en "…". Ahora la
+      // tarjeta se resuelve con lo que trae el propio expediente y, si
+      // tampoco está, se pide al servidor.
+      const card = await expResolverCard(cardId);
       const search = (card && (card.phone || card.name)) || '';
       if (!search) {
         listEl.innerHTML = '<p class="exp-muted-note">No se pudo cargar el historial de citas.</p>';
@@ -4907,6 +5008,7 @@
         return;
       }
 
+      expedienteApptsLoaded = true;
       const kpi = document.getElementById('exp-kpi-appts');
       if (kpi) kpi.textContent = expedienteApptsCache.length;
 
@@ -5572,11 +5674,83 @@
         const json = await res.json();
         const list = (json && json.success && Array.isArray(json.data)) ? json.data : [];
         renderExpedienteSkinAnalysis(list);
+        renderResumenPiel(list);
       } catch (e) {
         console.error('[Expediente skin] Error:', e);
         cont.innerHTML = '<div class="muted" style="text-align:center;padding:24px;font-size:13px;color:var(--error);">No se pudieron cargar los análisis.</div>';
       }
     }
+
+    // Tipo de piel del analizador llega en clave cruda ("mid_oil").
+    const EXP_SKIN_TYPE_ES = { mid_oil: 'Mixta grasa', mid_dry: 'Mixta seca', oil: 'Grasa', oily: 'Grasa', dry: 'Seca', neutral: 'Normal', normal: 'Normal', mixed: 'Mixta' };
+    const expPielEs = (t) => t ? (EXP_SKIN_TYPE_ES[String(t).toLowerCase()] || t) : '';
+
+    // ----- Perfil de piel (IA) en el Resumen -----
+    // El último análisis, con lo que la clienta y la cosmetóloga necesitan
+    // ver de un vistazo: score, tipo, edad de piel, el resumen de la IA, las
+    // métricas en atención y las mejores, el plan sugerido (ya escrito con
+    // nombres del catálogo) y, con dos análisis, la evolución con números.
+    async function renderResumenPiel(list) {
+      const el = document.getElementById('exp-resumen-piel');
+      if (!el) return;
+      if (!list || !list.length) {
+        el.innerHTML = '<p class="exp-muted-note">Sin análisis de piel. Hazle el primero desde <a href="#" onclick="' + IR_ANALISIS + ';return false;">Análisis IA</a>.</p>';
+        return;
+      }
+      const detalle = async (id) => {
+        try { const r = await expApi('/api/skin-analysis/' + encodeURIComponent(id)); const j = await r.json(); return (j && j.success && j.data) || null; }
+        catch (e) { return null; }
+      };
+      const [act, ant] = await Promise.all([detalle(list[0].id), list[1] ? detalle(list[1].id) : Promise.resolve(null)]);
+      if (!act) { el.innerHTML = '<p class="exp-muted-note">No se pudo cargar el último análisis.</p>'; return; }
+
+      const fecha = act.analyzedAt ? new Date(act.analyzedAt).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+      const scores = Array.isArray(act.scores) ? act.scores : [];
+      const atencion = scores.filter(x => x.severity === 'critical' || x.severity === 'concern').sort((x, y) => Number(x.score) - Number(y.score));
+      const mejores = scores.filter(x => x.severity === 'good' || x.severity === 'excellent').sort((x, y) => Number(y.score) - Number(x.score)).slice(0, 3);
+      const plan = Array.isArray(act.treatmentSuggestions) ? act.treatmentSuggestions : [];
+      const resumen = act.aiSummaryEs || (act.aiRecommendations && act.aiRecommendations.summary) || '';
+      const kv = (k, v) => v ? '<div class="exp-kv"><span class="exp-kv-k">' + expEsc(k) + '</span><span class="exp-kv-v">' + v + '</span></div>' : '';
+      const metricas = (arr) => arr.map(x => expEsc(x.labelEs || x.metric) + ' <b>' + Math.round(Number(x.score)) + '</b>').join(' · ');
+
+      // Evolución contra el análisis anterior, solo donde hay número en ambos.
+      let evolucion = '';
+      if (ant) {
+        const partes = [];
+        if (act.overallScore != null && ant.overallScore != null) {
+          const d = Number(act.overallScore) - Number(ant.overallScore);
+          partes.push('Global ' + ant.overallScore + ' → <b>' + act.overallScore + '</b> (' + (d >= 0 ? '+' : '') + d + ')');
+        }
+        const prev = new Map((ant.scores || []).map(x => [x.metric, Number(x.score)]));
+        for (const x of atencion) {
+          if (!prev.has(x.metric)) continue;
+          const d = Math.round(Number(x.score) - prev.get(x.metric));
+          partes.push(expEsc(x.labelEs || x.metric) + ' ' + Math.round(prev.get(x.metric)) + ' → <b>' + Math.round(Number(x.score)) + '</b> (' + (d >= 0 ? '+' : '') + d + ')');
+        }
+        if (partes.length) {
+          const fAnt = ant.analyzedAt ? new Date(ant.analyzedAt).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' }) : 'anterior';
+          evolucion = kv('Evolución vs ' + fAnt, partes.join(' · '));
+        }
+      }
+
+      const cab = [expPielEs(act.skinType) ? 'Piel ' + expPielEs(act.skinType) : '', act.skinColor ? 'Fototipo ' + act.skinColor : '',
+        act.ageBiological != null ? 'Edad de piel ' + act.ageBiological + (act.ageReal != null ? ' (real ' + act.ageReal + ')' : '') : ''].filter(Boolean).join(' · ');
+
+      el.innerHTML =
+        '<div style="display:flex;align-items:center;gap:12px;margin-bottom:6px;">' +
+          '<div class="skin-score-badge ' + (act.overallScore == null ? 'sev-neutral' : act.overallScore >= 80 ? 'sev-good' : act.overallScore >= 60 ? 'sev-warn' : 'sev-crit') + '">' + (act.overallScore != null ? act.overallScore : '—') + '</div>' +
+          '<div><div style="font-weight:600;">' + expEsc(fecha) + ' · ' + list.length + (list.length === 1 ? ' análisis' : ' análisis') + '</div>' +
+          '<div class="exp-kv-k" style="font-size:12.5px;">' + expEsc(cab) + '</div></div>' +
+        '</div>' +
+        (resumen ? '<p style="margin:6px 0 8px;font-size:13.5px;line-height:1.45;color:var(--exp-ink);">' + expEsc(resumen.length > 320 ? resumen.slice(0, 317) + '…' : resumen) + '</p>' : '') +
+        kv('Atención', atencion.length ? metricas(atencion) : '') +
+        kv('Lo mejor', mejores.length ? metricas(mejores) : '') +
+        (plan.length ? kv('Plan sugerido', plan.slice(0, 4).map(t => '<b>' + expEsc(t.treatment || '') + '</b>' + (t.sessions ? ' · ' + t.sessions + ' sesiones' : '') + (t.frequency ? ' · ' + expEsc(t.frequency) : '')).join('<br>')) : '') +
+        evolucion +
+        '<div style="margin-top:8px;"><a href="#" class="exp-kv-k" style="font-size:12.5px;" onclick="' + IR_ANALISIS + ';return false;">Ver los análisis →</a></div>';
+    }
+    // Las pestañas del expediente son <button class="exp-sec" data-exp-sec="…">.
+    const IR_ANALISIS = "document.querySelector('[data-exp-sec=skin]').click()";
 
     function renderExpedienteSkinAnalysis(list) {
       const cont = document.getElementById('exp-skin-list');
@@ -5615,15 +5789,19 @@
             <div style="flex:1;min-width:180px;">
               <div style="font-weight:700;font-size:14px;color:var(--ink,#111);">${fecha}</div>
               <div style="font-size:12px;color:var(--muted,#777);margin-top:2px;">
-                ${a.skinType ? 'Piel ' + a.skinType : ''}${a.skinColor ? ' · ' + a.skinColor : ''}${(a.ageBiological != null) ? ' · Edad biológica ' + a.ageBiological : ''}
+                ${a.skinType ? 'Piel ' + expPielEs(a.skinType) : ''}${a.skinColor ? ' · ' + a.skinColor : ''}${(a.ageBiological != null) ? ' · Edad biológica ' + a.ageBiological : ''}
               </div>
               ${chips ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">${chips}</div>` : ''}
             </div>
             <button type="button" class="btn small ghost" onclick="expViewSkinAnalysis('${a.id}')" style="flex-shrink:0;">
               <i class="fas fa-up-right-from-square"></i> Ver completo
             </button>
+            <div id="exp-skin-sug-${a.id}" style="flex-basis:100%;"></div>
           </div>`;
       }).join('');
+      // Las sugerencias piden el catálogo (una vez) y se pintan después, para
+      // no retrasar la lista.
+      list.forEach(a => expSugerirTratamientos(a.id, a.scores));
     }
 
     // Abrir el analyzer para ESTA clienta (queda vinculado por ?cardId)
@@ -5688,6 +5866,11 @@
         }
       }
 
+      // Lo que quiere mejorar, su rutina y lo que contestó — la ficha lo
+      // captura todo y el resumen lo escondía en tres renglones.
+      renderResumenPerfil(intake);
+      renderResumenRecos(intake);
+
       // Estado de documentos (ficha + consentimiento).
       const docsEl = document.getElementById('exp-resumen-docs');
       if (docsEl) {
@@ -5704,6 +5887,171 @@
       // Visitas (KPIs)
       updateExpedienteSummary(record);
     }
+
+    // ----- Perfil: lo que quiere mejorar y su rutina (desde la ficha firmada) -----
+    // Los títulos de cada cuestionario ya viven en EXP_COND_TITLES (pestaña Tratamientos).
+    function renderResumenPerfil(intake) {
+      const el = document.getElementById('exp-resumen-perfil');
+      if (!el) return;
+      if (!intake || intake.status !== 'signed') {
+        el.innerHTML = '<p class="exp-muted-note">Se llena con la Ficha Clínica.</p>';
+        return;
+      }
+      const idata = intake.interestData || {};
+      const kv = (k, v) => v ? '<div class="exp-kv"><span class="exp-kv-k">' + expEsc(k) + '</span><span class="exp-kv-v">' + expEsc(v) + '</span></div>' : '';
+      const lista = (a) => Array.isArray(a) ? a.filter(Boolean).join(', ') : (a || '');
+      const detalle = (o) => o && o.value ? (o.detail ? String(o.detail) : 'Sí') : '';
+      const ciclo = idata.cicloMenstrual ? ({ IR: 'Irregular', R: 'Regular' }[String(idata.cicloMenstrual).toUpperCase()] || idata.cicloMenstrual) : '';
+      const ps = idata.protectorSolar && idata.protectorSolar.timesPerDay != null ? Number(idata.protectorSolar.timesPerDay) : null;
+      const cuestionarios = Object.keys(intake.questionnaires || {})
+        .filter(k => intake.questionnaires[k] && Object.values(intake.questionnaires[k]).some(v => String(v || '').trim()))
+        .map(k => EXP_COND_TITLES[k] || k).join(', ');
+      el.innerHTML =
+        kv('Quiere mejorar', [intake.skinCondition, intake.conditionSince ? 'desde ' + intake.conditionSince : ''].filter(Boolean).join(' · ')) +
+        kv('Tratamientos previos', [intake.previousTreatments, intake.treatmentReactions ? 'reacción: ' + intake.treatmentReactions : ''].filter(Boolean).join(' · ')) +
+        kv('Rutina de día', lista(intake.routineDay)) +
+        kv('Rutina de noche', lista(intake.routineNight)) +
+        kv('Protector solar', ps != null ? (ps + (ps === 1 ? ' vez' : ' veces') + ' al día') : '') +
+        kv('Vitaminas / suplementos', detalle(idata.vitaminas)) +
+        kv('Anticonceptivos', idata.anticonceptivos && idata.anticonceptivos.value ? 'Sí' : '') +
+        kv('Ciclo menstrual', ciclo) +
+        kv('Implantes o dispositivos', detalle(idata.implantes)) +
+        kv('Intervenciones estéticas', detalle(idata.intervenciones)) +
+        kv('Cuestionarios respondidos', cuestionarios) +
+        kv('Llegó por', intake.referralSource) +
+        kv('Fotos', intake.photoConsent ? 'Autorizó fotos' : 'NO autorizó fotos')
+        || '<p class="exp-muted-note">La ficha no trae estos datos.</p>';
+    }
+
+    // ----- Para la consulta: señales derivadas de lo que contestó -----
+    // Son recordatorios para la cosmetóloga (hábitos que cambian resultados),
+    // NO diagnóstico. Cada una dice de dónde salió, para que se pueda
+    // conversar con la clienta con su propia respuesta enfrente.
+    function expRecomendaciones(intake) {
+      if (!intake || intake.status !== 'signed') return [];
+      const out = [];
+      const q = intake.questionnaires || {};
+      const idata = intake.interestData || {};
+      const dia = (intake.routineDay || []).join(' ').toLowerCase();
+      const noche = (intake.routineNight || []).join(' ').toLowerCase();
+      const t = (v) => String(v || '').trim().toLowerCase();
+      const si = (v) => /^\s*(s[ií]|claro|a veces|casi siempre|siempre)\b/.test(t(v));
+      const add = (texto, fuente) => out.push({ texto, fuente });
+
+      const a = q.acne || {};
+      if (t(a.q3) && !/seman|diario|cada d|cada uso|\b[123] ?d/.test(t(a.q3))) add('Lavar brochas y esponjas cada semana', 'brochas: ' + a.q3);
+      if (t(a.q5) && /jab[oó]n|agua|toalla|nada|^no\b/.test(t(a.q5)) && !/desmaquill|micelar|aceite|b[aá]lsamo|limpiador/.test(t(a.q5))) add('Desmaquillante o limpiador adecuado antes del jabón', 'se desmaquilla con: ' + a.q5);
+      if (t(a.q6) && !/seman|diario|cada d|\b[123] ?d|dos|tres/.test(t(a.q6))) add('Cambiar fundas de almohada cada semana', 'fundas: ' + a.q6);
+      if (si(a.q8)) add('No manipular lesiones: deja manchas y cicatrices', 'pellizca lesiones: ' + a.q8);
+      if (si(a.q2)) add('Base no comedogénica y doble limpieza de noche', 'base todos los días: ' + a.q2);
+      if (/alta|mucha|much|diario|frecuent|bastante/.test(t(a.q1))) add('Bajar lácteos, embutidos y azúcares', 'dieta: ' + a.q1);
+      if (/alto|mucho|elevado/.test(t(a.q7))) add('Estrés alto: considerarlo en el pronóstico', 'estrés: ' + a.q7);
+
+      const pg = q.pigmentaciones || {};
+      if (/s[ií]|mucho|bastante|diario/.test(t(pg.q2))) add('Exposición solar alta: protector y reaplicación son la base', 'sol: ' + pg.q2);
+      if (si(pg.q4)) add('Mucha luz azul: protector con filtro de luz visible', 'pantallas: ' + pg.q4);
+      if (si(pg.q5)) add('Medicamentos fotosensibilizantes: cuidado con peelings y luz', 'medicamentos: ' + pg.q5);
+
+      const en = q.envejecimiento || {};
+      if (si(en.q4)) add('Fuma: afecta colágeno y cicatrización', 'fuma: ' + en.q4);
+      if (/boca abajo|de lado|costado/.test(t(en.q3))) add('Duerme de lado o boca abajo: marcas de compresión', 'posición: ' + en.q3);
+
+      const oi = q.ojerasInflamadas || {};
+      if (/mal|poc|regular|no duermo|insomn/.test(t(oi.q2))) add('Sueño de mala calidad: influye en ojeras e inflamación', 'sueño: ' + oi.q2);
+      const op = q.ojerasPigmentadas || {};
+      if (si(op.q2)) add('Se frota los ojos: pigmentación por fricción', 'frota ojos: ' + op.q2);
+
+      const ps = idata.protectorSolar || {};
+      const veces = Number(ps.timesPerDay);
+      if (Number.isFinite(veces) && veces < 2) add('Reaplicar protector solar (mínimo 2 veces al día)', 'hoy: ' + veces + (veces === 1 ? ' vez' : ' veces') + ' al día');
+      if (dia && !/bloqueador|protector|fps|spf|solar/.test(dia)) add('No usa protector solar de día', 'rutina de día');
+      if (noche && !/desmaquill|micelar|limpiador|aceite/.test(noche)) add('Sin desmaquillante en la rutina de noche', 'rutina de noche');
+      return out;
+    }
+
+    function renderResumenRecos(intake) {
+      const el = document.getElementById('exp-resumen-recos');
+      if (!el) return;
+      if (!intake || intake.status !== 'signed') { el.innerHTML = '<p class="exp-muted-note">Se llena con la Ficha Clínica.</p>'; return; }
+      const recos = expRecomendaciones(intake);
+      if (!recos.length) { el.innerHTML = '<p class="exp-muted-note">Sin señales en el cuestionario ni en la rutina.</p>'; return; }
+      el.innerHTML = recos.map(r =>
+        '<div class="exp-kv" style="display:block;">' +
+          '<div class="exp-kv-v" style="text-align:left;">' + expEsc(r.texto) + '</div>' +
+          '<div class="exp-kv-k" style="font-size:12px;margin-top:2px;">' + expEsc(r.fuente) + '</div>' +
+        '</div>').join('');
+    }
+
+    // ----- Sugerencias desde el Moji: métrica en atención → TU servicio -----
+    // El analizador dice "poros: crítico"; esto busca en tu catálogo real qué
+    // servicio lo atiende (por palabra clave, sin inventar nombres) y, si
+    // existe, el paquete de sesiones ligado. Se muestra como sugerencia para
+    // la consulta, no como prescripción.
+    const EXP_METRIC_KEYS = {
+      acne:        ['acn'],
+      blackhead:   ['limpieza profunda', 'limpieza'],
+      pore:        ['limpieza profunda', 'limpieza', 'hidrafacial'],
+      spot:        ['pigmentaci', 'despigment'],
+      pigment:     ['pigmentaci', 'despigment'],
+      uv_spot:     ['pigmentaci', 'despigment'],
+      pockmark:    ['dermapen', 'microneedl'],
+      wrinkle:     ['colágeno', 'colageno', 'radiofrec', 'hifu'],
+      collagen:    ['colágeno', 'colageno', 'radiofrec', 'hifu'],
+      texture:     ['dermapen', 'peeling', 'limpieza profunda'],
+      ext_water:   ['hidrataci'],
+      sensitive:   ['oxigen', 'calmante', 'sensible'],
+      dark_circle: ['ojeras', 'contorno'],
+    };
+    // Se memoriza la PROMESA, no el resultado: varios análisis piden el
+    // catálogo al mismo tiempo y solo debe salir una petición.
+    let expCatalogoPromesa = null;
+    function expCatalogo() {
+      if (!expCatalogoPromesa) {
+        expCatalogoPromesa = Promise.all([
+          expApi('/api/services').then(r => r.json()).catch(() => ({})),
+          expApi('/api/packages').then(r => r.json()).catch(() => ({})),
+        ]).then(([rs, rp]) => ({
+          services: (rs && rs.data) || [],
+          packages: ((rp && rp.data) || []).filter(p => p.isActive !== false),
+        })).catch(err => { expCatalogoPromesa = null; throw err; });
+      }
+      return expCatalogoPromesa;
+    }
+    function expServicioPara(metric, services) {
+      const keys = EXP_METRIC_KEYS[metric] || [];
+      const cands = services.filter(s => s && s.name && s.isActive !== false && !/depilaci|skin analyzer|seguimiento/i.test(s.name));
+      for (const k of keys) {
+        const hit = cands
+          .filter(s => s.name.toLowerCase().includes(k))
+          .sort((x, y) => (Number(x.price) || 0) - (Number(y.price) || 0))[0];
+        if (hit) return hit;
+      }
+      return null;
+    }
+    async function expSugerirTratamientos(analysisId, scores) {
+      const el = document.getElementById('exp-skin-sug-' + analysisId);
+      if (!el) return;
+      const atencion = (scores || []).filter(s => s && (s.severity === 'critical' || s.severity === 'concern'));
+      if (!atencion.length) { el.innerHTML = ''; return; }
+      let cat;
+      try { cat = await expCatalogo(); } catch (e) { el.innerHTML = ''; return; }
+      const vistos = new Set(); const filas = [];
+      for (const s of atencion) {
+        const srv = expServicioPara(s.metric, cat.services);
+        if (!srv || vistos.has(srv.id)) continue;
+        vistos.add(srv.id);
+        const paq = cat.packages.find(p => [p.serviceName, p.name].filter(Boolean).some(n => String(n).toLowerCase().includes(srv.name.toLowerCase())));
+        filas.push(
+          '<div class="exp-kv"><span class="exp-kv-k">' + expEsc(s.labelEs || s.metric) + '</span>' +
+          '<span class="exp-kv-v">' + expEsc(srv.name) + (srv.price ? ' · $' + Number(srv.price).toLocaleString('es-MX') : '') +
+          (paq ? '<br><span style="font-size:12px;color:var(--exp-ink-3);">Paquete: ' + expEsc(paq.name) + ' · ' + paq.sessionsTotal + ' sesiones · $' + Number(paq.price).toLocaleString('es-MX') + '</span>' : '') +
+          '</span></div>');
+      }
+      el.innerHTML = filas.length
+        ? '<div style="margin-top:10px;padding-top:8px;border-top:1px dashed var(--exp-line,#ddd);"><div class="exp-kv-k" style="font-size:12px;margin-bottom:4px;"><i class="fas fa-lightbulb"></i> Sugerencia para la consulta, según tu catálogo</div>' + filas.join('') + '</div>'
+        : '';
+    }
+    window.expSugerirTratamientos = expSugerirTratamientos;
 
     // Construye el badge HTML de estado de la ficha (reutilizado en Resumen).
     function fichaStatusBadge(intake, record) {
@@ -8135,6 +8483,7 @@
       window.currentCardId = card.id;
       currentCardId = card.id;
       loadCardPackages(card.id);
+      loadCardCredits(card.id);
 
       // Datos básicos
       document.getElementById('cm-id').textContent = card.id;
@@ -11240,6 +11589,8 @@
 
         // Populate edit form with frozen client name
         editApptId.value = id;
+        // Para "Ya pagó / anticipo": lo que el diálogo de apartar necesita.
+        window.citaEnEdicion = { id: id, cardId: appt.cardId || null, clientPhone: appt.clientPhone || '', clientName: appt.clientName || '', serviceName: appt.serviceName || '' };
         editClientName.value = appt.clientName;
         editServiceInput.value = appt.serviceName;
         const editSourceSelect = document.getElementById('edit-appt-source');
@@ -13307,6 +13658,306 @@
         await venusAlert('Paquete vendido y registrado en Reportes ✓');
       } catch (err) { await venusAlert('No se pudo vender: ' + err.message); }
     });
+
+    /* ========== APARTADOS (saldo a favor) ========== */
+    // "Déjame $500 para mi facial de octubre". El saldo se calcula sumando
+    // la bitácora del servidor: aquí nunca se guarda un número aparte.
+
+    const CREDITO_ETIQUETA = { deposito: 'Apartado', aplicacion: 'Aplicado a cita', devolucion: 'Devuelto' };
+
+    window.loadCardCredits = async function (cardId) {
+      const body = document.getElementById('cm-credit-body');
+      const btnDevolver = document.getElementById('cm-credit-refund');
+      if (!body) return;
+      body.innerHTML = '<span class="muted" style="font-size:12px;">Cargando…</span>';
+      try {
+        const res = await apiFetch(`/api/credits/card/${cardId}`);
+        const json = await res.json();
+        if (!json.success) throw new Error(json.error);
+        const saldo = Number(json.data.balance) || 0;
+        const movs = json.data.movements || [];
+        window.creditoSaldoActual = saldo;
+        if (btnDevolver) btnDevolver.style.display = saldo > 0 ? '' : 'none';
+
+        if (!saldo && !movs.length) {
+          body.innerHTML = '<span class="muted" style="font-size:12px;">Sin dinero apartado. Si te deja algo a cuenta, regístralo con «Apartar».</span>';
+          return;
+        }
+
+        const historial = movs.slice(0, 6).map(m => {
+          const monto = Number(m.amount) || 0;
+          const fecha = new Date(m.createdAt).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' });
+          const nota = m.note ? ` · ${escHtml(m.note)}` : '';
+          // Anticipo dejado para una cita concreta: se dice cuál, para que no
+          // haya que adivinar por la nota libre.
+          let cita = '';
+          if (m.appointment && m.appointment.date) {
+            const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+            const [yy, mm, dd] = String(m.appointment.date).split('-').map(Number);
+            const cuando = Number.isFinite(dd) ? `${dd} ${MESES[mm - 1]}` : m.appointment.date;
+            cita = ` · <span style="color:var(--cm-olive-deep);">${m.type === 'deposito' ? 'para' : 'en'} cita ${escHtml(cuando)}</span>`;
+          }
+          const puedeDeshacer = !m.reverted && m.type !== 'devolucion';
+          return `
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--line);${m.reverted ? 'opacity:0.45;text-decoration:line-through;' : ''}">
+            <span class="muted" style="font-size:11.5px;">${fecha} · ${CREDITO_ETIQUETA[m.type] || m.type}${cita}${nota}</span>
+            <span style="display:flex;align-items:center;gap:6px;white-space:nowrap;">
+              <strong style="font-size:12px;color:${monto >= 0 ? 'var(--cm-olive-deep)' : 'var(--muted)'};">${monto >= 0 ? '+' : '−'}$${Math.abs(monto).toLocaleString('es-MX')}</strong>
+              ${puedeDeshacer ? `<button class="btn small ghost" style="font-size:10px;padding:2px 6px;" title="Deshacer este movimiento" onclick="revertCreditMovement('${m.id}')"><i class="fas fa-rotate-left"></i></button>` : ''}
+            </span>
+          </div>`;
+        }).join('');
+
+        body.innerHTML = `
+          <div style="font-family:'Playfair Display',Georgia,serif;font-size:26px;font-weight:600;color:var(--cm-olive-deep);line-height:1.1;">$${saldo.toLocaleString('es-MX')}</div>
+          <div class="muted" style="font-size:11.5px;margin-top:2px;">${saldo > 0 ? 'Se descuenta solo en su próxima cita' : 'Sin saldo pendiente'}</div>
+          <div style="margin-top:8px;">${historial}</div>`;
+      } catch (e) {
+        console.error('[CM CREDITS]', e);
+        body.innerHTML = '<span class="muted" style="font-size:12px;">No se pudo cargar el saldo</span>';
+      }
+    };
+
+    // Desde Modificar Cita: "esta cita ya la pagó". Resuelve la tarjeta (por
+    // id o por teléfono) y abre el diálogo de apartar ya llenado: clienta,
+    // esta cita en "¿Para cuál cita?" y el precio como monto sugerido.
+    window.registrarAnticipoDesdeCita = async function () {
+      const c = window.citaEnEdicion;
+      if (!c || !c.id) { await venusAlert('Abre primero una cita.'); return; }
+      const precio = parseFloat((document.getElementById('edit-appt-price') || {}).value) || 0;
+      let cardId = c.cardId, nombre = c.clientName;
+      if (!cardId) {
+        try {
+          const r = await apiFetch('/api/credits/lookup?phone=' + encodeURIComponent(c.clientPhone || ''));
+          const j = await r.json();
+          if (j && j.success && j.data && j.data.cardId) { cardId = j.data.cardId; nombre = j.data.name || nombre; }
+        } catch (e) { /* sin tarjeta */ }
+      }
+      if (!cardId) { await venusAlert('Esta clienta no tiene tarjeta de lealtad: créasela desde Clientas y vuelve.'); return; }
+      openCreditDialog('deposit', { prefill: { cardId, nombre, telefono: c.clientPhone, appointmentId: c.id, monto: precio } });
+    };
+
+    window.openCreditDialog = function (modo, opciones) {
+      const esDevolucion = modo === 'refund';
+      const prefill = (opciones && opciones.prefill) || null;
+      const desdeCaja = !!(opciones && opciones.pickClient);
+      const dlg = document.getElementById('creditDialog');
+      const cliente = desdeCaja ? '' : (document.getElementById('cm-name')?.textContent || '');
+      dlg.dataset.modo = esDevolucion ? 'refund' : 'deposit';
+      dlg.dataset.origen = desdeCaja ? 'caja' : 'ficha';
+
+      // La clienta se fija AQUÍ, explícitamente. Desde Caja arranca en null
+      // para que un currentCardId viejo no mande el dinero a quien no es.
+      window.creditTargetCardId = prefill ? prefill.cardId : (desdeCaja ? null : (window.currentCardId || null));
+      if (prefill) dlg.dataset.origen = 'cita';
+      const wrap = document.getElementById('credit-search-wrap');
+      const buscador = document.getElementById('credit-search');
+      const resultados = document.getElementById('credit-search-results');
+      wrap.style.display = desdeCaja ? 'block' : 'none';
+      if (desdeCaja) {
+        buscador.value = '';
+        resultados.innerHTML = '';
+        buscador.oninput = () => buscarClientaApartado(buscador.value);
+      }
+      document.getElementById('credit-dlg-title').textContent = esDevolucion ? 'Devolver dinero' : 'Apartar dinero';
+      document.getElementById('credit-dlg-client').textContent = prefill ? `Para: ${prefill.nombre || ''}` : (cliente ? `Para: ${cliente}` : (desdeCaja ? 'Elige a la clienta que está dejando el dinero' : ''));
+      document.getElementById('credit-note-label').textContent = esDevolucion ? 'Motivo (opcional)' : 'Nota (opcional)';
+      document.getElementById('credit-note').placeholder = esDevolucion ? 'ya no va a venir' : 'para su facial de octubre';
+      document.getElementById('credit-dlg-hint').textContent = esDevolucion
+        ? `Máximo $${(window.creditoSaldoActual || 0).toLocaleString('es-MX')}. Sale de la caja: se registra como egreso.`
+        : 'El dinero entra a Reportes de hoy y se descuenta solo en su próxima cita.';
+      document.getElementById('credit-dlg-ok').innerHTML = esDevolucion
+        ? '<i class="fas fa-rotate-left"></i> Devolver'
+        : '<i class="fas fa-piggy-bank"></i> Apartar';
+      document.getElementById('credit-amount').value = '';
+      document.getElementById('credit-note').value = '';
+
+      // "¿Para cuál cita?" solo aplica al apartar. Devolver dinero no se liga
+      // a ninguna cita. Desde la ficha ya sabemos quién es, así que sus citas
+      // se cargan de una vez; desde Caja se cargan al elegir clienta.
+      document.getElementById('credit-appt-wrap').style.display = esDevolucion ? 'none' : 'block';
+      if (!esDevolucion) cargarCitasParaApartado(desdeCaja ? null : window.creditTargetCardId);
+
+      if (esDevolucion) document.getElementById('credit-amount').max = window.creditoSaldoActual || 0;
+      else document.getElementById('credit-amount').removeAttribute('max');
+      if (prefill) {
+        if (prefill.monto > 0) document.getElementById('credit-amount').value = prefill.monto;
+        cargarCitasParaApartado(prefill.cardId, prefill.telefono, { preseleccionar: prefill.appointmentId });
+      }
+      dlg.showModal();
+    };
+
+    // Buscador de clienta para el apartado hecho desde Caja.
+    let timerBusquedaApartado = null;
+    function buscarClientaApartado(texto) {
+      clearTimeout(timerBusquedaApartado);
+      const cont = document.getElementById('credit-search-results');
+      const q = String(texto || '').trim();
+      if (q.length < 2) { cont.innerHTML = ''; window.creditTargetCardId = null; return; }
+      timerBusquedaApartado = setTimeout(async () => {
+        try {
+          const res = await apiFetch(`/api/admin/cards-firebase?page=1&limit=6&q=${encodeURIComponent(q)}`);
+          const json = await res.json();
+          const items = json.items || [];
+          if (!items.length) { cont.innerHTML = '<span class="muted" style="font-size:12px;">Sin resultados</span>'; return; }
+          cont.innerHTML = items.map(c => `
+            <button type="button" class="btn small ghost" style="justify-content:flex-start;text-align:left;font-size:12.5px;padding:8px 10px;min-height:44px;"
+              onclick="elegirClientaApartado('${c.id}', '${escHtml(c.name).replace(/'/g, "&#39;")}', '${escHtml(c.phone || '').replace(/'/g, "&#39;")}')">
+              ${escHtml(c.name)} <span class="muted" style="margin-left:6px;">${escHtml(c.phone || '')}</span>
+            </button>`).join('');
+        } catch (e) { cont.innerHTML = '<span class="muted" style="font-size:12px;">Error buscando</span>'; }
+      }, 250);
+    }
+
+    window.elegirClientaApartado = function (cardId, nombre, telefono) {
+      window.creditTargetCardId = cardId;
+      document.getElementById('credit-search').value = nombre;
+      document.getElementById('credit-search-results').innerHTML = '';
+      document.getElementById('credit-dlg-client').textContent = `Para: ${nombre}`;
+      cargarCitasParaApartado(cardId, telefono);
+      document.getElementById('credit-amount').focus();
+    };
+
+    // Llena el selector "¿Para cuál cita?" con las citas FUTURAS de la clienta.
+    // Reusa el endpoint del historial de citas; el filtro a futuro se hace aquí
+    // porque apartar dinero para una cita que ya pasó no tiene sentido.
+    // `destino` permite usarla desde otro lugar (el cobro): ids del select y
+    // del texto de ayuda, y una cita a excluir — la que se está cobrando no
+    // puede ser "la próxima".
+    async function cargarCitasParaApartado(cardId, telefono, destino) {
+      const sel = document.getElementById((destino && destino.sel) || 'credit-appt');
+      const hint = document.getElementById((destino && destino.hint) || 'credit-appt-hint');
+      const excluir = destino && destino.excluirCita ? String(destino.excluirCita) : null;
+      if (!sel) return;
+      sel.innerHTML = '<option value="">Sin cita — queda como saldo a favor</option>';
+      if (!cardId && !telefono) { hint.textContent = 'Elige a la clienta para ver sus próximas citas.'; return; }
+
+      const card = cardId && window.cardsCache ? window.cardsCache[cardId] : null;
+      const busqueda = (card && card.phone) || telefono || (card && card.name) || '';
+      if (!busqueda) { hint.textContent = 'Sin teléfono para buscar sus citas.'; return; }
+
+      hint.textContent = 'Buscando sus citas…';
+      try {
+        const res = await apiFetch(`/api/appointments/client?search=${encodeURIComponent(busqueda)}&limit=50`);
+        const json = await res.json();
+        const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+        const futuras = (json.data || [])
+          .filter(a => {
+            if (excluir && String(a.id) === excluir) return false;
+            if (!a.date || !/^\d{4}-\d{2}-\d{2}$/.test(a.date)) return false;
+            const [y, m, d] = a.date.split('-').map(Number);
+            return new Date(y, m - 1, d) >= hoy;
+          })
+          .sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || '')));
+
+        if (!futuras.length) {
+          hint.textContent = 'No tiene citas próximas — el dinero queda como saldo a favor.';
+          return;
+        }
+        const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+        futuras.forEach(a => {
+          const [y, m, d] = a.date.split('-').map(Number);
+          const op = document.createElement('option');
+          op.value = a.id;
+          op.textContent = `${d} ${MESES[m - 1]} ${y} · ${a.time || ''} · ${a.serviceName || 'Servicio'}`;
+          sel.appendChild(op);
+        });
+        hint.textContent = 'Si eliges una, al cobrarla te avisa que ya dejó anticipo.';
+        const pre = destino && destino.preseleccionar ? String(destino.preseleccionar) : '';
+        if (pre && [...sel.options].some(o => o.value === pre)) { sel.value = pre; hint.textContent = 'Anticipo para esta cita: al cobrarla llega ya aplicado.'; }
+      } catch (e) {
+        console.error('[Apartado] No se pudieron cargar las citas:', e);
+        hint.textContent = 'No se pudieron cargar sus citas — puedes apartar sin elegir una.';
+      }
+    }
+
+    // Seguro anti doble-clic: con dinero, seis taps nerviosos no pueden
+    // convertirse en seis apartados (la lección de los seis recibos de renta).
+    let guardandoCredito = false;
+    document.getElementById('credit-form')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (guardandoCredito) return;
+      const dlg = document.getElementById('creditDialog');
+      const esDevolucion = dlg.dataset.modo === 'refund';
+      const monto = parseFloat(document.getElementById('credit-amount').value);
+      if (!Number.isFinite(monto) || monto <= 0) return;
+
+      guardandoCredito = true;
+      const btn = document.getElementById('credit-dlg-ok');
+      const etiqueta = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando…';
+
+      const cardId = window.creditTargetCardId;
+      if (!cardId) {
+        guardandoCredito = false; btn.disabled = false; btn.innerHTML = etiqueta;
+        await venusAlert('Elige primero a la clienta.');
+        return;
+      }
+      const nota = document.getElementById('credit-note').value.trim();
+      const citaElegida = esDevolucion ? '' : (document.getElementById('credit-appt')?.value || '');
+      const cuerpo = esDevolucion
+        ? { amount: monto, paymentMethod: document.getElementById('credit-method').value, reason: nota || undefined }
+        : {
+            amount: monto,
+            paymentMethod: document.getElementById('credit-method').value,
+            note: nota || undefined,
+            appointmentId: citaElegida || undefined,
+          };
+
+      try {
+        const res = await apiFetch(`/api/credits/card/${cardId}/${esDevolucion ? 'refund' : 'deposit'}`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cuerpo)
+        });
+        const json = await res.json();
+        if (!json.success) {
+          const NICE = {
+            saldo_insuficiente: 'No tiene tanto saldo apartado.',
+            ese_deposito_ya_existe: 'Ese apartado ya estaba registrado.',
+            forbidden: 'Solo la dueña puede devolver dinero.',
+            cita_no_encontrada: 'Esa cita ya no existe. Vuelve a abrir el apartado.',
+            cita_de_otra_clienta: 'Esa cita es de otra clienta. Elige una de las suyas.',
+          };
+          throw new Error(NICE[json.error] || json.error || 'No se pudo guardar');
+        }
+        dlg.close();
+        if (dlg.dataset.origen === 'caja') {
+          if (typeof cargarCaja === 'function') cargarCaja();
+        } else if (dlg.dataset.origen === 'cita') {
+          // Desde Modificar Cita no hay ficha ni caja que refrescar.
+        } else {
+          loadCardCredits(cardId);
+        }
+        await venusAlert(esDevolucion
+          ? `Devueltos $${monto.toLocaleString('es-MX')} ✓ — registrado como egreso`
+          : `Apartados $${monto.toLocaleString('es-MX')} ✓ — ya aparece en Reportes de hoy`);
+      } catch (err) {
+        await venusAlert(String(err.message || err));
+      } finally {
+        guardandoCredito = false;
+        btn.disabled = false;
+        btn.innerHTML = etiqueta;
+      }
+    });
+
+    window.revertCreditMovement = async function (movementId) {
+      if (!(await venusConfirm('¿Deshacer este movimiento de saldo?', { title: 'Deshacer', okLabel: 'Deshacer' }))) return;
+      try {
+        const res = await apiFetch(`/api/credits/movement/${movementId}/revert`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({})
+        });
+        const json = await res.json();
+        if (!json.success) {
+          const NICE = {
+            saldo_ya_usado: 'Ese dinero ya se usó en una cita. Deshaz primero la aplicación.',
+            ya_estaba_revertido: 'Ese movimiento ya estaba deshecho.',
+            devolucion_no_reversible: 'Una devolución no se puede deshacer: registra un apartado nuevo.',
+          };
+          throw new Error(NICE[json.error] || json.error);
+        }
+        loadCardCredits(window.currentCardId);
+      } catch (err) { await venusAlert(String(err.message || err)); }
+    };
 
     // Cargar servicios al abrir la pestaña de Catálogo
     document.querySelectorAll('.nav a[data-tab="catalog"], .nav a[data-tab="services"]').forEach(link => {
@@ -17931,11 +18582,16 @@
 
             sumarAMetodo(metodo, monto);
 
+            // Si se aplicó saldo apartado, el monto del día es menor que el
+            // precio del servicio: se dice aquí para que el corte se entienda
+            // ("¿por qué el facial salió en $300?").
+            const apartadoCita = parseFloat(cita.creditApplied) || 0;
+
             transacciones.push({
               tipo: 'cita',
               hora: cita.time || '--:--',
               cliente: cita.clientName || 'Cliente',
-              concepto: cita.serviceName || 'Servicio',
+              concepto: (cita.serviceName || 'Servicio') + (apartadoCita > 0 ? ` · $${apartadoCita.toLocaleString('es-MX')} de apartado` : ''),
               monto: monto,
               metodo: metodo,
               id: cita.id
@@ -17950,21 +18606,25 @@
             const jsonVentas = await resVentas.json();
             if (jsonVentas.success && jsonVentas.data) {
               jsonVentas.data.forEach(venta => {
-                // Venta directa (Venta Rápida): sin cita y sin servicio.
-                // Antes se filtraba por `venta.type === 'direct'`, pero el modelo
-                // Sale nunca tuvo columna `type`: la condición jamás se cumplía y
-                // las ventas de mostrador no aparecían en el corte.
-                if (!venta.appointmentId && !venta.serviceName) {
+                // Ventas sin cita: mostrador (sin servicio), paquetes y
+                // apartados (con servicio). Antes se exigía `!serviceName`, así
+                // que un paquete vendido o un apartado salían en Reportes pero
+                // NO en el corte del día: la caja no cuadraba con el reporte.
+                // (El filtro original era `venta.type === 'direct'`, y el modelo
+                // Sale nunca tuvo columna `type`: no entraba ni el mostrador.)
+                if (!venta.appointmentId) {
                    const monto = parseFloat(venta.totalAmount) || 0;
                    const metodo = (venta.paymentMethod || 'efectivo').toLowerCase();
+                   const servicio = venta.serviceName || '';
+                   const esApartado = servicio.startsWith('Apartado');
 
                    sumarAMetodo(metodo, monto);
 
                    transacciones.push({
-                     tipo: 'producto',
+                     tipo: esApartado ? 'apartado' : (servicio ? 'paquete' : 'producto'),
                      hora: new Date(venta.createdAt).toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'}),
                      cliente: venta.clientName || 'Venta Mostrador',
-                     concepto: (venta.productsSold || []).map(p => p.name).join(', ') || 'Venta Directa',
+                     concepto: servicio || (venta.productsSold || []).map(p => p.name).join(', ') || 'Venta Directa',
                      monto: monto,
                      metodo: metodo,
                      id: venta.id
@@ -18151,7 +18811,9 @@
         const TIPO_BADGES = {
           cita: '<span class="status-badge confirmed" style="font-size:10px;"><i class="fas fa-calendar-check"></i> Cita</span>',
           cafe: '<span class="status-badge" style="font-size:10px;background:#f3e5d8;color:#7b4b28;"><i class="fas fa-mug-hot"></i> Café</span>',
-          producto: '<span class="status-badge pending" style="font-size:10px;"><i class="fas fa-shopping-bag"></i> Producto</span>'
+          producto: '<span class="status-badge pending" style="font-size:10px;"><i class="fas fa-shopping-bag"></i> Producto</span>',
+          apartado: '<span class="status-badge" style="font-size:10px;background:#e8e3d5;color:#5d6b3f;"><i class="fas fa-piggy-bank"></i> Apartado</span>',
+          paquete: '<span class="status-badge" style="font-size:10px;background:#e3e8d5;color:#4f5f34;"><i class="fas fa-layer-group"></i> Paquete</span>'
         };
         const tipoBadge = TIPO_BADGES[t.tipo] || TIPO_BADGES.producto;
 
@@ -18258,6 +18920,9 @@
         const servicios = jsonServicios.success ? jsonServicios.data : [];
         productosEnCobro = [];
         window.cobroServicioSel = null;   // cambio de servicio: nada elegido aún
+        window.cobroApartado = null;      // saldo a favor: se consulta abajo
+        window.cobroCitaActual = { id: cita.id, cardId: cita.cardId || null, clientPhone: cita.clientPhone || '' };
+        citasNuevoApartadoCargadas = false;
         
         console.log('[Cobrar] Servicios cargados:', servicios.length, servicios.map(s => ({id: s.id, name: s.name, price: s.price})));
         console.log('[Cobrar] Cita:', cita.id, 'serviceId:', cita.serviceId, 'serviceName:', cita.serviceName);
@@ -18509,6 +19174,58 @@
                   </div>
                 </div>
 
+                <!-- Apartado (saldo a favor que la clienta dejó antes) -->
+                <div class="cobro-card" id="cobro-apartado-box" style="display:none;border:1px solid rgba(140,150,104,.45);">
+                  <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+                    <i class="fas fa-piggy-bank" style="color:var(--olive);"></i>
+                    <span style="font-size:14px;font-weight:600;color:#fff;">Saldo a favor</span>
+                  </div>
+                  <!-- Solo aparece si el anticipo se dejó apuntando a ESTA cita -->
+                  <div id="cobro-apartado-nota" style="display:none;font-size:12.5px;color:var(--olive);margin-bottom:8px;">
+                    <i class="fas fa-thumbtack"></i> <span id="cobro-apartado-nota-txt"></span>
+                  </div>
+                  <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+                    <span style="color:#ccc;font-size:13px;">Tiene <strong id="cobro-apartado-saldo" style="color:var(--olive);">$0</strong> apartados</span>
+                    <button type="button" id="cobro-apartado-btn" onclick="alternarApartadoCobro()"
+                      style="min-height:44px;padding:10px 18px;background:var(--olive);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;">
+                      Aplicar
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Dejar apartado para la PRÓXIMA cita, junto con este cobro
+                     ("pago el facial y te dejo $300 para el láser"). Plegado
+                     para no estorbar en el cobro normal. -->
+                <div class="cobro-card" id="cobro-nuevo-apartado" style="border:1px dashed rgba(140,150,104,.45);">
+                  <button type="button" onclick="alternarNuevoApartado()"
+                    style="width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;background:transparent;border:none;color:#fff;padding:0;cursor:pointer;min-height:44px;text-align:left;">
+                    <span style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;"><i class="fas fa-piggy-bank" style="color:var(--olive);"></i> Dejar apartado para la próxima cita</span>
+                    <span id="cobro-nuevo-apartado-icono" style="color:var(--olive);font-size:20px;font-weight:700;line-height:1;">+</span>
+                  </button>
+                  <div id="cobro-nuevo-apartado-cuerpo" style="display:none;margin-top:12px;">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                      <div>
+                        <label for="cobro-nuevo-apartado-monto" style="display:block;font-size:12px;color:#888;margin-bottom:6px;">Monto ($)</label>
+                        <input type="number" id="cobro-nuevo-apartado-monto" class="cobro-input" min="0" step="1" inputmode="decimal" placeholder="0" oninput="actualizarTotalCobro()">
+                      </div>
+                      <div>
+                        <label for="cobro-nuevo-apartado-metodo" style="display:block;font-size:12px;color:#888;margin-bottom:6px;">Método</label>
+                        <select id="cobro-nuevo-apartado-metodo" class="cobro-input">
+                          <option value="">Igual que el cobro</option>
+                          <option value="efectivo">Efectivo</option>
+                          <option value="tarjeta">Tarjeta</option>
+                          <option value="transferencia">Transferencia</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div style="margin-top:10px;">
+                      <label for="cobro-nuevo-apartado-cita" style="display:block;font-size:12px;color:#888;margin-bottom:6px;">¿Para cuál cita? (opcional)</label>
+                      <select id="cobro-nuevo-apartado-cita" class="cobro-input"><option value="">Sin cita — queda como saldo a favor</option></select>
+                      <div id="cobro-nuevo-apartado-hint" style="font-size:11.5px;color:#888;margin-top:6px;"></div>
+                    </div>
+                  </div>
+                </div>
+
                 <!-- Resumen -->
                 <div class="cobro-card" style="background:var(--bg-secondary);">
                   <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #333;">
@@ -18526,9 +19243,27 @@
                     <span style="color:#888;font-size:13px;">Subtotal</span>
                     <span id="resumen-subtotal" style="color:#fff;font-size:14px;">$${precioServicioGlobal.toFixed(0)}</span>
                   </div>
+                  <div id="resumen-apartado" style="display:none;padding:8px 0;border-bottom:1px solid #333;">
+                    <div style="display:flex;justify-content:space-between;">
+                      <span style="color:#888;font-size:13px;">Apartado aplicado</span>
+                      <span id="valor-apartado" style="color:var(--olive);font-size:14px;">-$0</span>
+                    </div>
+                  </div>
                   <div style="display:flex;justify-content:space-between;padding:12px 0 4px;">
                     <span style="color:var(--olive);font-size:16px;font-weight:700;">Total</span>
                     <span id="total-cobro" style="color:var(--olive);font-size:22px;font-weight:800;">$${precioServicioGlobal.toFixed(0)}</span>
+                  </div>
+                  <!-- Solo cuando se deja apartado: la cita se guarda con su
+                       total; lo que entra HOY a la caja es la suma. -->
+                  <div id="resumen-nuevo-apartado" style="display:none;">
+                    <div style="display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid #333;">
+                      <span style="color:#888;font-size:13px;">Apartado para próxima cita</span>
+                      <span id="valor-nuevo-apartado" style="color:var(--olive);font-size:14px;">+$0</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;padding:8px 0 2px;">
+                      <span style="color:#fff;font-size:15px;font-weight:700;">A cobrar hoy</span>
+                      <span id="total-cobrar-hoy" style="color:#fff;font-size:20px;font-weight:800;">$0</span>
+                    </div>
                   </div>
                 </div>
 
@@ -18562,6 +19297,8 @@
 
         document.body.insertAdjacentHTML('beforeend', html);
 
+        cargarApartadoCobro(cita);
+
         // ── Apartado de barra heredado de la solicitud pública ──
         // Precarga la bebida al ticket, aplica su descuento (fijo) y muestra
         // el anticipo con link al comprobante. Sin esto, el pedido de barra
@@ -18589,7 +19326,7 @@
           if (resumenEl && (barExtra.depositReceiptUrl || (barExtra.preorderItems || []).length)) {
             const depLinea = barExtra.depositReceiptUrl
               ? `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
-                   <span><i class="fas fa-money-bill-wave" aria-hidden="true"></i> Anticipo $${barExtra.depositAmount || 100} · ${({ awaiting_review: 'por validar', confirmed: 'confirmado', rejected: 'RECHAZADO' })[barExtra.depositStatus] || barExtra.depositStatus || ''}</span>
+                   <span><i class="fas fa-money-bill-wave" aria-hidden="true"></i> Anticipo $${barExtra.depositAmount || 100} · ${({ awaiting_review: 'por validar', confirmed: 'confirmado — ya está en su saldo a favor', rejected: 'RECHAZADO' })[barExtra.depositStatus] || barExtra.depositStatus || ''}</span>
                    <a href="${barExtra.depositReceiptUrl}" target="_blank" rel="noopener" style="color:var(--olive);text-decoration:underline;">Ver comprobante</a>
                  </div>`
               : '';
@@ -18770,8 +19507,23 @@
         descuentoValor = descuentoInput;
       }
       
-      const total = Math.max(0, subtotal - descuentoValor);
-      
+      const totalAntesDeApartado = Math.max(0, subtotal - descuentoValor);
+
+      // Apartado: se topa al saldo real Y a lo que se debe hoy. Si quitan un
+      // producto y el total baja, el apartado baja solo — nunca se aplica
+      // más saldo del que hace falta.
+      const ap = window.cobroApartado;
+      const apartado = (ap && ap.activo) ? Math.min(ap.saldo, totalAntesDeApartado) : 0;
+      if (ap) ap.efectivo = apartado;
+      const total = Math.max(0, totalAntesDeApartado - apartado);
+
+      const elApartado = document.getElementById('resumen-apartado');
+      const elValorApartado = document.getElementById('valor-apartado');
+      if (elApartado && elValorApartado) {
+        elApartado.style.display = apartado > 0 ? 'block' : 'none';
+        elValorApartado.textContent = `-$${apartado.toFixed(0)}`;
+      }
+
       // Actualizar elementos del resumen
       const elSubtotal = document.getElementById('resumen-subtotal');
       const elTotal = document.getElementById('total-cobro');
@@ -18779,9 +19531,20 @@
       const elDescuento = document.getElementById('resumen-descuento');
       const elValorDescuento = document.getElementById('valor-descuento');
       
+      // Apartado que deja HOY para la próxima cita: no es parte de la cita
+      // (esa se guarda con su total), pero sí del dinero que entra ahora.
+      const nuevoApartado = leerNuevoApartado();
+      const aCobrarHoy = total + nuevoApartado;
+      const elResNuevo = document.getElementById('resumen-nuevo-apartado');
+      if (elResNuevo) {
+        elResNuevo.style.display = nuevoApartado > 0 ? 'block' : 'none';
+        const v = document.getElementById('valor-nuevo-apartado'); if (v) v.textContent = `+$${nuevoApartado.toFixed(0)}`;
+        const h = document.getElementById('total-cobrar-hoy'); if (h) h.textContent = `$${aCobrarHoy.toFixed(0)}`;
+      }
+
       if (elSubtotal) elSubtotal.textContent = `$${subtotal.toFixed(0)}`;
       if (elTotal) elTotal.textContent = `$${total.toFixed(0)}`;
-      if (elBtnTotal) elBtnTotal.textContent = `$${total.toFixed(0)}`;
+      if (elBtnTotal) elBtnTotal.textContent = `$${aCobrarHoy.toFixed(0)}`;
       
       // Mostrar/ocultar descuento
       if (elDescuento && elValorDescuento) {
@@ -18794,6 +19557,98 @@
       }
     }
     window.actualizarTotalCobro = actualizarTotalCobro;
+
+    // ── Apartado (saldo a favor) dentro del cobro ──────────────────────
+    // Si la clienta dejó dinero antes, aquí aparece y se descuenta con un
+    // toque. NO usa el campo de descuento a propósito: no es un descuento
+    // (el dinero ya entró) y recepción tiene bloqueados los descuentos.
+    async function cargarApartadoCobro(cita) {
+      try {
+        const qs = new URLSearchParams();
+        if (cita.cardId) qs.set('cardId', cita.cardId);
+        if (cita.clientPhone) qs.set('phone', cita.clientPhone);
+        // Con el id de la cita, el servidor además dice cuánto de ese saldo se
+        // dejó apuntando específicamente aquí (anticipo).
+        if (cita.id) qs.set('appointmentId', cita.id);
+        const res = await apiFetch(`/api/credits/lookup?${qs.toString()}`);
+        const json = await res.json();
+        const saldo = (json.success && json.data && Number(json.data.balance)) || 0;
+        if (saldo <= 0) return;
+
+        const anticipo = (json.data && Number(json.data.earmarked)) || 0;
+
+        window.cobroApartado = { cardId: json.data.cardId, saldo, activo: false, efectivo: 0 };
+        const box = document.getElementById('cobro-apartado-box');
+        const lbl = document.getElementById('cobro-apartado-saldo');
+        if (lbl) lbl.textContent = `$${saldo.toFixed(0)}`;
+        if (box) box.style.display = 'block';
+
+        // Si el dinero era para esta cita, se dice y se deja ya aplicado: es
+        // justo lo que se pactó con la clienta, no una decisión de mostrador.
+        // Se usa alternarApartadoCobro() para no duplicar el manejo del botón.
+        if (anticipo > 0) {
+          const nota = document.getElementById('cobro-apartado-nota');
+          const notaTxt = document.getElementById('cobro-apartado-nota-txt');
+          if (notaTxt) {
+            notaTxt.textContent = anticipo >= saldo
+              ? `Dejó $${anticipo.toFixed(0)} de anticipo para esta cita`
+              : `De ese saldo, $${anticipo.toFixed(0)} los dejó de anticipo para esta cita`;
+          }
+          if (nota) nota.style.display = 'block';
+          alternarApartadoCobro();
+        }
+      } catch (e) {
+        console.warn('[Cobrar] no se pudo consultar el apartado:', e);
+      }
+    }
+
+    function alternarApartadoCobro() {
+      const ap = window.cobroApartado;
+      if (!ap) return;
+      ap.activo = !ap.activo;
+      const btn = document.getElementById('cobro-apartado-btn');
+      if (btn) {
+        btn.textContent = ap.activo ? 'Quitar' : 'Aplicar';
+        btn.style.background = ap.activo ? '#333' : 'var(--olive)';
+        btn.style.color = ap.activo ? '#bbb' : '#fff';
+      }
+      actualizarTotalCobro();
+    }
+    window.alternarApartadoCobro = alternarApartadoCobro;
+
+    // ── Dejar apartado para la próxima cita, dentro del cobro ──────────
+    function leerNuevoApartado() {
+      const el = document.getElementById('cobro-nuevo-apartado-monto');
+      const n = el ? Math.round(parseFloat(el.value)) : 0;
+      return Number.isFinite(n) && n > 0 ? n : 0;
+    }
+
+    let citasNuevoApartadoCargadas = false;
+    function alternarNuevoApartado() {
+      const cuerpo = document.getElementById('cobro-nuevo-apartado-cuerpo');
+      const icono = document.getElementById('cobro-nuevo-apartado-icono');
+      if (!cuerpo) return;
+      const abrir = cuerpo.style.display === 'none';
+      cuerpo.style.display = abrir ? 'block' : 'none';
+      if (icono) icono.textContent = abrir ? '−' : '+';
+      if (abrir) {
+        // Las citas futuras se piden solo la primera vez que se abre: en un
+        // cobro normal nadie las necesita y sería un viaje al servidor de más.
+        if (!citasNuevoApartadoCargadas) {
+          citasNuevoApartadoCargadas = true;
+          const c = window.cobroCitaActual || {};
+          cargarCitasParaApartado(c.cardId, c.clientPhone, {
+            sel: 'cobro-nuevo-apartado-cita', hint: 'cobro-nuevo-apartado-hint', excluirCita: c.id,
+          });
+        }
+        const m = document.getElementById('cobro-nuevo-apartado-monto'); if (m) m.focus();
+      } else {
+        // Plegar = cancelar: sin monto, sin apartado.
+        const m = document.getElementById('cobro-nuevo-apartado-monto'); if (m) m.value = '';
+        actualizarTotalCobro();
+      }
+    }
+    window.alternarNuevoApartado = alternarNuevoApartado;
 
     async function procesarCobroCita(citaId) {
       console.log('[Procesar Cobro] Iniciando cobro para cita:', citaId);
@@ -18819,7 +19674,14 @@
         descuentoValor = descuentoInput;
       }
       
-      const totalFinal = Math.max(0, subtotal - descuentoValor);
+      // Mismo tope que el resumen: nunca se gasta más saldo del que hace falta.
+      const totalAntesDeApartado = Math.max(0, subtotal - descuentoValor);
+      const apCobro = window.cobroApartado;
+      const apartadoAplicado = (apCobro && apCobro.activo)
+        ? Math.min(apCobro.saldo, totalAntesDeApartado)
+        : 0;
+      const totalFinal = Math.max(0, totalAntesDeApartado - apartadoAplicado);
+      const nuevoApartadoMonto = leerNuevoApartado();
 
       if (totalFinal < 0) {
         showNotification('El monto a cobrar no puede ser negativo', 'warning');
@@ -18847,6 +19709,14 @@
             totalPaid: totalFinal,
             paymentMethod: metodo,
             discount: descuentoValor > 0 ? descuentoValor : null,
+            creditApplied: apartadoAplicado > 0 ? apartadoAplicado : undefined,
+            // Apartado que deja HOY para la próxima cita. Va en el mismo
+            // viaje: el servidor cierra el cobro y luego lo registra.
+            newDeposit: nuevoApartadoMonto > 0 ? {
+              amount: nuevoApartadoMonto,
+              paymentMethod: (document.getElementById('cobro-nuevo-apartado-metodo') || {}).value || metodo,
+              appointmentId: (document.getElementById('cobro-nuevo-apartado-cita') || {}).value || undefined,
+            } : undefined,
             productsSold: productosData
           })
         });
@@ -18877,10 +19747,21 @@
           }
 
           productosEnCobro = []; // Limpiar
-          showNotification('¡Pago registrado correctamente!', 'success');
+          if (json.depositError) {
+            // El cobro SÍ quedó; el apartado no. No se deshace el cobro
+            // (abriría la puerta a cobrar dos veces): se avisa y se
+            // registra a mano desde la ficha.
+            showNotification(`Pago registrado, pero el apartado NO se guardó: ${json.depositError}. Regístralo desde su ficha.`, 'warning');
+          } else if (json.deposit && json.deposit.amount > 0) {
+            showNotification(`¡Pago registrado! Apartado de $${Number(json.deposit.amount).toLocaleString('es-MX')} guardado para su próxima cita.`, 'success');
+          } else {
+            showNotification('¡Pago registrado correctamente!', 'success');
+          }
           cargarCaja(); // Recargar la caja
         } else {
-          showNotification(json.message || 'Error al registrar pago', 'error');
+          // El servidor manda `error` (ej. saldo insuficiente); sin esto la
+          // recepcionista solo veía 'Error al registrar pago' y no el porqué.
+          showNotification(json.error || json.message || 'Error al registrar pago', 'error');
         }
 
       } catch (err) {
@@ -19211,9 +20092,7 @@
     async function selectReportMonth(year, month) {
       currentReportMonth = { year, month };
       initReportMonthTabs();
-      await cargarReportesMes();
-      // Recargar gastos del mes seleccionado
-      if (typeof loadExpenses === 'function') loadExpenses();
+      await cargarReportesMes();   // pinta ventas Y gastos del mes en un viaje
     }
 
     // Color del borde de los charts (gap entre segmentos) según el tema activo.
@@ -19243,9 +20122,13 @@
         console.error('[REPORTS] Error citas:', apptJson.error);
       }
 
-      // Citas completadas con pago
+      // Citas completadas con pago. Si el apartado cubrió TODO el servicio,
+      // totalPaid es 0 (ese dinero se contó el día que lo dejó): sin la
+      // segunda condición la cita desaparecía del reporte y parecía no
+      // cobrada.
       const ventasCitas = (apptJson.data || []).filter(a =>
-        a.status === 'completed' && a.totalPaid && a.paymentMethod
+        a.status === 'completed' && a.paymentMethod &&
+        (a.totalPaid || Number(a.creditApplied) > 0)
       );
 
       // Ventas cafetería (excluir canceladas) → normalizar al mismo formato
@@ -19313,25 +20196,65 @@
 
         console.log('[REPORTS] Cargando mes:', firstDay, 'a', lastDayStr);
 
-        const todasLasVentas = await fetchVentasRango(firstDay, lastDayStr);
+        // Un solo viaje: ventas y gastos en paralelo (el servidor vive en
+        // Europa; encadenarlos costaba ~400ms extra por eslabón). Los mismos
+        // gastos pintan el Resumen Financiero Y el panel de Gastos del mes —
+        // antes se pedían TRES veces por carga.
+        const [todasLasVentas, gastosMes, apartados] = await Promise.all([
+          fetchVentasRango(firstDay, lastDayStr),
+          fetchGastosRango(firstDay, lastDayStr),
+          // Va en el mismo viaje para no costar latencia; si falla, el
+          // reporte sale igual (por eso el catch aquí y no afuera).
+          fetchApartadosPendientes(),
+        ]);
         reportData = todasLasVentas;
-        const totalEgresos = await fetchTotalEgresos(firstDay, lastDayStr);
+        const totalEgresos = gastosMes.reduce((s, g) => s + (parseFloat(g.amount) || 0), 0);
         renderExcelReport(todasLasVentas, totalEgresos);
+        // El panel de Gastos, de los datos ya traídos (el orden importa: la
+        // Utilidad Neta se calcula leyendo el total de ventas ya renderizado).
+        renderExpenses(gastosMes);
+        calculateExpenseStats(gastosMes);
+        renderApartadosPendientes(apartados);
       } catch (error) {
         console.error('[REPORTS] Error cargando mes:', error);
       }
     }
 
-    // Suma de gastos del rango para el Resumen Financiero y la dona.
-    async function fetchTotalEgresos(from, to) {
+    // Apartados sin usar: dinero que ya entró a la caja pero que sigue
+    // siendo de las clientas. No suma a ingresos (ya se contó el día que lo
+    // dejaron); se muestra para que la dueña sepa cuánto trae encima.
+    async function fetchApartadosPendientes() {
+      try {
+        const res = await apiFetch('/api/credits/pending');
+        const json = await res.json();
+        if (json.success && json.data) return json.data;
+      } catch (e) { console.warn('[REPORTS] apartados no disponibles:', e); }
+      return null;
+    }
+
+    function renderApartadosPendientes(datos) {
+      const caja = document.getElementById('report-apartados');
+      if (!caja) return;
+      const total = datos ? Number(datos.total) || 0 : 0;
+      if (!datos || total <= 0) { caja.style.display = 'none'; return; }
+      const clientas = datos.clientas || [];
+      const nombres = clientas.slice(0, 3).map(c => c.name.split(' ')[0]).join(', ');
+      const resto = clientas.length > 3 ? ` y ${clientas.length - 3} más` : '';
+      document.getElementById('report-apartados-total').textContent =
+        '$' + total.toLocaleString('es-MX', { minimumFractionDigits: 2 });
+      document.getElementById('report-apartados-detalle').textContent =
+        `${clientas.length} ${clientas.length === 1 ? 'clienta' : 'clientas'} · ${nombres}${resto}`;
+      caja.style.display = 'block';
+    }
+
+    // Gastos del rango (lista completa; el total se deriva de aquí).
+    async function fetchGastosRango(from, to) {
       try {
         const res = await apiFetch(`/api/expenses?from=${from}&to=${to}`);
         const json = await res.json();
-        if (json.success && Array.isArray(json.data)) {
-          return json.data.reduce((s, g) => s + (parseFloat(g.amount) || 0), 0);
-        }
+        if (json.success && Array.isArray(json.data)) return json.data;
       } catch (e) { console.warn('[REPORTS] gastos no disponibles:', e); }
-      return 0;
+      return [];
     }
 
     // Renderer ÚNICO del reporte de Ventas (vista por mes Y por rango):
@@ -19562,7 +20485,7 @@
           <tr>
             <td style="white-space:nowrap;" data-label="Fecha de pago">${fechaStr}</td>
             <td data-label="Cliente">${v.clientName || 'Sin nombre'}</td>
-            <td data-label="Servicio">${v.serviceName || '-'}</td>
+            <td data-label="Servicio">${v.serviceName || '-'}${Number(v.creditApplied) > 0 ? ` <span style="font-size:10px;color:#6B8E23;white-space:nowrap;">· $${Number(v.creditApplied).toLocaleString('es-MX')} de apartado</span>` : ''}</td>
             <td data-label="Tipo"><span style="font-size:10px;padding:2px 6px;border-radius:4px;background:${tipoColor.bg};color:${tipoColor.fg}">${tipo}</span></td>
             <td data-label="Forma de pago">${formaPago}</td>
             <td data-label="Cuenta Bancaria">${cuentaBancaria}</td>
@@ -20081,7 +21004,9 @@
       const title = document.getElementById('expense-modal-title');
       if (title) title.textContent = 'Nuevo Gasto';
       const dateInput = document.getElementById('expense-date');
-      if (dateInput) dateInput.valueAsDate = new Date();
+      // Fecha LOCAL: valueAsDate interpreta UTC y después de las 6pm sembraba
+      // mañana. Y sí se puede elegir CUALQUIER fecha, también de meses pasados.
+      if (dateInput) dateInput.value = toLocalDateString(new Date());
       if (expenseDialog) expenseDialog.showModal();
     };
 
@@ -20139,8 +21064,14 @@
     };
 
     if (formExpense) {
+      let guardandoGasto = false;   // seguro anti doble-clic: cada tap extra creaba OTRO gasto
       formExpense.addEventListener('submit', async (e) => {
         e.preventDefault();
+        if (guardandoGasto) return;
+        guardandoGasto = true;
+        const btnGuardar = formExpense.querySelector('button[type="submit"]');
+        const labelOriginal = btnGuardar ? btnGuardar.innerHTML : '';
+        if (btnGuardar) { btnGuardar.disabled = true; btnGuardar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando…'; }
 
         const data = {
           date: document.getElementById('expense-date').value,
@@ -20163,15 +21094,30 @@
           const json = await res.json();
 
           if (json.success) {
-            await venusAlert(currentExpenseId ? 'Gasto actualizado' : 'Gasto registrado');
             closeExpenseModal();
-            loadExpenses();
+
+            // Si el gasto es de OTRO mes (ej. anotar agosto ya en septiembre),
+            // saltar a ese mes para que se vea registrado — antes se guardaba
+            // bien pero la lista recargaba el mes en pantalla y "desaparecía".
+            const [gy, gm] = String(data.date).split('-').map(Number);
+            const esOtroMes = gy && gm && (gy !== currentReportMonth.year || gm !== currentReportMonth.month);
+            const MESES_G = ['', 'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+            await venusAlert((currentExpenseId ? 'Gasto actualizado' : 'Gasto registrado') + (esOtroMes ? ` en ${MESES_G[gm]} de ${gy} — te llevo a ese mes` : ''));
+
+            if (esOtroMes && typeof selectReportMonth === 'function') {
+              selectReportMonth(gy, gm);
+            } else {
+              loadExpenses();
+            }
           } else {
             await venusAlert('Error: ' + json.error);
           }
         } catch (error) {
           console.error('Error:', error);
           await venusAlert('Error guardando gasto');
+        } finally {
+          guardandoGasto = false;
+          if (btnGuardar) { btnGuardar.disabled = false; btnGuardar.innerHTML = labelOriginal; }
         }
       });
     }
@@ -20184,8 +21130,9 @@
       tab.addEventListener('click', () => {
         setTimeout(async () => {
           if (typeof initReportMonthTabs === 'function') initReportMonthTabs();
+          // cargarReportesMes ya pinta también el panel de Gastos con los
+          // mismos datos: el loadExpenses() que seguía aquí duplicaba el viaje.
           if (typeof cargarReportesMes === 'function') await cargarReportesMes();
-          if (typeof loadExpenses === 'function') loadExpenses();
         }, 100);
       });
     });

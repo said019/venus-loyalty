@@ -12,7 +12,7 @@
  *   GOOGLE_WALLET_SERVICE_ACCOUNT  JSON string or path to service account key
  */
 
-import { google } from 'googleapis';
+import { google } from './googleApis.js';
 
 const ISSUER_ID = process.env.GOOGLE_WALLET_ISSUER_ID;
 const CLASS_SUFFIX = 'venusLoyaltyClass';

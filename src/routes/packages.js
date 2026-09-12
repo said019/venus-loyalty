@@ -183,6 +183,9 @@ router.post('/purchase/:id/use', async (req, res) => {
     });
 
     console.log(`[PACKAGES] Sesión descontada: ${resultado.package.name} → ${resultado.sessionsUsed}/${resultado.sessionsTotal}`);
+    // Usar una sesión es una visita real: refresca lastVisit de la clienta.
+    prisma.card.update({ where: { id: resultado.cardId }, data: { lastVisit: new Date() } })
+      .catch(e => console.warn('[PACKAGES] lastVisit:', e.message));
     res.json({ success: true, data: serializar(resultado) });
   } catch (e) {
     const conocidos = { compra_no_encontrada: 404, sin_sesiones: 409, paquete_vencido: 409, paquete_cancelado: 409 };
