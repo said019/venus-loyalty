@@ -545,22 +545,8 @@
 
         // Gallery
         const images = a.images || [];
-        $('d-images-count').textContent = `${images.length} capturas`;
-        $('d-gallery').innerHTML = images.map(img => `
-            <div class="gallery-item" data-url="${escapeHtml(img.originalUrl)}" data-caption="${escapeHtml(img.labelEs)}">
-                <img src="${escapeHtml(img.originalUrl)}" alt="${escapeHtml(img.labelEs)}" loading="lazy" onerror="this.style.opacity=0.3;this.style.filter='grayscale(1)'">
-                <div class="gallery-caption">${escapeHtml(img.labelEs)}</div>
-            </div>
-        `).join('');
-
-        // Bind lightbox
-        $('d-gallery').querySelectorAll('.gallery-item').forEach(el => {
-            el.addEventListener('click', () => openLightbox(el.dataset.url, el.dataset.caption));
-        });
-        $('lightbox-close').addEventListener('click', closeLightbox);
-        $('lightbox').addEventListener('click', (e) => {
-            if (e.target === $('lightbox')) closeLightbox();
-        });
+        $('d-images-count').textContent = `${images.length} imágenes del informe`;
+        window.VenusSkinGallery.mount($('d-gallery'), images);
 
         // WhatsApp button
         $('btn-whatsapp').addEventListener('click', () => sendWhatsAppSummary(a));
