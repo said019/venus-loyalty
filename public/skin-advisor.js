@@ -4,8 +4,19 @@
   var config, record, current, renderedId, busy = false, photoControls = [], corrections = [];
   var query = new URLSearchParams(location.search);
   var recordId = query.get('recordId');
+  var captureIds = window.VenusCaptureFlow ? window.VenusCaptureFlow.selectedIds(location.search) : [];
+  if (query.get('capture') === '1') {
+    document.querySelector('.intro h1').textContent = 'Tus fotos ya están aquí.';
+    document.querySelector('.intro p:last-child').textContent = 'Confirma la luz, orientación y fecha de las fotos recién tomadas. Completa la consulta y autoriza el análisis, sin volver a subir archivos.';
+  }
   if (query.get('cardId')) byId('back').href = '/admin/clientas/' + encodeURIComponent(query.get('cardId'));
   else byId('back').textContent = '← Volver a Venus';
+  if (query.get('capture') === '1') {
+    byId('back').href = '/captura.html?modo=analisis';
+    byId('back').textContent = '← Nueva sesión en el Moji';
+    document.querySelector('footer a').href = '/captura.html?modo=analisis';
+    document.querySelector('footer a').textContent = 'Nueva sesión';
+  }
   var statusNames = { draft: 'Borrador guardado', generating: 'Analizando', pending_review: 'Pendiente de tu revisión', approved: 'Aprobada', needs_information: 'Se necesita más información', failed: 'Análisis no completado', superseded: 'Versión anterior', refused: 'Sin valoración' };
   var fields = [['goal','¿Qué te gustaría mejorar?'],['duration','¿Desde cuándo lo notas?'],['symptoms','Molestias: picor, dolor, ardor u otras'],['routineDay','Rutina de día'],['routineNight','Rutina de noche'],['allergies','Alergias conocidas'],['medications','Medicamentos relevantes'],['previousTreatments','Tratamientos anteriores'],['reactions','Reacciones a productos o tratamientos'],['sunExposure','Exposición habitual al sol'],['sunscreen','Uso de protector solar']];
   var flags = [['declaredReactivity','¿La clienta declara piel reactiva?'],['changingLesion','¿Declara una lesión que cambia?'],['bleedingLesion','¿Declara una lesión que sangra?'],['growingLesion','¿Declara una lesión que crece?']];
@@ -43,6 +54,7 @@
       var src = safeImage(photo.url);
       if (src) { var img = node('img', undefined, box); img.alt = 'Fotografía ' + (index + 1) + ' del expediente'; img.referrerPolicy = 'no-referrer'; img.src = src; img.addEventListener('error', function () { img.hidden = true; node('p', 'Vista previa no disponible', box); }); }
       var label = node('label', undefined, box); label.className = 'check'; var check = node('input', undefined, label); check.type = 'checkbox'; node('span', 'Foto ' + (index + 1) + ' · ' + date(photo.takenAt), label);
+      check.checked = captureIds.indexOf(photo.id) !== -1;
       var zone = select(zones, node('label', 'Zona', box));
       var orientation = select(orientations, node('label', 'Orientación actual', box));
       var captured = node('input', undefined, node('label', 'Fecha y hora de la toma', box)); captured.type = 'datetime-local';
@@ -125,13 +137,15 @@
   (async function () {
     try {
       if (!recordId) throw new Error('Abre Venus Skin IA desde el expediente de una clienta.');
-      config = await api('/config'); await refresh(); renderPhotos(record.photos);
+      config = await api('/config'); await refresh();
+      var visiblePhotos = captureIds.length ? record.photos.filter(function (p) { return captureIds.indexOf(p.id) !== -1; }) : record.photos;
+      renderPhotos(visiblePhotos);
       byId('age').value = record.record.age === null || record.record.age === undefined ? '' : record.record.age;
       byId('objective').value = record.record.objectives || ''; byId('consent-text').textContent = config.consentText;
       byId('save').disabled = false;
       if (config.simulation) { byId('configuration').hidden = false; byId('configuration').textContent = 'SIMULACIÓN · Datos ficticios. No se envían fotos a OpenAI ni se permite aprobar.'; byId('generate').textContent = 'Generar simulación'; }
       if (!config.enabled || !config.configured) { byId('configuration').hidden = false; byId('configuration').textContent = 'Puedes preparar borradores. Para analizar falta activar OpenAI y completar su configuración privada en el servidor.'; }
-      message('Expediente listo. Las fotos originales se conservan.');
+      message(captureIds.length ? visiblePhotos.length === captureIds.length ? 'Fotos de esta sesión seleccionadas. Confirma sus datos para continuar.' : 'Algunas fotos de esta sesión no están disponibles. Regresa a captura y revisa las fotos guardadas.' : 'Expediente listo. Las fotos originales se conservan.');
     } catch (error) { message(error.message, true); }
   })();
 }());

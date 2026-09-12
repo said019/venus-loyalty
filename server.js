@@ -852,6 +852,19 @@ app.get('/api/public/moji-ping', async (req, res) => {
 // navegador entra por http, sin contexto seguro no hay cámara.
 // Atajo tecleable para la captura de fotos desde el skin analyzer.
 app.get('/captura', (_req, res) => res.redirect(302, '/captura.html'));
+app.get('/moji', (_req, res) => res.redirect(302, '/captura.html?modo=analisis'));
+app.use((req, res, next) => {
+  if (req.path === '/captura.html') {
+    res.set('Content-Security-Policy', "frame-ancestors 'self'");
+    res.set('Permissions-Policy', 'camera=(self), microphone=()');
+    res.set('Cache-Control', 'no-store');
+  }
+  if (req.path === '/skin-advisor.html') {
+    res.set('Content-Security-Policy', "frame-ancestors 'none'");
+    res.set('Permissions-Policy', 'camera=(), microphone=()');
+  }
+  next();
+});
 app.get('/cam', (_req, res) => res.redirect(302, `https://venuscosmetologia.com.mx/moji-test.html?t=${MOJI_TEST_TOKEN}`));
 
 app.use(express.json());
