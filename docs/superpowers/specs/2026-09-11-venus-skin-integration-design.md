@@ -1,6 +1,6 @@
 # Venus Skin IA — integración interna con OpenAI
 
-Estado: propuesta de integración para revisión del dueño. Decisiones confirmadas: OpenAI como único proveedor nuevo, conservación de imágenes originales y aprobación exclusivamente por Said como administrador. No se ha implementado esta etapa.
+Estado: diseño aprobado por el dueño. Decisiones confirmadas: OpenAI como único proveedor nuevo, conservación de imágenes originales y aprobación exclusivamente por Said como administrador. Implementación por incrementos; la integración completa aún no está instalada.
 
 ## Alcance
 
@@ -49,4 +49,4 @@ Preservar las pruebas del motor y galería. Preparar migraciones como archivos, 
 
 ## Revisión documental
 
-Alcance delimitado a integración interna; proveedor único; cuenta del dueño diferenciada del rol; persistencia y concurrencia no delegadas a memoria; originales preservados; publicación y hardware fuera del alcance. Pendiente de revisión del dueño antes del plan de implementación, según la guía de diseño utilizada.
+Alcance delimitado a integración interna; proveedor único; cuenta del dueño diferenciada del rol; persistencia y concurrencia no delegadas a memoria; originales preservados; publicación y hardware fuera del alcance. El dueño aprobó el diseño antes del plan de implementación.

@@ -48,6 +48,33 @@ La revisión puede aportar `correctedAssessment` y `reviewNotes`. Las correccion
 
 ## Responsabilidades del servidor que lo integre
 
+### Aprobación exclusiva del dueño
+
+La política `createOwnerReviewAuthorizer` permite aprobar únicamente a una cuenta identificada explícitamente y cuyo rol actual en la base sea `admin`. No basta con que una cookie o el cuerpo de una petición diga `admin`. La configuración privada prevista es `SKIN_ADVISOR_APPROVER_ID`; este módulo no la lee ni elige automáticamente una cuenta.
+
+```js
+import {
+  createOwnerReviewAuthorizer,
+  reviewerFromAuthenticatedRequest,
+} from './src/services/ai/skinAdvisor/index.js';
+
+const authorizeReview = createOwnerReviewAuthorizer({
+  approverId: privateConfig.skinAdvisorApproverId,
+  findAdminById: (id) => prisma.admin.findUnique({
+    where: { id },
+    select: { id: true, role: true },
+  }),
+});
+// Construir la sesión con authorizeReview.
+// Dentro de una ruta que YA pasó adminAuth:
+const actor = reviewerFromAuthenticatedRequest(req);
+// Usar actor al llamar session.approve; nunca req.body.actor.
+```
+
+El ejemplo es un punto de integración, no una ruta instalada. `reviewerFromAuthenticatedRequest` no verifica cookies por sí mismo: presupone `adminAuth` ejecutado por el servidor. La cuenta se consulta en cada decisión; cuenta ausente, rol revocado, configuración inválida o error de consulta deniegan el permiso. La futura transacción persistente también debe verificar autorización y versión antes de guardar: este callback no sustituye esa transacción ni evita por sí solo una revocación concurrente.
+
+No se modifican los permisos globales existentes ni los reportes públicos. La cuenta concreta se configurará al activar la integración; no debe deducirse del primer administrador encontrado.
+
 - Autenticar a la persona y autorizar acceso al expediente y a cada foto antes de construir la entrada. Una marca de pertenencia en JSON no autentica una petición HTTP.
 - Recoger consentimiento específico para procesar las fotografías seleccionadas con OpenAI, con versión y fecha. El consentimiento general de fotografía no lo sustituye.
 - Proporcionar únicamente servicios activos y protocolos revisados, con versiones. El modelo no crea protocolos autorizados.
