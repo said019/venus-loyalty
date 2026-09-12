@@ -1,6 +1,6 @@
 # Venus Skin IA — qué debe analizar
 
-Fecha: 10 de septiembre de 2026. Versión funcional 1.0, para revisión del dueño y del personal profesional de Venus. Define el contenido del producto; no acredita capacidad diagnóstica ni precisión del modelo. No hay implementación en esta entrega.
+Fecha: 10 de septiembre de 2026. Versión funcional 1.0, aprobada por el dueño el 11 de septiembre para iniciar el desarrollo. Sigue pendiente la validación por personal profesional de Venus. Define el contenido del producto; no acredita capacidad diagnóstica ni precisión del modelo. El estado de implementación está en [Motor interno](../../VENUS_SKIN_AI_CORE.md).
 
 ## Objetivo
 
@@ -148,4 +148,4 @@ Estas son pruebas propuestas, todavía no ejecutadas sobre un motor Venus propio
 
 ## Estado de revisión
 
-El dueño aprobó el enfoque general y pidió definir este contenido antes de programar. Este catálogo concreta esa petición y queda para su revisión; las indicaciones de cuidado y protocolos requieren además revisión profesional antes de un piloto real.
+El dueño aprobó el enfoque y este catálogo para iniciar el desarrollo. Las indicaciones de cuidado y protocolos requieren además revisión profesional antes de un piloto real. Las pruebas iniciales del motor validan software y contratos, no el desempeño clínico de este catálogo.

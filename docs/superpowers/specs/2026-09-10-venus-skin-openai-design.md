@@ -1,6 +1,6 @@
 # Venus Skin IA — primera entrega con OpenAI
 
-Fecha: 10 de septiembre de 2026. Estado: enfoque general aprobado por el dueño; contenido de la valoración en revisión antes de programar. No implementado ni desplegado.
+Fecha: 10 de septiembre de 2026. Estado actualizado el 11 de septiembre: enfoque y catálogo aprobados por el dueño; implementación del motor interno autorizada. Sin despliegue ni integración con el aparato. La entrega técnica se documenta en [Motor interno](../../VENUS_SKIN_AI_CORE.md).
 
 ## Decisión de producto
 
@@ -22,7 +22,7 @@ La definición funcional de lo que se analiza está en [Qué debe analizar Venus
 - `src/routes/skinAnalysis.js` importa datos del fabricante. `src/services/ai/claudeNarrative.js` envía texto, no fotografías. Se conserva la lectura de informes históricos; el motor nuevo no llama a Claude ni lo usa como respaldo.
 - `ClientRecord`, `IntakeForm`, `ClientPhoto` y `TreatmentSession` ya contienen parte del contexto necesario. No se copia todo el expediente a la IA.
 - La auditoría reprodujo: puntuaciones ausentes convertidas en cero/crítico; indicadores moderados mostrados como A+; y narrativa anterior conservada al reimportar datos si falla la IA. El nuevo contrato evita esas conductas. Los arreglos del importador histórico se entregan como cambios acotados, no se dan por realizados.
-- Esta carpeta parte de `53c18d1`. La copia de Documents revisada parte de `18e4686` y contiene cambios locales adicionales. Antes de integrar código se reconciliará la base en una copia segura, preservando esos cambios; no se publicará desde una base desactualizada. Este commit contiene solo el diseño.
+- Esta carpeta parte de `53c18d1`. La copia de Documents revisada parte de `18e4686` y contiene cambios locales adicionales. Antes de integrar el motor con la aplicación se reconciliará la base en una copia segura, preservando esos cambios; no se publicará desde una base desactualizada. El primer motor se desarrolla en archivos independientes.
 - El handoff antiguo indicaba no usar APK y mantener el motor del fabricante: esas preferencias quedaron sustituidas por las peticiones posteriores del dueño. Tampoco se toma su afirmación de `/captura` como prueba de que el archivo exista: no se encontró en las dos copias revisadas.
 - Android 8.1/API 27, cámara nativa con vista en vivo 2064×1548, orientación 90°. Luz blanca confirmada físicamente con Venus 0.6. La 0.7 mostró cámara real y liberación al salir, pero su registro deja pendiente la confirmación conjunta. No se afirma que ya exista captura de foto sincronizada ni control validado de otras luces.
 
@@ -110,4 +110,4 @@ La app original queda instalada como respaldo. No se promete aún reemplazo func
 
 ## Revisión
 
-Autorrevisión documental: alcance separado por entregas, estados de fallo, datos mínimos, límites de hardware y autorización explícitos. El dueño aprobó el enfoque y pidió definir primero qué analiza la asesora. El catálogo funcional adjunto queda para revisión antes de pasar al plan de implementación. Este documento no afirma que el motor, la app final o su precisión ya estén comprobados.
+Autorrevisión documental: alcance separado por entregas, estados de fallo, datos mínimos, límites de hardware y autorización explícitos. El dueño aprobó el enfoque y el catálogo funcional para iniciar el motor interno. La app final y la precisión visual o clínica siguen pendientes de integración y evaluación; la entrega técnica se registra por separado.
