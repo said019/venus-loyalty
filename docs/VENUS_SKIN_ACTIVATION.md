@@ -1,5 +1,16 @@
 # Venus Skin IA: integración y activación
 
+## Puesta en marcha del 12 de septiembre de 2026
+
+- Se verificó la cuenta de Said y se configuró su ID exacto como único aprobador.
+- La clave quedó en Railway; no se guardó en el repositorio. La prueba real con GPT-4.1 respondió correctamente.
+- Una prueba con imagen sintética detectó que faltaban instrucciones explícitas para las zonas y los requisitos de protocolos. El prompt v2 lo corrige sin relajar el validador. La prueba posterior pasó, solicitó repetir la imagen y no propuso procedimientos.
+- Se aplicó únicamente la migración aditiva de Skin Advisor, junto con su registro de migración, en una transacción. No se ejecutó el conjunto de migraciones pendientes.
+- Publicación preparada desde el commit `dfc23ac`, que incluye la base productiva `f250657`. No se incluyeron archivos locales sin seguimiento.
+- Sigue pendiente un piloto autenticado con fotografías expresamente autorizadas y la comprobación en el Moji real. Las pruebas sintéticas no acreditan calidad clínica.
+
+Las secciones siguientes describen la configuración y el procedimiento original; consultar este registro para distinguir los pasos ya ejecutados.
+
 ## Entrega de código
 
 El expediente contiene un enlace **Venus Skin IA** hacia `/skin-advisor.html?recordId=...`. La pantalla usa `/api/skin-advisor`, con sesión autenticada, para seleccionar fotografías originales de luz blanca, confirmar orientación/fecha, registrar consentimiento, guardar un borrador, solicitar OpenAI y revisar la valoración. Solo la cuenta configurada del dueño, con rol actual `admin`, puede aprobar.
