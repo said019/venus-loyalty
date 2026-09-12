@@ -59,20 +59,11 @@
         gap: 14px;
       }
 
-      .dialog-title-icon {
-        width: 48px;
-        height: 48px;
-        background: linear-gradient(135deg, #8c9668 0%, #a8b892 100%);
-        border-radius: 14px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 22px;
-        box-shadow: 0 8px 20px rgba(140, 150, 104, 0.3);
-      }
+      /* .dialog-title-icon borrado (auditoría 2026-08): 0 usos en
+         admin.html/js — era el otro gradiente sage muerto. */
 
       .dialog-title-text {
-        font-family: 'Playfair Display', serif;
+        font-family: var(--font-display), serif;
         font-size: 24px;
         font-weight: 500;
         color: var(--text-primary);
@@ -96,7 +87,6 @@
       .dialog-close:hover {
         background: var(--bg-tertiary);
         color: var(--text-primary);
-        transform: rotate(90deg);
       }
 
       /* Dialog Content - Área de scroll */
@@ -271,21 +261,25 @@
         align-items: center;
         justify-content: center;
         gap: 10px;
-        background: linear-gradient(135deg, #8c9668 0%, #a8b892 100%);
+        /* AA ambos temas (auditoría 2026-08): sólido --olive-deep
+           (oklch 48% .085 120, compartido light/dark) + tinta crema =
+           5.92:1. El gradiente sage #8c9668→#a8b892 daba 3.14:1 (light)
+           y 2.11:1 (dark) con blanco en el botón Cobrar. */
+        background: var(--olive-deep, #576429);
         border: none;
-        color: white;
+        color: oklch(97% 0.010 88);
         padding: 16px 24px;
         border-radius: 12px;
         font-size: 15px;
         font-weight: 600;
         cursor: pointer;
         transition: all 0.25s;
-        box-shadow: 0 8px 24px rgba(140, 150, 104, 0.3);
       }
 
+      /* verificador de cierre: translateY + sombras-glow retirados
+         (DESIGN.md: hover = solo color/borde; sombra solo en diálogo) */
       .submit-btn:hover, .dialog-footer .btn.primary:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 12px 32px rgba(140, 150, 104, 0.4);
+        filter: brightness(0.95);
       }
 
       .submit-btn:active, .dialog-footer .btn.primary:active {
@@ -369,7 +363,7 @@
       select.form-input {
         cursor: pointer;
         appearance: none;
-        background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%2322c55e' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+        background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%238c9668' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
         background-repeat: no-repeat;
         background-position: right 14px center;
         padding-right: 36px;
@@ -554,93 +548,37 @@
         background: rgba(255, 255, 255, .03);
       }
 
-      /* Responsive table */
-      @media (max-width: 768px) {
-        .data-table thead {
-          display: none;
-        }
-
-        .data-table,
-        .data-table tbody,
-        .data-table tr,
-        .data-table td {
-          display: block;
-          width: 100%;
-        }
-
-        .data-table tr {
-          margin-bottom: 20px;
-          border: 1px solid rgba(140, 150, 104, 0.3);
-          border-radius: 16px;
-          padding: 16px;
-          background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-        }
-
-        .data-table td {
-          padding: 0;
-          border: none;
-          position: relative;
-          padding-left: 0;
-          text-align: left;
-          margin-bottom: 12px;
-        }
-
-        .data-table td:last-child {
-          margin-bottom: 0;
-        }
-
-        .data-table td::before {
-          content: attr(data-label);
-          display: block;
-          font-weight: 600;
-          color: var(--venus-soft);
-          font-size: 11px;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-          margin-bottom: 4px;
-        }
-
-        /* First cell (time) - make it prominent */
-        .data-table td:first-child {
-          font-size: 28px;
-          font-weight: 700;
-          color: var(--venus-soft);
-          margin-bottom: 16px;
-          padding-bottom: 12px;
-          border-bottom: 1px solid rgba(140, 150, 104, 0.2);
-        }
-
-        .data-table td:first-child::before {
-          font-size: 10px;
-          color: var(--muted);
-        }
-
-        /* Actions cell - full width buttons */
-        .data-table td .actions,
-        .data-table td:last-child {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-          margin-top: 16px;
-          padding-top: 12px;
-          border-top: 1px solid rgba(140, 150, 104, 0.1);
-        }
-
-        .data-table td .actions button,
-        .data-table td:last-child button {
-          width: 100%;
-          justify-content: center;
-          padding: 12px 16px;
-          font-size: 15px;
-          border-radius: 12px;
-        }
-
-        /* Hide label for actions */
-        .data-table td:last-child::before {
-          display: none;
-        }
+      /* Cumpleañeras — declaraciones base movidas arriba de la primera @media
+         del archivo (informe S1/Tanda 4): una declaración sin media query
+         debajo de las reglas móviles las mata por orden de cascada. */
+      .birthday-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px;
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: var(--radius-sm);
+        transition: background-color 0.2s;
       }
+
+      .birthday-item:hover {
+        background: rgba(255, 255, 255, 0.06);
+      }
+
+      .birthday-info h4 {
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--ink);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      /* Bloque viejo de transformación de tablas RETIRADO (re-auditoría
+         responsive): la card-ificación móvil de .data-table vive ahora en
+         admin-mobile.css (sistema nuevo, carga al final). Productos y
+         Detalle de Ventas emiten data-label + class="data-table" y quedan
+         cubiertas por ese sistema. */
 
       .day-number {
         font-size: 20px;
@@ -717,18 +655,24 @@
       }
 
       /* Mobile Responsiveness */
-      @media (max-width: 768px) {
+      @media (max-width: 767.98px) {
         .grid-service-price {
           grid-template-columns: 1fr;
         }
 
         .grid-date-time {
-          grid-template-columns: 1fr 1fr;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
           gap: 8px;
         }
 
         /* Make date span full width on mobile */
         .grid-date-time>div:first-child {
+          grid-column: 1 / -1;
+        }
+
+        /* "Finaliza aprox." también a ancho completo: su etiqueta no cabe
+           en media pista (informe P1-24) */
+        .grid-date-time>div:last-child {
           grid-column: 1 / -1;
         }
 
@@ -906,7 +850,7 @@
         flex: 1;
         text-align: center;
         padding: 12px 10px;
-        font-family: "DM Sans", sans-serif;
+        font-family: var(--font-body), sans-serif;
         font-size: 13px;
         font-weight: 600;
         color: var(--text-primary);
@@ -936,7 +880,7 @@
         height: 60px;
         text-align: right;
         padding: 6px 10px 0;
-        font-family: "DM Sans", sans-serif;
+        font-family: var(--font-body), sans-serif;
         font-size: 11px;
         font-weight: 600;
         letter-spacing: 0.02em;
@@ -984,7 +928,7 @@
         right: 4px;
         padding: 9px 12px;
         border-radius: 10px;
-        font-family: "DM Sans", sans-serif;
+        font-family: var(--font-body), sans-serif;
         font-size: 12px;
         line-height: 1.35;
         overflow: hidden;
@@ -992,14 +936,23 @@
         z-index: 10;
         background: var(--surface, var(--bg-card));
         border: 1px solid var(--border-color);
-        border-left: 3px solid var(--accent-gold);
         color: var(--text-primary);
         transition: border-color 140ms ease-out, box-shadow 140ms ease-out;
       }
       .appt-block:hover {
         z-index: 20;
         border-color: var(--border-glow, var(--accent-gold));
-        box-shadow: 0 6px 20px rgba(140, 150, 104, 0.14);
+      }
+
+      /* Citas de 30 min o menos: el bloque mide 30px de alto y con el padding
+         normal solo alcanzaba a verse la hora — el nombre quedaba recortado.
+         Se colapsa a un renglón con elipsis (el nombre completo va en title). */
+      .appt-block.is-short {
+        padding: 4px 8px;
+        font-size: 11px;
+        line-height: 1.2;
+        white-space: nowrap;
+        text-overflow: ellipsis;
       }
       .appt-block .ab-head {
         font-weight: 600;
@@ -1083,7 +1036,7 @@
       }
 
       /* Responsive */
-      @media (max-width: 768px) {
+      @media (max-width: 767.98px) {
         .calendar-day {
           min-height: 45px;
           border-radius: 8px;
@@ -1480,10 +1433,10 @@
       .discount-applied {
         margin-top: 12px;
         padding: 10px 14px;
-        background: rgba(34, 197, 94, 0.1);
+        background: var(--success-bg);
         border-radius: 10px;
         font-size: 13px;
-        color: #22c55e;
+        color: var(--success);
         display: none;
         align-items: center;
         gap: 8px;
@@ -1505,7 +1458,7 @@
 
       .payment-total-row.discount {
         font-size: 13px;
-        color: #22c55e;
+        color: var(--success);
         display: none;
       }
 
@@ -1529,31 +1482,14 @@
         margin-bottom: 24px;
       }
 
-      @media (max-width: 1100px) {
-        .hero-stats {
-          grid-template-columns: repeat(2, 1fr);
-        }
-      }
-
-      @media (max-width: 500px) {
-        .hero-stats {
-          grid-template-columns: 1fr;
-        }
-      }
-
+      /* Los intentos de 2 col / 1 col de .hero-stats eran código muerto:
+         admin-redesign.css los pisaba sin media query (informe S1). El colapso
+         responsive vive ahora en admin-redesign. Sin card chrome ni hover con
+         translateY: los KPIs no son tarjetas (DESIGN.md, informe T7). */
       .hero-stat {
-        background: var(--bg-card);
-        border-radius: var(--radius);
         padding: 20px;
-        border: 1px solid var(--line);
         position: relative;
         overflow: hidden;
-        transition: all 0.2s ease;
-      }
-
-      .hero-stat:hover {
-        border-color: var(--line-hover);
-        transform: translateY(-2px);
       }
 
       .hero-stat::before {
@@ -1571,26 +1507,8 @@
         font-size: 20px;
       }
 
-      .hero-stat:nth-child(1) .hero-stat-icon {
-        background: rgba(168, 85, 247, 0.15);
-        color: #a855f7;
-      }
-
-      .hero-stat:nth-child(2) .hero-stat-icon {
-        background: rgba(59, 130, 246, 0.15);
-        color: #3b82f6;
-      }
-
-      .hero-stat:nth-child(3) .hero-stat-icon {
-        background: rgba(34, 197, 94, 0.15);
-        color: #22c55e;
-      }
-
-      .hero-stat:nth-child(4) .hero-stat-icon {
-        background: rgba(245, 158, 11, 0.15);
-        color: #f59e0b;
-      }
-
+      /* Sin paleta nth-child (purple/blue/green/amber de Tailwind): los cinco
+         iconos toman el tinte olivo de admin-redesign.css (informe T7). */
       .hero-stat-value {
         font-size: 36px;
         font-weight: 700;
@@ -1637,18 +1555,8 @@
         margin-bottom: 24px;
       }
 
-      @media (max-width: 800px) {
-        .today-grid {
-          grid-template-columns: repeat(2, 1fr);
-        }
-      }
-
-      @media (max-width: 500px) {
-        .today-grid {
-          grid-template-columns: 1fr;
-        }
-      }
-
+      /* Los colapsos de .today-grid a 800/500px eran código muerto: los pisaba
+         admin-redesign.css sin media query (informe S1). Viven en redesign. */
       .today-card {
         background: var(--bg-card);
         border-radius: var(--radius-lg);
@@ -1663,23 +1571,12 @@
           overflow: hidden;
         }
 
-      .today-card::before {
-          content: '';
-          position: absolute;
-          left: 0; top: 0; bottom: 0;
-          width: 3px;
-          background: var(--tc-color, var(--venus));
-        border-radius: 3px 0 0 3px;
-        }
-
-        .today-card.citas-card   { --tc-color: #3b82f6; }
-        .today-card.pending-card { --tc-color: #f59e0b; }
-        .today-card.income-card  { --tc-color: #22c55e; }
-
+      /* Sin franja lateral de color (::before) ni --tc-color por tarjeta:
+         bordes laterales de acento prohibidos (DESIGN.md, informe T7).
+         La diferenciación queda en el icono, en olivo vía admin-redesign. */
+        /* Hover solo color/borde (DESIGN.md): sin translateY ni sombra */
         .today-card:hover {
           border-color: var(--tc-color, var(--venus));
-        transform: translateY(-3px);
-          box-shadow: 0 8px 24px rgba(0,0,0,0.18);
       }
 
       .today-card-icon {
@@ -1693,27 +1590,14 @@
         font-size: 20px;
       }
 
-      .today-card-icon.citas {
-        background: rgba(59, 130, 246, 0.15);
-        color: #3b82f6;
-      }
-
-      .today-card-icon.pendientes {
-        background: rgba(251, 191, 36, 0.15);
-        color: #f59e0b;
-      }
-
-      .today-card-icon.ingresos {
-        background: rgba(34, 197, 94, 0.15);
-        color: #22c55e;
-        }
-
+      /* .today-card-icon.citas/.pendientes/.ingresos en paleta Tailwind
+         borradas: admin-redesign.css ya las define con tokens de marca. */
         .today-card-info {
           flex: 1;
       }
 
       .today-card-info h4 {
-          font-family: 'Playfair Display', serif;
+          font-family: var(--font-display), serif;
         font-size: 30px;
         font-weight: 700;
         margin-bottom: 4px;
@@ -1767,12 +1651,8 @@
         gap: 24px;
       }
 
-      @media (max-width: 1100px) {
-        .dash-grid {
-          grid-template-columns: 1fr;
-        }
-      }
-
+      /* El colapso de .dash-grid a 1100px era código muerto: lo pisaba
+         admin-redesign.css sin media query (informe S1). Vive en redesign. */
       .dash-main {
         display: flex;
         flex-direction: column;
@@ -1850,7 +1730,7 @@
       }
 
       .gc-dot.redeemed {
-        background: #22c55e;
+        background: var(--success);
       }
 
       .gc-label {
@@ -1875,20 +1755,8 @@
         gap: 10px;
       }
 
-      .birthday-item {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 12px;
-        background: rgba(255, 255, 255, 0.03);
-        border-radius: var(--radius-sm);
-        transition: background-color 0.2s;
-      }
-
-      .birthday-item:hover {
-        background: rgba(255, 255, 255, 0.06);
-      }
-
+      /* .birthday-item / .birthday-item:hover / .birthday-info h4 movidas
+         arriba de la primera @media del archivo (informe S1/Tanda 4). */
       .birthday-avatar {
         width: 42px;
         height: 42px;
@@ -1903,15 +1771,6 @@
       .birthday-info {
         flex: 1;
         min-width: 0;
-      }
-
-      .birthday-info h4 {
-        font-size: 14px;
-        font-weight: 500;
-        color: var(--ink);
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
       }
 
       .birthday-info p {
@@ -1971,12 +1830,12 @@
       }
 
       .top-client-rank:nth-child(1) {
-        background: linear-gradient(135deg, #fbbf24, #f59e0b);
+        background: linear-gradient(135deg, oklch(83% 0.140 85), oklch(74% 0.145 70));
         color: #1a1a1a;
       }
 
       .top-client-rank.gold {
-        background: linear-gradient(135deg, #fbbf24, #f59e0b);
+        background: linear-gradient(135deg, oklch(83% 0.140 85), oklch(74% 0.145 70));
         color: #1a1a1a;
       }
 
@@ -2122,7 +1981,7 @@
       }
 
       /* Mejorar área de toque en móviles */
-      @media (max-width: 768px) {
+      @media (max-width: 767.98px) {
         .scanner-close {
           width: 48px;
           height: 48px;
@@ -2407,7 +2266,6 @@
 
       .quick-action-btn.primary:hover {
         background: var(--venus-soft);
-        transform: scale(1.1);
       }
 
       @media (max-width: 600px) {
@@ -2452,7 +2310,7 @@
         color: var(--exp-ink);
         min-height: 100vh;
         padding: 0;
-        font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+        font-family: var(--font-body), system-ui, -apple-system, sans-serif;
         isolation: isolate;
       }
 
@@ -2502,7 +2360,7 @@
         background: transparent;
         border: 1px solid transparent;
         color: var(--exp-ink-2);
-        font: 500 15px/1 'DM Sans', system-ui, sans-serif;
+        font: 500 15px/1 var(--font-body), system-ui, sans-serif;
         cursor: pointer;
         border-radius: 12px;
         transition: color 120ms ease, border-color 120ms ease, background 120ms ease;
@@ -2527,7 +2385,7 @@
         border: 1px solid var(--exp-olive);
         min-height: 40px;
         border-radius: 12px;
-        font: 600 14px/1 'DM Sans', system-ui, sans-serif;
+        font: 600 14px/1 var(--font-body), system-ui, sans-serif;
         padding: 0 16px;
         display: inline-flex;
         align-items: center;
@@ -2543,7 +2401,7 @@
         border: 1px solid var(--exp-line-2);
         min-height: 40px;
         border-radius: 12px;
-        font: 500 14px/1 'DM Sans', system-ui, sans-serif;
+        font: 500 14px/1 var(--font-body), system-ui, sans-serif;
         padding: 0 16px;
         display: inline-flex;
         align-items: center;
@@ -2564,7 +2422,7 @@
       .exp-view-id-icon { display: none; } /* el icono en el título es ruido: el nombre basta */
       .exp-view-name {
         margin: 0;
-        font: 600 30px/1.15 'Playfair Display', serif;
+        font: 600 30px/1.15 var(--font-display), serif;
         letter-spacing: -0.015em;
         color: var(--exp-ink);
       }
@@ -2590,7 +2448,7 @@
         gap: 6px;
         padding: 5px 11px;
         border-radius: 999px;
-        font: 600 12px/1 'DM Sans', system-ui, sans-serif;
+        font: 600 12px/1 var(--font-body), system-ui, sans-serif;
         background: var(--exp-warn-s);
         color: oklch(40% 0.110 70);
         border: 1px solid oklch(84% 0.080 80);
@@ -2625,7 +2483,7 @@
         border: 1px solid var(--exp-line);
         background: var(--exp-surface);
         color: var(--exp-ink-2);
-        font: 500 14px/1 'DM Sans', system-ui, sans-serif;
+        font: 500 14px/1 var(--font-body), system-ui, sans-serif;
         white-space: nowrap;
         cursor: pointer;
         scroll-snap-align: center;
@@ -2672,7 +2530,7 @@
       .exp-hairline-group:last-child { border-bottom: none; }
       .exp-section-title {
         margin: 0 0 14px;
-        font: 600 11px/1 'DM Sans', system-ui, sans-serif;
+        font: 600 11px/1 var(--font-body), system-ui, sans-serif;
         letter-spacing: 0.14em;
         text-transform: uppercase;
         color: var(--exp-ink-3);
@@ -2685,7 +2543,7 @@
         gap: 5px;
         padding: 3px 10px;
         border-radius: 999px;
-        font: 600 12px/1.2 'DM Sans', system-ui, sans-serif;
+        font: 600 12px/1.2 var(--font-body), system-ui, sans-serif;
         background: var(--exp-surface-2);
         color: var(--exp-ink-2);
         border: 1px solid var(--exp-line);
@@ -2698,6 +2556,9 @@
       .exp-badge-info  { background: var(--exp-info-s);   color: oklch(40% 0.090 220); border-color: oklch(84% 0.040 220); }
       .exp-badge-warn  { background: var(--exp-warn-s);   color: oklch(42% 0.110 70);  border-color: oklch(84% 0.080 80); }
       .exp-badge-muted { background: var(--exp-surface-2); color: var(--exp-ink-3); border-color: var(--exp-line); }
+      .exp-badge-danger { background: oklch(95% 0.030 25); color: oklch(42% 0.150 25); border-color: oklch(85% 0.070 25); cursor: pointer; }
+      .exp-badge-danger:hover { border-color: oklch(60% 0.140 25); }
+      .exp-session-products-pending { margin-top: 6px; }
 
       /* ---------- KPI / clave-valor ---------- */
       .exp-kpi-row {
@@ -2708,12 +2569,12 @@
       }
       .exp-kpi { display: flex; flex-direction: column; gap: 4px; }
       .exp-kpi-num {
-        font: 600 30px/1 'Playfair Display', serif;
+        font: 600 30px/1 var(--font-display), serif;
         color: var(--exp-ink);
         letter-spacing: -0.015em;
       }
       .exp-kpi small {
-        font: 600 11px/1 'DM Sans', system-ui, sans-serif;
+        font: 600 11px/1 var(--font-body), system-ui, sans-serif;
         letter-spacing: 0.14em;
         text-transform: uppercase;
         color: var(--exp-ink-3);
@@ -2723,6 +2584,63 @@
         font-size: 14px;
         color: var(--exp-ink-2);
       }
+
+      /* ---------- Citas previas (Resumen del expediente) ---------- */
+      .exp-appts { margin-top: 18px; }
+      .exp-appt-list { list-style: none; margin: 0; padding: 0; }
+      .exp-appt {
+        display: flex;
+        align-items: baseline;
+        gap: 14px;
+        padding: 11px 0;
+        border-bottom: 1px solid var(--exp-line);
+      }
+      .exp-appt:last-child { border-bottom: 0; }
+      /* Canceladas y no-show: siguen visibles, pero sin competir con las reales. */
+      .exp-appt.is-muted { opacity: 0.55; }
+      .exp-appt-when {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        flex: 0 0 92px;
+        font-size: 13px;
+        color: var(--exp-ink-2);
+        font-variant-numeric: tabular-nums;
+      }
+      .exp-appt-when strong { color: var(--exp-ink); font-weight: 600; }
+      .exp-appt-main {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        flex: 1;
+        min-width: 0;
+      }
+      .exp-appt-svc {
+        font-size: 14px;
+        color: var(--exp-ink);
+        overflow-wrap: anywhere;
+      }
+      .exp-appt-status {
+        font-size: 12px;
+        color: var(--exp-ink-3);
+      }
+      .exp-appt-paid {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--exp-ink);
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+      .exp-appts-toggle {
+        margin-top: 12px;
+        background: none;
+        border: 0;
+        padding: 6px 0;
+        font: 600 13px/1 'DM Sans', system-ui, sans-serif;
+        color: var(--exp-olive-d);
+        cursor: pointer;
+      }
+      .exp-appts-toggle:hover { text-decoration: underline; }
       .exp-kv {
         display: flex;
         justify-content: space-between;
@@ -2733,7 +2651,7 @@
         font-size: 14px;
       }
       .exp-kv:last-child { border-bottom: none; }
-      .exp-kv-k { color: var(--exp-ink-3); flex-shrink: 0; }
+      .exp-kv-k { color: var(--exp-ink-3); }
       .exp-kv-v { color: var(--exp-ink); font-weight: 500; text-align: right; }
       .exp-muted-note {
         margin: 0;
@@ -2751,7 +2669,7 @@
       }
       .exp-form-group { display: flex; flex-direction: column; gap: 6px; }
       .exp-form-group label {
-        font: 600 12px/1 'DM Sans', system-ui, sans-serif;
+        font: 600 12px/1 var(--font-body), system-ui, sans-serif;
         color: var(--exp-ink-2);
         letter-spacing: 0.01em;
       }
@@ -2759,7 +2677,7 @@
       #expediente-view .exp-form-group input,
       #expediente-view .exp-form-group textarea,
       #expediente-view .exp-form-group select {
-        font: 400 16px/1.5 'DM Sans', system-ui, sans-serif;
+        font: 400 16px/1.5 var(--font-body), system-ui, sans-serif;
         min-height: 44px;
         padding: 10px 12px;
         background: var(--exp-surface);
@@ -2821,12 +2739,12 @@
         gap: 10px;
       }
       .exp-session-date {
-        font: 600 15px/1.3 'DM Sans', system-ui, sans-serif;
+        font: 600 15px/1.3 var(--font-body), system-ui, sans-serif;
         color: var(--exp-ink);
         transition: color 120ms ease;
       }
       .exp-session-type {
-        font: 500 12px/1 'DM Sans', system-ui, sans-serif;
+        font: 500 12px/1 var(--font-body), system-ui, sans-serif;
         color: var(--exp-ink-3);
       }
       .exp-session-device, .exp-session-areas {
@@ -2837,7 +2755,7 @@
       }
 
       .exp-stacked-main {
-        font: 600 15px/1.3 'DM Sans', system-ui, sans-serif;
+        font: 600 15px/1.3 var(--font-body), system-ui, sans-serif;
         color: var(--exp-ink);
         transition: color 120ms ease;
       }
@@ -2868,7 +2786,7 @@
       }
       #expediente-view .exp-photos-filters select {
         flex: 1; min-width: 0;
-        font: 400 14px/1 'DM Sans', system-ui, sans-serif;
+        font: 400 14px/1 var(--font-body), system-ui, sans-serif;
         min-height: 40px;
         padding: 8px 10px;
         background: var(--exp-surface);
@@ -2895,7 +2813,7 @@
         top: 6px; left: 6px;
         padding: 3px 9px;
         border-radius: 999px;
-        font: 600 10px/1.2 'DM Sans', system-ui, sans-serif;
+        font: 600 10px/1.2 var(--font-body), system-ui, sans-serif;
         color: oklch(98% 0.010 88);
         background: oklch(22% 0.012 80 / 0.72);
         backdrop-filter: blur(4px);
@@ -2906,7 +2824,7 @@
       .exp-photo-delete {
         position: absolute;
         top: 6px; right: 6px;
-        width: 28px; height: 28px;
+        width: 44px; height: 44px;
         border-radius: 999px;
         border: 1px solid oklch(88% 0.014 88 / 0.4);
         background: oklch(22% 0.012 80 / 0.7);
@@ -2927,7 +2845,7 @@
       .exp-compare-side { flex: 1; min-width: 0; }
       .exp-compare-side h4 {
         margin: 0 0 8px;
-        font: 600 12px/1 'DM Sans', system-ui, sans-serif;
+        font: 600 12px/1 var(--font-body), system-ui, sans-serif;
         letter-spacing: 0.06em;
         text-transform: uppercase;
         color: var(--exp-ink-3);
@@ -2967,7 +2885,7 @@
       }
       .exp-docs-drop-title {
         margin: 12px 0 4px;
-        font: 600 15px/1.3 'DM Sans', system-ui, sans-serif;
+        font: 600 15px/1.3 var(--font-body), system-ui, sans-serif;
         color: var(--exp-ink);
       }
       .exp-docs-drop-sub {
@@ -3021,7 +2939,7 @@
         border: 1px solid oklch(80% 0.080 28);
         border-radius: 14px;
         padding: 12px 18px;
-        font: 500 14px/1.4 'DM Sans', system-ui, sans-serif;
+        font: 500 14px/1.4 var(--font-body), system-ui, sans-serif;
         box-shadow: 0 8px 24px oklch(22% 0.012 80 / 0.12);
         z-index: 100;
         max-width: min(90vw, 480px);
@@ -3034,7 +2952,7 @@
       }
       .exp-kv-group:first-child { border-top: none; padding-top: 0; }
       .exp-kv-group-title {
-        font: 600 14px/1.3 'DM Sans', system-ui, sans-serif;
+        font: 600 14px/1.3 var(--font-body), system-ui, sans-serif;
         color: var(--exp-ink);
         margin-bottom: 8px;
       }
@@ -3053,7 +2971,7 @@
         gap: 22px;
       }
       .exp-routine-label {
-        font: 600 11px/1 'DM Sans', system-ui, sans-serif;
+        font: 600 11px/1 var(--font-body), system-ui, sans-serif;
         letter-spacing: 0.14em;
         text-transform: uppercase;
         color: var(--exp-ink-3);
@@ -3077,7 +2995,7 @@
         border-bottom: 1px solid var(--exp-line);
       }
       .exp-consent-row:last-child { border-bottom: none; }
-      .exp-consent-type { font: 600 14px/1.3 'DM Sans', system-ui, sans-serif; color: var(--exp-ink); }
+      .exp-consent-type { font: 600 14px/1.3 var(--font-body), system-ui, sans-serif; color: var(--exp-ink); }
       .exp-consent-date { font-size: 13px; color: var(--exp-ink-3); margin-top: 3px; }
       .exp-consent-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 
@@ -3097,7 +3015,7 @@
         gap: 12px;
       }
       .exp-diag-title {
-        font: 600 15px/1.3 'DM Sans', system-ui, sans-serif;
+        font: 600 15px/1.3 var(--font-body), system-ui, sans-serif;
         color: var(--exp-ink);
         transition: color 120ms ease;
       }
@@ -3152,24 +3070,54 @@
       }
 
       /* ---------- Responsive ---------- */
+      /* TELÉFONO: el expediente es una CAPA de pantalla completa. Antes vivía
+         en flujo dentro de .wrap (padding + max-width del admin) y debajo del
+         hueco que dejaba la topbar oculta: arrancaba a 120px del borde superior
+         y medía 346px de los 402 de ancho — 240px vacíos arriba y franjas a los
+         lados (queja del dueño con captura real). Ahora ocupa el viewport
+         entero, con scroll propio, y el ritmo interno se compacta. */
+      @media (max-width: 767.98px) {
+        #expediente-view:not(.hidden) {
+          position: fixed;
+          inset: 0;
+          z-index: 700;            /* sobre topbar (600) y nav inferior */
+          overflow-y: auto;
+          -webkit-overflow-scrolling: touch;
+          overscroll-behavior: contain;
+          min-height: 0;
+        }
+        body.exp-open { overflow: hidden; } /* la página de atrás no scrollea */
+        body.exp-open .mobile-nav,
+        body.exp-open .bottom-nav { display: none; }
+      }
+
       @media (max-width: 480px) {
-        .exp-view-header { padding: 12px 16px 0; padding-top: calc(12px + env(safe-area-inset-top, 0px)); }
+        .exp-view-header { padding: 10px 16px 0; padding-top: calc(10px + env(safe-area-inset-top, 0px)); }
+        .exp-view-identity { margin-top: 10px; }
         .exp-view-name { font-size: 24px; }
         .exp-back-label { display: none; }
         .exp-sections-bar { margin: 0 -16px; padding-left: 16px; padding-right: 16px; }
-        .exp-view-body { padding: 22px 16px 88px; }
+        .exp-view-body { padding: 14px 16px calc(24px + env(safe-area-inset-bottom, 0px)); }
+        /* ritmo compacto: los grupos respiraban 22px arriba y 22px abajo,
+           más 14px del título, más 10px por fila — una fila de un dato medía
+           ~86px. Ahora ~52px, y los grupos 14px. */
+        .exp-hairline-group { padding: 14px 0; }
+        .exp-hairline-group:first-child { padding-top: 0; }
+        .exp-section-title { margin: 0 0 8px; }
+        .exp-kv { padding: 8px 0; }
         .exp-form-grid { grid-template-columns: 1fr; }
         .exp-photos-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
         .exp-compare-container { flex-direction: column; gap: 18px; }
-        .exp-kpi-row { gap: 28px; }
-        .exp-kpi-num { font-size: 26px; }
+        .exp-kpi-row { gap: 24px; padding-bottom: 12px; }
+        .exp-kpi-num { font-size: 24px; }
         /* El botón Enviar ficha SÍ se ve en cel: es la acción primaria de la cosmetóloga. */
         /* El menú ⋯ solo reúne WhatsApp (acción secundaria). */
         #exp-action-wa span { display: none; } /* en cel solo icono de WA */
       }
 
-      @media (min-width: 481px) and (max-width: 1024px) {
-        /* tablet: el menú ⋯ no se necesita, hay espacio */
+      @media (min-width: 481px) and (max-width: 1024.98px) {
+        /* tablet: el menú ⋯ no se necesita, hay espacio
+           (1024.98: contrato de banda tablet, verificador de cierre) */
         #exp-action-menu { display: none; }
       }
 
@@ -3206,20 +3154,26 @@
         display: inline-flex; align-items: center; gap: 4px;
         font-size: 12px; color: oklch(40% 0.110 155); font-weight: 600; margin-left: 8px;
       }
+      .exp-sig-thumb-wrap { margin: 8px 0 2px; }
+      .exp-sig-thumb {
+        display: inline-block; width: 120px; max-height: 56px; object-fit: contain;
+        background: #fff; border: 1px solid var(--exp-line); border-radius: 8px;
+        padding: 4px 8px; cursor: zoom-in;
+      }
 
       /* ---------- Cuestionario de condiciones (chips editables) ---------- */
       .exp-chips { display: flex; flex-wrap: wrap; gap: 8px; }
       .exp-chip {
         display: inline-flex; align-items: center; min-height: 40px; padding: 0 14px;
         border-radius: 999px; border: 1px solid var(--exp-line-2); background: var(--exp-surface);
-        color: var(--exp-ink-2); font: 500 13.5px/1 'DM Sans', system-ui, sans-serif; cursor: pointer;
+        color: var(--exp-ink-2); font: 500 13.5px/1 var(--font-body), system-ui, sans-serif; cursor: pointer;
         transition: color 120ms ease, border-color 120ms ease, background 120ms ease;
       }
       .exp-chip:hover { border-color: var(--exp-olive); color: var(--exp-ink); }
       .exp-chip.on { background: var(--exp-olive-s); border-color: var(--exp-olive); color: var(--exp-olive-d); font-weight: 600; }
       .exp-cond-block { padding: 16px 0 2px; border-top: 1px solid var(--exp-line); margin-top: 14px; }
       .exp-cond-block:first-child { border-top: none; margin-top: 0; padding-top: 4px; }
-      .exp-cond-block-title { font: 600 14px/1.3 'DM Sans', system-ui, sans-serif; color: var(--exp-ink); margin: 0 0 12px; }
+      .exp-cond-block-title { font: 600 14px/1.3 var(--font-body), system-ui, sans-serif; color: var(--exp-ink); margin: 0 0 12px; }
 
       /* ---------- Modal de firma (signature pad) reutilizable ----------
          Independiente del tema claro/oscuro del admin: es un momento formal
@@ -3259,7 +3213,7 @@
         padding: 20px 20px 0;
       }
       .exp-sigpad-title {
-        margin: 0; font: 600 19px/1.25 'Playfair Display', Georgia, serif; color: #243026; letter-spacing: -0.01em;
+        margin: 0; font: 600 19px/1.25 var(--font-display), Georgia, serif; color: #243026; letter-spacing: -0.01em;
       }
       .exp-sigpad-close {
         flex-shrink: 0; width: 32px; height: 32px; border-radius: 999px; border: none;
@@ -3267,10 +3221,10 @@
       }
       .exp-sigpad-close:hover { background: #f3ecdf; color: #243026; }
       .exp-sigpad-subtitle { margin: 6px 20px 0; font-size: 13.5px; color: #4a574e; line-height: 1.5; }
-      .exp-sigpad-scroll { overflow-y: auto; padding: 16px 20px 4px; flex: 1; }
+      .exp-sigpad-scroll { overflow-y: auto; overscroll-behavior: contain; padding: 16px 20px 4px; flex: 1; }
       .exp-sigpad-body { margin-bottom: 18px; }
       .exp-sigpad-label {
-        display: block; font: 600 12px/1 'DM Sans', system-ui, sans-serif; letter-spacing: 0.04em; text-transform: uppercase;
+        display: block; font: 600 12px/1 var(--font-body), system-ui, sans-serif; letter-spacing: 0.04em; text-transform: uppercase;
         color: #4a574e; margin-bottom: 8px;
       }
       .exp-sigpad-canvas-wrap {
@@ -3297,7 +3251,7 @@
       .exp-consenttext__section { border-bottom: 1px solid #e8e0cf; }
       .exp-consenttext__section:last-child { border-bottom: none; }
       .exp-consenttext__section summary {
-        padding: 12px 2px; cursor: pointer; font: 600 13px/1.35 'DM Sans', system-ui, sans-serif;
+        padding: 12px 2px; cursor: pointer; font: 600 13px/1.35 var(--font-body), system-ui, sans-serif;
         letter-spacing: 0.01em; color: #243026; list-style: none;
         display: flex; align-items: center; justify-content: space-between; gap: 10px;
       }
@@ -3324,4 +3278,278 @@
       @media (max-width: 480px) {
         .exp-sigpad-overlay { padding: 0; align-items: flex-end; }
         .exp-sigpad-modal { max-width: 100%; max-height: 92vh; border-radius: 20px 20px 0 0; }
+      }
+
+      /* ========== VENTA RÁPIDA (directSaleDialog) — rediseño Venus ==========
+         Tokens de DESIGN.md: crema/oat + acento oliva restringido, hairlines
+         en vez de sombras, Playfair para el título y el total, DM Sans UI.
+         Estructura flex: header y footer fijos, cuerpo con scroll — el botón
+         Cobrar ya no se corta (antes: dialog overflow:hidden a 90vh). */
+      #directSaleDialog {
+        --ds-bg: oklch(96.5% 0.012 88);
+        --ds-surface: oklch(99% 0.006 88);
+        --ds-surface-2: oklch(93.5% 0.014 88);
+        --ds-ink: oklch(22% 0.012 80);
+        --ds-ink-2: oklch(45% 0.012 80);
+        --ds-ink-3: oklch(60% 0.010 80);
+        --ds-line: oklch(88% 0.014 88);
+        --ds-line-2: oklch(82% 0.018 88);
+        --ds-olive: oklch(58% 0.075 120);
+        --ds-olive-deep: oklch(48% 0.085 120);
+        --ds-olive-soft: oklch(94% 0.022 120);
+        --ds-err: oklch(58% 0.140 28);
+        width: min(520px, 94vw);
+        max-height: min(88vh, 760px);
+        border: 1px solid var(--ds-line);
+        border-radius: 22px;
+        background: var(--ds-bg);
+        color: var(--ds-ink);
+        box-shadow: 0 24px 60px oklch(22% 0.012 80 / 0.18);
+        overflow: hidden;
+        font-family: var(--font-body), system-ui, sans-serif;
+        color-scheme: light;
+      }
+      [data-theme="dark"] #directSaleDialog {
+        --ds-bg: oklch(18% 0.012 80);
+        --ds-surface: oklch(22% 0.014 80);
+        --ds-surface-2: oklch(26% 0.016 80);
+        --ds-ink: oklch(95% 0.012 88);
+        --ds-ink-2: oklch(78% 0.012 88);
+        --ds-ink-3: oklch(60% 0.010 88);
+        --ds-line: oklch(30% 0.018 80);
+        --ds-line-2: oklch(38% 0.020 80);
+        --ds-olive: oklch(68% 0.080 120);
+        --ds-olive-deep: oklch(78% 0.090 120);
+        --ds-olive-soft: oklch(28% 0.030 120);
+        color-scheme: dark;
+      }
+      #directSaleDialog[open] { display: flex; flex-direction: column; }
+
+      #directSaleDialog .ds-header {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 22px 28px 16px;
+        border-bottom: 1px solid var(--ds-line);
+        flex-shrink: 0;
+      }
+      #directSaleDialog .ds-title {
+        margin: 0;
+        font: 500 24px/1.2 var(--font-display), serif;
+        letter-spacing: -0.015em;
+      }
+      #directSaleDialog .ds-close {
+        width: 36px; height: 36px; border-radius: 999px; border: 1px solid var(--ds-line);
+        background: var(--ds-surface); color: var(--ds-ink-2); font-size: 20px; line-height: 1;
+        cursor: pointer; transition: border-color 120ms ease, color 120ms ease;
+      }
+      #directSaleDialog .ds-close:hover { border-color: var(--ds-line-2); color: var(--ds-ink); }
+
+      #directSaleDialog .ds-body {
+        flex: 1 1 auto; overflow-y: auto;
+        padding: 22px 28px 8px;
+        display: flex; flex-direction: column; gap: 22px;
+      }
+      #directSaleDialog .ds-group { display: flex; flex-direction: column; gap: 8px; }
+      #directSaleDialog .ds-label {
+        font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase;
+        color: var(--ds-ink-3);
+      }
+      #directSaleDialog .ds-label-soft { text-transform: none; letter-spacing: 0; font-weight: 500; }
+
+      #directSaleDialog .ds-input {
+        width: 100%; min-height: 44px; padding: 10px 14px;
+        border: 1px solid var(--ds-line); border-radius: 12px;
+        background: var(--ds-surface); color: var(--ds-ink);
+        font: 500 15px/1.3 var(--font-body), system-ui, sans-serif;
+        transition: border-color 120ms ease;
+      }
+      #directSaleDialog .ds-input:focus { outline: 2px solid var(--ds-olive); outline-offset: -1px; border-color: transparent; }
+      #directSaleDialog .ds-input::placeholder { color: var(--ds-ink-3); font-weight: 400; }
+
+      /* Buscador de producto (combobox) */
+      #directSaleDialog .ds-add-row { display: flex; gap: 8px; align-items: stretch; }
+      #directSaleDialog .ds-combo { position: relative; flex: 1 1 auto; min-width: 0; }
+      #directSaleDialog .ds-qty { flex: 0 0 64px; width: 64px; text-align: center; }
+      #directSaleDialog .ds-add-btn {
+        flex: 0 0 44px; min-height: 44px; border-radius: 12px; border: none; cursor: pointer;
+        background: var(--ds-olive); color: oklch(99% 0.006 88); font-size: 15px;
+        transition: background 120ms ease;
+      }
+      #directSaleDialog .ds-add-btn:hover { background: var(--ds-olive-deep); }
+      #directSaleDialog .ds-add-btn:active { transform: translateY(1px); }
+
+      #directSaleDialog .ds-combo-panel {
+        position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 30;
+        max-height: 264px; overflow-y: auto;
+        background: var(--ds-surface); border: 1px solid var(--ds-line-2); border-radius: 12px;
+        box-shadow: 0 12px 32px oklch(22% 0.012 80 / 0.14);
+      }
+      #directSaleDialog .ds-combo-group {
+        position: sticky; top: 0;
+        padding: 8px 14px 6px;
+        font-size: 10.5px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase;
+        color: var(--ds-ink-3); background: var(--ds-surface);
+        border-bottom: 1px solid var(--ds-line);
+      }
+      #directSaleDialog .ds-combo-item {
+        display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+        padding: 11px 14px; cursor: pointer; font-size: 14.5px;
+      }
+      #directSaleDialog .ds-combo-item:hover, #directSaleDialog .ds-combo-item.hl { background: var(--ds-olive-soft); }
+      #directSaleDialog .ds-combo-item .ds-combo-price { color: var(--ds-ink-2); font-weight: 600; white-space: nowrap; }
+      #directSaleDialog .ds-combo-item .ds-combo-stock { color: var(--ds-ink-3); font-size: 12px; }
+      #directSaleDialog .ds-combo-empty { padding: 14px; color: var(--ds-ink-3); font-size: 14px; text-align: center; }
+      #directSaleDialog .ds-combo-create-btn {
+        display: flex; align-items: center; justify-content: center; gap: 8px;
+        width: calc(100% - 16px); margin: 0 8px 10px; padding: 10px; border-radius: 10px;
+        border: 1px dashed var(--ds-line-2); background: none; color: var(--ds-olive-deep);
+        font: 600 13.5px var(--font-body), system-ui, sans-serif; cursor: pointer;
+        transition: background 120ms ease, border-color 120ms ease;
+      }
+      #directSaleDialog .ds-combo-create-btn:hover { background: var(--ds-olive-soft); border-color: var(--ds-olive); }
+
+      /* Formulario inline: crear producto nuevo desde Venta Rápida */
+      #directSaleDialog .ds-create-form { display: flex; flex-direction: column; gap: 8px; padding: 12px; }
+      #directSaleDialog .ds-create-title {
+        display: flex; align-items: center; gap: 8px;
+        font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+        color: var(--ds-ink-3); margin-bottom: 2px;
+      }
+      #directSaleDialog .ds-create-row { display: flex; gap: 8px; }
+      #directSaleDialog .ds-create-row .ds-input { flex: 1 1 0; min-width: 0; }
+      #directSaleDialog .ds-create-actions { display: flex; gap: 8px; margin-top: 4px; }
+      #directSaleDialog .ds-btn-ghost-sm, #directSaleDialog .ds-btn-primary-sm {
+        flex: 1 1 0; min-height: 38px; border-radius: 10px; cursor: pointer;
+        font: 600 13.5px var(--font-body), system-ui, sans-serif; transition: background 120ms ease, border-color 120ms ease;
+      }
+      #directSaleDialog .ds-btn-ghost-sm { border: 1px solid var(--ds-line); background: var(--ds-surface); color: var(--ds-ink-2); }
+      #directSaleDialog .ds-btn-ghost-sm:hover { border-color: var(--ds-line-2); color: var(--ds-ink); }
+      #directSaleDialog .ds-btn-primary-sm { border: none; background: var(--ds-olive); color: oklch(99% 0.006 88); }
+      #directSaleDialog .ds-btn-primary-sm:hover { background: var(--ds-olive-deep); }
+      #directSaleDialog .ds-btn-primary-sm:disabled { opacity: 0.7; cursor: default; }
+
+      /* Carrito */
+      #directSaleDialog .ds-cart { display: flex; flex-direction: column; }
+      #directSaleDialog .ds-cart-empty {
+        padding: 18px 4px; color: var(--ds-ink-3); font-size: 14px; text-align: center;
+      }
+      #directSaleDialog .ds-cart-item {
+        display: flex; align-items: center; gap: 12px;
+        padding: 12px 2px;
+        border-bottom: 1px solid var(--ds-line);
+      }
+      #directSaleDialog .ds-cart-item:last-child { border-bottom: none; }
+      #directSaleDialog .ds-cart-info { flex: 1 1 auto; min-width: 0; }
+      #directSaleDialog .ds-cart-name { display: block; font-weight: 500; font-size: 14.5px; }
+      #directSaleDialog .ds-cart-meta { display: block; color: var(--ds-ink-3); font-size: 12.5px; margin-top: 2px; }
+      /* Precio unitario editable de la partida */
+      #directSaleDialog .ds-cart-price {
+        width: 72px; padding: 4px 6px; margin: 0 2px;
+        border: 1px solid var(--ds-line); border-radius: 8px;
+        background: var(--ds-surface); color: var(--ds-ink);
+        font: 600 13px var(--font-body), system-ui, sans-serif;
+        text-align: right;
+      }
+      #directSaleDialog .ds-cart-price:focus { outline: 2px solid var(--ds-olive); outline-offset: 1px; }
+      #directSaleDialog .ds-cart-subtotal { font-weight: 600; font-size: 14.5px; white-space: nowrap; }
+      #directSaleDialog .ds-cart-remove {
+        width: 44px; height: 44px; border-radius: 999px; border: 1px solid transparent;
+        background: none; color: var(--ds-ink-3); cursor: pointer; font-size: 12px;
+        transition: color 120ms ease, border-color 120ms ease;
+      }
+      #directSaleDialog .ds-cart-remove:hover { color: var(--ds-err); border-color: var(--ds-err); }
+
+      /* Descuento */
+      #directSaleDialog .ds-discount-row { display: flex; gap: 8px; align-items: stretch; }
+      #directSaleDialog .ds-toggle {
+        display: flex; border: 1px solid var(--ds-line); border-radius: 12px; overflow: hidden; flex: 0 0 auto;
+      }
+      #directSaleDialog .ds-toggle button {
+        width: 48px; min-height: 44px; border: none; background: var(--ds-surface);
+        color: var(--ds-ink-2); font: 600 15px var(--font-body), system-ui, sans-serif; cursor: pointer;
+      }
+      #directSaleDialog .ds-toggle button.active { background: var(--ds-olive); color: oklch(99% 0.006 88); }
+      #directSaleDialog .ds-discount-input { position: relative; flex: 1 1 auto; }
+      #directSaleDialog .ds-discount-input span {
+        position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+        color: var(--ds-ink-3); font-weight: 600;
+      }
+
+      /* Totales */
+      #directSaleDialog .ds-totals {
+        border-top: 1px solid var(--ds-line);
+        padding: 16px 2px 4px;
+        display: flex; flex-direction: column; gap: 8px;
+      }
+      #directSaleDialog .ds-total-row { display: flex; justify-content: space-between; font-size: 14px; color: var(--ds-ink-2); }
+      #directSaleDialog .ds-total-discount span:last-child { color: var(--ds-err); }
+      #directSaleDialog .ds-total-grand { align-items: baseline; color: var(--ds-ink); }
+      #directSaleDialog .ds-total-grand span:first-child { font-size: 15px; font-weight: 600; }
+      #directSaleDialog .ds-total-grand span:last-child { font: 600 28px/1 var(--font-display), serif; letter-spacing: -0.015em; }
+
+      /* Footer fijo */
+      #directSaleDialog .ds-footer {
+        flex-shrink: 0;
+        display: flex; gap: 10px;
+        padding: 16px 28px 22px;
+        border-top: 1px solid var(--ds-line);
+        background: var(--ds-bg);
+      }
+      #directSaleDialog .ds-btn-primary {
+        flex: 1 1 auto; min-height: 48px; border: none; border-radius: 12px; cursor: pointer;
+        background: var(--ds-olive); color: oklch(99% 0.006 88);
+        font: 600 15.5px var(--font-body), system-ui, sans-serif;
+        display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+        transition: background 120ms ease;
+      }
+      #directSaleDialog .ds-btn-primary:hover { background: var(--ds-olive-deep); }
+      #directSaleDialog .ds-btn-primary:active { transform: translateY(1px); }
+      #directSaleDialog .ds-btn-primary:disabled { opacity: 0.55; cursor: default; }
+      #directSaleDialog .ds-btn-ghost {
+        flex: 0 0 auto; min-height: 48px; padding: 0 20px; border-radius: 12px; cursor: pointer;
+        border: 1px solid var(--ds-line-2); background: none; color: var(--ds-ink-2);
+        font: 500 15px var(--font-body), system-ui, sans-serif;
+        transition: color 120ms ease, border-color 120ms ease;
+      }
+      #directSaleDialog .ds-btn-ghost:hover { color: var(--ds-ink); border-color: var(--ds-ink-3); }
+
+      @media (max-width: 640px) {
+        #directSaleDialog {
+          width: 100vw; max-height: 100dvh; height: 100dvh;
+          border-radius: 0; border: none;
+        }
+        #directSaleDialog .ds-footer { padding-bottom: max(22px, env(safe-area-inset-bottom)); }
+      }
+
+      /* ---------- Reportes › Detalle de Ventas: filtros rápidos ---------- */
+      .visually-hidden {
+        position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px;
+        overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+      }
+      .report-sales-head {
+        display: flex; align-items: baseline; justify-content: space-between;
+        gap: 12px; flex-wrap: wrap; margin-bottom: 12px;
+      }
+      .report-sales-summary {
+        font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums;
+      }
+      .report-sales-filters {
+        display: grid;
+        grid-template-columns: minmax(180px, 1fr) auto auto auto;
+        gap: 8px; align-items: center; margin-bottom: 14px;
+      }
+      .report-sales-search { position: relative; display: block; }
+      .report-sales-search i {
+        position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+        color: var(--muted); font-size: 12px; pointer-events: none;
+      }
+      .report-sales-search input { padding-left: 34px; width: 100%; }
+      .report-sales-filters .form-input { min-height: 44px; font-size: 14px; }
+      .report-sales-day input { width: 150px; }
+      .report-sales-order select { width: auto; }
+      @media (max-width: 767.98px) {
+        .report-sales-filters { grid-template-columns: 1fr 1fr; }
+        .report-sales-search { grid-column: 1 / -1; }
+        .report-sales-day input { width: 100%; }
+        .report-sales-order select { width: 100%; }
+        #report-sales-clear { grid-column: 1 / -1; }
       }

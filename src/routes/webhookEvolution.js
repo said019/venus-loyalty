@@ -121,9 +121,16 @@ async function handleIncomingMessage(data) {
 
         // Detectar poll response ANTES del filtro fromMe
         // Las respuestas de poll vienen con fromMe=true porque referencian el poll original
+        // OJO: Evolution también empuja votos como AGREGADO `pollUpdates: [{name, voters}]`
+        // (messages.update en ≤2.3.6; messages.upsert trae messageRaw.pollUpdates en 2.3.7+).
+        // Este formato caía al manejo de texto y se tiraba ("mensaje sin texto") —
+        // por eso el webhook parecía no recibir votos (Sandra 21-jul, Thania 18-jul).
         const isPollResponse = message?.message?.pollUpdateMessage || data?.pollUpdate
             || data?.message?.pollUpdateMessage || data?.pollResponse
-            || message?.pollUpdateMessage;
+            || message?.pollUpdateMessage
+            || (Array.isArray(data?.pollUpdates) && data.pollUpdates.length)
+            || (Array.isArray(message?.pollUpdates) && message.pollUpdates.length)
+            || (Array.isArray(data?.updates) && data.updates.some(u => Array.isArray(u?.pollUpdates) && u.pollUpdates.length));
 
         if (isPollResponse) {
             console.log(`[Evolution] Respuesta de Poll detectada de ${from}`);
@@ -156,9 +163,28 @@ async function handlePollResponse(phone, payload, profileName) {
     let selectedOption = null;
     let voteHashes = [];
 
+    // Formato 0: AGREGADO pollUpdates [{name, voters:[jid,...]}] — lo que Evolution
+    // empuja en messages.update (≤2.3.6 vía getAggregateVotesInPollMessage) y en
+    // messages.upsert (2.3.7+, messageRaw.pollUpdates). En chat 1-a-1 la opción
+    // votada es la que tiene voters. El key del evento ES el del mensaje del poll.
+    const aggregate = (Array.isArray(payload?.pollUpdates) && payload.pollUpdates)
+        || (Array.isArray(payload?.messages?.[0]?.pollUpdates) && payload.messages[0].pollUpdates)
+        || (Array.isArray(payload?.updates) && payload.updates.find(u => Array.isArray(u?.pollUpdates) && u.pollUpdates.length)?.pollUpdates)
+        || null;
+    let aggregatePollKeyId = null;
+    if (aggregate) {
+        const conVotos = aggregate.filter(o => Array.isArray(o?.voters) && o.voters.length > 0);
+        if (conVotos.length > 0) {
+            selectedOption = conVotos[0]?.name || null;
+            aggregatePollKeyId = payload?.key?.id || payload?.messages?.[0]?.key?.id
+                || payload?.updates?.find(u => u?.key?.id)?.key?.id || null;
+            console.log(`[Evolution Poll] Formato agregado: opción "${selectedOption}" pollKey=${aggregatePollKeyId}`);
+        }
+    }
+
     // Formato 1: pollUpdate.votes (algunas versiones)
     const votes = payload?.pollUpdate?.votes || payload?.data?.pollUpdate?.votes;
-    if (Array.isArray(votes) && votes.length > 0) {
+    if (!selectedOption && Array.isArray(votes) && votes.length > 0) {
         selectedOption = votes[0]?.optionName || votes[0]?.name || votes[0];
     }
 
@@ -196,6 +222,7 @@ async function handlePollResponse(phone, payload, profileName) {
     const pollMsgId = pum?.pollCreationMessageKey?.id
         || payload?.pollUpdate?.pollCreationMessageKey?.id
         || payload?.pollCreationMessageKey?.id
+        || aggregatePollKeyId
         || null;
 
     console.log(`[Evolution Poll] pollMsgId=${pollMsgId} option="${selectedOption}" hashes=${JSON.stringify(voteHashes).substring(0,200)}`);
@@ -261,9 +288,45 @@ async function handlePollResponse(phone, payload, profileName) {
 
     // processClientResponse confirma TODAS las citas activas del teléfono (cubre el
     // caso de encuesta consolidada) y envía un solo mensaje consolidado.
+    // Para reagendar/cancelar en encuesta CONSOLIDADA hay que procesar TODAS las
+    // citas ACTIVAS del grupo (antes solo la primera: las demás quedaban
+    // 'scheduled' y les caía la alerta 4h / auto-cancelación aunque la clienta ya
+    // había respondido). Se calcula solo en esos branches (confirmar no lo usa).
+    const cargarCitasActivasDelGrupo = async () => {
+        const citas = [];
+        for (const pr of pollRows) {
+            try {
+                const c = await AppointmentsRepo.findById(pr.appointmentId);
+                if (c && c.status !== 'cancelled' && c.status !== 'completed') citas.push(c);
+            } catch (e) { /* seguir con las demás */ }
+        }
+        return citas;
+    };
+
     if (opt.includes('confirmar')) await processClientResponse(phone, 'confirmar', citaDirecta);
-    else if (opt.includes('reagendar') || opt.includes('cambio') || opt.includes('reprogramar')) await processClientResponse(phone, 'reagendar', citaDirecta);
-    else if (opt.includes('cancelar')) await processClientResponse(phone, 'cancelar', citaDirecta);
+    else if (opt.includes('reagendar') || opt.includes('cambio') || opt.includes('reprogramar')) {
+        const grupo = pollRows.length > 1 ? await cargarCitasActivasDelGrupo() : [];
+        if (grupo.length >= 1) {
+            // >=1 y no >1: con una sola ACTIVA del grupo, citaDirecta (pollRows[0])
+            // puede ser justo la ya cancelada — hay que operar sobre la activa.
+            // Acuse UNA sola vez (el mensaje es genérico); estado y aviso por cita.
+            for (let i = 0; i < grupo.length; i++) {
+                await procesarReagendamiento(grupo[i], i === 0);
+            }
+        } else {
+            await processClientResponse(phone, 'reagendar', citaDirecta);
+        }
+    }
+    else if (opt.includes('cancelar')) {
+        const grupo = pollRows.length > 1 ? await cargarCitasActivasDelGrupo() : [];
+        if (grupo.length >= 1) {
+            for (let i = 0; i < grupo.length; i++) {
+                await procesarCancelacion(grupo[i], i === 0);
+            }
+        } else {
+            await processClientResponse(phone, 'cancelar', citaDirecta);
+        }
+    }
     else console.log(`[Evolution] Opción de poll no reconocida: ${selectedOption}`);
 }
 
@@ -366,7 +429,7 @@ async function procesarConfirmacion(cita, enviarMensaje = true) {
     } catch (error) { console.error('Error procesando confirmación:', error); return false; }
 }
 
-async function procesarReagendamiento(cita) {
+async function procesarReagendamiento(cita, enviarMensaje = true) {
     console.log(`🔄 Procesando reagendamiento para cita ${cita.id}`);
     try {
         await prisma.appointment.update({
@@ -374,8 +437,8 @@ async function procesarReagendamiento(cita) {
             data: { status: 'rescheduling', rescheduleRequestedAt: new Date(), updatedAt: new Date() }
         });
         await NotificationsRepo.create({ type: 'alerta', icon: 'calendar-times', title: 'Solicitud de reagendamiento', message: `${cita.clientName} quiere reagendar ${cita.serviceName}`, read: false, entityId: cita.id });
-        await WhatsAppService.sendSolicitudReprogramacion(cita);
-        console.log(`🔄 Solicitud de reagendamiento enviada para cita ${cita.id}`);
+        if (enviarMensaje) await WhatsAppService.sendSolicitudReprogramacion(cita);
+        console.log(`🔄 Solicitud de reagendamiento procesada para cita ${cita.id}`);
     } catch (error) { console.error('Error procesando reagendamiento:', error); }
 }
 
@@ -384,14 +447,15 @@ async function procesarFechaReagendamiento(cita, telefono, fechaTexto) {
     try {
         await prisma.appointment.update({ where: { id: cita.id }, data: { updatedAt: new Date() } });
         await NotificationsRepo.create({ type: 'alerta', icon: 'calendar-alt', title: 'Propuesta de reagendamiento', message: `${cita.clientName} propone reagendar ${cita.serviceName} para: "${fechaTexto}"`, read: false, entityId: cita.id });
-        const { getEvolutionClient } = await import('../services/whatsapp-evolution.js');
-        const evo = getEvolutionClient();
-        await evo.sendText(telefono, `✅ ¡Perfecto ${cita.clientName}! Recibimos tu solicitud para reagendar tu cita de *${cita.serviceName}* para el *${fechaTexto}*.\n\nNuestro equipo revisará la disponibilidad y te confirmará a la brevedad. 🌸`);
+        // Sin acuse automático por WhatsApp (decisión 2026-07-10): mientras la cita
+        // siga en "rescheduling", CUALQUIER texto de la clienta caía aquí y el bot
+        // le contestaba en medio de la conversación. El equipo responde manual;
+        // la propuesta llega como notificación al panel.
         console.log(`📅 Propuesta de reagendamiento guardada para cita ${cita.id}: ${fechaTexto}`);
     } catch (error) { console.error('Error procesando fecha de reagendamiento:', error); }
 }
 
-async function procesarCancelacion(cita) {
+async function procesarCancelacion(cita, enviarMensaje = true) {
     console.log(`❌ Procesando cancelación para cita ${cita.id}`);
     try {
         await prisma.appointment.update({
@@ -405,7 +469,7 @@ async function procesarCancelacion(cita) {
             if (cita.googleCalendarEventId2) await deleteEvent(cita.googleCalendarEventId2, config.google.calendarOwner2).catch(e => console.error('Cal2:', e.message));
         } catch (calErr) { console.error('⚠️ Error eliminando eventos del calendario:', calErr.message); }
         await NotificationsRepo.create({ type: 'alerta', icon: 'calendar-times', title: 'Cita cancelada', message: `${cita.clientName} canceló ${cita.serviceName}`, read: false, entityId: cita.id });
-        await WhatsAppService.sendCancelacionConfirmada(cita);
+        if (enviarMensaje) await WhatsAppService.sendCancelacionConfirmada(cita);
         console.log(`❌ Cita ${cita.id} cancelada exitosamente`);
     } catch (error) { console.error('Error procesando cancelación:', error); }
 }

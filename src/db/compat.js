@@ -184,7 +184,7 @@ class DocRef {
 }
 
 // Procesar datos para update (convertir fechas, etc.)
-function processDataForUpdate(modelName, data) {
+export function processDataForUpdate(modelName, data) {
   const processed = { ...data };
 
   // Si es un appointment y viene con date y time, crear startDateTime y endDateTime
@@ -257,6 +257,19 @@ function processDataForUpdate(modelName, data) {
     delete processed.bookedAt;
     delete processed.rejectedAt;
     delete processed.appointmentId;
+    // Preorden de barra + anticipo (feat 08c319a): el flujo público los arma
+    // para el WhatsApp/email del admin, pero NUNCA existieron en el modelo
+    // Prisma → create() tronaba con "Unknown argument" y ninguna clienta
+    // podía mandar solicitud (incidente 17-jul-2026). Se filtran SOLO aquí,
+    // al persistir; el objeto en memoria conserva todo para los mensajes.
+    delete processed.preorderItems;
+    delete processed.preorderSubtotal;
+    delete processed.discountPct;
+    delete processed.discountAmount;
+    delete processed.finalServicePrice;
+    delete processed.depositReceiptUrl;
+    delete processed.depositAmount;
+    delete processed.depositStatus;
   }
 
   // Eliminar campos que no existen en los modelos de Prisma

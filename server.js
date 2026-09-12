@@ -23,6 +23,8 @@ import {
   toMexicoISO,
   startOfMonthMexicoISO,
   todayMexicoStr,
+  startOfDayMexico,
+  endOfDayMexico,
   mxYear,
   mxMonth,
   mxDay,
@@ -32,13 +34,11 @@ import { validateLeadTime, LEAD_TIME_RULE } from './src/utils/leadTime.js';
 // Database - Prisma con repositorios
 import { prisma } from './src/db/index.js';
 import { firestore } from './src/db/compat.js';
-import { CardsRepo, AppointmentsRepo, ServicesRepo, ProductsRepo, SalesRepo, NotificationsRepo, BlockedSlotsRepo } from './src/db/repositories.js';
+import { CardsRepo, AppointmentsRepo, ServicesRepo, ProductsRepo, SalesRepo, NotificationsRepo, BlockedSlotsRepo, LeadsRepo, CommissionsRepo, ReferralsRepo, ChallengesRepo, PromotionsRepo, TouchpointsRepo, CardsMarketingRepo, SettingsRepo } from './src/db/repositories.js';
+import { buildDirectSaleRecord } from './src/services/directSale.js';
 
 // WhatsApp Service - USANDO V2 PARA FORZAR RECARGA
 import { WhatsAppService } from './src/services/whatsapp-v2.js';
-
-// Firebase legacy (solo para migración - remover después)
-// import { firestore } from "./lib/firebase.js";
 
 import {
   sendMassPushNotification,
@@ -93,27 +93,13 @@ import { getEvolutionClient } from './src/services/whatsapp-evolution.js';
 // 📋 Expedientes de Clientas
 import clientRecordsRouter from './src/routes/clientRecords.js';
 import expedientesRouter from './src/routes/expedientes.js';
+import packagesRouter from './src/routes/packages.js';
 
-// Si la clienta aún no tiene ficha clínica firmada (y no le hemos mandado el link
-// en los últimos 7 días), enviarle el link al confirmar su cita.
-async function maybeSendFichaLink(appointment) {
-  try {
-    if (!appointment?.clientPhone) return;
-    const card = await CardsRepo.findByPhone(appointment.clientPhone);
-    if (!card) return;
-    const record = await prisma.clientRecord.findUnique({ where: { cardId: card.id }, include: { intake: true } });
-    if (record?.intake?.status === 'signed') return;
-    const last = record?.fichaLinkSentAt ? Date.now() - new Date(record.fichaLinkSentAt).getTime() : Infinity;
-    if (last < 7 * 24 * 60 * 60 * 1000) return;
-    const { signFichaToken } = await import('./src/services/fichaTokens.js');
-    const token = signFichaToken(card.id, 'ficha');
-    const base = process.env.BASE_URL || 'https://venuscosmetologia.com.mx';
-    await WhatsAppService.sendFichaClinicaLink(card, `${base}/ficha/${token}`);
-    const rec = record ?? await prisma.clientRecord.create({ data: { cardId: card.id } });
-    await prisma.clientRecord.update({ where: { id: rec.id }, data: { fichaLinkSentAt: new Date() } });
-    console.log(`📋 [ficha] Link de ficha enviado a ${card.name}`);
-  } catch (e) { console.warn('[ficha] no se pudo enviar link:', e.message); }
-}
+// NOTA (11 jul 2026, decisión del negocio): la ficha clínica NO se envía
+// automáticamente al agendar. Se envía SOLO manual desde el expediente
+// ("Reenviar ficha" → POST /api/expedientes/:cardId/send-ficha). El auto-envío
+// (maybeSendFichaLink) se retiró porque las clientas recibían dos mensajes al
+// agendar y el negocio prefiere controlar cuándo pedir la ficha.
 
 // 💸 Upload de comprobantes (anticipo $100 transferencia)
 import multer from 'multer';
@@ -137,7 +123,7 @@ const __dirname = path.dirname(__filename);
    ========================================================= */
 
 if (!firestore) {
-  console.error("❌ Firestore NO está inicializado. Revisa lib/firebase.js");
+  console.error("❌ La capa de datos no está inicializada. Revisa src/db/compat.js");
 }
 
 const COL_CARDS = "cards";
@@ -170,13 +156,14 @@ async function fsGetAdminByEmail(email) {
   return { id: snap.docs[0].id, ...snap.docs[0].data() };
 }
 
-async function fsInsertAdmin({ id, email, pass_hash, role = "admin" }) {
+async function fsInsertAdmin({ id, email, pass_hash, role = "admin", name = null }) {
   const now = new Date().toISOString();
   await firestore.collection(COL_ADMINS).doc(id).set({
     id,
     email,
     pass_hash,
     role,
+    name,
     createdAt: now,
     updatedAt: now,
   });
@@ -273,6 +260,49 @@ async function fsUpdateCardStamps(cardId, stamps) {
     stamps,
     lastVisit: new Date().toISOString()
   });
+}
+
+// Canje de tarjeta de lealtad — ÚNICA implementación.
+// Antes vivía duplicada en /api/redeem/:cardId (escáner de recepción) y en
+// /api/admin/redeem (panel), y las dos copias se separaron: la de recepción
+// no incrementaba `cycles`, así que los canjes hechos en el mostrador no le
+// sumaban historial a la clienta (el ranking usa stamps + cycles*8).
+//
+// Devuelve { ok: false, error } si aún no completa los sellos, para que cada
+// endpoint responda con su propio código HTTP.
+async function redeemLoyaltyCard(cardId, by) {
+  const card = await fsGetCard(cardId);
+  if (!card) return { ok: false, error: 'card_not_found' };
+  if ((card.stamps || 0) < card.max) return { ok: false, error: 'not_enough_stamps' };
+
+  const newCycles = (card.cycles || 0) + 1;
+  const updated = await fsUpdateCard(cardId, {
+    stamps: 0,
+    cycles: newCycles,
+    lastVisit: new Date().toISOString(),
+  });
+
+  await fsAddEvent(cardId, 'REDEEM', { by, cycle: newCycles });
+  console.log(`[REDEEM] ${card.name} completó el ciclo ${newCycles} (por ${by})`);
+
+  // Wallet: si falla, el canje NO se revierte — queda registrado y el pase se
+  // pone al día en el siguiente refresco.
+  try {
+    const { updateLoyaltyObject } = await import('./lib/google.js');
+    await updateLoyaltyObject(cardId, card.name, 0, card.max);
+    console.log(`[GOOGLE WALLET] ✅ Canje actualizado para: ${cardId} (0/${card.max})`);
+  } catch (googleError) {
+    console.error('[GOOGLE WALLET] ❌ Error actualizando canje:', googleError.message);
+  }
+
+  try {
+    await appleWebService.notifyCardUpdate(cardId);
+    console.log(`[APPLE WALLET] ✅ Canje notificado para: ${cardId}`);
+  } catch (err) {
+    console.error('[APPLE WALLET] ❌ Error notificando:', err);
+  }
+
+  return { ok: true, card: updated || { ...card, stamps: 0, cycles: newCycles }, cycles: newCycles };
 }
 
 async function fsAddEvent(cardId, type, meta = {}) {
@@ -600,6 +630,7 @@ app.use(cookieParser());
 // Guard ANTES del static: si la cookie es de rol "recepcion", redirigir
 // a /recepcion.html cuando intenten cargar /admin.html. Sin esto el
 // express.static lo serviría antes de llegar a los handlers explícitos.
+// También redirige rol "marketing" a /marketing.html.
 app.use((req, res, next) => {
   if (req.path !== '/admin.html' && req.path !== '/admin') return next();
   try {
@@ -608,6 +639,9 @@ app.use((req, res, next) => {
     const payload = jwt.verify(raw, process.env.ADMIN_JWT_SECRET);
     if (payload?.role === 'recepcion') {
       return res.redirect(302, '/recepcion.html');
+    }
+    if (payload?.role === 'marketing') {
+      return res.redirect(302, '/marketing.html');
     }
   } catch { /* token inválido → seguir */ }
   next();
@@ -668,6 +702,7 @@ app.use('/api/webhook/evolution', webhookEvolution);
 app.use('/api/client-records', clientRecordsRouter);
 // 📋 Expedientes digitales (fichas, consentimientos, diagnóstico, láser, documentos Drive)
 app.use('/api/expedientes', expedientesRouter);
+app.use('/api/packages', packagesRouter);
 
 // ☕ Venus The Coffee Bar - POS
 app.use('/api/pos', coffeePosRouter);
@@ -828,6 +863,25 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// 🔄 Versión del build para el aviso "hay una nueva versión" del admin.
+// Se calcula UNA vez al arrancar: hash del contenido de admin.html (cambia
+// con cada deploy que toque el admin). El front la consulta al cargar y la
+// re-consulta periódicamente; si cambió, muestra el botón de actualizar.
+const ADMIN_BUILD_VERSION = (() => {
+  try {
+    const html = fs.readFileSync(path.join(__dirname, 'public', 'admin.html'));
+    return crypto.createHash('sha1').update(html).digest('hex').slice(0, 12);
+  } catch (e) {
+    console.warn('[VERSION] No se pudo hashear admin.html:', e.message);
+    return `boot-${Date.now()}`;
+  }
+})();
+console.log('[VERSION] Build del admin:', ADMIN_BUILD_VERSION);
+
+app.get('/api/version', (req, res) => {
+  res.json({ success: true, version: ADMIN_BUILD_VERSION });
+});
+
 // 🧪 Test endpoint para WhatsApp
 app.post('/api/test/whatsapp', async (req, res) => {
   try {
@@ -931,15 +985,7 @@ app.post('/api/whatsapp/confirmation', adminAuth, async (req, res) => {
 // GET /api/products - Listar todos los productos
 app.get('/api/products', adminAuth, async (req, res) => {
   try {
-    const snapshot = await firestore.collection('products')
-      .orderBy('name', 'asc')
-      .get();
-
-    const products = [];
-    snapshot.forEach(doc => {
-      products.push({ id: doc.id, ...doc.data() });
-    });
-
+    const products = await prisma.product.findMany({ orderBy: { name: 'asc' } });
     res.json({ success: true, data: products });
   } catch (error) {
     console.error('Error fetching products:', error);
@@ -956,22 +1002,20 @@ app.post('/api/products', adminAuth, requireRole("admin"), async (req, res) => {
       return res.json({ success: false, error: 'Nombre y precio son requeridos' });
     }
 
-    const productData = {
-      name,
-      category: category || 'otro',
-      presentation: presentation || '',
-      price: parseFloat(price),
-      cost: cost ? parseFloat(cost) : null,
-      stock: parseInt(stock) || 0,
-      minStock: parseInt(minStock) || 5,
-      description: description || '',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
+    const product = await prisma.product.create({
+      data: {
+        name,
+        category: category || 'otro',
+        presentation: presentation || '',
+        price: parseFloat(price),
+        cost: cost ? parseFloat(cost) : null,
+        stock: parseInt(stock) || 0,
+        minStock: parseInt(minStock) || 5,
+        description: description || ''
+      }
+    });
 
-    const docRef = await firestore.collection('products').add(productData);
-
-    res.json({ success: true, id: docRef.id, data: productData });
+    res.json({ success: true, id: product.id, data: product });
   } catch (error) {
     console.error('Error creating product:', error);
     res.json({ success: false, error: error.message });
@@ -984,19 +1028,19 @@ app.put('/api/products/:id', adminAuth, requireRole("admin"), async (req, res) =
     const { id } = req.params;
     const { name, category, presentation, price, cost, stock, minStock, description } = req.body;
 
-    const updateData = {
-      name,
-      category,
-      presentation,
-      price: parseFloat(price),
-      cost: cost ? parseFloat(cost) : null,
-      stock: parseInt(stock),
-      minStock: parseInt(minStock) || 5,
-      description,
-      updatedAt: new Date().toISOString()
-    };
-
-    await firestore.collection('products').doc(id).update(updateData);
+    await prisma.product.update({
+      where: { id },
+      data: {
+        name,
+        category,
+        presentation,
+        price: parseFloat(price),
+        cost: cost ? parseFloat(cost) : null,
+        stock: parseInt(stock),
+        minStock: parseInt(minStock) || 5,
+        description
+      }
+    });
 
     res.json({ success: true });
   } catch (error) {
@@ -1009,7 +1053,7 @@ app.put('/api/products/:id', adminAuth, requireRole("admin"), async (req, res) =
 app.delete('/api/products/:id', adminAuth, requireRole("admin"), async (req, res) => {
   try {
     const { id } = req.params;
-    await firestore.collection('products').doc(id).delete();
+    await prisma.product.delete({ where: { id } });
     res.json({ success: true });
   } catch (error) {
     console.error('Error deleting product:', error);
@@ -1023,20 +1067,13 @@ app.patch('/api/products/:id/stock', adminAuth, requireRole("admin"), async (req
     const { id } = req.params;
     const { change } = req.body; // +1 o -1
 
-    const docRef = firestore.collection('products').doc(id);
-    const doc = await docRef.get();
-
-    if (!doc.exists) {
+    const product = await prisma.product.findUnique({ where: { id } });
+    if (!product) {
       return res.json({ success: false, error: 'Producto no encontrado' });
     }
 
-    const currentStock = doc.data().stock || 0;
-    const newStock = Math.max(0, currentStock + change);
-
-    await docRef.update({
-      stock: newStock,
-      updatedAt: new Date().toISOString()
-    });
+    const newStock = Math.max(0, (product.stock || 0) + change);
+    await prisma.product.update({ where: { id }, data: { stock: newStock } });
 
     res.json({ success: true, newStock });
   } catch (error) {
@@ -1061,6 +1098,20 @@ app.get('/api/appointments', adminAuth, async (req, res) => {
 
     // Usar repositorio de Prisma
     const data = await AppointmentsRepo.findByDate(date);
+
+    // Adjuntar apartado de barra/anticipo heredado de la solicitud (Setting
+    // JSON): la Agenda lo muestra en el bloque del día y la tarjeta lateral.
+    try {
+      const keys = data.map(a => `booking_extra_appt_${a.id}`);
+      if (keys.length) {
+        const extras = await prisma.setting.findMany({ where: { key: { in: keys } } });
+        const byKey = new Map(extras.map(s => [s.key, s.value]));
+        for (const a of data) {
+          const ex = byKey.get(`booking_extra_appt_${a.id}`);
+          if (ex && typeof ex === 'object') a.barExtra = ex;
+        }
+      }
+    } catch (e) { /* sin extras */ }
 
     console.log(`[APPOINTMENTS] Encontradas ${data.length} citas`);
     res.json({ success: true, data });
@@ -1145,6 +1196,20 @@ app.get('/api/appointments/range', adminAuth, async (req, res) => {
     // Usar repositorio de Prisma
     const appointments = await AppointmentsRepo.findByDateRange(from, to);
 
+    // Adjuntar apartado de barra (Setting JSON): la vista de día del
+    // calendario se alimenta de ESTE endpoint, no del de ?date.
+    try {
+      const keys = appointments.map(a => `booking_extra_appt_${a.id}`);
+      if (keys.length) {
+        const extras = await prisma.setting.findMany({ where: { key: { in: keys } } });
+        const byKey = new Map(extras.map(s => [s.key, s.value]));
+        for (const a of appointments) {
+          const ex = byKey.get(`booking_extra_appt_${a.id}`);
+          if (ex && typeof ex === 'object') a.barExtra = ex;
+        }
+      }
+    } catch (e) { /* sin extras */ }
+
     console.log('[REPORTS] Encontradas', appointments.length, 'citas en el rango');
 
     res.json({ success: true, data: appointments });
@@ -1164,7 +1229,12 @@ app.get('/api/appointments/:id', adminAuth, async (req, res) => {
       return res.json({ success: false, error: 'Cita no encontrada' });
     }
 
-    console.log('[API] Appointment data:', appointment);
+    // Apartado de barra/anticipo heredado de la solicitud (Setting JSON):
+    // la Caja lo usa para precargar la bebida y mostrar el anticipo al cobrar.
+    try {
+      const extraRow = await prisma.setting.findUnique({ where: { key: `booking_extra_appt_${id}` } });
+      if (extraRow && typeof extraRow.value === 'object') appointment.barExtra = extraRow.value;
+    } catch (e) { /* sin extra */ }
 
     res.json({ success: true, data: appointment });
   } catch (error) {
@@ -1254,6 +1324,19 @@ app.post('/api/appointments/:id/payment', adminAuth, async (req, res) => {
       return res.json({ success: false, error: 'Cita no encontrada' });
     }
 
+    // Cambio de servicio a la hora de cobrar (la clienta pidió otra cosa al
+    // llegar): se actualiza la cita y el objeto en memoria, para que el Sale
+    // del reporte (más abajo usa appointment.serviceName) salga con el bueno.
+    if (req.body.serviceName && String(req.body.serviceName).trim() && req.body.serviceName !== appointment.serviceName) {
+      const nuevoServicio = String(req.body.serviceName).trim();
+      await AppointmentsRepo.update(id, {
+        serviceName: nuevoServicio,
+        ...(req.body.serviceId ? { serviceId: String(req.body.serviceId) } : {}),
+      });
+      console.log(`[PAYMENT] Servicio cambiado al cobrar: "${appointment.serviceName}" → "${nuevoServicio}"`);
+      appointment.serviceName = nuevoServicio;
+    }
+
     // Actualizar cita con datos de pago
     const paymentData = {
       status: 'completed',
@@ -1281,7 +1364,14 @@ app.post('/api/appointments/:id/payment', adminAuth, async (req, res) => {
     // Descontar stock de productos vendidos usando Prisma
     if (productsSold && productsSold.length > 0) {
       for (const product of productsSold) {
-        await ProductsRepo.updateStock(product.productId, -product.qty);
+        // Items del menú del café (id "coffee:…") no existen en products:
+        // sin este guard, updateStock tira P2025 y TODO el cobro fallaba.
+        if (!product.productId || String(product.productId).startsWith('coffee:')) continue;
+        try {
+          await ProductsRepo.updateStock(product.productId, -product.qty);
+        } catch (e) {
+          console.warn('[payment] stock no actualizado para', product.productId, e.message);
+        }
       }
     }
 
@@ -1310,11 +1400,67 @@ app.post('/api/appointments/:id/payment', adminAuth, async (req, res) => {
 });
 
 // POST /api/direct-sales - Registrar venta directa (sin cita)
+// GET /api/sales/range — ventas SIN cita (manuales + directas de producto) en
+// un rango de fechas. El reporte de Ventas las suma como tercera fuente junto
+// a citas cobradas y café. Se excluyen las ventas ligadas a cita
+// (appointmentId != null) porque su monto ya cuenta vía appointment.totalPaid.
+app.get('/api/sales/range', adminAuth, async (req, res) => {
+  try {
+    const { from, to } = req.query;
+    if (!from || !to) return res.json({ success: false, error: 'Faltan from/to' });
+    const sales = await prisma.sale.findMany({
+      where: {
+        appointmentId: null,
+        date: { gte: new Date(`${from}T00:00:00-06:00`), lte: new Date(`${to}T23:59:59-06:00`) },
+      },
+      orderBy: { date: 'asc' },
+    });
+    res.json({ success: true, data: sales });
+  } catch (e) {
+    console.error('[sales/range]', e);
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// POST /api/manual-incomes — ingreso manual (estilo Excel, pero en el sistema).
+// Crea un Sale sin cita: concepto, monto, método y fecha. Aparece en el
+// reporte de Ventas al instante vía /api/sales/range.
+app.post('/api/manual-incomes', adminAuth, async (req, res) => {
+  try {
+    const { date, concept, clientName, amount, paymentMethod } = req.body || {};
+    const monto = parseFloat(amount);
+    if (!concept || !String(concept).trim()) return res.status(400).json({ success: false, error: 'Falta el concepto' });
+    if (!Number.isFinite(monto) || monto <= 0) return res.status(400).json({ success: false, error: 'Monto inválido' });
+    if (!['efectivo', 'tarjeta', 'transferencia'].includes(paymentMethod)) {
+      return res.status(400).json({ success: false, error: 'Método de pago inválido' });
+    }
+    const fecha = /^\d{4}-\d{2}-\d{2}$/.test(String(date || '')) ? date : new Date().toISOString().slice(0, 10);
+
+    const sale = await prisma.sale.create({
+      data: {
+        clientName: (clientName && String(clientName).trim()) || 'Ingreso manual',
+        serviceName: String(concept).trim(),
+        serviceAmount: monto,
+        productsAmount: 0,
+        subtotal: monto,
+        total: monto,
+        totalAmount: monto,
+        paymentMethod,
+        date: new Date(`${fecha}T12:00:00-06:00`),
+      },
+    });
+    console.log(`[MANUAL INCOME] +$${monto} · ${concept} · ${paymentMethod} · ${fecha}`);
+    res.json({ success: true, id: sale.id });
+  } catch (e) {
+    console.error('[manual-incomes]', e);
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
 app.post('/api/direct-sales', adminAuth, async (req, res) => {
   try {
     const {
       clientName,
-      paymentMethod,
       productsAmount,
       discountType,
       discountValue,
@@ -1334,9 +1480,9 @@ app.post('/api/direct-sales', adminAuth, async (req, res) => {
       }
       for (const item of productsSold) {
         if (!item.productId) continue;
-        const productDoc = await firestore.collection('products').doc(item.productId).get();
-        if (!productDoc.exists) continue;
-        const catalogPrice = Number(productDoc.data().price || 0);
+        const product = await prisma.product.findUnique({ where: { id: item.productId } });
+        if (!product) continue;
+        const catalogPrice = Number(product.price || 0);
         const expectedSubtotal = catalogPrice * Number(item.qty || 0);
         const actualSubtotal = Number(item.subtotal || 0);
         if (Math.abs(actualSubtotal - expectedSubtotal) > 0.01) {
@@ -1347,63 +1493,33 @@ app.post('/api/direct-sales', adminAuth, async (req, res) => {
 
     console.log('[DIRECT SALE] Procesando venta directa:', { clientName, productsAmount, totalAmount });
 
-    // Descontar stock de productos vendidos
-    const batch = firestore.batch();
+    // Descontar stock de productos vendidos, directo con Prisma. Los items del
+    // café ("coffee:…") no llevan inventario retail. firestore.batch() no
+    // existe en la capa compat: tumbaba TODA la Venta Rápida (17-jul-2026).
     for (const product of productsSold) {
-      const productRef = firestore.collection('products').doc(product.productId);
-      const productDoc = await productRef.get();
-
-      if (productDoc.exists) {
-        const currentStock = productDoc.data().stock || 0;
-        const newStock = Math.max(0, currentStock - product.qty);
-        batch.update(productRef, {
-          stock: newStock,
-          updatedAt: new Date().toISOString()
-        });
-        console.log(`[DIRECT SALE] Stock actualizado: ${product.name} ${currentStock} -> ${newStock}`);
+      if (!product.productId || String(product.productId).startsWith('coffee:')) continue;
+      try {
+        const prod = await prisma.product.findUnique({ where: { id: product.productId } });
+        if (!prod) continue;
+        const newStock = Math.max(0, (prod.stock || 0) - product.qty);
+        await prisma.product.update({ where: { id: prod.id }, data: { stock: newStock, updatedAt: new Date() } });
+        console.log(`[DIRECT SALE] Stock actualizado: ${product.name} ${prod.stock} -> ${newStock}`);
+      } catch (e) {
+        console.warn('[DIRECT SALE] stock no actualizado para', product.productId, e.message);
       }
     }
-    await batch.commit();
 
-    // Registrar en colección de ventas
-    const saleRef = await firestore.collection('sales').add({
-      type: 'direct', // Venta directa (sin cita)
-      clientName: clientName || 'Venta directa',
-      serviceName: null,
-      serviceAmount: 0,
-      productsAmount: parseFloat(productsAmount) || 0,
-      subtotal: parseFloat(productsAmount) || 0,
-      discountType,
-      discountValue,
-      discountAmount: parseFloat(discountAmount) || 0,
-      totalAmount: parseFloat(totalAmount) || 0,
-      productsSold,
-      paymentMethod,
-      createdAt: new Date().toISOString()
-    });
+    // Registrar la venta (una sola escritura, vía Prisma).
+    // ANTES se hacía firestore.collection('sales').add({ type:'direct', … }):
+    // la capa compat lo traduce a prisma.sale.create() y el modelo Sale NO
+    // tiene columna `type` ni recibía `total`/`date` (obligatorios) → Prisma
+    // tiraba "Unknown argument `type`" y TODA venta directa fallaba (con y sin
+    // descuento, con producto de barra o de retail). Ver src/services/directSale.js.
+    const sale = await SalesRepo.create(buildDirectSaleRecord(req.body));
 
-    // También en Prisma
-    try {
-      await SalesRepo.create({
-        appointmentId: null,
-        clientName: clientName || 'Venta Pasajero',
-        serviceName: null,
-        serviceAmount: 0,
-        productsAmount: parseFloat(productsAmount) || 0,
-        subtotal: parseFloat(productsAmount) || 0,
-        discountType,
-        discountValue: discountValue || 0,
-        discountAmount: parseFloat(discountAmount) || 0,
-        totalAmount: parseFloat(totalAmount) || 0,
-        productsSold,
-        paymentMethod,
-        date: new Date()
-      });
-    } catch (e) { console.error('Error registrando venta directa en prisma:', e); }
+    console.log('[DIRECT SALE] ✅ Venta registrada:', sale.id);
 
-    console.log('[DIRECT SALE] ✅ Venta registrada:', saleRef.id);
-
-    res.json({ success: true, saleId: saleRef.id });
+    res.json({ success: true, saleId: sale.id });
   } catch (error) {
     console.error('[DIRECT SALE] Error:', error);
     res.json({ success: false, error: error.message });
@@ -1416,32 +1532,22 @@ app.get('/api/transactions', adminAuth, requireRole("admin"), async (req, res) =
     const { date } = req.query;
     if (!date) return res.json({ success: false, error: 'Fecha requerida' });
 
-    const startDate = new Date(date + 'T00:00:00');
-    const endDate = new Date(date + 'T23:59:59');
+    // Día natural de México. Antes era `new Date(date + 'T00:00:00')`, que se
+    // interpreta en la zona del SERVIDOR (UTC en Railway): una venta de las
+    // 19:00 se guardaba con createdAt del día siguiente en UTC y no salía en la
+    // Caja del día en que se cobró.
+    const startDate = startOfDayMexico(date);
+    const endDate = endOfDayMexico(date);
 
-    // Buscar en SalesRepo (Prisma)
-    // Asumiendo que Prisma maneja fechas ISO
-    try {
-      const sales = await prisma.sale.findMany({
-        where: {
-          createdAt: {
-            gte: startDate,
-            lte: endDate
-          }
-        }
-      });
+    // El fallback a firestore.collection('sales') que había aquí consultaba la
+    // MISMA tabla vía la capa compat, con el mismo filtro: solo podía devolver
+    // el mismo resultado vacío. Se eliminó.
+    const sales = await prisma.sale.findMany({
+      where: { createdAt: { gte: startDate, lte: endDate } },
+      orderBy: { createdAt: 'asc' },
+    });
 
-      if (sales && sales.length > 0) return res.json({ success: true, data: sales });
-    } catch (e) { console.warn('Error fetching prismas sales:', e); }
-
-    // Fallback a Firestore para ventas directas
-    const snapshot = await firestore.collection('sales')
-      .where('createdAt', '>=', startDate.toISOString())
-      .where('createdAt', '<=', endDate.toISOString())
-      .get();
-
-    const fsSales = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-    return res.json({ success: true, data: fsSales });
+    return res.json({ success: true, data: sales });
 
   } catch (e) {
     console.error('Error obteniendo transacciones:', e);
@@ -1526,6 +1632,8 @@ app.post('/api/appointments', adminAuth, async (req, res) => {
       // tiene Gmail conectado vía OAuth multi-cuenta, la cita también se
       // crea en su calendar personal y le llega por correo.
       assignedAdminId: assignedAdminId || null,
+      // Atribución de marketing: registrar quién agendó la cita (para comisión)
+      bookedById: req.admin?.uid || null,
       // Flags para recordatorios WhatsApp automáticos
       sendWhatsApp24h: sendWhatsApp24h !== false, // Por defecto true
       sendWhatsApp2h: sendWhatsApp2h !== false    // Por defecto true
@@ -1606,8 +1714,38 @@ app.post('/api/appointments', adminAuth, async (req, res) => {
     console.log('[APPOINTMENT] ✅ Cita creada y vinculada a tarjeta:', appointment.id, 'cardId:', card.id, {
       sendWhatsApp24h: appointmentData.sendWhatsApp24h,
       sendWhatsApp2h: appointmentData.sendWhatsApp2h,
-      assignedAdminId: appointmentData.assignedAdminId
+      assignedAdminId: appointmentData.assignedAdminId,
+      bookedById: appointmentData.bookedById
     });
+
+    // ── COMISIÓN: si la cita fue agendada por un marketer, crear comisión
+    if (req.admin?.role === 'marketing' && appointmentData.bookedById) {
+      try {
+        const commissionAmount = await SettingsRepo.get('marketing.commission.fixed_amount');
+        const amount = typeof commissionAmount === 'number' ? commissionAmount : 50;
+        await CommissionsRepo.create({
+          marketerId: req.admin.uid,
+          appointmentId: appointment.id,
+          amount,
+          status: 'pendiente',
+        });
+        console.log(`[APPOINTMENT] 💰 Comisión creada: $${amount} para ${req.admin.uid}`);
+
+        // Notificación inmediata al admin
+        const marketerName = req.admin.email?.split('@')[0] || 'Marketing';
+        await NotificationsRepo.create({
+          type: 'cita',
+          icon: 'calendar-plus',
+          title: 'Cita agendada por marketing',
+          message: `${marketerName} agendó: ${name} - ${serviceName} - ${date} ${time}`,
+          read: false,
+          entityId: appointment.id,
+        });
+        console.log('[APPOINTMENT] 🔔 Notificación de comisión enviada al admin');
+      } catch (commissionErr) {
+        console.error('[APPOINTMENT] ⚠️ Error creando comisión:', commissionErr.message);
+      }
+    }
 
     // ── Asignación: crear evento en el calendar PERSONAL del admin asignado
     //    y mandarle un email de notificación. Background — no bloquea la
@@ -1651,7 +1789,6 @@ app.post('/api/appointments', adminAuth, async (req, res) => {
           startDateTime: appointment.startDateTime
         });
         const result = await WhatsAppService.sendConfirmation(appointment);
-        maybeSendFichaLink(appointment); // fire-and-forget: no bloquear la respuesta
         if (result.success) {
           console.log('[APPOINTMENT] ✅ WhatsApp confirmación enviado:', result.messageSid);
         } else {
@@ -1706,6 +1843,18 @@ app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
 
       const appointment = await AppointmentsRepo.findById(id);
       if (!appointment) return res.status(404).json({ success: false, error: 'Cita no encontrada' });
+
+      // Cambio de servicio al cobrar (misma regla que POST /payment): la cita
+      // y el reporte deben quedar con el servicio que de verdad se hizo.
+      if (req.body.serviceName && String(req.body.serviceName).trim() && req.body.serviceName !== appointment.serviceName) {
+        const nuevoServicio = String(req.body.serviceName).trim();
+        await AppointmentsRepo.update(id, {
+          serviceName: nuevoServicio,
+          ...(req.body.serviceId ? { serviceId: String(req.body.serviceId) } : {}),
+        });
+        console.log(`[PATCH] Servicio cambiado al cobrar: "${appointment.serviceName}" → "${nuevoServicio}"`);
+        appointment.serviceName = nuevoServicio;
+      }
 
       // Actualizar cita a completada
       await AppointmentsRepo.complete(id, {
@@ -1803,6 +1952,16 @@ app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
 
     // Actualizar en BD usando repositorio
     await AppointmentsRepo.update(id, updateData);
+
+    // Aviso de reagendo: si cambió fecha u hora, la clienta debe enterarse al
+    // momento (antes solo se enteraba con la encuesta del día, o nunca).
+    // notifyClient:false en el body lo silencia para correcciones internas.
+    const cambioFechaHora = (appointment.date !== date) || (appointment.time !== time);
+    if (cambioFechaHora && req.body.notifyClient !== false && appointment.clientPhone) {
+      WhatsAppService.sendReagendamientoConfirmado({ ...appointment, ...updateData })
+        .then(r => console.log(`[PATCH] 📅 Aviso de reagendo ${r.success ? 'enviado' : 'falló'} → ${appointment.clientName}`))
+        .catch(err => console.error('[PATCH] ❌ Aviso de reagendo:', err.message));
+    }
 
     // ⭐ ACTUALIZAR GOOGLE CALENDAR si hay eventos asociados
     const startDateTimeMX = `${date}T${time}:00-06:00`;
@@ -2966,7 +3125,9 @@ app.get('/api/expenses', adminAuth, requireRole("admin"), async (req, res) => {
     const snapshot = await firestore.collection('expenses')
       .where('date', '>=', from)
       .where('date', '<=', to)
-      .orderBy('date', 'desc')
+      // El último movimiento capturado debe aparecer primero, aunque su
+      // fecha contable sea anterior o coincida con la de otros gastos.
+      .orderBy('createdAt', 'desc')
       .get();
 
     const data = [];
@@ -3972,10 +4133,12 @@ app.post("/api/admin/massage-stamp", adminAuth, async (req, res) => {
     // Push a Apple Wallet
     try {
       let customMsg = null;
-      if (newStamps === 5) {
+      // La rama de completar va PRIMERO: en una membresía de 5 sesiones, la
+      // sesión 5 es el final — debe avisar renovación, no "regalo intermedio"
+      if (newStamps >= card.massageMax) {
+        customMsg = `🎁🎉 ¡Increíble ${card.name}! Completaste tus ${card.massageMax} masajes — recoge tu segundo regalo y pregunta por la renovación de tu membresía 🌸`;
+      } else if (newStamps === 5) {
         customMsg = `🎁 ¡Felicidades ${card.name}! Llevas 5 masajes — tienes un regalo especial esperándote.`;
-      } else if (newStamps === 10) {
-        customMsg = `🎁🎉 ¡Increíble ${card.name}! Completaste 10 masajes — ¡tu segundo regalo te espera!`;
       } else {
         customMsg = `💆 Sesión de masaje registrada — llevas ${newStamps} de ${card.massageMax}.`;
       }
@@ -3988,6 +4151,67 @@ app.post("/api/admin/massage-stamp", adminAuth, async (req, res) => {
     res.json({ ok: true, cardId, massageStamps: newStamps, massageMax: card.massageMax });
   } catch (e) {
     console.error("[ADMIN MASSAGE STAMP]", e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /api/admin/cards/:id/renew-massage — renovar membresía de masajes (nueva vuelta, misma tarjeta en Wallet)
+app.post('/api/admin/cards/:id/renew-massage', adminAuth, async (req, res) => {
+  try {
+    const cardId = req.params.id;
+    const card = await fsGetCard(cardId);
+    if (!card) return res.status(404).json({ error: 'card not found' });
+    if (!card.massageActive) return res.status(400).json({ error: 'No tiene membresía de masajes activa' });
+
+    const max = card.massageMax || 10;
+    const stamps = card.massageStamps || 0;
+    if (stamps < max) {
+      return res.status(400).json({ error: `Aún no completa la membresía (${stamps}/${max}) — se renueva al terminarla` });
+    }
+
+    // Write condicionado a que SIGA completa: dos renovaciones simultáneas no
+    // pueden sumar dos ciclos ni mandar doble aviso (la segunda no matchea).
+    // Prisma actualiza cards.updatedAt en este mismo write, que es lo que
+    // decide la frescura de los pases de Apple (fsGetLastUpdate en
+    // lib/apple-webservice.js). lastVisit: renovar es una visita pagada — sin
+    // esto la clienta seguiría apareciendo en el filtro de "dormidas".
+    const renewed = await prisma.card.updateMany({
+      where: { id: cardId, massageActive: true, massageStamps: { gte: max } },
+      data: { massageStamps: 0, massageCycles: { increment: 1 }, lastVisit: new Date() }
+    });
+    if (renewed.count === 0) {
+      return res.status(409).json({ error: 'La membresía ya fue renovada hace un momento' });
+    }
+
+    const fresh = await prisma.card.findUnique({ where: { id: cardId }, select: { massageCycles: true } });
+    const newCycles = fresh?.massageCycles ?? (card.massageCycles || 0) + 1;
+
+    await fsAddEvent(cardId, 'MASSAGE_RENEWED', {
+      by: req.admin?.email || 'admin',
+      note: `ciclo ${newCycles} — contador a 0/${max}`
+    });
+
+    // Actualizar Google Wallet (mismo objeto, contador a 0)
+    try {
+      await updateLoyaltyObject(`${cardId}-massage`, card.name, 0, max, 'massage');
+      console.log(`[GOOGLE WALLET] ✅ Membresía de masajes renovada: ${cardId} (ciclo ${newCycles})`);
+    } catch (googleError) {
+      console.error('[GOOGLE WALLET] ❌ Error renovando masajes:', googleError.message);
+    }
+
+    // Push a Apple Wallet (mismo pase, contador a 0)
+    try {
+      const customMsg = `🌸 ¡Tu membresía de masajes se renovó, ${card.name}! Te esperan ${max} sesiones nuevas con regalos en la 5 y la ${max}.`;
+      await appleWebService.updatePassAndNotify(`${cardId}-massage`, card.massageStamps, 0, customMsg);
+    } catch (err) {
+      console.error('[APPLE] Error notificando renovación de masaje:', err);
+    }
+
+    // name/phone van en la respuesta porque el front puede tener el cache
+    // recién vaciado (búsqueda/paginación) y aun así necesita avisar por WhatsApp
+    res.json({ ok: true, cardId, name: card.name || null, phone: card.phone || null, massageStamps: 0, massageMax: max, massageCycles: newCycles });
+  } catch (e) {
+    console.error('[ADMIN RENEW MASSAGE]', e);
     res.status(500).json({ error: e.message });
   }
 });
@@ -4344,6 +4568,8 @@ app.post('/api/public/request', async (req, res) => {
       clientBirthday,
       preorderItems = [],  // [{ id, name, qty, price }, ...] — items de barra apartados
       depositReceiptUrl = null,  // URL de Cloudinary del comprobante de transferencia
+      refCode = null,  // código de referido (marketing)
+      utm = null,  // { source, campaign, medium } atribución UTM
     } = req.body;
 
     // Validaciones
@@ -4488,6 +4714,66 @@ app.post('/api/public/request', async (req, res) => {
     const requestRef = await firestore.collection('booking_requests').add(requestData);
     console.log(`[BOOKING REQUEST] ✅ Solicitud guardada con ID: ${requestRef.id}`);
 
+    // ── Atribución de marketing: registrar touchpoint y referido ──
+    try {
+      if (refCode || utm) {
+        // Crear touchpoint
+        await TouchpointsRepo.create({
+          cardId: cardId,
+          channel: utm?.source || (refCode ? 'referral' : 'direct'),
+          campaign: utm?.campaign || refCode || null,
+          utm: utm || null,
+        });
+        console.log(`[BOOKING REQUEST] 📊 Touchpoint registrado: ${utm?.source || 'referral'}`);
+      }
+      // Si viene de un referido, crear Referral pendiente
+      if (refCode) {
+        const referrerCard = await CardsMarketingRepo.findByReferralCode(refCode);
+        if (referrerCard && referrerCard.id !== cardId) {
+          // Verificar que no exista ya un referral para esta invitee
+          const existing = await ReferralsRepo.findByInvitee(cardId);
+          if (!existing) {
+            await ReferralsRepo.create({
+              referrerCardId: referrerCard.id,
+              inviteeCardId: cardId,
+              inviteePhone: phoneClean,
+              status: 'pendiente',
+            });
+            console.log(`[BOOKING REQUEST] 🤝 Referido registrado: ${referrerCard.name} → ${clientName}`);
+          }
+        }
+      }
+    } catch (attrErr) {
+      console.error('[BOOKING REQUEST] ⚠️ Error atribución:', attrErr.message);
+    }
+
+    // Preorden/anticipo: el modelo BookingRequest no tiene estas columnas (se
+    // filtran al persistir desde el fix del 17-jul). Se guardan como Setting
+    // JSON para que el panel de Solicitudes las muestre (bebida, comprobante,
+    // estado del anticipo) y el admin pueda validar el depósito.
+    if (hasPreorder || depositReceiptUrl) {
+      try {
+        await prisma.setting.upsert({
+          where: { key: `booking_extra_${requestRef.id}` },
+          create: {
+            key: `booking_extra_${requestRef.id}`,
+            value: {
+              preorderItems: preorderItemsClean, preorderSubtotal, discountPct, discountAmount,
+              finalServicePrice, depositReceiptUrl: depositReceiptUrl || null,
+              depositAmount: requestData.depositAmount, depositStatus: requestData.depositStatus,
+            }
+          },
+          update: {
+            value: {
+              preorderItems: preorderItemsClean, preorderSubtotal, discountPct, discountAmount,
+              finalServicePrice, depositReceiptUrl: depositReceiptUrl || null,
+              depositAmount: requestData.depositAmount, depositStatus: requestData.depositStatus,
+            }
+          }
+        });
+      } catch (e) { console.warn('[BOOKING REQUEST] extra (preorden/anticipo) no guardado:', e.message); }
+    }
+
     // 2.1 ENVIAR NOTIFICACIONES POR EMAIL
     // Notificar al Admin
     EmailService.sendNewRequestNotification(requestData).catch(err =>
@@ -4619,6 +4905,20 @@ app.get('/api/booking-requests', adminAuth, async (req, res) => {
     const data = [];
     snapshot.forEach(doc => data.push({ id: doc.id, ...doc.data() }));
 
+    // Enriquecer con preorden/anticipo guardados como Setting JSON (el modelo
+    // no tiene esas columnas): así el panel muestra bebida y comprobante.
+    try {
+      const keys = data.map(r => `booking_extra_${r.id}`);
+      if (keys.length) {
+        const extras = await prisma.setting.findMany({ where: { key: { in: keys } } });
+        const byKey = new Map(extras.map(s => [s.key, s.value]));
+        for (const r of data) {
+          const extra = byKey.get(`booking_extra_${r.id}`);
+          if (extra && typeof extra === 'object') Object.assign(r, extra);
+        }
+      }
+    } catch (e) { console.warn('[BOOKING REQUESTS] extras no disponibles:', e.message); }
+
     console.log(`[BOOKING REQUESTS] 📋 Listando ${data.length} solicitudes`);
     res.json({ success: true, data });
   } catch (error) {
@@ -4648,14 +4948,17 @@ app.patch('/api/booking-requests/:id/deposit', adminAuth, async (req, res) => {
     if (!['confirm', 'reject'].includes(action)) {
       return res.status(400).json({ success: false, error: 'action debe ser confirm o reject' });
     }
-    const update = {
-      depositStatus: action === 'confirm' ? 'confirmed' : 'rejected',
-      depositReviewedAt: new Date().toISOString(),
-      depositReviewedBy: req.admin?.email || 'admin',
-    };
-    if (action === 'reject' && reason) update.depositRejectReason = reason;
-    await firestore.collection('booking_requests').doc(req.params.id).update(update);
-    res.json({ success: true, depositStatus: update.depositStatus });
+    // El estado del anticipo vive en el Setting JSON de la solicitud (el
+    // modelo BookingRequest no tiene columnas de depósito).
+    const key = `booking_extra_${req.params.id}`;
+    const row = await prisma.setting.findUnique({ where: { key } });
+    const extra = (row && typeof row.value === 'object') ? { ...row.value } : {};
+    extra.depositStatus = action === 'confirm' ? 'confirmed' : 'rejected';
+    extra.depositReviewedAt = new Date().toISOString();
+    extra.depositReviewedBy = req.admin?.email || 'admin';
+    if (action === 'reject' && reason) extra.depositRejectReason = reason;
+    await prisma.setting.upsert({ where: { key }, create: { key, value: extra }, update: { value: extra } });
+    res.json({ success: true, depositStatus: extra.depositStatus });
   } catch (error) {
     console.error('[deposit review]', error);
     res.status(500).json({ success: false, error: error.message });
@@ -4772,11 +5075,21 @@ app.post('/api/booking-requests/:id/booked', adminAuth, async (req, res) => {
     const appointmentRef = await firestore.collection('appointments').add(appointmentData);
     console.log(`[BOOKING] ✅ Cita creada desde solicitud: ${appointmentRef.id}`);
 
+    // Arrastrar el apartado de barra/anticipo de la solicitud a la CITA: sin
+    // esto, al aprobar la solicitud el pedido de barra desaparecía del panel.
+    // La Caja lo lee al cobrar (bebida precargada + descuento).
+    try {
+      const extraRow = await prisma.setting.findUnique({ where: { key: `booking_extra_${req.params.id}` } });
+      if (extraRow && typeof extraRow.value === 'object') {
+        const key = `booking_extra_appt_${appointmentRef.id}`;
+        await prisma.setting.upsert({ where: { key }, create: { key, value: extraRow.value }, update: { value: extraRow.value } });
+      }
+    } catch (e) { console.warn('[BOOKING] extra de barra no copiado a la cita:', e.message); }
+
     // 3. ENVIAR WHATSAPP DE CONFIRMACIÓN
     try {
       const appointment = { id: appointmentRef.id, ...appointmentData };
       const whatsappResult = await WhatsAppService.sendConfirmation(appointment);
-      maybeSendFichaLink(appointment); // fire-and-forget: no bloquear la respuesta
 
       if (whatsappResult.success) {
         console.log('[BOOKING] ✅ WhatsApp enviado:', whatsappResult.messageSid);
@@ -4815,17 +5128,10 @@ app.post('/api/booking-requests/:id/booked', adminAuth, async (req, res) => {
 // DELETE /api/booking-requests - Borrar TODAS las solicitudes
 app.delete('/api/booking-requests', adminAuth, async (req, res) => {
   try {
-    const snapshot = await firestore.collection('booking_requests').get();
+    const result = await prisma.bookingRequest.deleteMany({});
+    console.log(`[BOOKING] 🗑️ Se eliminaron ${result.count} solicitudes`);
 
-    const batch = firestore.batch();
-    snapshot.docs.forEach((doc) => {
-      batch.delete(doc.ref);
-    });
-
-    await batch.commit();
-    console.log(`[BOOKING] 🗑️ Se eliminaron ${snapshot.size} solicitudes`);
-
-    res.json({ success: true, count: snapshot.size });
+    res.json({ success: true, count: result.count });
   } catch (error) {
     console.error('[BOOKING] Error deleting all requests:', error);
     res.json({ success: false, error: error.message });
@@ -4982,6 +5288,16 @@ app.get("/api/admin/wallet-stats", adminAuth, requireRole("admin"), async (req, 
 
 app.get("/api/admin/cards-firebase", adminAuth, requireRole("admin"), async (req, res) => {
   try {
+    // Lookup directo por id (usado por skin-analysis.html?cardId=... para
+    // preseleccionar clienta) — antes se buscaba con .find() sobre las
+    // primeras 100 tarjetas, así que dejaba de funcionar en cuanto el
+    // estudio tuviera más de 100 clientas.
+    const id = (req.query.id || "").trim();
+    if (id) {
+      const card = await prisma.card.findUnique({ where: { id } });
+      return res.json({ items: card ? [card] : [], total: card ? 1 : 0, page: 1, totalPages: 1, source: 'prisma' });
+    }
+
     const page = Math.max(1, parseInt(req.query.page || "1", 10));
     const limit = parseInt(req.query.limit || "100", 10);
     const q = (req.query.q || "").trim();
@@ -4995,12 +5311,31 @@ app.get("/api/admin/cards-firebase", adminAuth, requireRole("admin"), async (req
       ]
     } : {};
 
+    // Orden: el dropdown del admin manda sort/order pero el servidor los
+    // ignoraba (siempre createdAt desc — 'Nombre A-Z' y compañía no hacían
+    // nada). filter=dormidas: clientas sin visita en 60+ días, la lista de
+    // retención más barata que existe.
+    const SORT_FIELDS = { created_at: 'createdAt', name: 'name', stamps: 'stamps', last_visit: 'lastVisit' };
+    const sortField = SORT_FIELDS[req.query.sort] || 'createdAt';
+    const sortOrder = req.query.order === 'asc' ? 'asc' : 'desc';
+
+    if (req.query.filter === 'dormidas') {
+      const corte = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
+      where.AND = [
+        { OR: [{ lastVisit: { lt: corte } }, { lastVisit: null, createdAt: { lt: corte } }] },
+      ];
+    }
+
+    const orderBy = req.query.filter === 'dormidas'
+      ? [{ lastVisit: { sort: 'asc', nulls: 'first' } }]
+      : [{ [sortField]: sortOrder }];
+
     const [items, total] = await Promise.all([
       prisma.card.findMany({
         where,
         skip,
         take: limit,
-        orderBy: { createdAt: 'desc' }
+        orderBy
       }),
       prisma.card.count({ where })
     ]);
@@ -5016,6 +5351,28 @@ app.get("/api/admin/cards-firebase", adminAuth, requireRole("admin"), async (req
     console.error("[CARDS-FIREBASE]", e);
     res.status(500).json({ error: e.message });
   }
+});
+
+// Felicitación de cumpleaños por WhatsApp — interruptor (APAGADO por
+// defecto: ningún mensaje automático nuevo sale sin que el dueño lo prenda).
+app.get('/api/admin/config/birthday-greeting', adminAuth, async (req, res) => {
+  try {
+    const row = await prisma.setting.findUnique({ where: { key: 'birthday-greeting' } });
+    res.json({ success: true, enabled: !!(row && row.value && row.value.enabled) });
+  } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+app.post('/api/admin/config/birthday-greeting', adminAuth, requireRole("admin"), async (req, res) => {
+  try {
+    const enabled = req.body && req.body.enabled === true;
+    await prisma.setting.upsert({
+      where: { key: 'birthday-greeting' },
+      update: { value: { enabled } },
+      create: { key: 'birthday-greeting', value: { enabled } },
+    });
+    console.log(`[BIRTHDAY] Felicitaciones automáticas: ${enabled ? 'ENCENDIDAS' : 'apagadas'}`);
+    res.json({ success: true, enabled });
+  } catch (e) { res.status(500).json({ success: false, error: e.message }); }
 });
 
 // ⭐ NUEVO: Endpoint para corregir campo lastVisit en tarjetas existentes
@@ -5278,10 +5635,7 @@ app.post('/api/notifications/:id/read', adminAuth, async (req, res) => {
 // POST /api/notifications/read-all - Marcar todas como leídas
 app.post('/api/notifications/read-all', adminAuth, async (req, res) => {
   try {
-    const snapshot = await firestore.collection('notifications').where('read', '==', false).get();
-    const batch = firestore.batch();
-    snapshot.forEach(doc => batch.update(doc.ref, { read: true, readAt: new Date().toISOString() }));
-    await batch.commit();
+    await prisma.notification.updateMany({ where: { read: false }, data: { read: true } });
     res.json({ success: true });
   } catch (error) {
     console.error("Error marking all notifications as read:", error);
@@ -5289,13 +5643,21 @@ app.post('/api/notifications/read-all', adminAuth, async (req, res) => {
   }
 });
 
+// DELETE /api/notifications/read - Eliminar únicamente las notificaciones leídas
+app.delete('/api/notifications/read', adminAuth, async (req, res) => {
+  try {
+    const result = await prisma.notification.deleteMany({ where: { read: true } });
+    res.json({ success: true, deleted: result.count });
+  } catch (error) {
+    console.error("Error clearing read notifications:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // DELETE /api/notifications/clear - Limpiar todas
 app.delete('/api/notifications/clear', adminAuth, async (req, res) => {
   try {
-    const snapshot = await firestore.collection('notifications').get();
-    const batch = firestore.batch();
-    snapshot.forEach(doc => batch.delete(doc.ref));
-    await batch.commit();
+    await prisma.notification.deleteMany({});
     res.json({ success: true });
   } catch (error) {
     console.error("Error clearing notifications:", error);
@@ -5331,9 +5693,12 @@ app.post("/api/stamp/:cardId", basicAuth, async (req, res) => {
       console.error(`[GOOGLE WALLET] ❌ Error actualizando stamp:`, googleError.message);
     }
 
-    // Notificar Apple
+    // Notificar Apple. updatePassAndNotify (y no notifyCardUpdate a secas)
+    // para que también escriba la bitácora apple_updates, como la ruta de
+    // admin: sin ella el iPhone recibía el push, preguntaba "¿qué cambió?"
+    // y el servidor respondía "nada" — el pase se quedaba viejo.
     try {
-      await appleWebService.notifyCardUpdate(cardId);
+      await appleWebService.updatePassAndNotify(cardId, card.stamps, newStamps);
     } catch (err) {
       console.error("[APPLE] Error notificando:", err);
     }
@@ -5361,22 +5726,10 @@ app.get("/api/admin/notifications", adminAuth, getNotifications);
 // ⭐ NUEVO: Borrar historial de notificaciones enviadas
 app.delete("/api/admin/notifications/clear", adminAuth, async (req, res) => {
   try {
-    // Usar la misma colección que lee getNotifications: 'notifications'
-    const snapshot = await firestore.collection('notifications').get();
-
-    if (snapshot.empty) {
-      return res.json({ success: true, deleted: 0 });
-    }
-
-    const batch = firestore.batch();
-    snapshot.docs.forEach(doc => {
-      batch.delete(doc.ref);
-    });
-
-    await batch.commit();
-
-    console.log(`[NOTIFICATIONS] ✅ Borradas ${snapshot.size} notificaciones del historial`);
-    res.json({ success: true, deleted: snapshot.size });
+    // Misma tabla que lee getNotifications: notifications
+    const result = await prisma.notification.deleteMany({});
+    console.log(`[NOTIFICATIONS] ✅ Borradas ${result.count} notificaciones del historial`);
+    res.json({ success: true, deleted: result.count });
   } catch (error) {
     console.error('[NOTIFICATIONS] Error borrando historial:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -5658,37 +6011,30 @@ function getPromoStatus() {
 app.post("/api/redeem/:cardId", basicAuth, async (req, res) => {
   try {
     const { cardId } = req.params;
-    const card = await fsGetCard(cardId);
-    if (!card) return res.status(404).json({ error: "card not found" });
-    if ((card.stamps || 0) < card.max)
-      return res.status(400).json({ error: "Aún no completa los sellos" });
-
-    const prev = card.stamps;
-    const updated = await fsUpdateCardStamps(cardId, 0);
-    await fsAddEvent(cardId, "REDEEM", { by: "reception" });
-
-    // ⭐ CORRECCIÓN: Google Wallet con 4 parámetros
-    try {
-      const { updateLoyaltyObject } = await import("./lib/google.js");
-      await updateLoyaltyObject(cardId, updated.name, 0, updated.max);
-      console.log(`[GOOGLE WALLET] ✅ Redeem actualizado para: ${cardId} (0/${updated.max})`);
-    } catch (googleError) {
-      console.error(`[GOOGLE WALLET] ❌ Error actualizando redeem:`, googleError.message);
+    // La respuesta armaba `addToAppleUrl`, una variable que nunca se declaró en
+    // este handler: lanzaba ReferenceError y el endpoint devolvía 500 SIEMPRE,
+    // aunque el canje ya se había hecho. En recepción se veía "Error al
+    // canjear" sobre un canje correcto, y al reintentar salía "Aún no completa
+    // los sellos" (ya estaban en 0), como si se hubieran perdido.
+    const result = await redeemLoyaltyCard(cardId, "reception");
+    if (!result.ok) {
+      const status = result.error === 'card_not_found' ? 404 : 400;
+      const mensaje = result.error === 'card_not_found'
+        ? 'card not found'
+        : 'Aún no completa los sellos';
+      return res.status(status).json({ error: mensaje });
     }
 
-    try {
-      await appleWebService.notifyCardUpdate(cardId);
-    } catch (err) {
-      console.error("[APPLE] Error notificando:", err);
-    }
-
-    const addToGoogleUrl = buildGoogleSaveUrl({
+    const card = result.card;
+    const base = process.env.BASE_URL || "";
+    res.json({
+      ok: true,
+      message: "Canje realizado",
       cardId,
-      name: updated.name,
-      stamps: 0,
-      max: updated.max,
+      cycles: result.cycles,
+      addToGoogleUrl: buildGoogleSaveUrl({ cardId, name: card.name, stamps: 0, max: card.max }),
+      addToAppleUrl: `${base}/api/apple/pass?cardId=${encodeURIComponent(cardId)}`,
     });
-    res.json({ ok: true, message: "Canje realizado", cardId, addToAppleUrl });
   } catch (e) {
     console.error("[REDEEM staff]", e);
     res.status(500).json({ error: e.message });
@@ -6266,10 +6612,31 @@ app.post("/api/admin/register", async (req, res) => {
     const allow =
       (process.env.ADMIN_ALLOW_SIGNUP || "false").toLowerCase() === "true";
     const n = await fsCountAdmins();
-    if (!allow && n > 0)
+
+    // Permitir registro si:
+    // 1. ADMIN_ALLOW_SIGNUP=true y no hay admins (primer admin), O
+    // 2. Un admin autenticado crea una cuenta para otro (con rol especificado)
+    let requestedRole = "admin";
+    let authedAdmin = null;
+
+    // Verificar si viene de un admin autenticado (crear cuenta para otro)
+    try {
+      const raw = req.cookies?.adm;
+      if (raw) {
+        const payload = jwt.verify(raw, process.env.ADMIN_JWT_SECRET);
+        if (payload?.uid && payload?.role === "admin") {
+          authedAdmin = payload;
+          requestedRole = ["admin", "recepcion", "marketing"].includes(req.body?.role)
+            ? req.body.role
+            : "admin";
+        }
+      }
+    } catch { /* token inválido → ignore */ }
+
+    if (!allow && n > 0 && !authedAdmin)
       return res.status(403).json({ error: "signup_disabled" });
 
-    const { email, password } = req.body || {};
+    const { email, password, name } = req.body || {};
     if (!email || !password)
       return res.status(400).json({ error: "missing_fields" });
 
@@ -6283,9 +6650,9 @@ app.post("/api/admin/register", async (req, res) => {
     const id = `adm_${Date.now()}`;
     const pass_hash = await bcrypt.hash(password, 10);
 
-    await fsInsertAdmin({ id, email: norm, pass_hash });
+    await fsInsertAdmin({ id, email: norm, pass_hash, role: requestedRole, name: name || null });
 
-    res.json({ ok: true });
+    res.json({ ok: true, role: requestedRole });
   } catch (e) {
     console.error("[ADMIN REGISTER]", e);
     res.status(500).json({ error: e.message });
@@ -6477,40 +6844,14 @@ app.post("/api/admin/redeem", adminAuth, async (req, res) => {
     const { cardId } = req.body || {};
     if (!cardId) return res.status(400).json({ error: "missing_cardId" });
 
-    const card = await fsGetCard(cardId);
-    if (!card) return res.status(404).json({ error: "card not found" });
-    if ((card.stamps || 0) < card.max) return res.status(400).json({ error: "not_enough_stamps" });
-
-    // Incrementar ciclos y resetear sellos
-    const newCycles = (card.cycles || 0) + 1;
-    await fsUpdateCard(cardId, {
-      stamps: 0,
-      cycles: newCycles,
-      lastVisit: new Date().toISOString()
-    });
-
-    await fsAddEvent(cardId, "REDEEM", { by: "admin", cycle: newCycles });
-
-    console.log(`[REDEEM] Cliente ${card.name} completó ciclo ${newCycles}`);
-
-    // Actualizar Google Wallet
-    try {
-      const { updateLoyaltyObject } = await import("./lib/google.js");
-      await updateLoyaltyObject(cardId, card.name, 0, card.max);
-      console.log(`[GOOGLE WALLET] ✅ Redeem admin actualizado para: ${cardId}`);
-    } catch (googleError) {
-      console.error(`[GOOGLE WALLET] ❌ Error actualizando redeem admin:`, googleError.message);
+    const result = await redeemLoyaltyCard(cardId, "admin");
+    if (!result.ok) {
+      const status = result.error === 'card_not_found' ? 404 : 400;
+      const mensaje = result.error === 'card_not_found' ? 'card not found' : 'not_enough_stamps';
+      return res.status(status).json({ error: mensaje });
     }
 
-    // Actualizar Apple Wallet
-    try {
-      await appleWebService.notifyCardUpdate(cardId);
-      console.log(`[APPLE WALLET] ✅ Redeem admin actualizado para: ${cardId}`);
-    } catch (err) {
-      console.error("[APPLE WALLET] ❌ Error notificando:", err);
-    }
-
-    res.json({ ok: true, cardId, cycles: newCycles });
+    res.json({ ok: true, cardId, cycles: result.cycles });
   } catch (e) {
     console.error('[REDEEM] Error:', e);
     res.status(500).json({ error: e.message });
@@ -6887,15 +7228,198 @@ app.get("/api/debug/database-status", adminAuth, async (req, res) => {
 // === HEALTH CHECK
 app.get("/health", (req, res) => res.json({ ok: true }));
 
+// === DIAGNÓSTICO DE ENCUESTAS: verdad del store de Evolution sin necesitar
+// acceso a Railway. Abrir logueado como admin:
+//   https://venuscosmetologia.com.mx/api/admin/debug/polls
+// Solo lectura (dry-run); redacta contenido de mensajes (solo shapes/conteos).
+app.get('/api/admin/debug/polls', adminAuth, async (req, res) => {
+  const out = { marker: 'polls-debug-v1 (2026-07-21)', generadoEn: new Date().toISOString() };
+  try {
+    const { getEvolutionClient } = await import('./src/services/whatsapp-evolution.js');
+    const { reconcilePollVotes, jidCandidates, decodePollUpdate } = await import('./src/services/pollVotes.js');
+    const evo = getEvolutionClient();
+
+    const histograma = (records) => {
+      const h = {};
+      for (const r of records.slice(0, 100)) {
+        const t = r?.messageType || (r?.message ? Object.keys(r.message)[0] : (r?.error ? 'error' : 'desconocido'));
+        h[t] = (h[t] || 0) + 1;
+      }
+      return h;
+    };
+    const shapeVoto = (r) => r ? {
+      keyId: r?.key?.id || null,
+      remoteJid: r?.key?.remoteJid || null,
+      remoteJidAlt: r?.key?.remoteJidAlt || null,
+      messageTimestamp: r?.messageTimestamp ?? null,
+      pollCreationKeyId: r?.message?.pollUpdateMessage?.pollCreationMessageKey?.id || null,
+      selectedOptions: r?.message?.pollUpdateMessage?.vote?.selectedOptions ?? null,
+      tieneEncPayload: !!r?.message?.pollUpdateMessage?.vote?.encPayload,
+      opcionDecodificada: decodePollUpdate(r?.message?.pollUpdateMessage) || null,
+    } : null;
+
+    out.evolution = { server: await evo.getServerInfo(), status: await evo.getStatus() };
+
+    const filtrado = await evo.findRecentMessages(300, { messageType: 'pollUpdateMessage' });
+    out.storeFiltrado = {
+      total: filtrado.length,
+      histograma: histograma(filtrado),
+      primerVoto: shapeVoto(filtrado.find(r => r?.message?.pollUpdateMessage)),
+    };
+
+    const global = await evo.findRecentMessages(120);
+    out.storeGlobal = { total: global.length, histograma: histograma(global) };
+
+    const status = await evo.findStatusMessages(30);
+    out.messageUpdates = {
+      total: status.length,
+      conPollUpdates: status.filter(r => Array.isArray(r?.pollUpdates) && r.pollUpdates.length).length,
+      muestraPollUpdates: (status.find(r => Array.isArray(r?.pollUpdates) && r.pollUpdates.length)?.pollUpdates || []).slice(0, 3),
+    };
+
+    const desde = new Date(Date.now() - 72 * 60 * 60 * 1000);
+    const polls = await prisma.pendingPoll.findMany({
+      where: { createdAt: { gte: desde } },
+      orderBy: { createdAt: 'desc' },
+      take: 15,
+    });
+    out.encuestasActivas = [];
+    for (const p of polls.slice(0, 8)) {
+      const cita = p.appointmentId ? await prisma.appointment.findUnique({
+        where: { id: p.appointmentId },
+        select: { clientName: true, status: true, date: true, time: true }
+      }) : null;
+      const chats = [];
+      for (const jid of jidCandidates(p.phone)) {
+        const msgs = await evo.fetchMessages(jid, 40);
+        chats.push({
+          jid,
+          mensajes: msgs.length,
+          votos: msgs.filter(m => m?.message?.pollUpdateMessage).length,
+          votoDeEstePoll: msgs.some(m => {
+            const pid = m?.message?.pollUpdateMessage?.pollCreationMessageKey?.id;
+            return pid && (p.id === pid || p.id.startsWith(pid + '_'));
+          }),
+        });
+      }
+      out.encuestasActivas.push({
+        pollId: String(p.id).slice(0, 28), phone: p.phone, createdAt: p.createdAt,
+        cita, chats,
+      });
+    }
+
+    out.dryRun = await reconcilePollVotes({ apply: false });
+    res.json(out);
+  } catch (e) {
+    out.error = e.message;
+    res.status(500).json(out);
+  }
+});
+
+// === REPONER PEDIDO DE BARRA A UNA CITA (utilidad para citas creadas antes
+// del flujo barra→cita del 27-jul). Busca la cita por teléfono+fecha y le
+// escribe el Setting booking_extra_appt. GET = vista previa; &confirm=1 ejecuta.
+// Ej: /api/admin/debug/set-bar-extra?phone=4271162894&date=2026-07-29
+//     &nombre=Dirty%20Horchata&precio=78&qty=1&descuento=8&anticipo=100
+//     &comprobante=https%3A%2F%2F...&confirm=1
+app.get('/api/admin/debug/set-bar-extra', adminAuth, async (req, res) => {
+  try {
+    const { phone, date, nombre, comprobante } = req.query;
+    const precio = parseFloat(req.query.precio) || 0;
+    const qty = parseInt(req.query.qty) || 1;
+    const descuento = parseFloat(req.query.descuento) || 0;
+    const anticipo = parseFloat(req.query.anticipo) || 0;
+    if (!phone || !date || !nombre) {
+      return res.status(400).json({ error: 'Faltan phone, date o nombre' });
+    }
+    const last10 = String(phone).replace(/\D/g, '').slice(-10);
+    const citas = await prisma.appointment.findMany({
+      where: { date, clientPhone: { endsWith: last10 }, status: { notIn: ['cancelled'] } },
+      select: { id: true, clientName: true, serviceName: true, time: true },
+      orderBy: { time: 'asc' },
+    });
+    if (!citas.length) return res.status(404).json({ error: 'Sin citas para ese teléfono y fecha' });
+    const cita = citas[0];
+    const value = {
+      preorderItems: [{ name: nombre, price: precio, qty }],
+      preorderSubtotal: precio * qty,
+      discountPct: descuento > 0 ? 10 : 0,
+      discountAmount: descuento,
+      depositReceiptUrl: comprobante || null,
+      depositAmount: anticipo,
+      depositStatus: comprobante ? 'awaiting_review' : 'pending',
+    };
+    if (String(req.query.confirm) !== '1') {
+      return res.json({ modo: 'VISTA PREVIA — agrega &confirm=1 para ejecutar', cita, seEscribiria: value, otrasCitasMismoDia: citas.slice(1) });
+    }
+    const key = `booking_extra_appt_${cita.id}`;
+    await prisma.setting.upsert({ where: { key }, create: { key, value }, update: { value } });
+    res.json({ modo: 'EJECUTADO', cita, escrito: value });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// === REENVIAR ENCUESTAS DE MAÑANA (utilidad post-incidente 21-jul) ===
+// Las encuestas creadas ANTES de encender la persistencia de Evolution tienen
+// votos indescifrables para siempre. Este endpoint desmarca sent24hAt de las
+// citas de MAÑANA aún sin confirmar: el cron horario (9AM-5PM MX) les reenvía
+// una encuesta NUEVA (con secreto guardado) en la próxima hora en punto.
+// GET sin parámetros = vista previa; agregar ?confirm=1 para ejecutar.
+app.get('/api/admin/debug/resend-surveys', adminAuth, async (req, res) => {
+  try {
+    const mananaMX = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Mexico_City' })
+      .format(new Date(Date.now() + 24 * 60 * 60 * 1000));
+    const citas = await prisma.appointment.findMany({
+      where: { date: mananaMX, status: 'scheduled', sendWhatsApp24h: true, sent24hAt: { not: null } },
+      select: { id: true, clientName: true, serviceName: true, time: true },
+      orderBy: { time: 'asc' },
+    });
+    if (String(req.query.confirm) !== '1') {
+      return res.json({
+        modo: 'VISTA PREVIA — agrega ?confirm=1 a la URL para ejecutar',
+        manana: mananaMX,
+        citasQueRecibiranNuevaEncuesta: citas,
+      });
+    }
+    const ids = citas.map(c => c.id);
+    await prisma.appointment.updateMany({ where: { id: { in: ids } }, data: { sent24hAt: null } });
+    console.log(`[resend-surveys] ${ids.length} citas de ${mananaMX} desmarcadas; el cron horario reenviará encuestas nuevas`);
+    res.json({
+      modo: 'EJECUTADO',
+      manana: mananaMX,
+      desmarcadas: citas,
+      nota: 'La encuesta nueva sale en la próxima hora en punto (ventana 9AM-5PM MX).',
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // === RECONCILIAR POLLS: reprocesar respuestas perdidas de encuestas ===
 app.post('/api/admin/reconcile-polls', adminAuth, async (req, res) => {
     try {
         const { getEvolutionClient } = await import('./src/services/whatsapp-evolution.js');
         const { WhatsAppService } = await import('./src/services/whatsapp-v2.js');
-        const { matchOptionByHash } = await import('./src/routes/webhookEvolution.js');
+        const { reconcilePollVotes, decodePollUpdate } = await import('./src/services/pollVotes.js');
         const evo = getEvolutionClient();
 
-        // Buscar citas scheduled que ya se les envió la encuesta 24h
+        const reconciled = [];
+
+        // 1) Barrido primario del store: decodifica votos en TEXTO PLANO + @lid
+        //    (formato real de Evolution), aplica one-way y manda acuse. Corre
+        //    ANTES de la query para que las citas rescatadas salgan del listado.
+        try {
+            const sweep = await reconcilePollVotes({ apply: true });
+            for (const c of sweep.changes) {
+                reconciled.push({ id: c.appointmentId, client: c.client, service: c.service, newStatus: c.to });
+            }
+        } catch (e) {
+            console.warn('[Reconcile] barrido primario falló (sigo con escaneo por chat):', e.message);
+        }
+
+        // 2) Escaneo por chat (respuestas de TEXTO tipo "CONFIRMO" que el
+        //    webhook haya perdido). Los votos ya los cubrió el barrido de arriba.
         const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
         const pendingAppts = await prisma.appointment.findMany({
             where: {
@@ -6907,10 +7431,15 @@ app.post('/api/admin/reconcile-polls', adminAuth, async (req, res) => {
         });
 
         if (pendingAppts.length === 0) {
-            return res.json({ success: true, message: 'No hay citas pendientes de reconciliar', reconciled: [] });
+            return res.json({
+                success: true,
+                total: reconciled.length,
+                reconciled,
+                message: reconciled.length > 0
+                    ? `${reconciled.length} cita(s) reconciliada(s)`
+                    : 'No hay citas pendientes de reconciliar'
+            });
         }
-
-        const reconciled = [];
 
         for (const appt of pendingAppts) {
             try {
@@ -6944,39 +7473,14 @@ app.post('/api/admin/reconcile-polls', adminAuth, async (req, res) => {
                         || msg?.message?.extendedTextMessage?.text
                         || '').toLowerCase().trim();
 
-                    // Extraer opción del poll (texto plano o hashes)
+                    // Extraer opción del poll — decodePollUpdate cubre el formato
+                    // real (TEXTO PLANO en vote.selectedOptions) con fallback a
+                    // hash legacy. La lógica anterior asumía solo hashes y por eso
+                    // el botón nunca rescataba votos.
                     let pollOption = null;
                     if (pollUpdate) {
-                        if (Array.isArray(pollUpdate?.votes)) {
-                            pollOption = (pollUpdate.votes[0]?.optionName || pollUpdate.votes[0]?.name || '').toLowerCase();
-                        }
-                        // Formato hash: pollUpdate.vote.selectedOptions = [Buffer/hex/base64]
-                        if (!pollOption && Array.isArray(pollUpdate?.vote?.selectedOptions)) {
-                            const hashes = pollUpdate.vote.selectedOptions;
-                            const targetPollId = pollUpdate?.pollCreationMessageKey?.id;
-                            // Intentar contra la opción del pendingPoll específico; fallback a cualquier poll de esta cita
-                            const pollsToTry = targetPollId && apptPollIds.has(targetPollId)
-                                ? apptPolls.filter(p => p.id === targetPollId && p.options)
-                                : apptPolls.filter(p => p.options);
-                            for (const pp of pollsToTry) {
-                                try {
-                                    const opts = JSON.parse(pp.options);
-                                    for (const h of hashes) {
-                                        const matched = matchOptionByHash(opts, h);
-                                        if (matched) { pollOption = matched.toLowerCase(); break; }
-                                    }
-                                } catch { /* ignore */ }
-                                if (pollOption) break;
-                            }
-                            // Fallback global: opciones estándar si no hay pendingPoll guardado
-                            if (!pollOption) {
-                                const fallbackOpts = ['Confirmar asistencia', 'Reagendar', 'Cancelar'];
-                                for (const h of hashes) {
-                                    const matched = matchOptionByHash(fallbackOpts, h);
-                                    if (matched) { pollOption = matched.toLowerCase(); break; }
-                                }
-                            }
-                        }
+                        const opt = decodePollUpdate(pollUpdate);
+                        if (opt) pollOption = String(opt).toLowerCase();
                     }
 
                     const respuesta = pollOption || text;
@@ -7388,7 +7892,7 @@ function mktToday() {
 }
 
 // GET /api/admin/marketing/checklist?date=YYYY-MM-DD
-app.get('/api/admin/marketing/checklist', adminAuth, async (req, res) => {
+app.get('/api/admin/marketing/checklist', adminAuth, requireRole('admin'), async (req, res) => {
   try {
     const date = /^\d{4}-\d{2}-\d{2}$/.test(req.query.date || '') ? req.query.date : mktToday();
     const rows = await prisma.$queryRaw`
@@ -7409,7 +7913,7 @@ app.get('/api/admin/marketing/checklist', adminAuth, async (req, res) => {
 });
 
 // POST /api/admin/marketing/checklist/:id/toggle — marca/desmarca (diarias: por día)
-app.post('/api/admin/marketing/checklist/:id/toggle', adminAuth, async (req, res) => {
+app.post('/api/admin/marketing/checklist/:id/toggle', adminAuth, requireRole('admin'), async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
     if (!Number.isInteger(id)) return res.status(400).json({ success: false, error: 'bad_id' });
@@ -7439,7 +7943,7 @@ app.post('/api/admin/marketing/checklist/:id/toggle', adminAuth, async (req, res
 });
 
 // POST /api/admin/marketing/tasks — agregar tarea manual
-app.post('/api/admin/marketing/tasks', adminAuth, async (req, res) => {
+app.post('/api/admin/marketing/tasks', adminAuth, requireRole('admin'), async (req, res) => {
   try {
     const { title, detail = null, section = 'Otras', frequency = 'once', due_date = null } = req.body || {};
     if (!title || typeof title !== 'string' || !title.trim()) {
@@ -7459,7 +7963,7 @@ app.post('/api/admin/marketing/tasks', adminAuth, async (req, res) => {
 });
 
 // DELETE /api/admin/marketing/tasks/:id — desactivar tarea
-app.delete('/api/admin/marketing/tasks/:id', adminAuth, async (req, res) => {
+app.delete('/api/admin/marketing/tasks/:id', adminAuth, requireRole('admin'), async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
     if (!Number.isInteger(id)) return res.status(400).json({ success: false, error: 'bad_id' });
@@ -7472,8 +7976,761 @@ app.delete('/api/admin/marketing/tasks/:id', adminAuth, async (req, res) => {
 });
 
 /* =========================================================
-   SERVER
+   MARKETING — Endpoints del rol marketing
    ========================================================= */
+
+// ── Agendar cita (con atribución + comisión) ──
+app.post('/api/marketing/appointments', adminAuth, requireRole('marketing'), async (req, res) => {
+  try {
+    const { name, phone, serviceId, serviceName, date, time, durationMinutes, sendWhatsAppConfirmation, source, assignedAdminId } = req.body;
+    if (!name || !phone || !serviceName || !date || !time)
+      return res.status(400).json({ success: false, error: 'Faltan campos requeridos' });
+
+    const phoneClean = phone.replace(/\D/g, '');
+    let card = await CardsRepo.findByPhone(phoneClean);
+    if (!card) {
+      card = await CardsRepo.create({ name, phone: phoneClean, source: 'marketing' });
+    }
+
+    // Verificar conflictos
+    const duration = parseInt(durationMinutes) || 60;
+    const conflicts = await AppointmentsRepo.findConflicts(date, time, duration);
+    if (conflicts.length > 0)
+      return res.status(409).json({ success: false, error: 'conflict', conflicts });
+
+    const appointmentData = {
+      cardId: card.id,
+      clientName: name,
+      clientPhone: phoneClean,
+      serviceId: serviceId || null,
+      serviceName,
+      date,
+      time,
+      durationMinutes: duration,
+      status: 'scheduled',
+      location: 'Venus Cosmetología',
+      source: source || 'marketing',
+      assignedAdminId: assignedAdminId || null,
+      bookedById: req.admin.uid,
+      sendWhatsApp24h: req.body.sendWhatsApp24h !== false,
+      sendWhatsApp2h: req.body.sendWhatsApp2h !== false,
+    };
+
+    const appointment = await AppointmentsRepo.create(appointmentData);
+
+    // Crear comisión
+    try {
+      const commissionAmount = await SettingsRepo.get('marketing.commission.fixed_amount');
+      const amount = typeof commissionAmount === 'number' ? commissionAmount : 50;
+      await CommissionsRepo.create({ marketerId: req.admin.uid, appointmentId: appointment.id, amount, status: 'pendiente' });
+
+      const marketerName = req.admin.email?.split('@')[0] || 'Marketing';
+      await NotificationsRepo.create({
+        type: 'cita', icon: 'calendar-plus',
+        title: 'Cita agendada por marketing',
+        message: `${marketerName} agendó: ${name} - ${serviceName} - ${date} ${time}`,
+        read: false, entityId: appointment.id,
+      });
+    } catch (e) { console.error('[MARKETING] Comisión error:', e.message); }
+
+    // WhatsApp confirmación
+    if (sendWhatsAppConfirmation) {
+      try { await WhatsAppService.sendConfirmation(appointment); } catch (e) { console.error('[MARKETING] WhatsApp:', e.message); }
+    }
+
+    res.json({ success: true, appointmentId: appointment.id });
+  } catch (error) {
+    console.error('[MARKETING] Agendar error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ── Mis citas (filtradas por bookedById) ──
+app.get('/api/marketing/appointments', adminAuth, requireRole('marketing'), async (req, res) => {
+  try {
+    const { status, fromDate, toDate } = req.query;
+    const where = { bookedById: req.admin.uid };
+    if (status) where.status = status;
+    if (fromDate || toDate) {
+      where.startDateTime = {};
+      if (fromDate) where.startDateTime.gte = new Date(fromDate);
+      if (toDate) where.startDateTime.lte = new Date(toDate);
+    }
+    const appointments = await prisma.appointment.findMany({
+      where,
+      orderBy: { startDateTime: 'desc' },
+      take: 100,
+    });
+    res.json({ success: true, data: appointments });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ── Agenda general del estudio ──
+app.get('/api/marketing/agenda', adminAuth, requireRole('marketing'), async (req, res) => {
+  try {
+    const date = req.query.date || new Date().toISOString().split('T')[0];
+    const appointments = await AppointmentsRepo.findByDate(date);
+    res.json({ success: true, data: appointments });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ── Leads: crear ──
+app.post('/api/marketing/leads', adminAuth, requireRole('marketing'), async (req, res) => {
+  try {
+    const { name, phone, email, origin, notes } = req.body;
+    if (!name || !phone)
+      return res.status(400).json({ success: false, error: 'name_and_phone_required' });
+    const lead = await LeadsRepo.create({
+      name, phone: phone.replace(/\D/g, ''), email: email || null,
+      origin: origin || 'otro', notes: notes || null,
+      status: 'nuevo', score: 0, marketerId: req.admin.uid,
+    });
+    res.json({ success: true, data: lead });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ── Leads: listar (ordenados por score) ──
+app.get('/api/marketing/leads', adminAuth, requireRole('marketing'), async (req, res) => {
+  try {
+    const { status } = req.query;
+    const leads = await LeadsRepo.findByMarketer(req.admin.uid, status ? { status } : {});
+    // Computar scores
+    for (const lead of leads) {
+      lead.score = await LeadsRepo.computeScore(lead);
+    }
+    leads.sort((a, b) => b.score - a.score);
+    res.json({ success: true, data: leads });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ── Leads: actualizar estado ──
+app.patch('/api/marketing/leads/:id', adminAuth, requireRole('marketing'), async (req, res) => {
+  try {
+    const { status, notes } = req.body;
+    const lead = await LeadsRepo.findById(req.params.id);
+    if (!lead || lead.marketerId !== req.admin.uid)
+      return res.status(404).json({ success: false, error: 'not_found' });
+    const updated = await LeadsRepo.updateStatus(req.params.id, status, notes ? { notes } : {});
+    res.json({ success: true, data: updated });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ── Leads: convertir en cita ──
+app.post('/api/marketing/leads/:id/convert', adminAuth, requireRole('marketing'), async (req, res) => {
+  try {
+    const { serviceId, serviceName, date, time, durationMinutes } = req.body;
+    const lead = await LeadsRepo.findById(req.params.id);
+    if (!lead || lead.marketerId !== req.admin.uid)
+      return res.status(404).json({ success: false, error: 'not_found' });
+
+    // Crear cita
+    let card = await CardsRepo.findByPhone(lead.phone);
+    if (!card) card = await CardsRepo.create({ name: lead.name, phone: lead.phone, source: 'marketing-lead' });
+
+    const appointment = await AppointmentsRepo.create({
+      cardId: card.id, clientName: lead.name, clientPhone: lead.phone,
+      serviceId: serviceId || null, serviceName: serviceName || 'Servicio',
+      date, time, durationMinutes: parseInt(durationMinutes) || 60,
+      status: 'scheduled', location: 'Venus Cosmetología',
+      source: 'marketing-lead', bookedById: req.admin.uid,
+      sendWhatsApp24h: true, sendWhatsApp2h: true,
+    });
+
+    // Crear comisión
+    try {
+      const amount = (await SettingsRepo.get('marketing.commission.fixed_amount')) || 50;
+      await CommissionsRepo.create({ marketerId: req.admin.uid, appointmentId: appointment.id, amount, status: 'pendiente' });
+    } catch (e) { console.error('[MARKETING] Comisión:', e.message); }
+
+    // Marcar lead como convertido
+    await LeadsRepo.convert(req.params.id, appointment.id);
+
+    res.json({ success: true, appointmentId: appointment.id });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ── Mis comisiones ──
+app.get('/api/marketing/commissions', adminAuth, requireRole('marketing'), async (req, res) => {
+  try {
+    const totals = await CommissionsRepo.totalsByMarketer(req.admin.uid);
+    const list = await CommissionsRepo.findByMarketer(req.admin.uid);
+    res.json({ success: true, totals, data: list });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ── Campañas WhatsApp ──
+app.post('/api/marketing/whatsapp-campaign', adminAuth, requireRole('marketing'), async (req, res) => {
+  try {
+    const { segment, message, limit } = req.body;
+    if (!message) return res.status(400).json({ success: false, error: 'message_required' });
+
+    // Determinar audiencia según segment
+    let cards = [];
+    if (segment === 'inactive_30') cards = await CardsMarketingRepo.findByInactive(30);
+    else if (segment === 'inactive_60') cards = await CardsMarketingRepo.findByInactive(60);
+    else if (segment === 'inactive_90') cards = await CardsMarketingRepo.findByInactive(90);
+    else if (segment === 'birthdays') {
+      const month = new Date().getMonth() + 1;
+      cards = await CardsMarketingRepo.findByBirthdayMonth(month);
+    } else if (segment === 'gold') {
+      cards = await CardsMarketingRepo.findByCardType('gold');
+    } else {
+      cards = await prisma.card.findMany({ where: { status: 'active' }, take: 200 });
+    }
+
+    const phones = cards.map(c => c.phone).filter(Boolean);
+    const capped = limit ? phones.slice(0, limit) : phones;
+
+    // Enviar con throttle (1 cada 5 min) — background
+    const personalizedMsg = (template, name) => template.replace(/\{nombre\}/gi, name || 'amiga');
+    let sent = 0, failed = 0;
+    setImmediate(async () => {
+      for (const phone of capped) {
+        try {
+          const card = cards.find(c => c.phone === phone);
+          const msg = personalizedMsg(message, card?.name);
+          await WhatsAppService.sendText(phone, msg);
+          sent++;
+          // Throttle 5 min entre mensajes
+          await new Promise(r => setTimeout(r, 5 * 60 * 1000));
+        } catch (e) {
+          failed++;
+          console.error('[MARKETING] WhatsApp send error:', e.message);
+        }
+      }
+      // Notificar al admin
+      await NotificationsRepo.create({
+        type: 'alerta', icon: 'bullhorn',
+        title: 'Campaña WhatsApp completada',
+        message: `${sent} enviados, ${failed} fallidos. Segmento: ${segment}`,
+        read: false,
+      });
+    });
+
+    res.json({ success: true, totalRecipients: capped.length, message: 'Campaña iniciada en background' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ── Push a Wallet ──
+app.post('/api/marketing/wallet-push', adminAuth, requireRole('marketing'), sendMassPushNotification);
+
+// ── Gift cards promocionales ──
+app.post('/api/marketing/giftcards', adminAuth, requireRole('marketing'), async (req, res) => {
+  try {
+    const { serviceId, recipientName, recipientPhone, message, validityDays = 30 } = req.body;
+    if (!serviceId || !recipientName || !recipientPhone)
+      return res.status(400).json({ success: false, error: 'missing_fields' });
+
+    const service = await ServicesRepo.findById(serviceId);
+    if (!service) return res.status(404).json({ success: false, error: 'service_not_found' });
+
+    const code = `VENUS-${Date.now().toString(36).toUpperCase()}`;
+    const expiresAt = new Date(Date.now() + validityDays * 24 * 60 * 60 * 1000);
+
+    const giftCard = await prisma.giftCard.create({
+      data: {
+        code, amount: service.price, remainingAmount: service.price,
+        status: 'pending', recipientName, recipientPhone, message: message || null,
+        serviceId, serviceName: service.name, servicePrice: service.price,
+        validityDays, expiresAt,
+      },
+    });
+    res.json({ success: true, data: giftCard });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/marketing/giftcards', adminAuth, requireRole('marketing'), async (req, res) => {
+  try {
+    const giftCards = await prisma.giftCard.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+    res.json({ success: true, data: giftCards });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ── Reportes de marketing ──
+app.get('/api/marketing/reports/sources', adminAuth, requireRole('marketing'), async (req, res) => {
+  try {
+    const appointments = await prisma.appointment.findMany({
+      where: { bookedById: req.admin.uid },
+      select: { source: true, status: true },
+    });
+    const bySource = {};
+    for (const a of appointments) {
+      const src = a.source || 'sin_etiqueta';
+      if (!bySource[src]) bySource[src] = { total: 0, completed: 0 };
+      bySource[src].total++;
+      if (a.status === 'completed') bySource[src].completed++;
+    }
+    res.json({ success: true, data: bySource });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/marketing/reports/funnel', adminAuth, requireRole('marketing'), async (req, res) => {
+  try {
+    const leads = await LeadsRepo.findByMarketer(req.admin.uid);
+    const totalLeads = leads.length;
+    const agendados = leads.filter(l => ['agendado', 'convertido'].includes(l.status)).length;
+    const convertidos = leads.filter(l => l.status === 'convertido').length;
+
+    const appointments = await prisma.appointment.findMany({
+      where: { bookedById: req.admin.uid },
+      select: { status: true },
+    });
+    const totalCitas = appointments.length;
+    const completadas = appointments.filter(a => a.status === 'completed').length;
+
+    res.json({ success: true, data: { totalLeads, agendados, convertidos, totalCitas, completadas } });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/marketing/reports/roi', adminAuth, requireRole('marketing'), async (req, res) => {
+  try {
+    const { from, to } = req.query;
+    const fromDate = from || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+    const toDate = to || new Date().toISOString();
+
+    // Ingresos atribuidos: citas del marketer completadas
+    const appointments = await prisma.appointment.findMany({
+      where: {
+        bookedById: req.admin.uid,
+        status: 'completed',
+        startDateTime: { gte: new Date(fromDate), lte: new Date(toDate) },
+      },
+      select: { totalPaid: true },
+    });
+    const ingresos = appointments.reduce((sum, a) => sum + parseFloat(a.totalPaid || 0), 0);
+
+    // Gastos de marketing
+    const expenses = await prisma.expense.findMany({
+      where: {
+        category: 'marketing',
+        date: { gte: fromDate.split('T')[0], lte: toDate.split('T')[0] },
+      },
+      select: { amount: true },
+    });
+    const gastos = expenses.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
+
+    // Comisiones
+    const commissions = await CommissionsRepo.totalsByMarketer(req.admin.uid);
+
+    res.json({ success: true, data: { ingresos, gastos, roi: gastos > 0 ? ((ingresos - gastos) / gastos * 100).toFixed(1) : null, commissions } });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/marketing/reports/monthly', adminAuth, requireRole('marketing'), async (req, res) => {
+  try {
+    const appointments = await prisma.appointment.findMany({
+      where: { bookedById: req.admin.uid },
+      select: { date: true, status: true },
+      orderBy: { date: 'asc' },
+    });
+    const byMonth = {};
+    for (const a of appointments) {
+      const month = a.date.slice(0, 7);
+      if (!byMonth[month]) byMonth[month] = { total: 0, completed: 0 };
+      byMonth[month].total++;
+      if (a.status === 'completed') byMonth[month].completed++;
+    }
+    res.json({ success: true, data: byMonth });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ── Segmentos ──
+app.get('/api/marketing/segments/inactive', adminAuth, requireRole('marketing', 'admin'), async (req, res) => {
+  try {
+    const days = parseInt(req.query.days) || 30;
+    const cards = await CardsMarketingRepo.findByInactive(days);
+    res.json({ success: true, count: cards.length, data: cards });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/marketing/segments/birthdays', adminAuth, requireRole('marketing', 'admin'), async (req, res) => {
+  try {
+    const month = parseInt(req.query.month) || (new Date().getMonth() + 1);
+    const cards = await CardsMarketingRepo.findByBirthdayMonth(month);
+    res.json({ success: true, count: cards.length, data: cards });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/marketing/segments/gold', adminAuth, requireRole('marketing', 'admin'), async (req, res) => {
+  try {
+    const cards = await CardsMarketingRepo.findByCardType('gold');
+    res.json({ success: true, count: cards.length, data: cards });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/marketing/segments/ambassadors', adminAuth, requireRole('marketing', 'admin'), async (req, res) => {
+  try {
+    const cards = await CardsMarketingRepo.findAmbassadors();
+    res.json({ success: true, count: cards.length, data: cards });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ── Referidos ──
+app.post('/api/marketing/referrals/generate-code', adminAuth, requireRole('marketing', 'admin'), async (req, res) => {
+  try {
+    const { cardId } = req.body;
+    if (!cardId) return res.status(400).json({ success: false, error: 'cardId_required' });
+    const card = await CardsMarketingRepo.generateReferralCode(cardId);
+    res.json({ success: true, data: { referralCode: card.referralCode } });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/marketing/referrals', adminAuth, requireRole('marketing', 'admin'), async (req, res) => {
+  try {
+    const { cardId } = req.query;
+    if (!cardId) return res.status(400).json({ success: false, error: 'cardId_required' });
+    const referrals = await ReferralsRepo.findByReferrer(cardId);
+    res.json({ success: true, data: referrals });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ── Retos ──
+app.get('/api/marketing/challenges', adminAuth, requireRole('marketing', 'admin'), async (req, res) => {
+  try {
+    const { cardId, activeOnly } = req.query;
+    if (cardId) {
+      const challenges = await ChallengesRepo.findByCard(cardId, { activeOnly: activeOnly === 'true' });
+      res.json({ success: true, data: challenges });
+    } else {
+      const challenges = await ChallengesRepo.findActive();
+      res.json({ success: true, data: challenges });
+    }
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/marketing/challenges', adminAuth, requireRole('admin'), async (req, res) => {
+  try {
+    const { cardId, kind, targetVisits, windowDays, bonusStamps } = req.body;
+    if (!cardId) return res.status(400).json({ success: false, error: 'cardId_required' });
+    const challenge = await ChallengesRepo.create({
+      cardId, kind: kind || 'tres_visitas_30',
+      targetVisits: targetVisits || 3, windowDays: windowDays || 30,
+      bonusStamps: bonusStamps || 1,
+    });
+    res.json({ success: true, data: challenge });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ── UGC / Fotos de progreso ──
+app.get('/api/marketing/ugc/photos', adminAuth, requireRole('marketing', 'admin'), async (req, res) => {
+  try {
+    const { serviceId } = req.query;
+    // Buscar fotos de clientas con consentimiento público
+    const photos = await prisma.clientPhoto.findMany({
+      where: { type: { in: ['before', 'after'] } },
+      include: { record: { select: { cardId: true } } },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+    // Filtrar por consentimiento en Card.publicDisplayOk
+    const filtered = [];
+    for (const p of photos) {
+      if (!p.record?.cardId) continue;
+      const card = await prisma.card.findUnique({ where: { id: p.record.cardId }, select: { publicDisplayOk: true, name: true } });
+      if (card?.publicDisplayOk) filtered.push({ ...p, clientName: card.name });
+    }
+    res.json({ success: true, count: filtered.length, data: filtered });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/marketing/ugc/photos/:id/request', adminAuth, requireRole('marketing', 'admin'), async (req, res) => {
+  try {
+    // Solicitar foto de progreso T+14 por WhatsApp
+    const photoId = req.params.id;
+    const photo = await prisma.clientPhoto.findUnique({ where: { id: photoId }, include: { record: true } });
+    if (!photo) return res.status(404).json({ success: false, error: 'not_found' });
+    const card = await prisma.card.findUnique({ where: { id: photo.record.cardId } });
+    if (!card) return res.status(404).json({ success: false, error: 'card_not_found' });
+
+    try {
+      await WhatsAppService.sendText(card.phone, `Hola ${card.name} 🌿 ¿Cómo va tu piel? Mándanos una foto de frente para ver tu progreso 👇`);
+    } catch (e) { console.error('[MARKETING] WhatsApp:', e.message); }
+
+    res.json({ success: true, message: 'Solicitud enviada' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ── Reseñas pendientes de respuesta ──
+app.get('/api/marketing/reviews/pending', adminAuth, requireRole('marketing', 'admin'), async (req, res) => {
+  try {
+    const reviews = await prisma.review.findMany({
+      where: { replied: false },
+      orderBy: { createdAt: 'desc' },
+    });
+    res.json({ success: true, data: reviews });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.patch('/api/marketing/reviews/:id/reply', adminAuth, requireRole('marketing', 'admin'), async (req, res) => {
+  try {
+    const { reply } = req.body;
+    if (!reply) return res.status(400).json({ success: false, error: 'reply_required' });
+    const review = await prisma.review.update({
+      where: { id: req.params.id },
+      data: { reply, replied: true, repliedAt: new Date() },
+    });
+    res.json({ success: true, data: review });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/* =========================================================
+   MARKETING — Endpoints del admin (gestión de marketers)
+   ========================================================= */
+
+// Listar marketers
+app.get('/api/admin/marketers', adminAuth, requireRole('admin'), async (_req, res) => {
+  try {
+    const marketers = await prisma.admin.findMany({
+      where: { role: 'marketing' },
+      select: { id: true, email: true, name: true, role: true, createdAt: true },
+      orderBy: { name: 'asc' },
+    });
+    // Agregar totales de comisión
+    const result = [];
+    for (const m of marketers) {
+      const totals = await CommissionsRepo.totalsByMarketer(m.id);
+      result.push({ ...m, commissions: totals });
+    }
+    res.json({ success: true, data: result });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Comisiones de un marketer específico
+app.get('/api/admin/marketers/:id/commissions', adminAuth, requireRole('admin'), async (req, res) => {
+  try {
+    const totals = await CommissionsRepo.totalsByMarketer(req.params.id);
+    const list = await CommissionsRepo.findByMarketer(req.params.id);
+    res.json({ success: true, totals, data: list });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Marcar comisión como pagada
+app.patch('/api/admin/commissions/:id/pay', adminAuth, requireRole('admin'), async (req, res) => {
+  try {
+    const commission = await CommissionsRepo.markPaid(req.params.id);
+    res.json({ success: true, data: commission });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Reporte global de comisiones
+app.get('/api/admin/commissions', adminAuth, requireRole('admin'), async (req, res) => {
+  try {
+    const { status, marketerId, from, to } = req.query;
+    const commissions = await CommissionsRepo.findAll({
+      status, marketerId, fromDate: from, toDate: to,
+    });
+    res.json({ success: true, data: commissions });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Configuración de comisión
+app.get('/api/admin/settings/commission', adminAuth, requireRole('admin'), async (_req, res) => {
+  try {
+    const amount = await SettingsRepo.get('marketing.commission.fixed_amount');
+    res.json({ success: true, amount: typeof amount === 'number' ? amount : 50 });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.put('/api/admin/settings/commission', adminAuth, requireRole('admin'), async (req, res) => {
+  try {
+    const { amount } = req.body;
+    if (typeof amount !== 'number' || amount < 0)
+      return res.status(400).json({ success: false, error: 'invalid_amount' });
+    await SettingsRepo.set('marketing.commission.fixed_amount', amount);
+    res.json({ success: true, amount });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Configuración global de marketing
+app.get('/api/admin/settings/marketing', adminAuth, requireRole('admin'), async (_req, res) => {
+  try {
+    const config = {
+      goldThreshold: (await SettingsRepo.get('marketing.gold.threshold_cycles')) || 2,
+      referralCap: (await SettingsRepo.get('marketing.referral.cap_yearly')) || 5,
+      ambassadorMinReviews: (await SettingsRepo.get('marketing.ambassador.min_reviews')) || 3,
+      ambassadorMinReferrals: (await SettingsRepo.get('marketing.ambassador.min_referrals')) || 2,
+    };
+    res.json({ success: true, data: config });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.put('/api/admin/settings/marketing', adminAuth, requireRole('admin'), async (req, res) => {
+  try {
+    const { goldThreshold, referralCap, ambassadorMinReviews, ambassadorMinReferrals } = req.body;
+    if (goldThreshold !== undefined) await SettingsRepo.set('marketing.gold.threshold_cycles', goldThreshold);
+    if (referralCap !== undefined) await SettingsRepo.set('marketing.referral.cap_yearly', referralCap);
+    if (ambassadorMinReviews !== undefined) await SettingsRepo.set('marketing.ambassador.min_reviews', ambassadorMinReviews);
+    if (ambassadorMinReferrals !== undefined) await SettingsRepo.set('marketing.ambassador.min_referrals', ambassadorMinReferrals);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Promociones
+app.post('/api/admin/promotions', adminAuth, requireRole('admin'), async (req, res) => {
+  try {
+    const { type, name, config, endsAt } = req.body;
+    if (!type || !name) return res.status(400).json({ success: false, error: 'type_and_name_required' });
+    const promotion = await PromotionsRepo.create({ type, name, config, endsAt: endsAt ? new Date(endsAt) : null });
+    res.json({ success: true, data: promotion });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/admin/promotions', adminAuth, requireRole('admin'), async (_req, res) => {
+  try {
+    const promotions = await PromotionsRepo.findAll();
+    res.json({ success: true, data: promotions });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Embajadoras
+app.get('/api/admin/ambassadors', adminAuth, requireRole('admin'), async (_req, res) => {
+  try {
+    const cards = await CardsMarketingRepo.findAmbassadors();
+    res.json({ success: true, data: cards });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.patch('/api/admin/cards/:id/ambassador', adminAuth, requireRole('admin'), async (req, res) => {
+  try {
+    const { isAmbassador } = req.body;
+    const card = await CardsMarketingRepo.setAmbassador(req.params.id, isAmbassador);
+    res.json({ success: true, data: card });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Atribución multi-touch
+app.get('/api/admin/attribution', adminAuth, requireRole('admin'), async (req, res) => {
+  try {
+    const { from, to } = req.query;
+    const fromDate = from || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+    const toDate = to || new Date().toISOString();
+    const report = await TouchpointsRepo.attributionReport(fromDate, toDate);
+    res.json({ success: true, data: report });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/* =========================================================
+   MARKETING — Endpoints públicos
+   ========================================================= */
+
+// Redirect de referido: /r/:code → /agendar.html?ref=CODE
+app.get('/r/:code', async (req, res) => {
+  try {
+    const { code } = req.params;
+    const card = await CardsMarketingRepo.findByReferralCode(code);
+    if (card) {
+      // Registrar touchpoint
+      await TouchpointsRepo.create({ channel: 'referral', campaign: code });
+    }
+    res.redirect(302, `/agendar.html?ref=${encodeURIComponent(code)}`);
+  } catch {
+    res.redirect(302, '/agendar.html');
+  }
+});
+
+// Galería before/after pública (UGC consentido)
+app.get('/api/public/before-after', async (req, res) => {
+  try {
+    const { serviceId } = req.query;
+    const photos = await prisma.clientPhoto.findMany({
+      where: { type: { in: ['before', 'after'] } },
+      include: { record: { select: { cardId: true } } },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+    });
+    const filtered = [];
+    for (const p of photos) {
+      if (!p.record?.cardId) continue;
+      const card = await prisma.card.findUnique({ where: { id: p.record.cardId }, select: { publicDisplayOk: true } });
+      if (card?.publicDisplayOk) filtered.push({ url: p.url, type: p.type, area: p.area });
+    }
+    res.json({ success: true, data: filtered });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`\n🚀 Servidor activo en http://localhost:${PORT}`);

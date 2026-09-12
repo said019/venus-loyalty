@@ -2519,7 +2519,109 @@
         transform: none !important;
       }
     }
-  </style>
+  
+    /* ════════ MI TARJETA · rediseño (ago-2026) ════════
+       La vista se diseñó oscura y quedó re-tematizada a crema: el header
+       forest translúcido se veía lodo, la tarjeta heredó --espresso (café),
+       el H1 llegaba a 94px y el progreso se decía tres veces. Overrides al
+       final del bloque para ganar la cascada sin tocar la lógica. */
+
+    /* Header: la píldora flotante se queda, pero en crema Venus con tinta
+       legible (era café translúcido sobre crema: lodo). */
+    #view-card header.sticky {
+      background: rgba(251, 247, 239, 0.92) !important;
+      border: 1px solid rgba(104, 114, 92, 0.22) !important;
+      border-bottom: 1px solid rgba(104, 114, 92, 0.22) !important;
+      backdrop-filter: blur(14px);
+      box-shadow: 0 12px 34px rgba(38, 49, 35, 0.10);
+    }
+
+    #view-card header.sticky span,
+    #view-card header.sticky [class*="text-venus-cream"],
+    #view-card header.sticky .font-playfair { color: #263123 !important; }
+    #view-card header.sticky #header-name { color: rgba(38, 49, 35, 0.62) !important; }
+
+    #view-card header.sticky #logout-btn,
+    #view-card header.sticky #logout-btn svg { color: rgba(38, 49, 35, 0.5) !important; }
+    #view-card header.sticky #logout-btn:hover,
+    #view-card header.sticky #logout-btn:hover svg { color: #b0563f !important; background: transparent; }
+
+    /* El botón Agendar del header conserva su oliva sólido con texto claro */
+    #view-card header.sticky a[href="/agendar.html"],
+    #view-card header.sticky a[href="/agendar.html"] span,
+    #view-card header.sticky a[href="/agendar.html"] svg {
+      color: oklch(97% 0.010 88) !important;
+    }
+
+    /* Título a escala humana: la joya es la tarjeta, no el rótulo */
+    #view-card main h1 {
+      font-size: clamp(26px, 6vw, 34px) !important;
+      line-height: 1.15 !important;
+      max-width: none !important;
+      color: #263123 !important;
+    }
+
+    #view-card #member-info { color: rgba(38, 49, 35, 0.62) !important; }
+
+    /* La tarjeta: oliva profundo Venus, no café; esquinas suaves de pase */
+    #view-card .wallet-card {
+      border-radius: 18px !important;
+      overflow: hidden;
+      box-shadow: 0 22px 54px rgba(38, 49, 35, 0.16) !important;
+    }
+
+    #view-card .wallet-header,
+    #view-card .wallet-footer {
+      background: linear-gradient(145deg, #2c3822 0%, #3c4a2c 100%) !important;
+    }
+
+    /* Sellos: círculos de línea sólida, más compactos y serenos */
+    #view-card .stamps-grid { gap: 12px !important; padding: 20px 18px !important; }
+    #view-card .stamp.inactive { border-style: solid !important; border-width: 1.5px !important; }
+
+    /* El progreso una sola vez: fuera la barra y el rótulo duplicados
+       (la tarjeta ya dice "0 de 8"); queda la frase que sí importa. */
+    #view-card .progress-bar { display: none !important; }
+    #view-card div:has(> #c_info) { display: none !important; }
+    #view-card div:has(> .progress-bar) {
+      background: transparent !important;
+      padding: 6px 0 0 !important;
+      margin-top: 2px !important;
+    }
+    #view-card #reward-info { margin-top: 0 !important; }
+    #view-card #reward-info p { color: rgba(38, 49, 35, 0.72) !important; font-size: 14px !important; }
+    #view-card #reward-info span { color: #263123 !important; }
+    #view-card #stamps-remaining { color: #47542e !important; }
+
+    /* Acciones rápidas: tres a la mano, icono arriba */
+    #view-card #quick-actions {
+      display: grid !important;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    #view-card #quick-actions > * {
+      display: flex !important;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 7px !important;
+      margin: 0 !important;
+      padding: 14px 6px !important;
+      min-height: 74px;
+      border: 1px solid rgba(104, 114, 92, 0.20) !important;
+      border-radius: 12px !important;
+      font-size: 12.5px;
+      font-weight: 600;
+    }
+
+    /* Ritmo: menos aire muerto entre secciones en el celular */
+    @media (max-width: 767.98px) {
+      #view-card main { padding-top: 18px !important; }
+      #view-card .space-y-6 > * + * { margin-top: 16px !important; }
+      #view-card main .mb-6 { margin-bottom: 14px !important; }
+    }
+</style>
 </head>
 <body class="font-inter bg-venus-forest min-h-screen">
   
@@ -3131,7 +3233,7 @@
                 <svg class="w-5 h-5 text-venus-olive" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
-                Historial de Citas
+                Tus citas
               </h3>
               <div id="appointments-list" class="space-y-3">
                 <div class="text-venus-cream/50 text-sm text-center py-4">Cargando historial...</div>
@@ -3165,25 +3267,25 @@
           
           <!-- Quick Actions -->
           <div class="animate-fade-in-up info-card" style="animation-delay: 0.25s;">
-            <h3 class="text-venus-cream font-playfair text-lg font-semibold mb-4">Acciones Rápidas</h3>
-            <div class="space-y-3">
+            <h3 class="text-venus-cream font-playfair text-lg font-semibold mb-4">Acciones rápidas</h3>
+            <div class="space-y-3" id="quick-actions">
               <a href="/agendar.html" class="w-full flex items-center gap-3 px-4 py-3 border border-white/10 text-venus-cream hover:bg-white/5 rounded-xl transition-colors">
                 <svg class="w-5 h-5 text-venus-olive" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                 </svg>
-                <span>Agendar Cita</span>
+                <span>Agendar</span>
               </a>
               <button id="share" class="w-full flex items-center gap-3 px-4 py-3 border border-white/10 text-venus-cream hover:bg-white/5 rounded-xl transition-colors">
                 <svg class="w-5 h-5 text-venus-olive" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
                 </svg>
-                <span>Compartir mi tarjeta</span>
+                <span>Compartir</span>
               </button>
-              <a href="https://wa.me/5214271000000" target="_blank" class="w-full flex items-center gap-3 px-4 py-3 border border-white/10 text-venus-cream hover:bg-white/5 rounded-xl transition-colors">
+              <a href="https://wa.me/524271657595" target="_blank" class="w-full flex items-center gap-3 px-4 py-3 border border-white/10 text-venus-cream hover:bg-white/5 rounded-xl transition-colors">
                 <svg class="w-5 h-5 text-venus-olive" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
                 </svg>
-                <span>Contactar WhatsApp</span>
+                <span>WhatsApp</span>
               </a>
             </div>
           </div>

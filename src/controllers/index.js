@@ -37,7 +37,11 @@ export const ServicesController = {
     async getAll(req, res) {
         try {
             const { ServicesRepo } = await import('../db/repositories.js');
-            const services = await ServicesRepo.findAll({ isActive: true });
+            // ?all=1: la tabla del admin necesita ver también los desactivados
+            // (soft-delete). Los dropdowns de cita y /agendar siguen pidiendo
+            // solo activos (default).
+            const incluirTodos = req.query.all === '1';
+            const services = await ServicesRepo.findAll(incluirTodos ? {} : { isActive: true });
             res.json({ success: true, data: services });
         } catch (error) {
             console.error('Error getting services:', error);
@@ -72,8 +76,12 @@ export const ServicesController = {
         try {
             const { id } = req.params;
             const { ServicesRepo } = await import('../db/repositories.js');
-            await ServicesRepo.delete(id);
-            res.json({ success: true });
+            // Soft-delete: el historial de citas cuelga del servicio por nombre;
+            // borrarlo de verdad deja huérfanos y no hay vuelta atrás. Se
+            // desactiva (sale de /agendar y de los dropdowns) y se puede
+            // reactivar desde la tabla del admin.
+            await ServicesRepo.update(id, { isActive: false });
+            res.json({ success: true, softDeleted: true });
         } catch (error) {
             console.error('Error deleting service:', error);
             res.status(500).json({ success: false, error: error.message });
@@ -538,7 +546,7 @@ export const AppointmentsController = {
     // Buscar citas por teléfono o nombre del cliente
     async getByClient(req, res) {
         try {
-            const { search } = req.query;
+            const { search, includeCancelled, limit } = req.query;
             if (!search) {
                 return res.json({ success: true, data: [] });
             }
@@ -551,6 +559,12 @@ export const AppointmentsController = {
                 phoneSearch = '52' + phoneSearch;
             }
 
+            // Opt-in, para no cambiar lo que ya ve el flujo de agendar (que no
+            // manda ninguno de los dos): el expediente sí quiere ver las
+            // canceladas y pedir más de 20 para el historial completo.
+            const take = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 100);
+            const statusFilter = includeCancelled ? {} : { status: { not: 'cancelled' } };
+
             // Buscar por teléfono o nombre usando Prisma
             let appointments = await prisma.appointment.findMany({
                 where: {
@@ -559,10 +573,10 @@ export const AppointmentsController = {
                         { clientPhone: search },
                         { clientName: { contains: search, mode: 'insensitive' } }
                     ],
-                    status: { not: 'cancelled' }
+                    ...statusFilter
                 },
                 orderBy: { startDateTime: 'desc' },
-                take: 20
+                take
             });
 
             res.json({ success: true, data: appointments });

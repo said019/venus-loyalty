@@ -4,7 +4,7 @@ import { WhatsAppService } from '../services/whatsapp-v2.js';
 import { prisma } from '../db/index.js';
 import { NotificationsRepo } from '../db/repositories.js';
 import { config } from '../config/config.js';
-import { reconcilePollVotes } from '../services/pollVotes.js';
+import { reconcilePollVotes, normalizePhone } from '../services/pollVotes.js';
 
 /**
  * Obtiene la fecha de mañana en formato YYYY-MM-DD en hora de México
@@ -41,8 +41,31 @@ function getCurrentHourMexico() {
     return mexicoNow.getHours();
 }
 
+// Interruptor de la cadena de confirmación automática: encuesta → alerta 4h →
+// auto-cancelación (las 3 patas van juntas: sin encuesta nadie puede confirmar
+// y el auto-cancel borraría citas). Se apagó el 2026-07-10 y Said pidió
+// regresarla el 2026-07-11 ("si tiene que llevar encuesta"): queda ACTIVA.
+const AUTO_CONFIRMACION_ACTIVA = true;
+
+// Interruptor del mensaje de evaluación/reseña post-cita (spec
+// 2026-07-16-desactivar-mensaje-resenas-design.md; Said lo pidió el 17-jul:
+// "quita los mensajes de evaluación"). Apagado: el cron de reseñas sale antes
+// de consultar citas o llamar a Evolution. Las reseñas existentes, la página
+// pública y el panel siguen intactos; citas con reviewSentAt no se tocan.
+const RESENAS_AUTO_ACTIVAS = false;
+
+// Interruptor del re-engagement automático de marketing (30/60/90 días).
+// Apagado el 2026-07-31: el cron mandó WhatsApp real a 49 clientas a las
+// 4 AM México por un bug de timezone (ver fix debajo), y Said pidió
+// "ya no quiero que se envíe nada, quita todo eso". El cron sigue corriendo
+// (evalúa candidatas) pero sale antes de llamar a Evolution — no manda nada.
+const MARKETING_REENGAGEMENT_ACTIVO = false;
+
 export function startScheduler() {
     console.log('⏰ Scheduler de recordatorios WhatsApp iniciado');
+    if (!AUTO_CONFIRMACION_ACTIVA) console.log('🔕 Cadena de confirmación automática (encuesta 9AM / alerta 4h / auto-cancel) DESACTIVADA');
+    if (!RESENAS_AUTO_ACTIVAS) console.log('🔕 Envío automático de link de evaluación/reseña post-cita DESACTIVADO');
+    if (!MARKETING_REENGAGEMENT_ACTIVO) console.log('🔕 Envío automático de re-engagement de marketing (30/60/90 días) DESACTIVADO');
 
     // Helper para convertir a ISO con offset de México (-06:00)
     const toMexicoCityISO = (date) => {
@@ -58,6 +81,53 @@ export function startScheduler() {
     // webhook de forma confiable. Barremos el store y confirmamos/cancelamos/
     // reagendamos según el voto. Idempotente y sin enviar mensajes a clientas.
     // ========================================================================
+    // ── Felicitación de cumpleaños (10 AM México) ─────────────────────────
+    // APAGADA por defecto: solo corre si el dueño la prende en Ajustes
+    // (Setting 'birthday-greeting'). Guard de última corrida para no duplicar
+    // si el server se reinicia dentro de la misma hora.
+    cron.schedule('0 16 * * *', async () => {   // 16 UTC = 10 AM México
+        try {
+            const toggle = await prisma.setting.findUnique({ where: { key: 'birthday-greeting' } });
+            if (!(toggle && toggle.value && toggle.value.enabled)) return;
+
+            const hoyMx = getTodayDateMexico();               // YYYY-MM-DD
+            const guard = await prisma.setting.findUnique({ where: { key: 'birthday-greeting-last-run' } });
+            if (guard && guard.value && guard.value.date === hoyMx) return;
+
+            const mmdd = hoyMx.slice(5);                      // MM-DD
+            const cards = await prisma.card.findMany({ where: { birthdate: { not: null } } });
+            const cumples = cards.filter(c => c.birthdate && String(c.birthdate).slice(5, 10) === mmdd && c.phone);
+
+            await prisma.setting.upsert({
+                where: { key: 'birthday-greeting-last-run' },
+                update: { value: { date: hoyMx } },
+                create: { key: 'birthday-greeting-last-run', value: { date: hoyMx } },
+            });
+
+            if (cumples.length === 0) return;
+            console.log(`🎂 [BIRTHDAY] ${cumples.length} cumpleañera(s) hoy`);
+
+            for (const c of cumples) {
+                const nombre = String(c.name || '').split(' ')[0];
+                const msg = `🎂 ¡Feliz cumpleaños, ${nombre}!\n\nDe parte de todo el equipo de Venus Cosmetología te deseamos un día precioso. Gracias por dejarnos ser parte de tu cuidado. 🌿`;
+                try {
+                    const r = await WhatsAppService.sendText(c.phone, msg);
+                    console.log(`🎂 [BIRTHDAY] ${c.name}: ${r && r.success ? 'enviado' : 'falló'}`);
+                    await NotificationsRepo.create({
+                        type: 'CUMPLE', title: 'Felicitación enviada',
+                        message: `${c.name} recibió su felicitación de cumpleaños`,
+                        entityId: c.id,
+                    }).catch(() => {});
+                } catch (err) {
+                    console.error(`🎂 [BIRTHDAY] Error con ${c.name}:`, err.message);
+                }
+                await new Promise(r => setTimeout(r, 1500));
+            }
+        } catch (e) {
+            console.error('🎂 [BIRTHDAY] Error del job:', e.message);
+        }
+    });
+
     cron.schedule('*/3 * * * *', async () => {
         try {
             const { changes } = await reconcilePollVotes({ apply: true });
@@ -81,11 +151,66 @@ export function startScheduler() {
     });
 
     // ========================================================================
+    // WATCHDOG DE VOTOS — cada 30 min. Verificación INDEPENDIENTE de resultado:
+    // lee los votos CRUDOS del store y comprueba que cada uno se haya reflejado
+    // en su cita. Si un voto lleva >10 min sin procesar, alerta roja en el
+    // panel. Existe porque 4 incidentes (jul-2026) pasaron invisibles: la
+    // ausencia de quejas NO es evidencia de que las encuestas funcionen.
+    // ========================================================================
+    cron.schedule('*/30 * * * *', async () => {
+        try {
+            const { getEvolutionClient } = await import('../services/whatsapp-evolution.js');
+            const { decodePollUpdate, voteTimestampMs } = await import('../services/pollVotes.js');
+            const evo = getEvolutionClient();
+            const records = await evo.findRecentMessages(200, { messageType: 'pollUpdateMessage' });
+            const desde = Date.now() - 24 * 60 * 60 * 1000;
+            const gracia = Date.now() - 10 * 60 * 1000;
+            let vistos = 0, sinProcesar = 0;
+            for (const r of records) {
+                const pum = r?.message?.pollUpdateMessage;
+                if (!pum) continue;
+                const ts = voteTimestampMs(r);
+                if (!ts || ts < desde || ts > gracia) continue;
+                const opcion = decodePollUpdate(pum);
+                if (!opcion) continue;
+                const pollId = pum?.pollCreationMessageKey?.id;
+                if (!pollId) continue;
+                vistos++;
+                const pps = await prisma.pendingPoll.findMany({
+                    where: { OR: [{ id: pollId }, { id: { startsWith: pollId + '_' } }] }
+                });
+                for (const pp of pps) {
+                    if (!pp.appointmentId) continue;
+                    const cita = await prisma.appointment.findUnique({ where: { id: pp.appointmentId } });
+                    if (!cita || cita.status !== 'scheduled') continue; // procesada: OK
+                    const ya = await prisma.notification.findFirst({
+                        where: { entityId: cita.id, title: 'Voto de encuesta SIN procesar' }
+                    });
+                    if (ya) continue;
+                    sinProcesar++;
+                    await NotificationsRepo.create({
+                        type: 'alerta', icon: 'triangle-exclamation',
+                        title: 'Voto de encuesta SIN procesar',
+                        message: `${cita.clientName} votó "${opcion}" hace más de 10 min y su cita sigue sin actualizar. Confírmala manualmente y revisa /api/admin/debug/polls.`,
+                        read: false, entityId: cita.id
+                    });
+                    console.error(`🚨 [watchdog] Voto "${opcion}" de ${cita.clientName} SIN procesar (cita ${cita.id})`);
+                }
+            }
+            if (vistos > 0) console.log(`🐶 [watchdog] votos últimas 24h: ${vistos}, sin procesar: ${sinProcesar}`);
+        } catch (e) { console.warn('[watchdog votos] error:', e.message); }
+    });
+
+    // ========================================================================
     // ENCUESTA DE CONFIRMACIÓN — 9:00 AM hora México para citas de MAÑANA
     // Agrupa por teléfono para no mandar múltiples mensajes al mismo cliente
     // ========================================================================
-    cron.schedule('0 15 * * *', async () => {
-        // 15:00 UTC = 9:00 AM México (CST, UTC-6)
+    // 15-23 UTC = 9AM-5PM México, cada hora. La query es idempotente
+    // (sent24hAt null → se marca al enviar), así que las corridas extra solo
+    // recuperan encuestas que la de las 9AM no alcanzó a mandar (deploy caído,
+    // server dormido, o el apagón del 10-11 jul 2026).
+    cron.schedule('0 15-23 * * *', async () => {
+        if (!AUTO_CONFIRMACION_ACTIVA) return;
         console.log('📋 [9AM] Enviando encuestas de confirmación para citas de mañana...');
 
         try {
@@ -105,10 +230,11 @@ export function startScheduler() {
 
             console.log(`📅 [9AM] ${pendingAppts.length} citas pendientes de encuesta para ${tomorrow}`);
 
-            // Agrupar por teléfono para enviar 1 solo mensaje por clienta
+            // Agrupar por teléfono NORMALIZADO (521/52/10 dígitos): sin esto la
+            // misma clienta guardada con y sin lada recibía dos encuestas.
             const byPhone = new Map();
             for (const appt of pendingAppts) {
-                const phone = appt.clientPhone.replace(/\D/g, '');
+                const phone = normalizePhone(appt.clientPhone);
                 if (!byPhone.has(phone)) {
                     byPhone.set(phone, []);
                 }
@@ -152,7 +278,8 @@ export function startScheduler() {
                             );
 
                             // Guardar mapeo poll→cita para TODAS las citas del grupo
-                            const pollMsgId = pollResult?.key?.id;
+                            const pollMsgId = pollResult?.key?.id || pollResult?.message?.key?.id || null;
+                            if (!pollMsgId) console.warn('[9AM] sendPoll consolidado SIN key.id — sin mapeo poll→cita. Shape:', JSON.stringify(pollResult || {}).slice(0, 300));
                             const pollOpts = ['Confirmar asistencia', 'Reagendar', 'Cancelar'];
                             if (pollMsgId) {
                                 for (const a of appts) {
@@ -166,7 +293,11 @@ export function startScheduler() {
                                                 expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000)
                                             }
                                         });
-                                    } catch (e) { /* ignore duplicates */ }
+                                    } catch (e) {
+                                        // Solo los duplicados (P2002) son esperables; cualquier otro
+                                        // error deja la cita SIN mapeo poll→cita y hay que saberlo.
+                                        if (e?.code !== 'P2002') console.error('[9AM] pendingPoll consolidado NO guardado para cita', a.id, ':', e.message);
+                                    }
                                 }
                             }
                         } catch (pollErr) {
@@ -270,6 +401,7 @@ export function startScheduler() {
     // Solo envía si la cita sigue en 'scheduled' (no si ya está confirmed)
     // ========================================================================
     cron.schedule('*/10 * * * *', async () => {
+        if (!AUTO_CONFIRMACION_ACTIVA) return;
         const now = new Date();
 
         try {
@@ -279,10 +411,29 @@ export function startScheduler() {
             const pendingAlerts = await AppointmentModel.getPendingConfirmationAlert(rangeStart, rangeEnd);
 
             if (pendingAlerts.length > 0) {
-                console.log(`⚠️ [4h-alert] ${pendingAlerts.length} citas sin confirmar — enviando alerta`);
+                console.log(`⚠️ [4h-alert] ${pendingAlerts.length} citas sin confirmar — barrido de votos + alerta`);
+                // Antes de molestar con "Confirmación pendiente": barrer votos del
+                // store. Si la clienta YA votó y el webhook lo perdió, el barrido
+                // la confirma (y le manda acuse) y abajo saltamos su alerta.
+                // Pasó con Francisca Reyes (10 jul): votó "Confirmar" y a las 4h
+                // le llegó la amenaza de cancelación de todos modos.
+                try { await reconcilePollVotes({ apply: true }); }
+                catch (e) { console.warn('[4h-alert] barrido de votos falló (sigo con alertas):', e.message); }
             }
 
             for (const appt of pendingAlerts) {
+                // Re-verificar contra la DB: el barrido de arriba (o el webhook en
+                // paralelo) pudo haberla confirmado hace un instante.
+                try {
+                    const fresh = await prisma.appointment.findUnique({
+                        where: { id: appt.id }, select: { status: true }
+                    });
+                    if (!fresh || fresh.status !== 'scheduled') {
+                        console.log(`✅ [4h-alert] ${appt.clientName} ya no está 'scheduled' (${fresh?.status}) — skip alerta`);
+                        continue;
+                    }
+                } catch { /* si falla el re-check, seguimos con el flujo normal */ }
+
                 const result = await WhatsAppService.sendAlertaCancelacion(appt);
                 if (result.success) {
                     await AppointmentModel.markConfirmationAlertSent(appt.id);
@@ -307,6 +458,7 @@ export function startScheduler() {
     // AUTO-CANCELACIÓN 1h — cada 10 min
     // ========================================================================
     cron.schedule('*/10 * * * *', async () => {
+        if (!AUTO_CONFIRMACION_ACTIVA) return;
         const now = new Date();
 
         try {
@@ -316,10 +468,27 @@ export function startScheduler() {
             const pendingCancel = await AppointmentModel.getPendingAutoCancelation(rangeStart, rangeEnd);
 
             if (pendingCancel.length > 0) {
-                console.log(`❌ [auto-cancel] ${pendingCancel.length} citas sin confirmar — cancelando`);
+                console.log(`❌ [auto-cancel] ${pendingCancel.length} citas sin confirmar — barrido de votos + cancelación`);
+                // ÚLTIMA LÍNEA DE DEFENSA antes de cancelar: barrer votos del store.
+                // Cancelar la cita de una clienta que SÍ votó "Confirmar" es el peor
+                // desenlace posible del bug de votos perdidos; el barrido lo evita.
+                try { await reconcilePollVotes({ apply: true }); }
+                catch (e) { console.warn('[auto-cancel] barrido de votos falló (sigo):', e.message); }
             }
 
             for (const appt of pendingCancel) {
+                // Re-verificar contra la DB: el barrido (o el webhook) pudo haberla
+                // confirmado hace un instante. Solo cancelamos si sigue 'scheduled'.
+                try {
+                    const fresh = await prisma.appointment.findUnique({
+                        where: { id: appt.id }, select: { status: true }
+                    });
+                    if (!fresh || fresh.status !== 'scheduled') {
+                        console.log(`✅ [auto-cancel] ${appt.clientName} ya no está 'scheduled' (${fresh?.status}) — skip cancelación`);
+                        continue;
+                    }
+                } catch { /* si falla el re-check, mejor NO cancelar este tick */ continue; }
+
                 await prisma.appointment.update({
                     where: { id: appt.id },
                     data: {
@@ -378,6 +547,7 @@ export function startScheduler() {
     // ENVÍO DE LINK DE EVALUACIÓN POST-CITA — cada 10 min
     // ========================================================================
     cron.schedule('*/10 * * * *', async () => {
+        if (!RESENAS_AUTO_ACTIVAS) return;
         try {
             const now = new Date();
             const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
@@ -496,9 +666,199 @@ export function startScheduler() {
             }
         } catch (e) { console.error('[drive-retry] error:', e.message); }
     });
-}
 
-// ========== CUMPLEAÑOS (próximos 7 días) ==========
+    // ========================================================================
+    // MARKETING — Resumen diario de comisiones (medianoche)
+    // ========================================================================
+    // BUG (31-jul-2026): estos 5 crons de marketing se agregaron con hora
+    // "México" tal cual (0 10 * * * = "10 AM") sin timezone, pero node-cron
+    // corre en la hora del servidor (UTC) — todos los demás crons de este
+    // archivo lo compensan a mano (ver comentario línea ~153). El de
+    // re-engagement mandó WhatsApp real a clientas a las 4 AM México en vez
+    // de 10 AM. Fix: timezone explícito en vez de más aritmética a mano.
+    cron.schedule('0 0 * * *', async () => {
+        try {
+            const today = getTodayDateMexico();
+            const todayStart = new Date(today + 'T00:00:00-06:00');
+            const todayEnd = new Date(today + 'T23:59:59-06:00');
+
+            const appointments = await prisma.appointment.findMany({
+                where: {
+                    bookedById: { not: null },
+                    createdAt: { gte: todayStart, lte: todayEnd },
+                },
+                include: { bookedBy: { select: { email: true, name: true } } },
+            });
+
+            if (appointments.length === 0) return;
+
+            const byMarketer = {};
+            for (const a of appointments) {
+                const id = a.bookedById;
+                if (!byMarketer[id]) byMarketer[id] = { name: a.bookedBy?.name || a.bookedBy?.email || 'Marketing', count: 0, services: [] };
+                byMarketer[id].count++;
+                byMarketer[id].services.push(`${a.clientName} - ${a.serviceName}`);
+            }
+
+            const summary = Object.values(byMarketer).map(m =>
+                `${m.name}: ${m.count} cita${m.count > 1 ? 's' : ''} (${m.services.join(', ')})`
+            ).join('\n');
+
+            await NotificationsRepo.create({
+                type: 'alerta',
+                icon: 'chart-line',
+                title: 'Resumen diario: citas agendadas por marketing',
+                message: summary,
+                read: false,
+            });
+            console.log(`📊 [marketing] Resumen diario: ${appointments.length} citas por ${Object.keys(byMarketer).length} marketer(s)`);
+        } catch (error) {
+            console.error('Error en resumen diario de comisiones:', error);
+        }
+    }, { timezone: 'America/Mexico_City' });
+
+    // ========================================================================
+    // MARKETING — Promoción automática a Gold (diario 6 AM)
+    // Clientas con cycles >= threshold (default 2) suben a gold
+    // ========================================================================
+    cron.schedule('0 6 * * *', async () => {
+        try {
+            const thresholdSetting = await prisma.setting.findUnique({ where: { key: 'marketing.gold.threshold_cycles' } });
+            const threshold = thresholdSetting?.value || 2;
+
+            const candidates = await prisma.card.findMany({
+                where: { status: 'active', cardType: { not: 'gold' }, cycles: { gte: threshold } },
+            });
+
+            for (const card of candidates) {
+                await prisma.card.update({
+                    where: { id: card.id },
+                    data: { cardType: 'gold' },
+                });
+                console.log(`👑 [marketing] ${card.name} promovida a Gold (${card.cycles} ciclos)`);
+
+                // Notificación al admin
+                await NotificationsRepo.create({
+                    type: 'premio',
+                    icon: 'crown',
+                    title: 'Nueva clienta Gold',
+                    message: `${card.name} subió a Gold con ${card.cycles} ciclos completados`,
+                    read: false,
+                    entityId: card.id,
+                });
+            }
+        } catch (error) {
+            console.error('Error en promoción Gold:', error);
+        }
+    }, { timezone: 'America/Mexico_City' });
+
+    // ========================================================================
+    // MARKETING — Detección de embajadoras (semanal lunes 7 AM)
+    // Clientas con >= 3 reseñas 5★ + >= 2 referidos completados
+    // ========================================================================
+    cron.schedule('0 7 * * 1', async () => {
+        try {
+            const minReviewsSetting = await prisma.setting.findUnique({ where: { key: 'marketing.ambassador.min_reviews' } });
+            const minReferralsSetting = await prisma.setting.findUnique({ where: { key: 'marketing.ambassador.min_referrals' } });
+            const minReviews = minReviewsSetting?.value || 3;
+            const minReferrals = minReferralsSetting?.value || 2;
+
+            const cards = await prisma.card.findMany({ where: { status: 'active', isAmbassador: false } });
+
+            for (const card of cards) {
+                // Contar reseñas 5★
+                const fiveStarReviews = await prisma.review.count({
+                    where: { clientPhone: card.phone, stars: 5 },
+                });
+
+                // Contar referidos completados
+                const completedReferrals = await prisma.referral.count({
+                    where: { referrerCardId: card.id, status: { in: ['completada', 'pagada'] } },
+                });
+
+                if (fiveStarReviews >= minReviews && completedReferrals >= minReferrals) {
+                    await prisma.card.update({ where: { id: card.id }, data: { isAmbassador: true } });
+                    console.log(`🌟 [marketing] ${card.name} ahora es embajadora`);
+                    await NotificationsRepo.create({
+                        type: 'premio', icon: 'star',
+                        title: 'Nueva embajadora Venus',
+                        message: `${card.name} (${fiveStarReviews} reseñas 5★, ${completedReferrals} referidos)`,
+                        read: false, entityId: card.id,
+                    });
+                }
+            }
+        } catch (error) {
+            console.error('Error en detección de embajadoras:', error);
+        }
+    }, { timezone: 'America/Mexico_City' });
+
+    // ========================================================================
+    // MARKETING — Re-engagement 30/60/90 días (diario 10 AM)
+    // Clientas inactivas según categoría de servicio
+    // ========================================================================
+    cron.schedule('0 10 * * *', async () => {
+        if (!MARKETING_REENGAGEMENT_ACTIVO) return;
+        try {
+            const now = new Date();
+            const thresholds = [30, 60, 90];
+
+            for (const days of thresholds) {
+                const cutoff = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+                const inactiveCards = await prisma.card.findMany({
+                    where: {
+                        status: 'active',
+                        lastVisit: { lt: cutoff, not: null },
+                    },
+                    take: 50,
+                });
+
+                for (const card of inactiveCards) {
+                    // Verificar que no se haya enviado ya este re-engagement este año
+                    // Usar un campo en data para tracking (simplificado: notificación interna)
+                    const recentNotif = await prisma.notification.findFirst({
+                        where: {
+                            type: 'alerta',
+                            message: { contains: card.name },
+                            createdAt: { gte: new Date(now.getTime() - days * 24 * 60 * 60 * 1000) },
+                        },
+                    });
+                    if (recentNotif) continue;
+
+                    let msg = '';
+                    if (days === 30) msg = `Hola ${card.name} 🌿 ¿Cómo va tu piel? Si quieres agendar: ${config.baseUrl}/agendar.html`;
+                    else if (days === 60) msg = `Te extrañamos en Venus 🌿 ¿Agendamos tu siguiente servicio? Tienes ${card.stamps}/${card.max} sellos.`;
+                    else if (days === 90) msg = `Volvamos a vernos: tu siguiente servicio va con 10% off esta semana 🌿`;
+
+                    try {
+                        const { WhatsAppService } = await import('../services/whatsapp-v2.js');
+                        await WhatsAppService.sendText(card.phone, msg);
+                        console.log(`📨 [marketing] Re-engagement ${days}d enviado a ${card.name}`);
+                    } catch (e) {
+                        console.error(`[marketing] Re-engagement ${days}d falló para ${card.name}:`, e.message);
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Error en re-engagement:', error);
+        }
+    }, { timezone: 'America/Mexico_City' });
+
+    // ========================================================================
+    // MARKETING — Evaluación de retos de sellos (diario 6 AM)
+    // Marcar como expirados los retos cuya ventana de tiempo pasó
+    // ========================================================================
+    cron.schedule('0 6 * * *', async () => {
+        try {
+            const { ChallengesRepo } = await import('../db/repositories.js');
+            const expired = await ChallengesRepo.evaluateWindows();
+            if (expired.length > 0) {
+                console.log(`🏆 [marketing] ${expired.length} reto${expired.length > 1 ? 's' : ''} expirado${expired.length > 1 ? 's' : ''}`);
+            }
+        } catch (error) {
+            console.error('Error evaluando retos:', error);
+        }
+    }, { timezone: 'America/Mexico_City' });
+}
 async function checkBirthdays() {
     try {
         const now = new Date();

@@ -822,6 +822,467 @@ export const AppleUpdatesRepo = {
   }
 };
 
+// ==================== LEADS (Mini-CRM) ====================
+export const LeadsRepo = {
+  async findById(id) {
+    return prisma.lead.findUnique({ where: { id } });
+  },
+
+  async findByMarketer(marketerId, options = {}) {
+    const { status, orderBy = { createdAt: 'desc' } } = options;
+    return prisma.lead.findMany({
+      where: {
+        marketerId,
+        ...(status ? { status } : {}),
+      },
+      orderBy,
+    });
+  },
+
+  async create(data) {
+    return prisma.lead.create({ data });
+  },
+
+  async update(id, data) {
+    return prisma.lead.update({
+      where: { id },
+      data: { ...data, updatedAt: new Date() },
+    });
+  },
+
+  async updateStatus(id, status, extra = {}) {
+    const updateData = { status, ...extra, updatedAt: new Date() };
+    if (status === 'contactado') updateData.contactedAt = new Date();
+    if (status === 'convertido') updateData.convertedAt = new Date();
+    return prisma.lead.update({ where: { id }, data: updateData });
+  },
+
+  async convert(id, appointmentId) {
+    return prisma.lead.update({
+      where: { id },
+      data: {
+        status: 'convertido',
+        appointmentId,
+        convertedAt: new Date(),
+        updatedAt: new Date(),
+      },
+    });
+  },
+
+  async delete(id) {
+    return prisma.lead.delete({ where: { id } });
+  },
+
+  // Lead scoring: computa score 0-100 basado en señales
+  async computeScore(lead) {
+    let score = 0;
+    if (lead.isNewClient) score += 30;
+    if (lead.origin === 'referido') score += 20;
+    if (lead.clientBirthday) score += 15;
+    if (lead.serviceId) {
+      const service = await prisma.service.findUnique({ where: { id: lead.serviceId } });
+      if (service && parseFloat(service.price) >= 500) score += 10;
+    }
+    // Check WhatsApp activity within 24h
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const msgs = await prisma.whatsappMessage.findFirst({
+      where: { phone: lead.phone, direction: 'in', timestamp: { gte: since } },
+    });
+    if (msgs) score += 20;
+    // Penalizar ad fría sin follow-up
+    if (['facebook-ads', 'instagram-ads'].includes(lead.origin) && !msgs) score -= 25;
+    return Math.max(0, Math.min(100, score));
+  },
+};
+
+// ==================== COMMISSIONS ====================
+export const CommissionsRepo = {
+  async findById(id) {
+    return prisma.commission.findUnique({ where: { id } });
+  },
+
+  async create(data) {
+    return prisma.commission.create({ data });
+  },
+
+  async findByAppointment(appointmentId) {
+    return prisma.commission.findUnique({ where: { appointmentId } });
+  },
+
+  async findByMarketer(marketerId, options = {}) {
+    const { status, fromDate, toDate } = options;
+    const where = { marketerId };
+    if (status) where.status = status;
+    if (fromDate || toDate) {
+      where.createdAt = {};
+      if (fromDate) where.createdAt.gte = new Date(fromDate);
+      if (toDate) where.createdAt.lte = new Date(toDate);
+    }
+    return prisma.commission.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+    });
+  },
+
+  async findAll(options = {}) {
+    const { status, marketerId, fromDate, toDate } = options;
+    const where = {};
+    if (status) where.status = status;
+    if (marketerId) where.marketerId = marketerId;
+    if (fromDate || toDate) {
+      where.createdAt = {};
+      if (fromDate) where.createdAt.gte = new Date(fromDate);
+      if (toDate) where.createdAt.lte = new Date(toDate);
+    }
+    return prisma.commission.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+    });
+  },
+
+  async markPaid(id) {
+    return prisma.commission.update({
+      where: { id },
+      data: { status: 'pagada', paidAt: new Date() },
+    });
+  },
+
+  async cancelByAppointment(appointmentId) {
+    const existing = await prisma.commission.findUnique({ where: { appointmentId } });
+    if (!existing) return null;
+    return prisma.commission.update({
+      where: { appointmentId },
+      data: { status: 'cancelada' },
+    });
+  },
+
+  async totalsByMarketer(marketerId) {
+    const commissions = await prisma.commission.findMany({
+      where: { marketerId },
+    });
+    const pendiente = commissions
+      .filter(c => c.status === 'pendiente')
+      .reduce((sum, c) => sum + c.amount, 0);
+    const pagada = commissions
+      .filter(c => c.status === 'pagada')
+      .reduce((sum, c) => sum + c.amount, 0);
+    const cancelada = commissions
+      .filter(c => c.status === 'cancelada')
+      .reduce((sum, c) => sum + c.amount, 0);
+    return { pendiente, pagada, cancelada, total: commissions.length };
+  },
+};
+
+// ==================== REFERRALS ====================
+export const ReferralsRepo = {
+  async findById(id) {
+    return prisma.referral.findUnique({ where: { id } });
+  },
+
+  async create(data) {
+    return prisma.referral.create({ data });
+  },
+
+  async findByReferrer(referrerCardId) {
+    return prisma.referral.findMany({
+      where: { referrerCardId },
+      orderBy: { createdAt: 'desc' },
+    });
+  },
+
+  async findByInvitee(inviteeCardId) {
+    return prisma.referral.findUnique({ where: { inviteeCardId } });
+  },
+
+  async findPending() {
+    return prisma.referral.findMany({
+      where: { status: 'pendiente' },
+    });
+  },
+
+  async markCompleted(id) {
+    return prisma.referral.update({
+      where: { id },
+      data: { status: 'completada', completedAt: new Date() },
+    });
+  },
+
+  async markAwarded(id) {
+    return prisma.referral.update({
+      where: { id },
+      data: { status: 'pagada', awardedAt: new Date() },
+    });
+  },
+
+  async checkCap(referrerCardId, cap = 5) {
+    const yearStart = new Date(new Date().getFullYear(), 0, 1);
+    const count = await prisma.referral.count({
+      where: {
+        referrerCardId,
+        status: { in: ['completada', 'pagada'] },
+        completedAt: { gte: yearStart },
+      },
+    });
+    return count < cap;
+  },
+};
+
+// ==================== CHALLENGES (Retos de sellos) ====================
+export const ChallengesRepo = {
+  async findById(id) {
+    return prisma.challenge.findUnique({ where: { id } });
+  },
+
+  async findByCard(cardId, options = {}) {
+    const { activeOnly = false } = options;
+    const where = { cardId };
+    if (activeOnly) where.completedAt = null;
+    return prisma.challenge.findMany({
+      where,
+      orderBy: { startedAt: 'desc' },
+    });
+  },
+
+  async create(data) {
+    return prisma.challenge.create({ data });
+  },
+
+  async incrementProgress(id) {
+    const challenge = await prisma.challenge.findUnique({ where: { id } });
+    if (!challenge) return null;
+    const visitsCompleted = challenge.visitsCompleted + 1;
+    const isComplete = visitsCompleted >= challenge.targetVisits;
+    return prisma.challenge.update({
+      where: { id },
+      data: {
+        visitsCompleted,
+        completedAt: isComplete ? new Date() : null,
+      },
+    });
+  },
+
+  async findActive() {
+    return prisma.challenge.findMany({
+      where: { completedAt: null },
+    });
+  },
+
+  // Evaluar ventanas de retos: si startedAt + windowDays < now, marcar expirado
+  async evaluateWindows() {
+    const now = new Date();
+    const active = await prisma.challenge.findMany({
+      where: { completedAt: null },
+    });
+    const expired = [];
+    for (const ch of active) {
+      const deadline = new Date(ch.startedAt.getTime() + ch.windowDays * 24 * 60 * 60 * 1000);
+      if (deadline < now && ch.visitsCompleted < ch.targetVisits) {
+        await prisma.challenge.update({
+          where: { id: ch.id },
+          data: { completedAt: now },
+        });
+        expired.push(ch);
+      }
+    }
+    return expired;
+  },
+};
+
+// ==================== PROMOTIONS ====================
+export const PromotionsRepo = {
+  async findById(id) {
+    return prisma.promotion.findUnique({ where: { id } });
+  },
+
+  async findActive() {
+    const now = new Date();
+    return prisma.promotion.findMany({
+      where: {
+        active: true,
+        OR: [
+          { endsAt: null },
+          { endsAt: { gte: now } },
+        ],
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  },
+
+  async findByType(type) {
+    return prisma.promotion.findMany({
+      where: { type, active: true },
+    });
+  },
+
+  async findAll() {
+    return prisma.promotion.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
+  },
+
+  async create(data) {
+    return prisma.promotion.create({ data });
+  },
+
+  async update(id, data) {
+    return prisma.promotion.update({ where: { id }, data });
+  },
+
+  async deactivate(id) {
+    return prisma.promotion.update({
+      where: { id },
+      data: { active: false },
+    });
+  },
+};
+
+// ==================== TOUCHPOINTS (Atribución multi-touch) ====================
+export const TouchpointsRepo = {
+  async findById(id) {
+    return prisma.touchpoint.findUnique({ where: { id } });
+  },
+
+  async findByCard(cardId) {
+    return prisma.touchpoint.findMany({
+      where: { cardId },
+      orderBy: { timestamp: 'asc' },
+    });
+  },
+
+  async create(data) {
+    return prisma.touchpoint.create({ data });
+  },
+
+  // Reporte de atribución: first-touch vs last-touch por canal
+  async attributionReport(fromDate, toDate) {
+    const touchpoints = await prisma.touchpoint.findMany({
+      where: {
+        timestamp: {
+          gte: new Date(fromDate),
+          lte: new Date(toDate),
+        },
+      },
+      include: { card: { select: { id: true, phone: true } } },
+      orderBy: { timestamp: 'asc' },
+    });
+
+    // Agrupar por cardId: first-touch y last-touch
+    const byCard = {};
+    for (const tp of touchpoints) {
+      if (!tp.cardId) continue;
+      if (!byCard[tp.cardId]) byCard[tp.cardId] = [];
+      byCard[tp.cardId].push(tp);
+    }
+
+    const firstTouch = {};
+    const lastTouch = {};
+    for (const [cardId, tps] of Object.entries(byCard)) {
+      firstTouch[cardId] = tps[0].channel;
+      lastTouch[cardId] = tps[tps.length - 1].channel;
+    }
+
+    // Contar por canal
+    const firstCounts = {};
+    const lastCounts = {};
+    for (const ch of Object.values(firstTouch)) {
+      firstCounts[ch] = (firstCounts[ch] || 0) + 1;
+    }
+    for (const ch of Object.values(lastTouch)) {
+      lastCounts[ch] = (lastCounts[ch] || 0) + 1;
+    }
+
+    return { firstTouch: firstCounts, lastTouch: lastCounts, totalCards: Object.keys(byCard).length };
+  },
+};
+
+// ==================== CARDS — Extensiones de marketing ====================
+export const CardsMarketingRepo = {
+  async findByReferralCode(code) {
+    return prisma.card.findUnique({ where: { referralCode: code } });
+  },
+
+  async findByInactive(days) {
+    const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+    return prisma.card.findMany({
+      where: {
+        status: 'active',
+        OR: [
+          { lastVisit: { lt: cutoff } },
+          { lastVisit: null },
+        ],
+      },
+      orderBy: { lastVisit: 'asc' },
+    });
+  },
+
+  async findByBirthdayMonth(month) {
+    const cards = await prisma.card.findMany({ where: { status: 'active' } });
+    return cards.filter(c => {
+      if (!c.birthday) return false;
+      const [, m] = c.birthday.split('-');
+      return parseInt(m) === month;
+    });
+  },
+
+  async findByCardType(cardType) {
+    return prisma.card.findMany({
+      where: { cardType, status: 'active' },
+      orderBy: { cycles: 'desc' },
+    });
+  },
+
+  async findAmbassadors() {
+    return prisma.card.findMany({
+      where: { isAmbassador: true },
+      orderBy: { cycles: 'desc' },
+    });
+  },
+
+  async promoteToGold(cardId) {
+    return prisma.card.update({
+      where: { id: cardId },
+      data: { cardType: 'gold', updatedAt: new Date() },
+    });
+  },
+
+  async setAmbassador(cardId, isAmbassador) {
+    return prisma.card.update({
+      where: { id: cardId },
+      data: { isAmbassador, updatedAt: new Date() },
+    });
+  },
+
+  async generateReferralCode(cardId) {
+    const card = await prisma.card.findUnique({ where: { id: cardId } });
+    if (!card) return null;
+    if (card.referralCode) return card.referralCode;
+    // Generar código: primeras 4 letras del nombre (sin espacios) + últimos 2 dígitos del phone
+    const namePart = (card.name || 'VENUS').replace(/\s/g, '').toUpperCase().slice(0, 4);
+    const phonePart = (card.phone || '00').slice(-2);
+    const code = `${namePart}${phonePart}`;
+    // Verificar unicidad, si existe agregar número
+    let finalCode = code;
+    let exists = await prisma.card.findUnique({ where: { referralCode: finalCode } });
+    let n = 1;
+    while (exists && exists.id !== cardId) {
+      finalCode = `${code}${n}`;
+      exists = await prisma.card.findUnique({ where: { referralCode: finalCode } });
+      n++;
+    }
+    return prisma.card.update({
+      where: { id: cardId },
+      data: { referralCode: finalCode, updatedAt: new Date() },
+    });
+  },
+
+  async setPublicDisplayOk(cardId, ok) {
+    return prisma.card.update({
+      where: { id: cardId },
+      data: { publicDisplayOk: ok, updatedAt: new Date() },
+    });
+  },
+};
+
 export default {
   admins: AdminsRepo,
   adminResets: AdminResetsRepo,
@@ -839,5 +1300,12 @@ export default {
   blockedSlots: BlockedSlotsRepo,
   googleDevices: GoogleDevicesRepo,
   appleDevices: AppleDevicesRepo,
-  appleUpdates: AppleUpdatesRepo
+  appleUpdates: AppleUpdatesRepo,
+  leads: LeadsRepo,
+  commissions: CommissionsRepo,
+  referrals: ReferralsRepo,
+  challenges: ChallengesRepo,
+  promotions: PromotionsRepo,
+  touchpoints: TouchpointsRepo,
+  cardsMarketing: CardsMarketingRepo,
 };

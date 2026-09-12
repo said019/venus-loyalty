@@ -273,6 +273,27 @@ router.put('/sessions/:sessionId', requireRole("admin"), async (req, res) => {
   }
 });
 
+// Completar SOLO "productos utilizados" de una sesión (pendiente rojo del expediente).
+// A propósito sin requireRole("admin"): cualquier staff autenticado puede completar
+// el pendiente; editar el resto de la sesión sigue siendo solo admin.
+router.put('/sessions/:sessionId/products', async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const productsUsed = String(req.body?.productsUsed || '').trim();
+    if (!productsUsed) {
+      return res.status(400).json({ success: false, error: 'productsUsed requerido' });
+    }
+    const session = await prisma.treatmentSession.update({
+      where: { id: sessionId },
+      data: { productsUsed }
+    });
+    res.json({ success: true, data: session });
+  } catch (error) {
+    console.error('Error registrando productos de sesión:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Eliminar sesión
 router.delete('/sessions/:sessionId', requireRole("admin"), async (req, res) => {
   try {

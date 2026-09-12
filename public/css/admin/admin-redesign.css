@@ -1,8 +1,4 @@
       :root {
-        --venus: #8c9668;
-        --venus-green: #8c9668;
-        --venus-soft: #c9d2a0;
-        --venus-light: #eef1dc;
         --venus-olive: #4a4d3b;
         --venus-coffee: #9a6f4f;
         --bg: #202219;
@@ -13,19 +9,16 @@
         --panel: #25271f;
         --line: rgba(238, 241, 220, 0.16);
         --line-strong: rgba(238, 241, 220, 0.28);
-        --danger: #ef6b68;
-        --warning: #d9aa55;
-        --success: #7bbf82;
+        /* --warning/--success viven ahora en html[data-theme="dark"]:
+           declararlos aquí (:root carga después de admin-base) pisaba los
+           valores AA del tema claro de admin-base (regresión de cascada).
+           --danger se borró: sin consumidores en admin. */
         --radius: 8px;
       }
 
       html,
       body {
-        background:
-          linear-gradient(90deg, rgba(238, 241, 220, 0.035) 1px, transparent 1px),
-          linear-gradient(180deg, rgba(238, 241, 220, 0.028) 1px, transparent 1px),
-          linear-gradient(145deg, #1e2018 0%, #2b2d22 54%, #3d3228 130%);
-        background-size: 44px 44px, 44px 44px, auto;
+        background: var(--bg);
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
       }
 
@@ -43,8 +36,6 @@
         padding: 12px 18px;
         background: rgba(32, 34, 25, 0.86);
         border-bottom: 1px solid var(--line);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
       }
 
       .brand img {
@@ -116,7 +107,7 @@
       .quick-action-btn,
       .modal-btn,
       .day-label {
-        border-radius: 8px;
+        border-radius: var(--radius-sm);
       }
 
       .btn {
@@ -124,14 +115,25 @@
         border-color: var(--line);
         background: rgba(251, 250, 244, 0.07);
         color: var(--ink);
-        transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+        transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
       }
 
       .btn:hover {
         background: rgba(251, 250, 244, 0.11);
         border-color: var(--line-strong);
-        transform: translateY(-1px);
-        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.18);
+      }
+
+      /* DESIGN.md: hover = solo color/borde 120ms. Neutraliza los
+         translateY + sombra de admin-base (.card/.kpi/.topbar-btn) y
+         admin-extra (.today-card); va antes de :active para no matar
+         el feedback de pulsación. */
+      .card:hover,
+      .btn:hover,
+      .today-card:hover,
+      .kpi:hover,
+      .topbar-btn:hover {
+        transform: none;
+        box-shadow: none;
       }
 
       .btn:active,
@@ -141,15 +143,18 @@
         transform: scale(0.98);
       }
 
+      /* DESIGN.md: primario = relleno olivo sólido. El gradiente
+         #737b52→var(--venus) dejaba #fff a 2.84:1 en oscuro; sólido
+         --olive-deep con tinta crema da 5.87:1 (igual que el claro). */
       .btn.primary,
       .quick-action-btn.primary,
       .chip.active,
       .gc-tab.active,
       .tab-btn.active .tab-count {
-        background: linear-gradient(135deg, #737b52, var(--venus));
-        color: #fff;
-        border-color: transparent;
-        box-shadow: 0 16px 34px rgba(140, 150, 104, 0.24);
+        background: var(--olive-deep);
+        color: oklch(97% 0.010 88);
+        border-color: var(--olive-deep);
+        box-shadow: none;
       }
 
       .btn.ghost {
@@ -165,7 +170,7 @@
       .discount-input-wrap input,
       select.filter-select,
       gmp-place-autocomplete input {
-        border-radius: 8px !important;
+        border-radius: var(--radius-sm) !important;
         border: 1px solid var(--line) !important;
         background: rgba(251, 250, 244, 0.07) !important;
         color: var(--ink) !important;
@@ -178,20 +183,17 @@
       .form-input:focus,
       .notify-input:focus,
       .notify-textarea:focus {
-        outline: none;
-        border-color: var(--venus-soft) !important;
-        box-shadow: 0 0 0 3px rgba(201, 210, 160, 0.18) !important;
+        outline: 2px solid var(--focus-ring);
+        outline-offset: 1px;
+        border-color: var(--focus-ring) !important;
+        box-shadow: none !important;
       }
 
       .card,
       .today-card,
-      .hero-stat,
       .gc-stat,
-      .stat-item,
       .gc-item,
       .wallet-card,
-      .modal-card,
-      dialog,
       .notification-dropdown,
       .mobile-menu,
       .offcanvas,
@@ -202,6 +204,16 @@
       .payment-products-list,
       .client-history-panel {
         border-radius: var(--radius) !important;
+        background: var(--card);
+        border: 1px solid var(--line);
+        box-shadow: none;
+      }
+
+      /* DESIGN.md: una sola sombra suave, reservada al diálogo/modal;
+         modales a 22px (--radius-xl). */
+      dialog,
+      .modal-card {
+        border-radius: var(--radius-xl) !important;
         background: var(--card);
         border: 1px solid var(--line);
         box-shadow: 0 20px 48px rgba(0, 0, 0, 0.18);
@@ -232,9 +244,26 @@
         gap: 12px;
       }
 
+      /* T4/T7: jerarquía KPI solo en escritorio. El colapso móvil
+         (2 col ≤767.98px, 1 col ≤480px) vive en las media queries de abajo
+         y en admin-extra; una declaración base aquí las mataría (S1). */
+      @media (min-width: 901px) {
+        .hero-stats {
+          grid-template-columns: 1.6fr 1fr 1fr;
+        }
+      }
+
+      /* DESIGN.md: los KPIs no son tarjetas — tipografía, aire y una
+         regla inferior de 1px (admin-extra ya quitó su chrome; esta capa
+         lo re-aplicaba desde las listas de arriba). */
       .hero-stat {
         min-height: 150px;
         padding: 18px;
+        background: transparent;
+        border: 0;
+        border-bottom: 1px solid var(--line);
+        border-radius: 0;
+        box-shadow: none;
       }
 
       .hero-stat::before {
@@ -260,7 +289,7 @@
       }
 
       .today-grid {
-        grid-template-columns: 1.2fr 1fr 1fr;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
       }
 
       .today-card {
@@ -275,35 +304,37 @@
       }
 
       .dash-grid {
-        grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+        grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.65fr);
         gap: 18px;
       }
 
       .tabs-header {
-        background: rgba(251, 250, 244, 0.06);
-        border: 1px solid var(--line);
-        border-radius: 8px 8px 0 0 !important;
+        background: transparent;
+        border: none;
+        border-bottom: 1px solid var(--line);
+        border-radius: 0 !important;
       }
 
       .tab-btn.active {
         background: rgba(201, 210, 160, 0.12);
-        color: var(--venus-light);
+        /* --venus-light era olivo pálido sobre tinte pálido: la pestaña activa
+           quedaba ilegible en tema claro (visto en captura real). --ink se
+           adapta solo a cada tema. */
+        color: var(--ink);
       }
 
       .tab-btn.active::after {
         background: linear-gradient(90deg, var(--venus-coffee), var(--venus-soft));
       }
 
-      #tab-services>.card {
-        border-radius: 0 0 8px 8px !important;
-      }
+      /* El .card envolvente del catálogo se eliminó (tarjeta-sobre-tarjeta):
+         los paneles viven en .catalog-panels, sin chrome propio */
 
+      /* El buscador va directo sobre el panel: la caja con borde creaba el
+         efecto tarjeta-dentro-de-tarjeta que el dueño marcó en sus capturas. */
       #panel-services>.row,
       #panel-products>.row {
-        padding: 12px;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: rgba(251, 250, 244, 0.04);
+        padding: 0;
       }
 
       .table-wrap {
@@ -473,7 +504,7 @@
         }
       }
 
-      @media (max-width: 760px) {
+      @media (max-width: 767.98px) {
         .wrap {
           padding: 12px 12px 84px;
         }
@@ -532,7 +563,7 @@
         --text-muted: #8a866f;
         --ink: #28291f;
         --muted: #6b6f5a;
-        --text-dim: #96917c;
+        --text-dim: #6b6759;
         --card: rgba(255, 253, 248, 0.94);
         --card-solid: #fffdf8;
         --panel: #faf5eb;
@@ -544,6 +575,12 @@
         --venus-light: #e7edca;
         --venus-olive: #424635;
         --venus-coffee: #9a6f4f;
+        /* AA: el sage de admin-base (oklch 62%) daba 2.93:1 sobre
+           --success-bg; 50% da 4.81:1 (bg), 5.12:1 (página), 4.86:1
+           (tarjeta) — verificado con cálculo WCAG. --warning claro de
+           admin-base (oklch 50% 0.100 80, 5.09:1) ya cumple y aplica
+           solo al dejar de pisarlo el :root de esta hoja. */
+        --success: oklch(50% 0.115 155);
         --shadow-soft: 0 16px 42px rgba(74, 77, 59, 0.1);
         --shadow-md: 0 18px 44px rgba(74, 77, 59, 0.12);
         --radius: 8px;
@@ -568,28 +605,34 @@
         --panel: #25271f;
         --line: rgba(238, 241, 220, 0.14);
         --border-color: rgba(238, 241, 220, 0.14);
+        /* Trío de estado del tema oscuro: antes vivía en el :root de esta
+           hoja y pisaba los valores AA del claro de admin-base. Aquí solo
+           aplica en oscuro (4.52:1 y 4.59:1 sobre sus fondos de badge). */
+        --warning: #d9aa55;
+        --success: #7bbf82;
+        /* T8: variante oscura coherente de los tokens nuevos.
+           --olive-deep y las fuentes se comparten con el tema claro. */
+        --olive: oklch(68% 0.06 120);
+        --olive-soft: oklch(32% 0.028 120);
+        --ink-3: oklch(80% 0.010 80);
+        --focus-ring: oklch(74% 0.05 120);
       }
 
       html[data-theme="light"] body,
       html[data-theme="dark"] body {
-        font-family: var(--font-body, "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
+        font-family: var(--font-body);
       }
 
-      html[data-theme="light"] body {
-        background:
-          linear-gradient(90deg, rgba(74, 77, 59, 0.045) 1px, transparent 1px),
-          linear-gradient(180deg, rgba(74, 77, 59, 0.035) 1px, transparent 1px),
-          radial-gradient(circle at 10% 0%, rgba(201, 210, 160, 0.38), transparent 32%),
-          linear-gradient(145deg, #f6f1e8 0%, #fffdf8 52%, #efe2d4 130%);
-        background-size: 42px 42px, 42px 42px, auto, auto;
-      }
+      /* (El gradiente de página de 4 capas que vivía aquí era código
+         muerto: lo neutralizaba el body !important de la capa unificada.
+         Borrado para que no reviva.) */
 
       .sidebar {
         background:
           linear-gradient(180deg, rgba(255, 253, 248, 0.94), rgba(247, 241, 229, 0.96)),
           linear-gradient(90deg, rgba(115, 123, 82, 0.06), transparent);
         border-right: 1px solid var(--line);
-        box-shadow: 18px 0 46px rgba(74, 77, 59, 0.1);
+        box-shadow: none;
       }
 
       html[data-theme="dark"] .sidebar {
@@ -603,7 +646,7 @@
 
       .sidebar-brand img,
       .sidebar-user-avatar {
-        border-radius: 8px;
+        border-radius: var(--radius-sm);
       }
 
       .sidebar-section-label {
@@ -621,7 +664,7 @@
         align-items: center;
         min-height: 54px;
         padding: 10px 12px !important;
-        border-radius: 8px !important;
+        border-radius: var(--radius-sm) !important;
         color: var(--text-secondary) !important;
       }
 
@@ -632,7 +675,7 @@
 
       .sidebar-nav-item span:not(.nav-badge):not(#reviews-badge) {
         font-weight: 700;
-        color: var(--text-primary);
+        color: var(--venus-brand-cream);
         line-height: 1.1;
       }
 
@@ -648,7 +691,6 @@
 
       .sidebar-nav-item:hover {
         background: rgba(115, 123, 82, 0.08) !important;
-        transform: translateX(2px);
       }
 
       .sidebar-nav-item.is-active {
@@ -663,12 +705,12 @@
 
       .topbar-new {
         border-bottom: 1px solid var(--line);
-        box-shadow: 0 10px 34px rgba(74, 77, 59, 0.08);
+        box-shadow: none;
       }
 
       .topbar-greeting h2,
       #dash-greeting {
-        font-family: var(--font-body, "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
+        font-family: var(--font-body);
         font-weight: 800;
         letter-spacing: 0;
       }
@@ -692,6 +734,15 @@
         text-transform: uppercase;
       }
 
+      /* AA (auditoría 2026-08): en light var(--venus)→olive 58% daba
+         3.94:1 sobre #fbf7ef. --olive-deep (oklch 48% .085 120) da
+         6.03:1 sobre página y 5.54:1 sobre tarjeta. En dark se conserva
+         var(--venus)→olive 68% (5.53:1 página / 4.78:1 tarjeta). */
+      html[data-theme="light"] .admin-eyebrow,
+      html[data-theme="light"] .clarity-kicker {
+        color: var(--olive-deep);
+      }
+
       .admin-hero-copy {
         margin: 6px 0 0;
         max-width: 56ch;
@@ -712,10 +763,10 @@
         min-height: 132px;
         padding: 18px;
         border: 1px solid var(--line);
-        border-radius: 8px;
+        border-radius: var(--radius);
         background:
           linear-gradient(145deg, rgba(255, 253, 248, 0.9), rgba(247, 241, 229, 0.76));
-        box-shadow: var(--shadow-soft);
+        box-shadow: none;
         overflow: hidden;
       }
 
@@ -785,19 +836,15 @@
         color: var(--venus);
       }
 
-      .hero-stats {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-      }
-
-      .hero-stat,
+      /* .stat-item fuera de esta lista (anti-patrones): vive DENTRO del
+         .card del catálogo — plano, sin tarjeta interior (admin-base). */
       .today-card,
       .card,
       .wallet-card,
-      .gc-stat,
-      .stat-item {
+      .gc-stat {
         background: var(--card);
         border: 1px solid var(--line);
-        box-shadow: var(--shadow-soft);
+        box-shadow: none;
       }
 
       .hero-stat {
@@ -811,14 +858,6 @@
         letter-spacing: 0.08em;
       }
 
-      .today-grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-      }
-
-      .dash-grid {
-        grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.65fr);
-      }
-
       .card-header,
       .modal-header {
         border-bottom-color: var(--line);
@@ -828,13 +867,10 @@
         color: var(--text-primary);
       }
 
-      .btn.primary {
-        background: #737b52;
-        border-color: #737b52;
-      }
-
+      /* Hover del primario en oscuro (el claro lo fija la capa unificada
+         con !important): --olive-deep oscurecido, crema a 7.32:1. */
       .btn.primary:hover {
-        background: #646b47;
+        background: color-mix(in srgb, var(--olive-deep) 85%, black);
       }
 
       input,
@@ -872,7 +908,7 @@
       }
 
       .quick-action-btn {
-        border-radius: 8px !important;
+        border-radius: var(--radius-sm) !important;
       }
 
       @media (max-width: 1180px) {
@@ -886,10 +922,13 @@
       }
 
       @media (max-width: 900px) {
-        .hero-stats,
         .today-grid,
         .dash-grid {
           grid-template-columns: 1fr;
+        }
+
+        .hero-stat {
+          min-height: 92px;
         }
       }
 
@@ -921,10 +960,21 @@
          ============================================================ */
       :root,
       html[data-theme="light"] {
-        --venus-brand-sage: #8b947d;
+        /* Tokens fundacionales — este archivo es el dueño (T5) */
+        --font-display: 'Playfair Display', Georgia, serif;
+        --font-body: 'DM Sans', system-ui, sans-serif;
+        --olive: oklch(58% 0.075 120);
+        --olive-deep: oklch(48% 0.085 120);
+        --olive-soft: oklch(94% 0.022 120);
+        --ink-3: oklch(48% 0.010 80);
+        --focus-ring: #656c5a;
+        /* Alias de compatibilidad para consumidores de otras hojas */
+        --venus-brand-sage: var(--olive);
         --venus-brand-cream: #f9ead8;
-        --venus: #8b947d;
-        --venus-green: #8b947d;
+        --venus: var(--olive);
+        --venus-green: var(--olive);
+        --accent-gold: var(--olive);
+        --accent-gold-light: var(--olive);
         --venus-soft: #5f694f;
         --venus-light: #eef1e5;
         --venus-olive: #263123;
@@ -934,13 +984,13 @@
         --bg-tertiary: #efe4d6;
         --bg-card: linear-gradient(180deg, rgba(249, 234, 216, 0.96), rgba(251, 247, 239, 0.9));
         --bg-card-hover: linear-gradient(180deg, rgba(249, 234, 216, 1), rgba(251, 247, 239, 0.96));
-        --bg-sidebar: linear-gradient(180deg, #8b947d 0%, #68725c 100%);
+        --bg-sidebar: linear-gradient(180deg, #656c5a 0%, #565e49 100%);
         --bg-topbar: rgba(251, 247, 239, 0.92);
         --text-primary: #263123;
         --text-secondary: rgba(38, 49, 35, 0.72);
-        --text-muted: rgba(38, 49, 35, 0.60);
+        --text-muted: rgba(38, 49, 35, 0.72);
         --ink: #263123;
-        --muted: rgba(38, 49, 35, 0.62);
+        --muted: rgba(38, 49, 35, 0.72);
         --line: rgba(104, 114, 92, 0.16);
         --line-hover: rgba(104, 114, 92, 0.30);
         --border-color: rgba(104, 114, 92, 0.16);
@@ -950,10 +1000,10 @@
         --shadow-soft: 0 20px 48px rgba(38, 49, 35, 0.10);
         --shadow-md: 0 18px 42px rgba(38, 49, 35, 0.12);
         --shadow-lg: 0 28px 70px rgba(38, 49, 35, 0.16);
-        --radius: 8px;
-        --radius-sm: 8px;
-        --radius-lg: 12px;
-        --radius-xl: 14px;
+        --radius: 16px;
+        --radius-sm: 12px;
+        --radius-lg: 16px;
+        --radius-xl: 22px;
         --ease-venus: cubic-bezier(0.23, 1, 0.32, 1);
       }
 
@@ -963,7 +1013,7 @@
       input,
       select,
       textarea {
-        font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+        font-family: var(--font-body) !important;
       }
 
       h1,
@@ -977,25 +1027,20 @@
       .gc-stat-value,
       .wallet-card-value,
       .modal-title {
-        font-family: 'Prata', Georgia, serif !important;
+        font-family: var(--font-display) !important;
         font-weight: 400 !important;
         letter-spacing: 0 !important;
       }
 
       html[data-theme="light"] body {
-        background:
-          radial-gradient(circle at 86% 8%, rgba(139, 148, 125, 0.18), transparent 28rem),
-          linear-gradient(90deg, rgba(104, 114, 92, 0.045) 1px, transparent 1px),
-          linear-gradient(180deg, rgba(104, 114, 92, 0.035) 1px, transparent 1px),
-          #fbf7ef !important;
-        background-size: auto, 56px 56px, 56px 56px, auto !important;
+        background: oklch(96.5% 0.012 88) !important;
         color: var(--text-primary) !important;
       }
 
       html[data-theme="light"] .sidebar {
         background: var(--bg-sidebar) !important;
         border-right: 1px solid rgba(249, 234, 216, 0.20) !important;
-        box-shadow: 18px 0 54px rgba(38, 49, 35, 0.12) !important;
+        box-shadow: none !important;
       }
 
       html[data-theme="light"] .sidebar-brand {
@@ -1004,7 +1049,7 @@
 
       html[data-theme="light"] .sidebar-brand img {
         background: var(--venus-brand-cream) !important;
-        border-radius: 8px !important;
+        border-radius: var(--radius-sm) !important;
         box-shadow: 0 16px 34px rgba(38, 49, 35, 0.16) !important;
       }
 
@@ -1012,18 +1057,18 @@
       html[data-theme="light"] .sidebar-brand-text span,
       html[data-theme="light"] .sidebar-section-label,
       html[data-theme="light"] .sidebar-nav-item,
+      html[data-theme="light"] .sidebar-nav-item i,
       html[data-theme="light"] .sidebar-nav-item small {
         color: var(--venus-brand-cream) !important;
       }
 
       html[data-theme="light"] .sidebar-nav-item {
-        border-radius: 8px !important;
+        border-radius: var(--radius-sm) !important;
         transition: transform 160ms var(--ease-venus), background 180ms ease, color 180ms ease;
       }
 
       html[data-theme="light"] .sidebar-nav-item:hover {
         background: rgba(249, 234, 216, 0.12) !important;
-        transform: translateY(-1px);
       }
 
       html[data-theme="light"] .sidebar-nav-item.is-active {
@@ -1043,26 +1088,20 @@
       html[data-theme="light"] .topbar {
         background: rgba(251, 247, 239, 0.92) !important;
         border-bottom: 1px solid rgba(104, 114, 92, 0.16) !important;
-        backdrop-filter: blur(18px) !important;
-        -webkit-backdrop-filter: blur(18px) !important;
-        box-shadow: 0 16px 40px rgba(38, 49, 35, 0.07) !important;
+        box-shadow: none !important;
       }
 
       html[data-theme="light"] .card,
       html[data-theme="light"] .today-card,
-      html[data-theme="light"] .hero-stat,
       html[data-theme="light"] .gc-stat,
-      html[data-theme="light"] .stat-item,
       html[data-theme="light"] .wallet-card,
-      html[data-theme="light"] .modal-card,
-      html[data-theme="light"] dialog,
       html[data-theme="light"] .notification-dropdown,
       html[data-theme="light"] .table-wrap,
       html[data-theme="light"] .clarity-card {
         background: var(--card) !important;
         border: 1px solid rgba(104, 114, 92, 0.16) !important;
-        border-radius: 8px !important;
-        box-shadow: var(--shadow-soft) !important;
+        border-radius: var(--radius) !important;
+        box-shadow: none !important;
       }
 
       html[data-theme="light"] .btn,
@@ -1073,8 +1112,8 @@
       html[data-theme="light"] .gc-tab,
       html[data-theme="light"] .calendar-nav button,
       html[data-theme="light"] .modal-btn {
-        border-radius: 8px !important;
-        transition: transform 160ms var(--ease-venus), box-shadow 180ms var(--ease-venus), background 180ms ease, border-color 180ms ease !important;
+        border-radius: var(--radius-sm) !important;
+        transition: background 120ms ease, border-color 120ms ease, color 120ms ease !important;
       }
 
       html[data-theme="light"] .btn:active,
@@ -1091,10 +1130,10 @@
       html[data-theme="light"] .chip.active,
       html[data-theme="light"] .gc-tab.active,
       html[data-theme="light"] .tab-btn.active .tab-count {
-        background: var(--venus-brand-sage) !important;
-        border-color: var(--venus-brand-sage) !important;
-        color: var(--venus-brand-cream) !important;
-        box-shadow: 0 18px 42px rgba(38, 49, 35, 0.14) !important;
+        background: var(--olive-deep) !important;
+        border-color: var(--olive-deep) !important;
+        color: oklch(97% 0.010 88) !important;
+        box-shadow: none !important;
       }
 
       html[data-theme="light"] input,
@@ -1107,7 +1146,7 @@
       html[data-theme="light"] select.filter-select {
         background: rgba(249, 234, 216, 0.72) !important;
         border: 1px solid rgba(104, 114, 92, 0.24) !important;
-        border-radius: 8px !important;
+        border-radius: var(--radius-sm) !important;
         color: var(--ink) !important;
       }
 
@@ -1115,8 +1154,8 @@
       html[data-theme="light"] select:focus,
       html[data-theme="light"] textarea:focus,
       html[data-theme="light"] .form-input:focus {
-        border-color: var(--venus-brand-sage) !important;
-        box-shadow: 0 0 0 4px rgba(139, 148, 125, 0.16) !important;
+        border-color: var(--focus-ring) !important;
+        box-shadow: none !important;
       }
 
       html[data-theme="light"] thead {
@@ -1153,7 +1192,9 @@
 
       html[data-theme="light"] #newApptDialog input::placeholder,
       html[data-theme="light"] #newApptDialog textarea::placeholder {
-        color: rgba(38, 49, 35, 0.48) !important;
+        /* AA: rgba .48 daba 2.68:1; --text-dim (#6b6759) da 4.81:1
+           sobre el input crema compuesto. */
+        color: var(--text-dim) !important;
         opacity: 1 !important;
       }
 
@@ -1225,8 +1266,11 @@
         color: var(--ink) !important;
       }
 
+      /* El submit-btn ya no lleva el gradiente sage claro (compensado
+         antes con tinta oscura): ahora es sólido --olive-deep en
+         admin-extra, así que la tinta correcta es crema (5.92:1). */
       html[data-theme="light"] #newApptDialog .submit-btn {
-        color: var(--ink) !important;
+        color: oklch(97% 0.010 88) !important;
       }
 
       html[data-theme="light"] #tab-caja .card {
@@ -1320,3 +1364,1014 @@
           transition-duration: 0.01ms !important;
         }
       }
+
+/* ============================================================
+   Centro de notificaciones — jerarquía compacta y legible
+   ============================================================ */
+#notif-badge {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border: 2px solid var(--bg-primary);
+  border-radius: 999px !important;
+  background: #b85f4b !important;
+  color: #fff !important;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 14px;
+  animation: none !important;
+  box-shadow: none !important;
+}
+
+.notification-dropdown {
+  width: 440px;
+  max-width: calc(100vw - 32px);
+  max-height: min(680px, calc(100dvh - 92px));
+  border: 1px solid var(--line-strong) !important;
+  border-radius: 18px !important;
+  background: var(--card-solid, var(--bg-secondary)) !important;
+  box-shadow: 0 24px 64px rgba(38, 49, 35, 0.18) !important;
+  overflow: hidden;
+  color: var(--ink);
+}
+
+.notification-dropdown.active {
+  animation: notificationDropdownIn 220ms var(--ease-venus, cubic-bezier(0.23, 1, 0.32, 1));
+  transform-origin: top right;
+}
+
+@keyframes notificationDropdownIn {
+  from { opacity: 0; transform: translateY(-8px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.notification-header {
+  min-height: 82px;
+  padding: 16px 16px 16px 18px;
+  border-bottom: 1px solid var(--line) !important;
+  background: var(--card-solid, var(--bg-secondary)) !important;
+  gap: 14px;
+}
+
+.notification-heading,
+.notification-header-actions,
+.notification-item-head,
+.notification-footer,
+.notification-view-all {
+  display: flex;
+  align-items: center;
+}
+
+.notification-heading {
+  min-width: 0;
+  gap: 11px;
+}
+
+.notification-heading-icon {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 36px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--venus) 10%, transparent);
+  color: var(--venus-soft);
+  font-size: 15px;
+}
+
+.notification-header h3 {
+  margin: 0 !important;
+  color: var(--ink) !important;
+  font-family: var(--font-body) !important;
+  font-size: 16px !important;
+  font-weight: 750 !important;
+  line-height: 1.2;
+  letter-spacing: -0.02em !important;
+}
+
+.notification-heading p {
+  margin: 3px 0 0;
+  color: var(--muted);
+  font-size: 11.5px;
+  line-height: 1.2;
+}
+
+.notification-header-actions {
+  margin-left: auto;
+  flex: 0 0 auto;
+  gap: 4px;
+}
+
+.btn-mark-read,
+.notification-close {
+  min-height: 36px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--venus-soft);
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.btn-mark-read {
+  padding: 0 9px;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 650;
+}
+
+.btn-mark-read:hover,
+.notification-close:hover {
+  background: color-mix(in srgb, var(--venus) 10%, transparent);
+  color: var(--ink);
+}
+
+.btn-mark-read:active,
+.notification-close:active,
+.notification-footer button:active {
+  transform: translateY(1px) scale(0.98);
+}
+
+.btn-mark-read:disabled {
+  opacity: 0.38;
+  cursor: default;
+  background: transparent;
+}
+
+.notification-close {
+  width: 36px;
+  padding: 0;
+  font-size: 14px;
+}
+
+.notification-list {
+  max-height: min(522px, calc(100dvh - 236px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--venus) 35%, transparent) transparent;
+  background: var(--card-solid, var(--bg-secondary));
+}
+
+.notification-group-label {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 10px 18px 8px;
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--card-solid, var(--bg-secondary)) 94%, var(--venus) 6%);
+  color: var(--venus-soft);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.notification-group + .notification-group {
+  border-top: 1px solid var(--line-strong);
+}
+
+button.notification-item {
+  width: 100%;
+  min-height: 84px;
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) 18px;
+  align-items: start;
+  gap: 11px;
+  padding: 14px 14px 14px 18px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  appearance: none;
+}
+
+.notification-group-items .notification-item:last-child {
+  border-bottom: 0;
+}
+
+button.notification-item:hover,
+button.notification-item:focus-visible {
+  background: color-mix(in srgb, var(--venus) 7%, transparent);
+  outline: none;
+}
+
+button.notification-item:focus-visible {
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--venus) 45%, transparent);
+}
+
+button.notification-item.unread {
+  background: color-mix(in srgb, var(--venus) 8%, var(--card-solid, var(--bg-secondary)));
+}
+
+button.notification-item.unread::before {
+  content: '';
+  position: absolute;
+  inset: 12px auto 12px 0;
+  width: 3px;
+  height: auto;
+  border-radius: 0 4px 4px 0;
+  background: var(--venus);
+  transform: none;
+}
+
+.notification-icon {
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--venus) 9%, transparent) !important;
+  color: var(--venus-soft) !important;
+  font-size: 14px;
+}
+
+.notification-content {
+  min-width: 0;
+  display: block;
+  padding-top: 1px;
+}
+
+.notification-item-head {
+  min-width: 0;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.notification-title {
+  min-width: 0;
+  display: block;
+  margin: 0;
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 13.5px;
+  font-weight: 750;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.notification-time {
+  flex: 0 0 auto;
+  margin: 0;
+  color: var(--text-dim, var(--muted));
+  font-size: 10.5px;
+  font-weight: 550;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.notification-message {
+  display: -webkit-box;
+  margin-top: 4px;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.45;
+  white-space: normal;
+  text-overflow: ellipsis;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.notification-options {
+  width: 18px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 19px;
+  border-radius: 7px;
+  color: var(--text-dim, var(--muted));
+  font-size: 11px;
+  opacity: 0.45;
+}
+
+.notification-item:hover .notification-options,
+.notification-item:focus-visible .notification-options {
+  opacity: 1;
+}
+
+.notification-empty {
+  min-height: 250px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 36px 34px;
+  color: var(--muted);
+}
+
+.notification-empty-icon {
+  width: 48px;
+  height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 13px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--venus) 9%, transparent);
+  color: var(--venus-soft);
+}
+
+.notification-empty-icon i {
+  margin: 0;
+  font-size: 18px;
+  opacity: 1;
+}
+
+.notification-empty h4 {
+  margin: 0 0 5px;
+  color: var(--ink);
+  font-family: var(--font-body) !important;
+  font-size: 14px;
+  font-weight: 750 !important;
+}
+
+.notification-empty p {
+  max-width: 30ch;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.notification-footer {
+  min-height: 58px;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px 10px 16px;
+  border-top: 1px solid var(--line);
+  background: var(--card-solid, var(--bg-secondary));
+  text-align: left;
+}
+
+.notification-footer button {
+  min-height: 36px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 650;
+  cursor: pointer;
+  text-decoration: none !important;
+}
+
+.notification-view-all {
+  gap: 8px;
+  color: var(--venus-soft) !important;
+}
+
+.notification-view-all:hover {
+  background: color-mix(in srgb, var(--venus) 10%, transparent) !important;
+  color: var(--ink) !important;
+}
+
+.notification-clear-read {
+  color: var(--muted) !important;
+}
+
+.notification-clear-read:hover {
+  background: color-mix(in srgb, var(--venus) 7%, transparent) !important;
+  color: var(--ink) !important;
+}
+
+html[data-theme="light"] .notification-dropdown,
+html[data-theme="light"] .notification-header,
+html[data-theme="light"] .notification-list,
+html[data-theme="light"] .notification-footer {
+  background: #fffdf8 !important;
+}
+
+html[data-theme="light"] .notification-group-label {
+  background: #f8f3e9;
+}
+
+html[data-theme="light"] button.notification-item.unread {
+  background: #f4f4e9;
+}
+
+/* ============================================================
+   Reportes · panel de gastos
+   Componente aislado: evita que los estilos globales de tablas y
+   cards conviertan sus acciones en controles gigantes o desbordados.
+   ============================================================ */
+#tab-reports .expenses-panel {
+  --expense-rose: oklch(56% 0.135 28);
+  --expense-rose-soft: oklch(95% 0.026 28);
+  --expense-green: oklch(56% 0.09 150);
+  --expense-green-soft: oklch(95% 0.025 150);
+  margin-bottom: 20px;
+  padding: 0;
+  overflow: hidden;
+  border-color: var(--line);
+  background: var(--bg-secondary);
+  box-shadow: none;
+}
+
+#tab-reports .expenses-panel:hover {
+  transform: none;
+  border-color: var(--line-hover);
+  box-shadow: none;
+}
+
+.expenses-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 24px 26px 22px;
+}
+
+.expenses-panel-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  min-width: 0;
+}
+
+.expenses-panel-icon {
+  display: inline-flex;
+  flex: 0 0 42px;
+  width: 42px;
+  height: 42px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: var(--expense-rose-soft);
+  color: var(--expense-rose);
+  font-size: 16px;
+}
+
+.expenses-eyebrow {
+  margin: 0 0 4px;
+  color: var(--muted);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+#tab-reports .expenses-panel-header h3 {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.expenses-panel-copy {
+  max-width: 58ch;
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+#tab-reports .expense-add-button {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 0 17px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: var(--venus) !important;
+  color: var(--primary-foreground) !important;
+  box-shadow: none;
+  font-weight: 650;
+}
+
+#tab-reports .expense-add-button:hover {
+  filter: brightness(0.94);
+  transform: none;
+}
+
+#tab-reports .expense-add-button:active {
+  transform: translateY(1px);
+}
+
+#tab-reports .expense-add-button:focus-visible,
+.expense-action:focus-visible {
+  outline: 2px solid var(--venus);
+  outline-offset: 3px;
+}
+
+.expenses-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--bg-tertiary) 52%, transparent);
+}
+
+.expense-stat {
+  min-width: 0;
+  padding: 19px 22px 20px;
+}
+
+.expense-stat + .expense-stat {
+  border-left: 1px solid var(--line);
+}
+
+.expense-stat-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 9px;
+  color: var(--muted);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.expense-stat-label i {
+  width: 14px;
+  color: var(--venus-soft);
+  text-align: center;
+}
+
+.expense-stat strong {
+  display: block;
+  overflow: hidden;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: clamp(19px, 2vw, 25px);
+  font-variant-numeric: tabular-nums;
+  font-weight: 400;
+  letter-spacing: -0.035em;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.expense-stat small {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 10.5px;
+  line-height: 1.3;
+}
+
+.expense-stat-total .expense-stat-label i,
+.expense-stat-total strong {
+  color: var(--expense-rose);
+}
+
+.expense-stat-profit .expense-stat-label i,
+.expense-stat-profit strong {
+  color: var(--expense-green);
+}
+
+.expense-stat-profit strong.is-negative {
+  color: var(--expense-rose);
+}
+
+.expenses-list {
+  padding: 22px 26px 26px;
+}
+
+.expenses-list-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 13px;
+}
+
+.expenses-list-heading h4 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.expenses-list-hint {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.expenses-table-wrap {
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--bg-secondary);
+}
+
+.expenses-table {
+  width: 100%;
+  table-layout: auto;
+}
+
+.expenses-table thead {
+  background: color-mix(in srgb, var(--bg-tertiary) 72%, transparent);
+}
+
+.expenses-table th {
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.expenses-table td {
+  padding: 13px 14px;
+  color: var(--ink);
+  font-size: 12.5px;
+  line-height: 1.4;
+  white-space: normal;
+}
+
+.expenses-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.expenses-table tbody tr:hover {
+  background: color-mix(in srgb, var(--bg-tertiary) 55%, transparent);
+}
+
+.expense-date,
+.expense-amount {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap !important;
+}
+
+.expense-date {
+  color: var(--muted) !important;
+  text-transform: capitalize;
+}
+
+.expense-category-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  width: fit-content;
+  padding: 5px 8px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--venus) 10%, transparent);
+  color: var(--venus-soft);
+  font-size: 11.5px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.expense-category-badge i {
+  width: 13px;
+  text-align: center;
+}
+
+.expense-description {
+  min-width: 180px;
+}
+
+.expense-amount {
+  color: var(--expense-rose) !important;
+  font-weight: 700;
+  text-align: right !important;
+}
+
+.expense-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 7px;
+  white-space: nowrap !important;
+}
+
+.expense-action {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 11px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: transparent;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.expense-action-edit:hover {
+  border-color: var(--venus);
+  background: color-mix(in srgb, var(--venus) 9%, transparent);
+  color: var(--venus-soft);
+}
+
+.expense-action-delete {
+  border-color: color-mix(in srgb, var(--expense-rose) 35%, var(--line));
+  color: var(--expense-rose);
+}
+
+.expense-action-delete:hover {
+  border-color: var(--expense-rose);
+  background: var(--expense-rose-soft);
+}
+
+.expense-action:active {
+  transform: translateY(1px);
+}
+
+.expense-empty-row:hover {
+  background: transparent !important;
+}
+
+.expense-empty-row td {
+  padding: 0;
+}
+
+.expense-empty-state {
+  display: flex;
+  min-height: 170px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 26px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.expense-empty-state i {
+  display: inline-flex;
+  width: 42px;
+  height: 42px;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 11px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--venus) 9%, transparent);
+  color: var(--venus-soft);
+}
+
+.expense-empty-state strong {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.expense-empty-state span {
+  margin-top: 4px;
+  font-size: 11.5px;
+}
+
+html[data-theme="dark"] #tab-reports .expenses-panel {
+  --expense-rose-soft: oklch(29% 0.04 28);
+  --expense-green-soft: oklch(29% 0.03 150);
+}
+
+@media (max-width: 960px) {
+  .expenses-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .expense-stat:nth-child(3) {
+    border-left: 0;
+  }
+
+  .expense-stat:nth-child(n + 3) {
+    border-top: 1px solid var(--line);
+  }
+}
+
+/* ────────────────────────────────────────────────────────────
+   TEMA CLARO · contrapartes de --venus-light
+   El bloque base (oscuro) pinta títulos de tabs-tarjeta, iconos y
+   contadores con --venus-light; en claro ese token es #eef1e5, casi
+   idéntico al fondo crema: Ajustes, Datos del Negocio, Google
+   Calendar, WhatsApp, los contadores de wallet y varios iconos
+   quedaban invisibles. Los colores inline de otros tabs no se tocan
+   (sin !important: el inline sigue ganando).
+   ──────────────────────────────────────────────────────────── */
+html[data-theme="light"] .card h2,
+html[data-theme="light"] .card h3,
+html[data-theme="light"] .modal-header h3,
+html[data-theme="light"] .offcanvas-title,
+html[data-theme="light"] .notify-form-header {
+  color: var(--venus-olive);
+}
+
+html[data-theme="light"] .scanner-option-icon.loyalty,
+html[data-theme="light"] .scanner-result-icon.loyalty,
+html[data-theme="light"] .gc-icon.pending,
+html[data-theme="light"] .notification-icon.cita,
+html[data-theme="light"] .today-card-icon.citas,
+html[data-theme="light"] .top-client-stamps .count,
+html[data-theme="light"] .wallet-card-value,
+html[data-theme="light"] .card-header-link,
+html[data-theme="light"] .notification-footer button:hover {
+  color: var(--venus-soft);
+}
+
+/* El componente de direcciones de Google llega tarde (script asíncrono)
+   o nunca (sin key / canal beta caído). Mientras no se defina, que el
+   hueco se vea como campo y no como vacío. */
+gmp-place-autocomplete:not(:defined) {
+  display: block;
+  min-height: 46px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg-card);
+}
+
+/* ────────────────────────────────────────────────────────────
+   AJUSTES · rediseño (ago-2026)
+   La vista era una sola tarjeta gigante con paneles teñidos de
+   azul-Google y verde-WhatsApp, inputs desparejos y el componente
+   de direcciones de Google en negro (sigue el color-scheme del
+   navegador, no el del sitio). Solo CSS: los ids/estructura que
+   usa el JS no se tocan.
+   ──────────────────────────────────────────────────────────── */
+
+/* La sección respira sobre el fondo de la página, sin sarcófago. */
+#tab-settings.card {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  padding: 4px 2px 40px !important;
+  max-width: 980px;
+}
+
+#tab-settings::before { display: none !important; }
+
+#tab-settings .header-actions h2 {
+  font-size: 27px;
+  letter-spacing: -0.015em;
+}
+
+#tab-settings .header-actions p.muted {
+  font-size: 13px;
+}
+
+/* Subnav como control segmentado limpio */
+#tab-settings .subnav {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  padding: 5px;
+  background: var(--bg-tertiary, rgba(239, 228, 214, 0.7));
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  margin: 18px 0 6px;
+}
+
+#tab-settings .subnav-btn {
+  min-height: 44px;
+  border-radius: 10px;
+  font-weight: 600;
+  justify-content: center;
+}
+
+/* Ritmo editorial: cada bloque abre con aire y una línea fina.
+   (Los divs traen el border-top inline; aquí solo se armoniza.) */
+#tab-settings .subpane > div {
+  margin-top: 8px;
+}
+
+#tab-settings h3 {
+  font-size: 19px;
+  letter-spacing: -0.01em;
+}
+
+#tab-settings h3 i {
+  font-size: 15px;
+  color: var(--venus-soft);
+  margin-right: 6px;
+}
+
+/* Formularios: todos los campos con la misma voz */
+#tab-settings label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-secondary);
+  margin: 0 0 6px;
+}
+
+#tab-settings input[type="text"],
+#tab-settings input[type="tel"],
+#tab-settings input[type="url"],
+#tab-settings input[type="number"],
+#tab-settings input[type="password"],
+#tab-settings select,
+#tab-settings textarea {
+  width: 100%;
+  min-height: 46px;
+  padding: 10px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--ink);
+  font-size: 14px;
+  box-sizing: border-box;
+  transition: border-color 120ms ease-out;
+}
+
+#tab-settings input:focus-visible,
+#tab-settings select:focus-visible,
+#tab-settings textarea:focus-visible {
+  outline: 2px solid var(--olive, #8c9668);
+  outline-offset: 1px;
+  border-color: transparent;
+}
+
+#tab-settings input[readonly] {
+  color: var(--text-muted);
+  background: var(--bg-tertiary, rgba(239, 228, 214, 0.5));
+}
+
+#tab-settings small.muted {
+  display: block;
+  margin-top: 5px;
+  font-size: 11.5px;
+}
+
+/* El componente de Google renderiza su propio input y de noche se
+   pintaba negro: se fuerza esquema claro y se recorta a nuestra caja. */
+#tab-settings gmp-place-autocomplete {
+  display: block;
+  color-scheme: light;
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  min-height: 46px;
+}
+
+/* Filas de interruptor (Pedir anticipo, exención, etc.) */
+#tab-settings form > div[style*="rgba(140,150,104,0.06"] {
+  border: 1px solid var(--line) !important;
+  border-radius: 10px !important;
+  background: var(--bg-card) !important;
+}
+
+#tab-settings input[type="checkbox"] {
+  accent-color: var(--olive, #8c9668);
+}
+
+/* Integraciones: fuera los teñidos azul/verde — superficie Venus,
+   marca solo en el icono. Los tres paneles comparten el inline
+   'border-radius:12px' que sirve de gancho. */
+#tab-settings [data-subpane="settings-integrations"] > div[style*="border-radius:12px"] {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 14px !important;
+  padding: 18px 20px !important;
+  margin: 14px 0 !important;
+}
+
+/* Chips de estado de integraciones: tipografía firme */
+#tab-settings [data-subpane="settings-integrations"] span[id$="-status-badge"] {
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+/* Avanzado: los botones de debug en retícula pareja */
+#tab-settings [data-subpane="settings-advanced"] div[style*="flex-wrap"] {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
+}
+
+#tab-settings [data-subpane="settings-advanced"] .btn {
+  width: 100%;
+  min-height: 44px;
+  justify-content: center;
+}
+
+/* Éxitos de guardado */
+#tab-settings .success-message {
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+
+/* Los stats del catálogo quedaron sobre el fondo al quitar la tarjeta
+   envolvente: venus-soft a 28px sobre crema era casi invisible. Tinta
+   olivo firme (y ámbar para stock bajo); el !important le gana a
+   posibles variantes por tema. En móvil admin-mobile (carga después)
+   los deja en 14px tinta. */
+.stats-bar .stat-item .stat-value {
+  color: var(--venus, #737b52) !important;
+}
+.stats-bar .stat-item .stat-value.stat-warn {
+  color: var(--warning, oklch(50% 0.100 80)) !important;
+}

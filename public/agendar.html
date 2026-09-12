@@ -2926,6 +2926,22 @@
         depositReceiptUrl, // URL Cloudinary del comprobante de anticipo
       };
 
+      // Capturar parámetros de atribución de marketing (ref, UTM)
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const refCode = urlParams.get('ref');
+        const utmSource = urlParams.get('utm_source');
+        const utmCampaign = urlParams.get('utm_campaign');
+        const utmMedium = urlParams.get('utm_medium');
+        if (refCode) requestData.refCode = refCode;
+        if (utmSource || utmCampaign || utmMedium) {
+          requestData.utm = {};
+          if (utmSource) requestData.utm.source = utmSource;
+          if (utmCampaign) requestData.utm.campaign = utmCampaign;
+          if (utmMedium) requestData.utm.medium = utmMedium;
+        }
+      } catch (e) { /* captura de UTMs no crítica */ }
+
       console.log('🚀 [BOOKING] Enviando solicitud:', requestData);
 
       try {
