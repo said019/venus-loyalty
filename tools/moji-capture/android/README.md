@@ -40,7 +40,9 @@ The same-origin advisor iframe must explicitly deny camera/microphone using its 
 The web page must not delegate camera permission to iframe content.
 
 WebView does not invoke shouldInterceptRequest for redirected subresource destinations.
-The wrapper blocks non-origin initial resources and top-level navigation/redirects, but server
+The wrapper permits initial HTTPS resources only from the Venus origin and `res.cloudinary.com`
+(no userinfo or nondefault port). Cloudinary is not a trusted document, camera or light origin;
+top-level navigation remains restricted to the fixed capture page. Server
 CSP and the absence of cross-origin redirects must also be verified before release. This build
 has not exercised a device WebView or hardware; no network deployment/install is performed.
 The timer cannot guarantee physical OFF if the kernel write blocks, Android kills the process,

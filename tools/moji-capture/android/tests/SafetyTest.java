@@ -15,6 +15,11 @@ public final class SafetyTest {
   check(Policy.off("venus-moji://off",page,true)); check(!Policy.off("venus-moji://off",page,false));
   check(!Policy.resource("file:///etc/passwd")); check(!Policy.resource("venus-moji://white?request=1"));
   check(Policy.resource("https://venuscosmetologia.com.mx/asesora.html"));
+  check(Policy.resource("https://res.cloudinary.com/venus/image/upload/photo.jpg"));
+  check(!Policy.document("https://res.cloudinary.com/captura.html"));
+  check(!Policy.origin("https://res.cloudinary.com/"));
+  check(Policy.white("venus-moji://white?request=1","https://res.cloudinary.com/captura.html",true,true,true)==0);
+  for(String s:new String[]{"http://res.cloudinary.com/photo.jpg","https://x@res.cloudinary.com/photo.jpg","https://res.cloudinary.com:444/photo.jpg","https://res.cloudinary.com.evil/photo.jpg","javascript:alert(1)","content://photos/1","data:text/html,hello"})check(!Policy.resource(s));
   final StringBuilder writes=new StringBuilder(); final Runnable[] deadline={null};
   WhitePulse pulse=new WhitePulse(v->writes.append(v),(ms,r)->{check(ms==2000);deadline[0]=r;});
   check(pulse.start()); check(!pulse.start()); check(writes.toString().equals("0"));
