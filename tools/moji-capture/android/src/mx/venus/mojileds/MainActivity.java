@@ -34,16 +34,16 @@ public final class MainActivity extends Activity {
     int id=Policy.white(url,current(),main,request.hasGesture(),foreground&&trusted);
     if(id>0){long token=epoch;boolean ok=pulse.start();if(token==epoch && foreground && trusted)reply(id,ok);return true;}
     if(Policy.off(url,current(),main)){cancel();return true;}
-    if(main){cancel();trusted=false;return !Policy.PAGE.equals(url);}
+    if(main){cancel();trusted=false;return !Policy.navigation(url);}
     return !Policy.resource(url);
    }
    @Override public boolean shouldOverrideUrlLoading(WebView view,String url){cancel();trusted=false;return true;}
    @Override public WebResourceResponse shouldInterceptRequest(WebView view,WebResourceRequest request){
     if(!Policy.resource(request.getUrl().toString()))return blocked();
-    if(request.isForMainFrame()&&!Policy.PAGE.equals(request.getUrl().toString()))return blocked();
+    if(request.isForMainFrame()&&!Policy.navigation(request.getUrl().toString()))return blocked();
     return null;
    }
-   @Override public void onPageStarted(WebView view,String url,Bitmap icon){cancel();trusted=false;if(!Policy.PAGE.equals(url))view.stopLoading();}
+   @Override public void onPageStarted(WebView view,String url,Bitmap icon){cancel();trusted=false;if(!Policy.navigation(url))view.stopLoading();}
    @Override public void onPageFinished(WebView view,String url){trusted=Policy.PAGE.equals(url)&&Policy.PAGE.equals(view.getUrl());}
    @Override public void onReceivedSslError(WebView view,SslErrorHandler handler,SslError error){handler.cancel();fail();}
    @Override public void onReceivedError(WebView view,WebResourceRequest request,WebResourceError error){if(request.isForMainFrame())fail();else cancel();}
@@ -79,5 +79,5 @@ public final class MainActivity extends Activity {
  @Override protected void onResume(){super.onResume();foreground=true;if(web!=null)web.onResume();}
  @Override protected void onPause(){foreground=false;cancel();if(web!=null)web.onPause();super.onPause();}
  @Override protected void onDestroy(){foreground=false;fail();timer.shutdown();if(web!=null){web.stopLoading();web.destroy();web=null;}super.onDestroy();}
- @Override public void onBackPressed(){cancel();finish();}
+ @Override public void onBackPressed(){cancel();if(Policy.navigation(current())&&!Policy.document(current())){trusted=false;web.loadUrl(Policy.PAGE);}else finish();}
 }

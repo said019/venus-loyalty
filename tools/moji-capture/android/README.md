@@ -35,14 +35,16 @@ gate. No filesystem access happens until a pulse is explicitly requested.
 ## Mandatory web-side protections / verification limits
 
 Android API27 PermissionRequest reports origin, not requesting frame identity. Native requires
-the exact origin, trusted capture document, foreground, only VIDEO_CAPTURE, and Android CAMERA.
-The same-origin advisor iframe must explicitly deny camera/microphone using its `allow` policy.
-The web page must not delegate camera permission to iframe content.
+the exact origin, fixed capture document (including its query), foreground, only VIDEO_CAPTURE,
+and Android CAMERA. Advisor uses a top-level transition, not a same-origin iframe. Native allows
+only the fixed capture URL and HTTPS Venus `/skin-advisor.html` with optional query. Advisor is
+never trusted for camera or light. Native Back from advisor returns to the fixed capture page;
+Back from capture exits. Web CSP must block child frames (`frame-src 'none'`).
 
 WebView does not invoke shouldInterceptRequest for redirected subresource destinations.
 The wrapper permits initial HTTPS resources only from the Venus origin and `res.cloudinary.com`
 (no userinfo or nondefault port). Cloudinary is not a trusted document, camera or light origin;
-top-level navigation remains restricted to the fixed capture page. Server
+top-level navigation remains restricted to capture and advisor as above. Server
 CSP and the absence of cross-origin redirects must also be verified before release. This build
 has not exercised a device WebView or hardware; no network deployment/install is performed.
 The timer cannot guarantee physical OFF if the kernel write blocks, Android kills the process,

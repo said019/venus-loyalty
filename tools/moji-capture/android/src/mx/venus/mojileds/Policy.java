@@ -6,7 +6,11 @@ public final class Policy {
   try { URI u=new URI(value); return "https".equals(u.getScheme()) && "venuscosmetologia.com.mx".equals(u.getHost()) && u.getRawUserInfo()==null && (u.getPort()==-1 || u.getPort()==443); } catch(Exception e){return false;}
  }
  public static boolean document(String value) {
-  try {return origin(value) && "/captura.html".equals(new URI(value).getRawPath());}catch(Exception e){return false;}
+  return PAGE.equals(value);
+ }
+ public static boolean navigation(String value) {
+  if(document(value))return true;
+  try {return origin(value)&&"/skin-advisor.html".equals(new URI(value).getRawPath());}catch(Exception e){return false;}
  }
  public static boolean resource(String value) {
   if(origin(value))return true;

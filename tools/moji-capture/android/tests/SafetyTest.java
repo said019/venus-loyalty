@@ -6,6 +6,11 @@ public final class SafetyTest {
  public static void main(String[] args) throws Exception {
   String page="https://venuscosmetologia.com.mx/captura.html?modo=analisis";
   check(Policy.document(page));
+  check(Policy.navigation(page));
+  check(Policy.navigation("https://venuscosmetologia.com.mx/skin-advisor.html?clientId=123"));
+  check(!Policy.document("https://venuscosmetologia.com.mx/skin-advisor.html?clientId=123"));
+  check(!Policy.document("https://venuscosmetologia.com.mx/captura.html?modo=other"));
+  for(String s:new String[]{"https://res.cloudinary.com/skin-advisor.html","https://venuscosmetologia.com.mx/other.html","https://x@venuscosmetologia.com.mx/skin-advisor.html","https://venuscosmetologia.com.mx:444/skin-advisor.html","https://venuscosmetologia.com.mx/%73kin-advisor.html"})check(!Policy.navigation(s));
   for(String s:new String[]{"http://venuscosmetologia.com.mx/captura.html","https://evil.test/captura.html","https://venuscosmetologia.com.mx.evil/captura.html","https://x@venuscosmetologia.com.mx/captura.html","https://venuscosmetologia.com.mx:444/captura.html","https://venuscosmetologia.com.mx/%63aptura.html"}) check(!Policy.document(s));
   check(Policy.white("venus-moji://white?request=23",page,true,true,true)==23);
   for(String s:new String[]{"venus-moji://white","venus-moji://white?request=0","venus-moji://white?request=-1","venus-moji://white?request=1&x=1","venus-moji://white?request=1000000000","venus-moji://white?request=1#x"}) check(Policy.white(s,page,true,true,true)==0);
