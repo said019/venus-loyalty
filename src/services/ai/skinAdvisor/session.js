@@ -74,7 +74,24 @@ export function createAdvisorSession({ provider, authorizeReview, simulation = f
     }
     context = null;
     current = { ...current, status: 'preparing', inputVersion: null, assessment: null, provenance: null, approval: null, failure: null };
-    const prepared = await prepareContext(raw);
+    let prepared;
+    try {
+      prepared = await prepareContext(raw);
+    } catch (error) {
+      if (ownRevision === revision) {
+        current = {
+          ...current,
+          status: 'failed',
+          inputVersion: null,
+          assessment: null,
+          provenance: null,
+          approval: null,
+          failure: { code: 'invalid_input' },
+        };
+        remember('failed', null);
+      }
+      throw error;
+    }
     if (ownRevision !== revision) return snapshot();
     context = prepared;
     current = { ...current, status: 'draft', inputVersion: prepared.inputFingerprint };
@@ -100,11 +117,22 @@ export function createAdvisorSession({ provider, authorizeReview, simulation = f
     const controller = new AbortController();
     const relayAbort = () => controller.abort();
     signal?.addEventListener('abort', relayAbort, { once: true });
+    let rejectAbort;
+    const aborted = new Promise((_, reject) => { rejectAbort = reject; });
+    aborted.catch(() => {});
+    const rejectOnAbort = () => rejectAbort(sessionError('aborted', 'The generation was cancelled.'));
+    controller.signal.addEventListener('abort', rejectOnAbort, { once: true });
     current = { ...current, status: 'generating', assessment: null, provenance: null, approval: null, failure: null };
 
     const promise = (async () => {
       try {
-        const assessment = await provider.generate(ownContext, { signal: controller.signal });
+        // Yield once so inflight is assigned even if a custom provider throws
+        // synchronously. This also lets an immediate cancellation skip the call.
+        await Promise.resolve();
+        if (controller.signal.aborted) throw sessionError('aborted', 'The generation was cancelled.');
+        const providerTask = Promise.resolve().then(() => provider.generate(ownContext, { signal: controller.signal }));
+        providerTask.catch(() => {});
+        const assessment = await Promise.race([providerTask, aborted]);
         validateAssessment(assessment, ownContext);
         if (ownRevision !== revision || context !== ownContext) return snapshot();
         const needsInformation = assessment.quality.status === 'retake' || assessment.missingInformation.length > 0;
@@ -138,6 +166,7 @@ export function createAdvisorSession({ provider, authorizeReview, simulation = f
         throw sessionError('generation_failed', 'The generation failed.');
       } finally {
         signal?.removeEventListener('abort', relayAbort);
+        controller.signal.removeEventListener('abort', rejectOnAbort);
         if (inflight?.revision === ownRevision) inflight = null;
       }
     })();

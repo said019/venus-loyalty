@@ -269,6 +269,7 @@ test('session deduplicates an in-flight generation and creates server provenance
   const first = session.generate();
   const second = session.generate();
   assert.equal(first, second);
+  await new Promise((done) => setImmediate(done));
   resolve();
   const result = await first;
   assert.equal(calls, 1);
@@ -435,6 +436,70 @@ test('session honors a pre-aborted signal, trusts provider simulation metadata, 
   await simulated.generate();
   assert.equal(simulated.snapshot().provenance.simulation, true);
   await errorCode(() => simulated.approve({ inputVersion: simulated.snapshot().inputVersion, actor: { id: 'r' } }), 'simulation_not_approvable');
+});
+
+test('session clears an in-flight attempt when provider.generate throws synchronously', async () => {
+  let calls = 0;
+  const session = createAdvisorSession({
+    provider: {
+      metadata: { provider: 'fixture', model: 'deterministic' },
+      generate(context) {
+        calls += 1;
+        if (calls === 1) throw Object.assign(new Error('synchronous failure'), { code: 'network' });
+        return Promise.resolve(makeAssessment(context));
+      },
+    },
+    authorizeReview: () => true,
+  });
+  await session.replaceInput(await makeInput());
+  await errorCode(() => session.generate(), 'network');
+  assert.equal(session.snapshot().status, 'failed');
+  const retry = await session.generate({ retry: true });
+  assert.equal(calls, 2);
+  assert.equal(retry.status, 'pending_review');
+});
+
+test('invalid replacement enters a safe failed state without retaining the active result', async () => {
+  const session = createAdvisorSession({
+    provider: {
+      metadata: { provider: 'fixture', model: 'deterministic' },
+      generate: async (context) => makeAssessment(context),
+    },
+    authorizeReview: () => true,
+  });
+  await session.replaceInput(await makeInput());
+  await session.generate();
+  await errorCode(() => makeInput({ patient: { age: Number.NaN } }).then(session.replaceInput), 'invalid_context');
+  const snapshot = session.snapshot();
+  assert.equal(snapshot.status, 'failed');
+  assert.equal(snapshot.inputVersion, null);
+  assert.equal(snapshot.assessment, null);
+  assert.equal(snapshot.provenance, null);
+  assert.equal(snapshot.approval, null);
+  assert.deepEqual(snapshot.failure, { code: 'invalid_input' });
+});
+
+test('aborting a generation prevents a custom provider that ignores abort from publishing later', async () => {
+  let finish;
+  const session = createAdvisorSession({
+    provider: {
+      metadata: { provider: 'fixture', model: 'deterministic' },
+      generate: (context) => new Promise((resolve) => { finish = () => resolve(makeAssessment(context)); }),
+    },
+    authorizeReview: () => true,
+  });
+  await session.replaceInput(await makeInput());
+  const controller = new AbortController();
+  const pending = session.generate({ signal: controller.signal });
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(typeof finish, 'function');
+  controller.abort();
+  await errorCode(() => pending, 'aborted');
+  assert.equal(session.snapshot().status, 'failed');
+  finish();
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(session.snapshot().status, 'failed');
+  assert.equal(session.snapshot().assessment, null);
 });
 
 test('a prepared context cannot be forged or mutated to bypass provider guards', async () => {
