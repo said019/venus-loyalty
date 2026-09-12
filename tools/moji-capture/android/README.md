@@ -30,7 +30,9 @@ failed writes lock out subsequent ON. Pause/destroy/navigation/errors cancel act
 No launch pulse or GPIO read, observer, UART, UV, other GPIO, root, or native library is included.
 GPIO implementation preserves the verified 0.6/0.7 `O_WRONLY | O_CLOEXEC` open/write/close
 behavior, with only ASCII 0=ON and 1=OFF. It retains the model/original-app version compatibility
-gate. No filesystem access happens until a pulse is explicitly requested.
+gate. Manual/lifecycle/navigation cancellation always attempts an OFF write, even if local state
+says inactive (including after process restart). Failed OFF locks out ON permanently but manual
+OFF continues retrying. Launch never sends ON; page navigation may send safety OFF.
 
 ## Mandatory web-side protections / verification limits
 

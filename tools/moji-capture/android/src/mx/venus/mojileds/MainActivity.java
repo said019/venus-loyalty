@@ -68,7 +68,7 @@ public final class MainActivity extends Activity {
   return foreground&&trusted&&Policy.document(current())&&Policy.origin(request.getOrigin().toString())&&resources.length==1&&PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(resources[0]);
  }
  private void invalidatePermission(){if(pending!=null){pending.deny();pending=null;}}
- private void cancel(){epoch++;invalidatePermission();if(pulse!=null)pulse.off();}
+ private void cancel(){epoch++;invalidatePermission();if(pulse!=null)pulse.forceOff();}
  private void fail(){trusted=false;cancel();}
  private void reply(int id,boolean ok){web.evaluateJavascript("if(typeof window.venusMojiLightResult==='function')window.venusMojiLightResult({ok:"+ok+",command:'white',request:"+id+"})",null);}
  @Override public void onRequestPermissionsResult(int code,String[] permissions,int[] grants){

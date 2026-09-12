@@ -33,6 +33,15 @@ public final class SafetyTest {
   deadline[0].run(); check(writes.toString().equals("0101"));
   WhitePulse failed=new WhitePulse(v->{throw new IOException("test");},(ms,r)->{});
   check(!failed.start()); check(!failed.start());
+  final StringBuilder forcedWrites=new StringBuilder();
+  WhitePulse inactive=new WhitePulse(v->forcedWrites.append(v),(ms,r)->{});
+  inactive.forceOff(); check(forcedWrites.toString().equals("1"));
+  final int[] attempts={0};
+  WhitePulse retry=new WhitePulse(v->{if(v=='1'&&++attempts[0]==1)throw new IOException("OFF failed");},(ms,r)->{});
+  check(retry.start());retry.off();retry.forceOff();check(attempts[0]==2);check(!retry.start());
+  final java.util.List<Runnable> timers=new java.util.ArrayList<>();final StringBuilder ordered=new StringBuilder();
+  WhitePulse stale=new WhitePulse(v->ordered.append(v),(ms,r)->timers.add(r));
+  check(stale.start());stale.forceOff();check(stale.start());timers.get(0).run();check(ordered.toString().equals("010"));timers.get(1).run();check(ordered.toString().equals("0101"));
   System.out.println("PASS "+count+" safety checks");
  }
 }

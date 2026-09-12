@@ -16,6 +16,10 @@ public final class WhitePulse {
  private synchronized void expire(long token){if(token==generation)off();}
  public synchronized void off(){
   if(!active)return;
+  forceOff();
+ }
+ /** Manual/lifecycle OFF must retry the physical write even when local state says inactive. */
+ public synchronized void forceOff(){
   try {port.write('1');}catch(IOException e){failed=true;}
   active=false;generation++;
  }
