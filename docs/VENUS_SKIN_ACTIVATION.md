@@ -7,6 +7,8 @@
 - Una prueba con imagen sintética detectó que faltaban instrucciones explícitas para las zonas y los requisitos de protocolos. El prompt v2 lo corrige sin relajar el validador. La prueba posterior pasó, solicitó repetir la imagen y no propuso procedimientos.
 - Se aplicó únicamente la migración aditiva de Skin Advisor, junto con su registro de migración, en una transacción. No se ejecutó el conjunto de migraciones pendientes.
 - Publicación preparada desde el commit `dfc23ac`, que incluye la base productiva `f250657`. No se incluyeron archivos locales sin seguimiento.
+- Railway confirmó `SUCCESS` en el despliegue `b907312e-979b-4b9f-85d5-6a533897c40b`. Comprobaciones públicas: salud, pantalla, JS y reporte 200; captura 302; API privada sin sesión 401 con `private, no-store`. Configuración habilitada y modelo fijado en `gpt-4.1-2025-04-14`.
+- El primer intento `999398c2-0d45-459e-9e9f-b2287f85a36a` falló durante la construcción porque el archivo de publicación estaba incompleto; se reintentó solo tras terminar y verificar la extracción. No sustituyó al servicio en ejecución.
 - Sigue pendiente un piloto autenticado con fotografías expresamente autorizadas y la comprobación en el Moji real. Las pruebas sintéticas no acreditan calidad clínica.
 
 Las secciones siguientes describen la configuración y el procedimiento original; consultar este registro para distinguir los pasos ya ejecutados.
