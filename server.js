@@ -111,6 +111,11 @@ import coffeePosRouter from './lib/api/coffee-pos.js';
 
 // 🧖 Venus Skin - Análisis de piel (Yiyuan Analyzer)
 import skinAnalysisRouter from './src/routes/skinAnalysis.js';
+import { createSkinAdvisorRouter } from './src/routes/skinAdvisor.js';
+import { createSkinAdvisorWorkflow } from './src/services/ai/skinAdvisor/workflow.js';
+import { createOpenAIProvider } from './src/services/ai/skinAdvisor/openaiProvider.js';
+import { createSkinPhotoLoader } from './src/services/ai/skinAdvisor/photoLoader.js';
+import { skinAdvisorConfig } from './src/services/ai/skinAdvisor/config.js';
 import integrationsRouter from "./src/routes/integrations.js";
 
 
@@ -622,6 +627,19 @@ app.set("trust proxy", true);
 
 // ========== MIDDLEWARES GLOBALES ==========
 app.use(cors({ origin: true, credentials: true }));
+// Private Skin IA owns its smaller JSON parser and exact-origin write guard.
+const skinConfig = skinAdvisorConfig(process.env);
+const skinWorkflow = createSkinAdvisorWorkflow({
+  prisma,
+  config: skinConfig,
+  provider: createOpenAIProvider({ enabled: skinConfig.enabled && skinConfig.configured, apiKey: skinConfig.apiKey, model: skinConfig.model }),
+  loadPhoto: createSkinPhotoLoader({ cloudName: process.env.CLOUDINARY_CLOUD_NAME }),
+});
+app.use('/api/skin-advisor', cookieParser(), createSkinAdvisorRouter({
+  workflow: skinWorkflow,
+  authenticate: adminAuth,
+  expectedOrigin: process.env.SKIN_ADVISOR_ORIGIN || '',
+}));
 // ✅ 1. BODY PARSERS PRIMERO (antes de cualquier middleware que use req.body)
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

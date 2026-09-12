@@ -44,8 +44,12 @@ test('gallery uses DOM text instead of HTML interpolation and no provider calls'
     assert.match(source, /referrerPolicy = 'no-referrer'/);
 });
 test('report integration places images before narrative and loads component first', () => {
-    const html = readFileSync(new URL('../public/skin-analysis.html', import.meta.url), 'utf8');
-    assert.ok(html.indexOf('id="d-gallery"') < html.indexOf('id="d-ai-block"'));
-    assert.ok(html.indexOf('src="/skin-gallery.js"') < html.indexOf('src="/skin-analysis.js"'));
-    assert.equal((html.match(/id="d-gallery"/g) || []).length, 1);
+    for (const page of ['skin-analysis.html', 'skin-report.html']) {
+        const html = readFileSync(new URL('../public/' + page, import.meta.url), 'utf8');
+        assert.ok(html.indexOf('id="d-gallery"') < html.indexOf('id="d-ai-block"'));
+        const scripts = [...html.matchAll(/<script[^>]+src="([^"]+)"/g)].map(match => match[1].split('?')[0]);
+        assert.ok(scripts.includes('/skin-gallery.js') && scripts.includes('/skin-analysis.js'));
+        assert.ok(scripts.indexOf('/skin-gallery.js') < scripts.indexOf('/skin-analysis.js'));
+        assert.equal((html.match(/id="d-gallery"/g) || []).length, 1);
+    }
 });

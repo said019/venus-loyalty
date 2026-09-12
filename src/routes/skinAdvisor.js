@@ -8,11 +8,12 @@ export function createSkinAdvisorRouter({ workflow, authenticate, expectedOrigin
   router.use(authenticate);
   router.use((req, res, next) => {
     if (!req.admin?.uid) return res.status(401).json({ success: false, error: 'unauthenticated' });
-    if (req.method !== 'GET' && req.method !== 'HEAD') {
+    const writes = req.method !== 'GET' && req.method !== 'HEAD';
+    if (writes || req.get('origin')) {
       let validOrigin = false;
       try { validOrigin = typeof expectedOrigin === 'string' && new URL(expectedOrigin).origin === expectedOrigin && req.get('origin') === expectedOrigin; } catch { /* fail closed */ }
       if (!validOrigin) return res.status(403).json({ success: false, error: 'invalid_origin' });
-      if (!req.is('application/json')) return res.status(415).json({ success: false, error: 'json_required' });
+      if (writes && !req.is('application/json')) return res.status(415).json({ success: false, error: 'json_required' });
     }
     next();
   });

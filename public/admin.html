@@ -3895,6 +3895,7 @@
             <i class="fas fa-arrow-left"></i> <span class="exp-back-label">Clientas</span>
           </button>
           <div class="exp-view-actions">
+            <a id="exp-action-skin" class="btn small ghost hidden" href="/skin-advisor.html">Venus Skin IA</a>
             <button type="button" id="exp-action-ficha" class="btn small primary" onclick="expSendFicha()">
               <i class="fab fa-whatsapp"></i> <span>Enviar ficha</span>
             </button>
@@ -4590,6 +4591,8 @@
       }
 
       currentExpedienteCardId = cardId;
+      const skinAction = document.getElementById('exp-action-skin');
+      if (skinAction) { skinAction.classList.add('hidden'); skinAction.href = '/skin-advisor.html'; }
 
       // Guardar scroll de la lista para restaurarlo al volver.
       expedienteScrollRestoration = window.scrollY;
@@ -4693,6 +4696,8 @@
         const result = await response.json();
         const record = result.data || result; // Manejar ambos formatos
         currentExpedienteRecordId = record.id;
+        const skinLink = document.getElementById('exp-action-skin');
+        if (skinLink) { skinLink.href = '/skin-advisor.html?recordId=' + encodeURIComponent(record.id) + '&cardId=' + encodeURIComponent(cardId); skinLink.classList.remove('hidden'); }
         
         // Los campos del viejo formulario "Datos" (exp-age, exp-skin-type, …)
         // ya no existen: la sección Resumen ahora muestra estos datos de solo

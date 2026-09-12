@@ -15,6 +15,13 @@ test('router protects every endpoint and enforces exact origin, JSON, and truste
   for (const path of ['/config', '/records/r', '/assessments/a']) assert.equal((await fetch(base + path)).status, 401);
   for (const path of ['/records/r/assessments', '/assessments/a/generate', '/assessments/a/approve']) assert.equal((await fetch(base + path, { method: 'POST' })).status, 401);
   const post = headers => fetch(base + '/assessments/a/approve', { method: 'POST', headers: { 'x-test-user': 'staff', ...headers }, body: JSON.stringify({ actorId: 'owner', version: 2 }) });
+  for (const path of ['/config', '/records/r', '/assessments/a']) {
+    for (const method of ['GET', 'HEAD']) {
+      assert.equal((await fetch(base + path, { method, headers: { 'x-test-user': 'staff', origin: 'https://sibling.venus.example' } })).status, 403);
+      assert.equal((await fetch(base + path, { method, headers: { 'x-test-user': 'staff', origin: 'https://venus.example' } })).status, 200);
+      assert.equal((await fetch(base + path, { method, headers: { 'x-test-user': 'staff' } })).status, 200);
+    }
+  }
   assert.equal((await post({ 'content-type': 'application/json' })).status, 403);
   assert.equal((await post({ origin: 'https://evil.example', 'content-type': 'application/json' })).status, 403);
   assert.equal((await post({ origin: 'https://venus.example', 'content-type': 'text/plain' })).status, 415);

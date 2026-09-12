@@ -447,6 +447,7 @@ model ClientRecord {
   intake        IntakeForm?
   consents      ConsentDoc[]
   diagnoses     FacialDiagnosis[]
+  skinAssessments SkinAdvisorAssessment[]
   laserSessions LaserSessionLog[]
   documents     ClientDocument[]
 
@@ -607,6 +608,30 @@ model FacialDiagnosis {
   updatedAt DateTime @updatedAt
 
   @@map("facial_diagnoses")
+}
+
+// Own Venus drafts and reviewed outputs, separate from imported Moji reports.
+model SkinAdvisorAssessment {
+  id            String @id @default(cuid())
+  recordId      String
+  record        ClientRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  version       Int @default(1)
+  status        String @default("draft")
+  input         Json
+  assessment    Json?
+  provenance    Json?
+  approval      Json?
+  failureCode   String?
+  attemptToken  String?
+  leaseUntil    DateTime?
+  createdById   String
+  generatedById String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([recordId, createdAt])
+  @@index([status, leaseUntil])
+  @@map("skin_advisor_assessments")
 }
 
 // Ficha de seguimiento fotodepilación láser (una fila por sesión)
