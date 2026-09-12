@@ -26,7 +26,7 @@ public final class MainActivity extends Activity {
   WebSettings s=web.getSettings();s.setJavaScriptEnabled(true);s.setDomStorageEnabled(true);
   s.setAllowFileAccess(false);s.setAllowContentAccess(false);s.setAllowFileAccessFromFileURLs(false);s.setAllowUniversalAccessFromFileURLs(false);
   s.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);s.setSupportMultipleWindows(false);s.setJavaScriptCanOpenWindowsAutomatically(false);
-  s.setMediaPlaybackRequiresUserGesture(true);s.setUserAgentString(s.getUserAgentString()+" VenusMoji/0.8.0");
+  s.setMediaPlaybackRequiresUserGesture(false);s.setUserAgentString(s.getUserAgentString()+" VenusMoji/0.8.0");
   CookieManager.getInstance().setAcceptThirdPartyCookies(web,false);
   web.setWebViewClient(new WebViewClient(){
    @Override public boolean shouldOverrideUrlLoading(WebView view,WebResourceRequest request){
@@ -46,8 +46,8 @@ public final class MainActivity extends Activity {
    @Override public void onPageStarted(WebView view,String url,Bitmap icon){cancel();trusted=false;if(!Policy.PAGE.equals(url))view.stopLoading();}
    @Override public void onPageFinished(WebView view,String url){trusted=Policy.PAGE.equals(url)&&Policy.PAGE.equals(view.getUrl());}
    @Override public void onReceivedSslError(WebView view,SslErrorHandler handler,SslError error){handler.cancel();fail();}
-   @Override public void onReceivedError(WebView view,WebResourceRequest request,WebResourceError error){fail();}
-   @Override public void onReceivedHttpError(WebView view,WebResourceRequest request,WebResourceResponse response){fail();}
+   @Override public void onReceivedError(WebView view,WebResourceRequest request,WebResourceError error){if(request.isForMainFrame())fail();else cancel();}
+   @Override public void onReceivedHttpError(WebView view,WebResourceRequest request,WebResourceResponse response){if(request.isForMainFrame())fail();else cancel();}
    @Override public boolean onRenderProcessGone(WebView view,RenderProcessGoneDetail detail){fail();return false;}
   });
   web.setWebChromeClient(new WebChromeClient(){

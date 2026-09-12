@@ -7,6 +7,8 @@ const gpio=readFileSync(new URL('src/mx/venus/mojileds/GpioWhitePort.java',root)
 for(const text of ['request.isForMainFrame()', 'request.hasGesture()', 'onPause()', 'onDestroy()', 'onReceivedSslError', 'onReceivedError','onPermissionRequestCanceled','setAllowFileAccess(false)','setAllowContentAccess(false)','MIXED_CONTENT_NEVER_ALLOW','RESOURCE_VIDEO_CAPTURE','newSingleThreadScheduledExecutor','VenusMoji/0.8.0']) assert(main.includes(text),text);
 assert(!main.includes('addJavascriptInterface'));
 assert(!main.includes('RESOURCE_AUDIO_CAPTURE'));
+assert(main.includes('if(request.isForMainFrame())fail();else cancel();'),'Subresource errors cancel pulse without revoking the document');
+assert(main.includes('s.setMediaPlaybackRequiresUserGesture(false)'),'Camera preview playback does not depend on a gesture surviving login fetch');
 assert(gpio.includes('OsConstants.O_WRONLY | OsConstants.O_CLOEXEC'));
 assert(!/Os\.read|FileInputStream|RandomAccessFile|O_RDWR|O_CREAT/.test(gpio));
 assert.equal((gpio.match(/\/sys\/class\/fise_gpio\d/g)||[]).join(''),'/sys/class/fise_gpio0');
