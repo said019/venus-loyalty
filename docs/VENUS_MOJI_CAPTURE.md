@@ -24,5 +24,7 @@ El análisis abre otra pantalla dentro de la misma app, sin iframe. Esa pantalla
 - Revisión independiente de especificación y seguridad completadas, incluida separación de cámara y análisis.
 - APK publicado como `/downloads/venus-moji-captura-0.8.0.apk`; SHA256 `9d118ffa84a014c1f7aa209a532c95d65a15f60087f3aa4c39a694a930f4f556`.
 - El Moji no respondió en `192.168.100.13:5555`. No se instaló ni se activó remotamente la luz durante esta entrega. Sigue pendiente la validación física conjunta de la actualización 0.8.
+- Publicación Railway `ae4d4488-f861-4f6b-b0fa-f479502a98a5` confirmada SUCCESS. `/moji` redirige a captura; página, scripts y APK devuelven 200, el hash de descarga coincide, API privada devuelve 401 sin sesión. Advisor envía `camera=(), microphone=()`.
+- Pasaron 70 pruebas enfocadas. La prueba DOM adicional no terminó al cargar dependencias locales y se detuvo; la comprobación visual del navegador quedó bloqueada por una ventana de extensión. No se presenta ninguna de ellas como validación completada.
 
 Construcción reproducible y restricciones: `tools/moji-capture/android/README.md`. La identidad de firma se referencia localmente; no está en el repositorio.
