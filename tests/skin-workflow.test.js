@@ -33,9 +33,9 @@ async function fixture(overrides = {}) {
   };
   let calls = 0;
   const provider = { metadata: { provider: 'openai', model: 'fictional', simulation: false }, generate: async context => { calls++; return makeAssessment(context); }, ...overrides.provider };
-  const workflow = createSkinAdvisorWorkflow({ prisma: db, provider, loadPhoto: async () => ({ bytes: raw.photos[0].bytes, mediaType: raw.photos[0].mediaType }), config: { enabled: true, configured: true, approverId: 'owner', consentVersion: 'v1', consentText: 'Fictitious consent', activeServices: raw.activeServices, protocols: raw.protocols, ...overrides.config }, clock: () => date });
-  const body = { photos: photos.map(p => ({ id: p.id, zone: 'forehead', orientation: 'upright', lateralityResolved: true })), patient: { age: 30, objective: 'Rutina sencilla' }, answers: { goal: 'Rutina sencilla' }, consentAccepted: true, consentVersion: 'v1' };
-  return { workflow, db, rows, users, photos, current, body, calls: () => calls, advance: () => { date = new Date(date.getTime() + 91_000); } };
+  const workflow = createSkinAdvisorWorkflow({ prisma: db, provider, loadPhoto: overrides.loadPhoto || (async () => ({ bytes: raw.photos[0].bytes, mediaType: raw.photos[0].mediaType })), config: { enabled: true, configured: true, approverId: 'owner', consentVersion: 'v1', consentText: 'Fictitious consent', activeServices: raw.activeServices, protocols: raw.protocols, ...overrides.config }, clock: () => date });
+  const body = { photos: photos.map(p => ({ id: p.id, zone: 'forehead', orientation: 'upright', lateralityResolved: true, capturedAt: '2026-09-10T11:00:00.000Z', capturedAtConfirmed: true })), patient: { age: 30, objective: 'Rutina sencilla' }, answers: { goal: 'Rutina sencilla' }, consentAccepted: true, consentVersion: 'v1', whiteLightOriginalConfirmed: true };
+  return { workflow, db, rows, users, photos, current, body, calls: () => calls, advance: () => { date = new Date(date.getTime() + 121_000); } };
 }
 
 test('private draft, generate and exact owner approval retain immutable original output', async () => {
@@ -44,6 +44,9 @@ test('private draft, generate and exact owner approval retain immutable original
   assert.equal(draft.createdById, 'staff');
   assert.equal(JSON.stringify(draft.input).includes('secretChart'), false);
   assert.equal(JSON.stringify(draft.input).includes('base64'), false);
+  assert.equal(draft.input.whiteLightOriginalConfirmed, true);
+  assert.equal(draft.input.photos[0].capturedAt, f.body.photos[0].capturedAt);
+  assert.equal(draft.input.photos[0].sourceTakenAt, f.photos[0].takenAt.toISOString());
   const generated = await f.workflow.generate('staff', draft.id, { version: 1 });
   assert.equal(generated.status, 'pending_review');
   assert.equal(generated.version, 2);
@@ -119,4 +122,50 @@ test('reception can prepare but never approve and marketing cannot access', asyn
   const draft = await f.workflow.createDraft('reception', f.current.id, f.body);
   await assert.rejects(f.workflow.approve('reception', draft.id, { version: 1 }), { code: 'not_authorized' });
   await assert.rejects(f.workflow.getConfig('marketing'), { code: 'unauthenticated' });
+});
+
+test('white-light and original capture date attestations are mandatory', async () => {
+  const f = await fixture();
+  await assert.rejects(f.workflow.createDraft('staff', f.current.id, { ...f.body, whiteLightOriginalConfirmed: false }), { code: 'white_light_confirmation_required' });
+  for (const change of [{ capturedAtConfirmed: false }, { capturedAt: undefined }, { capturedAt: 'tomorrow' }, { capturedAt: '2026-02-31T00:00:00Z' }, { capturedAt: '2027-01-01T00:00:00Z' }]) {
+    await assert.rejects(f.workflow.createDraft('staff', f.current.id, { ...f.body, photos: [{ ...f.body.photos[0], ...change }] }), { code: 'capture_time_confirmation_required' });
+  }
+});
+
+test('active provider keeps its record claim until pipeline deadline, late result cannot publish', async () => {
+  let resolveProvider;
+  let providerSignal;
+  let started;
+  const ready = new Promise(resolve => { started = resolve; });
+  const f = await fixture({ config: { pipelineTimeoutMs: 40 }, provider: { generate: (context, { signal }) => {
+    providerSignal = signal;
+    started();
+    return new Promise(resolve => { resolveProvider = () => resolve(makeAssessment(context)); });
+  } } });
+  const draft = await f.workflow.createDraft('staff', f.current.id, f.body);
+  const pending = f.workflow.generate('staff', draft.id, { version: 1 });
+  const timedOut = assert.rejects(pending, { code: 'timeout', status: 504 });
+  await ready;
+  await assert.rejects(f.workflow.createDraft('owner', f.current.id, f.body), { code: 'already_generating', status: 409 });
+  assert.equal(f.rows[0].status, 'generating');
+  assert.equal(f.rows[0].leaseUntil.getTime() - f.current.updatedAt.getTime(), 120_000);
+  await timedOut;
+  assert.equal(providerSignal.aborted, true);
+  assert.equal(f.rows[0].status, 'failed');
+  resolveProvider();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(f.rows[0].assessment, undefined);
+  assert.equal((await f.workflow.createDraft('staff', f.current.id, f.body)).status, 'draft');
+});
+
+test('pipeline deadline includes photo loading and prevents provider calls after late load', async () => {
+  let release;
+  const raw = await makeInput();
+  const f = await fixture({ config: { pipelineTimeoutMs: 5 }, loadPhoto: () => new Promise(resolve => { release = () => resolve({ bytes: raw.photos[0].bytes, mediaType: raw.photos[0].mediaType }); }) });
+  const draft = await f.workflow.createDraft('staff', f.current.id, f.body);
+  await assert.rejects(f.workflow.generate('staff', draft.id, { version: 1 }), { code: 'timeout' });
+  release();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(f.calls(), 0);
+  assert.equal(f.rows[0].failureCode, 'timeout');
 });
