@@ -13,3 +13,9 @@ Se copia el prototipo independiente 473d824 y se adapta el prefijo de assets, av
 Pruebas de acceso: `node --test tests/personal-plan-access.test.js`. Cubren login genérico, acceso anónimo al catálogo bloqueado, JWT inválido, otro administrador, recepción, identidad inconsistente, propietario válido, revocación del rol, caída de base de datos, paths fuera del allowlist y reglas de intercambio copiadas.
 
 Despliegue por archivo completo del commit, no por el worktree que contiene archivos personales no versionados. Producción anterior: ae4d4488-f861-4f6b-b0fa-f479502a98a5. No se modifica la configuración de bases de datos o claves. Comprobar health, login y 401 del catálogo tras desplegar; validación con la sesión real del usuario se hace al entrar, sin fabricar una sesión de producción.
+
+## Entrega verificada
+
+Commit desplegado: 325fea3. Despliegue activo a9705d0a-1083-4f01-8c82-7b8772e99e72, SUCCESS. La primera carga reportó timeout local pero fue recibida por Railway; el segundo despliegue del mismo contenido quedó activo. Archivo de entrega: /tmp/venus-personal-plan.DbmT9B.
+
+10 pruebas de integración y permisos aprobadas. Prueba de navegador móvil del router montado bajo `/mi-plan/`: render y confirmación de cambio aprobados. Dominio real: health 200, entrada privada 302 al login, login HTML/JS 200, catálogo/app/session anónimos 401, ruta física privada 404, Moji conserva su redirección. La sesión real del propietario queda por probar por el usuario al iniciar sesión. No se hizo push a GitHub; se publicó directamente en Railway desde el commit local autorizado.
