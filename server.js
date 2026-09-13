@@ -73,6 +73,7 @@ import {
   integrationLogger,
 } from "./lib/auth.js";
 import jwt from "jsonwebtoken";
+import {createPersonalPlanRouter} from './src/routes/personal-plan.js';
 
 // 🍎 Apple Wallet Web Service
 import appleWebService from './lib/apple-webservice.js';
@@ -870,6 +871,12 @@ app.get('/cam', (_req, res) => res.redirect(302, `https://venuscosmetologia.com.
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+
+// Personal meal plan assets are kept outside public/ and checked on every request.
+app.use('/mi-plan', createPersonalPlanRouter({
+  resolveSession: req => req.cookies?.adm ? jwt.verify(req.cookies.adm, process.env.ADMIN_JWT_SECRET, { algorithms: ['HS256'] }) : null,
+  findAdmin: id => prisma.admin.findUnique({ where: { id }, select: { id: true, email: true, role: true } }),
+}));
 
 // Guard ANTES del static: si la cookie es de rol "recepcion", redirigir
 // a /recepcion.html cuando intenten cargar /admin.html. Sin esto el
