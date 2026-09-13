@@ -8,7 +8,13 @@ Los archivos del plan están en `private/mi-plan`, fuera del static público. Un
 
 Los cambios y registros siguen en localStorage, en un namespace distinto al prototipo local. No hay sincronización entre dispositivos, migración de datos ni nueva tabla. El navegador compartido puede conservar registros; Mi plan permite borrarlos. El acceso a la aplicación web es privado, no un almacenamiento cifrado.
 
-Se copia el prototipo independiente 473d824 y se adapta el prefijo de assets, aviso de privacidad y comprobación de sesión. El prototipo original permanece sin cambios. No hay IA remota ni procesamiento adicional de datos.
+Se copia el prototipo independiente 473d824 y se adapta el prefijo de assets, aviso de privacidad y comprobación de sesión. El prototipo original permanece sin cambios.
+
+## Ayuda opcional con Claude
+
+El usuario pidió conectar el Claude existente. En Cambiar se muestran las cantidades equivalentes sin IA y se añade una consulta opcional que requiere consentimiento explícito. El servidor verifica propietario, origen exacto, pregunta de máximo 400 caracteres y limita 20 consultas por hora/proceso y una simultánea. Se reutiliza ANTHROPIC_API_KEY y el mismo modelo Haiku del servicio existente, sin modificar el análisis de piel.
+
+Claude recibe únicamente el texto de preferencia y IDs/nombres de candidatos válidos. No recibe el PDF, identidad adjunta ni historial. Solo puede devolver hasta tres IDs; cualquier ID fuera del conjunto válido se rechaza. Las cantidades son siempre calculadas por el motor, no por Claude. Recetas bloqueadas no llaman al proveedor. Cada sugerencia necesita revisión y confirmación humana antes de cambiar el menú. Tiempo de proveedor 15 segundos, sin reintentos automáticos. Los errores no revelan respuestas, preguntas ni claves en logs. Las equivalencias manuales siguen funcionando si Claude falla.
 
 Pruebas de acceso: `node --test tests/personal-plan-access.test.js`. Cubren login genérico, acceso anónimo al catálogo bloqueado, JWT inválido, otro administrador, recepción, identidad inconsistente, propietario válido, revocación del rol, caída de base de datos, paths fuera del allowlist y reglas de intercambio copiadas.
 

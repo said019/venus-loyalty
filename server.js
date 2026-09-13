@@ -74,6 +74,7 @@ import {
 } from "./lib/auth.js";
 import jwt from "jsonwebtoken";
 import {createPersonalPlanRouter} from './src/routes/personal-plan.js';
+import {createPersonalPlanAI} from './src/services/ai/personalPlan.js';
 
 // 🍎 Apple Wallet Web Service
 import appleWebService from './lib/apple-webservice.js';
@@ -876,6 +877,7 @@ app.use(cookieParser());
 app.use('/mi-plan', createPersonalPlanRouter({
   resolveSession: req => req.cookies?.adm ? jwt.verify(req.cookies.adm, process.env.ADMIN_JWT_SECRET, { algorithms: ['HS256'] }) : null,
   findAdmin: id => prisma.admin.findUnique({ where: { id }, select: { id: true, email: true, role: true } }),
+  askAI: createPersonalPlanAI(),
 }));
 
 // Guard ANTES del static: si la cookie es de rol "recepcion", redirigir

@@ -1,0 +1,16 @@
+import test from 'node:test';import assert from 'node:assert/strict';import express from 'express';
+import {createPersonalPlanAI,checkedSuggestions,mealCandidates} from '../src/services/ai/personalPlan.js';
+import {createPersonalPlanRouter} from '../src/routes/personal-plan.js';
+test('Claude selects IDs, but engine owns quantities',async()=>{let sent;const ask=createPersonalPlanAI({generate:async req=>{sent=req;return {content:[{type:'text',text:'{"ids":["orange"]}'}]};}});const r=await ask({recipeId:'b0',index:0,question:'Quiero naranja'});assert.equal(r.suggestions[0].quantity,4);assert.equal(r.usedAI,true);assert.doesNotMatch(JSON.stringify(sent),/saidromero|Alondra|Osorno/);});
+test('invalid and invented model responses never become swaps',()=>{const {candidates}=mealCandidates('b0',0);for(const raw of ['not json','{"ids":["chicken"]}','{"ids":["invented"]}','{"ids":[1]}'])assert.throws(()=>checkedSuggestions(raw,candidates));});
+test('blocked recipe never calls Claude',async()=>{let called=false;const ask=createPersonalPlanAI({generate:async()=>{called=true;}});const r=await ask({recipeId:'c0',index:2,question:'Pechuga'});assert.equal(called,false);assert.equal(r.usedAI,false);assert.deepEqual(r.suggestions,[]);});
+test('unknown selections rejected',()=>{assert.throws(()=>mealCandidates('nope',0));assert.throws(()=>mealCandidates('b0',-1));});
+test('empty selection returns non-actionable guidance',async()=>{const ask=createPersonalPlanAI({generate:async()=>({content:[{type:'text',text:'{"ids":[]}'}]})});const r=await ask({recipeId:'b0',index:0,question:'Pollo'});assert.deepEqual(r.suggestions,[]);});
+test('endpoint needs owner, origin and explicit consent before provider',async()=>{
+ const app=express();app.use(express.json());let calls=0;
+ app.use('/mi-plan',createPersonalPlanRouter({resolveSession:req=>req.headers['x-test-owner']?{uid:'adm_1763511804130',email:'saidromero19@gmail.com',role:'admin'}:null,findAdmin:async()=>({id:'adm_1763511804130',email:'saidromero19@gmail.com',role:'admin'}),askAI:async()=>{calls++;return {suggestions:[]};}}));
+ const server=app.listen(0,'127.0.0.1');await new Promise(r=>server.on('listening',r));
+ const url='http://127.0.0.1:'+server.address().port+'/mi-plan/suggest';
+ const post=(headers={},body={recipeId:'b0',index:0,question:'Naranja',consent:true})=>fetch(url,{method:'POST',headers:{'Content-Type':'application/json',...headers},body:JSON.stringify(body)});
+ try{assert.equal((await post()).status,401);assert.equal((await post({'x-test-owner':'1',Origin:'https://evil.example'})).status,403);assert.equal((await post({'x-test-owner':'1',Origin:'https://venuscosmetologia.com.mx'},{recipeId:'b0',index:0,question:'Naranja',consent:false})).status,400);assert.equal(calls,0);assert.equal((await post({'x-test-owner':'1',Origin:'https://venuscosmetologia.com.mx'})).status,200);assert.equal(calls,1);}finally{await new Promise(r=>server.close(r));}
+});
