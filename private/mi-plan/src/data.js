@@ -28,7 +28,7 @@ export const foods=Object.fromEntries([
 ].map(f=>[f.id,f]));
 const I=(foodId,quantity,unit,optional=false,note='')=>({foodId,quantity,unit:unit||foods[foodId].unit,optional,note});
 const X=(n,optional=false,quantity=null,unit='')=>I('extra'+n,quantity,unit,optional);
-const R=(id,title,slot,page,ingredients,steps,warning='')=>({id,title,slot,page,ingredients,steps,warning,blockSwaps:!!warning});
+const R=(id,title,slot,page,ingredients,steps,warning='')=>({id,title,slot,page,ingredients,steps,warning,blockSwaps:false});
 export const recipes=[
  R('b0','Licuado de manzana',0,11,[I('apple',2),I('milk',1),X(0,true),X(1,true),X(2,true)],['Corta la manzana en trozos.','Licúa con la leche y, si deseas, vainilla, endulzante y canela.','Sirve.']),
  R('b1','Yogurt con moras',0,11,[I('berries',1.5),I('yogurt',1)],['Coloca el yogurt en un tazón.','Añade las moras y mezcla suavemente.']),

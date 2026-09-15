@@ -23,6 +23,6 @@ export function createPersonalPlanAI({apiKey=process.env.ANTHROPIC_API_KEY,model
   let response;if(generate)response=await generate(request);else{if(!client){const {default:Anthropic}=await import('@anthropic-ai/sdk');client=new Anthropic({apiKey,timeout:15000,maxRetries:0});}response=await client.messages.create(request);}
   const raw=response.content?.find(b=>b.type==='text')?.text;if(typeof raw!=='string')throw Error('INVALID_AI_RESPONSE');
   const suggestions=checkedSuggestions(raw,candidates);
-  return {suggestions,message:suggestions.length?'Estas opciones conservan las equivalencias. Revisa y confirma el cambio.':'Lo que pediste no tiene una alternativa verificada aquí. Puedes buscarlo manualmente y guardar una solicitud pendiente.',usedAI:true};
+  return {suggestions,message:suggestions.length?'Estas opciones conservan las equivalencias. Revisa y confirma el cambio.':'Lo que pediste no tiene una alternativa verificada aquí. Puedes buscarlo manualmente y guardar una nota para tu nutrióloga; no se envía ni se revisa automáticamente.',usedAI:true};
  };
 }
