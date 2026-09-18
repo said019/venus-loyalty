@@ -4,7 +4,9 @@ import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
-const hoy = new Date().toISOString().slice(0, 10);
+// Día natural de México, no UTC: con la fecha UTC la cita se siembra el día
+// siguiente y no aparece en el corte del día que el panel está mostrando.
+const hoy = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
 async function main() {
   if (!process.env.DATABASE_URL?.includes('localhost')) {
