@@ -96,6 +96,14 @@ import expedientesRouter from './src/routes/expedientes.js';
 import packagesRouter from './src/routes/packages.js';
 import creditsRouter, { aplicarCreditoEnCobro, registrarApartado } from './src/routes/credits.js';
 
+// Reglas para corregir un cobro ya registrado (ver tests/cajaEdits.test.js).
+import {
+  parcheDescobrarCita,
+  validarIngresoEditado,
+  motivoBloqueoBorrado,
+  MENSAJES_BLOQUEO,
+} from './src/services/cajaEdits.js';
+
 // NOTA (11 jul 2026, decisión del negocio): la ficha clínica NO se envía
 // automáticamente al agendar. Se envía SOLO manual desde el expediente
 // ("Reenviar ficha" → POST /api/expedientes/:cardId/send-ficha). El auto-envío
@@ -1622,7 +1630,10 @@ app.post('/api/appointments/:id/payment', adminAuth, async (req, res) => {
       }
     }
 
-    // Registrar en colección de ventas (para reportes) usando Prisma
+    // Registrar en colección de ventas (para reportes) usando Prisma.
+    // Se borra antes el renglón anterior de esta cita: volver a cobrarla para
+    // corregir un dedazo apilaba copias con montos distintos.
+    await prisma.sale.deleteMany({ where: { appointmentId: id } });
     await SalesRepo.create({
       appointmentId: id,
       clientName: appointment.clientName,
@@ -1701,6 +1712,169 @@ app.post('/api/manual-incomes', adminAuth, async (req, res) => {
     res.json({ success: true, id: sale.id });
   } catch (e) {
     console.error('[manual-incomes]', e);
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// ── Corregir cobros ya registrados ───────────────────────────────────────
+// Cobrar de más, con el método equivocado o a la clienta que no era pasa en el
+// mostrador. Hasta ahora la única salida era borrar la cita entera o entrarle a
+// la base a mano. Estas tres rutas lo resuelven desde la Caja, solo para admin
+// (recepción cobra, pero no deshace) y dejando bitácora de cada movimiento.
+
+// Quién hizo el movimiento, para la bitácora.
+const quienCorrige = (req) => (req.admin && (req.admin.email || req.admin.role)) || 'admin';
+
+async function anotarEnBitacora({ entity, entityId, action, oldValue, newValue, by }) {
+  try {
+    await prisma.cajaEdit.create({
+      data: { entity, entityId, action, oldValue, newValue, changedBy: by },
+    });
+  } catch (e) {
+    // La bitácora no puede tumbar la corrección, pero sí tiene que gritar.
+    console.error('[CAJA EDIT] no se pudo anotar en la bitácora:', e.message);
+  }
+}
+
+// POST /api/appointments/:id/uncharge — quitarle el cobro a una cita.
+// La cita NO se borra: se queda en la agenda y en Google Calendar, y regresa a
+// "Pendientes de cobro" para volver a cobrarla bien.
+app.post('/api/appointments/:id/uncharge', adminAuth, requireRole('admin'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const appointment = await AppointmentsRepo.findById(id);
+    if (!appointment) return res.status(404).json({ success: false, error: 'Cita no encontrada' });
+
+    let parche;
+    try {
+      parche = parcheDescobrarCita(appointment);
+    } catch (e) {
+      if (e.message === 'no_estaba_cobrada') {
+        return res.status(409).json({ success: false, error: 'Esa cita no tiene ningún cobro registrado' });
+      }
+      throw e;
+    }
+
+    const antes = {
+      status: appointment.status,
+      totalPaid: appointment.totalPaid,
+      paymentMethod: appointment.paymentMethod,
+      discount: appointment.discount,
+      creditApplied: appointment.creditApplied,
+      productsSold: appointment.productsSold,
+    };
+
+    // El saldo apartado que se gastó en esta cita vuelve a la clienta. Es
+    // obligatorio, no cortesía: `sourceRef` ("appt:<id>") es único, así que sin
+    // liberarlo la cita no se podría volver a cobrar con saldo.
+    let saldoDevuelto = 0;
+    const aplicacion = await prisma.clientCredit.findFirst({
+      where: { sourceRef: `appt:${id}`, type: 'aplicacion', revertedAt: null },
+    });
+    if (aplicacion) {
+      await prisma.clientCredit.update({
+        where: { id: aplicacion.id },
+        data: { revertedAt: new Date(), revertedBy: quienCorrige(req), sourceRef: null },
+      });
+      saldoDevuelto = Math.abs(Number(aplicacion.amount));
+      console.log(`[DESCOBRAR] Devueltos $${saldoDevuelto} de apartado a ${appointment.clientName}`);
+    }
+
+    // El renglón espejo en `sales` se va con el cobro: si no, queda un ingreso
+    // huérfano que nadie vuelve a mirar.
+    const borradas = await prisma.sale.deleteMany({ where: { appointmentId: id } });
+
+    await AppointmentsRepo.update(id, parche);
+
+    await anotarEnBitacora({
+      entity: 'appointment',
+      entityId: id,
+      action: 'delete',
+      oldValue: antes,
+      newValue: null,
+      by: quienCorrige(req),
+    });
+
+    console.log(`[DESCOBRAR] Cita ${id} (${appointment.clientName}) sin cobro · ${borradas.count} venta(s) borrada(s) · por ${quienCorrige(req)}`);
+    res.json({ success: true, data: { saldoDevuelto, ventasBorradas: borradas.count } });
+  } catch (e) {
+    console.error('[uncharge]', e);
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// PUT /api/sales/:id — corregir un ingreso sin cita (manual, paquete,
+// mostrador). Los cobros de cita NO se editan aquí: se corrigen volviendo a
+// cobrar la cita, que es donde vive su monto de verdad.
+app.put('/api/sales/:id', adminAuth, requireRole('admin'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const sale = await prisma.sale.findUnique({ where: { id } });
+    if (!sale) return res.status(404).json({ success: false, error: 'Ingreso no encontrado' });
+    if (sale.appointmentId) {
+      return res.status(409).json({
+        success: false,
+        error: 'Ese cobro es de una cita: corrígelo volviendo a cobrarla desde la Caja',
+      });
+    }
+
+    const v = validarIngresoEditado(req.body);
+    if (!v.ok) return res.status(400).json({ success: false, error: v.error });
+
+    const actualizada = await prisma.sale.update({ where: { id }, data: v.data });
+
+    await anotarEnBitacora({
+      entity: 'sale',
+      entityId: id,
+      action: 'edit',
+      oldValue: { serviceName: sale.serviceName, clientName: sale.clientName, total: sale.total, paymentMethod: sale.paymentMethod, date: sale.date },
+      newValue: { serviceName: v.data.serviceName, clientName: v.data.clientName, total: v.data.total, paymentMethod: v.data.paymentMethod, date: v.data.date || sale.date },
+      by: quienCorrige(req),
+    });
+
+    console.log(`[CAJA EDIT] Ingreso ${id}: $${sale.total} → $${v.data.total} · por ${quienCorrige(req)}`);
+    res.json({ success: true, data: { id: actualizada.id } });
+  } catch (e) {
+    console.error('[sales PUT]', e);
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// DELETE /api/sales/:id — borrar un ingreso sin cita.
+app.delete('/api/sales/:id', adminAuth, requireRole('admin'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const sale = await prisma.sale.findUnique({ where: { id } });
+    if (!sale) return res.status(404).json({ success: false, error: 'Ingreso no encontrado' });
+    if (sale.appointmentId) {
+      return res.status(409).json({
+        success: false,
+        error: 'Ese cobro es de una cita: quítaselo a la cita desde la Caja',
+      });
+    }
+
+    // Un depósito de apartado se deshace desde la ficha de la clienta, que
+    // devuelve saldo e ingreso a la vez. Borrar solo la venta dejaría el saldo
+    // vivo sin dinero que lo respalde.
+    const credito = await prisma.clientCredit.findFirst({ where: { saleId: id, revertedAt: null } });
+    const bloqueo = motivoBloqueoBorrado(sale, credito);
+    if (bloqueo) return res.status(409).json({ success: false, error: MENSAJES_BLOQUEO[bloqueo] });
+
+    await prisma.sale.delete({ where: { id } });
+
+    await anotarEnBitacora({
+      entity: 'sale',
+      entityId: id,
+      action: 'delete',
+      oldValue: { serviceName: sale.serviceName, clientName: sale.clientName, total: sale.total, paymentMethod: sale.paymentMethod, date: sale.date },
+      newValue: null,
+      by: quienCorrige(req),
+    });
+
+    console.log(`[CAJA EDIT] Borrado ingreso ${id} · $${sale.total} · ${sale.serviceName || 'mostrador'} · por ${quienCorrige(req)}`);
+    res.json({ success: true });
+  } catch (e) {
+    console.error('[sales DELETE]', e);
     res.status(500).json({ success: false, error: e.message });
   }
 });
@@ -2137,7 +2311,11 @@ app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
       // Estimación del precio servicio base
       const serviceAmount = Math.max(0, (totalP + discountP) - productsTotal);
 
-      // Registrar venta
+      // Registrar venta. Se borra primero el renglón anterior de esta misma
+      // cita: al corregir un cobro se apilaban copias en `sales`, cada una con
+      // un monto distinto. No inflaban el reporte (los cobros de cita suman por
+      // appointment.totalPaid), pero dejaban un historial que no se podía leer.
+      await prisma.sale.deleteMany({ where: { appointmentId: id } });
       try {
         await SalesRepo.create({
           appointmentId: id,
