@@ -53,6 +53,7 @@ import {
   updateLoyaltyObject,
 } from "./lib/google.js";
 import { buildApplePassBuffer } from "./lib/apple.js";
+import { applePassDisponible } from "./lib/apple-credenciales.js";
 
 // Handlers Google Wallet
 import {
@@ -4214,13 +4215,11 @@ app.get('/api/public/card/:id', async (req, res) => {
     let card = await prisma.card.findUnique({ where: { id: req.params.id } });
     if (!card) return res.status(404).json({ error: 'Tarjeta no encontrada' });
 
-    // Apple available if cert env vars set (configured in Render)
-    const applePassAvailable = !!(
-      process.env.APPLE_PASS_CERT &&
-      process.env.APPLE_PASS_KEY &&
-      process.env.APPLE_TEAM_ID &&
-      process.env.APPLE_PASS_TYPE_ID
-    );
+    // ¿Se puede firmar el pase? Misma regla que usa lib/apple.js al firmar.
+    // Antes exigía APPLE_PASS_CERT + APPLE_PASS_KEY (herencia de Render); en
+    // Railway no existen, los pases se firmaban con los archivos del repo, y la
+    // tarjeta decía "Apple Wallet (próximamente)" en algo que sí funcionaba.
+    const applePassAvailable = applePassDisponible();
 
     // ⭐ Auto-generar Google Wallet URLs si no existen
     if (process.env.GOOGLE_ISSUER_ID) {
