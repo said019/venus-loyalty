@@ -1236,3 +1236,21 @@ model MarketingTaskLog {
   @@unique([taskId, doneDate])
   @@map("marketing_task_logs")
 }
+
+// Bitácora de correcciones en la Caja. Todo cobro que se edita o se borra deja
+// rastro: qué era, cómo quedó, quién lo movió y cuándo. Espejo de CardEdit,
+// que ya hace lo mismo con los datos de la clienta.
+model CajaEdit {
+  id        String   @id @default(cuid())
+  entity    String // 'appointment' | 'sale' | 'coffee'
+  entityId  String
+  action    String // 'edit' | 'delete'
+  oldValue  Json? // el cobro tal como estaba
+  newValue  Json? // cómo quedó (null si se borró)
+  changedBy String? // admin uid o email
+  changedAt DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([changedAt])
+  @@map("caja_edits")
+}
