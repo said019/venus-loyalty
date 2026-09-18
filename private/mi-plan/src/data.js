@@ -1,6 +1,11 @@
 // Quantities transcribed from the supplied plan. Page numbers are physical PDF pages.
 import {isDateKey} from './engine.js';
 const F=(id,name,group,portion,unit,prep,page)=>({id,name,group,portion,unit,prep,page});
+// Alimentos que NO vienen del PDF del plan: referencia estándar (SMAE, Sistema
+// Mexicano de Alimentos Equivalentes, 4ª ed., Pérez Lizaur y cols., 2014). Se
+// marcan aparte para que la procedencia siempre sea visible: el plan manda,
+// esto solo amplía las opciones dentro del mismo grupo y subgrupo.
+const S=(id,name,group,portion,unit,prep)=>({id,name,group,portion,unit,prep,page:null,source:'SMAE'});
 export const foods=Object.fromEntries([
  F('apple','Manzana','fruit',1,'pieza','natural',21),F('orange','Naranja','fruit',2,'pieza','natural',21),
  F('berries','Moras','fruit',.75,'taza','natural',21),F('strawberry','Fresa rebanada','fruit',1,'taza','rebanada',21),
@@ -12,9 +17,9 @@ export const foods=Object.fromEntries([
  F('toast','Tostadas horneadas','cereal',2,'pieza','listas para consumir',22),F('rice','Arroz integral cocido','cereal',1/3,'taza','cocido',22),
  F('corn','Elote amarillo desgranado','cereal',.5,'taza','desgranado',22),F('nopal-tortilla','Tortilla de nopal','cereal',3,'pieza','lista para consumir',22),
  F('croissant','Croissant mediano','fat-cereal',.5,'pieza','listo para consumir',22),
- F('egg','Huevo entero','protein-moderate',1,'pieza','unknown',23),F('beef','Res sin grasa','protein-low',30,'gramos','unknown',23),
- F('shredded-beef','Carne de res deshebrada','protein-moderate',30,'gramos','deshebrada; pesaje no especificado',23),
- F('chicken','Pechuga de pollo','protein-very-low',30,'gramos','unknown',23),F('tuna','Atún en agua','protein-very-low',1/3,'lata','en agua',23),
+ F('egg','Huevo entero','protein-moderate',1,'pieza','pieza entera',23),F('beef','Res sin grasa','protein-low',30,'gramos','cocido',23),
+ F('shredded-beef','Carne de res deshebrada','protein-moderate',30,'gramos','cocida y deshebrada',23),
+ F('chicken','Pechuga de pollo','protein-very-low',30,'gramos','cocido',23),F('tuna','Atún en agua','protein-very-low',1/3,'lata','en agua',23),
  F('requeson','Requesón','protein-very-low',3,'cucharada','listo para consumir',23),
  F('tomato','Tomate / jitomate','vegetable',1,'pieza','natural',21),F('green-tomato','Tomate verde','vegetable',5,'pieza','natural',21),
  F('onion','Cebolla morada/blanca','vegetable',.5,'taza','natural',21),F('zucchini','Calabacita','vegetable',1,'pieza','natural',21),
@@ -54,4 +59,65 @@ export const recipes=[
 export const slots=[['Desayuno','08:00'],['Almuerzo','11:00'],['Comida','14:00'],['Colación','17:00'],['Cena','20:00']];
 // Dinner IDs follow the weekly menu on page 10, not the recipe option numbers.
 export function menuForDate(date){if(!isDateKey(date))return [];const d=new Date(date+'T12:00:00');const option=[2,0,1,2,3,0,1][d.getDay()];return ['b','a','c','s','d'].map(prefix=>recipes.find(r=>r.id===prefix+option));}
+
+// ── Ampliación con SMAE (mismos grupos y subgrupos que ya usa el plan) ──
+export const smaeFoods=Object.fromEntries([
+ // AOA muy bajo aporte de grasa — 40 kcal, 7 g proteína por equivalente
+ S('cottage','Queso cottage','protein-very-low',3,'cucharada','listo para consumir'),
+ S('turkey-breast','Pechuga de pavo','protein-very-low',2,'rebanada','lista para consumir'),
+ S('egg-white','Clara de huevo','protein-very-low',2,'pieza','cocida'),
+ S('ground-chicken','Molida de pollo','protein-very-low',30,'gramos','cocida'),
+ S('chicken-fajita','Fajitas de pollo sin piel','protein-very-low',30,'gramos','cocidas'),
+ S('chicken-thigh','Muslo de pollo sin piel','protein-very-low',.5,'pieza','cocido'),
+ S('robalo','Róbalo','protein-very-low',30,'gramos','cocido'),
+ S('surimi','Surimi','protein-very-low',2/3,'barra','listo para consumir'),
+ // AOA bajo aporte de grasa — 55 kcal, 7 g proteína
+ S('panela','Queso panela','protein-low',40,'gramos','listo para consumir'),
+ S('queso-fresco','Queso fresco','protein-low',40,'gramos','listo para consumir'),
+ S('goat-cheese','Queso de cabra','protein-low',30,'gramos','listo para consumir'),
+ S('salmon','Salmón','protein-low',30,'gramos','cocido'),
+ S('trout','Trucha cocida','protein-low',30,'gramos','cocida'),
+ S('ground-beef','Molida de res (sirloin)','protein-low',30,'gramos','cocida'),
+ S('pork-loin','Lomo de cerdo','protein-low',40,'gramos','cocido'),
+ // AOA moderado aporte de grasa
+ S('mozzarella','Queso mozzarella','protein-moderate',30,'gramos','listo para consumir'),
+ S('turkey-sausage','Salchicha de pavo','protein-moderate',1,'pieza','lista para consumir'),
+ S('bistec-bola','Bistec de bola','protein-moderate',25,'gramos','cocido'),
+ S('suadero','Suadero','protein-moderate',29,'gramos','cocido'),
+ // Leche descremada
+ S('skim','Leche descremada','skim-milk',1,'taza','lista para consumir'),
+ S('milk-powder','Leche en polvo descremada','skim-milk',2,'cucharada','en polvo'),
+ // Verduras
+ S('mushroom-cooked','Champiñón cocido rebanado','vegetable',1,'taza','cocido'),
+ S('broccoli','Brócoli cocido','vegetable',.5,'taza','cocido'),
+ S('cauliflower','Coliflor cocida','vegetable',1,'taza','cocida'),
+ S('lettuce','Lechuga','vegetable',3,'taza','cruda'),
+ S('cucumber','Pepino rebanado','vegetable',1.5,'taza','crudo'),
+ S('eggplant','Berenjena','vegetable',1,'taza','cocida'),
+ S('chayote','Chayote cocido','vegetable',.5,'pieza','cocido'),
+ S('jicama','Jícama picada','vegetable',.5,'taza','cruda'),
+ S('beet','Betabel rallado','vegetable',.25,'taza','crudo'),
+ S('chard','Acelga cruda','vegetable',2,'taza','cruda'),
+ S('radish','Rábano','vegetable',1,'taza','crudo'),
+ S('cabbage','Col cruda','vegetable',1.5,'taza','cruda'),
+ // Frutas
+ S('guava','Guayaba','fruit',3,'pieza','natural'),
+ S('mandarin','Mandarina chica','fruit',2,'pieza','natural'),
+ S('melon','Melón picado','fruit',1,'taza','picado'),
+ S('mango','Mango ataulfo','fruit',.5,'pieza','natural'),
+ S('peach','Durazno chico','fruit',2,'pieza','natural'),
+ S('plum','Ciruela','fruit',3,'pieza','natural'),
+ S('cranberry','Arándano','fruit',.5,'taza','natural'),
+ S('apricot','Chabacano','fruit',4,'pieza','natural'),
+ // Cereales sin grasa
+ S('oats','Avena en hojuelas','cereal',1/3,'taza','cruda'),
+ S('oats-cooked','Avena cocida','cereal',.75,'taza','cocida'),
+ S('potato','Papa hervida o al horno','cereal',.5,'pieza','cocida'),
+ S('sweet-potato','Camote','cereal',.25,'pieza','cocido'),
+ S('box-bread','Pan de caja integral','cereal',.5,'pieza','listo para consumir'),
+ S('popcorn','Palomitas naturales','cereal',3,'taza','listas para consumir'),
+].map(f=>[f.id,f]));
+// El catálogo que usa la app: primero el plan, luego la referencia.
+Object.assign(foods,smaeFoods);
+
 export const groupNames={'fruit':'Frutas','skim-milk':'Leche descremada','cereal':'Cereales sin grasa','fat-cereal':'Cereales con grasa','protein-very-low':'Proteína muy baja en grasa','protein-low':'Proteína baja en grasa','protein-moderate':'Proteína moderada en grasa','vegetable':'Verduras','fat':'Grasas sin proteína','unverified':'Sin equivalencia verificada'};
