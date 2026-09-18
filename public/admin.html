@@ -7039,6 +7039,11 @@
         const j = await r.json();
         $("#me-line").textContent = "Sesión: " + (j.email || j.uid || "admin");
 
+        // El rol decide qué botones se dibujan (p. ej. corregir un cobro ya
+        // registrado, que es solo de admin). Es cosmético: el permiso de verdad
+        // lo aplica el servidor con requireRole.
+        window.MI_ROL = j.role || null;
+
         // ⭐ CRÍTICO: Quitar la pantalla negra solo cuando la sesión sea válida
         document.body.classList.remove('checking-auth');
         document.body.classList.add('auth-verified');
@@ -18824,11 +18829,178 @@
               <button class="btn ghost small" onclick="verDetalleCaja('${t.id}','${t.tipo}')" title="Ver detalle" style="padding:6px 8px;">
                 <i class="fas fa-eye" aria-hidden="true"></i>
               </button>
+              ${accionesCorregirCobro(t)}
             </td>
           </tr>
         `;
       }).join('');
     }
+
+    // ── Corregir un cobro registrado por accidente ────────────────────────
+    // Cobrar de más, con el método equivocado o a la clienta que no era pasa en
+    // el mostrador. Antes la única salida era borrar la cita entera —se iba
+    // también de la agenda y del calendario— o entrarle a la base a mano.
+    // Solo admin: recepción cobra, pero no deshace (el servidor lo exige, esto
+    // nada más evita enseñar botones que van a rebotar).
+
+    function accionesCorregirCobro(t) {
+      if (window.MI_ROL !== 'admin') return '';
+
+      // El apartado no se toca desde aquí: ese dinero es saldo vivo de la
+      // clienta y se deshace desde su ficha, que devuelve saldo e ingreso a la
+      // vez. Borrar solo el ingreso dejaría el saldo sin respaldo.
+      if (t.tipo === 'apartado') {
+        return `
+          <button class="btn ghost small" onclick="avisarApartadoEnFicha()" title="Cómo corregir un apartado" style="padding:6px 8px;">
+            <i class="fas fa-circle-info" aria-hidden="true"></i>
+          </button>`;
+      }
+
+      // El café se cancela, no se edita: su ticket vive en su propia tabla.
+      const editar = t.tipo === 'cafe' ? '' : `
+        <button class="btn ghost small" onclick="editarCobroCaja('${t.id}','${t.tipo}')" title="Corregir este cobro" style="padding:6px 8px;">
+          <i class="fas fa-pen" aria-hidden="true"></i>
+        </button>`;
+
+      return `${editar}
+        <button class="btn ghost small" onclick="borrarCobroCaja('${t.id}','${t.tipo}')" title="Quitar este cobro" style="padding:6px 8px;color:#e74c3c;">
+          <i class="fas fa-trash-alt" aria-hidden="true"></i>
+        </button>`;
+    }
+
+    window.avisarApartadoEnFicha = function () {
+      showNotification('Ese ingreso es el apartado de una clienta: corrígelo en su ficha, en Saldo a favor → Deshacer', 'warning');
+    };
+
+    // Editar: una cita se corrige volviendo a cobrarla (el modal de siempre,
+    // ya precargado con lo que se cobró). Un ingreso sin cita tiene su propio
+    // formulario chico.
+    window.editarCobroCaja = function (id, tipo) {
+      if (tipo === 'cita') return abrirCobrarCita(id);
+      return abrirEditarIngreso(id);
+    };
+
+    // La frase que confirma la baja dice el monto y el día, para que nadie
+    // borre a ciegas el renglón equivocado.
+    function textoBorrarCobro(t) {
+      const monto = '$' + (t.monto || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const metodo = ({ tarjeta: 'de tarjeta', transferencia: 'de transferencia' })[t.metodo] || 'de efectivo';
+      const dia = cajaFechaActual || 'hoy';
+      if (t.tipo === 'cita') {
+        return `Vas a quitar ${monto} ${metodo} del ${dia}.\n\n`
+          + `La cita de ${t.cliente} NO se borra: regresa a "Pendientes de cobro" para volver a cobrarla bien, `
+          + `y si usó saldo apartado se le devuelve.`;
+      }
+      if (t.tipo === 'cafe') {
+        return `Vas a cancelar la venta de café ${t.cliente} por ${monto} ${metodo} del ${dia}.`;
+      }
+      return `Vas a borrar el ingreso "${t.concepto}" de ${monto} ${metodo} del ${dia}.\n\n`
+        + `Si era la venta de un paquete, las sesiones de la clienta siguen vivas: eso se cancela aparte, en Paquetes.`;
+    }
+
+    window.borrarCobroCaja = async function (id, tipo) {
+      const t = (cajaData || []).find(x => x.id === id && x.tipo === tipo);
+      if (!t) return showNotification('No encontré ese cobro en el corte del día', 'error');
+
+      const ok = await venusConfirm(textoBorrarCobro(t), {
+        title: tipo === 'cita' ? 'Quitar el cobro' : 'Borrar el ingreso',
+        danger: true,
+        okLabel: tipo === 'cita' ? 'Quitar el cobro' : 'Borrar',
+      });
+      if (!ok) return;
+
+      const ruta = {
+        cita: [`/api/appointments/${id}/uncharge`, 'POST'],
+        cafe: [`/api/pos/sales/${id}/cancel`, 'POST'],
+      }[tipo] || [`/api/sales/${id}`, 'DELETE'];
+
+      try {
+        const res = await apiFetch(ruta[0], { method: ruta[1] });
+        const json = await res.json();
+        if (!json.success) throw new Error(json.error || 'No se pudo');
+
+        const devuelto = json.data && json.data.saldoDevuelto;
+        showNotification(
+          devuelto
+            ? `Cobro quitado · se le devolvieron $${devuelto.toLocaleString('es-MX')} de apartado a ${t.cliente}`
+            : 'Cobro quitado del corte',
+          'success',
+        );
+        cargarCaja();
+      } catch (e) {
+        showNotification('No se pudo quitar: ' + e.message, 'error');
+      }
+    };
+
+    // Formulario chico para corregir un ingreso sin cita (manual, paquete o
+    // venta de mostrador). Reusa el diálogo nativo, como el resto del panel.
+    window.abrirEditarIngreso = function (id) {
+      const t = (cajaData || []).find(x => x.id === id);
+      if (!t) return showNotification('No encontré ese ingreso en el corte del día', 'error');
+
+      const viejo = document.getElementById('editarIngresoDialog');
+      if (viejo) viejo.remove();
+
+      const dlg = document.createElement('dialog');
+      dlg.id = 'editarIngresoDialog';
+      dlg.className = 'venus-dialog';
+      dlg.innerHTML = `
+        <form method="dialog" id="form-editar-ingreso" style="min-width:min(92vw,380px);display:grid;gap:12px;padding:20px;">
+          <h3 style="margin:0;font-family:'Playfair Display',serif;">Corregir ingreso</h3>
+          <label style="display:grid;gap:4px;font-size:12px;color:var(--muted);">Concepto
+            <input id="ei-concept" class="input" value="${escHtml(t.concepto || '')}" required>
+          </label>
+          <label style="display:grid;gap:4px;font-size:12px;color:var(--muted);">Cliente
+            <input id="ei-client" class="input" value="${escHtml(t.cliente || '')}">
+          </label>
+          <label style="display:grid;gap:4px;font-size:12px;color:var(--muted);">Monto
+            <input id="ei-amount" class="input" type="number" step="0.01" min="0.01" value="${t.monto || 0}" required>
+          </label>
+          <label style="display:grid;gap:4px;font-size:12px;color:var(--muted);">Método de pago
+            <select id="ei-method" class="input">
+              <option value="efectivo">Efectivo</option>
+              <option value="tarjeta">Tarjeta</option>
+              <option value="transferencia">Transferencia</option>
+            </select>
+          </label>
+          <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px;">
+            <button type="button" class="btn ghost" id="ei-cancel">Cancelar</button>
+            <button type="submit" class="btn primary">Guardar</button>
+          </div>
+        </form>`;
+      document.body.appendChild(dlg);
+
+      const metodoActual = ['efectivo', 'tarjeta', 'transferencia']
+        .find(m => (t.metodo || '').includes(m)) || 'efectivo';
+      dlg.querySelector('#ei-method').value = metodoActual;
+
+      dlg.querySelector('#ei-cancel').addEventListener('click', () => dlg.close());
+      dlg.querySelector('#form-editar-ingreso').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const payload = {
+          concept: dlg.querySelector('#ei-concept').value.trim(),
+          clientName: dlg.querySelector('#ei-client').value.trim(),
+          amount: parseFloat(dlg.querySelector('#ei-amount').value),
+          paymentMethod: dlg.querySelector('#ei-method').value,
+        };
+        try {
+          const res = await apiFetch(`/api/sales/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+          const json = await res.json();
+          if (!json.success) throw new Error(json.error || 'No se pudo guardar');
+          dlg.close();
+          showNotification('Ingreso corregido', 'success');
+          cargarCaja();
+        } catch (err) {
+          showNotification('No se pudo corregir: ' + err.message, 'error');
+        }
+      });
+
+      dlg.showModal();
+    };
 
     // normalizarMetodoPago / etiquetaMetodoPago / cuentaDeMetodoPago viven en
     // /js/admin/core/pagos.js (script clásico cargado antes que este bloque).
@@ -19331,6 +19503,50 @@
                 ${(barExtra.preorderItems || []).map(it => `<div>· ${it.qty || 1}× ${(it.name || '').replace(/</g, '&lt;')} — $${it.price || 0}</div>`).join('')}
                 ${(parseFloat(barExtra.discountAmount) || 0) > 0 ? `<div style="color:var(--muted);">Descuento bebida (10%): −$${barExtra.discountAmount} (ya aplicado abajo)</div>` : ''}
                 ${depLinea}
+              </div>`);
+          }
+        }
+
+        // ── Corregir un cobro que ya se hizo ──
+        // Si la cita ya estaba cobrada, el modal abre con lo que de verdad se
+        // cobró —no con el precio de lista—, para que corregir un dedazo sea
+        // cambiar el número que está mal y no volver a capturar todo.
+        if (cita.status === 'completed' && cita.totalPaid !== null && cita.totalPaid !== undefined) {
+          const pagado = parseFloat(cita.totalPaid) || 0;
+          const descuentoPrevio = parseFloat(cita.discount) || 0;
+
+          (cita.productsSold || []).forEach((p, i) => {
+            productosEnCobro.push({
+              id: p.productId || `previo:${i}`,
+              nombre: p.name || 'Producto',
+              precio: parseFloat(p.price) || 0,
+              cantidad: parseInt(p.quantity || p.qty) || 1
+            });
+          });
+          if (productosEnCobro.length) renderizarProductosCobro();
+
+          const totalProductos = productosEnCobro.reduce((s, p) => s + p.precio * p.cantidad, 0);
+          precioServicioGlobal = Math.max(0, (pagado + descuentoPrevio) - totalProductos);
+          const hid = document.getElementById('precio-servicio');
+          if (hid) hid.value = precioServicioGlobal;
+
+          if (descuentoPrevio > 0) {
+            cambiarTipoDescuento('fijo');
+            const descIn = document.getElementById('cobrar-descuento');
+            if (descIn) descIn.value = descuentoPrevio;
+          }
+          const metodoSel = document.getElementById('cobrar-metodo');
+          if (metodoSel && cita.paymentMethod) metodoSel.value = cita.paymentMethod;
+
+          actualizarTotalCobro();
+
+          const resumenEl = document.getElementById('resumen-productos');
+          if (resumenEl) {
+            resumenEl.insertAdjacentHTML('beforebegin', `
+              <div style="background:rgba(231,76,60,0.12);border:1px solid rgba(231,76,60,0.35);border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:13px;color:#ddd;">
+                <div style="font-weight:600;color:#ffb3aa;"><i class="fas fa-pen" aria-hidden="true"></i> Esta cita ya estaba cobrada en $${pagado.toLocaleString('es-MX')}</div>
+                <div style="color:var(--muted);">Al guardar, ese cobro se reemplaza por el nuevo. No se suma.</div>
+                ${(parseFloat(cita.creditApplied) || 0) > 0 ? `<div style="color:var(--muted);">Usó $${(parseFloat(cita.creditApplied) || 0).toLocaleString('es-MX')} de saldo apartado, y ese saldo ya se gastó. Si necesitas cambiarlo, mejor quita el cobro desde la Caja (🗑️) y vuelve a cobrar: así se le devuelve primero.</div>` : ''}
               </div>`);
           }
         }
