@@ -103,6 +103,8 @@ model Appointment {
   // guarda aquí para que Caja y Reportes expliquen por qué el facial salió
   // en $300 y no en $800, sin consultas extra.
   creditApplied Decimal? @db.Decimal(10, 2)
+  // Nota opcional del cobro ("pagó mitad y mitad"). Se ve en la Caja.
+  paymentNote   String?
 
   // Google Calendar
   googleCalendarEventId  String?
@@ -314,6 +316,7 @@ model Sale {
   totalAmount    Decimal? @db.Decimal(10, 2)
   paymentMethod  String
   date           DateTime
+  note           String? // nota opcional del cobro; se ve en la Caja
   createdAt      DateTime @default(now())
 
   @@map("sales")
@@ -1247,6 +1250,7 @@ model CajaEdit {
   action    String // 'edit' | 'delete'
   oldValue  Json? // el cobro tal como estaba
   newValue  Json? // cómo quedó (null si se borró)
+  motivo    String? // por qué se corrigió o quitó (obligatorio desde la UI y la API)
   changedBy String? // admin uid o email
   changedAt DateTime @default(now())
 

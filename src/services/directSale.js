@@ -15,6 +15,8 @@
  * Campos que SalesRepo.create() sabe traducir al modelo Prisma `Sale`.
  * Cualquier llave fuera de esta lista revienta el create con "Unknown argument".
  */
+import { limpiarNota } from './cajaEdits.js';
+
 export const DIRECT_SALE_FIELDS = [
   'appointmentId',
   'clientName',
@@ -29,6 +31,7 @@ export const DIRECT_SALE_FIELDS = [
   'productsSold',
   'paymentMethod',
   'date',
+  'note',
 ];
 
 const TIPOS_DESCUENTO = ['percent', 'fixed'];
@@ -93,6 +96,7 @@ export function buildDirectSaleRecord(body = {}, now = new Date()) {
     productsSold: items,
     paymentMethod: body.paymentMethod || 'efectivo',
     date: now,
+    note: limpiarNota(body.note), // opcional: "pagó mitad y mitad", etc.
   };
 }
 

@@ -94,3 +94,17 @@ test('el nombre de la clienta se conserva y hay respaldo si viene vacío', () =>
   assert.equal(buildDirectSaleRecord({ ...ventaDeBarra, clientName: '  Ana  ' }, FECHA).clientName, 'Ana');
   assert.equal(buildDirectSaleRecord({ ...ventaDeBarra, clientName: '' }, FECHA).clientName, 'Venta directa');
 });
+
+// La nota opcional de la Venta Rápida ("pagó mitad y mitad", "se lo llevó su
+// hermana"). Tiene que llegar a la base, y la llave tiene que estar en la lista
+// blanca: si no, Prisma revienta el create como con `type` en jul-2026.
+test('la nota de la venta se guarda limpia', () => {
+  const rec = buildDirectSaleRecord({ ...ventaDeBarra, note: '  Pagó mitad y mitad  ' }, FECHA);
+  assert.equal(rec.note, 'Pagó mitad y mitad');
+  assert.ok(DIRECT_SALE_FIELDS.includes('note'));
+});
+
+test('sin nota, la venta guarda null y no truena', () => {
+  assert.equal(buildDirectSaleRecord(ventaDeBarra, FECHA).note, null);
+  assert.equal(buildDirectSaleRecord({ ...ventaDeBarra, note: '   ' }, FECHA).note, null);
+});

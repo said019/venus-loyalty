@@ -366,6 +366,9 @@ export const AppointmentsRepo = {
         // Apartado aplicado. undefined (no null) cuando no viene: así un
         // cobro sin saldo no borra lo que otro camino ya hubiera escrito.
         creditApplied: paymentData.creditApplied != null ? paymentData.creditApplied : undefined,
+        // Nota del cobro: solo se toca si quien cobra la manda (null la borra).
+        // Otros caminos de cobro que no la conocen no pueden pisarla.
+        paymentNote: paymentData.note !== undefined ? paymentData.note : undefined,
         updatedAt: new Date(),
       }
     });
@@ -697,7 +700,8 @@ export const SalesRepo = {
       discount: data.discountAmount || data.discount || 0,
       total: data.totalAmount || data.total || 0,
       paymentMethod: data.paymentMethod,
-      date: data.date || new Date()
+      date: data.date || new Date(),
+      note: data.note || null
     };
 
     try {

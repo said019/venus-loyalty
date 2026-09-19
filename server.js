@@ -102,6 +102,9 @@ import creditsRouter, { aplicarCreditoEnCobro, registrarApartado } from './src/r
 // Reglas para corregir un cobro ya registrado (ver tests/cajaEdits.test.js).
 import {
   parcheDescobrarCita,
+  validarMotivo,
+  limpiarNota,
+  estaCobrada,
   validarIngresoEditado,
   motivoBloqueoBorrado,
   MENSAJES_BLOQUEO,
@@ -1603,6 +1606,11 @@ app.post('/api/appointments/:id/payment', adminAuth, async (req, res) => {
       return res.json({ success: false, error: 'Cita no encontrada' });
     }
 
+    // "Editar pago" de la Agenda llega por aquí sobre citas ya cobradas: es una
+    // corrección y sigue la misma regla que el modal de la Caja.
+    const correccion = revisarCorreccionDeCobro(appointment, req);
+    if (correccion.error) return res.status(correccion.status).json({ success: false, error: correccion.error });
+
     // Cambio de servicio a la hora de cobrar (la clienta pidió otra cosa al
     // llegar): se actualiza la cita y el objeto en memoria, para que el Sale
     // del reporte (más abajo usa appointment.serviceName) salga con el bueno.
@@ -1650,15 +1658,19 @@ app.post('/api/appointments/:id/payment', adminAuth, async (req, res) => {
         method: paymentMethod,
         discount: discountAmount ? parseFloat(discountAmount) : null,
         products: productsSold || [],
-        creditApplied: apartadoAplicado ? apartadoAplicado.monto : undefined
+        creditApplied: apartadoAplicado ? apartadoAplicado.monto : undefined,
+        note: limpiarNota(req.body.paymentNote), // nota opcional del cobro
       });
     } catch (e) {
       await deshacerApartado(apartadoAplicado);
       throw e;
     }
 
-    // Descontar stock de productos vendidos usando Prisma
-    if (productsSold && productsSold.length > 0) {
+    // Descontar stock de productos vendidos usando Prisma.
+    // Una CORRECCIÓN no toca inventario: el cobro original ya lo movió (o no:
+    // el modal de la Caja nunca descuenta stock), y no hay forma de saberlo.
+    // Antes, "Editar pago" volvía a descontar todo y el stock bajaba doble.
+    if (!correccion.esCorreccion && productsSold && productsSold.length > 0) {
       for (const product of productsSold) {
         // Items del menú del café (id "coffee:…") no existen en products:
         // sin este guard, updateStock tira P2025 y TODO el cobro fallaba.
@@ -1688,8 +1700,11 @@ app.post('/api/appointments/:id/payment', adminAuth, async (req, res) => {
       totalAmount: parseFloat(totalAmount) || 0,
       productsSold: productsSold || [],
       paymentMethod,
-      date: new Date()
+      date: new Date(),
+      note: limpiarNota(req.body.paymentNote),
     });
+
+    await anotarCorreccionDeCobro(correccion, id, req);
 
     const apartadoNuevo = await apartarAlCobrar(appointment, req);
     res.json(respuestaCobro(apartadoNuevo));
@@ -1766,15 +1781,55 @@ app.post('/api/manual-incomes', adminAuth, async (req, res) => {
 // Quién hizo el movimiento, para la bitácora.
 const quienCorrige = (req) => (req.admin && (req.admin.email || req.admin.role)) || 'admin';
 
-async function anotarEnBitacora({ entity, entityId, action, oldValue, newValue, by }) {
+async function anotarEnBitacora({ entity, entityId, action, oldValue, newValue, motivo, by }) {
   try {
     await prisma.cajaEdit.create({
-      data: { entity, entityId, action, oldValue, newValue, changedBy: by },
+      data: { entity, entityId, action, oldValue, newValue, motivo, changedBy: by },
     });
   } catch (e) {
     // La bitácora no puede tumbar la corrección, pero sí tiene que gritar.
     console.error('[CAJA EDIT] no se pudo anotar en la bitácora:', e.message);
   }
+}
+
+// Lo que se guarda en la bitácora de un cobro de cita.
+const resumenCobro = (a) => ({
+  clientName: a.clientName,
+  serviceName: a.serviceName,
+  totalPaid: a.totalPaid,
+  paymentMethod: a.paymentMethod,
+  discount: a.discount,
+  creditApplied: a.creditApplied,
+  paymentNote: a.paymentNote,
+});
+
+// Volver a cobrar una cita que ya estaba cobrada es CORREGIR el cobro: solo
+// admin, con motivo, y deja rastro. La usan los dos caminos de cobro (el modal
+// de la Caja por PATCH y el de la Agenda por /payment); si solo uno la
+// revisara, el otro sería la puerta para corregir sin dejar nota.
+function revisarCorreccionDeCobro(appointment, req) {
+  if (!estaCobrada(appointment)) return { esCorreccion: false };
+  if (!req.admin || req.admin.role !== 'admin') {
+    return { status: 403, error: 'Esta cita ya estaba cobrada: solo una admin puede corregir el cobro' };
+  }
+  const m = validarMotivo(req.body && req.body.motivo);
+  if (!m.ok) return { status: 400, error: m.error };
+  return { esCorreccion: true, motivo: m.motivo, antes: resumenCobro(appointment) };
+}
+
+async function anotarCorreccionDeCobro(correccion, id, req) {
+  if (!correccion.esCorreccion) return;
+  const despues = await AppointmentsRepo.findById(id);
+  await anotarEnBitacora({
+    entity: 'appointment',
+    entityId: id,
+    action: 'edit',
+    oldValue: correccion.antes,
+    newValue: despues ? resumenCobro(despues) : null,
+    motivo: correccion.motivo,
+    by: quienCorrige(req),
+  });
+  console.log(`[CAJA EDIT] Cobro de cita ${id} corregido: $${correccion.antes.totalPaid} → $${despues && despues.totalPaid} · "${correccion.motivo}" · por ${quienCorrige(req)}`);
 }
 
 // POST /api/appointments/:id/uncharge — quitarle el cobro a una cita.
@@ -1783,6 +1838,10 @@ async function anotarEnBitacora({ entity, entityId, action, oldValue, newValue, 
 app.post('/api/appointments/:id/uncharge', adminAuth, requireRole('admin'), async (req, res) => {
   try {
     const { id } = req.params;
+    // Quitar dinero ya contado siempre deja escrito por qué.
+    const m = validarMotivo(req.body && req.body.motivo);
+    if (!m.ok) return res.status(400).json({ success: false, error: m.error });
+
     const appointment = await AppointmentsRepo.findById(id);
     if (!appointment) return res.status(404).json({ success: false, error: 'Cita no encontrada' });
 
@@ -1797,12 +1856,15 @@ app.post('/api/appointments/:id/uncharge', adminAuth, requireRole('admin'), asyn
     }
 
     const antes = {
+      clientName: appointment.clientName,
+      serviceName: appointment.serviceName,
       status: appointment.status,
       totalPaid: appointment.totalPaid,
       paymentMethod: appointment.paymentMethod,
       discount: appointment.discount,
       creditApplied: appointment.creditApplied,
       productsSold: appointment.productsSold,
+      paymentNote: appointment.paymentNote,
     };
 
     // El saldo apartado que se gastó en esta cita vuelve a la clienta. Es
@@ -1833,6 +1895,7 @@ app.post('/api/appointments/:id/uncharge', adminAuth, requireRole('admin'), asyn
       action: 'delete',
       oldValue: antes,
       newValue: null,
+      motivo: m.motivo,
       by: quienCorrige(req),
     });
 
@@ -1870,6 +1933,7 @@ app.put('/api/sales/:id', adminAuth, requireRole('admin'), async (req, res) => {
       action: 'edit',
       oldValue: { serviceName: sale.serviceName, clientName: sale.clientName, total: sale.total, paymentMethod: sale.paymentMethod, date: sale.date },
       newValue: { serviceName: v.data.serviceName, clientName: v.data.clientName, total: v.data.total, paymentMethod: v.data.paymentMethod, date: v.data.date || sale.date },
+      motivo: v.motivo,
       by: quienCorrige(req),
     });
 
@@ -1894,6 +1958,9 @@ app.delete('/api/sales/:id', adminAuth, requireRole('admin'), async (req, res) =
       });
     }
 
+    const m = validarMotivo(req.body && req.body.motivo);
+    if (!m.ok) return res.status(400).json({ success: false, error: m.error });
+
     // Un depósito de apartado se deshace desde la ficha de la clienta, que
     // devuelve saldo e ingreso a la vez. Borrar solo la venta dejaría el saldo
     // vivo sin dinero que lo respalde.
@@ -1909,6 +1976,7 @@ app.delete('/api/sales/:id', adminAuth, requireRole('admin'), async (req, res) =
       action: 'delete',
       oldValue: { serviceName: sale.serviceName, clientName: sale.clientName, total: sale.total, paymentMethod: sale.paymentMethod, date: sale.date },
       newValue: null,
+      motivo: m.motivo,
       by: quienCorrige(req),
     });
 
@@ -1916,6 +1984,26 @@ app.delete('/api/sales/:id', adminAuth, requireRole('admin'), async (req, res) =
     res.json({ success: true });
   } catch (e) {
     console.error('[sales DELETE]', e);
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// GET /api/caja/edits?date=YYYY-MM-DD — las correcciones hechas ese día, con
+// su motivo. Sin esto la bitácora se guardaba pero nadie la podía leer.
+// Día natural de México (mismo criterio que /api/transactions).
+app.get('/api/caja/edits', adminAuth, requireRole('admin'), async (req, res) => {
+  try {
+    const { date } = req.query;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(date || ''))) {
+      return res.status(400).json({ success: false, error: 'Fecha requerida (YYYY-MM-DD)' });
+    }
+    const edits = await prisma.cajaEdit.findMany({
+      where: { changedAt: { gte: startOfDayMexico(date), lte: endOfDayMexico(date) } },
+      orderBy: { changedAt: 'desc' },
+    });
+    res.json({ success: true, data: edits });
+  } catch (e) {
+    console.error('[caja/edits]', e);
     res.status(500).json({ success: false, error: e.message });
   }
 });
@@ -2306,6 +2394,11 @@ app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
 
       const appointment = await AppointmentsRepo.findById(id);
       if (!appointment) return res.status(404).json({ success: false, error: 'Cita no encontrada' });
+
+      // ¿Corrige un cobro que ya existía? Se revisa ANTES de mover nada.
+      const correccion = revisarCorreccionDeCobro(appointment, req);
+      if (correccion.error) return res.status(correccion.status).json({ success: false, error: correccion.error });
+
       tocarUltimaVisita(appointment.clientPhone);
 
       // Cambio de servicio al cobrar (misma regla que POST /payment): la cita
@@ -2338,7 +2431,8 @@ app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
           method: paymentMethod,
           discount: discount ? parseFloat(discount) : null,
           products: productsSold || [], // productsSold tiene quantity, name, etc.
-          creditApplied: apartadoAplicado ? apartadoAplicado.monto : undefined
+          creditApplied: apartadoAplicado ? apartadoAplicado.monto : undefined,
+          note: limpiarNota(req.body.paymentNote), // nota opcional del cobro
         });
       } catch (e) {
         await deshacerApartado(apartadoAplicado);
@@ -2371,12 +2465,15 @@ app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
           totalAmount: totalP,
           productsSold: productsSold || [],
           paymentMethod,
-          date: new Date()
+          date: new Date(),
+          note: limpiarNota(req.body.paymentNote),
         });
       } catch (saleErr) {
         console.error('[PATCH] Error creando registro de venta:', saleErr);
         // No fallamos el request si falla el registro de venta auxiliar
       }
+
+      await anotarCorreccionDeCobro(correccion, id, req);
 
       // Apartado dejado hoy para la próxima cita (ver apartarAlCobrar).
       const apartadoNuevo = await apartarAlCobrar(appointment, req);

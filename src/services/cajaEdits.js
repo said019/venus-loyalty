@@ -5,7 +5,37 @@
 // Vive aparte de server.js a propósito: son las decisiones que tocan dinero ya
 // contado, y así se pueden probar sin base de datos (ver tests/cajaEdits.test.js).
 
-export const METODOS_PAGO = ['efectivo', 'tarjeta', 'transferencia'];
+// El cobro de citas y la Venta Rápida guardan crédito/débito por separado;
+// corregir un ingreso no puede aplanarlos a "tarjeta".
+export const METODOS_PAGO = ['efectivo', 'tarjeta', 'tarjeta_credito', 'tarjeta_debito', 'transferencia'];
+
+const MOTIVO_MIN = 3;
+const MOTIVO_MAX = 500;
+
+// Corregir o quitar un cobro exige escribir por qué. Un motivo demasiado largo
+// se rechaza en vez de cortarse: quien lo escribió debe saber qué se guardó.
+export function validarMotivo(texto) {
+  const motivo = String(texto ?? '').trim();
+  if (motivo.length < MOTIVO_MIN) return { ok: false, error: 'Escribe por qué corriges este cobro' };
+  if (motivo.length > MOTIVO_MAX) return { ok: false, error: `El motivo pasa de ${MOTIVO_MAX} letras` };
+  return { ok: true, motivo };
+}
+
+// La nota del cobro normal es opcional y nunca puede tumbar un cobro: vacía se
+// guarda como null y larguísima se recorta.
+export function limpiarNota(texto) {
+  const nota = String(texto ?? '').trim();
+  return nota ? nota.slice(0, MOTIVO_MAX) : null;
+}
+
+// Una cita con cobro registrado (aunque sea de $0, cortesía). Volver a
+// cobrarla es una corrección: exige motivo y deja rastro en la bitácora.
+export function estaCobrada(appointment) {
+  return !!appointment
+    && appointment.status === 'completed'
+    && appointment.totalPaid !== null
+    && appointment.totalPaid !== undefined;
+}
 
 // Recepción cobra, pero no deshace. Es la misma regla que ya rige en el resto
 // del sistema: no puede cancelar citas pagadas ni aplicar descuentos.
@@ -22,11 +52,7 @@ export function estadoAlDescobrar(appointment) {
 // El parche que le deja la cita sin un peso encima. Todo a null, no a 0: la
 // Caja distingue "cobrada en $0" (cortesía) de "sin cobrar".
 export function parcheDescobrarCita(appointment) {
-  const cobrada = appointment
-    && appointment.status === 'completed'
-    && appointment.totalPaid !== null
-    && appointment.totalPaid !== undefined;
-  if (!cobrada) throw new Error('no_estaba_cobrada');
+  if (!estaCobrada(appointment)) throw new Error('no_estaba_cobrada');
 
   return {
     status: estadoAlDescobrar(appointment),
@@ -35,6 +61,7 @@ export function parcheDescobrarCita(appointment) {
     discount: null,
     productsSold: null,
     creditApplied: null,
+    paymentNote: null, // la nota era de ese cobro: se va con él
   };
 }
 
@@ -50,6 +77,10 @@ export function validarIngresoEditado(body) {
   if (!Number.isFinite(monto) || monto <= 0) return { ok: false, error: 'Monto inválido' };
 
   if (!METODOS_PAGO.includes(b.paymentMethod)) return { ok: false, error: 'Método de pago inválido' };
+
+  // El motivo va al final: los errores del ingreso en sí se reportan primero.
+  const m = validarMotivo(b.motivo);
+  if (!m.ok) return { ok: false, error: m.error };
 
   const data = {
     serviceName: concepto,
@@ -67,7 +98,8 @@ export function validarIngresoEditado(body) {
     data.date = new Date(`${b.date}T12:00:00-06:00`);
   }
 
-  return { ok: true, data };
+  // El motivo va aparte: es de la bitácora, no de la venta (Sale no tiene esa columna).
+  return { ok: true, data, motivo: m.motivo };
 }
 
 // El dinero que una clienta dejó apartado vive como movimiento en su ficha, y

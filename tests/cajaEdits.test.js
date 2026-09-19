@@ -12,6 +12,9 @@ import {
   parcheDescobrarCita,
   validarIngresoEditado,
   motivoBloqueoBorrado,
+  validarMotivo,
+  limpiarNota,
+  estaCobrada,
 } from '../src/services/cajaEdits.js';
 
 // ── Quién puede mover dinero ya registrado ───────────────────────────────
@@ -67,6 +70,7 @@ test('descobrar limpia TODOS los campos de dinero de la cita', () => {
   assert.equal(parche.discount, null);
   assert.equal(parche.productsSold, null);
   assert.equal(parche.creditApplied, null);
+  assert.equal(parche.paymentNote, null); // la nota era de ese cobro, se va con él
 });
 
 test('no se puede descobrar una cita que nunca se cobró', () => {
@@ -93,6 +97,7 @@ test('un ingreso editado válido se normaliza', () => {
     amount: '1500.50',
     paymentMethod: 'transferencia',
     date: '2026-09-15',
+    motivo: 'Se capturó el paquete equivocado',
   });
 
   assert.equal(r.ok, true);
@@ -123,7 +128,7 @@ test('un método de pago inventado se rechaza', () => {
 });
 
 test('sin fecha, el ingreso conserva la que ya tenía', () => {
-  const r = validarIngresoEditado({ concept: 'X', amount: 100, paymentMethod: 'efectivo' });
+  const r = validarIngresoEditado({ concept: 'X', amount: 100, paymentMethod: 'efectivo', motivo: 'Monto mal capturado' });
   assert.equal(r.ok, true);
   assert.equal(r.data.date, undefined);
 });
@@ -140,4 +145,93 @@ test('un ingreso que es el depósito de un apartado no se borra desde Caja', () 
 
 test('un ingreso normal sí se puede borrar', () => {
   assert.equal(motivoBloqueoBorrado({ id: 'venta1' }, null), null);
+});
+
+// ── Métodos de pago al corregir ──────────────────────────────────────────
+// La Venta Rápida y el cobro de citas guardan "tarjeta_credito" /
+// "tarjeta_debito". Corregir un ingreso no puede aplanarlos a "tarjeta".
+
+test('corregir un ingreso conserva "tarjeta de crédito"', () => {
+  const r = validarIngresoEditado({ concept: 'Serum', amount: 350, paymentMethod: 'tarjeta_credito', motivo: 'Monto mal capturado' });
+  assert.equal(r.ok, true);
+  assert.equal(r.data.paymentMethod, 'tarjeta_credito');
+});
+
+test('corregir un ingreso conserva "tarjeta de débito"', () => {
+  const r = validarIngresoEditado({ concept: 'Serum', amount: 350, paymentMethod: 'tarjeta_debito', motivo: 'Monto mal capturado' });
+  assert.equal(r.data.paymentMethod, 'tarjeta_debito');
+});
+
+// ── El motivo, obligatorio al corregir o quitar un cobro ─────────────────
+// Mover dinero ya contado siempre deja escrito el porqué.
+
+test('sin motivo no se corrige ni se quita nada', () => {
+  assert.equal(validarMotivo(undefined).ok, false);
+  assert.equal(validarMotivo('').ok, false);
+});
+
+test('un motivo de puros espacios no cuenta', () => {
+  assert.equal(validarMotivo('     ').ok, false);
+});
+
+test('un motivo de dos letras no explica nada', () => {
+  const r = validarMotivo('ok');
+  assert.equal(r.ok, false);
+  assert.match(r.error, /por qué/i);
+});
+
+test('un motivo real se acepta y se limpia', () => {
+  const r = validarMotivo('  Se le cobró a la clienta equivocada  ');
+  assert.equal(r.ok, true);
+  assert.equal(r.motivo, 'Se le cobró a la clienta equivocada');
+});
+
+test('un motivo larguísimo se rechaza en vez de cortarse a escondidas', () => {
+  assert.equal(validarMotivo('x'.repeat(501)).ok, false);
+  assert.equal(validarMotivo('x'.repeat(500)).ok, true);
+});
+
+test('corregir un ingreso sin motivo se rechaza', () => {
+  const r = validarIngresoEditado({ concept: 'Serum', amount: 350, paymentMethod: 'efectivo' });
+  assert.equal(r.ok, false);
+  assert.match(r.error, /por qué/i);
+});
+
+test('corregir un ingreso devuelve el motivo aparte, no mezclado con los datos de la venta', () => {
+  const r = validarIngresoEditado({ concept: 'Serum', amount: 350, paymentMethod: 'efectivo', motivo: 'Era $350, no $530' });
+  assert.equal(r.ok, true);
+  assert.equal(r.motivo, 'Era $350, no $530');
+  assert.equal(r.data.motivo, undefined); // Sale no tiene esa columna
+});
+
+// ── La nota opcional del cobro normal ────────────────────────────────────
+// Al cobrar la nota es opcional: nunca puede tumbar un cobro.
+
+test('sin nota, el cobro guarda null', () => {
+  assert.equal(limpiarNota(undefined), null);
+  assert.equal(limpiarNota(''), null);
+  assert.equal(limpiarNota('    '), null);
+});
+
+test('la nota se guarda limpia', () => {
+  assert.equal(limpiarNota('  Pagó mitad efectivo, mitad tarjeta '), 'Pagó mitad efectivo, mitad tarjeta');
+});
+
+test('una nota larguísima se recorta, no rechaza el cobro', () => {
+  assert.equal(limpiarNota('x'.repeat(900)).length, 500);
+});
+
+// ── ¿Es corrección o cobro nuevo? ────────────────────────────────────────
+// Decide si el cobro de una cita exige motivo y deja rastro en la bitácora.
+
+test('una cita cobrada es corrección', () => {
+  assert.equal(estaCobrada({ status: 'completed', totalPaid: 500 }), true);
+});
+
+test('una cita cobrada en $0 también es corrección', () => {
+  assert.equal(estaCobrada({ status: 'completed', totalPaid: 0 }), true);
+});
+
+test('una cita sin cobrar es cobro nuevo', () => {
+  assert.equal(estaCobrada({ status: 'confirmed', totalPaid: null }), false);
 });

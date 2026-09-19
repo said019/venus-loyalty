@@ -2458,6 +2458,15 @@
           </table>
         </div>
       </div>
+
+      <!-- Correcciones del día: cada cobro corregido o quitado, con su motivo.
+           Solo admin; se llena en cargarCorreccionesCaja(). -->
+      <div class="card" id="caja-correcciones-card" style="display:none;">
+        <h3 style="margin:0 0 12px;font-size:14px;color:var(--venus-soft);">
+          <i class="fas fa-clipboard-list" aria-hidden="true"></i> Correcciones del día
+        </h3>
+        <div id="caja-correcciones-list" style="display:grid;gap:8px;"></div>
+      </div>
     </section>
 
     <!-- TAB: Reportes -->
@@ -3388,6 +3397,19 @@
           </select>
         </div>
 
+        <!-- Nota del cobro (opcional): se ve en la Caja -->
+        <div class="form-row" style="margin-top:12px;margin-bottom:0;">
+          <label for="payment-note">Nota del cobro <span style="opacity:.7;">(opcional)</span></label>
+          <input id="payment-note" class="form-input" maxlength="500" placeholder="Ej. pagó mitad efectivo, mitad tarjeta">
+        </div>
+
+        <!-- Motivo: solo al "Editar pago" (corregir un cobro ya registrado) -->
+        <div class="form-row" id="payment-motivo-row" style="display:none;margin-top:12px;margin-bottom:0;">
+          <label for="payment-motivo">¿Por qué corriges este cobro? <span style="color:#ef4444;">*</span></label>
+          <input id="payment-motivo" class="form-input" maxlength="500" placeholder="Ej. se cobró con el método equivocado">
+          <div id="payment-motivo-error" style="display:none;margin-top:4px;color:#ef4444;font-size:12px;">Escribe por qué (al menos 3 letras).</div>
+        </div>
+
         <!-- Campos ocultos -->
         <input type="hidden" id="payment-appointment-id">
         <input type="hidden" id="payment-original-price">
@@ -3477,6 +3499,12 @@
             <option value="tarjeta_debito">Tarjeta de débito</option>
             <option value="transferencia">Transferencia</option>
           </select>
+        </div>
+
+        <!-- Nota (opcional): se ve en la Caja -->
+        <div class="ds-group">
+          <label class="ds-label" for="direct-sale-note">Nota <span style="opacity:.7;">(opcional)</span></label>
+          <input id="direct-sale-note" class="ds-input" maxlength="500" placeholder="Ej. se lo llevó su hermana">
         </div>
 
         <!-- Totales -->
@@ -11244,9 +11272,10 @@
                   <button onclick="viewPaymentDetails('${appt.id}')" title="Ver detalle de pago" style="background:none;border:none;color:#60a5fa;cursor:pointer;padding:2px 4px;font-size:0.85em;">
                     <i class="fas fa-eye" aria-hidden="true"></i>
                   </button>
+                  ${window.MI_ROL === 'admin' ? `
                   <button onclick="openPaymentModal('${appt.id}', '${appt.clientName.replace(/'/g, "\\'")}', '${appt.serviceName.replace(/'/g, "\\'")}', ${appt.totalPaid || 0}, true)" title="Editar pago" style="background:none;border:none;color:var(--muted);cursor:pointer;padding:0;font-size:0.8em;">
                     <i class="fas fa-pencil-alt" aria-hidden="true"></i>
-                  </button>
+                  </button>` : ''}
                 </div>
                 `}
                 <button onclick="sendWhatsAppAttendanceSurvey('${appt.id}')" class="btn-icon appt-action wa" title="Enviar encuesta de asistencia por WhatsApp">
@@ -14825,6 +14854,17 @@
       if (svcSel) svcSel.style.display = 'none';
 
       document.getElementById('payment-appointment-id').value = appointmentId;
+
+      // Nota y motivo en blanco cada vez; el motivo solo se pide al corregir.
+      const notaIn = document.getElementById('payment-note');
+      if (notaIn) notaIn.value = '';
+      const motivoRow = document.getElementById('payment-motivo-row');
+      const motivoIn = document.getElementById('payment-motivo');
+      if (motivoIn) motivoIn.value = '';
+      if (motivoRow) motivoRow.style.display = isEdit ? '' : 'none';
+      const motivoErr = document.getElementById('payment-motivo-error');
+      if (motivoErr) motivoErr.style.display = 'none';
+
       document.getElementById('payment-client-name').textContent = clientName || '-';
       document.getElementById('payment-service-name').textContent = serviceName || '-';
 
@@ -14857,6 +14897,8 @@
           if (json.success && json.data) {
             const appt = json.data;
             servicePrice = appt.serviceAmount || appt.price || 0;
+            // La nota del cobro original se conserva salvo que la cambien.
+            if (notaIn && appt.paymentNote) notaIn.value = appt.paymentNote;
 
             // Pre-seleccionar método de pago (chips + select)
             const method = appt.paymentMethod || 'efectivo';
@@ -15126,6 +15168,19 @@
           return;
         }
 
+        // "Editar pago" corrige un cobro ya registrado: el motivo es obligatorio.
+        const motivoRow = document.getElementById('payment-motivo-row');
+        const esCorreccion = !!(motivoRow && motivoRow.style.display !== 'none');
+        const motivo = ((document.getElementById('payment-motivo') || {}).value || '').trim();
+        if (esCorreccion && motivo.length < 3) {
+          const err = document.getElementById('payment-motivo-error');
+          if (err) err.style.display = 'block';
+          const mi = document.getElementById('payment-motivo');
+          if (mi) mi.focus();
+          return;
+        }
+        const notaCobro = ((document.getElementById('payment-note') || {}).value || '').trim();
+
         const servicePrice = paymentServicePrice || 0;
         const productsTotal = paymentProducts.reduce((sum, p) => sum + (p.price * p.qty), 0);
         const subtotal = servicePrice + productsTotal;
@@ -15172,7 +15227,9 @@
             discountValue: discountAmount > 0 ? discountValue : 0,
             discountAmount,
             totalAmount: grandTotal,
-            productsSold
+            productsSold,
+            paymentNote: notaCobro || null,
+            motivo: esCorreccion ? motivo : undefined,
           })
         });
 
@@ -15774,13 +15831,16 @@
             discountValue: discountAmount > 0 ? discountValue : 0,
             discountAmount,
             totalAmount: grandTotal,
-            productsSold
+            productsSold,
+            note: ((document.getElementById('direct-sale-note') || {}).value || '').trim() || null
           })
         });
 
         const json = await res.json();
 
         if (json.success) {
+          const notaIn = document.getElementById('direct-sale-note');
+          if (notaIn) notaIn.value = ''; // la siguiente venta arranca sin nota
           closeDirectSaleModal();
           if (typeof loadMonthStats === 'function') loadMonthStats();
           if (typeof loadProducts === 'function') loadProducts();
@@ -18599,6 +18659,7 @@
               concepto: (cita.serviceName || 'Servicio') + (apartadoCita > 0 ? ` · $${apartadoCita.toLocaleString('es-MX')} de apartado` : ''),
               monto: monto,
               metodo: metodo,
+              nota: cita.paymentNote || '',
               id: cita.id
             });
           }
@@ -18632,6 +18693,7 @@
                      concepto: servicio || (venta.productsSold || []).map(p => p.name).join(', ') || 'Venta Directa',
                      monto: monto,
                      metodo: metodo,
+                     nota: venta.note || '',
                      id: venta.id
                    });
                 }
@@ -18699,6 +18761,9 @@
 
         // Actualizar historial
         renderHistorialCaja(transacciones);
+
+        // Correcciones del día (solo admin; no bloquea el corte si falla)
+        cargarCorreccionesCaja(fecha);
 
       } catch (err) {
         console.error('[Caja] Error:', err);
@@ -18827,7 +18892,7 @@
             <td style="font-family:'Playfair Display',serif;font-weight:600;" data-label="Hora">${t.hora}</td>
             <td data-label="Tipo">${tipoBadge}</td>
             <td style="font-weight:500;" data-label="Cliente">${t.cliente}</td>
-            <td style="color:var(--muted);" data-label="Concepto">${t.concepto}</td>
+            <td style="color:var(--muted);" data-label="Concepto">${t.concepto}${t.nota ? `<div style="font-size:11px;font-style:italic;margin-top:2px;"><i class="fas fa-note-sticky" aria-hidden="true"></i> ${escHtml(t.nota)}</div>` : ''}</td>
             <td class="caja-amount-cell" data-label="Monto">$${(t.monto || 0).toLocaleString('es-MX', {minimumFractionDigits:2,maximumFractionDigits:2})}</td>
             <td style="text-align:center;" data-label="Método">${metodoBadge}</td>
             <td style="text-align:center;" data-label="Acciones">
@@ -18891,7 +18956,11 @@
     // borre a ciegas el renglón equivocado.
     function textoBorrarCobro(t) {
       const monto = '$' + (t.monto || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      const metodo = ({ tarjeta: 'de tarjeta', transferencia: 'de transferencia' })[t.metodo] || 'de efectivo';
+      // Por inclusión, no por igualdad: "tarjeta_credito" también es tarjeta
+      // (antes caía en "de efectivo").
+      const m = String(t.metodo || '');
+      const metodo = m.includes('tarjeta') || m === 'card' ? 'de tarjeta'
+        : m.includes('transfer') ? 'de transferencia' : 'de efectivo';
       // "del jueves 17 de septiembre", no "del 2026-09-17": esto lo lee quien
       // está en el mostrador, no una máquina.
       const dia = cajaFechaActual
@@ -18909,24 +18978,45 @@
         + `Si era la venta de un paquete, las sesiones de la clienta siguen vivas: eso se cancela aparte, en Paquetes.`;
     }
 
+    // Pide el motivo de una corrección y no suelta hasta que haya uno de
+    // verdad (o se cancele). Mismas reglas que el servidor: 3 a 500 letras.
+    async function pedirMotivo(mensaje, opts) {
+      let aviso = '';
+      for (;;) {
+        const texto = await venusPrompt(
+          mensaje + (aviso ? `\n\n⚠️ ${aviso}` : '') + '\n\n¿Por qué?',
+          { title: opts.title, okLabel: opts.okLabel, placeholder: 'Ej. se le cobró a la clienta equivocada' },
+        );
+        if (texto === null) return null; // canceló
+        const limpio = String(texto).trim();
+        if (limpio.length >= 3 && limpio.length <= 500) return limpio;
+        aviso = limpio.length > 500 ? 'El motivo pasa de 500 letras.' : 'Escribe por qué (al menos 3 letras).';
+      }
+    }
+
     window.borrarCobroCaja = async function (id, tipo) {
       const t = (cajaData || []).find(x => x.id === id && x.tipo === tipo);
       if (!t) return showNotification('No encontré ese cobro en el corte del día', 'error');
 
-      const ok = await venusConfirm(textoBorrarCobro(t), {
+      const motivo = await pedirMotivo(textoBorrarCobro(t), {
         title: tipo === 'cita' ? 'Quitar el cobro' : 'Borrar el ingreso',
-        danger: true,
         okLabel: tipo === 'cita' ? 'Quitar el cobro' : 'Borrar',
       });
-      if (!ok) return;
+      if (!motivo) return;
 
+      // El café ya exigía motivo con su propio nombre ("reason"); sin él, quitar
+      // una venta de café desde aquí siempre fallaba.
       const ruta = {
-        cita: [`/api/appointments/${id}/uncharge`, 'POST'],
-        cafe: [`/api/pos/sales/${id}/cancel`, 'POST'],
-      }[tipo] || [`/api/sales/${id}`, 'DELETE'];
+        cita: [`/api/appointments/${id}/uncharge`, 'POST', { motivo }],
+        cafe: [`/api/pos/sales/${id}/cancel`, 'POST', { reason: motivo }],
+      }[tipo] || [`/api/sales/${id}`, 'DELETE', { motivo }];
 
       try {
-        const res = await apiFetch(ruta[0], { method: ruta[1] });
+        const res = await apiFetch(ruta[0], {
+          method: ruta[1],
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(ruta[2]),
+        });
         const json = await res.json();
         if (!json.success) throw new Error(json.error || 'No se pudo');
 
@@ -18971,8 +19061,13 @@
             <select id="ei-method" class="input">
               <option value="efectivo">Efectivo</option>
               <option value="tarjeta">Tarjeta</option>
+              <option value="tarjeta_credito">Tarjeta de crédito</option>
+              <option value="tarjeta_debito">Tarjeta de débito</option>
               <option value="transferencia">Transferencia</option>
             </select>
+          </label>
+          <label style="display:grid;gap:4px;font-size:12px;color:var(--muted);">¿Por qué lo corriges? <span style="color:#e74c3c;">*</span>
+            <input id="ei-motivo" class="input" minlength="3" maxlength="500" required placeholder="Ej. el monto se capturó mal">
           </label>
           <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px;">
             <button type="button" class="btn ghost" id="ei-cancel">Cancelar</button>
@@ -18981,8 +19076,13 @@
         </form>`;
       document.body.appendChild(dlg);
 
-      const metodoActual = ['efectivo', 'tarjeta', 'transferencia']
-        .find(m => (t.metodo || '').includes(m)) || 'efectivo';
+      // Se conserva el método exacto: corregir una venta con tarjeta de crédito
+      // no puede aplanarla a "tarjeta".
+      const METODOS = ['efectivo', 'tarjeta', 'tarjeta_credito', 'tarjeta_debito', 'transferencia'];
+      const original = String(t.metodo || '');
+      const metodoActual = METODOS.includes(original) ? original
+        : original.includes('tarjeta') ? 'tarjeta'
+        : original.includes('transfer') ? 'transferencia' : 'efectivo';
       dlg.querySelector('#ei-method').value = metodoActual;
 
       dlg.querySelector('#ei-cancel').addEventListener('click', () => dlg.close());
@@ -18993,6 +19093,7 @@
           clientName: dlg.querySelector('#ei-client').value.trim(),
           amount: parseFloat(dlg.querySelector('#ei-amount').value),
           paymentMethod: dlg.querySelector('#ei-method').value,
+          motivo: dlg.querySelector('#ei-motivo').value.trim(),
         };
         try {
           const res = await apiFetch(`/api/sales/${id}`, {
@@ -19012,6 +19113,68 @@
 
       dlg.showModal();
     };
+
+    // ── Correcciones del día ──
+    // Lo que la bitácora (caja_edits) guardó ese día, con su motivo. Antes se
+    // guardaba y nadie lo podía leer.
+    function describirCorreccion(e) {
+      const antes = e.oldValue || {};
+      const despues = e.newValue || {};
+      const dinero = (v) => '$' + (parseFloat(v) || 0).toLocaleString('es-MX', { maximumFractionDigits: 2 });
+      const metodo = (m) => {
+        const s = String(m || '');
+        if (s === 'tarjeta_credito') return 'tarjeta de crédito';
+        if (s === 'tarjeta_debito') return 'tarjeta de débito';
+        return s.includes('tarjeta') ? 'tarjeta' : s.includes('transfer') ? 'transferencia' : 'efectivo';
+      };
+      const monto = (v) => (v && v.totalPaid !== undefined ? v.totalPaid : v.total);
+      const tipo = { appointment: 'Cita', sale: 'Ingreso', coffee: 'Café' }[e.entity] || 'Cobro';
+      const quien = [antes.clientName, antes.serviceName].filter(Boolean).join(' · ');
+
+      const cambio = e.action === 'delete'
+        ? `${dinero(monto(antes))} ${metodo(antes.paymentMethod)} → quitado`
+        : `${dinero(monto(antes))} ${metodo(antes.paymentMethod)} → ${dinero(monto(despues))} ${metodo(despues.paymentMethod)}`;
+
+      return {
+        titulo: `${tipo}${quien ? ' — ' + quien : ''}`,
+        accion: e.action === 'delete' ? 'Quitado' : 'Corregido',
+        cambio,
+        motivo: e.motivo || 'Sin motivo (anterior a que se pidiera)',
+      };
+    }
+
+    async function cargarCorreccionesCaja(fecha) {
+      const card = document.getElementById('caja-correcciones-card');
+      const lista = document.getElementById('caja-correcciones-list');
+      if (!card || !lista) return;
+      if (window.MI_ROL !== 'admin') { card.style.display = 'none'; return; }
+
+      try {
+        const res = await apiFetch(`/api/caja/edits?date=${fecha}`);
+        const json = await res.json();
+        const edits = json.success ? json.data || [] : [];
+        if (!edits.length) { card.style.display = 'none'; return; }
+
+        lista.innerHTML = edits.map(e => {
+          const d = describirCorreccion(e);
+          const hora = new Date(e.changedAt).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+          return `
+            <div style="border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:grid;gap:4px;font-size:12px;">
+              <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+                <strong style="color:var(--ink);">${escHtml(d.titulo)}</strong>
+                <span style="color:var(--muted);">${hora} · ${escHtml(e.changedBy || '—')}</span>
+              </div>
+              <div><span style="font-weight:600;color:${e.action === 'delete' ? '#e74c3c' : 'var(--venus)'};">${d.accion}:</span> ${escHtml(d.cambio)}</div>
+              <div style="font-style:italic;color:var(--muted);"><i class="fas fa-quote-left" aria-hidden="true"></i> ${escHtml(d.motivo)}</div>
+            </div>`;
+        }).join('');
+        card.style.display = '';
+      } catch (err) {
+        // Las correcciones no pueden tumbar el corte del día.
+        console.warn('[Caja] correcciones del día:', err);
+        card.style.display = 'none';
+      }
+    }
 
     // normalizarMetodoPago / etiquetaMetodoPago / cuentaDeMetodoPago viven en
     // /js/admin/core/pagos.js (script clásico cargado antes que este bloque).
@@ -19456,6 +19619,14 @@
                     <option value="transferencia">Transferencia</option>
                   </select>
                 </div>
+
+                <!-- Nota del cobro (opcional): se ve en la Caja -->
+                <div style="margin-bottom:8px;">
+                  <label for="cobrar-nota" style="display:block;font-size:12px;color:#888;margin-bottom:8px;">
+                    Nota del cobro <span style="opacity:.7;">(opcional)</span>
+                  </label>
+                  <input id="cobrar-nota" class="cobro-input" maxlength="500" placeholder="Ej. pagó mitad efectivo, mitad tarjeta">
+                </div>
               </div>
 
               <!-- Footer -->
@@ -19558,6 +19729,9 @@
           }
           const metodoSel = document.getElementById('cobrar-metodo');
           if (metodoSel && cita.paymentMethod) metodoSel.value = cita.paymentMethod;
+          // La nota que ya tenía ese cobro se conserva salvo que la cambien.
+          const notaIn = document.getElementById('cobrar-nota');
+          if (notaIn && cita.paymentNote) notaIn.value = cita.paymentNote;
 
           actualizarTotalCobro();
 
@@ -19567,6 +19741,9 @@
               <div style="background:rgba(231,76,60,0.12);border:1px solid rgba(231,76,60,0.35);border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:13px;color:#ddd;">
                 <div style="font-weight:600;color:#ffb3aa;"><i class="fas fa-pen" aria-hidden="true"></i> Esta cita ya estaba cobrada en $${pagado.toLocaleString('es-MX')}</div>
                 <div style="color:var(--muted);">Al guardar, ese cobro se reemplaza por el nuevo. No se suma.</div>
+                <label for="cobrar-motivo" style="display:block;margin-top:8px;font-weight:600;color:#ffb3aa;">¿Por qué lo corriges? <span aria-hidden="true">*</span></label>
+                <input id="cobrar-motivo" class="cobro-input" maxlength="500" style="margin-top:4px;" placeholder="Ej. se cobró con el método equivocado">
+                <div id="cobrar-motivo-error" style="display:none;margin-top:4px;color:#ff8a80;font-size:12px;">Escribe por qué (al menos 3 letras).</div>
                 ${(parseFloat(cita.creditApplied) || 0) > 0 ? `<div style="color:var(--muted);">Usó $${(parseFloat(cita.creditApplied) || 0).toLocaleString('es-MX')} de saldo apartado, y ese saldo ya se gastó. Si necesitas cambiarlo, mejor quita el cobro desde la Caja (🗑️) y vuelve a cobrar: así se le devuelve primero.</div>` : ''}
               </div>`);
           }
@@ -19920,6 +20097,19 @@
         return;
       }
 
+      // Si el modal abrió como corrección (la cita ya estaba cobrada), el motivo
+      // es obligatorio. Se revisa aquí para no mandar al servidor algo que va a
+      // rebotar, pero el servidor lo exige de todos modos.
+      const motivoIn = document.getElementById('cobrar-motivo');
+      const motivo = motivoIn ? motivoIn.value.trim() : '';
+      if (motivoIn && motivo.length < 3) {
+        const err = document.getElementById('cobrar-motivo-error');
+        if (err) err.style.display = 'block';
+        motivoIn.focus();
+        return;
+      }
+      const notaCobro = (document.getElementById('cobrar-nota') || {}).value || '';
+
       try {
         // Preparar productos para enviar
         const productosData = productosEnCobro.length > 0 ? productosEnCobro.map(p => ({
@@ -19949,7 +20139,9 @@
               paymentMethod: (document.getElementById('cobro-nuevo-apartado-metodo') || {}).value || metodo,
               appointmentId: (document.getElementById('cobro-nuevo-apartado-cita') || {}).value || undefined,
             } : undefined,
-            productsSold: productosData
+            productsSold: productosData,
+            paymentNote: notaCobro.trim() || null,
+            motivo: motivoIn ? motivo : undefined,
           })
         });
 
