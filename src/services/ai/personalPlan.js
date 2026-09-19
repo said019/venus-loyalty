@@ -7,12 +7,14 @@ export function mealCandidates(recipeId,index){
  if(!recipe||!Number.isInteger(index)||!recipe.ingredients[index])throw Error('INVALID_SELECTION');
  if(recipe.blockSwaps)return {blocked:recipe.warning,candidates:[]};
  const original=recipe.ingredients[index];
+ // Un ingrediente retenido (p. ej. la deshebrada de c1) no se ofrece a Claude: su subgrupo está en duda.
+ if(original.hold)return {blocked:original.hold,candidates:[],original:foods[original.foodId]};
  return {original:foods[original.foodId],candidates:Object.values(foods).filter(f=>f.id!==original.foodId).map(f=>({food:f,swap:proposeSwap(original,f.id,foods)})).filter(x=>x.swap.status==='valid')};
 }
 export function checkedSuggestions(text,candidates){
  let data;try{data=JSON.parse(text.trim().replace(/^```(?:json)?\s*/,'').replace(/```$/,''));}catch{throw Error('INVALID_AI_RESPONSE');}
  if(!Array.isArray(data?.ids)||data.ids.length>3||data.ids.some(id=>typeof id!=='string'||!candidates.some(x=>x.food.id===id)))throw Error('INVALID_AI_RESPONSE');
- return [...new Set(data.ids)].map(id=>{const c=candidates.find(x=>x.food.id===id);return {id,name:c.food.name,quantity:c.swap.quantity,unit:c.swap.unit,group:c.food.group,page:c.food.page};});
+ return [...new Set(data.ids)].map(id=>{const c=candidates.find(x=>x.food.id===id);return {id,name:c.food.name,quantity:c.swap.quantity,unit:c.swap.unit,group:c.food.group,page:c.food.page,prep:c.food.prep,source:c.food.source||'plan'};});
 }
 export function createPersonalPlanAI({apiKey=process.env.ANTHROPIC_API_KEY,model='claude-haiku-4-5-20251001',generate}={}){
  let client;

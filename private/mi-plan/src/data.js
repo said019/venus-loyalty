@@ -1,11 +1,21 @@
 // Quantities transcribed from the supplied plan. Page numbers are physical PDF pages.
 import {isDateKey} from './engine.js';
 const F=(id,name,group,portion,unit,prep,page)=>({id,name,group,portion,unit,prep,page});
-// Alimentos que NO vienen del PDF del plan: referencia estándar (SMAE, Sistema
-// Mexicano de Alimentos Equivalentes, 4ª ed., Pérez Lizaur y cols., 2014). Se
-// marcan aparte para que la procedencia siempre sea visible: el plan manda,
+// Alimentos que NO vienen del PDF del plan. Casi todos salen de la tabla
+// detallada de la "Guía de Alimentos para la Población Mexicana" (Secretaría de
+// Salud, 2010, basada en el SMAE); donde esa tabla contradice al SMAE 4ª ed.
+// (anexo UNAM, Pérez Lizaur y cols., 2014) se cita la fuente usada en `ref`.
+// Se marcan aparte para que la procedencia siempre sea visible: el plan manda,
 // esto solo amplía las opciones dentro del mismo grupo y subgrupo.
-const S=(id,name,group,portion,unit,prep)=>({id,name,group,portion,unit,prep,page:null,source:'SMAE'});
+const GUIA='Guía de Alimentos SSA, basada en el SMAE';
+const S=(id,name,group,portion,unit,prep,extra={})=>({id,name,group,portion,unit,prep,page:null,source:'SMAE',ref:GUIA,...extra});
+// El PDF no dice si la carne se pesa cruda o cocida (spec, página 23). El
+// 17-sep-2026 se decidió tomarla cocida, como el SMAE: "Pechuga de pollo o pavo,
+// atún en agua, atún — 30 gr cocido" (anexo UNAM), y en la Guía la pechuga
+// "cocida" y la "deshuesada" valen los mismos 30 g. Se guarda el origen del dato
+// para mostrarlo tal cual y no hacerlo pasar por texto del plan.
+const PESO_COCIDO='Tu plan no lo dice; se toma cocido, como en el SMAE (decidido el 17-sep-2026).';
+const PESO_COCIDO_SMAE='La Guía no lo dice; se toma cocido para que valga igual que la carne de tu plan.';
 export const foods=Object.fromEntries([
  F('apple','Manzana','fruit',1,'pieza','natural',21),F('orange','Naranja','fruit',2,'pieza','natural',21),
  F('berries','Moras','fruit',.75,'taza','natural',21),F('strawberry','Fresa rebanada','fruit',1,'taza','rebanada',21),
@@ -31,8 +41,13 @@ export const foods=Object.fromEntries([
  F('avocado','Aguacate','fat',1/3,'pieza','natural',25),
  ...['Vainilla','Endulzante natural','Canela en polvo','Chile guajillo','Ajo','Sal','Pimienta','Agua','Cilantro','Jugo de limón','Té sin azúcar','Paprika','Chile chipotle','Consomé de pollo natural','Barra Fiber One canela','Barra Fiber One caramelo'].map((name,i)=>F('extra'+i,name,'unverified',null,'', 'según receta',null))
 ].map(f=>[f.id,f]));
+for(const id of ['chicken','beef','shredded-beef'])foods[id].prepFrom=PESO_COCIDO;
 const I=(foodId,quantity,unit,optional=false,note='')=>({foodId,quantity,unit:unit||foods[foodId].unit,optional,note});
 const X=(n,optional=false,quantity=null,unit='')=>I('extra'+n,quantity,unit,optional);
+// c1: la página 23 pone la deshebrada en proteína moderada y la distribución diaria
+// pide baja en grasa. Cambiarla confirmaría como "equivalente" justo lo que el
+// plan deja en duda, así que ese ingrediente queda retenido (el resto de la receta no).
+const DESHEBRADA_EN_DUDA='Tu plan pone esta carne en dos subgrupos distintos (moderada en la tabla de equivalencias y baja en grasa en la distribución diaria); no se cambia hasta aclararlo.';
 const R=(id,title,slot,page,ingredients,steps,warning='')=>({id,title,slot,page,ingredients,steps,warning,blockSwaps:false});
 export const recipes=[
  R('b0','Licuado de manzana',0,11,[I('apple',2),I('milk',1),X(0,true),X(1,true),X(2,true)],['Corta la manzana en trozos.','Licúa con la leche y, si deseas, vainilla, endulzante y canela.','Sirve.']),
@@ -43,15 +58,15 @@ export const recipes=[
  R('a1','Chilaquiles rojos con huevos estrellados',1,13,[I('toast',4),I('avocado',1/6),I('egg',2),I('tomato',1.5),X(12),I('extra4',1,'diente'),I('onion',.25,'pieza')],['Asa los jitomates y la cebolla. Licúa con chipotle y ajo.','Sirve las tostadas y agrega la salsa.','Acompaña con aguacate picado y huevo estrellado.'],'La receta indica ¼ de cebolla en piezas; la tabla usa tazas. No se ha convertido esa medida.'),
  R('a2','Huevos en rajas de chile poblano y elote',1,14,[I('corn',1),I('spray',2.5),I('egg',2),I('poblano',.5),I('onion',.5),X(4),X(5),X(6),X(7)],['Asa el poblano, pela, retira semillas y corta en rajas.','Cuece la cebolla con las rajas y agua caliente.','Cocina los huevos en una sartén con el aceite indicado.','El texto original pide añadir crema, pero no incluye una cantidad entre los ingredientes. Consulta esta indicación antes de prepararla.'],'La preparación menciona crema que no figura en los ingredientes. No añadimos una cantidad inventada.'),
  R('a3','Huevo sobre tortilla con nopales',1,14,[I('tortilla',2),I('spray',2.5),I('egg',2),I('nopal',.5),I('onion',.25),I('tomato',.5),X(8),X(9,true),X(5)],['Calienta la tortilla y cocina el huevo con el aceite en spray.','Coloca el huevo sobre la tortilla.','Mezcla cebolla y jitomate picados con nopal cocido y cilantro.','El texto original también menciona aguacate sin cantidad; consulta esa indicación.'],'La preparación menciona aguacate no incluido en la lista de ingredientes.'),
- R('c0','Bistec de res con calabacita y tomate',2,15,[I('tortilla',2),I('oil',.5),I('beef',90),I('green-tomato',2),I('zucchini',1),I('onion',.5),X(5),X(6)],['Corta la res, pica la cebolla y corta calabacita y tomates.','Calienta el aceite y sofríe la cebolla.','Incorpora la res y cocina hasta que esté dorada.','Añade tomates y calabacita; cocina hasta que estén tiernos.','Sazona y acompaña con las tortillas.'],'La suma de verduras de la receta difiere de los 2 equivalentes indicados para comida. Se conserva el original y se bloquean cambios hasta aclararlo.'),
- R('c1','Ensalada de res, aguacate y nopales',2,15,[I('toast',4),I('avocado',1/6),I('shredded-beef',90),I('nopal',1),I('tomato',1),X(5),X(9),X(6),I('onion',null)],['Pica nopal, cebolla y jitomate.','El original indica cocer los nopales 10 minutos, aunque la lista ya dice cocidos.','Mezcla todos los ingredientes y sazona con sal, pimienta y limón.'],'La tabla diaria indica proteína baja en grasa, pero la res deshebrada aparece como moderada en la tabla de equivalencias. Falta cantidad de cebolla.'),
+ R('c0','Bistec de res con calabacita y tomate',2,15,[I('tortilla',2),I('oil',.5),I('beef',90),I('green-tomato',2),I('zucchini',1),I('onion',.5),X(5),X(6)],['Corta la res, pica la cebolla y corta calabacita y tomates.','Calienta el aceite y sofríe la cebolla.','Incorpora la res y cocina hasta que esté dorada.','Añade tomates y calabacita; cocina hasta que estén tiernos.','Sazona y acompaña con las tortillas.'],'Las verduras suman 2.4 equivalentes; la distribución indica 2 para comida. Se conserva el original.'),
+ R('c1','Ensalada de res, aguacate y nopales',2,15,[I('toast',4),I('avocado',1/6),{...I('shredded-beef',90),hold:DESHEBRADA_EN_DUDA},I('nopal',1),I('tomato',1),X(5),X(9),X(6),I('onion',null)],['Pica nopal, cebolla y jitomate.','El original indica cocer los nopales 10 minutos, aunque la lista ya dice cocidos.','Mezcla todos los ingredientes y sazona con sal, pimienta y limón.'],'La tabla diaria indica proteína baja en grasa, pero la res deshebrada aparece como moderada en la tabla de equivalencias (con 3 equivalentes son unas 60 kcal y 6 g de grasa más). Por eso esa carne no se cambia. Falta cantidad de cebolla.'),
  R('c2','Guisado de ejotes con carne',2,16,[I('rice',2/3),I('oil',.25),I('avocado',1/6),I('beef',90),I('green-beans',.25),I('tomato',1),I('onion',.25),I('extra4',1,'diente'),I('extra13',1,'cucharada'),X(5),X(6),X(3)],['Corta cebolla, ajo y tomate.','Sofríe cebolla y ajo con el aceite, añade los demás ingredientes del guisado.','El original indica cocción a presión o en olla normal.','Sirve con arroz y aguacate.'],'Aceite y aguacate suman ¾ de equivalente de grasa; la tabla diaria indica ½. No ajustamos el plan automáticamente.'),
  R('c3','Ensalada tibia de res con verduras salteadas',2,16,[I('corn',1),I('oil',.5),I('beef',90),I('pepper',1),I('zucchini',1),I('spinach',1),X(5),X(6)],['Cocina la res en fajitas con aceite de oliva.','Corta pimiento y calabacita en tiras y saltea junto con la carne.','Añade espinaca y elote. Sazona y sirve.'],'Las verduras suman 2½ equivalentes; la distribución indica 2 para comida.'),
  R('s0','Croissant con naranja y té',3,17,[I('croissant',.5),I('orange',4),X(10)],['Acompaña el croissant con las naranjas y té sin azúcar.']),
  R('s1','Croissant con frutos rojos y té',3,17,[I('croissant',.5),I('blackberry',1),I('raspberry',1),X(10)],['Acompaña el croissant con las frutas y té sin azúcar.']),
- R('s2','Barrita Fiber One y granada roja',3,18,[I('extra14',1,'pieza'),I('pomegranate',2)],[], 'La barra de marca no tiene equivalencia específica en el catálogo del PDF. Cambios pendientes de revisión.'),
+ R('s2','Barrita Fiber One y granada roja',3,18,[I('extra14',1,'pieza'),I('pomegranate',2)],[], 'La barra de marca no tiene equivalencia específica en el catálogo del PDF, así que no se puede cambiar; la granada sí.'),
  R('s3','Barrita DASAVENA',3,18,[I('extra15',1,'pieza'),I('banana',1)],[], 'El título dice DASAVENA, pero los ingredientes dicen Fiber One caramelo. Confirmar la barra antes de usar esta opción.'),
- R('d0','Sopa de arroz con pollo y zanahoria',4,20,[I('rice',1/3),I('chicken',90),I('carrot',.5),I('zucchini',1),X(8),X(7)],['Corta y cuece el pollo en agua.','El original indica agregar arroz tras el primer hervor, aunque la lista dice arroz cocido.','Después agrega zanahoria, calabacita y cilantro y termina la cocción.'],'La receta usa arroz cocido en ingredientes y lo cuece de nuevo en preparación; las verduras también difieren de la distribución. Confirmar antes de adaptar.'),
+ R('d0','Sopa de arroz con pollo y zanahoria',4,20,[I('rice',1/3),I('chicken',90),I('carrot',.5),I('zucchini',1),X(8),X(7)],['Corta y cuece el pollo en agua.','El original indica agregar arroz tras el primer hervor, aunque la lista dice arroz cocido.','Después agrega zanahoria, calabacita y cilantro y termina la cocción.'],'La receta usa arroz cocido en ingredientes y lo cuece de nuevo en preparación; las verduras también difieren de la distribución. Se conserva el original.'),
  R('d1','Tostadas con requesón y cherry',4,19,[I('toast',2),I('requeson',9),I('cherry',6),X(6),X(11)],['Sirve el requesón y el cherry en pedazos sobre las tostadas.','Añade pimienta y paprika según el plan.']),
  R('d2','Tostadas de atún con jitomate y cebolla',4,19,[I('toast',2),I('tuna',1),I('onion',.5),I('tomato',.75),X(9)],['Abre el atún y escúrrelo.','Corta el jitomate en cubos y la cebolla en rodajas finas.','Mezcla con el atún y jugo de limón.','Reparte la mezcla sobre las tostadas.'],'Las verduras suman 1¾ equivalentes; la distribución indica 1½ para cena.'),
  R('d3','Tacos de requesón y champiñones',4,20,[I('nopal-tortilla',3),I('requeson',9),I('tomato',.75),I('mushroom',.75)],['Cocina los champiñones con el jitomate picado.','Agrega el requesón cuando las verduras estén suaves.','Calienta las tortillas y arma los tacos.'],'La preparación menciona aceite y sal sin cantidad; no se añaden porciones automáticamente.')
@@ -66,27 +81,27 @@ export const smaeFoods=Object.fromEntries([
  S('cottage','Queso cottage','protein-very-low',3,'cucharada','listo para consumir'),
  S('turkey-breast','Pechuga de pavo','protein-very-low',2,'rebanada','lista para consumir'),
  S('egg-white','Clara de huevo','protein-very-low',2,'pieza','cocida'),
- S('ground-chicken','Molida de pollo','protein-very-low',30,'gramos','cocida'),
- S('chicken-fajita','Fajitas de pollo sin piel','protein-very-low',30,'gramos','cocidas'),
+ S('ground-chicken','Molida de pollo','protein-very-low',30,'gramos','cocida',{prepFrom:PESO_COCIDO_SMAE}),
+ S('chicken-fajita','Fajitas de pollo sin piel','protein-very-low',30,'gramos','cocidas',{prepFrom:PESO_COCIDO_SMAE}),
  S('chicken-thigh','Muslo de pollo sin piel','protein-very-low',.5,'pieza','cocido'),
- S('robalo','Róbalo','protein-very-low',30,'gramos','cocido'),
+ S('robalo','Róbalo','protein-very-low',30,'gramos','cocido',{prepFrom:PESO_COCIDO_SMAE}),
  S('surimi','Surimi','protein-very-low',2/3,'barra','listo para consumir'),
  // AOA bajo aporte de grasa — 55 kcal, 7 g proteína
  S('panela','Queso panela','protein-low',40,'gramos','listo para consumir'),
  S('queso-fresco','Queso fresco','protein-low',40,'gramos','listo para consumir'),
  S('goat-cheese','Queso de cabra','protein-low',30,'gramos','listo para consumir'),
- S('salmon','Salmón','protein-low',30,'gramos','cocido'),
- S('trout','Trucha cocida','protein-low',30,'gramos','cocida'),
- S('ground-beef','Molida de res (sirloin)','protein-low',30,'gramos','cocida'),
- S('pork-loin','Lomo de cerdo','protein-low',40,'gramos','cocido'),
+ S('salmon','Salmón','protein-low',30,'gramos','cocido',{prepFrom:PESO_COCIDO_SMAE}),
+ S('trout','Trucha cocida','protein-low',30,'gramos','cocida',{prepFrom:'La Guía lo dice: "Trucha cocida, 30 gramos".'}),
+ S('ground-beef','Molida de res (sirloin)','protein-low',30,'gramos','cocida',{prepFrom:PESO_COCIDO_SMAE}),
+ S('pork-loin','Lomo de cerdo','protein-low',40,'gramos','cocido',{prepFrom:PESO_COCIDO_SMAE}),
  // AOA moderado aporte de grasa
  S('mozzarella','Queso mozzarella','protein-moderate',30,'gramos','listo para consumir'),
  S('turkey-sausage','Salchicha de pavo','protein-moderate',1,'pieza','lista para consumir'),
- S('bistec-bola','Bistec de bola','protein-moderate',25,'gramos','cocido'),
- S('suadero','Suadero','protein-moderate',29,'gramos','cocido'),
- // Leche descremada
+ S('bistec-bola','Bistec de bola','protein-moderate',25,'gramos','cocido',{prepFrom:PESO_COCIDO_SMAE}),
+ S('suadero','Suadero','protein-moderate',29,'gramos','cocido',{prepFrom:PESO_COCIDO_SMAE}),
+ // Leche descremada. Sin leche en polvo: el anexo UNAM dice 2 cucharadas (sin tipo), la Guía
+ // 4 y el SMAE 4ª ed. 3; con tres porciones distintas no hay una que defender.
  S('skim','Leche descremada','skim-milk',1,'taza','lista para consumir'),
- S('milk-powder','Leche en polvo descremada','skim-milk',2,'cucharada','en polvo'),
  // Verduras
  S('mushroom-cooked','Champiñón cocido rebanado','vegetable',1,'taza','cocido'),
  S('broccoli','Brócoli cocido','vegetable',.5,'taza','cocido'),
@@ -100,22 +115,25 @@ export const smaeFoods=Object.fromEntries([
  S('chard','Acelga cruda','vegetable',2,'taza','cruda'),
  S('radish','Rábano','vegetable',1,'taza','crudo'),
  S('cabbage','Col cruda','vegetable',1.5,'taza','cruda'),
- // Frutas
+ // Frutas. El arándano es fresco: en esa tabla la fruta seca va aparte (pasas, ciruela pasa).
+ // Su id sigue siendo 'cranberry' para no romper cambios ya guardados en el navegador.
  S('guava','Guayaba','fruit',3,'pieza','natural'),
  S('mandarin','Mandarina chica','fruit',2,'pieza','natural'),
  S('melon','Melón picado','fruit',1,'taza','picado'),
  S('mango','Mango ataulfo','fruit',.5,'pieza','natural'),
  S('peach','Durazno chico','fruit',2,'pieza','natural'),
  S('plum','Ciruela','fruit',3,'pieza','natural'),
- S('cranberry','Arándano','fruit',.5,'taza','natural'),
+ S('cranberry','Arándano fresco','fruit',.5,'taza','fresco, no deshidratado'),
  S('apricot','Chabacano','fruit',4,'pieza','natural'),
- // Cereales sin grasa
+ // Cereales sin grasa. Pan de caja: la Guía dice ½ pieza (línea con otros errores, p. ej.
+ // pasta en piezas); anexo UNAM, SMAE 4ª ed. y USDA coinciden en 1 rebanada por equivalente.
+ // Palomitas "naturales": las de mantequilla o aceite son cereal con grasa (Guía, 1 taza).
  S('oats','Avena en hojuelas','cereal',1/3,'taza','cruda'),
  S('oats-cooked','Avena cocida','cereal',.75,'taza','cocida'),
  S('potato','Papa hervida o al horno','cereal',.5,'pieza','cocida'),
  S('sweet-potato','Camote','cereal',.25,'pieza','cocido'),
- S('box-bread','Pan de caja integral','cereal',.5,'pieza','listo para consumir'),
- S('popcorn','Palomitas naturales','cereal',3,'taza','listas para consumir'),
+ S('box-bread','Pan de caja integral','cereal',1,'rebanada','listo para consumir',{ref:'SMAE 4ª ed. (anexo UNAM): "Pan … integral … 1 rebanada"'}),
+ S('popcorn','Palomitas naturales (sin aceite ni mantequilla)','cereal',3,'taza','reventadas con aire'),
 ].map(f=>[f.id,f]));
 // El catálogo que usa la app: primero el plan, luego la referencia.
 Object.assign(foods,smaeFoods);

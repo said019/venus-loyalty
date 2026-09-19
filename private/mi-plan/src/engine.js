@@ -1,14 +1,24 @@
 const own = (object, key) => object != null && Object.prototype.hasOwnProperty.call(object, key);
 const foodFor = (foods, id) => typeof id === 'string' && own(foods, id) ? foods[id] : undefined;
 const positive = value => typeof value === 'number' && Number.isFinite(value) && value > 0;
-const uncertainGrams = food => ['g', 'gramo', 'gramos'].includes(food.unit?.trim().toLowerCase()) &&
+const inGrams = food => ['g', 'gramo', 'gramos'].includes(food?.unit?.trim().toLowerCase());
+const uncertainGrams = food => inGrams(food) &&
   (!food.prep || food.prep.trim().toLowerCase() === 'unknown' || food.prep.toLowerCase().includes('pesaje no especificado'));
+
+// Lo que hay que decir junto a un peso para que se pueda pesar bien: la carne
+// en gramos se prescribe cocida y en el súper se compra cruda.
+export function weightState(food) {
+  if (!inGrams(food)) return '';
+  if (uncertainGrams(food)) return 'sin saber si es crudo o cocido';
+  return /cocid/i.test(food.prep) ? 'peso ya cocido' : '';
+}
 
 export function proposeSwap(ingredient, targetId, foods) {
   const result = (status, reason, extra = {}) => ({ status, reason, foodId:targetId, ...extra });
   const source = foodFor(foods, ingredient?.foodId);
   const target = foodFor(foods, targetId);
   if (!source || !target) return result('blocked', 'Alimento no reconocido en el catálogo.');
+  if (ingredient.hold) return result('pending', ingredient.hold);
   if (!positive(ingredient?.quantity) || !positive(source.portion) || !positive(target.portion)) {
     return result('blocked', 'Se necesita una cantidad y una porción válidas.');
   }
@@ -59,16 +69,28 @@ export function shoppingList(entries = [], foods = {}) {
 
 export function formatQuantity(value) {
   if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) return 'Cantidad no especificada';
-  const whole = Math.floor(value);
-  const fraction = value - whole;
-  if (fraction === 0) return String(whole);
+  // Seis sextos de aguacate suman 0.9999999999999999: se redondea antes de
+  // separar el entero para no mostrar residuos de punto flotante.
+  const clean = Math.round(value * 1e6) / 1e6;
+  const whole = Math.floor(clean);
+  const fraction = clean - whole;
+  if (fraction < 1e-9) return String(whole);
   for (const denominator of [2,3,4,6,8,12]) {
     const numerator = Math.round(fraction * denominator);
-    if (numerator > 0 && numerator < denominator && Math.abs(fraction - numerator / denominator) < 1e-10) {
+    if (numerator > 0 && numerator < denominator && Math.abs(fraction - numerator / denominator) < 1e-6) {
       return `${whole ? `${whole} ` : ''}${numerator}/${denominator}`;
     }
   }
-  return String(value).replace('.', ',');
+  return String(Math.round(clean * 100) / 100).replace('.', ',');
+}
+
+// Menos de ¼ de taza no se mide con taza: se pasa a cucharadas (1 taza = 16
+// cucharadas, volumen a volumen; no cambia la cantidad).
+export function formatAmount(value, unit = '') {
+  if (unit === 'taza' && typeof value === 'number' && value > 0 && value < 0.25) {
+    return `${formatQuantity(value * 16)} cucharada`;
+  }
+  return `${formatQuantity(value)}${unit ? ` ${unit}` : ''}`;
 }
 
 export function isDateKey(value) {
