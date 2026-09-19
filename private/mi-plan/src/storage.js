@@ -16,7 +16,12 @@ export function decode(raw){
    const clean={};
    if(field==='changes')for(const [id,indices] of Object.entries(value)){
     const r=knownRecipe(id);if(!r||!indices||typeof indices!=='object'||Array.isArray(indices))continue;
-    const swaps={};for(const [index,target] of Object.entries(indices))if(/^(0|[1-9]\d*)$/.test(index)&&r.ingredients[Number(index)]&&knownFood(target))swaps[index]=target;
+    const swaps={};for(const [index,target] of Object.entries(indices)){
+     if(!/^(0|[1-9]\d*)$/.test(index)||!r.ingredients[Number(index)])continue;
+     if(knownFood(target))swaps[index]=target;
+     // Cambio con cantidad de Claude: {target,quantity,by:'claude'}; el motor lo vuelve a comprobar al usarlo.
+     else if(target&&typeof target==='object'&&knownFood(target.target)&&typeof target.quantity==='number'&&Number.isFinite(target.quantity)&&target.quantity>0&&target.quantity<=10000)swaps[index]={target:target.target,quantity:target.quantity,by:'claude'};
+    }
     clean[id]=swaps;
    }
    if(field==='done')for(const [id,done] of Object.entries(value))if(knownRecipe(id)&&typeof done==='boolean')clean[id]=done;

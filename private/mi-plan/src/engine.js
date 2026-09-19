@@ -37,11 +37,92 @@ export function proposeSwap(ingredient, targetId, foods) {
   return result('valid', 'Mismo grupo y porciones documentadas.', {quantity, unit:target.unit, equivalents});
 }
 
+// Aporte promedio por equivalente de cada subgrupo (SMAE, anexo UNAM, tabla de
+// subgrupos): energía (kcal), proteína, grasa e hidratos de carbono (g).
+export const GROUP_NUTRIENTS = {
+  'vegetable': {kcal:25, protein:2, fat:0, carbs:4},
+  'fruit': {kcal:60, protein:0, fat:0, carbs:15},
+  'cereal': {kcal:70, protein:2, fat:0, carbs:15},
+  'fat-cereal': {kcal:115, protein:2, fat:5, carbs:15},
+  'protein-very-low': {kcal:40, protein:7, fat:1, carbs:0},
+  'protein-low': {kcal:55, protein:7, fat:3, carbs:0},
+  'protein-moderate': {kcal:75, protein:7, fat:5, carbs:0},
+  'skim-milk': {kcal:95, protein:9, fat:2, carbs:12},
+  'fat': {kcal:45, protein:0, fat:5, carbs:0},
+};
+
+// Cantidad en la unidad de la tabla → equivalentes → aporte del subgrupo.
+export function nutrientsOf(food, quantity) {
+  const perEquivalent = GROUP_NUTRIENTS[food?.group];
+  if (!perEquivalent || !positive(quantity) || !positive(food.portion)) return null;
+  const equivalents = quantity / food.portion;
+  return {equivalents, kcal:perEquivalent.kcal * equivalents, protein:perEquivalent.protein * equivalents,
+    fat:perEquivalent.fat * equivalents, carbs:perEquivalent.carbs * equivalents};
+}
+
+// Claude puede proponer cualquier alimento del catálogo, de cualquier grupo, con
+// su propia cantidad. La app no le cree a ciegas: calcula el aporte de lo
+// original y de lo propuesto con la tabla del SMAE y descarta lo que rompa la
+// regla de su familia (ver checkAIProposal). Corre igual en servidor y navegador.
+export const AI_KCAL_RANGE = [0.5, 1.5];
+export const AI_MAIN_RANGE = [0.75, 1.33];
+// Familias del SMAE y el nutrimento que define su equivalente: los de origen
+// animal se intercambian por proteína; cereales con y sin grasa, por hidratos.
+const FAMILY = {
+  'protein-very-low':{group:'aoa', nutrient:'protein', label:'proteína'},
+  'protein-low':{group:'aoa', nutrient:'protein', label:'proteína'},
+  'protein-moderate':{group:'aoa', nutrient:'protein', label:'proteína'},
+  'cereal':{group:'cereal', nutrient:'carbs', label:'cantidad de hidratos'},
+  'fat-cereal':{group:'cereal', nutrient:'carbs', label:'cantidad de hidratos'},
+  'fruit':{group:'fruit', nutrient:'carbs', label:'cantidad de hidratos'},
+  'vegetable':{group:'vegetable', nutrient:'kcal', label:'energía'},
+  'skim-milk':{group:'milk', nutrient:'protein', label:'proteína'},
+  'fat':{group:'fat', nutrient:'fat', label:'grasa'},
+};
+const ratioOf = (after, before) => before > 0 ? after / before : (after > 0 ? Infinity : 1);
+export function checkAIProposal(ingredient, targetId, quantity, foods) {
+  const source = foodFor(foods, ingredient?.foodId);
+  const target = foodFor(foods, targetId);
+  if (!source || !target) return {ok:false, reason:'Alimento no reconocido en el catálogo.'};
+  if (ingredient.unit !== source.unit) return {ok:false, reason:'Tu receta lo mide distinto que la tabla; no hay con qué comparar.'};
+  const before = nutrientsOf(source, ingredient.quantity);
+  if (!before) return {ok:false, reason:'Este ingrediente no tiene cantidad o aporte documentado; no hay con qué comparar.'};
+  if (!positive(quantity) || quantity > 10000) return {ok:false, reason:'Cantidad fuera de rango.'};
+  const after = nutrientsOf(target, quantity);
+  if (!after) return {ok:false, reason:'Ese alimento no tiene aporte documentado en la tabla.'};
+  // Misma familia: se conservan los equivalentes (proteína entre carnes, hidratos
+  // entre cereales); la grasa y las calorías pueden variar y se muestran. 90 g de
+  // deshebrada por 169 g de pollo iguala calorías pero casi duplica la proteína.
+  // Familias distintas: no hay equivalente, así que se exige energía parecida.
+  const family = FAMILY[source.group];
+  const sameFamily = Boolean(family) && family.group === FAMILY[target.group]?.group;
+  if (sameFamily) {
+    const main = ratioOf(after[family.nutrient], before[family.nutrient]);
+    if (!(main >= AI_MAIN_RANGE[0] && main <= AI_MAIN_RANGE[1])) {
+      return {ok:false, reason:`Cambia demasiado la ${family.label} respecto del original.`, before, after};
+    }
+  } else {
+    const ratio = after.kcal / before.kcal;
+    if (!(ratio >= AI_KCAL_RANGE[0] && ratio <= AI_KCAL_RANGE[1])) {
+      return {ok:false, reason:'La cantidad propuesta se aleja demasiado de las calorías del original.', before, after};
+    }
+  }
+  return {ok:true, before, after, sameGroup:source.group === target.group, sameFamily};
+}
+
 export function effectiveIngredients(recipe, changes = {}, foods = {}) {
   return (Array.isArray(recipe?.ingredients) ? recipe.ingredients : []).map((ingredient, index) => {
     const original = {...ingredient};
     if (recipe.blockSwaps || !own(changes, index)) return original;
-    const swap = proposeSwap(ingredient, changes[index], foods);
+    const change = changes[index];
+    if (change && typeof change === 'object') {
+      // Cambio con cantidad propuesta por Claude: se vuelve a comprobar aquí.
+      if (!checkAIProposal(ingredient, change.target, change.quantity, foods).ok) return original;
+      const food = foodFor(foods, change.target);
+      return {...original, foodId:change.target, quantity:change.quantity, unit:food.unit,
+        prep:food.prep, source:original, swapped:true, byAI:true};
+    }
+    const swap = proposeSwap(ingredient, change, foods);
     if (swap.status !== 'valid') return original;
     return {...original, foodId:swap.foodId, quantity:swap.quantity, unit:swap.unit,
       prep:foodFor(foods, swap.foodId).prep, source:original, swapped:true};
