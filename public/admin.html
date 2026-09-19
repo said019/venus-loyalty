@@ -19738,13 +19738,13 @@
           const resumenEl = document.getElementById('resumen-productos');
           if (resumenEl) {
             resumenEl.insertAdjacentHTML('beforebegin', `
-              <div style="background:rgba(231,76,60,0.12);border:1px solid rgba(231,76,60,0.35);border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:13px;color:#ddd;">
-                <div style="font-weight:600;color:#ffb3aa;"><i class="fas fa-pen" aria-hidden="true"></i> Esta cita ya estaba cobrada en $${pagado.toLocaleString('es-MX')}</div>
+              <div style="background:rgba(231,76,60,0.12);border:1px solid rgba(231,76,60,0.35);border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:13px;color:var(--ink,#2b2b2b);">
+                <div style="font-weight:600;color:#b3261e;"><i class="fas fa-pen" aria-hidden="true"></i> Esta cita ya estaba cobrada en $${pagado.toLocaleString('es-MX')}</div>
                 <div style="color:var(--muted);">Al guardar, ese cobro se reemplaza por el nuevo. No se suma.</div>
-                <label for="cobrar-motivo" style="display:block;margin-top:8px;font-weight:600;color:#ffb3aa;">¿Por qué lo corriges? <span aria-hidden="true">*</span></label>
+                <label for="cobrar-motivo" style="display:block;margin-top:8px;font-weight:600;color:#b3261e;">¿Por qué lo corriges? <span aria-hidden="true">*</span></label>
                 <input id="cobrar-motivo" class="cobro-input" maxlength="500" style="margin-top:4px;" placeholder="Ej. se cobró con el método equivocado">
-                <div id="cobrar-motivo-error" style="display:none;margin-top:4px;color:#ff8a80;font-size:12px;">Escribe por qué (al menos 3 letras).</div>
-                ${(parseFloat(cita.creditApplied) || 0) > 0 ? `<div style="color:var(--muted);">Usó $${(parseFloat(cita.creditApplied) || 0).toLocaleString('es-MX')} de saldo apartado, y ese saldo ya se gastó. Si necesitas cambiarlo, mejor quita el cobro desde la Caja (🗑️) y vuelve a cobrar: así se le devuelve primero.</div>` : ''}
+                <div id="cobrar-motivo-error" style="display:none;margin-top:4px;color:#b3261e;font-weight:600;font-size:12px;">Escribe por qué (al menos 3 letras).</div>
+                ${(parseFloat(cita.creditApplied) || 0) > 0 ? `<div style="color:var(--muted);">Usó $${(parseFloat(cita.creditApplied) || 0).toLocaleString('es-MX')} de saldo apartado, y ese saldo ya se gastó. Si necesitas cambiarlo, mejor quita el cobro desde la Caja (con el bote de basura) y vuelve a cobrar: así se le devuelve primero.</div>` : ''}
               </div>`);
           }
         }
