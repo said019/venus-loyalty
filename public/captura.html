@@ -8,14 +8,14 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https://res.cloudinary.com; media-src 'self' blob:; connect-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'self'">
 <!--
   Captura de fotos de seguimiento desde el skin analyzer (Moji A3):
-  RK3399, Android 8.1, Chrome 70. La cámara del análisis se ve por
+  RK3399, Android 8.1, WebView 61. La cámara del análisis se ve por
   getUserMedia; Chrome solo no controla luces. Venus Moji 0.8 añade un pulso
   nativo de luz blanca y abre esta misma página; no hay acceso web a GPIO.
 
-  Chrome 70: NADA de `?.` ni `??` ni replaceAll — una sola rompe todo el
+  WebView 61: NADA de `?.` ni `??` ni replaceAll — una sola rompe todo el
   script sin error visible. async/await, template literals y fetch sí hay.
 -->
-<link rel="stylesheet" href="/moji-capture.css?v=20260920c">
+<link rel="stylesheet" href="/moji-capture.css?v=20260920d">
 <link rel="icon" href="/assets/icon-192.png">
 <meta name="theme-color" content="#888f79">
 </head>
@@ -25,7 +25,7 @@
   <div class="page-title"><div><p class="eyebrow">CUIDADO PERSONALIZADO</p><h1>Análisis de piel</h1><p class="sub">Cada piel, su propia historia.</p></div><span class="private-label">Venus Skin Studio</span></div>
   <ol class="pasos" aria-label="Etapas de valoración"><li id="step-clienta" aria-current="step"><b>01</b> Clienta</li><li id="step-fotos"><b>02</b> Fotografías</li><li><b>03</b> Valoración</li><li><b>04</b> Revisión</li></ol>
   <p id="e-general" class="estado" role="status" aria-live="polite"></p>
-  <div id="native-help" class="aviso oculto">Estás en el navegador. Para tomar con luz blanca automática, abre esta página en la app Venus actualizada. <a href="venusmoji://capture" id="open-native">Abrir Venus Moji</a> · <a href="/downloads/venus-moji-captura-0.8.1.apk" id="download-native">Instalar actualización</a>. La captura sin luces automáticas también está disponible.</div>
+  <div id="native-help" class="aviso oculto">Estás en el navegador. Para tomar con luz blanca automática, abre esta página en la app Venus actualizada. <a href="venusmoji://capture" id="open-native">Abrir Venus Moji</a> · <a href="/downloads/venus-moji-captura-0.8.2.apk" id="download-native">Instalar actualización 0.8.2</a>. La captura sin luces automáticas también está disponible.</div>
 
   <!-- 0 · Sesión -->
   <section id="s-login" class="oculto">
@@ -90,6 +90,6 @@
 
 <script src="/moji-capture-flow.js?v=20260920a"></script>
 <script src="/moji-import.js?v=20260920a"></script>
-<script src="/moji-capture.js?v=20260920c"></script>
+<script src="/moji-capture.js?v=20260920d"></script>
 </body>
 </html>

@@ -3,7 +3,7 @@ package mx.venus.mojileds;
 import android.os.Handler;
 import android.os.HandlerThread;
 
-/** Native still JPEG for the validated white channel. Other channels stay disabled. */
+/** Native still JPEG for the white channel. Other channels stay disabled. */
 final class NativeWhiteCapture {
  interface Result {void finished(int request,byte[] jpeg,String error);}
  private final HandlerThread thread=new HandlerThread("VenusStill");
@@ -38,7 +38,8 @@ final class NativeWhiteCapture {
      finish(token,request,bytes,null);
     }
    });
-  },250);
+  // Match the original app's white settling delay; WhitePulse still limits ON to 2s.
+  },1000);
  }
  private void finish(long token,int request,byte[] jpeg,String error){
   if(token!=generation)return;

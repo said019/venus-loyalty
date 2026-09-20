@@ -116,7 +116,14 @@ public final class MainActivity extends Activity {
   return foreground&&trusted&&Policy.document(current())&&Policy.origin(request.getOrigin().toString())&&resources.length==1&&PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(resources[0]);
  }
  private void invalidatePermission(){if(pending!=null){pending.deny();pending=null;}}
- private void cancel(){epoch++;invalidatePermission();stillId=0;stillJpeg=null;if(still!=null)still.cancel();else if(pulse!=null)pulse.forceOff();}
+ private void cancel(){
+  int cancelled=stillId;
+  epoch++;invalidatePermission();stillId=0;stillJpeg=null;
+  if(still!=null)still.cancel();else if(pulse!=null)pulse.forceOff();
+  if(cancelled>0&&web!=null&&foreground&&trusted&&Policy.document(current())){
+   web.evaluateJavascript("window.venusNativeStillResult&&window.venusNativeStillResult({request:"+cancelled+",ok:false,error:'Captura cancelada. Se envio la orden de apagado.'})",null);
+  }
+ }
  private void fail(){trusted=false;cancel();}
  private void reply(int id,boolean ok){web.evaluateJavascript("if(typeof window.venusMojiLightResult==='function')window.venusMojiLightResult({ok:"+ok+",command:'white',request:"+id+"})",null);}
  @Override public void onRequestPermissionsResult(int code,String[] permissions,int[] grants){

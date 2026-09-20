@@ -179,3 +179,64 @@ No new automatic multi-light functionality was published by this inspection.
 - Three-viewport UI tests and eight Node tests pass after the regression fix.
   Diagnostic APK and ADB forwarding removed after testing. Real illumination,
   real authenticated upload and multimodal report acceptance remain outstanding.
+
+## Supervised white GPIO attempt: physical result NOT accepted
+
+- Operator explicitly confirmed the equipment was empty and they were present.
+- Rebuilt the isolated WebView diagnostic APK with the production write-only
+  GpioWhitePort, not its simulated replacement. DEX inspection confirms the
+  /sys/class/fise_gpio0/level string and absence of the simulated logger.
+- Two native captures reached mocked uploads (3739172 and 4134073 bytes), but
+  the operator reported not seeing the white light. Therefore this is NOT a
+  passing illuminated-capture test, regardless of successful system writes.
+- Sent an additional OFF write, verified camera clients [], uninstalled the
+  diagnostic APK and removed ADB forwarding.
+- Then attempted one direct 0.6-second GPIO0 pulse with a two-second backup
+  OFF process and shell trap, while the operator remained present. Both write
+  commands returned success. Physical observation of that separate pulse is
+  pending; do not equate syscall success with an illuminated LED.
+- Other GPIO channels were not activated. No GPIO level files were read.
+
+## Direct white pulse confirmed; capture timing candidate
+
+- Operator confirmed seeing the white light turn on and off after the repeated
+  1.5-second direct pulse, with a separate OFF backup at two seconds. This only
+  validates that supervised direct test, not camera synchronization.
+- NativeWhiteCapture now waits 1000ms instead of 250ms before requesting the
+  shutter, matching the original app's observed white settling delay. The
+  independent two-second cutoff and rejection of late shutters remain intact.
+- At this stage the revised illuminated capture still needed physical
+  verification (see the subsequent supervised result below). No other mode
+  has been optically verified and the candidate is not ready for release.
+- Rebuilt the revised candidate: 70 safety checks, 209 simulated sequence checks,
+  eight Node tests and APK signature verification passed.
+- Repeated the isolated physical Android WebView test with simulated GPIO after
+  the timing change. Two real native JPEGs (3177687 and 3059319 bytes) reached
+  mocked uploads and preview restarted both times. No real LEDs were activated
+  and no production records were modified. Removed diagnostic APK and CDP forward.
+
+## Revised real-white capture attempt
+
+- Operator freshly confirmed empty equipment and presence. Built the diagnostic
+  with MOJI_TEST_REAL_WHITE=1 and the revised 1000ms settling delay.
+- ADB briefly disconnected during installation; reconnected and successfully
+  installed before starting the test. No light test ran during that failure.
+- Two native JPEGs (3972537 and 3427169 bytes) reached mocked uploads. Preview
+  reopened after both captures. Real GPIO control was used.
+- Operator answered affirmatively when asked whether the white light turned on
+  and off in both captures and was now off. This passes the supervised white
+  on/capture/off workflow only. It does not measure exposure, characterize the
+  spectrum, validate image quality, or validate the other modes.
+- Sent an extra GPIO0 OFF, removed the diagnostic package and CDP forwarding.
+- No production patient records were modified and no other light mode activated.
+
+## Immediate native cancellation
+
+- Native cancellation now sends a failure callback after issuing OFF, rather
+  than leaving the page waiting for its 13-second timeout.
+- Tested the production activity in the isolated diagnostic WebView with fake
+  GPIO: two JPEGs reached mocked upload (3340465 and 3336180 bytes), followed by
+  a third capture cancelled through the native OFF route. The cancellation was
+  displayed within three seconds, upload count stayed at two, and preview resumed.
+- Rebuilt/signed candidate successfully. Diagnostic package and forwarding were
+  removed. Candidate remains unpublished and the installed Venus app unchanged.

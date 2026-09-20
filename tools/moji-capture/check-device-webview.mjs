@@ -38,5 +38,16 @@ try{
  const second=await evaluate(`return {uploaded:window.__uploaded,count:document.getElementById('photo-count').textContent,status:document.getElementById('e-tomar').textContent};`);
  console.log(JSON.stringify(second,null,2));assert(second.uploaded&&second.uploaded.bytes>1000000,'Repeated native capture failed');
  await until(`document.getElementById('photo-count').textContent==='2 fotografías' && !document.getElementById('b-tomar').disabled`);
- console.log('PASS physical Android WebView gesture -> native JPEG -> mocked upload -> preview restart; GPIO simulated');
+ if(process.env.MOJI_TEST_REAL_WHITE!=='1'){
+  await tap('#b-tomar');
+  await new Promise(r=>setTimeout(r,150));
+  const cancelledAt=Date.now();
+  await evaluate(`location.href='venus-moji://off';return true;`);
+  await until(`document.getElementById('e-tomar').textContent.indexOf('Captura cancelada.')!==-1`);
+  assert(Date.now()-cancelledAt<3000,'Native cancellation should not wait for the 13-second web timeout');
+  assert.equal(await evaluate(`return window.__uploadCount;`),2,'Cancelled capture must not upload');
+  await until(`!document.getElementById('b-tomar').disabled`);
+  console.log('PASS native OFF immediately cancels pending capture without upload');
+ }
+ console.log('PASS physical Android WebView gesture -> native JPEG -> mocked upload -> preview restart; GPIO '+(process.env.MOJI_TEST_REAL_WHITE==='1'?'real white, operator confirmation pending':'simulated'));
 }finally{clearTimeout(deadline);try{await evaluate(`document.getElementById('b-cambiar').click();return true;`);}catch{}ws.close();}

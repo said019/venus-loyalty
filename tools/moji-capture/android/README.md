@@ -1,8 +1,19 @@
-# Venus capture wrapper 0.8.0
+# Venus capture wrapper 0.8.2
 
 Fixed entry: `https://venuscosmetologia.com.mx/captura.html?modo=analisis`.
 Launcher and `venusmoji://capture` both load that constant; intent data is never used as a URL.
-Package `mx.venus.mojileds`, versionCode 8, min26 / target27. Only CAMERA and INTERNET.
+Package `mx.venus.mojileds`, versionCode 10, min26 / target27. Only CAMERA and INTERNET.
+
+This release integrates native Camera1 JPEG capture with the white-light pulse.
+The operator confirmed two supervised empty-device white ON/capture/OFF tests.
+Other light modes remain disabled. This is not a complete multispectral analyzer
+or validation for clinical use. Detailed evidence: `VERIFICATION-20260920.md`.
+The original app compatibility check remains; uninstalling it is not supported.
+
+Native JPEGs are served from memory to the trusted capture document, then uploaded
+through the existing authenticated photo endpoint. The original bytes are retained.
+Camera handoff detaches the WebView ended handler before stopping its stream.
+Manual OFF immediately rejects a pending capture without uploading it.
 
 ## Build and verification
 
@@ -47,7 +58,7 @@ WebView does not invoke shouldInterceptRequest for redirected subresource destin
 The wrapper permits initial HTTPS resources only from the Venus origin and `res.cloudinary.com`
 (no userinfo or nondefault port). Cloudinary is not a trusted document, camera or light origin;
 top-level navigation remains restricted to capture and advisor as above. Server
-CSP and the absence of cross-origin redirects must also be verified before release. This build
-has not exercised a device WebView or hardware; no network deployment/install is performed.
+CSP and the absence of cross-origin redirects must also be verified before release.
+Device tests used isolated diagnostic packages and mocked uploads, not patient records.
 The timer cannot guarantee physical OFF if the kernel write blocks, Android kills the process,
 or hardware fails. A failed OFF locks out new pulses, but physical observation remains required.

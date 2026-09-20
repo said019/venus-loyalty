@@ -6,9 +6,14 @@ JDK=${MOJI_JDK:-/opt/homebrew/opt/openjdk}
 TOOLS="$OLD/toolchain/build-tools/android-15"
 ANDROID="$OLD/toolchain/platform/android-8.1.0/android.jar"
 OUT=build/webview-diagnostic
+GPIO=diagnostic/GpioWhitePort.java
+if [ "${MOJI_TEST_REAL_WHITE:-0}" = 1 ]; then
+ GPIO=src/mx/venus/mojileds/GpioWhitePort.java
+ printf '%s\n' 'REAL WHITE GPIO BUILD: requires present operator and empty equipment.'
+fi
 mkdir -p "$OUT/classes" "$OUT/dex"
 "$TOOLS/aapt2" link -o "$OUT/resources.apk" --manifest diagnostic/WebViewManifest.xml -I "$ANDROID"
-"$JDK/bin/javac" --release 8 -Xlint:-options -cp "$ANDROID" -d "$OUT/classes" diagnostic/GpioWhitePort.java src/mx/venus/mojileds/MainActivity.java src/mx/venus/mojileds/Policy.java src/mx/venus/mojileds/WhitePulse.java src/mx/venus/mojileds/NativeWhiteCapture.java src/mx/venus/mojileds/NativeStillCamera.java
+"$JDK/bin/javac" --release 8 -Xlint:-options -cp "$ANDROID" -d "$OUT/classes" "$GPIO" src/mx/venus/mojileds/MainActivity.java src/mx/venus/mojileds/Policy.java src/mx/venus/mojileds/WhitePulse.java src/mx/venus/mojileds/NativeWhiteCapture.java src/mx/venus/mojileds/NativeStillCamera.java
 "$JDK/bin/jar" cf "$OUT/classes.jar" -C "$OUT/classes" .
 "$JDK/bin/java" -cp "$TOOLS/lib/d8.jar" com.android.tools.r8.D8 --min-api 26 --lib "$ANDROID" --output "$OUT/dex" "$OUT/classes.jar"
 cp "$OUT/resources.apk" "$OUT/unsigned.apk"
