@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>Moji · Venus Skin IA</title>
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https://res.cloudinary.com; media-src 'self' blob:; connect-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'self'">
@@ -15,51 +15,21 @@
   Chrome 70: NADA de `?.` ni `??` ni replaceAll — una sola rompe todo el
   script sin error visible. async/await, template literals y fetch sí hay.
 -->
-<style>
-  :root{--olivo:#6b7a4a;--crema:#f6f2ea;--tinta:#2b2b2b;--linea:#d9d2c3;--rojo:#9b3b3b;--verde:#3d6b3d}
-  *{box-sizing:border-box}
-  body{margin:0;background:var(--crema);color:var(--tinta);font:18px/1.4 -apple-system,system-ui,Roboto,sans-serif}
-  main{max-width:720px;margin:0 auto;padding:18px 16px 40px}
-  h1{font:600 30px/1.1 Georgia,serif;margin:0 0 2px}
-  .sub{color:#6d6d6d;font-size:15px;margin:0 0 14px}
-  button,.btn{min-height:60px;padding:0 20px;border:1px solid var(--linea);border-radius:14px;background:#fff;color:var(--tinta);font-size:19px;cursor:pointer}
-  .primario{background:var(--olivo);color:#fff;border-color:var(--olivo);font-weight:600;width:100%;font-size:22px;min-height:68px}
-  .primario:disabled{opacity:.55}
-  input,select{width:100%;min-height:58px;padding:0 14px;border:1px solid var(--linea);border-radius:12px;font-size:19px;background:#fff;color:var(--tinta)}
-  label{display:block;font-size:14px;color:#6d6d6d;margin:10px 0 6px;text-transform:uppercase;letter-spacing:.04em}
-  section{background:#fff;border:1px solid var(--linea);border-radius:16px;padding:16px;margin:12px 0}
-  .fila{display:flex;gap:10px;flex-wrap:wrap}
-  .fila > *{flex:1;min-width:140px}
-  .lista button{display:block;width:100%;text-align:left;margin:6px 0;min-height:64px}
-  .lista small{color:#6d6d6d;margin-left:8px}
-  .estado{min-height:1.5em;font-size:16px;margin:8px 0}
-  .ok{color:var(--verde)} .mal{color:var(--rojo)}
-  .vista{position:relative;width:100%;height:65vh;max-height:680px;background:#20211f;border-radius:14px;overflow:hidden}
-  .vista video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform-origin:center}
-  .guia{position:absolute;left:50%;top:50%;width:62%;height:78%;transform:translate(-50%,-50%);border:3px dashed rgba(255,255,255,.7);border-radius:50%;pointer-events:none}
-  .chips{display:flex;gap:8px;flex-wrap:wrap}
-  .chips button{flex:1;min-width:110px}
-  .chips button.on{background:var(--olivo);color:#fff;border-color:var(--olivo)}
-  img.mini{width:100%;border-radius:14px;margin-top:10px}
-  .oculto{display:none !important}
-  .pie{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:8px;font-size:15px;color:#6d6d6d}
-  a{color:#526038} button:focus,a:focus,input:focus,select:focus{outline:3px solid #939f6c;outline-offset:3px}
-  button:disabled{opacity:.5;cursor:wait} button:active{transform:translateY(1px)}
-  .aviso{background:#f0eddf;padding:12px;font-size:16px;border-left:3px solid var(--olivo)}
-  .sesion-fotos{margin:12px 0;padding-left:24px} .sesion-fotos li{margin:8px 0}
-  .pasos{font-size:14px;color:#626953;margin:12px 0 20px;word-spacing:3px}
-</style>
+<link rel="stylesheet" href="/moji-capture.css?v=20260920b">
+<link rel="icon" href="/assets/icon-192.png">
+<meta name="theme-color" content="#888f79">
 </head>
 <body>
+<header class="app-header"><img src="/assets/icon-192.png" width="56" height="56" alt="Venus Cosmetología"><div><strong>Venus</strong><span>Estudio de la piel</span></div><span class="header-label">Captura y seguimiento</span></header>
 <main>
-  <h1>Venus Skin IA</h1>
-  <p class="sub">Del Moji a la valoración, sin subir archivos.</p>
-  <p class="pasos">1 Clienta · 2 Fotos · 3 Consulta y análisis · 4 Revisión</p>
+  <div class="page-title"><div><p class="eyebrow">VENUS · SKIN STUDIO</p><h1>Un registro de su piel.</h1><p class="sub">Expediente, capturas y valoración.</p></div><span class="private-label">Acceso profesional</span></div>
+  <ol class="pasos" aria-label="Etapas de valoración"><li id="step-clienta" aria-current="step"><b>01</b> Clienta</li><li id="step-fotos"><b>02</b> Fotografías</li><li><b>03</b> Valoración</li><li><b>04</b> Revisión</li></ol>
   <p id="e-general" class="estado" role="status" aria-live="polite"></p>
-  <div id="native-help" class="aviso oculto">Estás en el navegador. Para tomar con luz blanca automática, abre esta página en la app Venus actualizada. <a href="venusmoji://capture" id="open-native">Abrir Venus Moji</a> · <a href="/downloads/venus-moji-captura-0.8.0.apk" id="download-native">Instalar actualización</a>. La captura sin luces automáticas también está disponible.</div>
+  <div id="native-help" class="aviso oculto">Estás en el navegador. Para tomar con luz blanca automática, abre esta página en la app Venus actualizada. <a href="venusmoji://capture" id="open-native">Abrir Venus Moji</a> · <a href="/downloads/venus-moji-captura-0.8.1.apk" id="download-native">Instalar actualización</a>. La captura sin luces automáticas también está disponible.</div>
 
   <!-- 0 · Sesión -->
   <section id="s-login" class="oculto">
+    <p class="eyebrow">BIENVENIDA A VENUS</p><h2>Tu espacio de trabajo.</h2>
     <label for="email">Correo</label><input id="email" type="email" autocomplete="username" inputmode="email">
     <label for="pass">Contraseña</label><input id="pass" type="password" autocomplete="current-password">
     <div style="height:12px"></div>
@@ -69,6 +39,7 @@
 
   <!-- 1 · Clienta -->
   <section id="s-clienta" class="oculto">
+    <p class="eyebrow">01 / EXPEDIENTE</p><h2>Comencemos con ella.</h2>
     <label for="q">¿A quién vamos a analizar?</label>
     <input id="q" type="search" placeholder="Nombre o teléfono" autocomplete="off">
     <div class="lista" id="resultados"></div>
@@ -78,10 +49,12 @@
   <!-- 2 · Cámara -->
   <section id="s-camara" class="oculto">
     <div class="pie"><strong id="nombre-clienta" style="color:var(--tinta);font-size:18px"></strong><button id="b-cambiar" style="min-height:44px;font-size:15px">Cambiar clienta</button></div>
+    <div class="capture-layout"><div class="capture-stage">
     <div class="vista" style="margin-top:8px"><video id="video" autoplay playsinline muted></video><div class="guia"></div></div>
     <div class="pie"><span id="e-camara">Abriendo cámara…</span><button id="b-girar" style="min-height:44px;font-size:15px">Girar</button></div>
     <div id="e-luces" class="aviso" role="status"></div>
     <button id="b-apagar" type="button">Apagar luz blanca</button>
+    </div><div class="capture-settings"><p class="eyebrow">02 / FOTOGRAFÍAS</p><h2>Nueva captura</h2>
     <label for="modo">Uso de las fotos</label><select id="modo"><option value="analisis">Valoración con IA (hasta 4 fotos)</option><option value="seguimiento">Solo seguimiento antes / después</option></select>
 
     <label>Tipo</label>
@@ -99,13 +72,23 @@
     <div class="estado" id="e-tomar"></div>
     <img class="mini oculto" id="mini" alt="Última foto guardada de esta sesión">
     <div class="fila oculto" id="despues"><button id="b-otra">Otra foto</button><button id="b-ficha">Ver expediente</button></div>
+    </div></div><div class="import-section">
+    <h2>Capturas de Bitmoji</h2>
+    <input id="moji-files" type="file" accept="image/jpeg" multiple hidden>
+    <button id="b-import" type="button">Seleccionar seis fotos de Bitmoji</button>
+    <div id="import-preview"></div>
+    <button id="b-import-save" type="button" hidden>Guardar en este expediente</button>
+    <p id="e-import" class="estado" role="status"></p>
+    </div><h2 class="gallery-heading">Fotografías del expediente</h2>
     <ol id="session-photos" class="sesion-fotos"></ol>
     <button id="b-analizar" class="primario" disabled>Continuar a consulta y análisis</button>
     <p class="sub">Las fotos se guardan en su expediente. Nada se envía a OpenAI hasta registrar el consentimiento y pulsar Analizar.</p>
   </section>
 </main>
+<footer class="app-footer"><span>Venus Cosmetología</span><span>El cuidado empieza por conocer su piel.</span></footer>
 
-<script src="/moji-capture-flow.js?v=20260912a"></script>
-<script src="/moji-capture.js?v=20260912a"></script>
+<script src="/moji-capture-flow.js?v=20260920a"></script>
+<script src="/moji-import.js?v=20260920a"></script>
+<script src="/moji-capture.js?v=20260920a"></script>
 </body>
 </html>

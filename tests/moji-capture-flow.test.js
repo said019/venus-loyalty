@@ -22,6 +22,16 @@ test('advisor query accepts bounded IDs only, without granting ownership or atte
   assert.deepEqual(Array.from(flow.selectedIds('?capture=1&photoIds=p1,p1,p2,https://evil')), ['p1', 'p2']);
   assert.equal(flow.selectedIds('?photoIds=p1').length, 0);
 });
+test('deleting a captured photo frees its slot and excludes it from analysis', () => {
+  const s = flow.session(); s.reset('r'); const ticket = s.ticket();
+  for (let i = 0; i < 4; i++) s.add(ticket, { id: 'p' + i });
+  assert.equal(s.remove(ticket, 'p1'), true);
+  assert.equal(s.add(ticket, { id: 'replacement' }), true);
+  assert.doesNotMatch(s.advisorUrl('card'), /p1/);
+  s.reset('another'); s.add(s.ticket(), { id: 'replacement' });
+  assert.equal(s.remove(ticket, 'replacement'), false);
+  assert.equal(s.photos().length, 1);
+});
 test('request deadline includes a stalled JSON response body', async () => {
   const source = fs.readFileSync('public/moji-capture.js', 'utf8');
   const functions = source.slice(source.indexOf('  function bounded('), source.indexOf('  function controls('));

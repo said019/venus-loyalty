@@ -13,6 +13,12 @@
         photos.push({ id: photo.id }); return true;
       },
       photos: function () { return photos.slice(); },
+      remove: function (ticket, id) {
+        if (!this.current(ticket)) return false;
+        var before = photos.length;
+        photos = photos.filter(function (p) { return p.id !== id; });
+        return photos.length !== before;
+      },
       advisorUrl: function (cardId) {
         if (!record || !photos.length) throw new Error('Primero toma una foto.');
         return '/skin-advisor.html?capture=1&recordId=' + encodeURIComponent(record) + '&cardId=' + encodeURIComponent(cardId) + '&photoIds=' + encodeURIComponent(photos.map(function (p) { return p.id; }).join(','));

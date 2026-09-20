@@ -5,8 +5,20 @@
   var clienta = null, recordId = null, stream = null, track = null, busy = false, selection = 0, cameraEpoch = 0;
   var rotation = Number(localStorage.getItem('capturaRotacion') || 90), timer, searchEpoch = 0, previewUrl = null;
   var lightRequest = 0, pendingLight = null;
+  var sessionPhotos = [];
+  var imported = [], importUrls = [];
+  function clearImport() {
+    imported = []; importUrls.forEach(function (url) { URL.revokeObjectURL(url); }); importUrls = [];
+    $('import-preview').textContent = ''; $('moji-files').value = ''; $('b-import-save').hidden = true;
+  }
   if ([0, 90, 180, 270].indexOf(rotation) === -1) rotation = 90;
-  function show(id, yes) { $(id).classList.toggle('oculto', !yes); }
+  function show(id, yes) {
+    $(id).classList.toggle('oculto', !yes);
+    if (yes && (id === 's-clienta' || id === 's-camara')) {
+      $('step-clienta').removeAttribute('aria-current'); $('step-fotos').removeAttribute('aria-current');
+      $(id === 's-camara' ? 'step-fotos' : 'step-clienta').setAttribute('aria-current', 'step');
+    }
+  }
   function status(id, text, bad) { $(id).textContent = text; $(id).className = 'estado ' + (bad ? 'mal' : 'ok'); }
   function later(ms) { return new Promise(function (resolve) { setTimeout(resolve, ms); }); }
   function bounded(promise, ms) {
@@ -19,16 +31,50 @@
     return bounded((async function () {
       var response = await fetch(url, options || { credentials: 'same-origin' });
       if (response.status === 401) throw new Error('Tu sesión venció. Vuelve a entrar en Venus.');
+      if (response.status === 403) throw new Error('Tu cuenta no tiene permiso para esta acción. Entra con una cuenta administradora.');
       var data = await response.json();
       if (!response.ok || data.success === false) throw new Error('Venus no pudo completar la operación.');
       return data;
     }()), 25000);
   }
   function controls() {
+    $('b-import').disabled = busy || !recordId; $('b-import-save').disabled = busy || !recordId || !imported.length;
     ['b-cambiar', 'b-girar', 'modo', 'categoria', 'area', 'desc', 'b-otra', 'b-ficha'].forEach(function (id) { $(id).disabled = busy; });
     $('b-tomar').disabled = busy || !stream || !recordId || ($('modo').value === 'analisis' && flow.photos().length >= 4);
     $('b-analizar').disabled = busy || !flow.photos().length || $('modo').value !== 'analisis';
     Array.prototype.forEach.call($('tipo').querySelectorAll('button'), function (b) { b.disabled = busy; });
+    Array.prototype.forEach.call($('session-photos').querySelectorAll('button'), function (b) { b.disabled = busy; });
+  }
+  function renderSessionPhotos() {
+    $('session-photos').textContent = '';
+    sessionPhotos.forEach(function (p, i) {
+      var li = document.createElement('li');
+      if (p.url && /^https:\/\//.test(p.url)) {
+        var thumbnail = document.createElement('img'); thumbnail.src = p.url; thumbnail.alt = 'Foto ' + (i + 1) + ' del expediente'; thumbnail.loading = 'lazy'; li.appendChild(thumbnail);
+      }
+      var label = document.createElement('span'); label.textContent = 'Foto ' + (i + 1) + ' guardada'; li.appendChild(label);
+      var remove = document.createElement('button'); remove.type = 'button'; remove.textContent = 'Eliminar foto ' + (i + 1);
+      var cancel = document.createElement('button'); cancel.type = 'button'; cancel.textContent = 'Conservar'; cancel.hidden = true;
+      var confirming = false;
+      cancel.onclick = function () { confirming = false; remove.textContent = 'Eliminar foto ' + (i + 1); cancel.hidden = true; };
+      remove.onclick = async function () {
+        if (busy) return;
+        if (!confirming) { confirming = true; remove.textContent = 'Confirmar eliminación del expediente'; cancel.hidden = false; return; }
+        busy = true; controls(); var ticket = flow.ticket();
+        try {
+          await json('/api/client-records/photos/' + encodeURIComponent(p.id), { method: 'DELETE', credentials: 'same-origin' });
+          if (!flow.current(ticket)) return;
+          flow.remove(ticket, p.id);
+          sessionPhotos = sessionPhotos.filter(function (photo) { return photo.id !== p.id; });
+          // The large preview may be the removed photo; never leave a deleted image displayed.
+          if (previewUrl) { URL.revokeObjectURL(previewUrl); previewUrl = null; }
+          $('mini').removeAttribute('src'); show('mini', false);
+          renderSessionPhotos(); status('e-tomar', 'Foto eliminada del expediente.');
+        } catch (e) { status('e-tomar', e.message + ' La foto sigue en la lista; verifica el expediente antes de reintentar.', true); }
+        finally { busy = false; controls(); }
+      };
+      li.appendChild(remove); li.appendChild(cancel); $('session-photos').appendChild(li);
+    });
   }
   function off() {
     if (pendingLight) { var p = pendingLight; pendingLight = null; clearTimeout(p.timer); p.reject(new Error('Captura con luz cancelada.')); }
@@ -82,7 +128,10 @@
       if (token !== selection) return;
       var rec = j.data || j; if (!rec.id) throw new Error('Expediente no disponible.');
       clienta = c; recordId = rec.id; flow.reset(rec.id);
+      clearImport();
+      sessionPhotos = (rec.photos || []).slice();
       $('nombre-clienta').textContent = c.name; $('session-photos').textContent = '';
+      renderSessionPhotos();
       $('area').value = ''; $('desc').value = '';
       show('s-clienta', false); show('s-camara', true); show('mini', false); show('despues', false); status('e-tomar', '');
       await openCamera();
@@ -140,7 +189,7 @@
       if ($('modo').value === 'analisis' && !flow.add(ticket, j.data)) throw new Error('La foto se guardó, pero no se pudo añadir al análisis. Revisa el expediente.');
       if (previewUrl) URL.revokeObjectURL(previewUrl); previewUrl = URL.createObjectURL(blob); $('mini').src = previewUrl;
       show('mini', true); show('despues', true);
-      $('session-photos').textContent = ''; flow.photos().forEach(function (p, i) { var li = document.createElement('li'); li.textContent = 'Foto ' + (i + 1) + ' guardada · pendiente de confirmar zona y luz'; $('session-photos').appendChild(li); });
+      sessionPhotos.push(j.data); renderSessionPhotos();
       status('e-tomar', 'Foto guardada para ' + clienta.name + '.');
     } catch (e) { if (flow.current(ticket)) status('e-tomar', e.message + ' Si falló la conexión al guardar, revisa el expediente antes de repetir.', true); }
     finally { off(); busy = false; controls(); }
@@ -152,13 +201,51 @@
   };
   $('pass').onkeydown = function (e) { if (e.key === 'Enter') $('b-login').click(); };
   $('q').oninput = search;
+  $('b-import').onclick = function () { if (!busy && recordId) { closeCamera(); $('moji-files').click(); } };
+  $('moji-files').onchange = function () {
+    var files = Array.prototype.slice.call(this.files || []); clearImport();
+    try {
+      imported = window.VenusMojiImport.inspect(files);
+      imported.forEach(function (item) {
+        var figure = document.createElement('figure'), img = document.createElement('img'), caption = document.createElement('figcaption');
+        var url = URL.createObjectURL(item.file); importUrls.push(url); img.src = url; img.alt = item.label; img.width = 120; img.height = 150; img.style.objectFit = 'contain';
+        caption.textContent = item.label + ' · ' + item.source; figure.appendChild(img); figure.appendChild(caption); $('import-preview').appendChild(figure);
+      });
+      $('b-import-save').textContent = 'Guardar seis fotos en el expediente de ' + clienta.name; $('b-import-save').hidden = false;
+      status('e-import', 'Confirma que las seis imágenes corresponden a ' + clienta.name + '.');
+    } catch (e) { status('e-import', e.message, true); }
+    controls();
+  };
+  $('b-import-save').onclick = async function () {
+    if (busy || !recordId || !imported.length) return;
+    busy = true; controls(); var ticket = flow.ticket(), saved = 0;
+    try {
+      // Validate every image before the first upload; original files are never edited.
+      for (var i = 0; i < imported.length; i++) {
+        await bounded(new Promise(function (resolve, reject) { var img = new Image(); img.onload = resolve; img.onerror = function () { reject(new Error('Una imagen no se puede abrir.')); }; img.src = importUrls[i]; }), 5000);
+      }
+      for (var n = 0; n < imported.length; n++) {
+        if (!flow.current(ticket)) throw new Error('La clienta cambió. Importación cancelada.');
+        var item = imported[n];
+        status('e-import', 'Guardando ' + item.label + ' (' + (n + 1) + '/6)…');
+        var fd = new FormData(); fd.append('photo', item.file, item.source); fd.append('type', 'progress'); fd.append('category', 'facial');
+        fd.append('description', 'Bitmoji original | modo=' + item.mode + ' | archivo=' + item.source + ' | archivoModificado=' + item.file.lastModified);
+        var response = await json('/api/client-records/' + encodeURIComponent(ticket.recordId) + '/photos', { method: 'POST', credentials: 'same-origin', body: fd });
+        sessionPhotos.push(response.data); saved++; renderSessionPhotos();
+        // The advisor is white-light only; never pass UV or derived modalities as white.
+        if (item.mode === 'image' && $('modo').value === 'analisis') flow.add(ticket, response.data);
+      }
+      status('e-import', 'Se guardaron las seis imágenes originales. La valoración con IA utiliza solo la blanca.');
+    } catch (e) { status('e-import', e.message + ' Confirmadas: ' + saved + ' de 6. Revisa el expediente antes de repetir para evitar duplicados.', true); }
+    finally { clearImport(); busy = false; controls(); }
+  };
   $('b-tomar').onclick = take;
   $('b-apagar').onclick = function () { cameraEpoch += 1; off(); status('e-luces', 'Apagado solicitado. Comprueba que la luz esté apagada.'); };
   $('b-girar').onclick = function () { rotation = (rotation + 90) % 360; localStorage.setItem('capturaRotacion', String(rotation)); rotate(); };
   $('b-cambiar').onclick = function () { if (busy) return; closeCamera(); selection += 1; searchEpoch += 1; clearTimeout(timer); flow.reset(null); clienta = null; recordId = null; show('s-camara', false); show('s-clienta', true); $('q').value = ''; $('resultados').textContent = ''; controls(); };
   $('b-otra').onclick = function () { show('mini', false); show('despues', false); status('e-tomar', ''); };
   $('b-ficha').onclick = function () { if (clienta) { closeCamera(); location.href = '/admin/clientas/' + encodeURIComponent(clienta.id); } };
-  $('modo').onchange = function () { flow.reset(recordId); $('session-photos').textContent = ''; controls(); };
+  $('modo').onchange = function () { flow.reset(recordId); renderSessionPhotos(); controls(); };
   Array.prototype.forEach.call($('tipo').querySelectorAll('button'), function (b) { b.onclick = function () { Array.prototype.forEach.call($('tipo').querySelectorAll('button'), function (x) { x.classList.toggle('on', x === b); }); }; });
   $('b-analizar').onclick = function () { if (busy || !clienta) return; closeCamera(); location.href = flow.advisorUrl(clienta.id); };
   window.addEventListener('pagehide', closeCamera);
