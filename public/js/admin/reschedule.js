@@ -85,6 +85,7 @@
       const json = await response.json();
       if (!response.ok || !json.success) throw new Error(json.error || 'No se pudo guardar el cambio.');
       appointment = { ...appointment, date: body.date, time: body.time };
+      document.dispatchEvent(new Event('appointment-rescheduled'));
       form.hidden = true;
       const failed = json.notification?.status === 'failed';
       status.textContent = failed

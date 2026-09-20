@@ -1499,6 +1499,16 @@ app.get('/api/appointments/range', adminAuth, async (req, res) => {
 });
 
 // GET /api/appointments/:id - Obtener una cita por ID
+app.get('/api/appointments/search', adminAuth, async (req, res) => {
+  try {
+    const { searchAppointments } = await import('./src/services/appointment-search.js');
+    res.json({ success: true, ...await searchAppointments(prisma.appointment, req.query) });
+  } catch (error) {
+    console.error('[Appointment search]', error.message);
+    res.status(500).json({ success: false, error: 'No se pudieron buscar las citas.' });
+  }
+});
+
 app.get('/api/appointments/:id', adminAuth, async (req, res) => {
   try {
     const { id } = req.params;

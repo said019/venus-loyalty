@@ -1,0 +1,53 @@
+/* Scoped calendar surface; event positions retain the existing time geometry. */
+#tab-appointments #cal-main-grid { grid-template-columns: minmax(0, 1fr) 320px !important; gap: 24px !important; }
+#calendar-period-label { font: 600 19px var(--font-body); color: var(--ink); text-transform: capitalize; }
+#tab-appointments .google-calendar-container { padding: 0 !important; border: 0; background: transparent; box-shadow: none; }
+#tab-appointments .agenda-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 18px; }
+#tab-appointments .agenda-date-nav { margin-left: auto; border-radius: 6px; }
+#tab-appointments .view-selector { border-radius: 6px; padding: 3px; }
+#tab-appointments .view-selector button { border-radius: 4px; min-height: 40px; }
+#tab-appointments .calendar-grid-container { border: 1px solid var(--line); border-radius: 8px; background: var(--card); }
+#tab-appointments .calendar-grid { gap: 0; border-radius: 0; background: var(--card); }
+#tab-appointments .weekdays-header { border-radius: 0; background: var(--card) !important; }
+#tab-appointments .weekday { background: transparent !important; color: var(--ink) !important; padding: 12px 4px; font: 600 12px var(--font-body) !important; letter-spacing: 0; }
+#tab-appointments .calendar-day {
+  min-height: 132px; padding: 8px; border: 0; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line);
+  border-radius: 0; background: var(--card) !important; box-shadow: none; gap: 3px;
+}
+#tab-appointments .calendar-day.other-month { opacity: 1; background: color-mix(in srgb, var(--muted) 8%, var(--card)) !important; }
+#tab-appointments .calendar-day.other-month .day-number { color: var(--muted) !important; }
+#tab-appointments .calendar-day.selected { background: color-mix(in srgb, var(--venus) 12%, var(--card)) !important; outline: 2px solid var(--venus); outline-offset: -2px; }
+#tab-appointments .calendar-day .day-number {
+  display: grid; place-items: center; flex: 0 0 auto; width: 32px; height: 32px; min-height: 32px;
+  margin: 0 0 4px; padding: 0; border: 0; border-radius: 50%; background: transparent !important;
+  color: var(--ink) !important; font: 600 14px var(--font-body); cursor: pointer; box-shadow: none;
+}
+#tab-appointments .calendar-day.today .day-number { background: oklch(39% 0.04 130) !important; color: oklch(97% 0.008 100) !important; }
+#tab-appointments .calendar-event {
+  display: block; width: 100%; min-height: 24px; padding: 4px 5px; border: 0; border-radius: 4px;
+  text-align: left; font: 500 11px var(--font-body); color: var(--ink) !important;
+  background: color-mix(in srgb, var(--venus) 10%, var(--card)) !important;
+  box-shadow: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+#tab-appointments .calendar-event.cancelled { text-decoration: line-through; color: var(--muted) !important; }
+#tab-appointments .calendar-event:hover { filter: none; background: color-mix(in srgb, var(--venus) 24%, var(--card)) !important; }
+#tab-appointments .event-more { padding: 4px; border: 0; background: transparent; color: var(--ink); text-align: left; font: 600 11px var(--font-body); cursor: pointer; }
+#tab-appointments .calendar-day-count { display: none; }
+#tab-appointments .calendar-grid-container :focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
+#tab-appointments .time-label, #tab-appointments .day-header-cell { color: var(--ink); font-family: var(--font-body); }
+#tab-appointments .day-header-cell { background: var(--card); border-radius: 0; }
+#tab-appointments .appt-block { border-radius: 5px; box-shadow: none; font-family: var(--font-body); }
+#tab-appointments #cal-main-grid > div:last-child > div:first-child { flex-wrap: wrap; gap: 12px; }
+#tab-appointments #cal-main-grid > div:last-child h2 { font-family: var(--font-body); font-size: 16px !important; line-height: 1.4; }
+@media (max-width: 1024.98px) {
+  #tab-appointments #cal-main-grid { grid-template-columns: minmax(0, 1fr) !important; }
+}
+@media (max-width: 767.98px) {
+  #tab-appointments .calendar-day { min-height: 76px !important; padding: 4px 2px !important; align-items: center; }
+  #tab-appointments .calendar-day .day-number { width: 32px; height: 32px; font-size: 14px !important; }
+  #tab-appointments .calendar-day .day-events { display: none !important; }
+  #tab-appointments .calendar-day-count { display: block; font: 500 10px var(--font-body); color: var(--ink); white-space: nowrap; }
+  #calendar-period-label { width: 100%; font-size: 18px; }
+  #tab-appointments .agenda-date-nav { margin-left: 0; }
+  #tab-appointments .view-selector { margin-left: auto; }
+}

@@ -1838,11 +1838,26 @@
       </div>
 
       <!-- 2. Main Grid: Calendar + Daily Appointments -->
+      <section id="appointment-search" aria-label="Buscar citas">
+        <label for="appointment-search-query">Buscar citas de una clienta</label>
+        <div class="appointment-search-toolbar">
+          <input id="appointment-search-query" type="search" placeholder="Nombre o teléfono" autocomplete="off">
+          <div class="appointment-search-filters" role="group" aria-label="Fecha de las citas">
+            <button type="button" data-scope="all" aria-pressed="true">Todas</button>
+            <button type="button" data-scope="upcoming" aria-pressed="false">Próximas</button>
+            <button type="button" data-scope="past" aria-pressed="false">Pasadas</button>
+          </div>
+        </div>
+        <p id="appointment-search-status" role="status" aria-live="polite"></p>
+        <ul id="appointment-search-results"></ul>
+        <button id="appointment-search-more" type="button" hidden>Ver más citas</button>
+      </section>
       <div id="cal-main-grid" style="display:grid;gap:20px;min-width:0;">
 
         <!-- Calendar Section -->
         <div style="min-width:0;overflow:hidden;">
           <div class="agenda-controls">
+            <strong id="calendar-period-label" aria-live="polite"></strong>
             <div class="agenda-date-nav">
               <button class="btn-nav" id="btn-prev-month" title="Anterior" aria-label="Anterior">
                 <i class="fas fa-chevron-left" aria-hidden="true"></i>
@@ -1862,7 +1877,7 @@
             </button>
           </div>
 
-          <div class="google-calendar-container" style="background:var(--glass-bg);border:1px solid var(--border-color);border-radius:16px;padding:24px;">
+          <div class="google-calendar-container">
             <div class="calendar-grid-container">
               <div class="weekdays-header">
                 <div class="weekday">Dom</div>
@@ -10621,6 +10636,7 @@
     }
 
     function renderWeeklyCalendar() {
+      document.getElementById('calendar-period-label').textContent = selectedDate.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' });
       const calendarContainer = document.getElementById('monthly-calendar');
       calendarContainer.innerHTML = '';
 
@@ -10702,6 +10718,7 @@
     }
 
     function renderDailyCalendar() {
+      document.getElementById('calendar-period-label').textContent = selectedDate.toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
       const calendarContainer = document.getElementById('monthly-calendar');
       calendarContainer.innerHTML = '';
 
@@ -10839,6 +10856,7 @@
       if (calendarMonthTitle) {
         calendarMonthTitle.textContent = `${monthNames[month]} ${year}`;
       }
+      document.getElementById('calendar-period-label').textContent = `${monthNames[month]} ${year}`;
 
       // Limpiar calendario
       monthlyCalendar.innerHTML = '';
@@ -10902,7 +10920,11 @@
       }
 
       // Número del día
-      const dayNumber = document.createElement('div');
+      const dayNumber = document.createElement('button');
+      dayNumber.type = 'button';
+      dayNumber.disabled = isOtherMonth;
+      dayNumber.setAttribute('aria-label', date.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }));
+      dayNumber.setAttribute('aria-pressed', String(date.getTime() === selectedDate.getTime()));
       dayNumber.className = 'day-number';
       dayNumber.textContent = dayNum;
       dayEl.appendChild(dayNumber);
@@ -10913,11 +10935,16 @@
 
       // Obtener citas del día
       const dayAppointments = getCachedAppointmentsForDate(dateStr);
+      const count = document.createElement('span');
+      count.className = 'calendar-day-count';
+      count.textContent = dayAppointments.length ? `${dayAppointments.length} citas` : '';
+      dayEl.appendChild(count);
 
       // Mostrar hasta 3 eventos, el resto como "+X más"
       const maxEvents = 3;
       dayAppointments.slice(0, maxEvents).forEach(apt => {
-        const eventEl = document.createElement('div');
+        const eventEl = document.createElement('button');
+        eventEl.type = 'button';
         eventEl.className = 'calendar-event';
 
         // Color según estado
@@ -10940,7 +10967,8 @@
 
       // Mostrar "+X más" si hay más eventos
       if (dayAppointments.length > maxEvents) {
-        const moreEl = document.createElement('div');
+        const moreEl = document.createElement('button');
+        moreEl.type = 'button';
         moreEl.className = 'event-more';
         moreEl.textContent = `+${dayAppointments.length - maxEvents} más`;
         moreEl.addEventListener('click', (e) => {
@@ -10965,10 +10993,12 @@
           // Remover selección anterior
           document.querySelectorAll('.calendar-day.selected').forEach(el => {
             el.classList.remove('selected');
+            el.querySelector('.day-number')?.setAttribute('aria-pressed', 'false');
           });
 
           // Seleccionar nuevo día
           dayEl.classList.add('selected');
+          dayNumber.setAttribute('aria-pressed', 'true');
           selectedDate = new Date(date);
 
           // Cambiar a la pestaña de Citas
@@ -12318,6 +12348,26 @@
       if (historyHeaderEl) historyHeaderEl.classList.remove('expanded');
 
       newApptDialog.showModal();
+    };
+
+    window.bookAgainFromSearch = async function (appointment) {
+      await Promise.all([loadServices(), loadClients()]);
+      window.openNewAppointmentModal();
+      selectedServices = [];
+      renderSelectedServices();
+      const input = document.getElementById('new-appt-client-select');
+      input.value = appointment.clientName;
+      input.dataset.phone = appointment.clientPhone || '';
+      input.dataset.clientId = appointment.cardId || '';
+      selectedClientPhone = appointment.clientPhone || '';
+      window.selectedClientPhone = selectedClientPhone;
+      const service = allServices.find(s => s.name === appointment.serviceName);
+      const serviceInput = document.getElementById('new-appt-service');
+      serviceInput.value = service ? service.name : '';
+      serviceInput.dispatchEvent(new Event('input', { bubbles: true }));
+      document.getElementById('new-appt-hour').value = '';
+      document.getElementById('new-appt-minute').value = '';
+      if (!service) await venusAlert('El servicio anterior ya no está disponible. Selecciona un servicio para la nueva cita.');
     };
 
     // Modal
@@ -22418,6 +22468,9 @@
   <link rel="stylesheet" href="/css/reschedule.css">
   <link rel="stylesheet" href="/css/caja-history.css">
   <script src="/js/admin/reschedule.js"></script>
+  <link rel="stylesheet" href="/css/appointment-search.css">
+  <link rel="stylesheet" href="/css/venus-calendar.css">
+  <script src="/js/admin/appointment-search.js"></script>
 </body>
 
 </html>
