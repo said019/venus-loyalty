@@ -2414,7 +2414,7 @@
       </div>
 
       <!-- Historial de transacciones del día -->
-      <div class="card">
+      <div class="caja-history" id="caja-history">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:12px;">
           <h3 style="margin:0;font-size:14px;color:var(--venus-soft);">
             <i class="fas fa-list-alt"></i> Historial de Transacciones
@@ -3174,6 +3174,7 @@
     <dialog id="editApptDialog">
       <div class="dialog-content">
         <h2><i class="fas fa-edit"></i> Modificar Cita</h2>
+        <button type="button" class="btn-secondary" onclick="openReschedule(document.getElementById('edit-appt-id').value)"><i class="fas fa-calendar-alt" aria-hidden="true"></i> Reagendar</button>
         <form id="form-edit-appt">
           <input type="hidden" id="edit-appt-id">
 
@@ -11155,6 +11156,7 @@
                   <button onclick="sendWhatsAppAttendanceSurvey('${appt.id}')" style="flex:1;font-size:9px;font-weight:700;padding:6px;border-radius:8px;background:#25D366;color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;">
                     <i class="fab fa-whatsapp" style="font-size:10px;"></i> WhatsApp
                   </button>
+                  <button onclick="openReschedule('${appt.id}')" class="btn-icon appt-action info" title="Reagendar cita" aria-label="Reagendar cita"><i class="fas fa-calendar-alt" aria-hidden="true"></i></button>
                   <button onclick="editAppointment('${appt.id}')" style="padding:6px 8px;border-radius:8px;background:var(--glass-bg);border:1px solid var(--border-color);color:var(--muted);cursor:pointer;" aria-label="Editar cita">
                     <i class="fas fa-edit" aria-hidden="true" style="font-size:11px;"></i>
                   </button>
@@ -11255,6 +11257,7 @@
                 <button onclick="editAppointment('${appt.id}')" class="btn-icon appt-action info">
                   <i class="fas fa-edit"></i> Modificar
                 </button>
+                <button onclick="openReschedule('${appt.id}')" class="btn-icon appt-action info"><i class="fas fa-calendar-alt" aria-hidden="true"></i> Reagendar</button>
                 <button onclick="cancelAppointment('${appt.id}')" class="btn-icon appt-action error">
                   <i class="fas fa-times-circle"></i> Cancelar
                 </button>
@@ -19045,6 +19048,7 @@
       // Actualizar botones activos
       document.querySelectorAll('.caja-filter-btn').forEach(btn => {
         btn.classList.toggle('is-active', btn.dataset.filter === filtro);
+        btn.setAttribute('aria-pressed', String(btn.dataset.filter === filtro));
       });
 
       renderHistorialCaja(cajaData);
@@ -22411,6 +22415,9 @@
     })();
   </script>
 
+  <link rel="stylesheet" href="/css/reschedule.css">
+  <link rel="stylesheet" href="/css/caja-history.css">
+  <script src="/js/admin/reschedule.js"></script>
 </body>
 
 </html>

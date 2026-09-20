@@ -2389,6 +2389,12 @@ app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
       return res.status(400).json({ success: false, error: 'Fecha y hora son requeridos' });
     }
 
+    const parsedDate = new Date(`${date}T12:00:00Z`);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(time) ||
+        !Number.isFinite(parsedDate.getTime()) || parsedDate.toISOString().slice(0, 10) !== date) {
+      return res.status(400).json({ success: false, error: 'Selecciona una fecha y hora válidas.' });
+    }
+
     // Obtener cita actual
     const appointment = await AppointmentsRepo.findById(id);
 
@@ -2403,7 +2409,7 @@ app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
     const conflicts = await AppointmentsRepo.findConflicts(
       date,
       time,
-      durationMinutes || 60,
+      durationMinutes || appointment.durationMinutes || 60,
       id  // Excluir la cita actual
     );
 
@@ -2429,6 +2435,10 @@ app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
       time,
       durationMinutes: durationMinutes || appointment.durationMinutes
     };
+    if (appointment.status === 'rescheduling' && (appointment.date !== date || appointment.time !== time)) {
+      updateData.status = 'scheduled';
+      updateData.rescheduleRequestedAt = null;
+    }
 
     if (serviceId) updateData.serviceId = serviceId;
     if (serviceName) updateData.serviceName = serviceName;
@@ -2444,15 +2454,24 @@ app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
     // momento (antes solo se enteraba con la encuesta del día, o nunca).
     // notifyClient:false en el body lo silencia para correcciones internas.
     const cambioFechaHora = (appointment.date !== date) || (appointment.time !== time);
-    if (cambioFechaHora && req.body.notifyClient !== false && appointment.clientPhone) {
-      WhatsAppService.sendReagendamientoConfirmado({ ...appointment, ...updateData })
-        .then(r => console.log(`[PATCH] 📅 Aviso de reagendo ${r.success ? 'enviado' : 'falló'} → ${appointment.clientName}`))
-        .catch(err => console.error('[PATCH] ❌ Aviso de reagendo:', err.message));
+    let notification = { status: 'skipped' };
+    if (cambioFechaHora && req.body.notifyClient !== false) {
+      if (!appointment.clientPhone) {
+        notification = { status: 'failed', error: 'La clienta no tiene teléfono registrado.' };
+      } else {
+        try {
+          const result = await WhatsAppService.sendReagendamientoConfirmado({ ...appointment, ...updateData });
+          notification = { status: result.success ? 'sent' : 'failed' };
+        } catch (err) {
+          notification = { status: 'failed' };
+          console.error('[PATCH] Aviso de reagendo:', err.message);
+        }
+      }
     }
 
     // ⭐ ACTUALIZAR GOOGLE CALENDAR si hay eventos asociados
     const startDateTimeMX = `${date}T${time}:00-06:00`;
-    const duration = durationMinutes || 60;
+    const duration = durationMinutes || appointment.durationMinutes || 60;
     // Calcular endDateTime correctamente: partir del start en UTC y sumar minutos
     const startUTC = new Date(startDateTimeMX); // interpreta -06:00 correctamente
     const endUTC = new Date(startUTC.getTime() + duration * 60000);
@@ -2520,7 +2539,7 @@ app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
               time,
               endTime: endISO,
               serviceName: serviceName || appointment.serviceName,
-              durationMinutes: durationMinutes || 60,
+              durationMinutes: duration,
             });
             console.log(`[PATCH OAuth] ✅ Evento OAuth actualizado`);
           } catch (e) {
@@ -2541,10 +2560,24 @@ app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
     });
 
     console.log(`[API] Appointment ${id} updated: ${date} ${time}`);
-    res.json({ success: true });
+    res.json({ success: true, notification });
   } catch (error) {
     console.error('Error updating appointment:', error);
     res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Reintenta solamente el aviso, sin volver a modificar la cita.
+app.post('/api/appointments/:id/reschedule-notification', adminAuth, async (req, res) => {
+  try {
+    const appointment = await AppointmentsRepo.findById(req.params.id);
+    if (!appointment) return res.status(404).json({ success: false, error: 'Cita no encontrada' });
+    if (!appointment.clientPhone) return res.status(400).json({ success: false, error: 'La clienta no tiene teléfono registrado.' });
+    const result = await WhatsAppService.sendReagendamientoConfirmado(appointment);
+    res.status(result.success ? 200 : 502).json({ success: !!result.success });
+  } catch (error) {
+    console.error('[Reagendar] Aviso:', error.message);
+    res.status(502).json({ success: false, error: 'No se pudo enviar el aviso.' });
   }
 });
 

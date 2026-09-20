@@ -1,0 +1,55 @@
+#reschedule-dialog {
+  inset: 0;
+  margin: auto;
+  transform: none;
+  animation: none;
+  width: min(480px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  padding: 28px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--card, var(--bg, oklch(97% 0.008 100)));
+  color: var(--ink, oklch(25% 0.025 130));
+  box-sizing: border-box;
+  overflow-y: auto;
+}
+#reschedule-dialog::backdrop { background: oklch(20% 0.01 130 / 0.55); backdrop-filter: none; -webkit-backdrop-filter: none; animation: none; }
+#reschedule-dialog h2 { font-size: 26px; margin: 0; }
+#reschedule-dialog header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+#reschedule-dialog button { min-height: 44px; cursor: pointer; }
+#reschedule-dialog .reschedule-close { background: none; border: 0; color: inherit; padding: 8px; font: inherit; font-size: 14px; }
+#reschedule-dialog .reschedule-summary { margin: 20px 0 24px; line-height: 1.6; }
+#reschedule-dialog .reschedule-summary strong { display: block; }
+#reschedule-dialog .reschedule-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+#reschedule-dialog label { display: block; font-size: 14px; }
+#reschedule-dialog input[type=date], #reschedule-dialog input[type=time] {
+  width: 100%; min-width: 0; min-height: 48px; box-sizing: border-box;
+  margin-top: 8px; padding: 10px; border: 1px solid var(--border-color);
+  border-radius: 6px; background: transparent; color: inherit; font: inherit;
+}
+#reschedule-dialog .reschedule-notify { display: flex; align-items: center; gap: 10px; margin: 24px 0; }
+#reschedule-dialog .reschedule-notify input { width: 18px; height: 18px; accent-color: var(--venus); }
+#reschedule-dialog .reschedule-submit { width: 100%; background: oklch(39% 0.04 130); color: oklch(97% 0.008 100); border: 0; border-radius: 6px; padding: 12px 16px; font: inherit; font-weight: 600; }
+#reschedule-dialog [role=status] { line-height: 1.5; margin: 16px 0 0; }
+#reschedule-dialog button:disabled { opacity: .6; cursor: wait; }
+#reschedule-dialog .reschedule-submit:hover:not(:disabled) { background: oklch(33% 0.04 130); }
+#reschedule-dialog .reschedule-submit:active:not(:disabled) { background: oklch(29% 0.04 130); }
+#reschedule-dialog :focus-visible { outline: 2px solid var(--venus); outline-offset: 3px; }
+@media (prefers-reduced-motion: no-preference) {
+  #reschedule-dialog[open] { animation: reschedule-enter 180ms cubic-bezier(.16,1,.3,1); }
+  @keyframes reschedule-enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+}
+@media (max-width: 767.98px) {
+  /* Override the admin's fullscreen-dialog rule for this short form. */
+  #reschedule-dialog {
+    width: calc(100vw - 32px) !important;
+    max-width: 480px !important;
+    height: fit-content !important;
+    max-height: calc(100dvh - 32px) !important;
+    margin: auto !important;
+    padding: 24px !important;
+    border-radius: var(--radius-xl, 8px) !important;
+    border: 1px solid var(--border-color) !important;
+  }
+  #reschedule-dialog .reschedule-fields { grid-template-columns: minmax(0, 1fr); }
+}

@@ -1,0 +1,79 @@
+/* Cash history keeps table semantics on desktop and a compact ledger on mobile. */
+#caja-history {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+  margin-top: 28px;
+}
+#caja-history::before { display: none; }
+#caja-history > div:first-child { gap: 16px; }
+#caja-history h3 { color: var(--ink) !important; font-size: 20px !important; }
+#caja-history > div:first-child > div {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px !important;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+#caja-history .caja-filter-btn {
+  min-height: 44px;
+  min-width: 0;
+  padding: 8px 14px;
+  border: 0;
+  border-radius: 5px;
+  font: 500 14px var(--font-body);
+  letter-spacing: 0;
+  color: var(--ink);
+  background: transparent;
+  box-shadow: none;
+}
+#caja-history .caja-filter-btn.is-active { background: oklch(39% 0.04 130) !important; color: oklch(97% 0.008 100) !important; }
+#caja-history .caja-filter-btn:not(.is-active):hover { background: var(--bg-hover); }
+#caja-history button:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 3px; }
+#caja-history .data-table { font-size: 14px !important; }
+#caja-history .data-table td { vertical-align: middle; }
+#caja-history .caja-amount-cell { color: var(--ink); font-family: var(--font-body); font-variant-numeric: tabular-nums; font-weight: 700; }
+#caja-history td[data-label="Acciones"] button { min-width: 44px; min-height: 44px; border-radius: 6px; }
+#caja-history .method-badge { width: auto; font-size: 12px; letter-spacing: 0; }
+@media (max-width: 767.98px) {
+  #caja-history > div:first-child > div { width: 100%; }
+  #caja-history .caja-filter-btn { padding: 8px 4px; }
+  #caja-history .table-wrap, #caja-history .data-table { overflow: visible !important; border: 0 !important; background: transparent !important; box-shadow: none; border-radius: 0; }
+  #caja-history .data-table tbody tr:has(td[data-label]) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "client amount" "concept concept" "time type" "method actions";
+    gap: 8px 12px;
+    padding: 20px 0;
+    margin: 0;
+    border: 0;
+    border-bottom: 1px solid var(--line);
+    border-radius: 0;
+    background: transparent;
+  }
+  #caja-history .data-table tbody tr td[data-label] {
+    display: block;
+    min-width: 0;
+    margin: 0;
+    padding: 0 !important;
+    border: 0 !important;
+    text-align: left !important;
+    font-family: var(--font-body) !important;
+    font-size: 14px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+  }
+  #caja-history .data-table td[data-label]::before { display: none; }
+  #caja-history td[data-label="Cliente"] { grid-area: client; font-size: 16px !important; font-weight: 600 !important; }
+  #caja-history td[data-label="Monto"] { grid-area: amount; font-size: 18px !important; justify-self: end; }
+  #caja-history td[data-label="Concepto"] { grid-area: concept; color: var(--muted); }
+  #caja-history td[data-label="Hora"] { grid-area: time; align-self: center; color: var(--muted); font-weight: 400 !important; }
+  #caja-history td[data-label="Tipo"] { grid-area: type; justify-self: end; }
+  #caja-history td[data-label="Método"] { grid-area: method; align-self: center; }
+  #caja-history td[data-label="Acciones"] { grid-area: actions; display: flex !important; gap: 4px; justify-self: end; }
+  #caja-history .data-table tfoot tr { border: 0; border-radius: 0; background: transparent; }
+}
