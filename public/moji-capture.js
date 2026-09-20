@@ -88,7 +88,7 @@
   }
   function takeNativeStill() {
     // Stop WebView ownership before requesting Camera1, retaining the click gesture.
-    if (stream) stream.getTracks().forEach(function (t) { t.stop(); });
+    if (stream) stream.getTracks().forEach(function (t) { t.onended = null; t.stop(); });
     stream = null; track = null; $('video').srcObject = null;
     return new Promise(function (resolve, reject) {
       var request = ++lightRequest;
@@ -130,7 +130,7 @@
   };
   function closeCamera() {
     cameraEpoch += 1; off();
-    if (stream) stream.getTracks().forEach(function (t) { t.stop(); });
+    if (stream) stream.getTracks().forEach(function (t) { t.onended = null; t.stop(); });
     stream = null; track = null; $('video').srcObject = null; controls();
   }
   function rotate() { $('video').style.transform = 'rotate(' + rotation + 'deg)' + (rotation % 180 ? ' scale(1.34)' : ''); }

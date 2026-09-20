@@ -156,3 +156,26 @@ No new automatic multi-light functionality was published by this inspection.
 - Candidate version 0.8.2/code10 built locally, not published or installed as
   the user's Venus app. Multi-light acquisition, optical validation and full
   multimodal reporting remain incomplete. Do not claim readiness for clients.
+
+## Physical WebView integration test and regression fix
+
+- Separate mx.venus.webview.diagnostic APK compiled the production MainActivity,
+  Policy, NativeWhiteCapture and NativeStillCamera sources. Only GpioWhitePort
+  was replaced by a no-I/O diagnostic logger. No real GPIO writes occurred.
+- Local candidate HTML/CSS/JS injected through CDP into this diagnostic WebView.
+  All /api/ fetches were intercepted in memory; no client record was created or
+  modified. The native JPEG response used the real WebView interception code.
+- The physical WebView identifies itself as Chrome 61.0.3163.98, not Chrome 70.
+- Initial capture failed with "Captura cancelada": stopping the WebView stream
+  during camera handoff invoked its ended callback on this engine. Explicit
+  camera shutdown now detaches onended before stopping tracks. Desktop regression
+  test emulates this behavior as well.
+- Repeated physical test passed genuine input event -> native Camera1 -> native
+  intercepted JPEG -> mocked multipart upload -> preview reopening, twice.
+  Native JPEG payload sizes: 3721888 and 3902998 bytes. Photo count reached two.
+- A first repeat-test failure was the mock returning duplicate photo IDs; the
+  production selection correctly rejected the duplicate. Mock now supplies
+  unique IDs. No production duplicate-handling relaxation was made.
+- Three-viewport UI tests and eight Node tests pass after the regression fix.
+  Diagnostic APK and ADB forwarding removed after testing. Real illumination,
+  real authenticated upload and multimodal report acceptance remain outstanding.

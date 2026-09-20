@@ -26,6 +26,10 @@ try {
   await context.close();
  }
  const nativeContext=await browser.newContext({viewport:{width:1080,height:1000},permissions:['camera'],userAgent:'Mozilla/5.0 VenusMoji/0.8.2 VenusNativeStill/1'});
+ await nativeContext.addInitScript(()=>{
+  const stop=MediaStreamTrack.prototype.stop;
+  MediaStreamTrack.prototype.stop=function(){const ended=this.onended;stop.call(this);if(ended)ended.call(this,new Event('ended'));};
+ });
  const nativePage=await nativeContext.newPage();let uploaded=false;
  const jpeg=await nativePage.screenshot({type:'jpeg'});
  await nativePage.route('**/__native-capture/*.jpg',r=>r.fulfill({contentType:'image/jpeg',body:jpeg}));
