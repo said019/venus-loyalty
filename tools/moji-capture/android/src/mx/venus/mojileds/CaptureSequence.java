@@ -10,6 +10,7 @@ public final class CaptureSequence {
   Mode(String key,int gpio,int settleMs){this.key=key;this.gpio=gpio;this.settleMs=settleMs;}
  }
  private static final Mode[] ORDER={Mode.WHITE,Mode.POSITIVE,Mode.UV,Mode.WOODS,Mode.NEGATIVE,Mode.BLUE,Mode.WHITE,Mode.WHITE};
+ static Mode modeAt(int index){return ORDER[index];}
  public enum State { IDLE, LIGHT, SETTLING, CAMERA, SAVING, COMPLETE, FAILED, CANCELLED }
  public static final class Shot {
   public final String session, record; public final long request;
@@ -18,6 +19,8 @@ public final class CaptureSequence {
   public String filename(){return session+"-"+index+"-"+mode.key+".jpg";}
  }
  public interface Port {
+  // Schedule off the camera/UI thread. Physical light watchdog remains independent.
+  void after(int milliseconds,Runnable action) throws Exception;
   // Must arm an independent OFF watchdog BEFORE ON, and acknowledge successful writes.
   void light(Shot shot) throws Exception;
   void off() throws Exception;
@@ -39,24 +42,29 @@ public final class CaptureSequence {
  }
  private boolean begin(){
   state=State.LIGHT;
-  try{port.off();port.light(shot);return true;}catch(Exception e){fail();return false;}
+  try{port.off();deadline(State.LIGHT,1500);port.light(shot);return true;}catch(Exception e){fail();return false;}
  }
+ private void deadline(State expected,int milliseconds) throws Exception {
+  final long request=shot.request;
+  port.after(milliseconds,()->timeout(request,expected));
+ }
+ private synchronized void timeout(long request,State expected){if(accepts(request,expected))fail();}
  private boolean accepts(long request,State expected){return shot!=null&&shot.request==request&&state==expected;}
  public synchronized void lit(long request){
   if(!accepts(request,State.LIGHT))return;
   state=State.SETTLING;
-  try{port.settle(shot,shot.mode.settleMs);}catch(Exception e){fail();}
+  try{deadline(State.SETTLING,shot.mode.settleMs+1000);port.settle(shot,shot.mode.settleMs);}catch(Exception e){fail();}
  }
  public synchronized void settled(long request){
   if(!accepts(request,State.SETTLING))return;
   state=State.CAMERA;
-  try{port.capture(shot);}catch(Exception e){fail();}
+  try{deadline(State.CAMERA,5000);port.capture(shot);}catch(Exception e){fail();}
  }
  public synchronized void jpeg(long request,byte[] data,long capturedAt){
   if(!accepts(request,State.CAMERA))return;
   if(data==null||data.length<4||(data[0]&255)!=255||(data[1]&255)!=216||(data[data.length-2]&255)!=255||(data[data.length-1]&255)!=217||capturedAt<=0){fail();return;}
   state=State.SAVING;
-  try{port.off();port.save(shot,data.clone(),capturedAt);}catch(Exception e){fail();}
+  try{port.off();deadline(State.SAVING,10000);port.save(shot,data.clone(),capturedAt);}catch(Exception e){fail();}
  }
  public synchronized void saved(long request){
   if(!accepts(request,State.SAVING))return;

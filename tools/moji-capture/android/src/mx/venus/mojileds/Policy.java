@@ -17,8 +17,16 @@ public final class Policy {
   try {URI u=new URI(value);return "https".equals(u.getScheme())&&"res.cloudinary.com".equals(u.getHost())&&u.getRawUserInfo()==null&&(u.getPort()==-1||u.getPort()==443);}catch(Exception e){return false;}
  }
  public static int white(String url,String current,boolean main,boolean gesture,boolean foreground) {
-  if(!main || !gesture || !foreground || !document(current) || url==null || !url.matches("venus-moji://white\\?request=[1-9][0-9]{0,8}")) return 0;
+  if(!main || !gesture || !foreground || !document(current)) return 0;
+  return whiteRequest(url);
+ }
+ public static int whiteRequest(String url) {
+  if(url==null || !url.matches("venus-moji://white\\?request=[1-9][0-9]{0,8}")) return 0;
   return Integer.parseInt(url.substring(url.indexOf('=')+1));
+ }
+ public static int stillRequest(String url){
+  if(url==null||!url.matches("venus-moji://still\\?request=[1-9][0-9]{0,8}&rotation=(0|90|180|270)"))return 0;
+  return Integer.parseInt(url.substring(url.indexOf('=')+1,url.indexOf('&')));
  }
  public static boolean off(String url,String current,boolean main) {return main && document(current) && "venus-moji://off".equals(url);}
 }

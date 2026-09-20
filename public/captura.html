@@ -15,14 +15,14 @@
   Chrome 70: NADA de `?.` ni `??` ni replaceAll — una sola rompe todo el
   script sin error visible. async/await, template literals y fetch sí hay.
 -->
-<link rel="stylesheet" href="/moji-capture.css?v=20260920b">
+<link rel="stylesheet" href="/moji-capture.css?v=20260920c">
 <link rel="icon" href="/assets/icon-192.png">
 <meta name="theme-color" content="#888f79">
 </head>
 <body>
-<header class="app-header"><img src="/assets/icon-192.png" width="56" height="56" alt="Venus Cosmetología"><div><strong>Venus</strong><span>Estudio de la piel</span></div><span class="header-label">Captura y seguimiento</span></header>
+<header class="app-header"><img src="/assets/icon-192.png" width="56" height="56" alt="Venus Cosmetología"><div><strong>Venus</strong><span>Estudio de la piel</span></div><span class="header-label">Espacio profesional <i aria-hidden="true"></i></span></header>
 <main>
-  <div class="page-title"><div><p class="eyebrow">VENUS · SKIN STUDIO</p><h1>Un registro de su piel.</h1><p class="sub">Expediente, capturas y valoración.</p></div><span class="private-label">Acceso profesional</span></div>
+  <div class="page-title"><div><p class="eyebrow">CUIDADO PERSONALIZADO</p><h1>Análisis de piel</h1><p class="sub">Cada piel, su propia historia.</p></div><span class="private-label">Venus Skin Studio</span></div>
   <ol class="pasos" aria-label="Etapas de valoración"><li id="step-clienta" aria-current="step"><b>01</b> Clienta</li><li id="step-fotos"><b>02</b> Fotografías</li><li><b>03</b> Valoración</li><li><b>04</b> Revisión</li></ol>
   <p id="e-general" class="estado" role="status" aria-live="polite"></p>
   <div id="native-help" class="aviso oculto">Estás en el navegador. Para tomar con luz blanca automática, abre esta página en la app Venus actualizada. <a href="venusmoji://capture" id="open-native">Abrir Venus Moji</a> · <a href="/downloads/venus-moji-captura-0.8.1.apk" id="download-native">Instalar actualización</a>. La captura sin luces automáticas también está disponible.</div>
@@ -48,9 +48,10 @@
 
   <!-- 2 · Cámara -->
   <section id="s-camara" class="oculto">
-    <div class="pie"><strong id="nombre-clienta" style="color:var(--tinta);font-size:18px"></strong><button id="b-cambiar" style="min-height:44px;font-size:15px">Cambiar clienta</button></div>
+    <div class="pie client-bar"><div><span class="eyebrow">EXPEDIENTE ACTIVO</span><strong id="nombre-clienta"></strong></div><button id="b-cambiar">Cambiar clienta</button></div>
     <div class="capture-layout"><div class="capture-stage">
-    <div class="vista" style="margin-top:8px"><video id="video" autoplay playsinline muted></video><div class="guia"></div></div>
+    <div class="stage-heading"><span>Vista de cámara</span><span id="capture-format">Captura facial</span></div>
+    <div class="vista"><video id="video" autoplay playsinline muted></video><div class="guia"></div><span class="camera-mark" aria-hidden="true">VENUS</span></div>
     <div class="pie"><span id="e-camara">Abriendo cámara…</span><button id="b-girar" style="min-height:44px;font-size:15px">Girar</button></div>
     <div id="e-luces" class="aviso" role="status"></div>
     <button id="b-apagar" type="button">Apagar luz blanca</button>
@@ -72,14 +73,14 @@
     <div class="estado" id="e-tomar"></div>
     <img class="mini oculto" id="mini" alt="Última foto guardada de esta sesión">
     <div class="fila oculto" id="despues"><button id="b-otra">Otra foto</button><button id="b-ficha">Ver expediente</button></div>
-    </div></div><div class="import-section">
-    <h2>Capturas de Bitmoji</h2>
+    </div></div><details class="import-section">
+    <summary>Importar fotografías existentes</summary>
     <input id="moji-files" type="file" accept="image/jpeg" multiple hidden>
     <button id="b-import" type="button">Seleccionar seis fotos de Bitmoji</button>
     <div id="import-preview"></div>
     <button id="b-import-save" type="button" hidden>Guardar en este expediente</button>
     <p id="e-import" class="estado" role="status"></p>
-    </div><h2 class="gallery-heading">Fotografías del expediente</h2>
+    </details><div class="gallery-header"><h2 class="gallery-heading">Fotografías del expediente</h2><span id="photo-count">0 fotografías</span></div>
     <ol id="session-photos" class="sesion-fotos"></ol>
     <button id="b-analizar" class="primario" disabled>Continuar a consulta y análisis</button>
     <p class="sub">Las fotos se guardan en su expediente. Nada se envía a OpenAI hasta registrar el consentimiento y pulsar Analizar.</p>
@@ -89,6 +90,6 @@
 
 <script src="/moji-capture-flow.js?v=20260920a"></script>
 <script src="/moji-import.js?v=20260920a"></script>
-<script src="/moji-capture.js?v=20260920a"></script>
+<script src="/moji-capture.js?v=20260920c"></script>
 </body>
 </html>

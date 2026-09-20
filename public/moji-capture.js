@@ -5,6 +5,7 @@
   var clienta = null, recordId = null, stream = null, track = null, busy = false, selection = 0, cameraEpoch = 0;
   var rotation = Number(localStorage.getItem('capturaRotacion') || 90), timer, searchEpoch = 0, previewUrl = null;
   var lightRequest = 0, pendingLight = null;
+  var nativeStill = /VenusNativeStill\/1/.test(navigator.userAgent), pendingStill = null;
   var sessionPhotos = [];
   var imported = [], importUrls = [];
   function clearImport() {
@@ -38,6 +39,9 @@
     }()), 25000);
   }
   function controls() {
+    $('capture-format').textContent = nativeStill ? 'JPEG nativo · Luz blanca' : 'Captura facial';
+    $('b-tomar').textContent = busy ? 'Procesando captura…' : 'Capturar y guardar';
+    $('s-camara').setAttribute('aria-busy', busy ? 'true' : 'false');
     $('b-import').disabled = busy || !recordId; $('b-import-save').disabled = busy || !recordId || !imported.length;
     ['b-cambiar', 'b-girar', 'modo', 'categoria', 'area', 'desc', 'b-otra', 'b-ficha'].forEach(function (id) { $(id).disabled = busy; });
     $('b-tomar').disabled = busy || !stream || !recordId || ($('modo').value === 'analisis' && flow.photos().length >= 4);
@@ -46,6 +50,7 @@
     Array.prototype.forEach.call($('session-photos').querySelectorAll('button'), function (b) { b.disabled = busy; });
   }
   function renderSessionPhotos() {
+    $('photo-count').textContent = sessionPhotos.length + (sessionPhotos.length === 1 ? ' fotografía' : ' fotografías');
     $('session-photos').textContent = '';
     sessionPhotos.forEach(function (p, i) {
       var li = document.createElement('li');
@@ -77,9 +82,37 @@
     });
   }
   function off() {
+    if (pendingStill) { var capture = pendingStill; pendingStill = null; clearTimeout(capture.timer); capture.reject(new Error('Captura nativa cancelada.')); }
     if (pendingLight) { var p = pendingLight; pendingLight = null; clearTimeout(p.timer); p.reject(new Error('Captura con luz cancelada.')); }
     if (native) location.href = 'venus-moji://off';
   }
+  function takeNativeStill() {
+    // Stop WebView ownership before requesting Camera1, retaining the click gesture.
+    if (stream) stream.getTracks().forEach(function (t) { t.stop(); });
+    stream = null; track = null; $('video').srcObject = null;
+    return new Promise(function (resolve, reject) {
+      var request = ++lightRequest;
+      pendingStill = { request: request, resolve: resolve, reject: reject, timer: setTimeout(function () {
+        if (pendingStill && pendingStill.request === request) { pendingStill = null; off(); reject(new Error('La cámara nativa no respondió.')); }
+      }, 13000) };
+      location.href = 'venus-moji://still?request=' + request + '&rotation=' + rotation;
+    });
+  }
+  window.venusNativeStillResult = async function (result) {
+    if (!pendingStill || !result || result.request !== pendingStill.request) return;
+    var pending = pendingStill;
+    try {
+      if (result.ok !== true) throw new Error(result.error || 'No se pudo tomar la foto nativa.');
+      var response = await bounded(fetch('/__native-capture/' + result.request + '.jpg', { cache: 'no-store' }), 4000);
+      if (!response.ok || (response.headers.get('Content-Type') || '').indexOf('image/jpeg') !== 0) throw new Error('La cámara no entregó el JPEG.');
+      var blob = await response.blob();
+      if (pendingStill !== pending) return;
+      clearTimeout(pending.timer); pendingStill = null; pending.resolve(blob);
+    } catch (error) {
+      if (pendingStill !== pending) return;
+      clearTimeout(pending.timer); pendingStill = null; pending.reject(error);
+    }
+  };
   function pulse() {
     // Called directly inside the operator's click; native rejects non-gesture ON.
     return new Promise(function (resolve, reject) {
@@ -175,11 +208,13 @@
     var details = { type: typeButton.getAttribute('data-v'), category: $('categoria').value, area: $('area').value.trim(), description: $('desc').value.trim() };
     status('e-tomar', native ? 'Preparando luz blanca y foto…' : 'Tomando foto…');
     try {
-      if (native) { await pulse(); await later(250); }
+      var nativeBlob = null;
+      if (nativeStill) nativeBlob = await takeNativeStill();
+      else if (native) { await pulse(); await later(250); }
       if (!flow.current(ticket) || camera !== cameraEpoch || document.hidden) throw new Error('Captura cancelada.');
-      if (native && Date.now() - nativeStart > 1500) throw new Error('El pulso venció. Repite la captura.');
+      if (native && !nativeStill && Date.now() - nativeStart > 1500) throw new Error('El pulso venció. Repite la captura.');
       // Native mode snapshots the preview within the tested pulse, no slow takePhoto call.
-      var blob = await photo(native); off();
+      var blob = nativeBlob || await photo(native); off();
       if (!flow.current(ticket) || camera !== cameraEpoch) throw new Error('Captura cancelada.');
       status('e-tomar', 'Guardando en el expediente…');
       var fd = new FormData(); fd.append('photo', blob, 'venus-moji-' + Date.now() + '.jpg');
@@ -192,7 +227,7 @@
       sessionPhotos.push(j.data); renderSessionPhotos();
       status('e-tomar', 'Foto guardada para ' + clienta.name + '.');
     } catch (e) { if (flow.current(ticket)) status('e-tomar', e.message + ' Si falló la conexión al guardar, revisa el expediente antes de repetir.', true); }
-    finally { off(); busy = false; controls(); }
+    finally { off(); busy = false; controls(); if (nativeStill && recordId && !document.hidden && !stream) openCamera(); }
   }
   $('b-login').onclick = async function () {
     $('b-login').disabled = true; status('e-login', 'Entrando…');

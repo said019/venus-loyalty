@@ -13,6 +13,15 @@ public final class SafetyTest {
   for(String s:new String[]{"https://res.cloudinary.com/skin-advisor.html","https://venuscosmetologia.com.mx/other.html","https://x@venuscosmetologia.com.mx/skin-advisor.html","https://venuscosmetologia.com.mx:444/skin-advisor.html","https://venuscosmetologia.com.mx/%73kin-advisor.html"})check(!Policy.navigation(s));
   for(String s:new String[]{"http://venuscosmetologia.com.mx/captura.html","https://evil.test/captura.html","https://venuscosmetologia.com.mx.evil/captura.html","https://x@venuscosmetologia.com.mx/captura.html","https://venuscosmetologia.com.mx:444/captura.html","https://venuscosmetologia.com.mx/%63aptura.html"}) check(!Policy.document(s));
   check(Policy.white("venus-moji://white?request=23",page,true,true,true)==23);
+  check(Policy.whiteRequest("venus-moji://white?request=23")==23);
+  check(Policy.whiteRequest(null)==0);
+  check(Policy.stillRequest("venus-moji://still?request=7&rotation=90")==7);
+  check(Policy.stillRequest("venus-moji://still?request=7&rotation=91")==0);
+  check(Policy.stillRequest("venus-moji://still?request=7&rotation=90&x=1")==0);
+  check(Policy.stillRequest("venus-moji://still?request=0&rotation=90")==0);
+  check(Policy.stillRequest(null)==0);
+  check(Policy.whiteRequest("venus-moji://white?request=23&extra=1")==0);
+  check(Policy.whiteRequest("https://venuscosmetologia.com.mx/?request=23")==0);
   for(String s:new String[]{"venus-moji://white","venus-moji://white?request=0","venus-moji://white?request=-1","venus-moji://white?request=1&x=1","venus-moji://white?request=1000000000","venus-moji://white?request=1#x"}) check(Policy.white(s,page,true,true,true)==0);
   check(Policy.white("venus-moji://white?request=1",page,false,true,true)==0);
   check(Policy.white("venus-moji://white?request=1",page,true,false,true)==0);

@@ -15,31 +15,58 @@ public final class MainActivity extends Activity {
  private WebView web; private boolean foreground, trusted; private long epoch;
  private PermissionRequest pending; private long permissionEpoch;
  private WhitePulse pulse;
+ private NativeWhiteCapture still;private volatile byte[] stillJpeg;private volatile int stillId;
  private ValueCallback<android.net.Uri[]> files;
  private final ScheduledExecutorService timer=Executors.newSingleThreadScheduledExecutor();
  @Override public void onCreate(Bundle state){
   super.onCreate(state);
   String original="";try{original=getPackageManager().getPackageInfo("com.yiyuan.skin",0).versionName;}catch(Exception ignored){}
   pulse=new WhitePulse(new GpioWhitePort(android.os.Build.MODEL,original),(ms,r)->timer.schedule(r,ms,TimeUnit.MILLISECONDS));
+  still=new NativeWhiteCapture(pulse,(id,jpeg,error)->runOnUiThread(()->{
+   if(id!=stillId||!foreground||!trusted)return;
+   stillJpeg=jpeg;
+   String message=error==null?"":error;
+   web.evaluateJavascript("window.venusNativeStillResult&&window.venusNativeStillResult({request:"+id+",ok:"+(jpeg!=null)+",error:"+org.json.JSONObject.quote(message)+"})",null);
+  }));
   LinearLayout layout=new LinearLayout(this);layout.setOrientation(LinearLayout.VERTICAL);
   Button off=new Button(this);off.setText("Apagar luz");off.setAllCaps(false);off.setTextSize(14);off.setTextColor(android.graphics.Color.rgb(162,54,54));off.setBackgroundColor(android.graphics.Color.rgb(255,249,247));off.setOnClickListener(v->cancel());layout.addView(off);
   web=new WebView(this);layout.addView(web,new LinearLayout.LayoutParams(-1,0,1));setContentView(layout);
   WebSettings s=web.getSettings();s.setJavaScriptEnabled(true);s.setDomStorageEnabled(true);
   s.setAllowFileAccess(false);s.setAllowContentAccess(false);s.setAllowFileAccessFromFileURLs(false);s.setAllowUniversalAccessFromFileURLs(false);
   s.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);s.setSupportMultipleWindows(false);s.setJavaScriptCanOpenWindowsAutomatically(false);
-  s.setMediaPlaybackRequiresUserGesture(false);s.setUserAgentString(s.getUserAgentString()+" VenusMoji/0.8.1");
+  s.setMediaPlaybackRequiresUserGesture(false);s.setUserAgentString(s.getUserAgentString()+" VenusMoji/0.8.2 VenusNativeStill/1");
   CookieManager.getInstance().setAcceptThirdPartyCookies(web,false);
   web.setWebViewClient(new WebViewClient(){
    @Override public boolean shouldOverrideUrlLoading(WebView view,WebResourceRequest request){
     String url=request.getUrl().toString(); boolean main=request.isForMainFrame();
+    int captureId=Policy.stillRequest(url);
+    if(captureId>0){
+     if(main&&request.hasGesture()&&foreground&&trusted&&Policy.document(current())&&checkSelfPermission(Manifest.permission.CAMERA)==PackageManager.PERMISSION_GRANTED){
+      still.cancel();stillJpeg=null;stillId=captureId;
+      still.start(captureId,Integer.parseInt(url.substring(url.lastIndexOf('=')+1)));
+     }else if(main&&foreground&&trusted){web.evaluateJavascript("window.venusNativeStillResult&&window.venusNativeStillResult({request:"+captureId+",ok:false,error:'Captura no autorizada. Pulsa de nuevo el boton.'})",null);}
+     return true;
+    }
     int id=Policy.white(url,current(),main,request.hasGesture(),foreground&&trusted);
-    if(id>0){long token=epoch;boolean ok=pulse.start();if(token==epoch && foreground && trusted)reply(id,ok);return true;}
+    if(id>0){long token=epoch;boolean ok=pulse.start();android.util.Log.i("VenusMoji","White request="+id+" accepted="+ok);if(token==epoch && foreground && trusted)reply(id,ok);return true;}
+    int denied=Policy.whiteRequest(url);
+    if(denied>0){
+     android.util.Log.w("VenusMoji","White rejected: main="+main+" gesture="+request.hasGesture()+" foreground="+foreground+" trusted="+trusted);
+     if(main&&foreground&&trusted&&Policy.document(current()))reply(denied,false);
+     return true;
+    }
     if(Policy.off(url,current(),main)){cancel();return true;}
     if(main){cancel();trusted=false;return !Policy.navigation(url);}
     return !Policy.resource(url);
    }
    @Override public boolean shouldOverrideUrlLoading(WebView view,String url){cancel();trusted=false;return true;}
    @Override public WebResourceResponse shouldInterceptRequest(WebView view,WebResourceRequest request){
+    if(request.getUrl().toString().equals("https://venuscosmetologia.com.mx/__native-capture/"+stillId+".jpg")){
+     byte[] jpeg=stillJpeg;
+     if(!"GET".equals(request.getMethod())||request.isForMainFrame()||jpeg==null)return blocked();
+     java.util.Map<String,String> headers=new java.util.HashMap<>();headers.put("Cache-Control","no-store");headers.put("X-Content-Type-Options","nosniff");
+     return new WebResourceResponse("image/jpeg",null,200,"OK",headers,new ByteArrayInputStream(jpeg));
+    }
     if(!Policy.resource(request.getUrl().toString()))return blocked();
     if(request.isForMainFrame()&&!Policy.navigation(request.getUrl().toString()))return blocked();
     return null;
@@ -89,7 +116,7 @@ public final class MainActivity extends Activity {
   return foreground&&trusted&&Policy.document(current())&&Policy.origin(request.getOrigin().toString())&&resources.length==1&&PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(resources[0]);
  }
  private void invalidatePermission(){if(pending!=null){pending.deny();pending=null;}}
- private void cancel(){epoch++;invalidatePermission();if(pulse!=null)pulse.forceOff();}
+ private void cancel(){epoch++;invalidatePermission();stillId=0;stillJpeg=null;if(still!=null)still.cancel();else if(pulse!=null)pulse.forceOff();}
  private void fail(){trusted=false;cancel();}
  private void reply(int id,boolean ok){web.evaluateJavascript("if(typeof window.venusMojiLightResult==='function')window.venusMojiLightResult({ok:"+ok+",command:'white',request:"+id+"})",null);}
  @Override public void onRequestPermissionsResult(int code,String[] permissions,int[] grants){
@@ -99,6 +126,6 @@ public final class MainActivity extends Activity {
  @Override protected void onNewIntent(Intent intent){super.onNewIntent(intent);cancel();trusted=false;web.loadUrl(Policy.PAGE);}
  @Override protected void onResume(){super.onResume();foreground=true;if(web!=null)web.onResume();}
  @Override protected void onPause(){foreground=false;cancel();if(web!=null)web.onPause();super.onPause();}
- @Override protected void onDestroy(){foreground=false;fail();timer.shutdown();if(web!=null){web.stopLoading();web.destroy();web=null;}super.onDestroy();}
+ @Override protected void onDestroy(){foreground=false;fail();if(still!=null)still.destroy();timer.shutdown();if(web!=null){web.stopLoading();web.destroy();web=null;}super.onDestroy();}
  @Override public void onBackPressed(){cancel();if(Policy.navigation(current())&&!Policy.document(current())){trusted=false;web.loadUrl(Policy.PAGE);}else finish();}
 }
