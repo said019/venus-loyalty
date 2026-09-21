@@ -20,8 +20,8 @@ mkdir -p build/classes build/dex build/generated dist
 cp build/resources.apk build/unsigned.apk
 (cd build/dex && zip -q ../unsigned.apk classes.dex)
 "$TOOLS/zipalign" -f -p 4 build/unsigned.apk build/aligned.apk
-"$JDK/bin/java" -jar "$TOOLS/lib/apksigner.jar" sign --ks "$KEY" --ks-key-alias venus-moji-test --ks-pass pass:android --key-pass pass:android --v1-signing-enabled true --v2-signing-enabled true --out dist/venus-moji-capture-0.8.2.apk build/aligned.apk
-"$JDK/bin/java" -jar "$TOOLS/lib/apksigner.jar" verify --verbose --print-certs --min-sdk-version 26 dist/venus-moji-capture-0.8.2.apk
-"$TOOLS/zipalign" -c -p 4 dist/venus-moji-capture-0.8.2.apk
-"$TOOLS/aapt2" dump badging dist/venus-moji-capture-0.8.2.apk
-shasum -a 256 dist/venus-moji-capture-0.8.2.apk
+"$JDK/bin/java" -jar "$TOOLS/lib/apksigner.jar" sign --ks "$KEY" --ks-key-alias venus-moji-test --ks-pass pass:android --key-pass pass:android --v1-signing-enabled true --v2-signing-enabled true --out dist/venus-moji-capture-0.9.0.apk build/aligned.apk
+"$JDK/bin/java" -jar "$TOOLS/lib/apksigner.jar" verify --verbose --print-certs --min-sdk-version 26 dist/venus-moji-capture-0.9.0.apk
+"$TOOLS/zipalign" -c -p 4 dist/venus-moji-capture-0.9.0.apk
+"$TOOLS/aapt2" dump badging dist/venus-moji-capture-0.9.0.apk
+shasum -a 256 dist/venus-moji-capture-0.9.0.apk

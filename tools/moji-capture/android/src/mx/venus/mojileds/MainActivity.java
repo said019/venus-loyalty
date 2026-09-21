@@ -14,14 +14,30 @@ import java.util.concurrent.*;
 public final class MainActivity extends Activity {
  private WebView web; private boolean foreground, trusted; private long epoch;
  private PermissionRequest pending; private long permissionEpoch;
- private WhitePulse pulse;
+ private WhitePulse pulse; private SequenceLeds leds;
  private NativeWhiteCapture still;private volatile byte[] stillJpeg;private volatile int stillId;
+ private NativeSequenceCapture sequence;private final java.util.concurrent.ConcurrentHashMap<String,byte[]> sequenceJpegs=new java.util.concurrent.ConcurrentHashMap<>();
+ private volatile long sequenceId; private volatile int sequenceShots;
  private ValueCallback<android.net.Uri[]> files;
  private final ScheduledExecutorService timer=Executors.newSingleThreadScheduledExecutor();
  @Override public void onCreate(Bundle state){
   super.onCreate(state);
   String original="";try{original=getPackageManager().getPackageInfo("com.yiyuan.skin",0).versionName;}catch(Exception ignored){}
   pulse=new WhitePulse(new GpioWhitePort(android.os.Build.MODEL,original),(ms,r)->timer.schedule(r,ms,TimeUnit.MILLISECONDS));
+  leds=new SequenceLeds(new GpioSequencePort(android.os.Build.MODEL,original),(ms,r)->timer.schedule(r,ms,TimeUnit.MILLISECONDS));
+  sequence=new NativeSequenceCapture(leds,new NativeSequenceCapture.Result(){
+   public void shot(long request,int index,String mode,byte[] jpeg){
+    sequenceJpegs.put(request+"/"+index,jpeg);sequenceShots=index+1;
+    runOnUiThread(()->{if(sequenceId==request&&foreground&&trusted&&web!=null)web.evaluateJavascript("window.venusNativeSequenceProgress&&window.venusNativeSequenceProgress({request:"+request+",state:2,index:"+index+",total:8,mode:"+org.json.JSONObject.quote(mode)+"})",null);});
+   }
+   public void finished(long request,byte[][] jpeg,String[] modes,String error){
+    runOnUiThread(()->{
+     if(sequenceId!=request||!foreground||!trusted||web==null)return;
+     String message=error==null?"":error;
+     web.evaluateJavascript("window.venusNativeSequenceResult&&window.venusNativeSequenceResult({request:"+request+",ok:"+(jpeg!=null)+",error:"+org.json.JSONObject.quote(message)+"})",null);
+    });
+   }
+  });
   still=new NativeWhiteCapture(pulse,(id,jpeg,error)->runOnUiThread(()->{
    if(id!=stillId||!foreground||!trusted)return;
    stillJpeg=jpeg;
@@ -34,11 +50,19 @@ public final class MainActivity extends Activity {
   WebSettings s=web.getSettings();s.setJavaScriptEnabled(true);s.setDomStorageEnabled(true);
   s.setAllowFileAccess(false);s.setAllowContentAccess(false);s.setAllowFileAccessFromFileURLs(false);s.setAllowUniversalAccessFromFileURLs(false);
   s.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);s.setSupportMultipleWindows(false);s.setJavaScriptCanOpenWindowsAutomatically(false);
-  s.setMediaPlaybackRequiresUserGesture(false);s.setUserAgentString(s.getUserAgentString()+" VenusMoji/0.8.2 VenusNativeStill/1");
+  s.setMediaPlaybackRequiresUserGesture(false);s.setUserAgentString(s.getUserAgentString()+" VenusMoji/0.9.0 VenusNativeStill/1 VenusNativeSequence/1");
   CookieManager.getInstance().setAcceptThirdPartyCookies(web,false);
   web.setWebViewClient(new WebViewClient(){
    @Override public boolean shouldOverrideUrlLoading(WebView view,WebResourceRequest request){
     String url=request.getUrl().toString(); boolean main=request.isForMainFrame();
+    long sequenceReq=Policy.sequenceRequest(url);
+    if(sequenceReq>0){
+     if(main&&request.hasGesture()&&foreground&&trusted&&Policy.document(current())&&checkSelfPermission(Manifest.permission.CAMERA)==PackageManager.PERMISSION_GRANTED){
+      still.cancel();sequence.cancel();sequenceJpegs.clear();sequenceId=sequenceReq;sequenceShots=0;
+      sequence.start(sequenceReq,Policy.sequenceRotation(url));
+     }else if(main&&foreground&&trusted){web.evaluateJavascript("window.venusNativeSequenceResult&&window.venusNativeSequenceResult({request:"+sequenceReq+",ok:false,error:'Captura no autorizada. Pulsa de nuevo el boton.'})",null);}
+     return true;
+    }
     int captureId=Policy.stillRequest(url);
     if(captureId>0){
      if(main&&request.hasGesture()&&foreground&&trusted&&Policy.document(current())&&checkSelfPermission(Manifest.permission.CAMERA)==PackageManager.PERMISSION_GRANTED){
@@ -61,6 +85,13 @@ public final class MainActivity extends Activity {
    }
    @Override public boolean shouldOverrideUrlLoading(WebView view,String url){cancel();trusted=false;return true;}
    @Override public WebResourceResponse shouldInterceptRequest(WebView view,WebResourceRequest request){
+    java.util.regex.Matcher seq = java.util.regex.Pattern.compile("https://venuscosmetologia\\.com\\.mx/__native-sequence/(\\d+)/(\\d)\\.jpg").matcher(request.getUrl().toString());
+    if(seq.matches()){
+     byte[] jpeg=sequenceJpegs.get(seq.group(1)+"/"+seq.group(2));
+     if(!"GET".equals(request.getMethod())||request.isForMainFrame()||jpeg==null)return blocked();
+     java.util.Map<String,String> headers=new java.util.HashMap<>();headers.put("Cache-Control","no-store");headers.put("X-Content-Type-Options","nosniff");
+     return new WebResourceResponse("image/jpeg",null,200,"OK",headers,new ByteArrayInputStream(jpeg));
+    }
     if(request.getUrl().toString().equals("https://venuscosmetologia.com.mx/__native-capture/"+stillId+".jpg")){
      byte[] jpeg=stillJpeg;
      if(!"GET".equals(request.getMethod())||request.isForMainFrame()||jpeg==null)return blocked();
@@ -117,9 +148,14 @@ public final class MainActivity extends Activity {
  }
  private void invalidatePermission(){if(pending!=null){pending.deny();pending=null;}}
  private void cancel(){
-  int cancelled=stillId;
-  epoch++;invalidatePermission();stillId=0;stillJpeg=null;
-  if(still!=null)still.cancel();else if(pulse!=null)pulse.forceOff();
+  int cancelled=stillId; long seqCancelled=sequenceId;
+  epoch++;invalidatePermission();stillId=0;stillJpeg=null;sequenceId=0;sequenceShots=0;
+  if(still!=null)still.cancel();
+  if(sequence!=null){sequence.cancel();}else if(pulse!=null)pulse.forceOff();
+  if(leds!=null)leds.forceOffAll();sequenceJpegs.clear();
+  if(seqCancelled>0&&web!=null&&foreground&&trusted&&Policy.document(current())){
+   web.evaluateJavascript("window.venusNativeSequenceResult&&window.venusNativeSequenceResult({request:"+seqCancelled+",ok:false,error:'Secuencia cancelada. Se envio la orden de apagado.'})",null);
+  }
   if(cancelled>0&&web!=null&&foreground&&trusted&&Policy.document(current())){
    web.evaluateJavascript("window.venusNativeStillResult&&window.venusNativeStillResult({request:"+cancelled+",ok:false,error:'Captura cancelada. Se envio la orden de apagado.'})",null);
   }
@@ -133,6 +169,6 @@ public final class MainActivity extends Activity {
  @Override protected void onNewIntent(Intent intent){super.onNewIntent(intent);cancel();trusted=false;web.loadUrl(Policy.PAGE);}
  @Override protected void onResume(){super.onResume();foreground=true;if(web!=null)web.onResume();}
  @Override protected void onPause(){foreground=false;cancel();if(web!=null)web.onPause();super.onPause();}
- @Override protected void onDestroy(){foreground=false;fail();if(still!=null)still.destroy();timer.shutdown();if(web!=null){web.stopLoading();web.destroy();web=null;}super.onDestroy();}
+ @Override protected void onDestroy(){foreground=false;fail();if(still!=null)still.destroy();if(sequence!=null)sequence.destroy();timer.shutdown();if(web!=null){web.stopLoading();web.destroy();web=null;}super.onDestroy();}
  @Override public void onBackPressed(){cancel();if(Policy.navigation(current())&&!Policy.document(current())){trusted=false;web.loadUrl(Policy.PAGE);}else finish();}
 }

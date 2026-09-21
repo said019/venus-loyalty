@@ -1,11 +1,12 @@
 (function () {
   'use strict';
   var $ = function (id) { return document.getElementById(id); };
-  var flow = window.VenusCaptureFlow.session(), native = /VenusMoji\/0\.8\./.test(navigator.userAgent);
+  var flow = window.VenusCaptureFlow.session(), native = /VenusMoji\/0\.(8|9)\./.test(navigator.userAgent);
   var clienta = null, recordId = null, stream = null, track = null, busy = false, selection = 0, cameraEpoch = 0;
   var rotation = Number(localStorage.getItem('capturaRotacion') || 90), timer, searchEpoch = 0, previewUrl = null;
   var lightRequest = 0, pendingLight = null;
   var nativeStill = /VenusNativeStill\/1/.test(navigator.userAgent), pendingStill = null;
+  var nativeSequence = /VenusNativeSequence\/1/.test(navigator.userAgent), pendingSequence = null;
   var sessionPhotos = [];
   var imported = [], importUrls = [];
   function clearImport() {
@@ -39,6 +40,8 @@
     }()), 25000);
   }
   function controls() {
+    var bProtocolo = $('b-protocolo');
+    if (bProtocolo) { bProtocolo.hidden = !nativeSequence; bProtocolo.disabled = busy || !recordId; bProtocolo.textContent = busy ? 'Protocolo en curso…' : 'Protocolo completo · 8 capturas'; }
     $('capture-format').textContent = nativeStill ? 'JPEG nativo · Luz blanca' : 'Captura facial';
     $('b-tomar').textContent = busy ? 'Procesando captura…' : 'Capturar y guardar';
     $('s-camara').setAttribute('aria-busy', busy ? 'true' : 'false');
@@ -82,6 +85,7 @@
     });
   }
   function off() {
+    if (pendingSequence) { var sequence = pendingSequence; pendingSequence = null; clearTimeout(sequence.timer); sequence.reject(new Error('Secuencia cancelada.')); }
     if (pendingStill) { var capture = pendingStill; pendingStill = null; clearTimeout(capture.timer); capture.reject(new Error('Captura nativa cancelada.')); }
     if (pendingLight) { var p = pendingLight; pendingLight = null; clearTimeout(p.timer); p.reject(new Error('Captura con luz cancelada.')); }
     if (native) location.href = 'venus-moji://off';
@@ -98,6 +102,41 @@
       location.href = 'venus-moji://still?request=' + request + '&rotation=' + rotation;
     });
   }
+  function takeNativeSequence() {
+    if (stream) stream.getTracks().forEach(function (t) { t.onended = null; t.stop(); });
+    stream = null; track = null; $('video').srcObject = null;
+    return new Promise(function (resolve, reject) {
+      var request = ++lightRequest;
+      pendingSequence = { request: request, index: 0, resolve: resolve, reject: reject, timer: setTimeout(function () {
+        if (pendingSequence && pendingSequence.request === request) { pendingSequence = null; off(); reject(new Error('La secuencia nativa no respondió.')); }
+      }, 120000) };
+      location.href = 'venus-moji://sequence?request=' + request + '&rotation=' + rotation + '&record=' + encodeURIComponent(recordId || 'sin-expediente');
+    });
+  }
+  window.venusNativeSequenceProgress = function (progress) {
+    if (!pendingSequence || !progress || progress.request !== pendingSequence.request) return;
+    pendingSequence.index = progress.index + 1;
+    var names = { image: 'Blanca', image_positive: 'Polarizada +', image_uv: 'UV', image_woods: 'Wood', image_negative: 'Polarizada −', image_blue: 'Azul' };
+    status('e-tomar', 'Captura ' + (progress.index + 1) + ' de ' + progress.total + ' · ' + (names[progress.mode] || progress.mode) + ' guardada.');
+  };
+  window.venusNativeSequenceResult = async function (result) {
+    if (!pendingSequence || !result || result.request !== pendingSequence.request) return;
+    var pending = pendingSequence;
+    try {
+      if (result.ok !== true) throw new Error(result.error || 'No se pudo completar la secuencia.');
+      var photos = [];
+      for (var i = 0; i < 8; i++) {
+        var response = await bounded(fetch('/__native-sequence/' + pending.request + '/' + i + '.jpg', { cache: 'no-store' }), 6000);
+        if (!response.ok || (response.headers.get('Content-Type') || '').indexOf('image/jpeg') !== 0) throw new Error('La cámara no entregó la foto ' + (i + 1) + '.');
+        photos.push(await response.blob());
+      }
+      if (pendingSequence !== pending) return;
+      clearTimeout(pending.timer); pendingSequence = null; pending.resolve(photos);
+    } catch (error) {
+      if (pendingSequence !== pending) { /* state already replaced */ }
+      clearTimeout(pending.timer); if (pendingSequence === pending) pendingSequence = null; pending.reject(error);
+    }
+  };
   window.venusNativeStillResult = async function (result) {
     if (!pendingStill || !result || result.request !== pendingStill.request) return;
     var pending = pendingStill;
@@ -201,6 +240,33 @@
       if (!result) throw new Error('No se pudo preparar la foto.'); return result;
     } finally { if (objectUrl) URL.revokeObjectURL(objectUrl); }
   }
+  async function takeSequence() {
+    if (busy || !recordId || !nativeSequence || document.hidden) return;
+    busy = true; controls(); var ticket = flow.ticket(); var saved = 0;
+    var typeButton = $('tipo').querySelector('.on');
+    var details = { type: typeButton.getAttribute('data-v'), category: $('categoria').value, area: $('area').value.trim() };
+    var names = { image: 'Blanca', image_positive: 'Polarizada +', image_uv: 'UV', image_woods: 'Wood', image_negative: 'Polarizada −', image_blue: 'Azul' };
+    var order = ['image', 'image_positive', 'image_uv', 'image_woods', 'image_negative', 'image_blue', 'image', 'image'];
+    status('e-tomar', 'Iniciando protocolo de 8 capturas con luces…', false);
+    try {
+      var photos = await takeNativeSequence();
+      if (!flow.current(ticket) || document.hidden) throw new Error('Secuencia cancelada.');
+      for (var i = 0; i < photos.length; i++) {
+        if (!flow.current(ticket)) throw new Error('La clienta cambió. Secuencia cancelada.');
+        status('e-tomar', 'Subiendo ' + (names[order[i]] || order[i]) + ' (' + (i + 1) + '/8)…');
+        var fd = new FormData(); fd.append('photo', photos[i], 'venus-secuencia-' + (pendingLabel()) + '-' + i + '-' + order[i] + '.jpg');
+        fd.append('type', details.type); fd.append('category', details.category); fd.append('area', details.area);
+        fd.append('description', 'Protocolo completo | modo=' + order[i] + ' | disparo=' + i);
+        var response = await json('/api/client-records/' + encodeURIComponent(ticket.recordId) + '/photos', { method: 'POST', credentials: 'same-origin', body: fd });
+        sessionPhotos.push(response.data); saved++; renderSessionPhotos();
+        if (order[i] === 'image' && $('modo').value === 'analisis') flow.add(ticket, response.data);
+      }
+      show('despues', true);
+      status('e-tomar', 'Protocolo completo guardado: 8 fotografías con 6 luces. La valoración usa solo las blancas.');
+    } catch (e) { status('e-tomar', e.message + ' Confirmadas: ' + saved + ' de 8. Revisa el expediente antes de repetir.', true); }
+    finally { off(); busy = false; controls(); if (nativeStill && recordId && !document.hidden && !stream) openCamera(); }
+  }
+  function pendingLabel() { return Date.now(); }
   async function take() {
     if (busy || !stream || !recordId || $('b-tomar').disabled) return;
     busy = true; controls(); var ticket = flow.ticket(), camera = cameraEpoch, nativeStart = Date.now();
@@ -275,6 +341,7 @@
     finally { clearImport(); busy = false; controls(); }
   };
   $('b-tomar').onclick = take;
+  $('b-protocolo').onclick = takeSequence;
   $('b-apagar').onclick = function () { cameraEpoch += 1; off(); status('e-luces', 'Apagado solicitado. Comprueba que la luz esté apagada.'); };
   $('b-girar').onclick = function () { rotation = (rotation + 90) % 360; localStorage.setItem('capturaRotacion', String(rotation)); rotate(); };
   $('b-cambiar').onclick = function () { if (busy) return; closeCamera(); selection += 1; searchEpoch += 1; clearTimeout(timer); flow.reset(null); clienta = null; recordId = null; show('s-camara', false); show('s-clienta', true); $('q').value = ''; $('resultados').textContent = ''; controls(); };
@@ -288,6 +355,7 @@
   show('native-help', !native); $('b-apagar').hidden = !native;
   $('b-ficha').hidden = native;
   $('b-tomar').textContent = native ? 'Luz blanca + tomar foto' : 'Tomar foto (sin control de luces)';
+  var sequenceNote = $('e-luces'); if (nativeSequence) sequenceNote.textContent = 'Protocolo completo: 8 capturas con 6 luces (blanca, polarizada +, UV, Wood, polarizada −, azul). La clienta debe mantener los ojos cerrados durante todo el protocolo. Apagado automático tras cada captura con un límite total de 2 minutos.';
   $('e-luces').textContent = native ? 'Luz blanca: pulso máximo de 2 segundos. Confirma físicamente que ilumina al tomar. No se utiliza UV.' : 'Chrome no controla los LEDs. Usa iluminación blanca comprobada o abre la app Venus para el pulso automático.';
   (async function () { try { await json('/api/admin/me'); show('s-clienta', true); } catch (_) { show('s-login', true); } }());
 }());
