@@ -20077,12 +20077,7 @@
         );
         return;
       }
-      // Por ahora, simplemente abrir el detalle de la cita
-      if (typeof openAppointmentDetailModal === 'function') {
-        openAppointmentDetailModal(id);
-      } else {
-        showNotification('Función no disponible', 'info');
-      }
+      return viewPaymentDetails(id);
     }
 
     // Exponer funciones globalmente
