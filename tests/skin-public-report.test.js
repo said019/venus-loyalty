@@ -2,6 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import { buildZoneMap } from '../src/services/skinZones.js';
+import { loadSkinProgress } from '../src/services/skinProgress.js';
+import { loadSkinMenu, resolveRecommendations } from '../src/services/ai/skinMenu.js';
 
 function loadRoutes(findUnique) {
     const routes = new Map();
@@ -13,7 +16,8 @@ function loadRoutes(findUnique) {
         .replace(/^import[\s\S]*?from ['"][^'"]+['"];\s*/gm, '')
         .replace('export default router;', '');
     vm.runInNewContext(source, {
-        express: { Router: () => router }, adminAuth, prisma: { skinAnalysis: { findUnique } }, console,
+        express: { Router: () => router }, adminAuth, prisma: { skinAnalysis: { findUnique }, service: { findMany: async () => [] } }, console,
+        buildZoneMap, loadSkinProgress, loadSkinMenu, resolveRecommendations,
     });
     return { routes, adminAuth };
 }
@@ -39,7 +43,8 @@ test('el enlace público carga solo su reporte y no devuelve datos de la tarjeta
     const res = response();
     await routes.get('get /public/:id')[0]({ params: { id: 'solo-este-reporte' } }, res);
     assert.equal(query.where.id, 'solo-este-reporte');
-    for (const key of ['id', 'cardId', 'clientPhone', 'yiyuanShareId', 'rawData', 'yiyuanAnalysisId']) assert.equal(query.select[key], undefined);
+    for (const key of ['id', 'clientPhone', 'yiyuanShareId', 'rawData', 'yiyuanAnalysisId']) assert.equal(query.select[key], undefined);
+    for (const key of ['cardId', 'rawResponse']) assert.equal(res.body.data[key], undefined);
     assert.deepEqual(Object.keys(query.select.card.select), ['name']);
     assert.deepEqual(Object.keys(query.select.images.select).sort(), ['imageType', 'labelEs', 'originalUrl']);
     assert.equal(res.statusCode, 200);
@@ -64,7 +69,7 @@ test('un enlace inexistente responde 404 sin buscar otro análisis', async () =>
 
 test('lectura administrativa, listado y cambios siguen exigiendo sesión', async () => {
     const { routes, adminAuth } = loadRoutes(async () => { throw new Error('No debe consultar la BD sin sesión'); });
-    for (const route of ['get /:id', 'get /', 'get /by-card/:cardId', 'post /import', 'post /:id/regenerate-narrative', 'delete /:id']) {
+    for (const route of ['get /:id', 'get /:id/progress', 'get /', 'get /by-card/:cardId', 'post /import', 'post /:id/regenerate-narrative', 'delete /:id']) {
         assert.equal(routes.get(route)[0], adminAuth, `${route} debe exigir sesión`);
         const res = response();
         await routes.get(route)[0]({}, res);

@@ -3982,7 +3982,7 @@
             <i class="fas fa-arrow-left"></i> <span class="exp-back-label">Clientas</span>
           </button>
           <div class="exp-view-actions">
-            <a id="exp-action-skin" class="btn small ghost hidden" href="/skin-advisor.html">Venus Skin IA</a>
+            <a id="exp-action-skin" class="btn small ghost hidden" href="/skin-analysis.html">Venus Skin</a>
             <button type="button" id="exp-action-ficha" class="btn small primary" onclick="expSendFicha()">
               <i class="fab fa-whatsapp"></i> <span>Enviar ficha</span>
             </button>
@@ -4685,7 +4685,7 @@
 
       currentExpedienteCardId = cardId;
       const skinAction = document.getElementById('exp-action-skin');
-      if (skinAction) { skinAction.classList.add('hidden'); skinAction.href = '/skin-advisor.html'; }
+      if (skinAction) { skinAction.classList.add('hidden'); skinAction.href = '/skin-analysis.html'; }
 
       // Guardar scroll de la lista para restaurarlo al volver.
       expedienteScrollRestoration = window.scrollY;
@@ -4790,7 +4790,7 @@
         const record = result.data || result; // Manejar ambos formatos
         currentExpedienteRecordId = record.id;
         const skinLink = document.getElementById('exp-action-skin');
-        if (skinLink) { skinLink.href = '/skin-advisor.html?recordId=' + encodeURIComponent(record.id) + '&cardId=' + encodeURIComponent(cardId); skinLink.classList.remove('hidden'); }
+        if (skinLink) { skinLink.href = '/skin-analysis.html?cardId=' + encodeURIComponent(cardId); skinLink.classList.remove('hidden'); }
         
         // Los campos del viejo formulario "Datos" (exp-age, exp-skin-type, …)
         // ya no existen: la sección Resumen ahora muestra estos datos de solo
@@ -12349,6 +12349,44 @@
 
       newApptDialog.showModal();
     };
+
+    window.addEventListener('load', async function openSkinAppointment() {
+      const url = new URL(window.location.href);
+      if (url.searchParams.get('nuevaCita') !== '1') return;
+      const cardId = url.searchParams.get('cardId');
+      const serviceId = url.searchParams.get('serviceId');
+      try {
+        await Promise.all([loadServices(), loadClients()]);
+        const client = allClients.find(c => c.id === cardId);
+        const service = allServices.find(s => s.id === serviceId && s.isActive !== false);
+        window.openNewAppointmentModal();
+        selectedServices = [];
+        renderSelectedServices();
+        if (client) {
+          const input = document.getElementById('new-appt-client-select');
+          input.value = client.name;
+          input.dataset.phone = client.phone || '';
+          input.dataset.clientId = client.id;
+          selectedClientPhone = client.phone || '';
+          window.selectedClientPhone = selectedClientPhone;
+          showClientSelectedFeedback(client.name);
+          loadClientHistory(client.phone, client.name);
+          loadClientLoyalty(client.phone);
+          loadClinicalAlerts(client.id);
+        }
+        if (service) {
+          selectedServices = [{ id: service.id, name: service.name, price: Number(service.price), durationMinutes: service.durationMinutes }];
+          renderSelectedServices();
+          calculateEndTime();
+        }
+        for (const key of ['nuevaCita', 'cardId', 'serviceId']) url.searchParams.delete(key);
+        history.replaceState(history.state, '', url.pathname + url.search + url.hash);
+        if (!client || !service) await venusAlert('Revisa la clienta y el servicio antes de guardar la cita. Alguno ya no está disponible.');
+      } catch (err) {
+        console.error('[Skin appointment]', err);
+        await venusAlert('No se pudo preparar la cita. Vuelve a intentarlo.');
+      }
+    }, { once: true });
 
     window.bookAgainFromSearch = async function (appointment) {
       await Promise.all([loadServices(), loadClients()]);

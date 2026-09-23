@@ -11,6 +11,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { SKIN_ANALYSIS_SYSTEM_PROMPT } from './skinPrompt.js';
 import { compactToUserMessage } from './compactAnalysis.js';
+import { validateRecommendations } from './skinMenu.js';
 
 const MODEL = 'claude-haiku-4-5-20251001';
 const MAX_TOKENS = 700;
@@ -38,7 +39,7 @@ function getClient() {
  *   _usage: { inputTokens:number, outputTokens:number, cacheCreationInputTokens?:number, cacheReadInputTokens?:number }
  * }>}
  */
-export async function generateNarrative(compact) {
+export async function generateNarrative(compact, menu = []) {
     const client = getClient();
     const userMsg = compactToUserMessage(compact);
 
@@ -49,6 +50,11 @@ export async function generateNarrative(compact) {
             {
                 type: 'text',
                 text: SKIN_ANALYSIS_SYSTEM_PROMPT,
+                cache_control: { type: 'ephemeral' },
+            },
+            {
+                type: 'text',
+                text: 'MENÚ VENUS (datos del catálogo activo):\n' + JSON.stringify(menu),
                 cache_control: { type: 'ephemeral' },
             },
         ],
@@ -83,6 +89,8 @@ export async function generateNarrative(compact) {
         throw new Error('JSON de Claude incompleto: faltan campos requeridos');
     }
 
+    parsed.recommendations = validateRecommendations(parsed.recommendations, menu);
+
     // Telemetría de uso para monitoreo de costos
     parsed._usage = {
         inputTokens: response.usage?.input_tokens ?? 0,
@@ -98,9 +106,9 @@ export async function generateNarrative(compact) {
  * Wrapper que no-lanza: en caso de error devuelve null y logea.
  * Útil cuando la narrativa es opcional y no debe bloquear el flujo principal.
  */
-export async function generateNarrativeSafe(compact) {
+export async function generateNarrativeSafe(compact, menu = []) {
     try {
-        const result = await generateNarrative(compact);
+        const result = await generateNarrative(compact, menu);
         const u = result._usage || {};
         console.log(
             `[AI] Narrativa generada. tokens in=${u.inputTokens} out=${u.outputTokens} ` +

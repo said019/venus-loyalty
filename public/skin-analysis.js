@@ -632,6 +632,7 @@
 
         // ── AI narrative ──
         renderAINarrative(a);
+        renderZonesAndProgress(a);
 
         // Sort scores by severity then score asc
         const sorted = [...(a.scores || [])].sort((a, b) => {
@@ -745,6 +746,70 @@
         state.currentAnalysis = a;
     }
 
+    function renderZonesAndProgress(a) {
+        if (!window.VenusSkinZones) return;
+        const detail = $('view-detail');
+        let zones = $('d-zones');
+        if (!zones) {
+            zones = document.createElement('section');
+            zones.id = 'd-zones'; zones.className = 'sz-section';
+            detail.querySelector('.hero').after(zones);
+        }
+        window.VenusSkinZones.mount(zones, a, openLightbox);
+        let advance = $('d-progress');
+        if (!advance) {
+            advance = document.createElement('section');
+            advance.id = 'd-progress'; advance.className = 'sz-section';
+        }
+        $('d-ai-block').after(advance);
+        window.VenusSkinZones.progress(advance, a.progress, openLightbox);
+        advance.after($('d-treatments-section'));
+        $('d-treatments-section').after($('d-homecare-section'));
+        const gallery = $('d-gallery').closest('section');
+        const summary = $('d-summary');
+        const bento = $('d-bento');
+        const bentoTitle = bento.previousElementSibling;
+        if (!$('d-complete')) {
+            const complete = document.createElement(isPublicReport ? 'details' : 'section');
+            complete.id = 'd-complete'; complete.className = 'sz-section';
+            if (isPublicReport) {
+                const title = document.createElement('summary'); title.textContent = 'Análisis completo e imágenes'; complete.append(title);
+            }
+            $('d-homecare-section').after(complete);
+            const concerns = $('d-concerns');
+            complete.append(summary, concerns.previousElementSibling, concerns, bentoTitle, bento, gallery);
+        }
+        if (isPublicReport || !a.id) return;
+        advance.dataset.analysisId = a.id;
+        const load = async against => {
+            try {
+                const response = await fetch(`/api/skin-analysis/${encodeURIComponent(a.id)}/progress${against ? '?against=' + encodeURIComponent(against) : ''}`, { credentials: 'include' });
+                const result = await response.json();
+                if (!response.ok || !result.success) throw new Error(result.error || 'No se pudo cargar el avance');
+                if (advance.dataset.analysisId !== a.id) return;
+                window.VenusSkinZones.progress(advance, result.data.progress, openLightbox);
+                if (result.data.available?.length) {
+                    advance.hidden = false;
+                    const label = document.createElement('label'); label.textContent = 'Comparar con ';
+                    const select = document.createElement('select'); select.className = 'sz-date';
+                    for (const item of result.data.available) {
+                        const option = document.createElement('option'); option.value = item.id;
+                        option.textContent = new Date(item.analyzedAt).toLocaleString('es-MX'); select.append(option);
+                    }
+                    select.value = result.data.selectedId || '';
+                    select.onchange = () => { select.disabled = true; load(select.value); };
+                    label.append(select); advance.prepend(label);
+                }
+            } catch (err) {
+                if (advance.dataset.analysisId === a.id) {
+                    advance.querySelector('select')?.removeAttribute('disabled');
+                    feedbackDetail('err', err.message);
+                }
+            }
+        };
+        load();
+    }
+
     // ── AI Narrative renderer ──
     function renderAINarrative(a) {
         const ai = a.aiRecommendations;
@@ -787,6 +852,8 @@
                     <div class="treatment-main">
                         <div class="name">${escapeHtml(t.treatment || '—')}</div>
                         <div class="why">${escapeHtml(t.why || '')}</div>
+                        ${t.serviceId && t.price != null ? `<div>${escapeHtml(new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(t.price))} MXN</div>
+                        <a class="sz-book" href="${isPublicReport ? 'https://wa.me/524271657595?text=' + encodeURIComponent('Hola, quiero agendar ' + t.treatment + ' recomendado en mi análisis Venus Skin.') : '/admin?nuevaCita=1&cardId=' + encodeURIComponent(a.cardId || '') + '&serviceId=' + encodeURIComponent(t.serviceId)}">${isPublicReport ? 'Agendar por WhatsApp' : a.cardId ? 'Agendar' : 'Seleccionar clienta y agendar'}</a>` : ''}
                     </div>
                     <div class="treatment-meta">
                         <div class="treatment-sessions">${t.sessions ?? '—'}<small> sesiones</small></div>

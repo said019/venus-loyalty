@@ -18,6 +18,9 @@ import {
 import { normalizeYiyuanResponse } from '../services/skinNormalizer.js';
 import { compactForAI } from '../services/ai/compactAnalysis.js';
 import { generateNarrativeSafe } from '../services/ai/claudeNarrative.js';
+import { buildZoneMap } from '../services/skinZones.js';
+import { loadSkinProgress } from '../services/skinProgress.js';
+import { loadSkinMenu, resolveRecommendations } from '../services/ai/skinMenu.js';
 
 const router = express.Router();
 
@@ -49,6 +52,7 @@ function serializeAnalysisForReport(analysis) {
         card: analysis.card || null,
         scores: analysis.scores || [],
         images: analysis.images || [],
+        zoneMap: buildZoneMap(analysis.rawResponse),
     };
 }
 
@@ -193,7 +197,7 @@ router.post('/import', adminAuth, async (req, res) => {
 
         // 8. Narrativa IA (no bloquea si falla — devuelve null)
         const compact = compactForAI(normalized);
-        const narrative = await generateNarrativeSafe(compact);
+        const narrative = await generateNarrativeSafe(compact, await loadSkinMenu(prisma));
 
         if (narrative) {
             await prisma.skinAnalysis.update({
@@ -324,11 +328,11 @@ router.get('/public/:id', async (req, res) => {
             select: {
                 clientName: true, analyzedAt: true, ageReal: true, ageBiological: true,
                 skinType: true, skinColor: true, faceShape: true, overallScore: true,
-                aiRecommendations: true,
+                aiRecommendations: true, cardId: true, rawResponse: true,
                 card: { select: { name: true } },
                 scores: {
                     orderBy: { score: 'asc' },
-                    select: { metric: true, labelEs: true, score: true, severity: true, count: true },
+                    select: { metric: true, labelEs: true, score: true, severity: true, count: true, imageUrl: true },
                 },
                 images: {
                     orderBy: { createdAt: 'asc' },
@@ -337,15 +341,19 @@ router.get('/public/:id', async (req, res) => {
             },
         });
         if (!analysis) return res.status(404).json({ success: false, error: 'Análisis no encontrado' });
-        const { card, aiRecommendations: ai, ...report } = analysis;
+        const { card, cardId, rawResponse, aiRecommendations: ai, ...report } = analysis;
+        const { progress } = await loadSkinProgress(prisma, analysis);
+        const menu = await loadSkinMenu(prisma);
         return res.json({
             success: true,
             data: {
                 ...report,
                 clientName: card?.name || report.clientName,
+                zoneMap: buildZoneMap(rawResponse),
+                progress,
                 aiRecommendations: ai ? {
                     headline: ai.headline, summary: ai.summary,
-                    concerns: ai.concerns, recommendations: ai.recommendations,
+                    concerns: ai.concerns, recommendations: resolveRecommendations(ai.recommendations, menu),
                     homeCare: ai.homeCare, nextAnalysisIn: ai.nextAnalysisIn,
                 } : null,
             },
@@ -353,6 +361,20 @@ router.get('/public/:id', async (req, res) => {
     } catch (err) {
         console.error('[SkinAnalysis /public] Error:', err.message);
         return res.status(500).json({ success: false, error: 'No se pudo cargar el análisis' });
+    }
+});
+
+router.get('/:id/progress', adminAuth, async (req, res) => {
+    try {
+        if (req.query.against !== undefined && typeof req.query.against !== 'string') return res.status(400).json({ success: false, error: 'Comparación inválida' });
+        const current = await prisma.skinAnalysis.findUnique({ where: { id: req.params.id }, include: { scores: true } });
+        if (!current) return res.status(404).json({ success: false, error: 'Análisis no encontrado' });
+        const result = await loadSkinProgress(prisma, current, req.query.against);
+        if (result.invalid) return res.status(404).json({ success: false, error: 'Comparación no disponible' });
+        return res.json({ success: true, data: result });
+    } catch (err) {
+        console.error('[SkinAnalysis /progress]', err.message);
+        return res.status(500).json({ success: false, error: 'No se pudo cargar el avance' });
     }
 });
 
@@ -371,7 +393,11 @@ router.get('/:id', adminAuth, async (req, res) => {
             return res.status(404).json({ success: false, error: 'Análisis no encontrado' });
         }
 
-        return res.json({ success: true, data: serializeAnalysisForReport(analysis) });
+        const data = serializeAnalysisForReport(analysis);
+        const menu = await loadSkinMenu(prisma);
+        if (data.aiRecommendations) data.aiRecommendations = { ...data.aiRecommendations, recommendations: resolveRecommendations(data.aiRecommendations.recommendations, menu) };
+        data.progress = (await loadSkinProgress(prisma, analysis)).progress;
+        return res.json({ success: true, data });
     } catch (err) {
         console.error('[SkinAnalysis /:id] Error:', err);
         return res.status(500).json({ success: false, error: err.message });
@@ -435,7 +461,7 @@ router.post('/:id/regenerate-narrative', adminAuth, async (req, res) => {
         // Re-normalizar desde el raw guardado
         const normalized = normalizeYiyuanResponse(existing.rawResponse);
         const compact = compactForAI(normalized);
-        const narrative = await generateNarrativeSafe(compact);
+        const narrative = await generateNarrativeSafe(compact, await loadSkinMenu(prisma));
 
         if (!narrative) {
             return res.status(502).json({
