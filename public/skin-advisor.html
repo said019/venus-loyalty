@@ -7,10 +7,10 @@
   <title>Venus Skin IA · Valoración privada</title>
   <link rel="stylesheet" href="/skin-advisor.css">
   <link rel="stylesheet" href="/skin-photo-report.css?v=20260923">
-  <link rel="stylesheet" href="/skin-advisor-workspace.css?v=20260923c">
+  <link rel="stylesheet" href="/skin-advisor-workspace.css?v=20260923d">
   <script src="/skin-photo-report.js?v=20260923c" defer></script>
   <script src="/moji-capture-flow.js?v=20260912a" defer></script>
-  <script src="/skin-advisor.js?v=20260923c" defer></script>
+  <script src="/skin-advisor.js?v=20260923d" defer></script>
 </head>
 <body>
   <a class="skip" href="#main">Ir a la valoración</a>
@@ -31,7 +31,8 @@
           </section>
           <section id="step-consultation" hidden aria-label="Consulta">
           <div class="fields"><label>Edad conocida<input id="age" type="number" min="13" max="120" inputmode="numeric"></label><label>Objetivo de la consulta<textarea id="objective" rows="2" maxlength="500"></textarea></label></div>
-          <h3>Datos de las fotos seleccionadas</h3><div id="photo-data"></div>
+          <section class="session-review" aria-labelledby="session-title"><p class="eyebrow">LA SESIÓN</p><h3 id="session-title">Una revisión para todas las tomas</h3><div id="session-photos" class="session-photos"></div><p id="session-progress" role="status"></p><label class="check"><input id="session-sides" type="checkbox">También confirmo derecha e izquierda de la clienta en estas tomas.</label><button id="confirm-session" type="button">Confirmar fechas y posición vertical</button><p class="muted">Confirmas las fechas de captura que aparecen arriba, no las de subida. No se confirma el consentimiento de envío.</p></section>
+          <details id="individual-settings"><summary>Ajustar una toma por separado</summary><div id="photo-data"></div></details>
           <details><summary>Información de la piel</summary><p>No incluyas nombres, teléfonos ni otros datos personales. Una respuesta vacía significa «no sabemos».</p><div id="answers" class="fields"></div></details>
           <fieldset class="consent"><legend>Procesamiento de fotografías</legend><p id="consent-text"></p><label class="check"><input id="consent" type="checkbox" required>He registrado la autorización de la clienta para este procesamiento y estas fotos.</label></fieldset>
           <div class="step-actions"><button type="button" id="previous-photos" class="secondary">Atrás</button><button id="save" type="submit" disabled>Preparar borrador</button></div><p class="muted">Un nuevo borrador sustituye la versión vigente sin borrar su historial. Guardar no envía fotos a OpenAI.</p>

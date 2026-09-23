@@ -36,6 +36,19 @@ async function until(check) {
     el('save').click();
     await until(() => !el('save').disabled);
     assert.match(el('message').textContent, /Falta revisar/);
+    const photoChecks = d.querySelectorAll('#photos input[type=checkbox]');
+    photoChecks[1].checked = true; change(photoChecks[1]);
+    el('confirm-session').click();
+    const selectedDetails = [...d.querySelectorAll('#photo-data details:not([hidden])')];
+    assert.equal(selectedDetails.length, 2);
+    selectedDetails.forEach(item => {
+      assert.equal(item.querySelectorAll('select')[1].value, 'upright');
+      assert.equal(item.querySelectorAll('input[type=checkbox]')[0].checked, true);
+      assert.equal(item.querySelectorAll('input[type=checkbox]')[1].checked, false, 'bulk date confirmation does not invent laterality');
+    });
+    photoChecks[2].checked = true; change(photoChecks[2]);
+    assert.equal(d.querySelectorAll('#photo-data details')[2].querySelector('input[type=checkbox]').checked, false, 'new selection does not inherit attestation');
+    photoChecks[2].checked = false; change(photoChecks[2]);
     const details = d.querySelector('#photo-data details:not([hidden])');
     details.querySelectorAll('select')[1].value = 'upright';
     const checks = details.querySelectorAll('input[type=checkbox]');
