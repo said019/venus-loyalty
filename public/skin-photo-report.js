@@ -81,9 +81,25 @@
     var all = node('div'), zoned = node('div');
     var switchObservations = tabs(observationSide, ['Resumen', 'Por zona'], [all, zoned], 'findings');
     observationSide.appendChild(all); observationSide.appendChild(zoned);
+    var categoryLabel = node('label', 'Categoría', all, 'report-category-label');
+    var categorySelect = node('select', null, categoryLabel); categorySelect.setAttribute('aria-label', 'Categoría de hallazgos');
+    var everyCategory = node('option', 'Todos los hallazgos', categorySelect); everyCategory.value = '';
+    var categories = [];
+    observations.forEach(function (observation) {
+      if (categories.indexOf(observation.areaId) !== -1) return;
+      categories.push(observation.areaId);
+      var option = node('option', data && data.areas[observation.areaId] || 'Observación visual', categorySelect); option.value = observation.areaId;
+    });
+    categoryLabel.hidden = categories.length < 2;
+    categorySelect.onchange = function () {
+      Array.prototype.forEach.call(all.querySelectorAll('[data-report-area]'), function (item) {
+        item.hidden = !!categorySelect.value && item.dataset.reportArea !== categorySelect.value;
+      });
+    };
     var limits = [], grouped = {};
     observations.forEach(function (observation, index) {
       var item = node('article', null, all, 'report-finding');
+      item.dataset.reportArea = observation.areaId;
       node('span', String(index + 1).padStart(2, '0'), item, 'report-finding-number');
       var content = node('div', null, item);
       node('h3', data && data.areas[observation.areaId] || 'Observación visual', content);

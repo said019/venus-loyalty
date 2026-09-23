@@ -73,6 +73,14 @@ async function until(check) {
     const tabs = d.querySelectorAll('.report-observations .report-tabs button');
     assert.equal(tabs.length, 2);
     assert.equal(el('findings-panel-1').hidden, true);
+    const category = d.querySelector('select[aria-label="Categoría de hallazgos"]');
+    assert.equal(category.options.length, 4);
+    category.value = 'A08'; change(category);
+    const findings = Array.from(d.querySelectorAll('[data-report-area]'));
+    assert.equal(findings.filter(item => !item.hidden).length, 1);
+    assert.equal(findings.find(item => !item.hidden).dataset.reportArea, 'A08');
+    category.value = ''; change(category);
+    assert.equal(findings.filter(item => !item.hidden).length, 3);
     tabs[1].click();
     assert.equal(el('findings-panel-0').hidden, true);
     assert.equal(el('findings-panel-1').hidden, false);
