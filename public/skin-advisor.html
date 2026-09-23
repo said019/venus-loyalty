@@ -7,30 +7,39 @@
   <title>Venus Skin IA · Valoración privada</title>
   <link rel="stylesheet" href="/skin-advisor.css">
   <link rel="stylesheet" href="/skin-photo-report.css?v=20260923">
-  <script src="/skin-photo-report.js?v=20260923" defer></script>
+  <link rel="stylesheet" href="/skin-advisor-workspace.css?v=20260923c">
+  <script src="/skin-photo-report.js?v=20260923c" defer></script>
   <script src="/moji-capture-flow.js?v=20260912a" defer></script>
-  <script src="/skin-advisor.js?v=20260923" defer></script>
+  <script src="/skin-advisor.js?v=20260923c" defer></script>
 </head>
 <body>
   <a class="skip" href="#main">Ir a la valoración</a>
   <header><a id="back" href="/admin">← Volver al expediente</a><span class="brand"><img class="venus-official-logo" src="/assets/logo.png" alt="Venus Cosmetología" width="88" height="88"><small>Venus Skin</small></span><span>Área privada</span></header>
   <main id="main">
-    <div class="intro"><p class="eyebrow">Fotografías · contexto · revisión</p><h1>Una valoración con contexto.</h1><p>Selecciona las fotografías y confirma la información. OpenAI prepara un borrador; solo el administrador autorizado puede aprobarlo.</p></div>
+    <div class="intro"><p class="eyebrow">Expediente / Venus Skin</p><h1>Nueva valoración</h1><p>Borrador privado, pendiente de revisión profesional.</p></div>
     <p id="message" role="status" aria-live="polite">Cargando expediente…</p>
     <p id="configuration" class="notice" hidden></p>
     <div class="layout">
       <section class="panel" aria-labelledby="prepare-title">
-        <h2 id="prepare-title">1. Preparar valoración</h2>
-        <form id="draft-form">
-          <fieldset><legend>Fotos de luz blanca</legend><p>Selecciona de una a cuatro fotos. Confirma su orientación y zona. Los mapas, simulaciones y capturas UV se conservan en el informe original, pero no se analizan aquí.</p><div id="photos" class="photos"></div><label class="check"><input id="white-light" type="checkbox" required>Confirmo que las fotos seleccionadas son originales tomadas con luz blanca, no mapas ni simulaciones.</label></fieldset>
+        <h2 id="prepare-title" tabindex="-1">Fotos de la sesión</h2>
+        <nav class="session-steps" aria-label="Valoración"><button type="button" data-step="1" aria-current="step"><span>1</span> Fotos</button><button type="button" data-step="2"><span>2</span> Consulta</button><button type="button" data-step="3"><span>3</span> Reporte</button></nav>
+        <form id="draft-form" novalidate>
+          <section id="step-photos" aria-label="Fotos de la sesión">
+          <figure id="capture-preview" hidden><img id="capture-image" alt="Captura de la sesión"><figcaption id="capture-caption"></figcaption></figure>
+          <fieldset><legend>Fotos de luz blanca</legend><p id="photo-count" role="status">Hasta 4 fotos por valoración</p><div id="photos" class="photos"></div><details id="complementary" hidden><summary id="complementary-title">Capturas complementarias</summary><p>No se envían al análisis de luz blanca.</p><div id="complementary-photos" class="photos"></div></details><label class="check"><input id="white-light" type="checkbox" required>Confirmo que las fotos seleccionadas son originales tomadas con luz blanca, no mapas ni simulaciones.</label></fieldset>
+          <div class="step-actions"><button id="next-consultation" type="button">Continuar</button></div>
+          </section>
+          <section id="step-consultation" hidden aria-label="Consulta">
           <div class="fields"><label>Edad conocida<input id="age" type="number" min="13" max="120" inputmode="numeric"></label><label>Objetivo de la consulta<textarea id="objective" rows="2" maxlength="500"></textarea></label></div>
-          <details open><summary>Información de la piel</summary><p>No incluyas nombres, teléfonos ni otros datos personales. Una respuesta vacía significa «no sabemos».</p><div id="answers" class="fields"></div></details>
+          <h3>Datos de las fotos seleccionadas</h3><div id="photo-data"></div>
+          <details><summary>Información de la piel</summary><p>No incluyas nombres, teléfonos ni otros datos personales. Una respuesta vacía significa «no sabemos».</p><div id="answers" class="fields"></div></details>
           <fieldset class="consent"><legend>Procesamiento de fotografías</legend><p id="consent-text"></p><label class="check"><input id="consent" type="checkbox" required>He registrado la autorización de la clienta para este procesamiento y estas fotos.</label></fieldset>
-          <button id="save" type="submit" disabled>Guardar nuevo borrador</button><p class="muted">Un nuevo borrador sustituye la versión vigente sin borrar su historial. Guardar no envía fotos a OpenAI.</p>
+          <div class="step-actions"><button type="button" id="previous-photos" class="secondary">Atrás</button><button id="save" type="submit" disabled>Preparar borrador</button></div><p class="muted">Un nuevo borrador sustituye la versión vigente sin borrar su historial. Guardar no envía fotos a OpenAI.</p>
+          </section>
         </form>
       </section>
       <aside>
-        <section class="panel" aria-labelledby="history-title"><h2 id="history-title">Valoraciones guardadas</h2><div id="history">Todavía no hay valoraciones.</div></section>
+        <details class="history-panel"><summary>Valoraciones guardadas</summary><div id="history">Todavía no hay valoraciones.</div></details>
         <section id="review" class="panel" hidden aria-labelledby="review-title"><p id="state" class="eyebrow"></p><h2 id="review-title">2. Revisar el borrador</h2><p id="provenance" class="muted"></p><div id="result"></div><button id="generate" type="button" hidden>Analizar con OpenAI</button><p id="generation-note" class="muted"></p><form id="approval-form" hidden><h3>Tu revisión</h3><p>Corrige los textos si es necesario. Se conservará también el borrador original.</p><div id="corrections"></div><label>Notas de revisión<textarea id="review-notes" rows="3" maxlength="2000"></textarea></label><button id="approve" type="submit">Aprobar esta valoración</button></form><p id="approval-info"></p></section>
       </aside>
     </div>

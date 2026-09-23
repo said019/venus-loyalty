@@ -3,6 +3,34 @@
   var byId = function (id) { return document.getElementById(id); };
   var config, record, current, renderedId, busy = false, photoControls = [], corrections = [];
   var query = new URLSearchParams(location.search);
+  document.querySelector('.layout aside').prepend(byId('review'));
+  var activeStep = 1;
+  function showStep(step) {
+    activeStep = step;
+    byId('step-photos').hidden = step !== 1;
+    byId('step-consultation').hidden = step !== 2;
+    byId('review').hidden = step !== 3 || !current;
+    byId('prepare-title').textContent = step === 1 ? 'Fotos de la sesión' : step === 2 ? 'Consulta' : 'Reporte de piel';
+    document.querySelectorAll('[data-step]').forEach(function (button) {
+      if (Number(button.dataset.step) === step) button.setAttribute('aria-current', 'step');
+      else button.removeAttribute('aria-current');
+    });
+  }
+  function continueConsultation() {
+    var count = photoControls.filter(function (p) { return p.check.checked; }).length;
+    if (count < 1 || count > 4) { message('Selecciona entre una y cuatro fotos.', true); showStep(1); return; }
+    if (!byId('white-light').checked) { message('Confirma que las fotos seleccionadas son originales de luz blanca.', true); showStep(1); byId('white-light').focus(); return; }
+    showStep(2); byId('prepare-title').focus();
+  }
+  document.querySelectorAll('[data-step]').forEach(function (button) { button.addEventListener('click', function () {
+    if (busy) return;
+    var step = Number(button.dataset.step);
+    if (step === 2) continueConsultation();
+    else if (step === 3 && !current) message('Prepara un borrador desde Consulta para ver el reporte.', true);
+    else showStep(step);
+  }); });
+  byId('next-consultation').addEventListener('click', continueConsultation);
+  byId('previous-photos').addEventListener('click', function () { showStep(1); });
   var recordId = query.get('recordId');
   var captureIds = window.VenusCaptureFlow ? window.VenusCaptureFlow.selectedIds(location.search) : [];
   if (query.get('capture') === '1') {
@@ -40,40 +68,74 @@
     if (busy) return;
     var previous = current;
     busy = true;
-    document.querySelectorAll('.layout button, #generate, #approve').forEach(function (button) { button.disabled = true; });
+    var buttonStates = Array.from(document.querySelectorAll('.layout button, #generate, #approve')).map(function (button) { var state = { button: button, disabled: button.disabled }; button.disabled = true; return state; });
     try { await fn(); } catch (error) { message(error.message || 'No se pudo completar la acción.', true); }
-    finally { busy = false; byId('save').disabled = !record; if (current && current !== previous) render(current); byId('approve').disabled = false; byId('generate').disabled = !config || !config.enabled || !config.configured; renderHistory(); }
+    finally { busy = false; buttonStates.forEach(function (state) { if (state.button.isConnected) state.button.disabled = state.disabled; }); byId('save').disabled = !record; if (current && current !== previous) render(current); byId('approve').disabled = false; byId('generate').disabled = !config || !config.enabled || !config.configured; renderHistory(); }
   }
   fields.forEach(function (field) { var label = node('label', field[1], byId('answers')); var input = node('textarea', undefined, label); input.id = 'answer-' + field[0]; input.rows = 2; input.maxLength = 500; });
   flags.forEach(function (field) { var label = node('label', field[1], byId('answers')); var input = select([['','No sabemos'],['true','Sí'],['false','No']], label); input.id = 'answer-' + field[0]; });
   function renderPhotos(photos) {
     byId('photos').textContent = ''; photoControls = [];
+    byId('photo-data').textContent = '';
+    byId('capture-preview').hidden = true;
+    byId('complementary-photos').textContent = '';
+    byId('complementary').hidden = true;
+    var complementaryCount = 0;
+    function updateSelection() {
+      var selected = photoControls.filter(function (p) { return p.check.checked; });
+      var pending = selected.filter(function (p) { return !p.orientation.value || !p.confirmed.checked || !p.captured.value; }).length;
+      byId('photo-count').textContent = selected.length + ' de 4 seleccionadas' + (pending ? ' · ' + pending + ' por revisar' : selected.length ? ' · Datos revisados' : '');
+      photoControls.forEach(function (p) {
+        p.box.classList.toggle('selected', p.check.checked);
+        p.details.hidden = !p.check.checked;
+        p.check.disabled = !p.check.checked && selected.length >= 4;
+        p.summary.textContent = p.name + (p.orientation.value && p.confirmed.checked && p.captured.value ? ' · Datos revisados' : ' · Revisar datos');
+      });
+    }
     var nativeSelected = 0, nativeLatest = 0;
     photos.forEach(function (p) { if (/(?:^|\|)\s*modo=image\s*(?:\||$)/.test(p.description || '')) nativeLatest = Math.max(nativeLatest, new Date(p.takenAt).getTime()); });
     if (!photos.length) node('p', 'Este expediente aún no tiene fotos. Añádelas desde la sección Fotos del expediente y vuelve aquí.', byId('photos'));
     photos.forEach(function (photo, index) {
-      var box = node('div', undefined, byId('photos')); box.className = 'photo';
+      var captureMode = /(?:^|\|)\s*modo=([a-z_]+)/.exec(photo.description || '');
+      var complementary = captureMode && captureMode[1] !== 'image';
+      var box = node('div', undefined, byId(complementary ? 'complementary-photos' : 'photos')); box.className = 'photo';
       var src = safeImage(photo.url);
-      if (src) { var img = node('img', undefined, box); img.alt = 'Fotografía ' + (index + 1) + ' del expediente'; img.referrerPolicy = 'no-referrer'; img.src = src; img.addEventListener('error', function () { img.hidden = true; node('p', 'Vista previa no disponible', box); }); }
+      if (src) {
+        var view = node('button', undefined, box); view.type = 'button'; view.className = 'capture-view'; view.setAttribute('aria-label', 'Ver toma ' + (index + 1));
+        var img = node('img', undefined, view); img.alt = 'Fotografía ' + (index + 1) + ' del expediente'; img.referrerPolicy = 'no-referrer'; img.src = src;
+        img.addEventListener('error', function () { img.hidden = true; node('p', 'Vista previa no disponible', view); });
+        function preview() { byId('capture-preview').hidden = false; byId('capture-image').hidden = false; byId('capture-image').src = src; byId('capture-caption').textContent = 'Toma ' + (index + 1) + ' · ' + date(photo.takenAt) + (complementary ? ' · Complementaria' : ''); }
+        view.addEventListener('click', preview);
+        if (!complementary && byId('capture-preview').hidden) preview();
+      }
+      if (complementary) { complementaryCount++; node('p', 'Foto ' + (index + 1) + ' · Captura complementaria', box); return; }
       var label = node('label', undefined, box); label.className = 'check'; var check = node('input', undefined, label); check.type = 'checkbox'; node('span', 'Foto ' + (index + 1) + ' · ' + date(photo.takenAt), label);
       check.checked = captureIds.indexOf(photo.id) !== -1;
-      var zone = select(zones, node('label', 'Zona', box));
-      var captureMode = /(?:^|\|)\s*modo=([a-z_]+)/.exec(photo.description || '');
+      var details = node('details', undefined, byId('photo-data')); details.className = 'photo-details';
+      var summary = node('summary', 'Revisar datos', details);
+      details.addEventListener('toggle', function () { if (details.open) photoControls.forEach(function (p) { if (p.details !== details) p.details.open = false; }); });
+      var zone = select(zones, node('label', 'Zona', details));
       if (captureMode) {
         check.disabled = captureMode[1] !== 'image';
         if (check.disabled) { check.checked = false; node('p', 'Captura complementaria: no se usa como luz blanca.', box); }
         else {
           zone.value = 'full_face';
-          if (!captureIds.length && nativeSelected < 4 && nativeLatest - new Date(photo.takenAt).getTime() <= 600000) { check.checked = true; nativeSelected++; }
+          if (!captureIds.length && nativeSelected < 1 && nativeLatest - new Date(photo.takenAt).getTime() <= 600000) { check.checked = true; nativeSelected++; }
         }
       }
-      var orientation = select(orientations, node('label', 'Orientación actual', box));
-      var captured = node('input', undefined, node('label', 'Fecha y hora de la toma', box)); captured.type = 'datetime-local';
+      var orientation = select(orientations, node('label', 'Orientación actual', details));
+      var captured = node('input', undefined, node('label', 'Fecha y hora de la toma', details)); captured.type = 'datetime-local';
       var suggested = new Date(photo.takenAt); if (!isNaN(suggested.getTime())) captured.value = new Date(suggested.getTime() - suggested.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-      var dateLabel = node('label', undefined, box); dateLabel.className = 'check'; var confirmed = node('input', undefined, dateLabel); confirmed.type = 'checkbox'; node('span', 'Confirmo que esta es la fecha de la toma, no solo la fecha de subida', dateLabel);
-      var sideLabel = node('label', undefined, box); sideLabel.className = 'check'; var side = node('input', undefined, sideLabel); side.type = 'checkbox'; node('span', 'Derecha e izquierda confirmadas desde la perspectiva de la clienta', sideLabel);
-      photoControls.push({ id: photo.id, check: check, zone: zone, orientation: orientation, side: side, captured: captured, confirmed: confirmed });
+      var dateLabel = node('label', undefined, details); dateLabel.className = 'check'; var confirmed = node('input', undefined, dateLabel); confirmed.type = 'checkbox'; node('span', 'Confirmo la fecha de captura, no la de subida', dateLabel);
+      var sideLabel = node('label', undefined, details); sideLabel.className = 'check'; var side = node('input', undefined, sideLabel); side.type = 'checkbox'; node('span', 'Identifiqué derecha e izquierda de la clienta', sideLabel);
+      captured.addEventListener('input', function () { confirmed.checked = false; updateSelection(); });
+      photoControls.push({ id: photo.id, name: 'Toma ' + (index + 1), box: box, details: details, summary: summary, check: check, zone: zone, orientation: orientation, side: side, captured: captured, confirmed: confirmed });
+      box.addEventListener('change', updateSelection);
+      details.addEventListener('change', updateSelection);
     });
+    byId('complementary').hidden = !complementaryCount;
+    byId('complementary-title').textContent = 'Capturas complementarias (' + complementaryCount + ')';
+    updateSelection();
   }
   function renderHistory() {
     if (!record) return;
@@ -97,7 +159,6 @@
     if (result) {
       if (window.VenusPhotoReport) {
         window.VenusPhotoReport.render(byId('result'), row, record ? record.assessments : []);
-        document.querySelector('.layout').before(byId('review'));
       } else {
       node('p', result.summary, byId('result'));
       section('Límites de las fotografías', result.quality.limits);
@@ -124,20 +185,25 @@
       result.careDraft.education.forEach(function (item, i) { editable('Cuidado ' + (i + 1), ['careDraft', 'education', i], item); });
       editable('Alternativa sin procedimiento', ['careDraft', 'noProcedureAlternative'], result.careDraft.noProcedureAlternative);
     }
-    byId('approval-info').textContent = row.approval ? 'Aprobada el ' + date(row.approval.approvedAt) + '. Registro privado; no se envió automáticamente.' : row.status === 'pending_review' && !config.canApprove ? 'Solo el administrador autorizado puede aprobar esta valoración.' : '';
+    byId('approval-info').textContent = row.approval ? 'Aprobada el ' + date(row.approval.approvedAt) + '. Registro privado; no se envió automáticamente.' : row.status === 'pending_review' && !config.canApprove && !simulated ? 'Solo el administrador autorizado puede aprobar esta valoración.' : '';
+    showStep(3);
   }
   async function refresh() { record = await api('/records/' + encodeURIComponent(recordId)); renderHistory(); }
   byId('draft-form').addEventListener('submit', function (event) {
     event.preventDefault(); action(async function () {
+      if (activeStep !== 2) { continueConsultation(); return; }
+      if (!byId('white-light').checked) { showStep(1); throw new Error('Confirma que las fotos son originales de luz blanca.'); }
+      if (!byId('draft-form').reportValidity()) return;
       var selected = photoControls.filter(function (photo) { return photo.check.checked; });
       if (selected.length < 1 || selected.length > 4) throw new Error('Selecciona entre una y cuatro fotografías.');
-      if (selected.some(function (photo) { return !photo.orientation.value; })) throw new Error('Confirma la orientación de cada fotografía seleccionada.');
-      if (selected.some(function (photo) { return !photo.confirmed.checked || !photo.captured.value || isNaN(new Date(photo.captured.value).getTime()); })) throw new Error('Confirma la fecha y hora de la toma de cada fotografía seleccionada.');
+      var incomplete = selected.find(function (photo) { return !photo.orientation.value || !photo.confirmed.checked || !photo.captured.value || isNaN(new Date(photo.captured.value).getTime()); });
+      if (incomplete) { incomplete.details.open = true; incomplete.summary.focus(); throw new Error('Falta revisar la orientación o la fecha de esta foto.'); }
       var answers = {}; fields.forEach(function (field) { answers[field[0]] = byId('answer-' + field[0]).value || null; }); flags.forEach(function (field) { var value = byId('answer-' + field[0]).value; answers[field[0]] = value === '' ? null : value === 'true'; });
       current = await api('/records/' + encodeURIComponent(recordId) + '/assessments', { whiteLightOriginalConfirmed: byId('white-light').checked, photos: selected.map(function (photo) { return { id: photo.id, zone: photo.zone.value, orientation: photo.orientation.value, lateralityResolved: photo.side.checked, capturedAt: new Date(photo.captured.value).toISOString(), capturedAtConfirmed: photo.confirmed.checked }; }), patient: { age: byId('age').value === '' ? null : Number(byId('age').value), objective: byId('objective').value || null }, answers: answers, consentAccepted: byId('consent').checked, consentVersion: config.consentVersion });
       byId('consent').checked = false; await refresh(); message('Borrador guardado. Aún no se han enviado fotografías a OpenAI.');
     });
   });
+  byId('capture-image').addEventListener('error', function () { byId('capture-image').hidden = true; byId('capture-caption').textContent = 'Vista previa no disponible'; });
   byId('generate').addEventListener('click', function () { action(async function () {
     message(config.simulation ? 'Generando respuesta ficticia, sin OpenAI…' : 'Analizando con OpenAI. Espera sin repetir la solicitud…');
     try { current = await api('/assessments/' + encodeURIComponent(current.id) + '/generate', { version: current.version }); }

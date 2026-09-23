@@ -10,7 +10,7 @@
     return el;
   }
   function imageUrl(value) {
-    try { var u = new URL(value); return u.protocol === 'https:' && u.hostname === 'res.cloudinary.com' && !u.username && !u.password ? u.href : ''; }
+    try { var u = new URL(value, location.origin); return (u.protocol === 'https:' && u.hostname === 'res.cloudinary.com' || u.origin === location.origin) && !u.username && !u.password ? u.href : ''; }
     catch (_) { return ''; }
   }
   function resultOf(row) { return row.approval && row.approval.correctedAssessment || row.assessment; }
@@ -55,13 +55,13 @@
       grouped[key].forEach(function (o) { node('p', o.description, detail); list(detail, 'Límites', o.limits); });
       Array.prototype.forEach.call(root.querySelectorAll('[data-report-zone]'), function (button) { button.setAttribute('aria-pressed', String(button.dataset.reportZone === key)); });
     }
-    keys.forEach(function (key) {
+    keys.forEach(function (key, index) {
       var button = node('button', labels[key] || key, side, 'photo-report-zone'); button.type = 'button'; button.dataset.reportZone = key;
       button.onclick = function () { select(key); };
       // A fixed guide is shown only on a confirmed, upright full-face capture.
       var supported = frontal && grouped[key].some(function (o) { return o.evidence.photoIds.indexOf(frontal.id) !== -1; });
       if (figure && positions[key] && supported) {
-        var pin = node('button', null, figure, 'photo-report-pin photo-zone-' + key); pin.type = 'button'; pin.dataset.reportZone = key;
+        var pin = node('button', String(index + 1), figure, 'photo-report-pin photo-zone-' + key); pin.type = 'button'; pin.dataset.reportZone = key;
         pin.setAttribute('aria-label', labels[key]);
         pin.onclick = function () { select(key); };
       }
@@ -95,6 +95,23 @@
       node('figcaption', image.alt + ' · ' + date(photo.capturedAt), box);
     });
     root.dataset.approved = String(approved);
+    var tabs = node('div', null, null, 'report-tabs'); tabs.setAttribute('role', 'tablist'); tabs.setAttribute('aria-label', 'Contenido del reporte');
+    header.after(tabs);
+    var care = node('div', null, null);
+    while (layout.nextSibling) care.appendChild(layout.nextSibling);
+    root.appendChild(care);
+    var panels = [layout, care], tabButtons = [];
+    function activate(index) {
+      panels.forEach(function (panel, i) { panel.hidden = i !== index; tabButtons[i].setAttribute('aria-selected', String(i === index)); tabButtons[i].tabIndex = i === index ? 0 : -1; });
+    }
+    ['Zonas', 'Cuidados y contexto'].forEach(function (label, index) {
+      var tab = node('button', label, tabs); tab.type = 'button'; tab.id = 'report-tab-' + index; tab.setAttribute('role', 'tab'); tab.setAttribute('aria-controls', 'report-panel-' + index);
+      panels[index].id = 'report-panel-' + index; panels[index].setAttribute('role', 'tabpanel'); panels[index].setAttribute('aria-labelledby', tab.id);
+      tab.onclick = function () { activate(index); };
+      tab.onkeydown = function (event) { if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].indexOf(event.key) !== -1) { event.preventDefault(); var next = event.key === 'Home' ? 0 : event.key === 'End' ? 1 : 1 - index; activate(next); tabButtons[next].focus(); } };
+      tabButtons.push(tab);
+    });
+    activate(0);
     if (approved) { var print = node('button', 'Guardar PDF', root, 'photo-report-print'); print.type = 'button'; print.onclick = function () { window.print(); }; }
   }
   window.VenusPhotoReport = { render: render };

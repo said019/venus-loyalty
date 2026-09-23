@@ -1,0 +1,76 @@
+/* Native capture workspace: light surfaces and one task per step. */
+:root{color-scheme:light;--bg:#f7f8f5;--panel:#eff1ec;--line:#d9ddd3;--text:#292e28;--muted:#646b60;--accent:#737f50}
+body{background:var(--bg)}
+main{max-width:1100px;padding-top:16px}
+header{max-width:1100px;padding:12px 32px;background:#fdfefb}
+header .brand{order:-1}
+.venus-official-logo{width:72px;height:72px}
+.intro{display:none}
+input:not([type=checkbox]),textarea,select{background:#fdfefb;color:var(--text);border-color:#b9c0af;border-radius:6px}
+button{background:#8c9668;color:#17200e;border-color:#8c9668;letter-spacing:0}
+button:hover{background:#cbd3b5}
+.notice,#message{background:#edf1e5;border-radius:0;font-size:13px;padding:6px 12px;margin:6px 0;max-width:none}
+#message.error{color:#9b3d2b;background:#faeee8}
+.session-steps{display:flex;gap:24px;border-bottom:1px solid var(--line);margin-bottom:28px;padding-bottom:12px}
+.session-steps button{display:flex;align-items:center;gap:10px;border:0;border-radius:0;background:transparent;color:var(--muted);font-weight:400;padding:8px 0;flex:1}
+.session-steps span{display:grid;place-items:center;width:32px;height:32px;flex-shrink:0;border-radius:50%;background:#e6e9e1}
+.session-steps [aria-current]{color:var(--text);font-weight:600}
+.session-steps [aria-current] span{background:var(--accent);color:#fdfefb}
+#capture-preview{margin:0 auto 20px;max-width:580px;text-align:center}
+#capture-image{width:100%;height:300px;object-fit:contain;background:#e9ece5;border-radius:6px;display:block}
+#capture-caption{font-size:13px;color:var(--muted);padding-top:8px}
+.step-actions{display:flex;justify-content:space-between;gap:16px;border-top:1px solid var(--line);padding:20px 0 8px;margin-top:20px}
+#next-consultation{margin-left:auto;min-width:180px}
+.secondary{background:transparent;color:var(--text);border-color:var(--line)}
+.capture-view{padding:0;border:0;display:block;width:100%;background:transparent!important;border-radius:4px;overflow:hidden}
+.capture-view img{margin:0!important}
+.history-panel{margin-top:28px;color:var(--muted)}
+.history-item{color:var(--text)}
+.history-item:hover{background:#edf1e5}
+.photo-report{color:var(--text)}
+.photo-report h1{font:500 28px/1.2 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.photo-report h2{font:500 22px/1.3 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.photo-report-heading>.venus-official-logo{display:none}
+#review{margin:0 0 24px}
+#review-title,.photo-report-heading h1,.photo-report-heading>.eyebrow{display:none}
+#review>#state{margin:0 0 6px}
+#provenance{margin:0 0 8px;font-size:12px}
+.photo-report-heading{padding:4px 0}
+.photo-report-heading p{margin:4px 0;font-size:13px}
+.photo-report-face,.photo-report-gallery img{background:#e9ece5;border-radius:6px}
+.photo-report-zone{border-color:var(--line)}
+.photo-report-zone:hover{background:#edf1e5}
+.photo-report-gallery figcaption{color:var(--muted)}
+.photo-report-pin{color:#fdfefb;font-size:12px;border-width:2px;width:30px;height:30px;min-height:30px}
+.report-tabs{display:flex;gap:20px;border-bottom:1px solid var(--line);margin:12px 0}
+.report-tabs button{background:transparent;color:var(--muted);border:0;border-bottom:2px solid transparent;border-radius:0}
+.report-tabs [aria-selected=true]{color:var(--text);border-bottom-color:var(--accent)}
+.layout{display:block}
+.panel{background:transparent;border:0;border-radius:0;padding:24px 0;border-top:1px solid var(--line)}
+.intro{margin-bottom:20px}
+h1{font-size:32px;letter-spacing:0;margin:8px 0 12px}
+h2,.brand,.eyebrow{letter-spacing:0}
+.photos{grid-template-columns:repeat(4,minmax(0,1fr));align-items:start;gap:16px}
+.photo{border-radius:8px;background:var(--panel);padding:10px}
+.photo.selected{border-color:var(--accent)}
+.photo img{height:180px;display:block;margin-bottom:12px}
+#photos{max-width:580px;margin:12px auto;grid-template-columns:repeat(3,minmax(0,1fr))}
+#photos .photo img{height:100px}
+#photos .photo .check{margin-top:8px;font-size:12px}
+.photo .check{line-height:1.5}
+.photo-details{padding-top:8px;margin-top:12px}
+.photo-details[open]{display:grid;grid-template-columns:1fr 1fr;column-gap:24px}
+.photo-details>summary{grid-column:1/-1}
+.photo-details summary{font-size:14px;margin:0;min-height:44px;padding:8px 0;color:var(--accent)}
+.photo-details[open] summary{margin-bottom:12px}
+#photo-count{color:var(--accent);font-size:14px}
+#complementary{margin:20px 0}
+#complementary summary{margin-bottom:0}
+#complementary .photo p{font-size:13px;color:var(--muted)}
+.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 24px}
+.consent{max-width:760px}
+@media(max-width:1000px){.photos{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.photos{grid-template-columns:1fr 1fr;gap:10px}.photo img{height:140px}.photo:has(.photo-details[open]){grid-column:1/-1}.photo:has(.photo-details[open]) img{height:220px}.fields{grid-template-columns:1fr}h1{font-size:28px}.panel{padding:20px 0}}
+@media(max-width:360px){.photos{grid-template-columns:1fr}}
+@media(max-width:600px){header{padding:10px 16px}.venus-official-logo{width:80px;height:80px}header a{font-size:13px}.brand small{display:none}.session-steps{gap:10px}.session-steps button{font-size:14px;gap:6px}#capture-image{height:290px}.photo-details[open]{display:block}.photo img{height:110px}.photo label{font-size:12px}.photo-report-zones{grid-template-columns:1fr}}
+@media print{main>.layout,.layout>aside,aside>#review{display:block!important}.layout>.panel,aside>.history-panel{display:none!important}.report-tabs{display:none!important}.photo-report [role=tabpanel]{display:block!important}}
