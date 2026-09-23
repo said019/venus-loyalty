@@ -76,6 +76,37 @@ test('native non-white captures cannot be submitted as white-light originals', a
   assert.equal((await f.workflow.createDraft('staff', f.current.id, f.body)).status, 'draft');
 });
 
+test('visual previews require account and photo ownership and do not call AI or write assessments', async () => {
+  const f = await fixture();
+  f.photos[0].description = 'modo=image';
+  await assert.rejects(f.workflow.previewPhoto('missing', f.current.id, f.photos[0].id, { mode: 'red_contrast' }), { code: 'unauthenticated' });
+  await assert.rejects(f.workflow.previewPhoto('staff', f.current.id, 'foreign', { mode: 'red_contrast' }), { code: 'photo_ownership' });
+  const output = await f.workflow.previewPhoto('staff', f.current.id, f.photos[0].id, { mode: 'red_contrast' });
+  assert.equal(output.sourcePhotoId, f.photos[0].id);
+  assert.match(output.dataUrl, /^data:image\/jpeg;base64,/);
+  assert.equal(f.calls(), 0); assert.equal(f.rows.length, 0);
+  f.photos[0].description = 'modo=image_uv';
+  await assert.rejects(f.workflow.previewPhoto('staff', f.current.id, f.photos[0].id, { mode: 'red_contrast' }), { code: 'preview_mode_unavailable' });
+  f.photos[0].description = null;
+  await assert.rejects(f.workflow.previewPhoto('staff', f.current.id, f.photos[0].id, { mode: 'detail' }), { code: 'preview_mode_unavailable' });
+});
+
+test('visual preview is single-flight per actor and releases its slot after failure', async () => {
+  let release, started;
+  const loaded = new Promise(resolve => { started = resolve; });
+  const f = await fixture({ loadPhoto: () => { started(); return new Promise(resolve => { release = resolve; }); } });
+  f.photos[0].description = 'modo=image';
+  const first = f.workflow.previewPhoto('staff', f.current.id, f.photos[0].id, { mode: 'detail' });
+  await loaded;
+  await assert.rejects(f.workflow.previewPhoto('staff', f.current.id, f.photos[0].id, { mode: 'detail' }), { code: 'preview_busy' });
+  release({ bytes: Buffer.from('invalid') });
+  await assert.rejects(first, { code: 'preview_unavailable' });
+  const second = f.workflow.previewPhoto('staff', f.current.id, f.photos[0].id, { mode: 'detail' });
+  await new Promise(resolve => setImmediate(resolve));
+  release({ bytes: Buffer.from('invalid') });
+  await assert.rejects(second, { code: 'preview_unavailable' });
+});
+
 test('draft creation rejects foreign photos and consent; disabled never calls provider', async () => {
   const f = await fixture({ config: { enabled: false } });
   await assert.rejects(f.workflow.createDraft('staff', f.current.id, { ...f.body, consentAccepted: false }), { code: 'consent_required' });

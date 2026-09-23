@@ -3,6 +3,7 @@ import http from 'node:http';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createVisualPreview } from '../src/services/skinVisualPreview.js';
 const root = path.resolve(fileURLToPath(new URL('../public/', import.meta.url)));
 const takenAt = '2026-09-22T20:00:00.000Z';
 const photos = [0, 1, 2].map(i => ({ id: 'demo-photo-' + i, takenAt, url: '/assets/skin-demo-frontal.png', description: 'DEMO | modo=image | disparo=' + i }));
@@ -17,6 +18,8 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'POST') {
       let text = ''; for await (const chunk of req) { text += chunk; if (text.length > 64000) return send(null, 413); }
       const body = JSON.parse(text || '{}');
+      const previewPhoto = photos.find(p => url.pathname === '/api/skin-advisor/records/demo/photos/' + p.id + '/preview');
+      if (previewPhoto) return send({ ...await createVisualPreview(await fs.readFile(path.join(root, 'assets/skin-demo-frontal.png')), body.mode), sourcePhotoId: previewPhoto.id, sourceUrl: previewPhoto.url });
       if (url.pathname === '/api/skin-advisor/records/demo/assessments') {
         if (!body.consentAccepted || !body.whiteLightOriginalConfirmed || !body.photos?.length) return send(null, 400);
         const row = { id: 'demo-' + Date.now(), status: 'draft', version: 1, createdAt: new Date().toISOString(), input: { ...body, photos: body.photos.map(p => ({ ...p, sourceUrl: photos.find(source => source.id === p.id)?.url })) }, provenance: { provider: 'demo-local', model: 'ninguno', simulation: true } };
@@ -25,7 +28,7 @@ const server = http.createServer(async (req, res) => {
       const row = rows.find(r => url.pathname === '/api/skin-advisor/assessments/' + r.id + '/generate');
       if (row) {
         row.status = 'pending_review'; row.version++;
-        row.assessment = { summary: 'Ejemplo de presentación. Esta imagen sintética no ha sido analizada.', observations: ['forehead', 'right_cheek', 'chin'].map(zone => ({ zone, description: 'Observación de demostración, sin valoración real de la piel.', limits: [], evidence: { photoIds: [row.input.photos[0].id] } })), priorities: [], missingInformation: [], followUpQuestions: [], careDraft: { options: [], education: ['Aquí aparecerán los cuidados sujetos a revisión profesional.'], noProcedureAlternative: 'Sin recomendación en esta demostración.' }, professionalReview: { required: true, reasons: ['No entregar como reporte real.'] }, quality: { limits: ['Imagen sintética y contenido de ejemplo.'], status: 'limited' } };
+        row.assessment = { summary: 'Ejemplo de presentación. Esta imagen sintética no ha sido analizada.', observations: ['forehead', 'right_cheek', 'chin'].map((zone, i) => ({ areaId: ['A09', 'A08', 'A05'][i], zone, description: 'Observación de demostración, sin valoración real de la piel.', limits: [], evidence: { photoIds: [row.input.photos[0].id] } })), priorities: [{ areaId: 'A09', description: 'Ejemplo: revisar la captura original con la profesional.' }], missingInformation: [], followUpQuestions: [], careDraft: { options: [], education: ['Aquí aparecerán los cuidados sujetos a revisión profesional.'], noProcedureAlternative: 'Sin recomendación en esta demostración.' }, professionalReview: { required: true, reasons: ['No entregar como reporte real.'] }, quality: { limits: ['Imagen sintética y contenido de ejemplo.'], status: 'limited' } };
         return send(row);
       }
       return send(null, 405);

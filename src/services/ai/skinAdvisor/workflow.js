@@ -3,6 +3,7 @@ import { prepareContext } from './context.js';
 import { validateAssessment } from './contract.js';
 import { ANSWER_FIELDS, DECLARED_FLAG_FIELDS, ZONES, CATALOG_VERSION } from './catalog.js';
 import { PROMPT_VERSION } from './prompt.js';
+import { createVisualPreview, VISUAL_MODES } from '../../skinVisualPreview.js';
 
 export class SkinWorkflowError extends Error {
   constructor(code, status = 400) { super(code); this.code = code; this.status = status; }
@@ -28,6 +29,7 @@ const publicRow = (row) => {
 
 export function createSkinAdvisorWorkflow({ prisma, provider, loadPhoto, config = {}, clock = () => new Date() }) {
   const now = () => new Date(clock());
+  const previewActors = new Set();
   const pipelineTimeoutMs = config.pipelineTimeoutMs ?? 90_000;
   if (!Number.isInteger(pipelineTimeoutMs) || pipelineTimeoutMs < 1 || pipelineTimeoutMs > 90_000) throw new TypeError('pipelineTimeoutMs must be between 1 and 90000.');
   const checkSignal = signal => { if (signal?.aborted) fail('timeout', 504); };
@@ -107,6 +109,26 @@ export function createSkinAdvisorWorkflow({ prisma, provider, loadPhoto, config 
       activeServices: structuredClone(config.activeServices || []), protocols: structuredClone(config.protocols || []) };
   }
   return Object.freeze({
+    async previewPhoto(actorId, recordId, photoId, body = {}) {
+      await account(prisma, actorId);
+      await record(prisma, recordId);
+      if (!idValid(photoId) || !VISUAL_MODES.includes(body.mode)) fail('invalid_input');
+      if (previewActors.has(actorId) || previewActors.size >= 2) fail('preview_busy', 429);
+      previewActors.add(actorId);
+      try {
+        const photos = await prisma.clientPhoto.findMany({ where: { recordId, id: { in: [photoId] } } });
+        const photo = photos.find(p => p.id === photoId);
+        if (!photo) fail('photo_ownership', 404);
+        const mode = /(?:^|\|)\s*modo=([a-z_]+)/.exec(photo.description || '');
+        if (!mode || !['image', 'image_negative'].includes(mode[1])) fail('preview_mode_unavailable');
+        const media = await loadPhoto(photo);
+        const result = await createVisualPreview(media.bytes, body.mode);
+        return { ...result, sourcePhotoId: photo.id, sourceUrl: photo.url };
+      } catch (error) {
+        if (error instanceof SkinWorkflowError) throw error;
+        fail('preview_unavailable', 422);
+      } finally { previewActors.delete(actorId); }
+    },
     async getConfig(actorId) {
       const user = await account(prisma, actorId);
       return { enabled: config.enabled === true, configured: config.configured === true, simulation: provider.metadata?.simulation === true, canApprove: user.role === 'admin' && user.id === config.approverId, consentVersion: config.consentVersion, consentText: config.consentText, userId: user.id };

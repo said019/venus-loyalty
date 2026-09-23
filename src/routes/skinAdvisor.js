@@ -29,6 +29,7 @@ export function createSkinAdvisorRouter({ workflow, authenticate, expectedOrigin
   };
   router.get('/config', handle(req => workflow.getConfig(req.admin.uid)));
   router.get('/records/:recordId', handle(req => workflow.getRecord(req.admin.uid, req.params.recordId)));
+  router.post('/records/:recordId/photos/:photoId/preview', handle(req => workflow.previewPhoto(req.admin.uid, req.params.recordId, req.params.photoId, req.body)));
   router.post('/records/:recordId/assessments', handle(req => workflow.createDraft(req.admin.uid, req.params.recordId, req.body)));
   router.get('/assessments/:id', handle(req => workflow.getAssessment(req.admin.uid, req.params.id)));
   router.post('/assessments/:id/generate', handle(req => workflow.generate(req.admin.uid, req.params.id, req.body)));

@@ -1,7 +1,7 @@
 (function () {
   'use strict';
   var byId = function (id) { return document.getElementById(id); };
-  var config, record, current, renderedId, busy = false, photoControls = [], corrections = [];
+  var config, record, current, renderedId, busy = false, generatingRequest = false, photoControls = [], corrections = [];
   var query = new URLSearchParams(location.search);
   document.querySelector('.layout aside').prepend(byId('review'));
   var activeStep = 1;
@@ -171,14 +171,31 @@
   function render(row) {
     if (renderedId !== row.id) byId('review-notes').value = row.approval && row.approval.reviewNotes ? row.approval.reviewNotes : '';
     renderedId = row.id;
-    byId('review').hidden = false; byId('state').textContent = statusNames[row.status] || row.status;
+    var analyzing = generatingRequest || row.status === 'generating';
+    byId('review').hidden = false; byId('state').textContent = analyzing ? 'Análisis en curso' : statusNames[row.status] || row.status;
     byId('review-title').textContent = row.status === 'approved' ? 'Reporte Venus Skin' : 'Revisar valoración Venus';
     byId('result').textContent = ''; byId('corrections').textContent = ''; corrections = [];
     var result = row.approval && row.approval.correctedAssessment ? row.approval.correctedAssessment : row.assessment;
-    byId('provenance').textContent = row.provenance ? 'Proveedor: ' + (row.provenance.provider || 'OpenAI') + ' · Modelo: ' + (row.provenance.model || 'registrado') : 'Todavía no hay una valoración de IA.';
+    byId('provenance').textContent = row.provenance ? 'Proveedor: ' + (row.provenance.provider || 'OpenAI') + ' · Modelo: ' + (row.provenance.model || 'registrado') : analyzing ? 'Solicitud en proceso. Las conclusiones aparecerán al recibir el resultado.' : 'Fotos y contexto guardados. El análisis aún no se ha realizado.';
+    if (!result) {
+      var input = row.input || {}, photos = input.photos || [], patient = input.patient || {};
+      var overview = node('section', undefined, byId('result')); overview.className = 'analysis-overview';
+      node('h3', analyzing ? 'Preparando tu valoración' : 'Resumen de la valoración', overview);
+      if (analyzing) { var progress = node('progress', undefined, overview); progress.setAttribute('aria-label', 'Análisis en curso, progreso indeterminado'); }
+      var facts = node('dl', undefined, overview); facts.className = 'analysis-facts';
+      [['Borrador creado', date(row.createdAt)], ['Fotos incluidas', String(photos.length)], ['Edad registrada', patient.age == null ? 'No registrada' : patient.age + ' años'], ['Objetivo', patient.objective || 'No registrado']].forEach(function (pair) { var item = node('div', undefined, facts); node('dt', pair[0], item); node('dd', pair[1], item); });
+      var gallery = node('div', undefined, overview); gallery.className = 'session-photos';
+      photos.forEach(function (photo, index) { var figure = node('figure', undefined, gallery); var src = safeImage(photo.sourceUrl); if (src) { var img = node('img', undefined, figure); img.src = src; img.alt = 'Toma incluida ' + (index + 1); img.referrerPolicy = 'no-referrer'; img.onerror = function () { img.hidden = true; }; } node('figcaption', 'Toma ' + (index + 1) + ' · ' + date(photo.capturedAt), figure); });
+      var supplied = fields.filter(function (field) { return input.answers && input.answers[field[0]]; });
+      if (supplied.length) { var context = node('details', undefined, overview); node('summary', 'Contexto registrado (' + supplied.length + ')', context); supplied.forEach(function (field) { node('h4', field[1], context); node('p', input.answers[field[0]], context); }); }
+      node('p', analyzing ? 'No cierres esta pantalla. El resultado quedará pendiente de revisión profesional; no se enviará automáticamente a la clienta.' : 'El borrador conserva las fotos y el contexto. Al iniciar, se enviarán al proveedor para preparar una valoración sujeta a revisión.', overview).className = 'muted';
+    }
     if (result) {
       if (window.VenusPhotoReport) {
-        window.VenusPhotoReport.render(byId('result'), row, record ? record.assessments : []);
+        window.VenusPhotoReport.render(byId('result'), row, record ? record.assessments : [], {
+          photos: record ? record.photos : [],
+          preview: function (photoId, mode) { return api('/records/' + encodeURIComponent(recordId) + '/photos/' + encodeURIComponent(photoId) + '/preview', { mode: mode }); }
+        });
       } else {
       node('p', result.summary, byId('result'));
       section('Límites de las fotografías', result.quality.limits);
@@ -192,8 +209,9 @@
       section('Revisión profesional', result.professionalReview.reasons);
       }
     }
-    byId('generate').hidden = row.status !== 'draft'; byId('generate').disabled = busy || !config.enabled || !config.configured;
+    byId('generate').hidden = row.status !== 'draft' || analyzing; byId('generate').disabled = busy || !config.enabled || !config.configured;
     byId('generation-note').textContent = row.status === 'draft' && config.simulation ? 'Esta acción genera una respuesta ficticia sin contactar OpenAI.' : row.status === 'draft' ? 'Esta acción enviará únicamente las fotos seleccionadas y la información autorizada a OpenAI.' : row.status === 'generating' ? 'La generación está en curso. Vuelve a seleccionar esta valoración para consultar su estado; no se repetirá automáticamente.' : row.failureCode ? 'No se obtuvo un borrador válido. Crea una nueva valoración si deseas intentarlo otra vez.' : '';
+    if (analyzing) byId('generation-note').textContent = 'Esperando respuesta. No se iniciará otro análisis automáticamente.';
     var simulated = row.provenance && row.provenance.simulation;
     if (simulated) node('p', 'SIMULACIÓN: datos ficticios, sin OpenAI. Este resultado no se puede aprobar ni entregar como valoración real.', byId('result'));
     var canReview = row.status === 'pending_review' && config.canApprove && result && !simulated;
@@ -226,8 +244,10 @@
   byId('capture-image').addEventListener('error', function () { byId('capture-image').hidden = true; byId('capture-caption').textContent = 'Vista previa no disponible'; });
   byId('generate').addEventListener('click', function () { action(async function () {
     message(config.simulation ? 'Generando respuesta ficticia, sin OpenAI…' : 'Analizando con OpenAI. Espera sin repetir la solicitud…');
+    generatingRequest = true; render(current);
     try { current = await api('/assessments/' + encodeURIComponent(current.id) + '/generate', { version: current.version }); }
     catch (error) { try { current = await api('/assessments/' + encodeURIComponent(current.id)); await refresh(); } catch (_) { /* Keep the last known version; never retry generation. */ } throw error; }
+    finally { generatingRequest = false; render(current); }
     await refresh(); message(config.simulation ? 'Simulación lista, sin OpenAI ni aprobación posible.' : current.status === 'pending_review' ? 'Borrador de OpenAI listo para revisión.' : 'Consulta el estado y la información pendiente de la valoración.');
   }); });
   byId('approval-form').addEventListener('submit', function (event) { event.preventDefault();
