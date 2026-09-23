@@ -11832,7 +11832,23 @@
           }
 
           if (json.success) {
-            await venusAlert('Cita actualizada');
+            if (json.notification?.status === 'failed') {
+              const retryNotice = await venusConfirm('La cita quedó actualizada, pero no se pudo enviar el aviso por WhatsApp. ¿Reintentar el aviso?', { title: 'WhatsApp pendiente', okLabel: 'Reintentar aviso' });
+              if (retryNotice) {
+                try {
+                  const noticeResponse = await fetch(`/api/appointments/${encodeURIComponent(editApptId.value)}/reschedule-notification`, { method: 'POST' });
+                  const notice = await noticeResponse.json();
+                  await venusAlert(noticeResponse.ok && notice.success
+                    ? 'Aviso enviado a WhatsApp. La entrega depende de la conexión de la clienta.'
+                    : `La cita sigue guardada. ${notice.error || 'No se pudo enviar el aviso por WhatsApp.'}`);
+                } catch (_) {
+                  await venusAlert('La cita sigue guardada. No se pudo comprobar el envío del aviso.');
+                }
+              }
+            } else {
+              await venusAlert(json.notification?.status === 'sent'
+                ? 'Cita actualizada y aviso enviado a WhatsApp.' : 'Cita actualizada');
+            }
             editApptDialog.close();
             formEditAppt.reset();
             clearAppointmentsCache();

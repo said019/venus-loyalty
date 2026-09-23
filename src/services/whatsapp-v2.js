@@ -24,10 +24,13 @@ function sanitizeForWhatsApp(text) {
 /**
  * Envía un mensaje usando Evolution API (texto libre, sin templates)
  */
-async function sendViaEvolution(to, message) {
+async function sendViaEvolution(to, message, requireReceipt = false) {
     try {
         const evoClient = getEvolutionClient();
         const result = await evoClient.sendText(to, message);
+        if (requireReceipt && (!result?.key?.id || result?.status === 'ERROR' || result?.success === false)) {
+            return { success: false, error: 'WhatsApp no confirmó la aceptación del mensaje.' };
+        }
         console.log(`✅ [Evolution] WhatsApp enviado a ${to}`);
         return { success: true, messageSid: result?.key?.id || 'evolution-sent' };
     } catch (error) {
@@ -247,7 +250,7 @@ export const WhatsAppService = {
         const servicio = sanitizeForWhatsApp(appt.serviceName);
 
         const mensaje = `📅 *Cita reagendada*\n\nHola ${nombre}, tu cita de *${servicio}* quedó reagendada para el *${fecha}* a las *${hora}*.\n\n📍 *Lugar:* ${config.venus.location}\n\n¡Te esperamos! ✨`;
-        return await sendViaEvolution(appt.clientPhone, mensaje);
+        return await sendViaEvolution(appt.clientPhone, mensaje, true);
     },
 
     /** Envía recordatorio 2 horas antes */

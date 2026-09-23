@@ -2471,7 +2471,10 @@ app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
       } else {
         try {
           const result = await WhatsAppService.sendReagendamientoConfirmado({ ...appointment, ...updateData });
-          notification = { status: result.success ? 'sent' : 'failed' };
+          notification = result.success
+            ? { status: 'sent', messageId: result.messageSid }
+            : { status: 'failed', error: 'WhatsApp no aceptó el aviso. Revisa la conexión de WhatsApp e intenta nuevamente.' };
+          if (!result.success) console.error('[PATCH] Aviso de reagendo fallido:', result.error);
         } catch (err) {
           notification = { status: 'failed' };
           console.error('[PATCH] Aviso de reagendo:', err.message);
@@ -2584,7 +2587,10 @@ app.post('/api/appointments/:id/reschedule-notification', adminAuth, async (req,
     if (!appointment) return res.status(404).json({ success: false, error: 'Cita no encontrada' });
     if (!appointment.clientPhone) return res.status(400).json({ success: false, error: 'La clienta no tiene teléfono registrado.' });
     const result = await WhatsAppService.sendReagendamientoConfirmado(appointment);
-    res.status(result.success ? 200 : 502).json({ success: !!result.success });
+    res.status(result.success ? 200 : 502).json({
+      success: !!result.success,
+      ...(result.success ? { messageId: result.messageSid } : { error: 'WhatsApp no aceptó el aviso. Revisa la conexión de WhatsApp e intenta nuevamente.' })
+    });
   } catch (error) {
     console.error('[Reagendar] Aviso:', error.message);
     res.status(502).json({ success: false, error: 'No se pudo enviar el aviso.' });
