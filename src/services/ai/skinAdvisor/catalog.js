@@ -18,7 +18,7 @@ export const AREAS = Object.freeze([
 
 export const ZONES = Object.freeze([
   'forehead', 'nose', 'right_cheek', 'left_cheek', 'chin',
-  'right_eye', 'left_eye', 'lower_contour', 'unknown',
+  'right_eye', 'left_eye', 'lower_contour', 'full_face', 'unknown',
 ]);
 
 export const ANSWER_FIELDS = Object.freeze([

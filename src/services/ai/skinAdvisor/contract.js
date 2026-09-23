@@ -116,7 +116,11 @@ const validateEvidence = (value, context, zone) => {
   if (value.photoIds.length + value.answerKeys.length === 0) invalid();
   for (const id of value.photoIds) {
     const photo = context.photos.find((candidate) => candidate.id === id);
-    if (!photo || (zone !== undefined && photo.zone !== zone)) invalid();
+    if (!photo) invalid();
+    if (zone !== undefined && photo.zone !== zone) {
+      if (photo.zone !== 'full_face' || zone === 'unknown') invalid();
+      if ((zone.startsWith('left_') || zone.startsWith('right_')) && !photo.lateralityResolved) invalid();
+    }
   }
   for (const key of value.answerKeys) {
     if (!ANSWER_FIELDS.includes(key) || context.answers[key] === null) invalid();

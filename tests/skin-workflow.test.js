@@ -67,6 +67,15 @@ test('every public method checks the current database account', async () => {
   for (const call of [() => f.workflow.getConfig('staff'), () => f.workflow.getRecord('staff', f.current.id), () => f.workflow.getAssessment('staff', draft.id), () => f.workflow.createDraft('staff', f.current.id, f.body), () => f.workflow.generate('staff', draft.id, { version: 1 }), () => f.workflow.approve('staff', draft.id, { version: 1 })]) await assert.rejects(call, { code: 'unauthenticated' });
 });
 
+test('native non-white captures cannot be submitted as white-light originals', async () => {
+  const f = await fixture();
+  f.photos[0].description = 'Protocolo completo | modo=image_uv | disparo=2';
+  await assert.rejects(f.workflow.createDraft('staff', f.current.id, f.body), { code: 'invalid_photo' });
+  assert.equal(f.calls(), 0);
+  f.photos[0].description = 'Protocolo completo | modo=image | disparo=0';
+  assert.equal((await f.workflow.createDraft('staff', f.current.id, f.body)).status, 'draft');
+});
+
 test('draft creation rejects foreign photos and consent; disabled never calls provider', async () => {
   const f = await fixture({ config: { enabled: false } });
   await assert.rejects(f.workflow.createDraft('staff', f.current.id, { ...f.body, consentAccepted: false }), { code: 'consent_required' });

@@ -29,7 +29,7 @@ test('private UI has no secret, HTML interpolation, external model call or unsup
 test('entry point preserves prior record safety and route mounts before large global parser', () => {
   const admin = read('public/admin.html');
   assert.match(admin, /skinAction\.classList\.add\('hidden'\)/);
-  assert.match(admin, /skin-analysis\.html\?cardId=/);
+  assert.match(admin, /skin-advisor\.html\?recordId=/);
   const server = read('server.js');
   assert.ok(server.indexOf("app.use('/api/skin-advisor'") < server.indexOf('app.use(express.json())'));
   assert.match(server, /authenticate: adminAuth/);

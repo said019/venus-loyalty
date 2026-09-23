@@ -16,7 +16,7 @@ test('photo gallery links to existing reports and import is distinct from photo 
     const html = read('admin.html');
     const gallery = html.slice(html.indexOf('<section id="exp-sec-fotos"'), html.indexOf('id="exp-photos-grid"'));
     assert.match(gallery, /Reportes Venus Skin/);
-    assert.match(gallery, /data-exp-sec=skin/);
-    assert.match(html, /Importar reporte del aparato/);
+    assert.match(gallery, /expNewSkinAnalysis\(\)/);
+    assert.match(html, /Analizar fotos de Venus/);
     assert.match(html, /sin mediciones del analizador/);
 });

@@ -96,6 +96,8 @@ export function createSkinAdvisorWorkflow({ prisma, provider, loadPhoto, config 
       if ((p.orientation === 'unknown' && p.zone !== 'unknown') || (p.zone === 'unknown' && p.lateralityResolved)) fail('unresolved_laterality');
       const photo = photos.find(item => item.id === p.id);
       if (!photo) fail('photo_ownership');
+      const captureMode = /(?:^|\|)\s*modo=([a-z_]+)/.exec(photo.description || '');
+      if (captureMode && captureMode[1] !== 'image') fail('invalid_photo');
       if (p.capturedAtConfirmed !== true || !validCaptureTime(p.capturedAt, now().getTime())) fail('capture_time_confirmation_required');
       return { id: photo.id, zone: p.zone, orientation: p.orientation, lateralityResolved: p.lateralityResolved, capturedAt: iso(p.capturedAt), capturedAtConfirmed: true, sourceTakenAt: iso(photo.takenAt), sourceUrl: photo.url };
     });

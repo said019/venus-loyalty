@@ -4159,21 +4159,21 @@
           <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:0 0 6px;">
             <h3 class="exp-section-title" style="margin:0;">Análisis de piel con IA</h3>
             <button type="button" class="btn primary" onclick="expNewSkinAnalysis()">
-              <i class="fas fa-file-import"></i> Importar reporte del aparato
+              <i class="fas fa-camera"></i> Analizar fotos de Venus
             </button>
           </div>
           <p class="muted" style="margin:0 0 14px;font-size:12px;">
-            Historial del Venus Skin Analyzer vinculado a esta clienta.
+            Valoraciones propias de Venus a partir de las fotos del expediente.
           </p>
-          <div id="exp-skin-list">
+          <details><summary>Reportes anteriores del fabricante</summary><div id="exp-skin-list">
             <div class="muted" style="text-align:center;padding:24px;font-size:13px;">Cargando…</div>
-          </div>
+          </div></details>
         </section>
 
         <!-- ===== Sección: Fotos ===== -->
         <section id="exp-sec-fotos" class="exp-sec-content">
           <h3 class="exp-section-title">Galería de seguimiento</h3>
-          <button type="button" class="btn small ghost" style="margin-bottom:12px;" onclick="document.querySelector('[data-exp-sec=skin]').click()">
+          <button type="button" class="btn small ghost" style="margin-bottom:12px;" onclick="expNewSkinAnalysis()">
             <i class="fas fa-file-lines"></i> Reportes Venus Skin
           </button>
           <div style="margin-bottom:12px;">
@@ -4793,7 +4793,7 @@
         const record = result.data || result; // Manejar ambos formatos
         currentExpedienteRecordId = record.id;
         const skinLink = document.getElementById('exp-action-skin');
-        if (skinLink) { skinLink.href = '/skin-analysis.html?cardId=' + encodeURIComponent(cardId); skinLink.classList.remove('hidden'); }
+        if (skinLink) { skinLink.href = '/skin-advisor.html?recordId=' + encodeURIComponent(record.id) + '&cardId=' + encodeURIComponent(cardId); skinLink.classList.remove('hidden'); }
         
         // Los campos del viejo formulario "Datos" (exp-age, exp-skin-type, …)
         // ya no existen: la sección Resumen ahora muestra estos datos de solo
@@ -5826,7 +5826,8 @@
     // Abrir el analyzer para ESTA clienta (queda vinculado por ?cardId)
     function expNewSkinAnalysis() {
       if (!currentExpedienteCardId) { alert('No hay clienta cargada'); return; }
-      window.open('/skin-analysis.html?cardId=' + encodeURIComponent(currentExpedienteCardId), '_blank', 'noopener');
+      if (!currentExpedienteRecordId) { alert('Espera a que cargue el expediente'); return; }
+      window.open('/skin-advisor.html?recordId=' + encodeURIComponent(currentExpedienteRecordId) + '&cardId=' + encodeURIComponent(currentExpedienteCardId), '_blank', 'noopener');
     }
     // Ver el detalle completo de un análisis (skin-analysis.html usa ?view=id)
     function expViewSkinAnalysis(id) {

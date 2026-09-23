@@ -20,7 +20,7 @@
   var statusNames = { draft: 'Borrador guardado', generating: 'Analizando', pending_review: 'Pendiente de tu revisión', approved: 'Aprobada', needs_information: 'Se necesita más información', failed: 'Análisis no completado', superseded: 'Versión anterior', refused: 'Sin valoración' };
   var fields = [['goal','¿Qué te gustaría mejorar?'],['duration','¿Desde cuándo lo notas?'],['symptoms','Molestias: picor, dolor, ardor u otras'],['routineDay','Rutina de día'],['routineNight','Rutina de noche'],['allergies','Alergias conocidas'],['medications','Medicamentos relevantes'],['previousTreatments','Tratamientos anteriores'],['reactions','Reacciones a productos o tratamientos'],['sunExposure','Exposición habitual al sol'],['sunscreen','Uso de protector solar']];
   var flags = [['declaredReactivity','¿La clienta declara piel reactiva?'],['changingLesion','¿Declara una lesión que cambia?'],['bleedingLesion','¿Declara una lesión que sangra?'],['growingLesion','¿Declara una lesión que crece?']];
-  var zones = [['unknown','Zona no determinada'],['forehead','Frente'],['nose','Nariz'],['right_cheek','Mejilla derecha de la clienta'],['left_cheek','Mejilla izquierda de la clienta'],['chin','Mentón'],['right_eye','Contorno del ojo derecho'],['left_eye','Contorno del ojo izquierdo'],['lower_contour','Contorno inferior']];
+  var zones = [['unknown','Zona no determinada'],['full_face','Rostro completo'],['forehead','Frente'],['nose','Nariz'],['right_cheek','Mejilla derecha de la clienta'],['left_cheek','Mejilla izquierda de la clienta'],['chin','Mentón'],['right_eye','Contorno del ojo derecho'],['left_eye','Contorno del ojo izquierdo'],['lower_contour','Contorno inferior']];
   var orientations = [['','Confirma orientación'],['upright','Ya está vertical'],['rotated_90_cw','Girada 90° a la derecha'],['rotated_90_ccw','Girada 90° a la izquierda'],['upside_down','Está de cabeza']];
   function node(tag, text, parent) { var el = document.createElement(tag); if (text !== undefined) el.textContent = text; if (parent) parent.appendChild(el); return el; }
   function message(text, error) { byId('message').textContent = text; byId('message').className = error ? 'error' : ''; }
@@ -40,7 +40,7 @@
     if (busy) return;
     var previous = current;
     busy = true;
-    document.querySelectorAll('button').forEach(function (button) { button.disabled = true; });
+    document.querySelectorAll('.layout button, #generate, #approve').forEach(function (button) { button.disabled = true; });
     try { await fn(); } catch (error) { message(error.message || 'No se pudo completar la acción.', true); }
     finally { busy = false; byId('save').disabled = !record; if (current && current !== previous) render(current); byId('approve').disabled = false; byId('generate').disabled = !config || !config.enabled || !config.configured; renderHistory(); }
   }
@@ -48,6 +48,8 @@
   flags.forEach(function (field) { var label = node('label', field[1], byId('answers')); var input = select([['','No sabemos'],['true','Sí'],['false','No']], label); input.id = 'answer-' + field[0]; });
   function renderPhotos(photos) {
     byId('photos').textContent = ''; photoControls = [];
+    var nativeSelected = 0, nativeLatest = 0;
+    photos.forEach(function (p) { if (/(?:^|\|)\s*modo=image\s*(?:\||$)/.test(p.description || '')) nativeLatest = Math.max(nativeLatest, new Date(p.takenAt).getTime()); });
     if (!photos.length) node('p', 'Este expediente aún no tiene fotos. Añádelas desde la sección Fotos del expediente y vuelve aquí.', byId('photos'));
     photos.forEach(function (photo, index) {
       var box = node('div', undefined, byId('photos')); box.className = 'photo';
@@ -56,6 +58,15 @@
       var label = node('label', undefined, box); label.className = 'check'; var check = node('input', undefined, label); check.type = 'checkbox'; node('span', 'Foto ' + (index + 1) + ' · ' + date(photo.takenAt), label);
       check.checked = captureIds.indexOf(photo.id) !== -1;
       var zone = select(zones, node('label', 'Zona', box));
+      var captureMode = /(?:^|\|)\s*modo=([a-z_]+)/.exec(photo.description || '');
+      if (captureMode) {
+        check.disabled = captureMode[1] !== 'image';
+        if (check.disabled) { check.checked = false; node('p', 'Captura complementaria: no se usa como luz blanca.', box); }
+        else {
+          zone.value = 'full_face';
+          if (!captureIds.length && nativeSelected < 4 && nativeLatest - new Date(photo.takenAt).getTime() <= 600000) { check.checked = true; nativeSelected++; }
+        }
+      }
       var orientation = select(orientations, node('label', 'Orientación actual', box));
       var captured = node('input', undefined, node('label', 'Fecha y hora de la toma', box)); captured.type = 'datetime-local';
       var suggested = new Date(photo.takenAt); if (!isNaN(suggested.getTime())) captured.value = new Date(suggested.getTime() - suggested.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
@@ -79,10 +90,15 @@
     if (renderedId !== row.id) byId('review-notes').value = row.approval && row.approval.reviewNotes ? row.approval.reviewNotes : '';
     renderedId = row.id;
     byId('review').hidden = false; byId('state').textContent = statusNames[row.status] || row.status;
+    byId('review-title').textContent = row.status === 'approved' ? 'Reporte Venus Skin' : 'Revisar valoración Venus';
     byId('result').textContent = ''; byId('corrections').textContent = ''; corrections = [];
     var result = row.approval && row.approval.correctedAssessment ? row.approval.correctedAssessment : row.assessment;
     byId('provenance').textContent = row.provenance ? 'Proveedor: ' + (row.provenance.provider || 'OpenAI') + ' · Modelo: ' + (row.provenance.model || 'registrado') : 'Todavía no hay una valoración de IA.';
     if (result) {
+      if (window.VenusPhotoReport) {
+        window.VenusPhotoReport.render(byId('result'), row, record ? record.assessments : []);
+        document.querySelector('.layout').before(byId('review'));
+      } else {
       node('p', result.summary, byId('result'));
       section('Límites de las fotografías', result.quality.limits);
       section('Observaciones', result.observations.map(function (item) { return item.description; }));
@@ -93,6 +109,7 @@
       section('Opciones sujetas a valoración', result.careDraft.options.map(function (item) { return item.rationale; }));
       section('Alternativa sin procedimiento', [result.careDraft.noProcedureAlternative]);
       section('Revisión profesional', result.professionalReview.reasons);
+      }
     }
     byId('generate').hidden = row.status !== 'draft'; byId('generate').disabled = busy || !config.enabled || !config.configured;
     byId('generation-note').textContent = row.status === 'draft' && config.simulation ? 'Esta acción genera una respuesta ficticia sin contactar OpenAI.' : row.status === 'draft' ? 'Esta acción enviará únicamente las fotos seleccionadas y la información autorizada a OpenAI.' : row.status === 'generating' ? 'La generación está en curso. Vuelve a seleccionar esta valoración para consultar su estado; no se repetirá automáticamente.' : row.failureCode ? 'No se obtuvo un borrador válido. Crea una nueva valoración si deseas intentarlo otra vez.' : '';
@@ -138,13 +155,14 @@
     try {
       if (!recordId) throw new Error('Abre Venus Skin IA desde el expediente de una clienta.');
       config = await api('/config'); await refresh();
+      if (record.assessments.length) { current = record.assessments[0]; render(current); }
       var visiblePhotos = captureIds.length ? record.photos.filter(function (p) { return captureIds.indexOf(p.id) !== -1; }) : record.photos;
       renderPhotos(visiblePhotos);
       byId('age').value = record.record.age === null || record.record.age === undefined ? '' : record.record.age;
       byId('objective').value = record.record.objectives || ''; byId('consent-text').textContent = config.consentText;
       byId('save').disabled = false;
       if (config.simulation) { byId('configuration').hidden = false; byId('configuration').textContent = 'SIMULACIÓN · Datos ficticios. No se envían fotos a OpenAI ni se permite aprobar.'; byId('generate').textContent = 'Generar simulación'; }
-      if (!config.enabled || !config.configured) { byId('configuration').hidden = false; byId('configuration').textContent = 'Puedes preparar borradores. Para analizar falta activar OpenAI y completar su configuración privada en el servidor.'; }
+      if (!config.simulation && (!config.enabled || !config.configured)) { byId('configuration').hidden = false; byId('configuration').textContent = 'Puedes preparar borradores. Para analizar falta activar OpenAI y completar su configuración privada en el servidor.'; }
       message(captureIds.length ? visiblePhotos.length === captureIds.length ? 'Fotos de esta sesión seleccionadas. Confirma sus datos para continuar.' : 'Algunas fotos de esta sesión no están disponibles. Regresa a captura y revisa las fotos guardadas.' : 'Expediente listo. Las fotos originales se conservan.');
     } catch (error) { message(error.message, true); }
   })();
