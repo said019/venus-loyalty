@@ -4159,7 +4159,7 @@
           <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:0 0 6px;">
             <h3 class="exp-section-title" style="margin:0;">Análisis de piel con IA</h3>
             <button type="button" class="btn primary" onclick="expNewSkinAnalysis()">
-              <i class="fas fa-wand-magic-sparkles"></i> Nuevo análisis
+              <i class="fas fa-file-import"></i> Importar reporte del aparato
             </button>
           </div>
           <p class="muted" style="margin:0 0 14px;font-size:12px;">
@@ -4173,6 +4173,9 @@
         <!-- ===== Sección: Fotos ===== -->
         <section id="exp-sec-fotos" class="exp-sec-content">
           <h3 class="exp-section-title">Galería de seguimiento</h3>
+          <button type="button" class="btn small ghost" style="margin-bottom:12px;" onclick="document.querySelector('[data-exp-sec=skin]').click()">
+            <i class="fas fa-file-lines"></i> Reportes Venus Skin
+          </button>
           <div style="margin-bottom:12px;">
             <label for="exp-photo-upload" class="btn primary exp-full-btn" style="display:flex;justify-content:center;align-items:center;gap:8px;cursor:pointer;">
               <i class="fas fa-camera"></i> Subir fotos
@@ -5775,8 +5778,8 @@
         cont.innerHTML = `
           <div class="muted" style="text-align:center;padding:28px 16px;font-size:13px;border:1px dashed var(--border,#ddd);border-radius:12px;">
             <i class="fas fa-wand-magic-sparkles" style="font-size:22px;opacity:.4;display:block;margin-bottom:8px;"></i>
-            Aún no hay análisis de piel para esta clienta.<br>
-            Toca <strong>Nuevo análisis</strong> para crear el primero.
+            Aún no hay un reporte del aparato vinculado a esta clienta.<br>
+            Las fotos de seguimiento se conservan por separado, sin mediciones del analizador.
           </div>`;
         return;
       }
@@ -5810,7 +5813,7 @@
               ${chips ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">${chips}</div>` : ''}
             </div>
             <button type="button" class="btn small ghost" onclick="expViewSkinAnalysis('${a.id}')" style="flex-shrink:0;">
-              <i class="fas fa-up-right-from-square"></i> Ver completo
+              <i class="fas fa-up-right-from-square"></i> Abrir reporte
             </button>
             <div id="exp-skin-sug-${a.id}" style="flex-basis:100%;"></div>
           </div>`;
