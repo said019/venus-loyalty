@@ -4,6 +4,8 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createVisualPreview } from '../src/services/skinVisualPreview.js';
+import { createSkinLayersEngine } from '../src/services/skinLayers.js';
+const layers = createSkinLayersEngine();
 const root = path.resolve(fileURLToPath(new URL('../public/', import.meta.url)));
 const takenAt = '2026-09-22T20:00:00.000Z';
 const photos = [0, 1, 2].map(i => ({ id: 'demo-photo-' + i, takenAt, url: '/assets/skin-demo-frontal.png', description: 'DEMO | modo=image | disparo=' + i }));
@@ -13,11 +15,13 @@ const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
   const send = (data, status = 200) => { res.writeHead(status, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ success: status === 200, data })); };
   try {
-    if (url.pathname === '/api/skin-advisor/config') return send({ enabled: true, configured: true, simulation: true, canApprove: false, consentVersion: 'demo', consentText: 'DEMO: imagen sintética, sin clientas reales ni envío a OpenAI.' });
+    if (url.pathname === '/api/skin-advisor/config') return send({ enabled: true, configured: true, layersEnabled: layers.enabled, simulation: true, canApprove: false, consentVersion: 'demo', consentText: 'DEMO: imagen sintética, sin clientas reales ni envío a OpenAI.' });
     if (url.pathname === '/api/skin-advisor/records/demo') return send({ record: { id: 'demo', objectives: 'Conocer mi piel y mejorar mi rutina' }, photos, assessments: rows });
     if (req.method === 'POST') {
       let text = ''; for await (const chunk of req) { text += chunk; if (text.length > 64000) return send(null, 413); }
       const body = JSON.parse(text || '{}');
+      const layerPhoto = photos.find(p => url.pathname === '/api/skin-advisor/records/demo/photos/' + p.id + '/layers');
+      if (layerPhoto) return send({ ...await layers.generate(await fs.readFile(path.join(root, 'assets/skin-demo-frontal.png'))), sourcePhotoId: layerPhoto.id, sourceUrl: layerPhoto.url });
       const previewPhoto = photos.find(p => url.pathname === '/api/skin-advisor/records/demo/photos/' + p.id + '/preview');
       if (previewPhoto) return send({ ...await createVisualPreview(await fs.readFile(path.join(root, 'assets/skin-demo-frontal.png')), body.mode), sourcePhotoId: previewPhoto.id, sourceUrl: previewPhoto.url });
       if (url.pathname === '/api/skin-advisor/records/demo/assessments') {

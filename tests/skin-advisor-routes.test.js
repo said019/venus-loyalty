@@ -5,7 +5,7 @@ import { createSkinAdvisorRouter } from '../src/routes/skinAdvisor.js';
 
 test('router protects every endpoint and enforces exact origin, JSON, and trusted actor', async t => {
   const calls = [];
-  const workflow = Object.fromEntries(['getConfig', 'getRecord', 'createDraft', 'getAssessment', 'generate', 'approve', 'previewPhoto'].map(name => [name, async (...args) => { calls.push({ name, args }); return { status: 'ok' }; }]));
+  const workflow = Object.fromEntries(['getConfig', 'getRecord', 'createDraft', 'getAssessment', 'generate', 'approve', 'previewPhoto', 'photoLayers'].map(name => [name, async (...args) => { calls.push({ name, args }); return { status: 'ok' }; }]));
   const app = express();
   app.use('/api/skin-advisor', createSkinAdvisorRouter({ workflow, expectedOrigin: 'https://venus.example', authenticate: (req, res, next) => { if (req.get('x-test-user')) req.admin = { uid: req.get('x-test-user') }; next(); } }));
   const server = app.listen(0, '127.0.0.1');
@@ -39,4 +39,12 @@ test('router protects every endpoint and enforces exact origin, JSON, and truste
   assert.equal(rendered.headers.get('cache-control'), 'private, no-store');
   assert.equal(calls.at(-1).name, 'previewPhoto');
   assert.deepEqual(calls.at(-1).args.slice(0, 3), ['staff', 'r', 'p']);
+  const layerRequest = headers => fetch(base + '/records/r/photos/p/layers', { method: 'POST', headers, body: '{}' });
+  assert.equal((await layerRequest({})).status, 401);
+  assert.equal((await layerRequest({ 'x-test-user': 'staff', origin: 'https://evil.example', 'content-type': 'application/json' })).status, 403);
+  const layers = await layerRequest({ 'x-test-user': 'staff', origin: 'https://venus.example', 'content-type': 'application/json' });
+  assert.equal(layers.status, 200);
+  assert.equal(layers.headers.get('cache-control'), 'private, no-store');
+  assert.equal(calls.at(-1).name, 'photoLayers');
+  assert.deepEqual(calls.at(-1).args, ['staff', 'r', 'p']);
 });

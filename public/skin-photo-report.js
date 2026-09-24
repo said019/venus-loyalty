@@ -74,7 +74,40 @@
     var filterLabel = node('label', 'Vista de la fotografía', visualControls);
     var filter = node('select', null, filterLabel); filter.setAttribute('aria-label', 'Vista de la fotografía');
     [['original', 'Original'], ['red_contrast', 'Contraste rojo · visual'], ['brown_contrast', 'Contraste marrón · visual'], ['detail', 'Realce de detalle · visual']].forEach(function (pair) { var opt = node('option', pair[1], filter); opt.value = pair[0]; });
+    if (options.layers) { var mapOption = node('option', 'Mapa procesado', filter); mapOption.value = 'map'; mapOption.disabled = true; }
     var visualNote = node('p', null, viewer, 'report-visual-note'); visualNote.setAttribute('role', 'status');
+    var layerCache = Object.create(null), layersBusy = false;
+    var layerNames = { poros: 'Poros', textura: 'Textura', manchas: 'Contraste pigmentado', lesiones: 'Puntos rojos', zonas_rojas: 'Zonas rojas', brillo: 'Brillo' };
+    var layerControls = node('div', null, viewer, 'report-visual-controls');
+    var layerSelect = node('select', null, layerControls); layerSelect.setAttribute('aria-label', 'Mapa de la fotografía'); layerSelect.hidden = true;
+    var layerButton = button('Generar mapas', layerControls, async function () {
+      if (!selected || selected.mode !== 'image' || layersBusy || !options.layers) return;
+      var photo = selected, version = ++requestVersion;
+      layersBusy = true; layerButton.disabled = true;
+      visualNote.textContent = 'Procesando mapas. Puede tardar hasta tres minutos.';
+      try {
+        var result = layerCache[photo.id] || await options.layers(photo.id);
+        if (result.sourcePhotoId !== photo.id || result.sourceUrl !== photo.url || !Array.isArray(result.images)) throw new Error('invalid_layers');
+        layerCache[photo.id] = result;
+        if (!alive(version)) return;
+        layerSelect.textContent = '';
+        result.images.forEach(function (entry) { if (layerNames[entry.key]) { var opt = node('option', layerNames[entry.key], layerSelect); opt.value = entry.key; } });
+        layerSelect.hidden = false;
+        layerSelect.onchange = function () {
+          if (selected !== photo) return;
+          var entry = result.images.find(function (item) { return item.key === layerSelect.value; });
+          if (!entry || !/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(entry.dataUrl)) return;
+          filter.value = 'map';
+          visualNote.textContent = result.notice + (entry.candidateCount == null ? '' : ' Candidatos: ' + entry.candidateCount + '.');
+          caption.textContent = layerNames[entry.key] + ' · Pendiente de revisión';
+          setSource(entry.dataUrl, caption.textContent, ++requestVersion, false);
+        };
+        layerSelect.onchange();
+      } catch (_) {
+        if (alive(version)) visualNote.textContent = 'No se pudieron generar los mapas. El original se conserva; intenta de nuevo.';
+      } finally { layersBusy = false; layerButton.disabled = !selected || selected.mode !== 'image'; }
+    });
+    layerControls.hidden = !options.layers;
     var enlarge = button('Ampliar original ↗', viewer, function () { var url = imageUrl(selected && selected.url); if (url) window.open(url, '_blank', 'noopener,noreferrer'); }, 'report-original-link'); enlarge.title = 'Abrir la fotografía original sin filtros';
     var observationSide = node('div', null, layout, 'report-observations');
     node('h2', 'Qué observamos', observationSide);
@@ -130,6 +163,7 @@
     }
     function selectCapture(photo) {
       selected = photo; requestVersion++; filter.value = 'original'; visualNote.textContent = '';
+      layerSelect.hidden = true; layerButton.disabled = layersBusy || photo.mode !== 'image';
       modeSelect.value = photo.mode;
       filter.disabled = !options.preview || ['image', 'image_negative'].indexOf(photo.mode) === -1;
       var name = data && data.modes[photo.mode] || 'Modalidad no registrada';
@@ -154,6 +188,7 @@
     }
     modeSelect.onchange = function () { var photo = captures.find(function (p) { return p.mode === modeSelect.value; }); if (photo) selectCapture(photo); };
     filter.onchange = async function () {
+      layerSelect.hidden = true;
       if (!selected || filter.value === 'original') { if (selected) selectCapture(selected); return; }
       var mode = filter.value, version = ++requestVersion;
       pins.hidden = true; visualNote.textContent = 'Preparando contraste visual. No se modifica el original.';

@@ -194,6 +194,7 @@
       if (window.VenusPhotoReport) {
         window.VenusPhotoReport.render(byId('result'), row, record ? record.assessments : [], {
           photos: record ? record.photos : [],
+          layers: config && config.layersEnabled ? function (photoId) { return api('/records/' + encodeURIComponent(recordId) + '/photos/' + encodeURIComponent(photoId) + '/layers', {}); } : null,
           preview: function (photoId, mode) { return api('/records/' + encodeURIComponent(recordId) + '/photos/' + encodeURIComponent(photoId) + '/preview', { mode: mode }); }
         });
       } else {

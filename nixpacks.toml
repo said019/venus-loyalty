@@ -1,0 +1,16 @@
+[variables]
+SKIN_LAYERS_PYTHON = "/opt/skin-venv/bin/python"
+OMP_NUM_THREADS = "1"
+OPENBLAS_NUM_THREADS = "1"
+
+[phases.setup]
+nixPkgs = ["...", "python311"]
+nixLibs = ["...", "stdenv.cc.cc.lib", "zlib"]
+aptPkgs = ["...", "libgl1", "libegl1", "libglib2.0-0"]
+
+[phases.skin]
+dependsOn = ["install"]
+cmds = ["python3.11 -m venv /opt/skin-venv", "/opt/skin-venv/bin/pip install --no-cache-dir -r tools/skin-layers/requirements.txt", "/opt/skin-venv/bin/python tools/skin-layers/check_runtime.py"]
+
+[phases.build]
+dependsOn = ["...", "skin"]
