@@ -104,8 +104,8 @@ export function createSkinAdvisorWorkflow({ prisma, provider, loadPhoto, config 
       return { id: photo.id, zone: p.zone, orientation: p.orientation, lateralityResolved: p.lateralityResolved, capturedAt: iso(p.capturedAt), capturedAtConfirmed: true, sourceTakenAt: iso(photo.takenAt), sourceUrl: photo.url };
     });
     return { record: { id: current.id, version: iso(current.updatedAt) }, patient, answers, photos: selected, whiteLightOriginalConfirmed: true,
-      activation: { enabled: config.enabled === true, provider: 'openai', version: config.activationVersion || 'venus-skin-activation-v1', activatedAt: iso(config.activatedAt || now()) },
-      consent: { accepted: true, provider: 'openai', version: config.consentVersion, acceptedAt: now().toISOString(), scope: { photoIds: selected.map(p => p.id) } },
+      activation: { enabled: config.enabled === true, provider: config.provider || 'openai', version: config.activationVersion || 'venus-skin-activation-v1', activatedAt: iso(config.activatedAt || now()) },
+      consent: { accepted: true, provider: config.provider || 'openai', version: config.consentVersion, acceptedAt: now().toISOString(), scope: { photoIds: selected.map(p => p.id) } },
       activeServices: structuredClone(config.activeServices || []), protocols: structuredClone(config.protocols || []) };
   }
   return Object.freeze({
@@ -168,6 +168,7 @@ export function createSkinAdvisorWorkflow({ prisma, provider, loadPhoto, config 
         const current = await assessment(db, id);
         checkVersion(current, version, 'draft');
         if (current.input.activation.enabled !== true) fail('activation_required', 409);
+        if (current.input.consent.provider !== (config.provider || 'openai') || current.input.consent.version !== config.consentVersion) fail('consent_required', 409);
         if (await db.skinAdvisorAssessment.count({ where: { status: 'generating', generatedById: actorId } })) fail('already_generating', 409);
         const claim = await db.skinAdvisorAssessment.updateMany({ where: { id, version, status: 'draft' }, data: { status: 'generating', generatedById: actorId, attemptToken: token, leaseUntil: new Date(now().getTime() + 120_000) } });
         if (claim.count !== 1) fail('stale_version', 409);

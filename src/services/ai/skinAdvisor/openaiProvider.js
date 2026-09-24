@@ -87,6 +87,7 @@ export function createOpenAIProvider(config = {}) {
     if (typeof apiKey !== 'string' || apiKey.trim() === '') return Promise.reject(providerError('key_missing'));
     try {
       assertPreparedContext(context);
+      if (context.consent.provider !== 'openai') throw providerError('consent_required');
     } catch (error) {
       return Promise.reject(error);
     }

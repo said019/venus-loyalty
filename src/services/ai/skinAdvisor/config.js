@@ -3,14 +3,16 @@ export const SKIN_CONSENT_TEXT = 'Autorizo que Venus envíe las fotografías sel
 
 // Called explicitly at the application boundary, never reads process.env itself.
 export function skinAdvisorConfig(env = {}) {
+  const provider = env.SKIN_ADVISOR_PROVIDER === 'ollama' ? 'ollama' : 'openai';
   const model = typeof env.SKIN_ADVISOR_MODEL === 'string' ? env.SKIN_ADVISOR_MODEL.trim() : '';
-  const apiKey = typeof env.OPENAI_API_KEY === 'string' ? env.OPENAI_API_KEY : '';
+  const apiKey = (provider === 'ollama' ? env.OLLAMA_API_KEY : env.OPENAI_API_KEY) || '';
   return {
     enabled: env.SKIN_ADVISOR_ENABLED === 'true',
     configured: Boolean(model && apiKey.trim()),
     approverId: env.SKIN_ADVISOR_APPROVER_ID || '',
-    consentVersion: SKIN_CONSENT_VERSION,
-    consentText: SKIN_CONSENT_TEXT,
+    provider,
+    consentVersion: provider === 'ollama' ? 'venus-ollama-photos-v1' : SKIN_CONSENT_VERSION,
+    consentText: provider === 'ollama' ? SKIN_CONSENT_TEXT.replace('OpenAI', 'Ollama Cloud') : SKIN_CONSENT_TEXT,
     activationVersion: 'venus-skin-activation-v1',
     model, apiKey,
     // No unreviewed commercial catalogue is interpreted as a clinical protocol.

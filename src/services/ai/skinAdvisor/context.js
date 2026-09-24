@@ -226,7 +226,7 @@ export async function prepareContext(raw) {
     version: stringValue(raw.activation?.version, 'activation.version', { max: 128 }),
     activatedAt: isoTimestamp(raw.activation?.activatedAt, 'activation.activatedAt'),
   };
-  if (activation.enabled !== true || activation.provider !== 'openai') {
+  if (activation.enabled !== true || !['openai', 'ollama'].includes(activation.provider)) {
     fail('activation_required', 'Explicit OpenAI activation is required.');
   }
   const consent = {
@@ -236,7 +236,7 @@ export async function prepareContext(raw) {
     acceptedAt: isoTimestamp(raw.consent?.acceptedAt, 'consent.acceptedAt'),
     photoIds: raw.consent?.scope?.photoIds,
   };
-  if (consent.provider !== 'openai' || consent.accepted !== true) {
+  if (consent.provider !== activation.provider || consent.accepted !== true) {
     fail('consent_required', 'Specific accepted OpenAI processing consent is required.');
   }
   if (!Array.isArray(raw.photos) || raw.photos.length < 1 || raw.photos.length > MAX_PHOTOS) {
@@ -277,7 +277,7 @@ export async function prepareContext(raw) {
 
 export function assertPreparedContext(context) {
   if (!context || !preparedContexts.has(context)) fail('untrusted_context', 'A trusted prepared context is required.');
-  if (context.activation.enabled !== true || context.activation.provider !== 'openai') fail('activation_required');
-  if (context.consent.accepted !== true || context.consent.provider !== 'openai') fail('consent_required');
+  if (context.activation.enabled !== true || !['openai', 'ollama'].includes(context.activation.provider)) fail('activation_required');
+  if (context.consent.accepted !== true || context.consent.provider !== context.activation.provider) fail('consent_required');
   return context;
 }
