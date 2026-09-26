@@ -19292,6 +19292,8 @@
             }
             #modal-cobrar-cita .cobro-scroll {
               flex: 1;
+              min-height: 0;
+              min-width: 0;
               overflow-y: auto;
               padding: 20px;
               -webkit-overflow-scrolling: touch;
@@ -19317,6 +19319,7 @@
             }
             #modal-cobrar-cita .cobro-input {
               width: 100%;
+              min-width: 0;
               padding: 12px 14px;
               background: var(--bg-secondary, #fff);
               border: 1px solid var(--line-2, rgba(0,0,0,0.15));
@@ -19328,6 +19331,30 @@
               outline: none;
               border-color: var(--olive);
             }
+            #modal-cobrar-cita .cobro-card { min-width: 0; }
+            #modal-cobrar-cita .cobro-value { overflow-wrap: anywhere; }
+            #modal-cobrar-cita .cobro-group { border-radius: 8px; }
+            #modal-cobrar-cita .cobro-group h4 { margin: 0 0 12px; font-size: 14px; line-height: 1.4; }
+            #modal-cobrar-cita .cobro-group-row {
+              display: grid; grid-template-columns: minmax(0, 1fr) 96px;
+              align-items: center; gap: 12px; padding: 12px 0;
+              border-top: 1px solid var(--line, #ddd);
+            }
+            #modal-cobrar-cita .cobro-group-choice {
+              display: grid; grid-template-columns: 20px minmax(0, 1fr);
+              align-items: center; gap: 10px; margin: 0; min-width: 0;
+              min-height: 44px; cursor: pointer; text-transform: none; letter-spacing: 0;
+            }
+            #modal-cobrar-cita .cobro-group-check {
+              width: 20px !important; height: 20px !important; min-width: 20px !important;
+              padding: 0 !important; margin: 0 !important; accent-color: var(--olive-deep, #58652d);
+            }
+            #modal-cobrar-cita .cobro-group-name { display: block; font-size: 14px; font-weight: 600; line-height: 1.4; overflow-wrap: anywhere; }
+            #modal-cobrar-cita .cobro-group-time { display: block; font-size: 12px; color: var(--text-muted, #666); margin-top: 3px; }
+            #modal-cobrar-cita .cobro-group-price { position: relative; min-width: 0; }
+            #modal-cobrar-cita .cobro-group-price > span { position: absolute; z-index: 1; left: 10px; top: 50%; transform: translateY(-50%); font-size: 14px; pointer-events: none; }
+            #modal-cobrar-cita .cobro-group-price input { padding: 12px 8px 12px 24px; font-size: 16px; text-align: right; }
+            #modal-cobrar-cita .cobro-group-price input:disabled { opacity: .5; }
             #modal-cobrar-cita .toggle-btn {
               padding: 10px 16px;
               border: 1px solid var(--line-2, rgba(0,0,0,0.15));
@@ -19595,17 +19622,23 @@
         const related = groupJson.data.filter(item => item.id !== citaId);
         if (related.length) {
           const groupBox = document.createElement('section');
-          groupBox.className = 'cobro-card';
-          const heading = document.createElement('h4'); heading.textContent = 'Otras citas de hoy · incluidas en el cobro'; groupBox.appendChild(heading);
+          groupBox.className = 'cobro-card cobro-group';
+          const heading = document.createElement('h4'); heading.textContent = 'Otras citas del mismo día'; groupBox.appendChild(heading);
           related.forEach(item => {
             const service = servicios.find(s => s.id === item.serviceId) || servicios.find(s => s.name === item.serviceName);
-            const line = document.createElement('div'); line.style.cssText = 'display:flex;align-items:center;gap:8px;margin:10px 0;';
-            const check = document.createElement('input'); check.type = 'checkbox'; check.checked = true; check.setAttribute('aria-label', 'Incluir ' + item.serviceName);
-            const label = document.createElement('span'); label.textContent = item.time + ' · ' + item.serviceName; label.style.flex = '1';
-            const price = document.createElement('input'); price.type = 'number'; price.min = '0'; price.step = '.01'; price.value = service ? Number(service.price) : ''; price.placeholder = 'Precio'; price.className = 'cobro-input'; price.style.width = '100px'; price.setAttribute('aria-label', 'Precio de ' + item.serviceName);
-            line.append(check, label, price); groupBox.appendChild(line);
+            const line = document.createElement('div'); line.className = 'cobro-group-row';
+            const choice = document.createElement('label'); choice.className = 'cobro-group-choice';
+            const check = document.createElement('input'); check.type = 'checkbox'; check.className = 'cobro-group-check'; check.checked = true; check.setAttribute('aria-label', 'Incluir ' + item.serviceName);
+            const description = document.createElement('span');
+            const label = document.createElement('span'); label.className = 'cobro-group-name'; label.textContent = item.serviceName;
+            const time = document.createElement('span'); time.className = 'cobro-group-time'; time.textContent = item.time;
+            description.append(label, time); choice.append(check, description);
+            const amount = document.createElement('div'); amount.className = 'cobro-group-price';
+            const currency = document.createElement('span'); currency.textContent = '$'; currency.setAttribute('aria-hidden', 'true');
+            const price = document.createElement('input'); price.type = 'number'; price.inputMode = 'decimal'; price.min = '0'; price.step = '.01'; price.value = service ? Number(service.price) : ''; price.placeholder = '0.00'; price.className = 'cobro-input'; price.setAttribute('aria-label', 'Precio de ' + item.serviceName);
+            amount.append(currency, price); line.append(choice, amount); groupBox.appendChild(line);
             window.cobroGrupo.push({ id: item.id, version: item.updatedAt, check, price });
-            check.addEventListener('change', actualizarTotalCobro); price.addEventListener('input', actualizarTotalCobro);
+            check.addEventListener('change', () => { price.disabled = !check.checked; actualizarTotalCobro(); }); price.addEventListener('input', actualizarTotalCobro);
           });
           document.querySelector('#modal-cobrar-cita .info-grid').after(groupBox);
           const payButton = document.getElementById('btn-completar-cita');

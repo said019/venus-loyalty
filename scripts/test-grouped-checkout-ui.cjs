@@ -11,9 +11,13 @@ const pay = extract('async function procesarCobroCita(citaId)', '// Función wra
 (async () => {
   const browser = await chromium.launch({ headless: true });
   try {
-    for (const width of [1280, 390]) {
+    for (const width of [1280, 768, 390, 320]) {
       const page = await browser.newPage({ viewport: { width, height: 900 } });
       await page.setContent('<html><head><meta name="viewport" content="width=device-width, initial-scale=1"></head><body></body></html>');
+      for (const file of ['admin-base.css', 'admin-extra.css', 'admin-redesign.css', 'admin-mobile.css']) {
+        await page.addStyleTag({ content: fs.readFileSync('public/css/admin/' + file, 'utf8') });
+      }
+      await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'light'));
       await page.evaluate(() => {
         Object.assign(window, { citaActualId: null, precioServicioGlobal: 0, productosEnCobro: [], productosDisponibles: [], tipoDescuento: 'fijo', citasNuevoApartadoCargadas: false,
           leerNuevoApartado: () => 0, cargarApartadoCobro: () => {}, cargarCaja: () => {}, showNotification: (text, type) => { if (type === 'error') throw new Error(text); } });
@@ -30,6 +34,17 @@ const pay = extract('async function procesarCobroCita(citaId)', '// Función wra
       await page.getByLabel('Incluir Masaje').check();
       await page.getByLabel('Precio de Masaje').fill('400');
       assert.equal(await page.locator('#total-cobro').textContent(), '$1050');
+      await page.locator('.cobro-group-name').evaluate(el => { el.textContent = 'Masaje relajante de espalda y cuerpo completo'; });
+      const layout = await page.evaluate(() => {
+        const group = document.querySelector('.cobro-group').getBoundingClientRect();
+        const check = document.querySelector('.cobro-group-check').getBoundingClientRect();
+        const row = document.querySelector('.cobro-group-row');
+        const scroll = document.querySelector('.cobro-scroll');
+        return { checkboxWidth: check.width, fits: [...row.querySelectorAll('input, label')].every(el => { const r = el.getBoundingClientRect(); return r.left >= group.left && r.right <= group.right; }), overflow: scroll.scrollWidth > scroll.clientWidth };
+      });
+      assert.equal(layout.checkboxWidth, 20);
+      assert.equal(layout.fits, true);
+      assert.equal(layout.overflow, false);
       await page.screenshot({ path: '/tmp/venus-grouped-checkout-' + width + '.png' });
       await page.evaluate(() => procesarCobroCita('a'));
       const sent = await page.evaluate(() => window.sent);
