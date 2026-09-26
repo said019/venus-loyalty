@@ -19172,6 +19172,7 @@
 
     async function abrirCobrarCita(citaId) {
       citaActualId = citaId; // Guardar el ID globalmente
+      window.cobroGrupo = [];
       try {
         // Cargar cita, productos, menú del café y servicios en paralelo
         const [resCita, resProductos, resServicios, resCafe] = await Promise.all([
@@ -19206,6 +19207,10 @@
         }
 
         const cita = jsonCita.data;
+        const groupResponse = await apiFetch(`/api/appointments/${encodeURIComponent(citaId)}/checkout-group`);
+        const groupJson = await groupResponse.json();
+        if (!groupJson.success) throw new Error('No se pudieron consultar las citas del día');
+        window.cobroGrupoVersion = (groupJson.data.find(item => item.id === citaId) || {}).updatedAt;
         productosDisponibles = jsonProductos.success ? jsonProductos.data : [];
         const servicios = jsonServicios.success ? jsonServicios.data : [];
         productosEnCobro = [];
@@ -19587,6 +19592,27 @@
 
         document.body.insertAdjacentHTML('beforeend', html);
 
+        const related = groupJson.data.filter(item => item.id !== citaId);
+        if (related.length) {
+          const groupBox = document.createElement('section');
+          groupBox.className = 'cobro-card';
+          const heading = document.createElement('h4'); heading.textContent = 'Otras citas de hoy · incluidas en el cobro'; groupBox.appendChild(heading);
+          related.forEach(item => {
+            const service = servicios.find(s => s.id === item.serviceId) || servicios.find(s => s.name === item.serviceName);
+            const line = document.createElement('div'); line.style.cssText = 'display:flex;align-items:center;gap:8px;margin:10px 0;';
+            const check = document.createElement('input'); check.type = 'checkbox'; check.checked = true; check.setAttribute('aria-label', 'Incluir ' + item.serviceName);
+            const label = document.createElement('span'); label.textContent = item.time + ' · ' + item.serviceName; label.style.flex = '1';
+            const price = document.createElement('input'); price.type = 'number'; price.min = '0'; price.step = '.01'; price.value = service ? Number(service.price) : ''; price.placeholder = 'Precio'; price.className = 'cobro-input'; price.style.width = '100px'; price.setAttribute('aria-label', 'Precio de ' + item.serviceName);
+            line.append(check, label, price); groupBox.appendChild(line);
+            window.cobroGrupo.push({ id: item.id, version: item.updatedAt, check, price });
+            check.addEventListener('change', actualizarTotalCobro); price.addEventListener('input', actualizarTotalCobro);
+          });
+          document.querySelector('#modal-cobrar-cita .info-grid').after(groupBox);
+          const payButton = document.getElementById('btn-completar-cita');
+          payButton.childNodes.forEach(child => { if (child.nodeType === 3 && child.textContent.includes('Completar Cita')) child.textContent = ' Cobrar citas '; });
+        }
+
+        actualizarTotalCobro();
         cargarApartadoCobro(cita);
 
         // ── Apartado de barra heredado de la solicitud pública ──
@@ -19841,7 +19867,7 @@
       const descuentoInput = parseFloat(document.getElementById('cobrar-descuento')?.value) || 0;
       
       const totalProductos = productosEnCobro.reduce((sum, p) => sum + (p.precio * p.cantidad), 0);
-      const subtotal = precioServicio + totalProductos;
+      const subtotal = precioServicio + totalProductos + (window.cobroGrupo || []).filter(i => i.check.checked).reduce((sum, i) => sum + (Number(i.price.value) || 0), 0);
       
       // Calcular descuento según tipo
       let descuentoValor = 0;
@@ -19995,6 +20021,7 @@
     window.alternarNuevoApartado = alternarNuevoApartado;
 
     async function procesarCobroCita(citaId) {
+      if (window.cobroEnProceso) return;
       console.log('[Procesar Cobro] Iniciando cobro para cita:', citaId);
       
       if (!citaId) {
@@ -20008,7 +20035,9 @@
 
       // Calcular total con productos
       const totalProductos = productosEnCobro.reduce((sum, p) => sum + (p.precio * p.cantidad), 0);
-      const subtotal = precioServicio + totalProductos;
+      const selectedGroup = (window.cobroGrupo || []).filter(i => i.check.checked);
+      if (selectedGroup.some(i => i.price.value === '' || !Number.isFinite(Number(i.price.value)) || Number(i.price.value) < 0)) { showNotification('Indica el precio de cada cita incluida', 'warning'); return; }
+      const subtotal = precioServicio + totalProductos + selectedGroup.reduce((sum, i) => sum + Number(i.price.value), 0);
       
       // Calcular descuento según tipo
       let descuentoValor = 0;
@@ -20032,6 +20061,9 @@
         return;
       }
 
+      window.cobroEnProceso = true;
+      const payButton = document.getElementById('btn-completar-cita');
+      if (payButton) payButton.disabled = true;
       try {
         // Preparar productos para enviar
         const productosData = productosEnCobro.length > 0 ? productosEnCobro.map(p => ({
@@ -20048,6 +20080,7 @@
           credentials: 'include',
           body: JSON.stringify({
             status: 'completed',  // Marcar como completada al cobrar
+            groupItems: selectedGroup.length ? [{ id: citaId, version: window.cobroGrupoVersion, price: precioServicio }, ...selectedGroup.map(i => ({ id: i.id, version: i.version, price: Number(i.price.value) }))] : undefined,
             serviceName: (window.cobroServicioSel && window.cobroServicioSel.name) || undefined,
             serviceId: (window.cobroServicioSel && window.cobroServicioSel.id) || undefined,
             totalPaid: totalFinal,
@@ -20111,6 +20144,9 @@
       } catch (err) {
         console.error('[Procesar Cobro] Error:', err);
         showNotification('Error de conexión', 'error');
+      } finally {
+        window.cobroEnProceso = false;
+        if (payButton && payButton.isConnected) payButton.disabled = false;
       }
     }
 

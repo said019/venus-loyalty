@@ -129,6 +129,7 @@ import { createOpenAIProvider } from './src/services/ai/skinAdvisor/openaiProvid
 import { createOllamaProvider } from './src/services/ai/skinAdvisor/ollamaProvider.js';
 import { createSkinPhotoLoader } from './src/services/ai/skinAdvisor/photoLoader.js';
 import { createSkinLayersEngine } from './src/services/skinLayers.js';
+import { checkoutGroup, sameClient, unpaid } from './src/services/groupedCheckout.js';
 import { skinAdvisorConfig } from './src/services/ai/skinAdvisor/config.js';
 import integrationsRouter from "./src/routes/integrations.js";
 
@@ -2298,9 +2299,32 @@ app.post('/api/appointments', adminAuth, async (req, res) => {
 });
 
 // PATCH /api/appointments/:id - Actualizar cita (fecha, hora, servicio)
+app.get('/api/appointments/:id/checkout-group', adminAuth, async (req, res) => {
+  try {
+    if (!['admin', 'staff', 'recepcion'].includes(req.admin.role)) return res.status(403).json({ success: false });
+    const anchor = await prisma.appointment.findUnique({ where: { id: req.params.id } });
+    if (!anchor) return res.status(404).json({ success: false });
+    const rows = unpaid(anchor) ? (await prisma.appointment.findMany({ where: { date: anchor.date, totalPaid: null }, orderBy: { time: 'asc' } })).filter(r => unpaid(r) && sameClient(anchor, r)) : [];
+    const unambiguous = new Set(rows.map(r => r.cardId).filter(Boolean)).size <= 1;
+    return res.json({ success: true, data: (unambiguous ? rows : [anchor]).map(r => ({ id: r.id, serviceId: r.serviceId, serviceName: r.serviceName, time: r.time, updatedAt: r.updatedAt })) });
+  } catch { return res.status(500).json({ success: false, error: 'No se pudieron consultar las citas del día' }); }
+});
+
 app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
   try {
     const { id } = req.params;
+    if (req.body.groupItems !== undefined) {
+      try {
+        const data = await checkoutGroup(prisma, id, req.body, req.admin);
+        const appointment = await AppointmentsRepo.findById(id);
+        tocarUltimaVisita(appointment.clientPhone);
+        const deposit = await apartarAlCobrar(appointment, req);
+        return res.json({ ...respuestaCobro(deposit), data });
+      } catch (error) {
+        if (error.checkout || ['P2034', 'P2002'].includes(error.code)) return res.status(409).json({ success: false, error: error.checkout ? error.message : 'El cobro cambió en otra sesión. Actualiza la caja.' });
+        throw error;
+      }
+    }
 
     // Guardrail recepción: bloquear edición/finalización con descuento
     if (req.admin.role === "recepcion") {
