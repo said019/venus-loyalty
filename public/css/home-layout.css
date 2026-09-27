@@ -103,3 +103,39 @@ html[data-theme="light"] #tab-overview { background: #fafbf8 !important; }
   #tab-overview .dash-sidebar { border-left: 0; padding-left: 0; }
   #tab-overview .hero-stats { grid-template-columns: repeat(2,minmax(0,1fr)); row-gap: 24px; }
 }
+
+/* Explicit placement prevents DOM order from creating empty grid cells. */
+#tab-overview.journey:not(.hidden) {
+  width: 100%; max-width: 100%; box-sizing: border-box;
+  grid-template-columns: minmax(0,2fr) minmax(0,1fr);
+  grid-template-areas: 'heading heading' 'stats stats' 'agenda pending' 'activity month' 'secondary secondary';
+  grid-template-rows: auto auto auto auto auto;
+  align-items: start;
+}
+#tab-overview.journey > .admin-page-hero { grid-area: heading; }
+#tab-overview.journey > .today-grid { grid-area: stats; }
+#tab-overview.journey > .journey-agenda { grid-area: agenda; align-self: start; }
+#tab-overview.journey > .admin-clarity-grid { grid-area: pending; }
+#tab-overview.journey .clarity-card-main { min-width: 0; width: 100%; box-sizing: border-box; }
+#tab-overview.journey #admin-brief-text { overflow-wrap: anywhere; }
+#tab-overview.journey > .journey-activity { grid-area: activity; min-width: 0; }
+#tab-overview.journey > .hero-stats {
+  grid-area: month; display: grid; grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 16px; padding: 0; border: 0; align-content: start;
+}
+#tab-overview.journey .hero-stat { min-height: 0 !important; height: auto !important; padding: 8px 0 !important; border: 0 !important; }
+#tab-overview.journey .hero-stat-value { font: 600 24px 'DM Sans',sans-serif; }
+#tab-overview.journey .hero-stat-label { line-height: 1.4; }
+#tab-overview.journey .today-card { border: 0 !important; border-radius: 0 !important; min-height: 32px !important; padding: 0 !important; }
+#tab-overview.journey .clarity-actions .btn { width: auto !important; align-self: flex-start; }
+#tab-overview.journey .journey-activity > .card { margin: 0; padding: 0; background: transparent !important; border: 0 !important; box-shadow: none !important; }
+#tab-overview.journey .journey-activity .card-header { padding: 0 0 16px; }
+#tab-overview.journey .journey-activity .card-body { padding: 0; }
+#tab-overview.journey .journey-secondary { grid-area: secondary; border-top: 1px solid var(--line); padding-top: 12px; }
+#tab-overview.journey .journey-secondary > summary { cursor: pointer; padding: 12px 0; font-weight: 600; }
+#tab-overview.journey .journey-secondary .dash-sidebar { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 20px; border: 0; padding: 16px 0; }
+#tab-overview.journey .journey-secondary .card { min-width: 0; margin: 0; box-shadow: none; }
+@media(max-width:900px) {
+  #tab-overview.journey:not(.hidden) { grid-template-areas: 'heading' 'stats' 'agenda' 'pending' 'activity' 'month' 'secondary'; grid-template-columns: minmax(0,1fr); }
+  #tab-overview.journey .journey-secondary .dash-sidebar { grid-template-columns: minmax(0,1fr); }
+}

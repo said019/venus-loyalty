@@ -9,6 +9,15 @@
   const panel = document.createElement('section'); panel.className = 'journey-agenda';
   panel.innerHTML = '<header><h3>Agenda del día</h3><div class="journey-date-tools"><button type="button" class="btn ghost" aria-label="Día anterior" title="Día anterior">‹</button><button type="button" class="btn ghost">Hoy</button><input type="date" aria-label="Fecha de la agenda"><button type="button" class="btn ghost" aria-label="Día siguiente" title="Día siguiente">›</button></div></header><div class="journey-rows" aria-live="polite"></div>';
   root.querySelector('.today-grid').after(panel);
+  // Use independent grid areas: a tall secondary sidebar must not stretch the chart row.
+  const dashboard = root.querySelector('.dash-grid');
+  const activity = dashboard.querySelector('.dash-main');
+  activity.classList.add('journey-activity');
+  root.append(activity);
+  const secondary = document.createElement('details'); secondary.className = 'journey-secondary';
+  const summary = document.createElement('summary'); summary.textContent = 'Más del negocio';
+  secondary.append(summary, dashboard.querySelector('.dash-sidebar'));
+  root.append(secondary); dashboard.remove();
   const input = panel.querySelector('input'); input.value = localDay();
   const rows = panel.querySelector('.journey-rows');
   let sequence = 0;
