@@ -1,0 +1,87 @@
+/* Scoped to appointment creation; existing field IDs and behavior stay intact. */
+#newApptDialog {
+  --appt-surface: #fff;
+  --appt-line: #dde1d8;
+  --appt-muted: #62695d;
+  --appt-ink: #283326;
+  color: var(--appt-ink);
+  background: var(--appt-surface) !important;
+  width: min(760px, calc(100% - 32px)) !important;
+  max-width: 760px !important;
+  max-height: calc(100dvh - 32px) !important;
+  border-radius: 12px !important;
+  padding: 0 !important;
+}
+#newApptDialog[open] { display: flex; flex-direction: column; }
+#newApptDialog::backdrop { background: rgb(25 32 22 / 48%); }
+#newApptDialog * { box-sizing: border-box; letter-spacing: 0 !important; }
+#newApptDialog > div:first-child {
+  padding: 20px 28px !important;
+  background: #f1f4ec !important;
+  border-color: var(--appt-line) !important;
+  flex: 0 0 auto;
+}
+#newApptDialog h1 { font-size: 26px !important; color: var(--appt-ink) !important; }
+#newApptDialog > div:first-child p { color: var(--appt-muted) !important; font-size: 11px !important; }
+#newApptDialog > div:first-child button { width: 44px !important; height: 44px !important; }
+#newApptDialog .dialog-content {
+  padding: 24px 28px !important;
+  max-height: none !important;
+  min-height: 0;
+  overflow-y: auto !important;
+  background: var(--appt-surface) !important;
+  flex: 1 1 auto;
+}
+#form-new-appt > div { gap: 22px !important; }
+#newApptDialog section { min-width: 0; }
+#newApptDialog h2 { font-family: inherit !important; font-size: 16px !important; font-weight: 700 !important; color: var(--appt-ink) !important; margin-bottom: 12px !important; }
+#newApptDialog label[for]:not([for^="check-"]) { font-size: 12px !important; text-transform: none !important; color: var(--appt-muted) !important; padding-left: 0 !important; margin-bottom: 6px !important; }
+#newApptDialog .form-input {
+  min-width: 0; width: 100%; min-height: 46px;
+  border: 1px solid var(--appt-line) !important;
+  border-radius: 6px !important;
+  background: var(--appt-surface) !important;
+  color: var(--appt-ink) !important;
+  font-size: 14px !important;
+  box-shadow: none !important;
+}
+#newApptDialog :is(input,select,button,summary):focus-visible { outline: 2px solid #576429 !important; outline-offset: 3px; }
+#newApptDialog .appt-services > div { padding: 0 !important; border: 0 !important; background: none !important; }
+#newApptDialog #btn-add-service { min-height: 44px; margin-top: 4px !important; color: #576429 !important; }
+#newApptDialog #btn-toggle-new-client { min-height: 46px; border-radius: 6px !important; background: #f1f4ec !important; color: #38452d !important; box-shadow: none !important; }
+#newApptDialog .grid-date-time { display: grid !important; grid-template-columns: 1.7fr .8fr .7fr 1fr !important; gap: 12px !important; }
+#newApptDialog .grid-date-time > div { grid-column: auto !important; min-width: 0; }
+#newApptDialog .appt-reminders { padding-top: 18px !important; border-color: var(--appt-line) !important; }
+#newApptDialog .appt-reminders > div:first-child { margin-bottom: 8px !important; }
+#newApptDialog .appt-reminders h2 { margin: 0 !important; font-size: 14px !important; }
+#newApptDialog .appt-reminders label { padding: 10px 0 !important; border: 0 !important; border-radius: 0 !important; background: none !important; gap: 8px !important; min-height: 44px; }
+#newApptDialog .appt-reminders input { flex: 0 0 18px; accent-color: #576429 !important; }
+#newApptDialog .appt-reminders p { color: var(--appt-muted) !important; }
+#newApptDialog .appt-reminders p:first-child { color: var(--appt-ink) !important; }
+#newApptDialog .appt-options { border-top: 1px solid var(--appt-line); }
+#newApptDialog .appt-options summary { cursor: pointer; padding: 16px 0; font-weight: 600; font-size: 14px; min-height: 48px; }
+#newApptDialog .appt-options summary span { display: block; font-size: 12px; font-weight: 400; color: var(--appt-muted); margin-top: 4px; }
+#newApptDialog .appt-options-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding-bottom: 8px; }
+#newApptDialog .appt-options-fields > section { background: none !important; border: 0 !important; border-radius: 0 !important; padding: 0 !important; }
+#newApptDialog .appt-options-fields > section:last-child { grid-column: 1 / -1; }
+#newApptDialog .dialog-footer { flex: 0 0 auto; position: static !important; width: 100% !important; padding: 16px 28px !important; gap: 16px; background: var(--appt-surface) !important; border-color: var(--appt-line) !important; }
+#newApptDialog .dialog-footer button { font-size: 14px !important; text-transform: none !important; min-height: 46px; border-radius: 6px !important; box-shadow: none !important; }
+#newApptDialog .dialog-footer .submit-btn { background: #576429 !important; color: #fff !important; justify-content: center; flex: 0 1 auto !important; }
+#newApptDialog .dialog-footer .cancel-btn { flex: 0 0 auto !important; color: var(--appt-muted) !important; }
+#newApptDialog .appt-options-fields :is(h3,p) { color: var(--appt-muted) !important; }
+[data-theme="dark"] #newApptDialog { --appt-surface: #20261f; --appt-line: #454d40; --appt-muted: #c0c7b8; --appt-ink: #eff2eb; }
+[data-theme="dark"] #newApptDialog > div:first-child { background: #2d3629 !important; }
+[data-theme="dark"] #newApptDialog #btn-add-service { color: #c1d19f !important; }
+@media (max-width: 540px) {
+  #newApptDialog { width: calc(100% - 16px) !important; max-height: calc(100dvh - 16px) !important; }
+  #newApptDialog > div:first-child, #newApptDialog .dialog-content, #newApptDialog .dialog-footer { padding: 16px !important; }
+  #newApptDialog .appt-client > div:nth-child(2) { grid-template-columns: 1fr !important; gap: 8px !important; }
+  #newApptDialog .appt-services > div > div:first-child { grid-template-columns: minmax(0,1fr) 95px !important; gap: 10px !important; }
+  #newApptDialog .grid-date-time { grid-template-columns: repeat(2,minmax(0,1fr)) !important; }
+  #newApptDialog .appt-reminders > div:last-child { grid-template-columns: 1fr !important; gap: 0 !important; }
+  #newApptDialog .appt-reminders label > div { display: flex; flex-wrap: wrap; gap: 4px 8px; }
+  #newApptDialog .appt-options-fields { grid-template-columns: minmax(0,1fr); }
+  #newApptDialog .dialog-footer { gap: 8px; }
+  #newApptDialog .dialog-footer button { padding: 12px !important; }
+  #newApptDialog .dialog-footer .submit-btn { flex: 1 !important; }
+}
