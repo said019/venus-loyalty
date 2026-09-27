@@ -1,0 +1,66 @@
+/* Scope the home workspace without changing shared navigation or charts. */
+#tab-overview:not(.hidden) { display: flex; flex-direction: column; gap: 24px; }
+#tab-overview { height: max-content !important; max-height: none !important; flex: none !important; min-width: 0; padding: 24px; background: var(--bg-secondary); }
+html[data-theme="light"] #tab-overview { background: #fafbf8 !important; }
+#tab-overview .clarity-card-main, #tab-overview .dash-grid .card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: 0 !important; }
+#tab-overview > * { min-width: 0; margin-bottom: 0 !important; flex-shrink: 0; }
+#tab-overview .admin-page-hero { order: 0; padding: 0 0 20px; border-bottom: 1px solid var(--line); }
+#tab-overview .admin-page-hero h2 { font-size: 28px; margin: 4px 0 0; letter-spacing: 0; }
+#tab-overview .admin-eyebrow { letter-spacing: 0; text-transform: none; font-size: 13px; }
+#tab-overview .today-grid { order: 1; display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 16px; }
+#tab-overview .today-card {
+  min-width: 0; padding: 20px; border-radius: 8px; box-shadow: none;
+  border: 1px solid var(--line); background: var(--bg-secondary); text-align: left;
+  display: grid; grid-template-columns: 40px minmax(0,1fr) 20px; align-items: center; gap: 12px;
+}
+#tab-overview .today-card-icon { width: 40px; height: 40px; border-radius: 6px; }
+#tab-overview .today-card-info { min-width: 0; }
+#tab-overview .today-card-info h4 { font-size: 28px; line-height: 1.2; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+#tab-overview .today-card-info p { font-size: 13px; letter-spacing: 0; text-transform: none; }
+#tab-overview .today-card-action { position: static; opacity: 1; color: var(--olive-deep); }
+#tab-overview .today-card:hover { border-color: var(--olive); transform: none; }
+#tab-overview :is(button,a):focus-visible { outline: 2px solid var(--olive); outline-offset: 3px; }
+#tab-overview .admin-clarity-grid { order: 2; display: block; }
+/* Duplicate summary IDs remain mounted for the existing refresh handlers. */
+#tab-overview .admin-clarity-grid > .clarity-card:not(.clarity-card-main) { display: none; }
+#tab-overview .clarity-card-main {
+  display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 8px 24px;
+  padding: 18px 0; border: 0; border-radius: 0; border-block: 1px solid var(--line);
+  background: transparent; box-shadow: none; min-height: 0;
+}
+#tab-overview .clarity-card-main::after { display: none; }
+#tab-overview .clarity-card-main h3 { display: none; }
+#tab-overview .clarity-kicker { grid-column: 1; text-transform: none; letter-spacing: 0; font-size: 14px; }
+#tab-overview #admin-brief-text { grid-column: 1; font-size: 13px; margin: 0; max-width: 65ch; }
+#tab-overview .clarity-actions { grid-column: 2; grid-row: 1 / 3; align-self: center; margin: 0; flex-wrap: wrap; }
+#tab-overview .btn { border-radius: 6px; min-height: 40px; }
+#tab-overview .dash-grid { order: 4; display: grid; grid-template-columns: minmax(0,2fr) minmax(260px,1fr); gap: 24px; }
+#tab-overview .dash-main, #tab-overview .dash-sidebar { min-width: 0; }
+#tab-overview .dash-grid .card { border-radius: 0; border: 0; background: transparent; box-shadow: none; }
+#tab-overview .dash-grid .card-header { padding: 0 0 14px; }
+#tab-overview .dash-grid .card-body { padding: 16px 0 !important; }
+#tab-overview .dash-sidebar { border-left: 1px solid var(--line); padding-left: 24px; }
+#tab-overview .hero-stats { order: 3; display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 16px; padding: 24px 0; border-top: 1px solid var(--line); }
+#tab-overview .home-month-heading { grid-column: 1 / -1; margin: 0 0 8px; font-size: 20px; }
+#tab-overview .hero-stat { min-width: 0; padding: 0 16px; border: 0; border-left: 1px solid var(--line); border-radius: 0; background: transparent; box-shadow: none; }
+#tab-overview .hero-stat::before, #tab-overview .hero-stat-icon { display: none; }
+#tab-overview .hero-stat-value { font-size: 28px; line-height: 1.2; margin-bottom: 8px; font-variant-numeric: tabular-nums; }
+#tab-overview .hero-stat-label { font-size: 12px; text-transform: none; letter-spacing: 0; }
+@media(max-width:1000px) {
+  #tab-overview .clarity-card-main { grid-template-columns: minmax(0,1fr); }
+  #tab-overview .clarity-actions { grid-column: 1; grid-row: auto; }
+  #tab-overview .hero-stats { grid-template-columns: repeat(3,minmax(0,1fr)); }
+}
+@media(max-width:600px) {
+  #tab-overview { padding: 16px; }
+  #tab-overview:not(.hidden) { gap: 20px; }
+  #tab-overview .admin-page-hero { flex-wrap: wrap; gap: 12px; }
+  #tab-overview .today-grid { grid-template-columns: minmax(0,1fr); gap: 8px; }
+  #tab-overview .today-card { padding: 14px 16px; }
+  #tab-overview .today-card-info { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  #tab-overview .today-card-info h4 { font-size: 24px; }
+  #tab-overview .today-card-info p { margin: 0; }
+  #tab-overview .dash-grid { grid-template-columns: minmax(0,1fr); }
+  #tab-overview .dash-sidebar { border-left: 0; padding-left: 0; }
+  #tab-overview .hero-stats { grid-template-columns: repeat(2,minmax(0,1fr)); row-gap: 24px; }
+}
