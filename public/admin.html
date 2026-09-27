@@ -19619,6 +19619,27 @@
 
         document.body.insertAdjacentHTML('beforeend', html);
 
+        const extraBox = document.createElement('section');
+        extraBox.className = 'cobro-card cobro-group';
+        extraBox.innerHTML = '<h4>Servicios extra</h4><div style="display:grid;grid-template-columns:minmax(0,1fr) 44px;gap:8px"><select class="cobro-input" aria-label="Servicio extra"><option value="">Agregar servicio...</option></select><button type="button" class="btn primary" aria-label="Agregar servicio extra" title="Agregar servicio extra" style="padding:0;min-width:44px"><i class="fas fa-plus" aria-hidden="true"></i></button></div><div class="cobro-extra-list"></div>';
+        const extraSelect = extraBox.querySelector('select');
+        servicios.forEach(s => { const option = document.createElement('option'); option.value = s.id; option.textContent = s.name + ' · $' + Number(s.price).toFixed(2); extraSelect.appendChild(option); });
+        extraBox.querySelector('button').addEventListener('click', () => {
+          const service = servicios.find(s => s.id === extraSelect.value);
+          if (!service) return showNotification('Selecciona un servicio extra', 'warning');
+          const item = { id: 'service:' + service.id, nombre: service.name, precio: Number(service.price), cantidad: 1 };
+          if (productosEnCobro.some(p => p.id === item.id)) return showNotification('Este servicio extra ya está incluido', 'warning');
+          productosEnCobro.push(item);
+          const row = document.createElement('div'); row.className = 'cobro-group-row'; row.style.gridTemplateColumns = 'minmax(0,1fr) 90px 36px';
+          const name = document.createElement('span'); name.className = 'cobro-group-name'; name.textContent = item.nombre;
+          const price = document.createElement('input'); price.className = 'cobro-input'; price.type = 'number'; price.min = '0'; price.step = '.01'; price.inputMode = 'decimal'; price.value = item.precio; price.setAttribute('aria-label', 'Precio extra de ' + item.nombre);
+          price.addEventListener('input', () => { item.precio = price.value === '' ? NaN : Number(price.value); actualizarTotalCobro(); });
+          const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'btn'; remove.style.padding = '8px'; remove.title = 'Quitar servicio extra'; remove.setAttribute('aria-label', 'Quitar extra ' + item.nombre); remove.innerHTML = '<i class="fas fa-trash-alt" aria-hidden="true"></i>';
+          remove.addEventListener('click', () => { productosEnCobro = productosEnCobro.filter(p => p !== item); row.remove(); actualizarTotalCobro(); });
+          row.append(name, price, remove); extraBox.querySelector('.cobro-extra-list').appendChild(row); extraSelect.value = ''; actualizarTotalCobro();
+        });
+        document.querySelector('#modal-cobrar-cita .info-grid').after(extraBox);
+
         const related = groupJson.data.filter(item => item.id !== citaId);
         if (related.length) {
           const groupBox = document.createElement('section');
@@ -19855,10 +19876,11 @@
       if (!container) return;
       
       // Lista de productos agregados
-      if (productosEnCobro.length === 0) {
+      const retailItems = productosEnCobro.filter(p => !String(p.id).startsWith('service:'));
+      if (retailItems.length === 0) {
         container.innerHTML = '<p style="font-size:13px;color:#666;text-align:center;padding:8px 0;">Sin productos adicionales</p>';
       } else {
-        container.innerHTML = productosEnCobro.map(p => `
+        container.innerHTML = retailItems.map(p => `
           <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--bg-secondary);border-radius:8px;margin-bottom:8px;border:1px solid var(--line);">
             <div style="flex:1;min-width:0;">
               <div style="font-size:13px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.nombre}</div>
@@ -20055,6 +20077,7 @@
 
     async function procesarCobroCita(citaId) {
       if (window.cobroEnProceso) return;
+      if (productosEnCobro.some(p => !Number.isFinite(p.precio) || p.precio < 0)) { showNotification('Revisa el precio de los servicios extra', 'warning'); return; }
       console.log('[Procesar Cobro] Iniciando cobro para cita:', citaId);
       
       if (!citaId) {

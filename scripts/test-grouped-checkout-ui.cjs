@@ -34,6 +34,15 @@ const pay = extract('async function procesarCobroCita(citaId)', '// Función wra
       await page.getByLabel('Incluir Masaje').check();
       await page.getByLabel('Precio de Masaje').fill('400');
       assert.equal(await page.locator('#total-cobro').textContent(), '$1050');
+      await page.getByLabel('Servicio extra', { exact: true }).selectOption('s2');
+      await page.getByRole('button', { name: 'Agregar servicio extra', exact: true }).click();
+      assert.equal(await page.locator('#total-cobro').textContent(), '$1400');
+      await page.getByLabel('Precio extra de Masaje').fill('200');
+      assert.equal(await page.locator('#total-cobro').textContent(), '$1250');
+      await page.getByLabel('Quitar extra Masaje').click();
+      assert.equal(await page.locator('#total-cobro').textContent(), '$1050');
+      await page.getByLabel('Servicio extra', { exact: true }).selectOption('s2');
+      await page.getByRole('button', { name: 'Agregar servicio extra', exact: true }).click();
       await page.locator('.cobro-group-name').evaluate(el => { el.textContent = 'Masaje relajante de espalda y cuerpo completo'; });
       const layout = await page.evaluate(() => {
         const group = document.querySelector('.cobro-group').getBoundingClientRect();
@@ -48,7 +57,9 @@ const pay = extract('async function procesarCobroCita(citaId)', '// Función wra
       await page.screenshot({ path: '/tmp/venus-grouped-checkout-' + width + '.png' });
       await page.evaluate(() => procesarCobroCita('a'));
       const sent = await page.evaluate(() => window.sent);
-      assert.equal(sent.totalPaid, 1050); assert.equal(sent.groupItems.length, 2);
+      assert.equal(sent.totalPaid, 1400); assert.equal(sent.groupItems.length, 2);
+      assert.equal(sent.productsSold[0].productId, 'service:s2');
+      assert.equal(sent.productsSold[0].subtotal, 350);
       assert.deepEqual(sent.groupItems.map(i => i.price), [650, 400]);
       await page.close();
     }
