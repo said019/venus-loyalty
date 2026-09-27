@@ -16052,6 +16052,7 @@
 
     // Cargar stats de hoy
     async function loadTodayStats() {
+      window.loadHomeJourney?.();
       try {
         const res = await apiFetch('/api/dashboard/today');
         const json = await res.json();
@@ -22604,7 +22605,8 @@
   <link rel="stylesheet" href="/css/reschedule.css">
   <link rel="stylesheet" href="/css/caja-history.css">
   <link rel="stylesheet" href="/css/sales-layout.css?v=2">
-  <link rel="stylesheet" href="/css/home-layout.css?v=1">
+  <link rel="stylesheet" href="/css/home-layout.css?v=2">
+  <script src="/js/home-journey.js?v=1"></script>
   <script src="/js/sales-layout.js?v=2"></script>
   <script src="/js/admin/reschedule.js"></script>
   <link rel="stylesheet" href="/css/appointment-search.css">
