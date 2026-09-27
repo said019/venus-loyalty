@@ -43,7 +43,7 @@ const pay = extract('async function procesarCobroCita(citaId)', '// Función wra
       assert.equal(await page.locator('#total-cobro').textContent(), '$1050');
       await page.getByLabel('Servicio extra', { exact: true }).selectOption('s2');
       await page.getByRole('button', { name: 'Agregar servicio extra', exact: true }).click();
-      await page.locator('.cobro-group-name').evaluate(el => { el.textContent = 'Masaje relajante de espalda y cuerpo completo'; });
+      await page.locator('.cobro-group-name').first().evaluate(el => { el.textContent = 'Masaje relajante de espalda y cuerpo completo'; });
       const layout = await page.evaluate(() => {
         const group = document.querySelector('.cobro-group').getBoundingClientRect();
         const check = document.querySelector('.cobro-group-check').getBoundingClientRect();
