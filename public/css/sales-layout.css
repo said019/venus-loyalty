@@ -1,0 +1,74 @@
+/* Sales workspace: retain chart rendering and existing filter contracts. */
+#tab-reports:not(.hidden) { display: flex; flex-direction: column; gap: 24px; }
+#tab-reports { background: var(--bg-secondary, #fff); color: var(--ink); padding: 24px; height: auto; min-height: 100%; }
+html[data-theme="light"] #tab-reports { background: #fafbf8 !important; }
+#tab-reports [hidden] { display: none !important; }
+#tab-reports h3 { color: var(--ink) !important; }
+#tab-reports > * { min-width: 0; margin-bottom: 0 !important; }
+#tab-reports .header-actions { order: 0; flex-wrap: wrap; gap: 16px; }
+#tab-reports .header-actions h2 { font-size: 28px; margin: 0; }
+#tab-reports .sales-actions { flex-wrap: wrap; }
+#tab-reports .sales-actions .btn { min-height: 42px; font-size: 13px; border-radius: 6px; }
+#tab-reports .sales-actions .btn[onclick="openManualIncomeDialog()"] { background: var(--olive-deep, #58652d) !important; border-color: var(--olive-deep, #58652d) !important; }
+#tab-reports .report-month-card { order: 1; }
+#tab-reports .report-filter-card { order: 2; padding: 0 0 20px !important; }
+#tab-reports .sales-metrics { order: 3; }
+#tab-reports .sales-overview { order: 4; }
+#tab-reports .sales-service-chart { order: 5; }
+#tab-reports .sales-ledger { order: 6; }
+#tab-reports .expenses-panel { order: 7; }
+#tab-reports > .card,
+#tab-reports .sales-overview > .card,
+#tab-reports .sales-metrics > .card {
+  box-shadow: none !important; transform: none !important;
+  border: 0 !important; border-radius: 0 !important;
+  background: transparent !important; padding: 0;
+}
+#tab-reports .report-month-card { padding: 0 !important; }
+#tab-reports #report-month-tabs { gap: 4px !important; border-bottom: 1px solid var(--line); }
+#tab-reports #report-month-tabs button { flex: 0 0 auto; border-radius: 4px 4px 0 0 !important; padding: 10px 14px !important; font-size: 13px !important; }
+#tab-reports .report-filter-card { border-bottom: 1px solid var(--line) !important; }
+#tab-reports .report-filter-card input { min-width: 0; width: auto; min-height: 40px; }
+#tab-reports .sales-metrics { grid-template-columns: repeat(4,minmax(0,1fr)) !important; gap: 0 !important; border-bottom: 1px solid var(--line); }
+#tab-reports .sales-metrics > .card { padding: 0 20px 24px; border-left: 1px solid var(--line) !important; }
+#tab-reports .sales-metrics > .card:first-child { padding-left: 0; border-left: 0 !important; }
+#tab-reports .sales-metrics [id$="total"], #tab-reports #report-total-sales { font-size: 26px !important; font-variant-numeric: tabular-nums; color: var(--ink) !important; overflow-wrap: anywhere; }
+#tab-reports .sales-metrics span { letter-spacing: 0 !important; text-transform: none !important; }
+#tab-reports .sales-overview { grid-template-columns: minmax(0,1fr) minmax(0,1fr) !important; gap: 32px !important; padding-bottom: 24px; border-bottom: 1px solid var(--line); }
+#tab-reports .sales-financial { color: var(--ink); }
+#tab-reports .sales-financial > div:first-child { display: none !important; }
+#tab-reports .sales-financial div, #tab-reports .sales-financial span { color: var(--ink) !important; }
+#tab-reports .sales-financial > div { background: transparent !important; border-radius: 0 !important; padding: 0 !important; }
+#tab-reports .sales-financial #report-total-ingresos,
+#tab-reports .sales-financial #report-utilidad { color: var(--olive-deep, #58652d) !important; }
+#tab-reports .sales-financial #report-total-egresos { color: var(--text-muted) !important; }
+#tab-reports .sales-financial #report-servicios-list { max-height: 170px !important; }
+#tab-reports .sales-financial #report-apartados { padding: 12px 0 !important; border-width: 1px 0 !important; }
+#tab-reports .sales-service-chart { padding-bottom: 24px !important; border-bottom: 1px solid var(--line) !important; }
+#tab-reports .sales-ledger { padding-bottom: 24px !important; border-bottom: 1px solid var(--line) !important; }
+#tab-reports .report-sales-head { margin-bottom: 16px; }
+#tab-reports .report-sales-filters { display: grid; grid-template-columns: minmax(130px,1fr) minmax(180px,2fr) minmax(140px,1fr) minmax(160px,1fr) auto; gap: 10px; }
+#tab-reports .report-sales-filters > *, #tab-reports .report-sales-filters input, #tab-reports .report-sales-filters select { min-width: 0; width: 100%; }
+#tab-reports .report-sales-filters input, #tab-reports .report-sales-filters select { min-height: 44px; font-size: 13px; border-radius: 6px; }
+#tab-reports .table-wrap { overflow-x: auto; max-width: 100%; }
+#tab-reports .sales-ledger table { font-variant-numeric: tabular-nums; }
+#tab-reports .sales-ledger th { font-size: 11px; letter-spacing: 0; text-transform: none; white-space: nowrap; }
+#tab-reports .sales-ledger td { font-size: 13px; padding: 14px 12px; }
+#tab-reports .expenses-panel-copy { display: none; }
+@media (max-width: 1000px) {
+  #tab-reports .report-sales-filters { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  #tab-reports .sales-metrics > .card { padding: 0 12px 20px; }
+}
+@media (max-width: 600px) {
+  #tab-reports:not(.hidden) { gap: 20px; }
+  #tab-reports { padding: 16px; }
+  #tab-reports .sales-actions { width: 100%; }
+  #tab-reports .sales-actions .btn { flex: 1 1 auto; }
+  #tab-reports .sales-metrics { grid-template-columns: repeat(2,minmax(0,1fr)) !important; row-gap: 20px !important; }
+  #tab-reports .sales-metrics > .card:nth-child(3) { border-left: 0 !important; padding-left: 0; }
+  #tab-reports .sales-metrics [id$="total"], #tab-reports #report-total-sales { font-size: 22px !important; }
+  #tab-reports .sales-overview { grid-template-columns: minmax(0,1fr) !important; }
+  #tab-reports .sales-service-chart > div { grid-template-columns: minmax(0,1fr) !important; }
+  #tab-reports .report-filter-card > div > div { max-width: 100%; flex-wrap: wrap; }
+  #tab-reports .report-sales-filters { grid-template-columns: minmax(0,1fr); }
+}

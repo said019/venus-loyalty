@@ -1947,8 +1947,8 @@
     <!-- TAB: Reportes de Ventas -->
     <section id="tab-reports" class="tab-content hidden">
       <div class="header-actions">
-        <h2><i class="fas fa-chart-line"></i> Reportes de Ventas</h2>
-        <div style="display:flex;gap:8px;">
+        <h2><i class="fas fa-chart-line"></i> Ventas</h2>
+        <div class="sales-actions" style="display:flex;gap:8px;">
           <button class="btn ghost" onclick="cargarReportesMes()">
             <i class="fas fa-sync"></i> Actualizar
           </button>
@@ -2017,10 +2017,10 @@
       </div>
 
       <!-- Layout Principal tipo Excel -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
+      <div class="sales-overview" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
 
         <!-- Lado Izquierdo: Resumen Financiero -->
-        <div class="card"
+        <div class="card sales-financial"
           style="background:linear-gradient(135deg, #2F3E2B 0%, #4A5D3F 100%);border:1px solid rgba(255,255,255,0.1);">
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
             <img src="/assets/logo.png" alt="Venus" style="width:40px;height:40px;border-radius:8px;">
@@ -2097,7 +2097,7 @@
       </div>
 
       <!-- Ingresos por Tipo de Servicio (gráfica de pastel detallada) -->
-      <div class="card" style="margin-bottom:20px;">
+      <div class="card sales-service-chart" style="margin-bottom:20px;">
         <h3 style="margin:0 0 16px;font-size:14px;color:var(--venus-soft);">
           <i class="fas fa-spa"></i> Ingresos por Tipo de Servicio
         </h3>
@@ -2115,25 +2115,9 @@
       <!-- NOTA: aquí vivía el esqueleto roto de una tabla vieja (table/thead
            sin cerrar) que por foster-parenting metía las tarjetas de
            estadísticas y el panel de gastos dentro de un scroll de 500px. -->
-      <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <h3 style="margin:0;font-size:14px;color:var(--venus-soft);">
-            <i class="fas fa-list"></i> INGRESOS
-          </h3>
-          <div style="display:flex;gap:8px;align-items:center;">
-            <select id="filter-payment-method" class="form-input" style="padding:6px 10px;font-size:12px;"
-              onchange="filtrarTablaReporte()">
-              <option value="">Todos los pagos</option>
-              <option value="efectivo">Efectivo</option>
-              <option value="tarjeta">Tarjeta</option>
-              <option value="transferencia">Transferencia</option>
-            </select>
-          </div>
-        </div>
-      </div>
 
         <!-- Estadísticas -->
-        <div data-keep-cols style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:20px;">
+        <div class="sales-metrics" data-keep-cols style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:20px;">
           <div class="card">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
               <span style="font-size:12px;color:var(--muted);text-transform:uppercase;font-weight:600;">Total
@@ -2268,7 +2252,7 @@
         </article>
 
         <!-- Tabla de ventas -->
-        <div class="card">
+        <div class="card sales-ledger">
           <div class="report-sales-head">
             <h3 style="margin:0;font-size:15px;"><i class="fas fa-list"></i> Detalle de Ventas</h3>
             <span id="report-sales-summary" class="report-sales-summary"></span>
@@ -2276,6 +2260,12 @@
           <!-- Filtros rápidos de la tabla: los últimos pagos primero (hoy arriba,
                luego ayer…), buscar por clienta/servicio y acotar a un día. -->
           <div class="report-sales-filters">
+            <select id="filter-payment-method" class="form-input" aria-label="Forma de pago" onchange="filtrarTablaReporte()">
+              <option value="">Todos los pagos</option>
+              <option value="efectivo">Efectivo</option>
+              <option value="tarjeta">Tarjeta</option>
+              <option value="transferencia">Transferencia</option>
+            </select>
             <label class="report-sales-search">
               <i class="fas fa-search" aria-hidden="true"></i>
               <input type="search" id="report-sales-search" class="form-input" placeholder="Buscar clienta o servicio…" autocomplete="off" oninput="filtrarTablaReporte()">
@@ -22612,6 +22602,7 @@
 
   <link rel="stylesheet" href="/css/reschedule.css">
   <link rel="stylesheet" href="/css/caja-history.css">
+  <link rel="stylesheet" href="/css/sales-layout.css?v=1">
   <script src="/js/admin/reschedule.js"></script>
   <link rel="stylesheet" href="/css/appointment-search.css">
   <link rel="stylesheet" href="/css/venus-calendar.css">
