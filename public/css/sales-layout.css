@@ -1,6 +1,28 @@
 /* Sales workspace: retain chart rendering and existing filter contracts. */
+#tab-reports .header-actions { display: grid; grid-template-columns: 1fr auto; }
+#tab-reports .sales-period { grid-column: 1; font-size: 14px !important; font-weight: 400 !important; color: var(--text-muted) !important; }
+#tab-reports .sales-actions { grid-column: 2; grid-row: 1 / 3; }
+#tab-reports .sales-headline-metrics { order: 3; display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); border-bottom: 1px solid var(--line); padding: 8px 0 24px; }
+#tab-reports .sales-headline-metric { padding: 0 24px; border-left: 1px solid var(--line); min-width: 0; }
+#tab-reports .sales-headline-metric:first-child { padding-left: 0; border: 0; }
+#tab-reports .sales-headline-metric > span:first-child { display: block; margin-bottom: 8px; font-size: 14px; }
+#tab-reports .sales-headline-metric [id] { font-family: 'Playfair Display', Georgia, serif; font-size: 30px !important; font-weight: 600 !important; font-variant-numeric: tabular-nums; color: var(--ink) !important; overflow-wrap: anywhere; }
+#tab-reports .sales-headline-metric.expense [id] { color: #a34d32 !important; }
+#tab-reports .sales-headline-metric.profit [id] { color: var(--olive-deep, #576429) !important; }
+#tab-reports .sales-breakdown { order: 8; border-top: 1px solid var(--line); padding-top: 20px; }
+#tab-reports .sales-breakdown summary { cursor: pointer; font-size: 14px; padding: 8px 0 20px; }
+#tab-reports .sales-overview .sales-service-chart { border: 0 !important; padding: 0 !important; }
+#tab-reports .sales-overview .sales-service-chart > div { grid-template-columns: minmax(0,1fr) !important; gap: 12px !important; }
+#tab-reports .sales-ledger:not(.sales-fiscal-visible) :is(th,td):nth-child(4),
+#tab-reports .sales-ledger:not(.sales-fiscal-visible) :is(th,td):nth-child(6),
+#tab-reports .sales-ledger:not(.sales-fiscal-visible) :is(th,td):nth-child(7),
+#tab-reports .sales-ledger:not(.sales-fiscal-visible) :is(th,td):nth-child(8),
+#tab-reports .sales-ledger:not(.sales-fiscal-visible) :is(th,td):nth-child(9),
+#tab-reports .sales-ledger:not(.sales-fiscal-visible) :is(th,td):nth-child(11) { display: none; }
+#tab-reports .sales-ledger:not(.sales-fiscal-visible) tfoot { display: none; }
 #tab-reports:not(.hidden) { display: flex; flex-direction: column; gap: 24px; }
-#tab-reports { background: var(--bg-secondary, #fff); color: var(--ink); padding: 24px; height: auto; min-height: 100%; }
+#tab-reports { background: var(--bg-secondary, #fff); color: var(--ink); padding: 24px; height: max-content !important; max-height: none !important; flex: none !important; min-height: 100%; }
+#tab-reports:not(.hidden) > * { flex-shrink: 0; }
 html[data-theme="light"] #tab-reports { background: #fafbf8 !important; }
 #tab-reports [hidden] { display: none !important; }
 #tab-reports h3 { color: var(--ink) !important; }
@@ -60,6 +82,12 @@ html[data-theme="light"] #tab-reports { background: #fafbf8 !important; }
   #tab-reports .sales-metrics > .card { padding: 0 12px 20px; }
 }
 @media (max-width: 600px) {
+  #tab-reports .header-actions { grid-template-columns: minmax(0,1fr); }
+  #tab-reports .sales-actions { grid-column: 1; grid-row: auto; }
+  #tab-reports .sales-headline-metrics { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 24px 0; }
+  #tab-reports .sales-headline-metric { padding: 0 12px; }
+  #tab-reports .sales-headline-metric:nth-child(3) { padding-left: 0; border: 0; }
+  #tab-reports .sales-headline-metric [id] { font-size: 24px !important; }
   #tab-reports:not(.hidden) { gap: 20px; }
   #tab-reports { padding: 16px; }
   #tab-reports .sales-actions { width: 100%; }
