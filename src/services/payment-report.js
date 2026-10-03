@@ -10,7 +10,7 @@ export async function paymentAppointments(prisma, from, to) {
   const byId = new Map(candidates.map(a => [a.id, a]));
   return [
     ...sales.filter(s => byId.has(s.appointmentId)).map(s => ({ ...byId.get(s.appointmentId),
-      id: s.id, paidAt: s.date, totalPaid: s.totalAmount, serviceAmount: s.serviceAmount,
+      id: s.id, paidAt: s.date, totalPaid: s.totalAmount ?? s.total, serviceAmount: s.serviceAmount,
       discountAmount: s.discountAmount, productsSold: s.productsSold, paymentMethod: s.paymentMethod })),
     ...candidates.filter(a => !linkedIds.has(a.id))
   ];
