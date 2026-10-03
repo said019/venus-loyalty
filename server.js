@@ -1477,7 +1477,9 @@ app.get('/api/appointments/range', adminAuth, async (req, res) => {
     console.log('[REPORTS] Buscando citas desde', from, 'hasta', to);
 
     // Usar repositorio de Prisma
-    const appointments = await AppointmentsRepo.findByDateRange(from, to);
+    const appointments = req.query.dateField === 'payment'
+      ? await (await import('./src/services/payment-report.js')).paymentAppointments(prisma, from, to)
+      : await AppointmentsRepo.findByDateRange(from, to);
 
     // Adjuntar apartado de barra (Setting JSON): la vista de día del
     // calendario se alimenta de ESTE endpoint, no del de ?date.

@@ -2273,7 +2273,7 @@
             </label>
             <label class="report-sales-day">
               <span class="visually-hidden">Filtrar por día</span>
-              <input type="date" id="report-sales-day" class="form-input" onchange="filtrarTablaReporte()" aria-label="Filtrar por día">
+              <input type="date" id="report-sales-day" class="form-input" onchange="cargarDiaPagos()" aria-label="Filtrar por día">
             </label>
             <label class="report-sales-order">
               <span class="visually-hidden">Orden</span>
@@ -13795,7 +13795,7 @@
           return;
         }
 
-        const historial = movs.slice(0, 6).map(m => {
+        const historial = movs.map(m => {
           const monto = Number(m.amount) || 0;
           const fecha = new Date(m.createdAt).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' });
           const nota = m.note ? ` · ${escHtml(m.note)}` : '';
@@ -13814,7 +13814,7 @@
             <span class="muted" style="font-size:11.5px;">${fecha} · ${CREDITO_ETIQUETA[m.type] || m.type}${cita}${nota}</span>
             <span style="display:flex;align-items:center;gap:6px;white-space:nowrap;">
               <strong style="font-size:12px;color:${monto >= 0 ? 'var(--cm-olive-deep)' : 'var(--muted)'};">${monto >= 0 ? '+' : '−'}$${Math.abs(monto).toLocaleString('es-MX')}</strong>
-              ${puedeDeshacer ? `<button class="btn small ghost" style="font-size:10px;padding:2px 6px;" title="Deshacer este movimiento" onclick="revertCreditMovement('${m.id}')"><i class="fas fa-rotate-left"></i></button>` : ''}
+              ${puedeDeshacer ? `<button type="button" class="btn small ghost" title="Corregir un movimiento registrado por error" onclick="revertCreditMovement('${m.id}', '${cardId}', ${monto}, this)"><i class="fas fa-rotate-left" aria-hidden="true"></i> ${m.type === 'deposito' ? 'Deshacer anticipo' : 'Deshacer'}</button>` : (m.reverted ? '<span>Deshecho</span>' : '')}
             </span>
           </div>`;
         }).join('');
@@ -13822,7 +13822,7 @@
         body.innerHTML = `
           <div style="font-family:'Playfair Display',Georgia,serif;font-size:26px;font-weight:600;color:var(--cm-olive-deep);line-height:1.1;">$${saldo.toLocaleString('es-MX')}</div>
           <div class="muted" style="font-size:11.5px;margin-top:2px;">${saldo > 0 ? 'Se descuenta solo en su próxima cita' : 'Sin saldo pendiente'}</div>
-          <div style="margin-top:8px;">${historial}</div>`;
+          <div style="margin-top:8px;max-height:320px;overflow:auto;">${historial}</div>`;
       } catch (e) {
         console.error('[CM CREDITS]', e);
         body.innerHTML = '<span class="muted" style="font-size:12px;">No se pudo cargar el saldo</span>';
@@ -14051,23 +14051,40 @@
       }
     });
 
-    window.revertCreditMovement = async function (movementId) {
-      if (!(await venusConfirm('¿Deshacer este movimiento de saldo?', { title: 'Deshacer', okLabel: 'Deshacer' }))) return;
+    const creditRevertsPending = new Set();
+    window.revertCreditMovement = async function (movementId, cardId = window.currentCardId, amount, button) {
+      if (creditRevertsPending.has(movementId)) return;
+      creditRevertsPending.add(movementId);
+      if (button) button.disabled = true;
       try {
+        const detalle = Number.isFinite(amount) ? ` de $${Math.abs(amount).toLocaleString('es-MX')}` : '';
+        if (!(await venusConfirm(`¿Deshacer este movimiento${detalle}? Corrige el saldo y, si es un anticipo, retira el ingreso de Reportes. No devuelve dinero ni lo transfiere a otra clienta. El movimiento quedará marcado como deshecho.`, { title: 'Corregir movimiento', okLabel: 'Deshacer' }))) return;
         const res = await apiFetch(`/api/credits/movement/${movementId}/revert`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({})
         });
         const json = await res.json();
-        if (!json.success) {
+        if (!res.ok || !json.success) {
           const NICE = {
             saldo_ya_usado: 'Ese dinero ya se usó en una cita. Deshaz primero la aplicación.',
             ya_estaba_revertido: 'Ese movimiento ya estaba deshecho.',
             devolucion_no_reversible: 'Una devolución no se puede deshacer: registra un apartado nuevo.',
           };
-          throw new Error(NICE[json.error] || json.error);
+          throw new Error(NICE[json.error] || json.error || 'No se pudo deshacer el movimiento.');
         }
-        loadCardCredits(window.currentCardId);
+        try {
+          if (cardId && window.currentCardId === cardId) await loadCardCredits(cardId);
+          if (typeof cargarCaja === 'function') await cargarCaja();
+        } catch (refreshError) {
+          console.error('[CREDITS REFRESH]', refreshError);
+          await venusAlert('El movimiento ya se deshizo, pero no se pudo actualizar la pantalla. Recarga para ver el saldo actualizado.');
+          return;
+        }
+        await venusAlert('Movimiento deshecho. Si correspondía a otra clienta, registra el anticipo en su ficha.');
       } catch (err) { await venusAlert(String(err.message || err)); }
+      finally {
+        creditRevertsPending.delete(movementId);
+        if (button) button.disabled = false;
+      }
     };
 
     // Cargar servicios al abrir la pestaña de Catálogo
@@ -20518,6 +20535,7 @@
 
     async function selectReportMonth(year, month) {
       currentReportMonth = { year, month };
+      limpiarFiltrosTablaReporte();
       initReportMonthTabs();
       await cargarReportesMes();   // pinta ventas Y gastos del mes en un viaje
     }
@@ -20535,15 +20553,16 @@
     // antes cada una duplicaba estas ~60 líneas y había que editarlas 2 veces.
     async function fetchVentasRango(from, to) {
       const fromISO = `${from}T00:00:00-06:00`;
-      const toISO = `${to}T23:59:59-06:00`;
+      const toISO = `${to}T23:59:59.999-06:00`;
 
       const [apptRes, coffeeRes, manualRes] = await Promise.all([
-        apiFetch(`/api/appointments/range?from=${fromISO}&to=${toISO}`),
+        apiFetch(`/api/appointments/range?from=${fromISO}&to=${toISO}&dateField=payment`),
         apiFetch(`/api/pos/sales?from=${from}&to=${to}`),
         apiFetch(`/api/sales/range?from=${from}&to=${to}`)
       ]);
 
       const [apptJson, coffeeJson, manualJson] = await Promise.all([apptRes.json(), coffeeRes.json(), manualRes.json()]);
+      if (![apptRes, coffeeRes, manualRes].every(r => r.ok) || ![apptJson, coffeeJson, manualJson].every(j => j.success)) throw new Error('No se pudieron cargar todos los pagos');
 
       if (!apptJson.success) {
         console.error('[REPORTS] Error citas:', apptJson.error);
@@ -20867,7 +20886,7 @@
       const tfoot = document.getElementById('report-sales-tfoot');
 
       if (ventas.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="11" class="muted" style="text-align:center;padding:40px;">No hay ingresos registrados este mes</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="11" class="muted" style="text-align:center;padding:40px;">No hay pagos para los filtros seleccionados</td></tr>';
         if (tfoot) tfoot.innerHTML = '';
         return;
       }
@@ -20879,7 +20898,7 @@
 
       tbody.innerHTML = ventas.map(v => {
         const fecha = new Date(v.paidAt || v.startDateTime);
-        const fechaStr = fecha.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: '2-digit' });
+        const fechaStr = fecha.toLocaleDateString('es-MX', { timeZone: 'America/Mexico_City', day: '2-digit', month: '2-digit', year: 'numeric' });
 
         const subtotal = parseFloat(v.serviceAmount || v.totalPaid) || 0;
         const iva = 0; // Ajustar si se maneja IVA
@@ -20947,11 +20966,29 @@
     }
     // "2026-08-15" en hora LOCAL (para comparar con el <input type=date>).
     function claveDiaLocal(ts) {
-      const d = new Date(ts);
-      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Mexico_City', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(ts));
     }
     function normTexto(s) {
       return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    }
+
+    let pagosDiaData = null;
+    let pagosDiaRequest = 0;
+    async function cargarDiaPagos() {
+      const dia = document.getElementById('report-sales-day').value;
+      const request = ++pagosDiaRequest;
+      pagosDiaData = null;
+      if (!dia) { filtrarTablaReporte(); return; }
+      document.getElementById('report-sales-tbody').innerHTML = '<tr><td colspan="11">Cargando pagos…</td></tr>';
+      try {
+        const ventas = await fetchVentasRango(dia, dia);
+        if (request !== pagosDiaRequest) return;
+        pagosDiaData = ventas;
+        filtrarTablaReporte();
+      } catch (e) {
+        if (request !== pagosDiaRequest) return;
+        document.getElementById('report-sales-tbody').innerHTML = '<tr><td colspan="11">No se pudieron cargar los pagos. Vuelve a seleccionar la fecha.</td></tr>';
+      }
     }
 
     function filtrarTablaReporte() {
@@ -20962,7 +20999,7 @@
       const dia = $id('report-sales-day')?.value || '';
       const orden = $id('report-sales-order')?.value || 'desc';
 
-      let ventas = reportData.slice();
+      let ventas = (dia ? (pagosDiaData || []) : reportData).slice();
 
       // Comparar normalizado: el filtro "Tarjeta" debe traer también los cobros
       // guardados como tarjeta_credito / tarjeta_debito.
@@ -20997,6 +21034,8 @@
     }
 
     function limpiarFiltrosTablaReporte() {
+      ++pagosDiaRequest;
+      pagosDiaData = null;
       const $id = (i) => document.getElementById(i);
       if ($id('report-sales-search')) $id('report-sales-search').value = '';
       if ($id('report-sales-day')) $id('report-sales-day').value = '';
@@ -21159,7 +21198,7 @@
       lista.innerHTML = '<div class="muted" style="font-size:12px;">Buscando citas…</div>';
       resumen.textContent = '';
       try {
-        const res = await apiFetch(`/api/appointments/range?from=${fecha}T00:00:00-06:00&to=${fecha}T23:59:59-06:00`);
+        const res = await apiFetch(`/api/appointments/range?from=${fecha}T00:00:00-06:00&to=${fecha}T23:59:59.999-06:00`);
         const json = await res.json();
         const citas = (json.success ? json.data || [] : [])
           .filter(a => a.status !== 'cancelled')
