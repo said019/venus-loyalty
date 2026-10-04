@@ -1,0 +1,50 @@
+name: Mexico formatter contracts
+
+on:
+  pull_request:
+    paths:
+      - 'src/utils/mexico-time.js'
+      - 'src/utils/leadTime.js'
+      - 'src/models/index.js'
+      - 'src/scheduler/cron.js'
+      - 'src/services/whatsapp-v2.js'
+      - 'tests/**'
+      - 'scripts/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/scripts/compare-mexico-formatters.py'
+      - '.github/workflows/mexico-formatters.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: candidate
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/checkout@v4
+        with:
+          path: baseline
+          ref: d70c2614974ee286da3f269148625abc38887f0e
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.10.0'
+      - name: Install identical locked dependencies
+        run: |
+          npm ci --prefix baseline --no-audit --no-fund
+          npm ci --prefix candidate --no-audit --no-fund
+      - name: Verify syntax
+        run: node --check candidate/src/utils/mexico-time.js
+      - name: Compare existing suites and exercise real callers with synthetic dependencies
+        run: python3 candidate/.github/scripts/compare-mexico-formatters.py --baseline baseline --candidate candidate --output proof
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mexico-formatter-contracts
+          path: proof
