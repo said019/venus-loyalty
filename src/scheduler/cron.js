@@ -863,7 +863,10 @@ async function checkBirthdays() {
     try {
         const now = new Date();
 
-        const cards = await prisma.card.findMany({ where: { status: 'active' } });
+        const cards = await prisma.card.findMany({
+            where: { status: 'active' },
+            select: { id: true, name: true, phone: true, birthday: true },
+        });
 
         const birthdays = [];
         for (const card of cards) {
@@ -927,7 +930,9 @@ async function checkCompletedCards() {
 // ========== STOCK BAJO ==========
 async function checkLowStock() {
     try {
-        const products = await prisma.product.findMany();
+        const products = await prisma.product.findMany({
+            select: { id: true, name: true, stock: true, minStock: true },
+        });
 
         const lowStockProducts = products.filter(p => {
             const stock = p.stock || 0;
@@ -964,7 +969,8 @@ async function checkExpiringGiftCards() {
         const in7Days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
         const expiring = await prisma.giftCard.findMany({
-            where: { status: 'pending', expiresAt: { lte: in7Days, gte: now } }
+            where: { status: 'pending', expiresAt: { lte: in7Days, gte: now } },
+            select: { id: true, code: true, serviceName: true, recipientName: true, expiresAt: true },
         });
 
         if (expiring.length > 0) {

@@ -8,10 +8,10 @@ from pathlib import Path
 import re
 import subprocess
 
-BASE_SHA = 'd70c2614974ee286da3f269148625abc38887f0e'
+BASE_SHA = '54f5fb5c86c850288e6d865ff6259556d6c3448b'
 PROTECTED = ['package.json', 'package-lock.json', 'railway.json', 'nixpacks.toml',
              'prisma/schema.prisma', 'server.js', 'src/models/index.js',
-             'src/utils/leadTime.js', 'src/scheduler/cron.js', 'src/services/whatsapp-v2.js']
+             'src/utils/leadTime.js', 'src/utils/mexico-time.js', 'src/services/whatsapp-v2.js']
 
 def summarize(raw, checkout, exit_code):
     raw = raw.replace(str(checkout.resolve()), '<repo>')
@@ -36,19 +36,24 @@ def main():
     parser.add_argument('--baseline', type=Path, required=True)
     parser.add_argument('--candidate', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--base-sha', default=BASE_SHA)
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=True)
     env = {k: os.environ[k] for k in ['PATH', 'HOME', 'TMPDIR'] if k in os.environ}
     env.update({'TZ': 'UTC', 'CI': 'true'})
     node = subprocess.check_output(['node', '--version'], env=env, text=True).strip()
     assert node == 'v24.10.0', node
-    assert subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=args.baseline, text=True).strip() == BASE_SHA
+    assert re.fullmatch(r'[0-9a-f]{40}', args.base_sha), 'Expected full base SHA'
+    assert subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=args.baseline, text=True).strip() == args.base_sha
     helper = 'src/utils/mexico-time.js'
     fixture = args.candidate/'scripts/fixtures/mexico-time.d70c2614.js'
-    assert fixture.read_bytes() == (args.baseline/helper).read_bytes(), 'Baseline fixture drift'
+    # PR13's historical fixture remains pinned even after its helper is deployed.
+    assert hashlib.sha256(fixture.read_bytes()).hexdigest() == '15ae5ddab73f6c7718386248ea4e9630cc354fa05dd2a81a9c1795070d24c1b5', 'Formatter fixture drift'
+    projection_fixture = json.loads((args.candidate/'scripts/fixtures/notification-projections.54f5fb5c.json').read_text())
+    assert hashlib.sha256((args.baseline/'src/scheduler/cron.js').read_bytes()).hexdigest() == projection_fixture['wholeSourceSHA256'], 'Scheduler base drift'
     for path in PROTECTED:
         assert (args.baseline/path).read_bytes() == (args.candidate/path).read_bytes(), 'Unexpected production change: '+path
-    report = {'node': node, 'baseSHA': BASE_SHA, 'scope': 'Identical full tests/**/*.test.js selection plus existing synthetic scheduler contracts; no live integrations.',
+    report = {'node': node, 'baseSHA': args.base_sha, 'scope': 'Identical full tests/**/*.test.js selection, existing scheduler contracts and differential formatter/projection contracts; no live integrations.',
               'protectedFiles': PROTECTED, 'baselineHelperSHA256': hashlib.sha256(fixture.read_bytes()).hexdigest(), 'versions': {}}
     for label, checkout in [('baseline', args.baseline), ('candidate', args.candidate)]:
         files = sorted(str(p.relative_to(checkout)) for p in checkout.glob('tests/**/*.test.js'))
@@ -76,12 +81,19 @@ def main():
     report['formatterContracts'] = summarize(new.stdout, args.candidate, new.returncode)
     if report['formatterContracts']['counts'] != {'tests':9,'pass':9,'fail':0,'cancelled':0,'skipped':0,'todo':0}:
         errors.append('Nine formatter/caller contracts must pass without skips')
+    projection = subprocess.run(['node', '--experimental-vm-modules', '--test', '--test-reporter=tap', 'scripts/cron-notification-projections.test.mjs'],
+                                cwd=args.candidate, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, timeout=60)
+    (args.output/'projection-contracts.tap').write_text(projection.stdout)
+    report['projectionContracts'] = summarize(projection.stdout, args.candidate, projection.returncode)
+    if report['projectionContracts']['counts'] != {'tests':8,'pass':8,'fail':0,'cancelled':0,'skipped':0,'todo':0}:
+        errors.append('Eight projection contracts must pass without skips')
     report['errors'] = errors
     report['status'] = 'FAIL' if errors else 'PASS_NO_NEW_FAILURES'
     (args.output/'comparison.json').write_text(json.dumps(report, ensure_ascii=False, indent=2)+'\n')
     print(json.dumps({'node': node, 'status': report['status'], 'errors': errors,
                       'counts': {k:v['counts'] for k,v in report['versions'].items()},
-                      'formatterContracts': report['formatterContracts']['counts']}, indent=2))
+                      'formatterContracts': report['formatterContracts']['counts'],
+                      'projectionContracts': report['projectionContracts']['counts']}, indent=2))
     if errors: raise SystemExit(1)
 
 if __name__ == '__main__':
