@@ -1,4 +1,4 @@
-name: Mexico formatter contracts
+name: Venus offline runtime contracts
 
 on:
   pull_request:
@@ -23,6 +23,8 @@ jobs:
   contracts:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      BASE_SHA: ${{ github.event.pull_request.base.sha || '54f5fb5c86c850288e6d865ff6259556d6c3448b' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -31,7 +33,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           path: baseline
-          ref: d70c2614974ee286da3f269148625abc38887f0e
+          ref: ${{ github.event.pull_request.base.sha || '54f5fb5c86c850288e6d865ff6259556d6c3448b' }}
       - uses: actions/setup-node@v4
         with:
           node-version: '24.10.0'
@@ -40,9 +42,11 @@ jobs:
           npm ci --prefix baseline --no-audit --no-fund
           npm ci --prefix candidate --no-audit --no-fund
       - name: Verify syntax
-        run: node --check candidate/src/utils/mexico-time.js
+        run: |
+          node --check candidate/src/utils/mexico-time.js
+          node --check candidate/src/scheduler/cron.js
       - name: Compare existing suites and exercise real callers with synthetic dependencies
-        run: python3 candidate/.github/scripts/compare-mexico-formatters.py --baseline baseline --candidate candidate --output proof
+        run: python3 candidate/.github/scripts/compare-mexico-formatters.py --baseline baseline --candidate candidate --output proof --base-sha "$BASE_SHA"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
