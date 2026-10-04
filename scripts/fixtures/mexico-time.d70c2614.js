@@ -2,13 +2,6 @@
 // Evitar errores por timezone del servidor (Render, UTC)
 const TIMEZONE = 'America/Mexico_City';
 
-// Four fixed configurations, initialized only when their existing path needs them.
-// Cache formatters, never dates or offsets; each call still formats its own input.
-let legibleFormatter;
-let horaFormatter;
-let dateFormatter;
-let todayFormatter;
-
 function formatearFechaLegible(fecha) {
     // Devuelve algo como: "27 de febrero"
     if (!fecha) return '';
@@ -22,7 +15,7 @@ function formatearFechaLegible(fecha) {
     }
 
     const opts = { day: 'numeric', month: 'long', timeZone: TIMEZONE };
-    const parts = (legibleFormatter ??= new Intl.DateTimeFormat('es-MX', opts)).formatToParts(dt);
+    const parts = new Intl.DateTimeFormat('es-MX', opts).formatToParts(dt);
     const day = parts.find(p => p.type === 'day')?.value || dt.getDate();
     const month = parts.find(p => p.type === 'month')?.value || '';
     return `${day} de ${month}`;
@@ -39,7 +32,7 @@ function formatearHora(dateTimeStr) {
     const dt = (dateTimeStr instanceof Date) ? dateTimeStr : new Date(dateTimeStr);
     // Usar formato 24h sin AM/PM
     const opts = { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: TIMEZONE };
-    return (horaFormatter ??= new Intl.DateTimeFormat('es-MX', opts)).format(dt);
+    return new Intl.DateTimeFormat('es-MX', opts).format(dt);
 }
 
 function extractDateAndTime(isoString) {
@@ -48,7 +41,7 @@ function extractDateAndTime(isoString) {
     const dt = (isoString instanceof Date) ? isoString : new Date(isoString);
 
     const dateOpts = { year: 'numeric', month: '2-digit', day: '2-digit', timeZone: TIMEZONE };
-    const dateParts = (dateFormatter ??= new Intl.DateTimeFormat('en-CA', dateOpts)).format(dt); // en-CA -> YYYY-MM-DD
+    const dateParts = new Intl.DateTimeFormat('en-CA', dateOpts).format(dt); // en-CA -> YYYY-MM-DD
 
     const time = formatearHora(dt);
     return { date: dateParts, time };
@@ -69,7 +62,7 @@ function toMexicoISO(date) {
 
 // Devuelve la fecha de hoy en México como 'YYYY-MM-DD'
 function todayMexicoStr() {
-    return (todayFormatter ??= new Intl.DateTimeFormat('en-CA', { timeZone: TIMEZONE })).format(new Date());
+    return new Intl.DateTimeFormat('en-CA', { timeZone: TIMEZONE }).format(new Date());
 }
 
 // Partes individuales de la fecha actual en México
