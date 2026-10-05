@@ -2112,6 +2112,21 @@
         </div>
       </div>
 
+      <section id="card-settlements" class="card cs-panel" aria-labelledby="cs-title">
+        <div class="cs-heading"><div><h3 id="cs-title">Depósitos de tarjeta</h3><p>Cobrar con tarjeta no significa que el dinero ya esté en tu cuenta. Comisión del 5%; depósito estimado al siguiente día hábil, cerca del mediodía. Viernes, sábado y domingo se agrupan el lunes.</p></div></div>
+        <div class="cs-controls">
+          <label>Cobros desde<input type="date" id="cs-from" class="form-input"></label>
+          <label>Hasta<input type="date" id="cs-to" class="form-input"></label>
+          <button type="button" id="cs-refresh" class="btn ghost">Actualizar</button>
+          <button type="button" id="cs-90" class="btn ghost">Últimos 90 días</button>
+          <label>Mostrar<select id="cs-status" class="form-input"><option value="pending">Pendientes</option><option value="received">Recibidos</option><option value="all">Todos</option></select></label>
+        </div>
+        <div class="cs-metrics"><div><span>Neto pendiente de confirmar</span><strong id="cs-pending">—</strong></div><div><span>Recibido confirmado</span><strong id="cs-received">—</strong></div><div><span>Comisión del período · 5%</span><strong id="cs-fees">—</strong></div></div>
+        <p id="cs-gross" class="cs-gross"></p>
+        <p class="cs-help">Confirma cada depósito después de verlo en tu banco. La fecha es estimada; los días festivos pueden cambiarla. Los cobros antiguos empiezan sin confirmar. Estas cifras corresponden al rango elegido.</p>
+        <p id="cs-notice" class="cs-notice" role="status" hidden></p><div id="cs-list" aria-live="polite"></div>
+      </section>
+
       <!-- Filtro de forma de pago (aplica a la tabla "Detalle de Ventas") -->
       <!-- NOTA: aquí vivía el esqueleto roto de una tabla vieja (table/thead
            sin cerrar) que por foster-parenting metía las tarjetas de
@@ -3391,7 +3406,7 @@
         <!-- Método de pago -->
         <div class="form-row" style="margin-top:16px;margin-bottom:0;">
           <label for="payment-method">Método de Pago <span style="color:#ef4444;">*</span></label>
-          <select id="payment-method" class="form-input">
+          <select id="payment-method" class="form-input" onchange="calculateTotals()">
             <option value="efectivo">Efectivo</option>
             <option value="tarjeta_credito">Tarjeta de crédito</option>
             <option value="tarjeta_debito">Tarjeta de débito</option>
@@ -3399,6 +3414,7 @@
           </select>
         </div>
 
+        <div id="payment-card-preview" class="cs-preview" hidden aria-live="polite"></div>
         <!-- Campos ocultos -->
         <input type="hidden" id="payment-appointment-id">
         <input type="hidden" id="payment-original-price">
@@ -15198,6 +15214,7 @@
       }
 
       const grandTotal = Math.max(0, subtotal - discountAmount);
+      window.cardSettlements?.preview('payment-card-preview', [{amount:grandTotal,method:document.getElementById('payment-method')?.value}]);
 
       document.getElementById('total-service').textContent = '$' + servicePrice.toLocaleString();
       document.getElementById('total-products').textContent = '$' + productsTotal.toLocaleString();
@@ -19545,7 +19562,7 @@
                       </div>
                       <div>
                         <label for="cobro-nuevo-apartado-metodo" style="display:block;font-size:12px;color:#888;margin-bottom:6px;">Método</label>
-                        <select id="cobro-nuevo-apartado-metodo" class="cobro-input">
+                        <select id="cobro-nuevo-apartado-metodo" class="cobro-input" onchange="actualizarTotalCobro()">
                           <option value="">Igual que el cobro</option>
                           <option value="efectivo">Efectivo</option>
                           <option value="tarjeta">Tarjeta</option>
@@ -19607,11 +19624,12 @@
                   <label for="cobrar-metodo" style="display:block;font-size:12px;color:#888;margin-bottom:8px;">
                     Método de Pago <span class="req-mark" aria-hidden="true">*</span>
                   </label>
-                  <select id="cobrar-metodo" class="cobro-input">
+                  <select id="cobrar-metodo" class="cobro-input" onchange="actualizarTotalCobro()">
                     <option value="efectivo">Efectivo</option>
                     <option value="tarjeta">Tarjeta</option>
                     <option value="transferencia">Transferencia</option>
                   </select>
+                  <div id="cobro-card-preview" class="cs-preview" hidden aria-live="polite"></div>
                 </div>
               </div>
 
@@ -19973,6 +19991,11 @@
       // (esa se guarda con su total), pero sí del dinero que entra ahora.
       const nuevoApartado = leerNuevoApartado();
       const aCobrarHoy = total + nuevoApartado;
+      const cardMethod = document.getElementById('cobrar-metodo')?.value;
+      window.cardSettlements?.preview('cobro-card-preview', [
+        {amount: total, method: cardMethod},
+        {amount: nuevoApartado, method: document.getElementById('cobro-nuevo-apartado-metodo')?.value || cardMethod}
+      ]);
       const elResNuevo = document.getElementById('resumen-nuevo-apartado');
       if (elResNuevo) {
         elResNuevo.style.display = nuevoApartado > 0 ? 'block' : 'none';
@@ -20641,6 +20664,7 @@
         const lastDayStr = `${year}-${String(month).padStart(2, '0')}-${lastDay}`;
 
         console.log('[REPORTS] Cargando mes:', firstDay, 'a', lastDayStr);
+        window.cardSettlements?.load(firstDay, lastDayStr);
 
         // Un solo viaje: ventas y gastos en paralelo (el servidor vive en
         // Europa; encadenarlos costaba ~400ms extra por eslabón). Los mismos
@@ -21121,6 +21145,7 @@
       try {
         document.getElementById('report-current-month').textContent = 'Rango personalizado';
         console.log('[REPORTS] Cargando rango:', from, 'a', to);
+        window.cardSettlements?.load(from, to);
 
         const ventas = await fetchVentasRango(from, to);
         reportData = ventas;
@@ -22656,6 +22681,8 @@
   <link rel="stylesheet" href="/css/appointment-search.css">
   <link rel="stylesheet" href="/css/venus-calendar.css">
   <script src="/js/admin/appointment-search.js"></script>
+  <link rel="stylesheet" href="/css/card-settlements.css">
+  <script type="module" src="/js/card-settlements.js"></script>
 </body>
 
 </html>
