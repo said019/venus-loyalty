@@ -55,3 +55,16 @@ test('validates date bounds and duplicate requests',async()=>{
  await assert.rejects(updateCardSettlements(f.db,{from,to,action:'confirm',payments:[row,row]},'owner'));
  assert.equal(f.store.size,0);
 });
+
+test('direct coffee ticket exposes item details and discount without changing settlement amount',async()=>{
+ const f=fixture();f.sales.splice(0,f.sales.length,{id:'coffee-direct',clientName:'Venta directa',totalAmount:142,discountAmount:8,paymentMethod:'tarjeta_credito',date:new Date('2026-10-03T21:53:08.269Z'),productsSold:[{productId:'coffee:a',name:'Costa Violeta',qty:1,price:92,subtotal:92},{productId:'coffee:b',name:'Tisana de frutos rojos Frío',qty:1,price:58,subtotal:58}]});
+ const row=(await listCardSettlements(f.db,from,to)).find(r=>r.key==='sale:coffee-direct');
+ assert.equal(row.concept,'Venta de cafetería');assert.equal(row.items.length,2);
+ assert.equal(row.items[0].name,'Costa Violeta');assert.equal(row.items[1].unitPriceCents,5800);
+ assert.equal(row.discountCents,800);assert.equal(row.grossCents,14200);assert.equal(row.feeCents,710);assert.equal(row.netCents,13490);
+});
+test('legacy products remain visible when productsSold is empty',async()=>{
+ const f=fixture();f.sales[0].productsSold=[];f.sales[0].products=[{name:'Crema',quantity:2,unitPrice:325}];
+ const row=(await listCardSettlements(f.db,from,to)).find(r=>r.key==='sale:s1');
+ assert.equal(row.items[0].quantity,2);assert.equal(row.items[0].totalCents,65000);
+});

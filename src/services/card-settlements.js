@@ -6,22 +6,43 @@ export function validateRange(from, to) {
   if (!valid(from) || !valid(to) || from > to || (Date.parse(to) - Date.parse(from)) / 86400000 > 366) throw error('Elige un rango válido de hasta un año.');
   return { gte: new Date(`${from}T00:00:00-06:00`), lte: new Date(`${to}T23:59:59.999-06:00`) };
 }
+export function paymentItems(value) {
+  if (!Array.isArray(value)) return [];
+  const cents = v => v == null || !Number.isFinite(Number(v)) ? null : Math.round(Number(v) * 100);
+  return value.filter(p => p && typeof p === 'object').map(p => {
+    const quantity = Number(p.qty ?? p.quantity ?? p.cantidad ?? 1);
+    const unitPriceCents = cents(p.price ?? p.unitPrice ?? p.precio);
+    const qty = Number.isFinite(quantity) && quantity > 0 ? quantity : 1;
+    const storedTotal = cents(p.subtotal ?? p.total);
+    return { name: String(p.name || p.productName || p.nombre || 'Artículo sin nombre'), quantity: qty,
+      unitPriceCents, totalCents: storedTotal ?? (unitPriceCents == null ? null : Math.round(unitPriceCents * qty)),
+      note: typeof p.notes === 'string' ? p.notes : null };
+  });
+}
+function saleDetails(s) {
+  const raw = Array.isArray(s.productsSold) && s.productsSold.length ? s.productsSold : s.products;
+  const items = paymentItems(raw);
+  const onlyCoffee = Array.isArray(raw) && raw.length && raw.every(p => String(p?.productId || '').startsWith('coffee:'));
+  return { items, concept: s.serviceName || (onlyCoffee ? 'Venta de cafetería' : items.length ? 'Venta de productos' : 'Venta directa'),
+    discountCents: Math.round(Number(s.discountAmount ?? s.discount ?? 0) * 100),
+    serviceCents: s.serviceAmount == null ? null : Math.round(Number(s.serviceAmount) * 100) };
+}
 export async function listCardSettlements(db, from, to, now = new Date()) {
   const range = validateRange(from, to);
   const [sales, coffee, appointments] = await Promise.all([
-    db.sale.findMany({ where: { date: range }, select: { id:true, appointmentId:true, clientName:true, serviceName:true, totalAmount:true, total:true, paymentMethod:true, date:true } }),
-    db.coffeeSale.findMany({ where: { createdAt:range, status: { not: 'cancelled' } }, select: { id:true, folio:true, total:true, paymentMethod:true, createdAt:true } }),
-    db.appointment.findMany({ where: { startDateTime:range, status:'completed', paymentMethod: { not:null } }, select: { id:true, clientName:true, serviceName:true, totalPaid:true, paymentMethod:true, startDateTime:true } })
+    db.sale.findMany({ where: { date: range }, select: { id:true, appointmentId:true, clientName:true, serviceName:true, totalAmount:true, total:true, paymentMethod:true, date:true, productsSold:true, products:true, discountAmount:true, discount:true, serviceAmount:true } }),
+    db.coffeeSale.findMany({ where: { createdAt:range, status: { not: 'cancelled' } }, select: { id:true, folio:true, total:true, paymentMethod:true, createdAt:true, discount:true, items:{select:{productName:true,qty:true,unitPrice:true,discount:true,notes:true}} } }),
+    db.appointment.findMany({ where: { startDateTime:range, status:'completed', paymentMethod: { not:null } }, select: { id:true, clientName:true, serviceName:true, totalPaid:true, paymentMethod:true, startDateTime:true, productsSold:true } })
   ]);
   // Sale is the payment ledger. Only use appointments when no Sale exists,
   // including when that Sale belongs to a different date range.
   const linked = appointments.length ? await db.sale.findMany({ where: { appointmentId:{in:appointments.map(a=>a.id)} }, select:{appointmentId:true} }) : [];
   const linkedIds = new Set(linked.map(s=>s.appointmentId));
   const rows = [
-    ...sales.map(s=>({ key:`sale:${s.id}`, label:s.clientName || 'Venta', concept:s.serviceName || 'Venta directa', amount:s.totalAmount ?? s.total, method:s.paymentMethod, paidAt:s.date })),
-    ...coffee.map(s=>({ key:`coffee:${s.id}`, label:s.folio, concept:'Venus The Coffee Bar', amount:s.total, method:s.paymentMethod, paidAt:s.createdAt })),
-    ...appointments.filter(a=>!linkedIds.has(a.id)).map(a=>({ key:`appointment:${a.id}`, label:a.clientName, concept:a.serviceName, amount:a.totalPaid, method:a.paymentMethod, paidAt:a.startDateTime, estimatedPaymentDate:true }))
-  ].filter(r=>isCard(r.method) && Number(r.amount)>0).map(r=>({ key:r.key, label:r.label, concept:r.concept,
+    ...sales.map(s=>({ key:`sale:${s.id}`, label:s.clientName || 'Venta', ...saleDetails(s), amount:s.totalAmount ?? s.total, method:s.paymentMethod, paidAt:s.date })),
+    ...coffee.map(s=>({ key:`coffee:${s.id}`, label:s.folio, concept:'Venus The Coffee Bar', items:paymentItems((s.items || []).map(p=>({...p,subtotal:Number(p.unitPrice)*p.qty-Number(p.discount||0)}))), discountCents:Math.round(Number(s.discount||0)*100), amount:s.total, method:s.paymentMethod, paidAt:s.createdAt })),
+    ...appointments.filter(a=>!linkedIds.has(a.id)).map(a=>({ key:`appointment:${a.id}`, label:a.clientName, concept:a.serviceName, items:paymentItems(a.productsSold), amount:a.totalPaid, method:a.paymentMethod, paidAt:a.startDateTime, estimatedPaymentDate:true }))
+  ].filter(r=>isCard(r.method) && Number(r.amount)>0).map(r=>({ key:r.key, label:r.label, concept:r.concept, items:r.items, discountCents:r.discountCents || 0, serviceCents:r.serviceCents ?? null, method:r.method,
     paidAt:new Date(r.paidAt).toISOString(), estimatedPaymentDate:!!r.estimatedPaymentDate,
     ...cardAmounts(r.amount), ...expectedSettlement(r.paidAt) }));
   const settings = rows.length ? await db.setting.findMany({ where:{key:{in:rows.map(r=>prefix+r.key)}} }) : [];
