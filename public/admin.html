@@ -18882,7 +18882,7 @@
         <div class="caja-pendiente-row">
           <div style="flex:1;min-width:0;">
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
-              <span style="font-weight:600;font-size:14px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${cita.clientName || 'Cliente'}</span>
+              <button type="button" class="caja-client-profile" title="Ver ficha de la clienta" style="font:inherit;font-weight:600;font-size:14px;color:var(--olive, #596329);background:transparent;border:0;padding:6px 0;cursor:pointer;text-align:left;text-decoration:underline;text-underline-offset:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(cita.clientName || 'Cliente')}</button>
               ${statusBadge}
             </div>
             <div style="font-size:12px;color:var(--muted);">${cita.serviceName || 'Servicio'} &middot; <strong>${fechaCita}</strong> ${cita.time || '--:--'}</div>
@@ -18897,6 +18897,44 @@
           </div>
         </div>
       `}).join('');
+      container.querySelectorAll('.caja-client-profile').forEach((button, index) => {
+        button.addEventListener('click', () => abrirPerfilDesdeCaja(citas[index], button));
+      });
+    }
+
+    async function abrirPerfilDesdeCaja(cita, button) {
+      if (button.disabled) return;
+      button.disabled = true;
+      button.setAttribute('aria-busy', 'true');
+      try {
+        // Usar la identidad de la cita, nunca buscar por nombre.
+        let cardId = cita.cardId;
+        if (!cardId && cita.clientPhone) {
+          const response = await apiFetch('/api/credits/lookup?phone=' + encodeURIComponent(cita.clientPhone));
+          if (!response.ok) throw new Error('lookup_failed');
+          const result = await response.json();
+          if (!result.success) throw new Error('lookup_failed');
+          cardId = result.data?.cardId;
+        }
+        if (!cardId) {
+          showNotification('Esta clienta no tiene una ficha vinculada. Revisa su registro en Clientas.', 'warning');
+          return;
+        }
+        const response = await apiFetch('/api/card/' + encodeURIComponent(cardId));
+        if (!response.ok) throw new Error('card_failed');
+        const result = await response.json();
+        if (!result.success || !result.data?.id) throw new Error('card_not_found');
+        const card = result.data;
+        cardsCache[card.id] = card;
+        window.cardsCache[card.id] = card;
+        await openCardModal(card);
+      } catch (error) {
+        console.error('[Caja] Error al abrir ficha:', error);
+        showNotification('No se pudo abrir la ficha de la clienta. Intenta de nuevo.', 'error');
+      } finally {
+        button.disabled = false;
+        button.removeAttribute('aria-busy');
+      }
     }
 
     async function descartarPendienteCaja(citaId, clientName) {
