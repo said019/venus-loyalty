@@ -12,6 +12,7 @@ test('uses sale payment date and amount, excludes payments outside range, preser
   const rows = await paymentAppointments(db, '2026-09-20T00:00:00-06:00', '2026-09-20T23:59:59.999-06:00');
   assert.deepEqual(rows.map(r => r.id), ['sale','legacy']);
   assert.equal(rows[0].paidAt, sale.date);
+  assert.equal(rows[0].appointmentId, 'a');
   assert.equal(rows[0].totalPaid, '200');
   assert.equal(query.where.date.lte.toISOString(), '2026-09-21T05:59:59.999Z');
 });

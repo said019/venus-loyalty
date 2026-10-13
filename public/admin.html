@@ -18688,8 +18688,10 @@
         const primerDiaMes = `${year}-${month}-01`;
         const hoy = getFechaMexico(); // Hasta hoy, no futuras
 
-        // Cargar citas del día seleccionado (para historial de cobros)
-        const resCitasDia = await apiFetch(`/api/appointments?date=${fecha}`);
+        // Caja registra el día del cobro, aunque la cita fuera de otro día.
+        const fromPago = encodeURIComponent(`${fecha}T00:00:00-06:00`);
+        const toPago = encodeURIComponent(`${fecha}T23:59:59.999-06:00`);
+        const resCitasDia = await apiFetch(`/api/appointments/range?from=${fromPago}&to=${toPago}&dateField=payment`);
         const jsonCitasDia = await resCitasDia.json();
         
         // Cargar citas desde inicio del mes hasta HOY (para pendientes de cobro)
@@ -18735,12 +18737,12 @@
 
             transacciones.push({
               tipo: 'cita',
-              hora: cita.time || '--:--',
+              hora: cita.paidAt ? new Date(cita.paidAt).toLocaleTimeString('es-MX', { timeZone: 'America/Mexico_City', hour: '2-digit', minute: '2-digit', hour12: false }) : (cita.time || '--:--'),
               cliente: cita.clientName || 'Cliente',
               concepto: (cita.serviceName || 'Servicio') + (apartadoCita > 0 ? ` · $${apartadoCita.toLocaleString('es-MX')} de apartado` : ''),
               monto: monto,
               metodo: metodo,
-              id: cita.id
+              id: cita.appointmentId || cita.id
             });
           }
         });
