@@ -4498,9 +4498,19 @@ app.get('/api/public/card/:id', async (req, res) => {
         }
 
         // Google Wallet de masajes
-        if (card.massageActive && !card.massageWalletUrl) {
+        // Renovar también enlaces antiguos que se emitieron como lealtad normal.
+        let massagePassNeedsRefresh = !card.massageWalletUrl;
+        if (card.massageWalletUrl) {
+          try {
+            const token = card.massageWalletUrl.split('/').pop();
+            const saved = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString());
+            massagePassNeedsRefresh = saved.payload?.loyaltyObjects?.[0]?.loyaltyPoints?.label !== 'SESIONES DE MASAJE';
+          } catch { massagePassNeedsRefresh = true; }
+        }
+        if (card.massageActive && massagePassNeedsRefresh) {
           const massageCardId = `${card.id}-massage`;
-          await updateLoyaltyObject(massageCardId, card.name, card.massageStamps || 0, card.massageMax || 10, 'massage');
+          const massageUpdate = await updateLoyaltyObject(massageCardId, card.name, card.massageStamps || 0, card.massageMax || 10, 'massage');
+          if (card.massageWalletUrl && !massageUpdate.success) throw new Error('No se pudo actualizar el pase de masajes');
           const url = buildGoogleSaveUrl({ cardId: massageCardId, name: card.name, stamps: card.massageStamps || 0, max: card.massageMax || 10, cardType: 'massage' });
           await prisma.card.update({ where: { id: card.id }, data: { massageWalletUrl: url } });
           card.massageWalletUrl = url;

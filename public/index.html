@@ -2644,6 +2644,28 @@
       #view-card .space-y-6 > * + * { margin-top: 16px !important; }
       #view-card main .mb-6 { margin-bottom: 14px !important; }
     }
+
+    /* Masajes tiene su propia identidad; no hereda los sellos de lealtad. */
+    #massage-block .massage-card { background:#f6e8dd; color:#573c30; border:1px solid #d7b39a; border-top:5px solid #a96b49; border-radius:20px; padding:28px; }
+    #massage-block .massage-heading { display:flex; justify-content:space-between; align-items:start; gap:16px; }
+    #massage-block .massage-eyebrow { margin:0 0 8px; color:#80563f; font-size:10px; font-weight:800; letter-spacing:0.18em; }
+    #massage-block h3 { font-family:Prata,serif; font-size:clamp(21px,2.3vw,27px); line-height:1.4; margin:0; color:#573c30; }
+    #massage-block .massage-tag { padding:6px 9px; border:1px solid #c89979; border-radius:6px; font-size:10px; font-weight:800; letter-spacing:0.08em; }
+    #massage-block .massage-description { font-size:13px; line-height:1.7; margin:12px 0 24px; color:#765440; max-width:420px; }
+    #massage-block .massage-stamps { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:12px; max-width:420px; margin:0 auto 20px; }
+    #massage-block .massage-stamp { aspect-ratio:1; border-radius:50%; border:1px solid #caa78e; display:flex; align-items:center; justify-content:center; color:#86654f; font-size:18px; font-weight:600; background:#fff9f3; }
+    #massage-block .massage-stamp.is-complete { background:#9d6243; border-color:#9d6243; color:#fff9f3; font-size:25px; }
+    #massage-block .massage-progress { margin:0; font-size:14px; font-weight:700; text-align:center; color:#68452f; }
+    #massage-block .massage-wallet-section { border-top:1px solid #d7b39a; margin-top:24px; padding-top:20px; }
+    #massage-block .massage-wallet-title { font-size:14px; font-weight:700; margin:0 0 12px; }
+    #massage-block .massage-wallet-actions { display:flex; flex-wrap:wrap; gap:10px; }
+    #massage-block a.massage-wallet-button { display:inline-flex; justify-content:center; align-items:center; min-height:48px; flex:1 1 180px; background:#332820; color:#fff9f3; border:1px solid #332820; border-radius:10px; padding:12px 14px; font-size:13px; font-weight:700; text-decoration:none; transition:transform 160ms ease-out; }
+    #massage-block a.massage-wallet-button:focus-visible { outline:3px solid #a96b49; outline-offset:4px; }
+    #massage-block a.massage-wallet-button:active { transform:scale(.97); }
+    #massage-block .massage-wallet-status { font-size:11px; line-height:1.6; color:#765440; margin:12px 0 0; }
+    @media(max-width:480px) { #massage-block .massage-card { padding:20px; } #massage-block .massage-tag { display:none; } #massage-block .massage-stamps { gap:8px; } }
+    @media(prefers-reduced-motion:reduce) { #massage-block a.massage-wallet-button { transition:none; } #massage-block a.massage-wallet-button:active { transform:none; } }
+
 </style>
 </head>
 <body class="font-inter bg-venus-forest min-h-screen">
@@ -3265,22 +3287,20 @@
 
           <!-- Membresía de masajes: su segunda tarjeta, solo si la tiene activa. -->
           <div class="animate-fade-in-up" id="massage-block" style="animation-delay: 0.11s; display:none;">
-            <div class="info-card">
-              <h3 class="text-venus-cream font-playfair text-lg font-semibold mb-3 flex items-center gap-2">
-                <svg class="w-5 h-5 text-venus-olive" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
-                </svg>
-                Tu membresía de masajes
-              </h3>
-              <div id="massage-grid" class="stamps-grid" style="margin-bottom:10px;"></div>
-              <div class="flex items-center justify-between gap-2">
-                <div class="text-venus-cream/70 text-sm" id="massage-info"></div>
-                <div class="flex gap-2">
-                  <a id="massage-gwallet" href="#" target="_blank" rel="noopener" class="text-venus-olive text-sm hover:underline" style="display:none;">Google Wallet</a>
-                  <a id="massage-applewallet" href="#" class="text-venus-olive text-sm hover:underline" style="display:none;">Apple Wallet</a>
+            <section class="massage-card" aria-labelledby="massage-title">
+              <div class="massage-heading"><div><p class="massage-eyebrow">VENUS · BIENESTAR</p><h3 id="massage-title">Tu membresía de masajes</h3></div><span class="massage-tag">MASAJES</span></div>
+              <p class="massage-description">Un espacio para ti. Tus sesiones de masaje, en una tarjeta independiente.</p>
+              <div id="massage-grid" class="massage-stamps" aria-label="Sesiones de masaje"></div>
+              <p id="massage-info" class="massage-progress" aria-live="polite"></p>
+              <div class="massage-wallet-section">
+                <p class="massage-wallet-title">Lleva tu tarjeta de masajes contigo</p>
+                <div class="massage-wallet-actions">
+                  <a id="massage-gwallet" target="_blank" rel="noopener" class="massage-wallet-button" style="display:none;">Agregar a Google Wallet</a>
+                  <a id="massage-applewallet" class="massage-wallet-button" style="display:none;">Agregar a Apple Wallet</a>
                 </div>
+                <p id="massage-wallet-status" class="massage-wallet-status" role="status"></p>
               </div>
-            </div>
+            </section>
           </div>
 
           <!-- Tus paquetes: sesiones que ya pagó y le faltan por usar. Oculto
@@ -3640,18 +3660,22 @@
       if (!block || !grid || !info) return;
       if (!data || !data.massageActive) { block.style.display = 'none'; return; }
       const total = Number(data.massageMax) || 10;
-      const usados = Math.min(total, Number(data.massageStamps) || 0);
+      const usados = Math.max(0, Math.min(total, Number(data.massageStamps) || 0));
       grid.innerHTML = '';
       for (let i = 1; i <= total; i++) {
         const div = document.createElement('div');
-        div.className = i <= usados ? 'stamp active' : 'stamp inactive';
-        if (i <= usados) { const img = document.createElement('img'); img.src = '/assets/stamp.png'; img.alt = `Masaje ${i}`; div.appendChild(img); }
+        div.className = i <= usados ? 'massage-stamp is-complete' : 'massage-stamp';
+        div.textContent = i <= usados ? '✓' : String(i);
+        div.setAttribute('aria-label', `Sesión ${i}: ${i <= usados ? 'completada' : 'pendiente'}`);
         grid.appendChild(div);
       }
-      info.textContent = usados >= total ? `${usados} de ${total} · ¡tu siguiente masaje es gratis!` : `${usados} de ${total} · te faltan ${total - usados}`;
+      info.textContent = usados >= total ? `${usados} de ${total} sesiones · ¡Membresía completada!` : `${usados} de ${total} sesiones · te faltan ${total - usados}`;
       const g = document.getElementById('massage-gwallet'), ap = document.getElementById('massage-applewallet');
-      if (g) { if (data.massageWalletUrl) { g.href = data.massageWalletUrl; g.style.display = ''; } else g.style.display = 'none'; }
-      if (ap) { ap.href = `/api/public/card/${encodeURIComponent(cardId)}/massage.pkpass`; ap.style.display = ''; }
+      const googleUrl = data.massageWalletUrl || data.massageGoogleWalletUrl;
+      if (g) { g.removeAttribute('href'); g.style.display = 'none'; if (googleUrl && /^https:\/\//i.test(googleUrl)) { g.href = googleUrl; g.style.display = ''; } }
+      if (ap) { ap.href = `/api/public/card/${encodeURIComponent(cardId)}/massage.pkpass`; ap.style.display = data.applePassAvailable === false ? 'none' : ''; }
+      const status = document.getElementById('massage-wallet-status');
+      if (status) status.textContent = !googleUrl ? 'Google Wallet no está disponible por el momento. Intenta recargar la página.' : (data.applePassAvailable === false ? 'Apple Wallet no está disponible por el momento.' : 'Guarda esta membresía por separado de tu tarjeta de lealtad.');
       block.style.display = '';
     }
 
