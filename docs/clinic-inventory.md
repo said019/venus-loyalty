@@ -33,3 +33,8 @@ Las asignaciones se registran con usuario, destino y cantidad. Un descuento cond
 Instalar primero `prisma/migrations/20261020010000_purchase_invoices/migration.sql` y generar Prisma. La factura importada conserva sus totales originales; esta función no registra gastos contables ni ingresos automáticamente.
 
 Pruebas: `CLINIC_TEST_DATABASE_URL=postgresql://...@127.0.0.1:55439/postgres node --test tests/purchase-invoices.integration.test.js`. Navegador: `CLINIC_TEST_DATABASE_URL=... PLAYWRIGHT_MODULE=... node tests/purchase-invoices.browser.mjs`.
+
+### Costos y descuento de compra
+En Facturas → Costo y precio al público se guarda el precio del proveedor por pieza antes del descuento (con IVA), una nota de compra y el precio al público propuesto. El costo pagado se conserva desde el total de la línea de factura dividido entre sus piezas. El descuento se calcula contra ese costo, y la diferencia de venta se muestra antes de otros gastos. Los campos propuestos pueden dejarse pendientes. El precio propuesto se precarga al crear un producto nuevo durante la asignación; un producto existente conserva su precio y se edita desde Venta (unidades).
+
+La migración aditiva `20261020020000_purchase_prices` añade estos datos opcionales sin modificar existencias, importes fiscales ni asignaciones. El ticket 5294 de la compra en expo corresponde a las mismas 20 piezas de la factura 809: importes con IVA $7,620 antes del descuento, $3,233 de descuento y $4,387 pagados. No se debe importar como una segunda compra.

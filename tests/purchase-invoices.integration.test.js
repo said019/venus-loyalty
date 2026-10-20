@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
-import {allocatePurchase} from '../src/services/purchaseInvoices.js';
+import {allocatePurchase,savePurchasePrices} from '../src/services/purchaseInvoices.js';
 const database=process.env.CLINIC_TEST_DATABASE_URL;
 test('invoice allocation is manual, precise and atomic',{skip:!database},async t=>{
  assert(['127.0.0.1','localhost'].includes(new URL(database).hostname));process.env.DATABASE_URL=database;
@@ -10,6 +10,14 @@ test('invoice allocation is manual, precise and atomic',{skip:!database},async t
  const invoice=await db.purchaseInvoice.create({data:{id,number:'TEST',supplier:'Test supplier',issuedOn:'2026-10-20',subtotalCents:10000,discountCents:0,taxCents:1600,totalCents:11600,sourceFilename:'test.pdf',sourceHash:id,sourcePdf:Buffer.from('test'),lines:{create:{lineNumber:1,sku:'TEST',description:'Test cream in grams',quantity:3,netTotalCents:11600,volumeNote:'Confirm volume'}}},include:{lines:true}});
  const line=invoice.lines[0];
  try{
+  await t.test('pricing preserves invoice cost and stock, validates amounts and allows clearing proposals',async()=>{
+   const result=await savePurchasePrices(db,line.id,{listPrice:'100',retailPrice:'90',note:'Compra en expo'});
+   assert.equal(result.listUnitCents,10000);assert.equal(result.retailUnitCents,9000);
+   assert.equal(result.netTotalCents,11600);assert.equal(result.assignedQuantity,0);
+   for(const body of [{listPrice:'1',retailPrice:'90',note:''},{listPrice:'100',retailPrice:'-1',note:''},{listPrice:'100',retailPrice:'1.234',note:''}])await assert.rejects(()=>savePurchasePrices(db,line.id,body));
+   const cleared=await savePurchasePrices(db,line.id,{listPrice:'',retailPrice:'',note:''});
+   assert.equal(cleared.listUnitCents,null);assert.equal(cleared.retailUnitCents,null);
+  });
   await t.test('missing destination, price or ml confirmation never changes stock',async()=>{
    for(const body of [{destination:''},{destination:'sale',name:'Test cream',price:''},{destination:'clinic',name:'Test cream',bottleMl:50,volumeConfirmed:false}]){
     await assert.rejects(()=>allocatePurchase(db,line.id,{requestKey:randomUUID(),quantity:1,...body},'test'));

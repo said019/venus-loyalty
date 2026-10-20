@@ -43,3 +43,17 @@ export async function allocatePurchase(db, lineId, body, actor) {
     throw error;
   }
 }
+
+export async function savePurchasePrices(db, lineId, body) {
+  function cents(value, positive=false) {
+    if(value===null || value==='')return null;
+    if(!/^\d+(\.\d{1,2})?$/.test(String(value ?? '')) || Number(value)>1000000 || (positive && Number(value)<=0))throw inventoryError('Escribe un precio válido con máximo dos decimales.');
+    return Math.round(Number(value)*100);
+  }
+  const listUnitCents=cents(body.listPrice),retailUnitCents=cents(body.retailPrice,true);
+  if(typeof body.note!=='string' || body.note.length>500)throw inventoryError('La nota debe tener máximo 500 caracteres.');
+  const line=await db.purchaseInvoiceLine.findUnique({where:{id:lineId}});
+  if(!line)throw inventoryError('Concepto no encontrado.',404);
+  if(listUnitCents!==null && listUnitCents*line.quantity<line.netTotalCents)throw inventoryError('El precio antes del descuento no puede ser menor al costo pagado. Usa importes con IVA incluido.');
+  return db.purchaseInvoiceLine.update({where:{id:lineId},data:{listUnitCents,retailUnitCents,purchaseNote:body.note.trim()}});
+}

@@ -13,8 +13,18 @@ try{
  assert.equal((await fetch(base+'/api/purchase-invoices',{headers:{cookie:`adm=${reception}`}})).status,403);
  assert.equal((await fetch(base+'/api/purchase-invoices/'+id+'/pdf')).status,401);
  const page=await browser.newPage({viewport:{width:390,height:900}});await page.context().addCookies([{name:'adm',value:jwt.sign({uid:'test',email:'test',role:'admin'},process.env.ADMIN_JWT_SECRET),url:base}]);
- await page.goto(base+'/test-ui');await page.locator(`[data-allocate="${invoice.lines[0].id}"]`).click();
+ await page.goto(base+'/test-ui');
+ await page.locator(`[data-prices="${invoice.lines[0].id}"]`).click();
+ await page.locator('[name=listPrice]').fill('100');await page.locator('[name=retailPrice]').fill('120');await page.locator('[name=note]').fill('Compra en expo');
+ assert.match(await page.locator('.pi-calculation').textContent(),/42.00/);
+ await page.getByRole('button',{name:'Guardar precios'}).click();await page.locator('dialog').waitFor({state:'detached'});
+ await page.locator(`[data-prices="${invoice.lines[0].id}"]`).waitFor();
+ assert.match(await page.locator('#panel-invoices').textContent(),/42%/);
+ await page.locator(`[data-allocate="${invoice.lines[0].id}"]`).click();
  assert.equal(await page.locator('select[name=destination]').inputValue(),'');
+ await page.locator('select[name=destination]').selectOption('sale');await page.locator('select[name=target]').selectOption('new');
+ assert.equal(await page.locator('[name=price]').inputValue(),'120');
+
  await page.locator('select[name=destination]').selectOption('clinic');await page.locator('select[name=target]').selectOption('new');
  assert.equal(await page.locator('input[name=bottleMl]').inputValue(),'');
  await page.locator('input[name=bottleMl]').fill('45.5');await page.locator('input[name=volumeConfirmed]').check();

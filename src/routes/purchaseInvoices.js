@@ -1,7 +1,7 @@
 import express from 'express';
 import { prisma } from '../db/index.js';
 import { adminAuth, requireRole } from '../../lib/auth.js';
-import { allocatePurchase } from '../services/purchaseInvoices.js';
+import { allocatePurchase, savePurchasePrices } from '../services/purchaseInvoices.js';
 const router=express.Router();
 router.use(adminAuth,requireRole('admin'));
 router.get('/',async(req,res)=>{
@@ -20,5 +20,9 @@ router.get('/:id/pdf',async(req,res)=>{
 router.post('/lines/:id/allocate',async(req,res)=>{
  try{res.json({success:true,data:await allocatePurchase(prisma,req.params.id,req.body,req.admin.email || req.admin.uid)});}
  catch(e){console.error('[Invoices]',e.message);res.status(e.inventory?e.status:500).json({success:false,error:e.inventory?e.message:'No se pudo guardar la asignación. Intenta de nuevo.'});}
+});
+router.put('/lines/:id/prices',async(req,res)=>{
+ try{res.json({success:true,data:await savePurchasePrices(prisma,req.params.id,req.body)});}
+ catch(e){res.status(e.inventory?e.status:500).json({success:false,error:e.inventory?e.message:'No se pudieron guardar los precios.'});}
 });
 export default router;
