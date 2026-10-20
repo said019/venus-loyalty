@@ -147,7 +147,8 @@
   <!-- Chart.js y html5-qrcode se cargan UNA sola vez (pineados) al final del body
        (re-auditoría perf: antes se descargaban y ejecutaban dos veces cada uno) -->
   <link rel="stylesheet" href="/css/clinic-inventory.css?v=1">
-  <script defer src="/js/clinic-inventory.js?v=1"></script>
+  <script defer src="/js/clinic-inventory.js?v=2"></script>
+  <script defer src="/js/purchase-invoices.js?v=1"></script>
 </head>
 
 <body class="checking-auth">
@@ -2502,6 +2503,9 @@
         <button class="tab-btn" onclick="switchCatalogTab('clinic')" id="btn-tab-clinic">
           <i class="fas fa-flask"></i> Consultorio (ml)
         </button>
+        <button class="tab-btn" onclick="switchCatalogTab('invoices')" id="btn-tab-invoices">
+          <i class="fas fa-file-invoice"></i> Facturas
+        </button>
         <button class="tab-btn" onclick="switchCatalogTab('packages')" id="btn-tab-packages">
           <i class="fas fa-layer-group"></i> Paquetes
           <span class="tab-count" id="packages-count">0</span>
@@ -2513,6 +2517,7 @@
       <div class="catalog-panels" style="margin-top:16px;">
 
         <div id="panel-clinic" class="tab-panel"></div>
+        <div id="panel-invoices" class="tab-panel"></div>
 
         <!-- Panel: Servicios -->
         <div id="panel-services" class="tab-panel active">
@@ -13481,6 +13486,10 @@
         document.getElementById('btn-tab-services').classList.add('active');
         document.getElementById('panel-services').classList.add('active');
         loadServicesTable();
+      } else if (tab === 'invoices') {
+        document.getElementById('btn-tab-invoices').classList.add('active');
+        document.getElementById('panel-invoices').classList.add('active');
+        window.purchaseInvoices?.load();
       } else if (tab === 'clinic') {
         document.getElementById('btn-tab-clinic').classList.add('active');
         document.getElementById('panel-clinic').classList.add('active');

@@ -21,3 +21,15 @@ Generar Prisma y aplicar `prisma/migrations/20261020000000_clinic_inventory/migr
 - Prueba de navegador: `CLINIC_TEST_DATABASE_URL=... PLAYWRIGHT_MODULE=/ruta/playwright/index.mjs node tests/clinic-inventory.browser.mjs`. Usa Chrome instalado y datos efímeros locales. No usar credenciales ni bases reales.
 
 Las pruebas verifican precisión decimal, permisos, reintentos simultáneos, correcciones, saldo insuficiente, reversión transaccional de múltiples insumos, transferencia desde venta, competencia por el último saldo y flujos móvil/escritorio.
+
+## Facturas pendientes de clasificar
+
+En Catálogo → Facturas, administración ve el documento original y las piezas pendientes por concepto. La carga de una factura no suma stock. Cada asignación permite elegir piezas, destino (venta o consultorio) y producto existente o nuevo. Un concepto se puede repartir entre ambos destinos mediante asignaciones parciales.
+
+Para un producto nuevo de venta, administración fija el precio de venta; el costo se deriva del costo de compra con descuentos e IVA. Los precios y costos de productos existentes no cambian. Para consultorio se exige confirmar ml por envase incluso cuando hay una sugerencia del documento. Las presentaciones en gramos, faltantes o contradictorias no se convierten automáticamente.
+
+Las asignaciones se registran con usuario, destino y cantidad. Un descuento condicional de piezas pendientes, el aumento de stock y la bitácora ocurren en una misma transacción. La referencia de cada confirmación evita duplicados. PDF y endpoints de facturas requieren administración. El PDF se conserva en la base de datos, no en el directorio público ni en Git.
+
+Instalar primero `prisma/migrations/20261020010000_purchase_invoices/migration.sql` y generar Prisma. La factura importada conserva sus totales originales; esta función no registra gastos contables ni ingresos automáticamente.
+
+Pruebas: `CLINIC_TEST_DATABASE_URL=postgresql://...@127.0.0.1:55439/postgres node --test tests/purchase-invoices.integration.test.js`. Navegador: `CLINIC_TEST_DATABASE_URL=... PLAYWRIGHT_MODULE=... node tests/purchase-invoices.browser.mjs`.

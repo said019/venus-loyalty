@@ -1301,3 +1301,50 @@ model ClinicUsage {
   updatedAt     DateTime @updatedAt
   @@map("clinic_usage")
 }
+
+model PurchaseInvoice {
+  id String @id
+  number String
+  supplier String
+  issuedOn String
+  subtotalCents Int
+  discountCents Int
+  taxCents Int
+  totalCents Int
+  sourceFilename String
+  sourceHash String @unique
+  sourcePdf Bytes
+  createdAt DateTime @default(now())
+  lines PurchaseInvoiceLine[]
+  @@map("purchase_invoices")
+}
+model PurchaseInvoiceLine {
+  id String @id @default(cuid())
+  invoiceId String
+  invoice PurchaseInvoice @relation(fields:[invoiceId], references:[id], onDelete:Restrict)
+  lineNumber Int
+  sku String
+  description String
+  quantity Int
+  assignedQuantity Int @default(0)
+  netTotalCents Int
+  suggestedMilliMl Int?
+  volumeNote String
+  allocations PurchaseAllocation[]
+  @@unique([invoiceId, lineNumber])
+  @@map("purchase_invoice_lines")
+}
+model PurchaseAllocation {
+  id String @id @default(cuid())
+  lineId String
+  line PurchaseInvoiceLine @relation(fields:[lineId], references:[id], onDelete:Restrict)
+  requestKey String @unique
+  quantity Int
+  destination String
+  targetId String
+  targetName String
+  bottleMilliMl Int?
+  createdBy String
+  createdAt DateTime @default(now())
+  @@map("purchase_allocations")
+}
