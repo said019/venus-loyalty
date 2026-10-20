@@ -98,6 +98,7 @@ import clientRecordsRouter from './src/routes/clientRecords.js';
 import expedientesRouter from './src/routes/expedientes.js';
 import packagesRouter from './src/routes/packages.js';
 import cardSettlementsRouter from './src/routes/cardSettlements.js';
+import clinicInventoryRouter from './src/routes/clinicInventory.js';
 import creditsRouter, { aplicarCreditoEnCobro, registrarApartado } from './src/routes/credits.js';
 
 // Reglas para corregir un cobro ya registrado (ver tests/cajaEdits.test.js).
@@ -987,6 +988,7 @@ app.use('/api/client-records', clientRecordsRouter);
 app.use('/api/expedientes', expedientesRouter);
 app.use('/api/packages', packagesRouter);
 app.use('/api/credits', creditsRouter);
+app.use('/api/clinic-inventory', clinicInventoryRouter);
 app.use('/api/card-settlements', cardSettlementsRouter);
 
 // ☕ Venus The Coffee Bar - POS

@@ -1254,3 +1254,50 @@ model CajaEdit {
   @@index([changedAt])
   @@map("caja_edits")
 }
+
+// Consultorio: milésimas de ml enteras para no perder precisión al descontar.
+model ClinicSupply {
+  id           String @id @default(cuid())
+  name         String
+  bottleMilliMl Int
+  stockMilliMl Int @default(0)
+  minMilliMl   Int @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  movements    ClinicStockMovement[]
+  @@map("clinic_supplies")
+}
+
+model ClinicStockMovement {
+  id                String @id @default(cuid())
+  supplyId          String
+  supply            ClinicSupply @relation(fields: [supplyId], references: [id], onDelete: Restrict)
+  deltaMilliMl      Int
+  stockAfterMilliMl Int
+  kind              String
+  note              String
+  appointmentId     String?
+  sourceProductId   String?
+  requestKey        String
+  createdBy         String
+  createdAt         DateTime @default(now())
+  @@unique([requestKey, supplyId])
+  @@index([createdAt])
+  @@index([supplyId, createdAt])
+  @@map("clinic_stock_movements")
+}
+
+model ClinicUsage {
+  id            String @id @default(cuid())
+  appointmentId String @unique
+  clientName    String
+  serviceName   String
+  items         Json
+  note          String @default("")
+  revision      Int @default(1)
+  requestKey    String @unique
+  createdBy     String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  @@map("clinic_usage")
+}
