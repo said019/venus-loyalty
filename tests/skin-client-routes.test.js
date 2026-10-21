@@ -59,3 +59,16 @@ test('public skin report routes hide internal errors', async t => {
     assert.doesNotMatch(text, /secret/);
   }
 });
+
+test('router does not touch headers of legacy endpoints it falls through to', async t => {
+  const app = express();
+  app.use('/api/public/card', createSkinClientRouter({ report: { listForCard: async () => [], getForCard: async () => ({}) } }));
+  app.get('/api/public/card/:id', (req, res) => res.json({ legacy: req.params.id }));
+  const server = app.listen(0, '127.0.0.1');
+  await new Promise(resolve => server.once('listening', resolve));
+  t.after(() => new Promise(resolve => server.close(resolve)));
+  const res = await fetch(`http://127.0.0.1:${server.address().port}/api/public/card/card-a`);
+  assert.deepEqual(await res.json(), { legacy: 'card-a' });
+  assert.equal(res.headers.get('x-robots-tag'), null);
+  assert.notEqual(res.headers.get('cache-control'), 'private, no-store');
+});

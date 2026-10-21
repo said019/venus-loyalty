@@ -4,12 +4,9 @@ const ID = /^[A-Za-z0-9_-]{1,128}$/;
 
 export function createSkinClientRouter({ report }) {
   const router = express.Router();
-  router.use((req, res, next) => {
+  const handle = (ids, fn) => async (req, res) => {
     res.set('Cache-Control', 'private, no-store');
     res.set('X-Robots-Tag', 'noindex, nofollow, noarchive');
-    next();
-  });
-  const handle = (ids, fn) => async (req, res) => {
     try {
       if (!ids.every(name => typeof req.params[name] === 'string' && ID.test(req.params[name]))) {
         return res.status(400).json({ success: false, error: 'invalid_input' });
