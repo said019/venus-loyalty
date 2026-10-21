@@ -24,6 +24,16 @@ test('private UI has no secret, HTML interpolation, external model call or unsup
   assert.match(script, /config\.canApprove/);
   assert.match(script, /row\.provenance\.simulation/);
   assert.match(script, /credentials: 'same-origin'/);
+  assert.match(script, /query\.get\('auto'\) === '1'/);
+  assert.match(script, /query\.get\('cabina'\) === '1'/);
+  assert.match(script, /record\.prefill/);
+  assert.match(script, /VenusMiPiel\.render/);
+  assert.match(script, /'\/services'/);
+  assert.match(script, /\/retire'/);
+  assert.match(script, /config\.isOwner/);
+  assert.match(read('public/skin-advisor.html'), /id="plan-services"/);
+  assert.match(read('public/skin-advisor.html'), /<script src="\/mi-piel\.js/);
+  assert.match(script, /Inicia sesión en Venus para continuar/);
 });
 
 test('entry point preserves prior record safety and route mounts before large global parser', () => {

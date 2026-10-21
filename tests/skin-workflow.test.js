@@ -8,7 +8,7 @@ async function fixture(overrides = {}) {
   let date = new Date('2026-09-11T12:00:00Z');
   const rows = [];
   const users = [{ id: 'owner', role: 'admin' }, { id: 'staff', role: 'staff' }, { id: 'other-admin', role: 'admin' }];
-  const current = { id: 'record-fictional', updatedAt: date, age: 30, objectives: 'Rutina sencilla' };
+  const current = { id: 'record-fictional', cardId: 'card-1', updatedAt: date, age: 30, objectives: 'Rutina sencilla' };
   const photos = raw.photos.map(p => ({ id: p.id, recordId: current.id, url: '/fictional.png', takenAt: date }));
   const match = (row, where) => Object.entries(where).every(([key, value]) => {
     if (value && typeof value === 'object') {
@@ -29,12 +29,13 @@ async function fixture(overrides = {}) {
       create: async ({ data }) => { const row = { id: `assessment-${rows.length}`, version: 1, status: 'draft', createdAt: date, ...structuredClone(data) }; rows.push(row); return structuredClone(row); },
       updateMany: async ({ where, data }) => { const selected = rows.filter(p => match(p, where)); for (const row of selected) for (const [key, value] of Object.entries(data)) row[key] = value?.increment ? row[key] + value.increment : structuredClone(value); return { count: selected.length }; },
     },
+    intakeForm: { findUnique: async () => ({ skinCondition: 'Brillo en zona T', routineDay: ['Limpiador'], interestData: { protectorSolar: { value: true, detail: '' } } }) },
     service: { findMany: async () => [{ id: 's1', name: 'Hidratación profunda', price: '850.00', durationMinutes: 60, category: 'Básicos Venus', isActive: true }] },
     $transaction: async fn => fn(db),
   };
   let calls = 0;
   const provider = { metadata: { provider: 'openai', model: 'fictional', simulation: false }, generate: async context => { calls++; return makeAssessment(context); }, ...overrides.provider };
-  const workflow = createSkinAdvisorWorkflow({ prisma: db, provider, loadPhoto: overrides.loadPhoto || (async () => ({ bytes: raw.photos[0].bytes, mediaType: raw.photos[0].mediaType })), config: { enabled: true, configured: true, approverId: 'owner', consentVersion: 'v1', consentText: 'Fictitious consent', activeServices: raw.activeServices, protocols: raw.protocols, ...overrides.config }, clock: () => date });
+  const workflow = createSkinAdvisorWorkflow({ prisma: db, provider, loadPhoto: overrides.loadPhoto || (async () => ({ bytes: raw.photos[0].bytes, mediaType: raw.photos[0].mediaType })), clientReport: { getForCard: async (cardId, id) => cardId === 'card-1' ? { id, clientName: 'Prueba' } : null }, config: { enabled: true, configured: true, approverId: 'owner', consentVersion: 'v1', consentText: 'Fictitious consent', activeServices: raw.activeServices, protocols: raw.protocols, ...overrides.config }, clock: () => date });
   const body = { photos: photos.map(p => ({ id: p.id, zone: 'forehead', orientation: 'upright', lateralityResolved: true, capturedAt: '2026-09-10T11:00:00.000Z', capturedAtConfirmed: true })), patient: { age: 30, objective: 'Rutina sencilla' }, answers: { goal: 'Rutina sencilla' }, consentAccepted: true, consentVersion: 'v1', whiteLightOriginalConfirmed: true };
   return { workflow, db, rows, users, photos, current, body, calls: () => calls, advance: () => { date = new Date(date.getTime() + 121_000); } };
 }
@@ -276,4 +277,19 @@ test('a services lookup failure during approval is not reported as invalid_revie
   await f.workflow.generate('staff', draft.id, { version: 1 });
   f.db.service.findMany = async () => { throw new Error('db down'); };
   await assert.rejects(f.workflow.approve('staff', draft.id, { version: 2 }), error => error.message === 'db down' && error.code !== 'invalid_review' && error.constructor.name !== 'SkinWorkflowError');
+});
+
+test('record prefill comes from the intake form', async () => {
+  const f = await fixture();
+  const rec = await f.workflow.getRecord('staff', f.current.id);
+  assert.deepEqual(rec.prefill, { symptoms: 'Brillo en zona T', routineDay: 'Limpiador', sunscreen: 'Sí' });
+});
+
+test('client view requires account, ownership and approval', async () => {
+  const f = await fixture();
+  const draft = await f.workflow.createDraft('staff', f.current.id, f.body);
+  await assert.rejects(f.workflow.clientView('nobody', draft.id), { code: 'unauthenticated' });
+  assert.deepEqual(await f.workflow.clientView('staff', draft.id), { id: draft.id, clientName: 'Prueba' });
+  f.current.cardId = 'card-2';
+  await assert.rejects(f.workflow.clientView('staff', draft.id), { code: 'not_found' });
 });

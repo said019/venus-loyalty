@@ -809,8 +809,11 @@ app.set("trust proxy", true);
 app.use(cors({ origin: true, credentials: true }));
 // Private Skin IA owns its smaller JSON parser and exact-origin write guard.
 const skinConfig = skinAdvisorConfig(process.env);
+// Reportes Venus Skin de la clienta: misma instancia para el advisor y el router público.
+const skinClientReport = createSkinClientReport({ prisma });
 const skinWorkflow = createSkinAdvisorWorkflow({
   prisma,
+  clientReport: skinClientReport,
   config: skinConfig,
   provider: (skinConfig.provider === 'ollama' ? createOllamaProvider : createOpenAIProvider)({ enabled: skinConfig.enabled && skinConfig.configured, apiKey: skinConfig.apiKey, model: skinConfig.model }),
   loadPhoto: createSkinPhotoLoader({ cloudName: process.env.CLOUDINARY_CLOUD_NAME }),
@@ -824,7 +827,6 @@ app.use('/api/skin-advisor', cookieParser(), createSkinAdvisorRouter({
   expectedOrigin: process.env.SKIN_ADVISOR_ORIGIN || '',
 }));
 // Reportes Venus Skin de la clienta: público, por id de tarjeta, solo lectura.
-const skinClientReport = createSkinClientReport({ prisma });
 app.use('/api/public/card', createSkinClientRouter({ report: skinClientReport }));
 // ✅ 1. BODY PARSERS PRIMERO (antes de cualquier middleware que use req.body)
 // ── Prueba de cámara del Moji (diagnóstico) ──────────────────────────────

@@ -5,7 +5,7 @@ import { createSkinAdvisorRouter } from '../src/routes/skinAdvisor.js';
 
 test('router protects every endpoint and enforces exact origin, JSON, and trusted actor', async t => {
   const calls = [];
-  const workflow = Object.fromEntries(['getConfig', 'getRecord', 'createDraft', 'getAssessment', 'generate', 'approve', 'retire', 'services', 'previewPhoto', 'photoLayers', 'savedLayers'].map(name => [name, async (...args) => { calls.push({ name, args }); return { status: 'ok' }; }]));
+  const workflow = Object.fromEntries(['getConfig', 'getRecord', 'createDraft', 'getAssessment', 'generate', 'approve', 'retire', 'services', 'clientView', 'previewPhoto', 'photoLayers', 'savedLayers'].map(name => [name, async (...args) => { calls.push({ name, args }); return { status: 'ok' }; }]));
   const app = express();
   app.use('/api/skin-advisor', createSkinAdvisorRouter({ workflow, expectedOrigin: 'https://venus.example', authenticate: (req, res, next) => { if (req.get('x-test-user')) req.admin = { uid: req.get('x-test-user') }; next(); } }));
   const server = app.listen(0, '127.0.0.1');
@@ -37,6 +37,12 @@ test('router protects every endpoint and enforces exact origin, JSON, and truste
   assert.equal((await retire({ origin: 'https://venus.example', 'content-type': 'application/json' })).status, 200);
   assert.equal(calls.at(-1).name, 'retire');
   assert.deepEqual(calls.at(-1).args, ['staff', 'a', { version: 3 }]);
+  assert.equal((await fetch(base + '/assessments/a/client-view')).status, 401);
+  const view = await fetch(base + '/assessments/a/client-view', { headers: { 'x-test-user': 'staff' } });
+  assert.equal(view.status, 200);
+  assert.equal(view.headers.get('cache-control'), 'private, no-store');
+  assert.equal(calls.at(-1).name, 'clientView');
+  assert.deepEqual(calls.at(-1).args, ['staff', 'a']);
   const preview = headers => fetch(base + '/records/r/photos/p/preview', { method: 'POST', headers: { 'x-test-user': 'staff', ...headers }, body: JSON.stringify({ mode: 'red_contrast', actorId: 'owner' }) });
   assert.equal((await preview({ 'content-type': 'application/json' })).status, 403);
   assert.equal((await preview({ origin: 'https://evil.example', 'content-type': 'application/json' })).status, 403);

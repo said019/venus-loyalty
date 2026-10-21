@@ -4,6 +4,7 @@ import { validateAssessment } from './contract.js';
 import { ANSWER_FIELDS, DECLARED_FLAG_FIELDS, ZONES, CATALOG_VERSION } from './catalog.js';
 import { PROMPT_VERSION } from './prompt.js';
 import { normalizeApprovalExtras } from './approvalExtras.js';
+import { prefillFromIntake } from './intakePrefill.js';
 import { SKIN_MENU_CATEGORIES } from '../skinMenu.js';
 import { createVisualPreview, VISUAL_MODES } from '../../skinVisualPreview.js';
 
@@ -30,7 +31,7 @@ const publicRow = (row) => {
   return safe;
 };
 
-export function createSkinAdvisorWorkflow({ prisma, provider, loadPhoto, layersEngine, layerStore, config = {}, clock = () => new Date() }) {
+export function createSkinAdvisorWorkflow({ prisma, provider, loadPhoto, layersEngine, layerStore, clientReport, config = {}, clock = () => new Date() }) {
   const now = () => new Date(clock());
   const previewActors = new Set();
   const pipelineTimeoutMs = config.pipelineTimeoutMs ?? 90_000;
@@ -197,7 +198,16 @@ export function createSkinAdvisorWorkflow({ prisma, provider, loadPhoto, layersE
       await expire(prisma);
       const photos = await prisma.clientPhoto.findMany({ where: { recordId }, orderBy: { takenAt: 'desc' } });
       const rows = await prisma.skinAdvisorAssessment.findMany({ where: { recordId }, orderBy: { createdAt: 'desc' }, take: 50 });
-      return { record: { id: current.id, age: current.age, objectives: current.objectives }, photos: photos.map(({ id, url, takenAt, area, description }) => ({ id, url, takenAt, area, description })), assessments: rows.map(publicRow) };
+      const intake = await prisma.intakeForm.findUnique({ where: { recordId } });
+      return { prefill: prefillFromIntake(intake), record: { id: current.id, age: current.age, objectives: current.objectives }, photos: photos.map(({ id, url, takenAt, area, description }) => ({ id, url, takenAt, area, description })), assessments: rows.map(publicRow) };
+    },
+    async clientView(actorId, id) {
+      await account(prisma, actorId);
+      const row = await assessment(prisma, id);
+      const current = await record(prisma, row.recordId);
+      const view = current.cardId && clientReport ? await clientReport.getForCard(current.cardId, id) : null;
+      if (!view) fail('not_found', 404);
+      return view;
     },
     async createDraft(actorId, recordId, body) {
       return tx(async db => {

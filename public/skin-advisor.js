@@ -2,6 +2,7 @@
   'use strict';
   var byId = function (id) { return document.getElementById(id); };
   var config, record, current, renderedId, busy = false, generatingRequest = false, photoControls = [], corrections = [];
+  var cabinaMode = false, cabinaShown = false, draftRun = null, servicesCache = null, extrasFor = null, planRows = [], zoneRows = [], retireArmed = false, retireTimer = null;
   var query = new URLSearchParams(location.search);
   document.querySelector('.layout aside').prepend(byId('review'));
   var activeStep = 1;
@@ -9,7 +10,7 @@
     activeStep = step;
     byId('step-photos').hidden = step !== 1;
     byId('step-consultation').hidden = step !== 2;
-    byId('review').hidden = step !== 3 || !current;
+    byId('review').hidden = step !== 3 || !current || cabinaShown;
     byId('prepare-title').textContent = step === 1 ? 'Fotos de la sesión' : step === 2 ? 'Consulta' : 'Reporte de piel';
     document.querySelectorAll('[data-step]').forEach(function (button) {
       if (Number(button.dataset.step) === step) button.setAttribute('aria-current', 'step');
@@ -32,6 +33,7 @@
   byId('next-consultation').addEventListener('click', continueConsultation);
   byId('previous-photos').addEventListener('click', function () { showStep(1); });
   var recordId = query.get('recordId');
+  cabinaMode = query.get('cabina') === '1';
   var captureIds = window.VenusCaptureFlow ? window.VenusCaptureFlow.selectedIds(location.search) : [];
   if (query.get('capture') === '1') {
     document.querySelector('.intro h1').textContent = 'Tus fotos ya están aquí.';
@@ -57,11 +59,24 @@
   function safeImage(value) { try { var url = new URL(value, location.origin); return (url.protocol === 'https:' || url.origin === location.origin) && !url.username && !url.password ? url.href : ''; } catch (_) { return ''; } }
   var errors = { auth_required: 'Inicia sesión en Venus para continuar.', invalid_token: 'Tu sesión venció. Vuelve a iniciar sesión.', forbidden: 'Tu cuenta no tiene permiso para esta acción.', not_authorized: 'Solo el administrador autorizado puede aprobar.', disabled: 'El análisis con el proveedor de IA aún no está activado en el servidor.', not_configured: 'Falta completar la configuración privada del proveedor de IA.', key_missing: 'Falta configurar la clave del proveedor de IA en el servidor.', stale_input: 'La valoración cambió. Vuelve a abrir la versión vigente.', conflict: 'La valoración cambió o ya está en proceso. Actualiza su estado.', photo_storage_unavailable: 'Esta foto no está disponible en el almacenamiento autorizado. Súbela primero al expediente.', photo_unavailable: 'No se pudo recuperar una de las fotos.', invalid_photo: 'Una foto no es válida. Revisa su formato y tamaño.', invalid_input: 'Revisa las fotos, las respuestas y el consentimiento.', consent_required: 'Es necesario registrar el consentimiento específico.', timeout: 'El análisis excedió el tiempo permitido. No se reintentó automáticamente.', not_found: 'No se encontró el expediente o la valoración.' };
   Object.assign(errors, { unauthenticated: 'Inicia sesión en Venus para continuar.', stale_version: 'La valoración cambió. Selecciónala de nuevo en el historial.', already_generating: 'Hay un análisis en curso. Espera a que termine antes de iniciar otro.', invalid_review: 'Revisa la longitud de los textos corregidos.', activation_required: 'La configuración cambió. Crea un borrador nuevo y confirma su consentimiento.', white_light_confirmation_required: 'Confirma que las fotos son originales tomadas con luz blanca.', capture_time_confirmation_required: 'Confirma la fecha real de captura de cada fotografía.', invalid_capture_time: 'Revisa la fecha de captura: debe ser válida y no estar en el futuro.', layers_storage_unavailable: 'Los mapas se generaron pero no se pudieron guardar. Intenta de nuevo.' });
+  var sessionErrors = ['unauthenticated', 'auth_required', 'invalid_token'];
+  function sessionAware(code, error) {
+    if (sessionErrors.indexOf(code) !== -1) { error.message = 'Inicia sesión en Venus para continuar. Vuelve a la captura e inicia sesión.'; error.session = true; }
+    return error;
+  }
+  function showError(error) {
+    message(error.message || 'No se pudo completar la acción.', true);
+    if (error.session && cabinaMode && !byId('back-to-capture')) {
+      var back = node('button', 'Volver a la captura'); back.type = 'button'; back.id = 'back-to-capture';
+      back.addEventListener('click', function () { location.href = '/captura.html?modo=analisis'; });
+      byId('message').parentNode.insertBefore(back, byId('message').nextSibling);
+    }
+  }
   async function api(path, body) {
     var response = await fetch('/api/skin-advisor' + path, { method: body === undefined ? 'GET' : 'POST', credentials: 'same-origin', headers: body === undefined ? {} : { 'Content-Type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) });
     var payload;
     try { payload = await response.json(); } catch (_) { throw new Error('El servidor no devolvió una respuesta válida.'); }
-    if (!response.ok || !payload.success) throw new Error(errors[payload.error] || 'No se pudo completar la acción. Revisa la configuración o vuelve a cargar la valoración.');
+    if (!response.ok || !payload.success) throw sessionAware(payload.error, new Error(errors[payload.error] || 'No se pudo completar la acción. Revisa la configuración o vuelve a cargar la valoración.'));
     return payload.data;
   }
   async function action(fn) {
@@ -69,7 +84,7 @@
     var previous = current;
     busy = true;
     var buttonStates = Array.from(document.querySelectorAll('.layout button, #generate, #approve')).map(function (button) { var state = { button: button, disabled: button.disabled }; button.disabled = true; return state; });
-    try { await fn(); } catch (error) { message(error.message || 'No se pudo completar la acción.', true); }
+    try { await fn(); } catch (error) { showError(error); }
     finally { busy = false; buttonStates.forEach(function (state) { if (state.button.isConnected) state.button.disabled = state.disabled; }); byId('save').disabled = !record; if (current && current !== previous) render(current); byId('approve').disabled = false; byId('generate').disabled = !config || !config.enabled || !config.configured; renderHistory(); }
   }
   fields.forEach(function (field) { var label = node('label', field[1], byId('answers')); var input = node('textarea', undefined, label); input.id = 'answer-' + field[0]; input.rows = 2; input.maxLength = 500; });
@@ -224,13 +239,130 @@
       result.priorities.forEach(function (item, i) { editable('Prioridad ' + (i + 1), ['priorities', i, 'description'], item.description); });
       result.careDraft.education.forEach(function (item, i) { editable('Cuidado ' + (i + 1), ['careDraft', 'education', i], item); });
       editable('Alternativa sin procedimiento', ['careDraft', 'noProcedureAlternative'], result.careDraft.noProcedureAlternative);
+      renderApprovalExtras(row, result);
     }
-    byId('approval-info').textContent = row.approval ? 'Aprobada el ' + date(row.approval.approvedAt) + '. Registro privado; no se envió automáticamente.' : row.status === 'pending_review' && !config.canApprove && !simulated ? 'Solo el administrador autorizado puede aprobar esta valoración.' : '';
+    renderRetire(row);
+    byId('approval-info').textContent = row.retiredAt ? 'Retirado de la tarjeta el ' + date(row.retiredAt) + '.' : row.approval ? 'Aprobada el ' + date(row.approval.approvedAt) + '. Visible en la tarjeta de la clienta.' : row.status === 'pending_review' && !config.canApprove && !simulated ? 'Solo el administrador autorizado puede aprobar esta valoración.' : '';
     showStep(3);
+  }
+  function localInput(value) { var d = new Date(value); return isNaN(d.getTime()) ? '' : new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); }
+  function nextMondays(count) {
+    var out = [], d = new Date(); d.setHours(12, 0, 0, 0);
+    d.setDate(d.getDate() + ((8 - d.getDay()) % 7 || 7));
+    for (var i = 0; i < count; i++) {
+      var month = d.getMonth() + 1, day = d.getDate();
+      out.push({ value: d.getFullYear() + '-' + (month < 10 ? '0' : '') + month + '-' + (day < 10 ? '0' : '') + day, label: 'Semana del ' + d.toLocaleDateString('es-MX', { day: 'numeric', month: 'long' }) });
+      d.setDate(d.getDate() + 7);
+    }
+    return out;
+  }
+  function previousApproved(row) {
+    return (record ? record.assessments : []).find(function (a) { return a.id !== row.id && a.approval && !a.retiredAt; }) || null;
+  }
+  function loadServices() {
+    if (!servicesCache) servicesCache = api('/services').catch(function (error) { servicesCache = null; throw error; });
+    return servicesCache;
+  }
+  function renderApprovalExtras(row, result) {
+    if (extrasFor === row.id) return;
+    extrasFor = row.id; planRows = []; zoneRows = [];
+    var cadences = window.VenusMiPiel ? window.VenusMiPiel.cadences : {}, labels = window.VenusMiPiel ? window.VenusMiPiel.zoneLabels : {};
+    var box = byId('plan-services'); Array.from(box.querySelectorAll('.plan-row')).forEach(function (el) { el.remove(); });
+    loadServices().then(function (services) {
+      if (extrasFor !== row.id) return;
+      services.forEach(function (service) {
+        var line = node('div', undefined, box); line.className = 'plan-row';
+        var label = node('label', undefined, line); label.className = 'check';
+        var check = node('input', undefined, label); check.type = 'checkbox';
+        node('span', service.name + ' · $' + service.price + ' · ' + service.durationMinutes + ' min', label);
+        var cadence = select(Object.keys(cadences).map(function (key) { return [key, cadences[key]]; }), line);
+        cadence.setAttribute('aria-label', 'Frecuencia de ' + service.name);
+        planRows.push({ id: service.id, check: check, cadence: cadence });
+      });
+    }).catch(function (error) { showError(error); });
+    var before = previousApproved(row), routine = before && before.approval.homeRoutine;
+    byId('home-morning').value = routine && routine.morning ? routine.morning : '';
+    byId('home-night').value = routine && routine.night ? routine.night : '';
+    var visit = byId('next-visit'); visit.textContent = '';
+    var none = node('option', 'Sin semana definida', visit); none.value = '';
+    nextMondays(8).forEach(function (week) { var opt = node('option', week.label, visit); opt.value = week.value; });
+    var progress = byId('zone-progress'); progress.textContent = '';
+    if (!before) return;
+    node('h4', '¿Cómo va cada zona desde la última visita?', progress);
+    var seen = [];
+    result.observations.forEach(function (item) {
+      if (seen.indexOf(item.zone) !== -1) return;
+      seen.push(item.zone);
+      var field = node('label', labels[item.zone] || labels.unknown || item.zone, progress);
+      var choice = select([['', 'Sin comparar'], ['mejoro', 'Mejoró'], ['se_mantiene', 'Se mantiene'], ['a_cuidar', 'A cuidar']], field);
+      zoneRows.push({ zone: item.zone, select: choice });
+    });
+  }
+  function approvalExtras() {
+    var morning = byId('home-morning').value.trim(), night = byId('home-night').value.trim(), progress = {};
+    zoneRows.forEach(function (z) { if (z.select.value) progress[z.zone] = z.select.value; });
+    return {
+      plan: planRows.filter(function (p) { return p.check.checked; }).map(function (p) { return { serviceId: p.id, cadence: p.cadence.value }; }),
+      homeRoutine: morning || night ? { morning: morning, night: night } : null,
+      nextVisitWeek: byId('next-visit').value || null,
+      zoneProgress: progress
+    };
+  }
+  function renderRetire(row) {
+    var button = byId('retire');
+    retireArmed = false; clearTimeout(retireTimer); button.textContent = 'Retirar de la tarjeta';
+    button.hidden = !(config && config.isOwner && row.approval && !row.retiredAt);
+  }
+  byId('retire').addEventListener('click', function () {
+    var button = byId('retire');
+    if (!retireArmed) {
+      retireArmed = true; button.textContent = 'Confirmar retiro';
+      retireTimer = setTimeout(function () { retireArmed = false; button.textContent = 'Retirar de la tarjeta'; }, 6000);
+      return;
+    }
+    retireArmed = false; clearTimeout(retireTimer);
+    action(async function () { current = await api('/assessments/' + encodeURIComponent(current.id) + '/retire', { version: current.version }); await refresh(); message('Valoración retirada de la tarjeta.'); });
+  });
+  function leaveCabina() { location.href = '/captura.html?modo=analisis'; }
+  function sendLink() { message('Envío por WhatsApp disponible en la siguiente tarea.'); }
+  byId('cabina-done').addEventListener('click', leaveCabina);
+  byId('cabina-send').addEventListener('click', sendLink);
+  async function renderCabina(row) {
+    if (!window.VenusMiPiel) throw new Error('No se pudo cargar la vista de la clienta.');
+    var data = await api('/assessments/' + encodeURIComponent(row.id) + '/client-view');
+    cabinaShown = true; byId('review').hidden = true; byId('cabina').hidden = false;
+    ['.layout > .panel', '.history-panel', '.intro'].forEach(function (sel) { var el = document.querySelector(sel); if (el) el.hidden = true; });
+    byId('cabina-view').textContent = '';
+    window.VenusMiPiel.render(byId('cabina-view'), data, { mode: 'cabina', onDone: leaveCabina, onSendLink: sendLink });
+    message('Valoración aprobada. Muestra la vista a la clienta.');
+  }
+  // Cabina flow: pre-fill everything the capture session already knows, then draft and analyze without extra taps.
+  async function autoPrepare(visiblePhotos) {
+    visiblePhotos.forEach(function (photo) {
+      var control = photoControls.find(function (p) { return p.id === photo.id; });
+      if (!control || control.check.disabled) return;
+      control.check.checked = true; control.zone.value = 'full_face'; control.orientation.value = 'upright'; control.side.checked = true;
+      control.captured.value = localInput(photo.takenAt); control.confirmed.checked = true;
+    });
+    byId('white-light').checked = true;
+    byId('objective').value = record.record.objectives || '';
+    var prefill = record.prefill || {};
+    Object.keys(prefill).forEach(function (key) { var input = byId('answer-' + key); if (input && !input.value) input.value = prefill[key]; });
+    if (!byId('answer-goal').value) byId('answer-goal').value = record.record.objectives || '';
+    byId('consent').checked = query.get('consent') === config.consentVersion;
+    byId('session-sides').checked = false;
+    photoControls[0] && photoControls[0].box.dispatchEvent(new Event('change', { bubbles: true }));
+    showStep(2);
+    if (!byId('consent').checked) { message('Falta el consentimiento de la clienta. Márcalo y guarda.', true); return; }
+    message('Preparando el borrador de la valoración…');
+    var form = byId('draft-form');
+    if (form.requestSubmit) form.requestSubmit(); else form.dispatchEvent(new Event('submit', { cancelable: true }));
+    if (draftRun) await draftRun;
+    if (current && current.status === 'draft') byId('generate').click();
   }
   async function refresh() { record = await api('/records/' + encodeURIComponent(recordId)); renderHistory(); }
   byId('draft-form').addEventListener('submit', function (event) {
-    event.preventDefault(); action(async function () {
+    event.preventDefault(); draftRun = action(async function () {
       if (activeStep !== 2) { continueConsultation(); return; }
       if (!byId('white-light').checked) { showStep(1); throw new Error('Confirma que las fotos son originales de luz blanca.'); }
       if (!byId('draft-form').reportValidity()) return;
@@ -256,14 +388,20 @@
     // Capture edits before disabling/rerendering controls.
     var corrected = JSON.parse(JSON.stringify(current.assessment)); var changed = false;
     corrections.forEach(function (edit) { if (edit.input.value !== edit.original) changed = true; var target = corrected; edit.path.slice(0, -1).forEach(function (key) { target = target[key]; }); target[edit.path[edit.path.length - 1]] = edit.input.value; });
-    var notes = byId('review-notes').value || null;
-    action(async function () { current = await api('/assessments/' + encodeURIComponent(current.id) + '/approve', { version: current.version, correctedAssessment: changed ? corrected : null, reviewNotes: notes }); await refresh(); message('Valoración aprobada y guardada con tu revisión.'); });
+    var notes = byId('review-notes').value || null, extras = approvalExtras();
+    action(async function () {
+      current = await api('/assessments/' + encodeURIComponent(current.id) + '/approve', { version: current.version, correctedAssessment: changed ? corrected : null, reviewNotes: notes, plan: extras.plan, homeRoutine: extras.homeRoutine, nextVisitWeek: extras.nextVisitWeek, zoneProgress: extras.zoneProgress });
+      await refresh(); message('Valoración aprobada y guardada con tu revisión.');
+      if (cabinaMode) await renderCabina(current);
+    });
   });
   (async function () {
     try {
       if (!recordId) throw new Error('Abre Venus Skin IA desde el expediente de una clienta.');
       config = await api('/config'); await refresh();
       if (record.assessments.length) { current = record.assessments[0]; render(current); }
+      var latest = record.assessments[0];
+      var alreadyDone = cabinaMode && latest && latest.status === 'approved' && !latest.retiredAt && captureIds.every(function (id) { return ((latest.input && latest.input.photos) || []).some(function (p) { return p.id === id; }); });
       var visiblePhotos = captureIds.length ? record.photos.filter(function (p) { return captureIds.indexOf(p.id) !== -1; }) : record.photos;
       renderPhotos(visiblePhotos);
       byId('age').value = record.record.age === null || record.record.age === undefined ? '' : record.record.age;
@@ -271,7 +409,10 @@
       byId('save').disabled = false;
       if (config.simulation) { byId('configuration').hidden = false; byId('configuration').textContent = 'SIMULACIÓN · Datos ficticios. No se envían fotos al proveedor de IA ni se permite aprobar.'; byId('generate').textContent = 'Generar simulación'; }
       if (!config.simulation && (!config.enabled || !config.configured)) { byId('configuration').hidden = false; byId('configuration').textContent = 'Puedes preparar borradores. Para analizar falta activar el proveedor de IA y completar su configuración privada en el servidor.'; }
+      if (alreadyDone) { await renderCabina(latest); return; }
+      var autoRun = query.get('auto') === '1' && captureIds.length && visiblePhotos.length === captureIds.length;
+      if (autoRun) { await autoPrepare(visiblePhotos); return; }
       message(captureIds.length ? visiblePhotos.length === captureIds.length ? 'Fotos de esta sesión seleccionadas. Confirma sus datos para continuar.' : 'Algunas fotos de esta sesión no están disponibles. Regresa a captura y revisa las fotos guardadas.' : 'Expediente listo. Las fotos originales se conservan.');
-    } catch (error) { message(error.message, true); }
+    } catch (error) { showError(error); }
   })();
 }());
