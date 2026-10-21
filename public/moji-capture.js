@@ -201,7 +201,7 @@
       var j = await json('/api/client-records/card/' + encodeURIComponent(c.id));
       if (token !== selection) return;
       var rec = j.data || j; if (!rec.id) throw new Error('Expediente no disponible.');
-      clienta = c; recordId = rec.id; flow.reset(rec.id);
+      clienta = c; recordId = rec.id; flow.reset(rec.id); $('consent-captura').checked = false;
       clearImport();
       sessionPhotos = (rec.photos || []).slice();
       $('nombre-clienta').textContent = c.name; $('session-photos').textContent = '';
@@ -346,7 +346,7 @@
   $('b-protocolo').onclick = takeSequence;
   $('b-apagar').onclick = function () { cameraEpoch += 1; off(); status('e-luces', 'Apagado solicitado. Comprueba que la luz esté apagada.'); };
   $('b-girar').onclick = function () { rotation = (rotation + 90) % 360; localStorage.setItem('capturaRotacion', String(rotation)); rotate(); };
-  $('b-cambiar').onclick = function () { if (busy) return; closeCamera(); selection += 1; searchEpoch += 1; clearTimeout(timer); flow.reset(null); clienta = null; recordId = null; show('s-camara', false); show('s-clienta', true); $('q').value = ''; $('resultados').textContent = ''; controls(); };
+  $('b-cambiar').onclick = function () { if (busy) return; closeCamera(); selection += 1; searchEpoch += 1; clearTimeout(timer); flow.reset(null); clienta = null; recordId = null; $('consent-captura').checked = false; show('s-camara', false); show('s-clienta', true); $('q').value = ''; $('resultados').textContent = ''; controls(); };
   $('b-otra').onclick = function () { show('mini', false); show('despues', false); status('e-tomar', ''); };
   $('b-ficha').onclick = function () { if (clienta) { closeCamera(); location.href = '/admin/clientas/' + encodeURIComponent(clienta.id); } };
   $('modo').onchange = function () { flow.reset(recordId); renderSessionPhotos(); controls(); };
@@ -355,7 +355,8 @@
   $('b-analizar').onclick = function () {
     if (busy || !clienta) return;
     if (!$('consent-captura').checked) { status('e-tomar', 'Marca el consentimiento de la clienta antes de analizar.', true); return; }
-    closeCamera(); location.href = flow.advisorUrl(clienta.id, { auto: '1', cabina: '1', consent: skinConfig.consentVersion });
+    var target = flow.advisorUrl(clienta.id, { auto: '1', cabina: '1', consent: skinConfig.consentVersion });
+    $('consent-captura').checked = false; closeCamera(); location.href = target;
   };
   window.addEventListener('pagehide', closeCamera);
   document.addEventListener('visibilitychange', function () { if (document.hidden) closeCamera(); });

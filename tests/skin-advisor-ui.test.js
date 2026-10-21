@@ -51,6 +51,7 @@ test('sequence flag is off by default and reaches the capture page', () => {
   assert.match(capture, /sequenceEnabled/);
   assert.match(capture, /consent-captura/);
   assert.match(capture, /auto: '1', cabina: '1'/);
+  assert.equal(capture.split("$('consent-captura').checked = false").length - 1, 3);
   assert.doesNotMatch(capture, /\?\.|\?\?|innerHTML/);
   assert.match(read('server.js'), /app\.get\("\/api\/admin\/cards-firebase", adminAuth, requireRole\("admin", "staff"\)/);
 });
