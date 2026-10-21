@@ -36,3 +36,10 @@ test('entry point preserves prior record safety and route mounts before large gl
   assert.match(server, /SKIN_ADVISOR_ORIGIN \|\| ''/);
   assert.match(read('public/skin-advisor.html'), /id="approval-form" hidden/);
 });
+
+test('client card lists Venus reports from the public router', () => {
+  const index = read('public/index.html');
+  assert.match(index, /\/skin-reports`/);
+  assert.match(index, /Análisis anterior/);
+  assert.match(read('server.js'), /app\.use\('\/api\/public\/card', createSkinClientRouter/);
+});

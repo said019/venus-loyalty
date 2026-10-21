@@ -133,6 +133,8 @@ import { createOllamaProvider } from './src/services/ai/skinAdvisor/ollamaProvid
 import { createSkinPhotoLoader } from './src/services/ai/skinAdvisor/photoLoader.js';
 import { createSkinLayersEngine } from './src/services/skinLayers.js';
 import { createSkinLayerStore } from './src/services/skinLayerStore.js';
+import { createSkinClientReport } from './src/services/skinClientReport.js';
+import { createSkinClientRouter } from './src/routes/skinClient.js';
 import { checkoutGroup, sameClient, unpaid } from './src/services/groupedCheckout.js';
 import { skinAdvisorConfig } from './src/services/ai/skinAdvisor/config.js';
 import integrationsRouter from "./src/routes/integrations.js";
@@ -821,6 +823,9 @@ app.use('/api/skin-advisor', cookieParser(), createSkinAdvisorRouter({
   authenticate: adminAuth,
   expectedOrigin: process.env.SKIN_ADVISOR_ORIGIN || '',
 }));
+// Reportes Venus Skin de la clienta: público, por id de tarjeta, solo lectura.
+const skinClientReport = createSkinClientReport({ prisma });
+app.use('/api/public/card', createSkinClientRouter({ report: skinClientReport }));
 // ✅ 1. BODY PARSERS PRIMERO (antes de cualquier middleware que use req.body)
 // ── Prueba de cámara del Moji (diagnóstico) ──────────────────────────────
 // La página pública /moji-test.html corre en el navegador del skin analyzer
