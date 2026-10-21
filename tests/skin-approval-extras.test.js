@@ -14,6 +14,7 @@ test('rejects unknown services, bad cadence, long text, bad dates and foreign zo
     { plan: [{ serviceId: 's1', cadence: 'diaria' }] },
     { plan: Array(7).fill({ serviceId: 's1', cadence: 'mensual' }) },
     { plan: [{ serviceId: 's1', cadence: 'mensual', extra: 1 }] },
+    { plan: [{ serviceId: 's1', cadence: 'mensual' }, { serviceId: 's1', cadence: 'semanal' }] },
     { homeRoutine: { morning: 'x'.repeat(601), night: '' } },
     { homeRoutine: { morning: 'a', night: 'b', extra: 'c' } },
     { nextVisitWeek: '2026-13-01' },

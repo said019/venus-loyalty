@@ -266,3 +266,11 @@ test('approval stores plan, routine, next visit and zone progress; services list
   assert.equal(typeof approved.approval.plan[0].price, 'number');
   assert.deepEqual(approved.approval.zoneProgress, { forehead: 'mejoro' });
 });
+
+test('a services lookup failure during approval is not reported as invalid_review', async () => {
+  const f = await fixture();
+  const draft = await f.workflow.createDraft('staff', f.current.id, f.body);
+  await f.workflow.generate('staff', draft.id, { version: 1 });
+  f.db.service.findMany = async () => { throw new Error('db down'); };
+  await assert.rejects(f.workflow.approve('staff', draft.id, { version: 2 }), error => error.message === 'db down' && error.code !== 'invalid_review' && error.constructor.name !== 'SkinWorkflowError');
+});

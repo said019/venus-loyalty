@@ -286,11 +286,10 @@ export function createSkinAdvisorWorkflow({ prisma, provider, loadPhoto, layersE
       if (context.inputFingerprint !== row.provenance?.inputFingerprint) fail('stale_input', 409);
       try { validateAssessment(correction || row.assessment, context); } catch { fail('invalid_assessment'); }
       if ((correction || row.assessment).quality.status === 'retake') fail('needs_information', 409);
+      const zones = [...new Set([...row.input.photos.map(p => p.zone), ...(correction || row.assessment).observations.map(o => o.zone)])];
+      const catalogue = await loadServices(prisma);
       let extras;
-      try {
-        const zones = [...new Set([...row.input.photos.map(p => p.zone), ...(correction || row.assessment).observations.map(o => o.zone)])];
-        extras = normalizeApprovalExtras({ plan, homeRoutine, nextVisitWeek, zoneProgress }, { services: await loadServices(prisma), zones });
-      } catch { fail('invalid_review'); }
+      try { extras = normalizeApprovalExtras({ plan, homeRoutine, nextVisitWeek, zoneProgress }, { services: catalogue, zones }); } catch { fail('invalid_review'); }
       return tx(async db => {
         await account(db, actorId, 'approve');
         const current = await assessment(db, id);

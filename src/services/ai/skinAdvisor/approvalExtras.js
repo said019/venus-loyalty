@@ -19,6 +19,7 @@ export function normalizeApprovalExtras(extras = {}, { services, zones }) {
   const { plan = [], homeRoutine = null, nextVisitWeek = null, zoneProgress = {} } = extras ?? {};
 
   if (!Array.isArray(plan) || plan.length > MAX_PLAN) invalid();
+  if (new Set(plan.map(i => i?.serviceId)).size !== plan.length) invalid();
   const normalizedPlan = plan.map((item) => {
     onlyKeys(item, ['serviceId', 'cadence']);
     const service = services.find(s => s.id === item.serviceId);
