@@ -337,7 +337,23 @@
     message('Valoración aprobada. Muestra la vista a la clienta.');
   }
   // Cabina flow: pre-fill everything the capture session already knows, then draft and analyze without extra taps.
+  var reusable = ['draft', 'generating', 'pending_review', 'needs_information', 'approved'];
+  function coveringAssessment() {
+    var latest = record.assessments.find(function (a) { return !a.retiredAt; });
+    if (!latest || reusable.indexOf(latest.status) === -1) return null;
+    var photos = (latest.input && latest.input.photos) || [];
+    return captureIds.every(function (id) { return photos.some(function (p) { return p.id === id; }); }) ? latest : null;
+  }
   async function autoPrepare(visiblePhotos) {
+    var existing = coveringAssessment();
+    if (existing) {
+      current = existing; render(current); showStep(3);
+      if (existing.status === 'draft') byId('generate').click();
+      else if (existing.status === 'approved' && cabinaMode) await renderCabina(existing);
+      else message('Esta sesión ya tiene una valoración en curso. Revisa su estado abajo.');
+      return;
+    }
+    var before = current;
     visiblePhotos.forEach(function (photo) {
       var control = photoControls.find(function (p) { return p.id === photo.id; });
       if (!control || control.check.disabled) return;
@@ -358,7 +374,7 @@
     var form = byId('draft-form');
     if (form.requestSubmit) form.requestSubmit(); else form.dispatchEvent(new Event('submit', { cancelable: true }));
     if (draftRun) await draftRun;
-    if (current && current.status === 'draft') byId('generate').click();
+    if (current && current !== before && current.status === 'draft') byId('generate').click();
   }
   async function refresh() { record = await api('/records/' + encodeURIComponent(recordId)); renderHistory(); }
   byId('draft-form').addEventListener('submit', function (event) {
@@ -400,16 +416,13 @@
       if (!recordId) throw new Error('Abre Venus Skin IA desde el expediente de una clienta.');
       config = await api('/config'); await refresh();
       if (record.assessments.length) { current = record.assessments[0]; render(current); }
-      var latest = record.assessments[0];
-      var alreadyDone = cabinaMode && latest && latest.status === 'approved' && !latest.retiredAt && captureIds.every(function (id) { return ((latest.input && latest.input.photos) || []).some(function (p) { return p.id === id; }); });
-      var visiblePhotos = captureIds.length ? record.photos.filter(function (p) { return captureIds.indexOf(p.id) !== -1; }) : record.photos;
+            var visiblePhotos = captureIds.length ? record.photos.filter(function (p) { return captureIds.indexOf(p.id) !== -1; }) : record.photos;
       renderPhotos(visiblePhotos);
       byId('age').value = record.record.age === null || record.record.age === undefined ? '' : record.record.age;
       byId('objective').value = record.record.objectives || ''; byId('consent-text').textContent = config.consentText;
       byId('save').disabled = false;
       if (config.simulation) { byId('configuration').hidden = false; byId('configuration').textContent = 'SIMULACIÓN · Datos ficticios. No se envían fotos al proveedor de IA ni se permite aprobar.'; byId('generate').textContent = 'Generar simulación'; }
       if (!config.simulation && (!config.enabled || !config.configured)) { byId('configuration').hidden = false; byId('configuration').textContent = 'Puedes preparar borradores. Para analizar falta activar el proveedor de IA y completar su configuración privada en el servidor.'; }
-      if (alreadyDone) { await renderCabina(latest); return; }
       var autoRun = query.get('auto') === '1' && captureIds.length && visiblePhotos.length === captureIds.length;
       if (autoRun) { await autoPrepare(visiblePhotos); return; }
       message(captureIds.length ? visiblePhotos.length === captureIds.length ? 'Fotos de esta sesión seleccionadas. Confirma sus datos para continuar.' : 'Algunas fotos de esta sesión no están disponibles. Regresa a captura y revisa las fotos guardadas.' : 'Expediente listo. Las fotos originales se conservan.');

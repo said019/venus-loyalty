@@ -34,6 +34,7 @@ test('private UI has no secret, HTML interpolation, external model call or unsup
   assert.match(read('public/skin-advisor.html'), /id="plan-services"/);
   assert.match(read('public/skin-advisor.html'), /<script src="\/mi-piel\.js/);
   assert.match(script, /Inicia sesión en Venus para continuar/);
+  assert.match(script, /Esta sesión ya tiene una valoración en curso\. Revisa su estado abajo\./);
 });
 
 test('entry point preserves prior record safety and route mounts before large global parser', () => {
