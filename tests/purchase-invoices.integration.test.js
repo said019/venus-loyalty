@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
-import {allocatePurchase,savePurchasePrices} from '../src/services/purchaseInvoices.js';
+import {allocatePurchase,savePurchasePrices,assignPurchaseRow} from '../src/services/purchaseInvoices.js';
 const database=process.env.CLINIC_TEST_DATABASE_URL;
 test('invoice allocation is manual, precise and atomic',{skip:!database},async t=>{
  assert(['127.0.0.1','localhost'].includes(new URL(database).hostname));process.env.DATABASE_URL=database;
@@ -23,6 +23,11 @@ test('invoice allocation is manual, precise and atomic',{skip:!database},async t
     await assert.rejects(()=>allocatePurchase(db,line.id,{requestKey:randomUUID(),quantity:1,...body},'test'));
    }
    assert.equal((await db.purchaseInvoiceLine.findUnique({where:{id:line.id}})).assignedQuantity,0);
+  });
+  await t.test('grid split rolls back sale if clinic fails',async()=>{
+   const before=await db.product.count();
+   await assert.rejects(()=>assignPurchaseRow(db,line.id,{requestKey:randomUUID(),saleQuantity:1,clinicQuantity:1,name:'Grid atomic test',price:'190',bottleMl:'30',volumeConfirmed:true,clinicTargetId:'missing'},'test'));
+   assert.equal(await db.product.count(),before);assert.equal((await db.purchaseInvoiceLine.findUnique({where:{id:line.id}})).assignedQuantity,0);
   });
   await t.test('repeated assignment creates one retail product and one stock entry',async()=>{
    const body={requestKey:randomUUID(),quantity:1,destination:'sale',name:'Test cream',price:'190'};

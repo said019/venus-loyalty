@@ -146,9 +146,10 @@
   <!-- Firebase removido - ahora usamos PostgreSQL -->
   <!-- Chart.js y html5-qrcode se cargan UNA sola vez (pineados) al final del body
        (re-auditoría perf: antes se descargaban y ejecutaban dos veces cada uno) -->
-  <link rel="stylesheet" href="/css/clinic-inventory.css?v=2">
+  <link rel="stylesheet" href="/css/clinic-inventory.css?v=3">
   <script defer src="/js/clinic-inventory.js?v=2"></script>
   <script defer src="/js/purchase-invoices.js?v=3"></script>
+  <script defer src="/js/purchase-grid.js?v=1"></script>
 </head>
 
 <body class="checking-auth">
@@ -13489,7 +13490,7 @@
       } else if (tab === 'invoices') {
         document.getElementById('btn-tab-invoices').classList.add('active');
         document.getElementById('panel-invoices').classList.add('active');
-        window.purchaseInvoices?.load();
+        window.purchaseGrid?.load();
       } else if (tab === 'clinic') {
         document.getElementById('btn-tab-clinic').classList.add('active');
         document.getElementById('panel-clinic').classList.add('active');

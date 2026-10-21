@@ -57,3 +57,34 @@ export async function savePurchasePrices(db, lineId, body) {
   if(listUnitCents!==null && listUnitCents*line.quantity<line.netTotalCents)throw inventoryError('El precio antes del descuento no puede ser menor al costo pagado. Usa importes con IVA incluido.');
   return db.purchaseInvoiceLine.update({where:{id:lineId},data:{listUnitCents,retailUnitCents,purchaseNote:body.note.trim()}});
 }
+
+// Each edited row commits both destinations and its retail price together.
+export async function assignPurchaseRow(db,lineId,body,actor){
+ const key=requestKey(body.requestKey);
+ const sale=Number(body.saleQuantity||0),clinic=Number(body.clinicQuantity||0);
+ if(![sale,clinic].every(n=>Number.isInteger(n)&&n>=0&&n<=100000))throw inventoryError('Las piezas deben ser números enteros positivos.');
+ const price=body.price===''||body.price==null?null:Number(body.price);
+ if(price!==null&&(!/^\d+(\.\d{1,2})?$/.test(String(body.price))||price<=0||price>1000000))throw inventoryError('Indica un precio al público válido.');
+ if(sale&&price===null)throw inventoryError('Falta el precio al público para las piezas de venta.');
+ if(body.name!=null&&(typeof body.name!=='string'||body.name.trim().length>150))throw inventoryError('El nombre debe tener máximo 150 caracteres.');
+ if(!sale&&!clinic&&price===null&&!body.name?.trim())throw inventoryError('Indica piezas, nombre o un precio para guardar.');
+ return db.$transaction(async tx=>{
+  const line=await tx.purchaseInvoiceLine.findUnique({where:{id:lineId}});
+  if(!line)throw inventoryError('Producto no encontrado.',404);
+  const adapter={$transaction:fn=>fn(tx),purchaseAllocation:tx.purchaseAllocation};
+  const allocations=[];
+  for(const [destination,quantity,targetId] of [['sale',sale,body.saleTargetId],['clinic',clinic,body.clinicTargetId]]){
+   if(!quantity)continue;
+   const allocation=await allocatePurchase(adapter,lineId,{requestKey:key+'_'+destination,quantity,destination,targetId,name:body.name,price:body.price,bottleMl:body.bottleMl,volumeConfirmed:body.volumeConfirmed},actor);
+   allocations.push(allocation);
+   if(destination==='sale')await tx.product.update({where:{id:allocation.targetId},data:{price}});
+  }
+  if(price!==null){
+   await tx.purchaseInvoiceLine.update({where:{id:lineId},data:{retailUnitCents:Math.round(price*100)}});
+   const linked=await tx.purchaseAllocation.findMany({where:{lineId,destination:'sale'},select:{targetId:true}});
+   if(linked.length)await tx.product.updateMany({where:{id:{in:linked.map(a=>a.targetId)}},data:{price}});
+  }
+  if(body.name?.trim())await tx.purchaseInvoiceLine.update({where:{id:lineId},data:{description:body.name.trim()}});
+  return {line:await tx.purchaseInvoiceLine.findUnique({where:{id:lineId}}),allocations};
+ });
+}
