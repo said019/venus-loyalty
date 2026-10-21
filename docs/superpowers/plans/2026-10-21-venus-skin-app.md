@@ -26,15 +26,15 @@
 
 ## Review Focus
 
-1. Un `v` de otra tarjeta en `mi-piel.html?card=A&v=<de B>` → 404 y mensaje "Este reporte no está disponible", nunca datos (Tarea 4 y 5).
-2. `Service.price` es `Decimal`: el plan guardado debe llevar `price` como número, no como string, o la tarjeta mostrará "NaN" (Tarea 3).
-3. Una clienta con valoración aprobada a la que se le inicia una toma nueva (la aprobada pasa a `superseded`) debe seguir viendo su reporte (Tarea 4).
-4. En cabina con la sesión vencida, el advisor debe mostrar "Inicia sesión en Venus para continuar", no una pantalla en blanco (Tarea 8).
-5. Foto original borrada después de aprobar → la tarjeta muestra "Original no disponible" y el resto del reporte sigue (Tarea 6).
+1. Un `v` de otra tarjeta en `mi-piel.html?card=A&v=<de B>` → 404 y mensaje "Este reporte no está disponible", nunca datos (Task 4 y 5).
+2. `Service.price` es `Decimal`: el plan guardado debe llevar `price` como número, no como string, o la tarjeta mostrará "NaN" (Task 3).
+3. Una clienta con valoración aprobada a la que se le inicia una toma nueva (la aprobada pasa a `superseded`) debe seguir viendo su reporte (Task 4).
+4. En cabina con la sesión vencida, el advisor debe mostrar "Inicia sesión en Venus para continuar", no una pantalla en blanco (Task 8).
+5. Foto original borrada después de aprobar → la tarjeta muestra "Original no disponible" y el resto del reporte sigue (Task 6).
 
 ---
 
-### Tarea 1: Aprobación por staff y retiro por el dueño
+### Task 1: Aprobación por staff y retiro por el dueño
 
 **Files:**
 - Modify: `src/services/ai/skinAdvisor/workflow.js:40-46` (`account`), `:185-187` (`getConfig`), `:269-292` (`approve`), añadir `retire`
@@ -125,7 +125,7 @@ git commit -m "feat(skin): la cosmetóloga aprueba en cabina; solo el dueño ret
 
 ---
 
-### Tarea 2: La información faltante ya no bloquea; prompt v4
+### Task 2: La información faltante ya no bloquea; prompt v4
 
 **Files:**
 - Modify: `src/services/ai/skinAdvisor/workflow.js:249`, `:279`
@@ -190,7 +190,7 @@ git commit -m "feat(skin): las respuestas faltantes no bloquean la aprobación; 
 
 ---
 
-### Tarea 3: Plan, rutina, próxima visita y progreso por zona al aprobar
+### Task 3: Plan, rutina, próxima visita y progreso por zona al aprobar
 
 **Files:**
 - Create: `src/services/ai/skinAdvisor/approvalExtras.js`
@@ -291,7 +291,7 @@ git commit -m "feat(skin): plan de cabina, rutina de casa, próxima visita y pro
 
 ---
 
-### Tarea 4: Servicio del reporte para la clienta
+### Task 4: Servicio del reporte para la clienta
 
 **Files:**
 - Create: `src/services/skinClientReport.js`
@@ -359,7 +359,7 @@ git commit -m "feat(skin): servicio del reporte para la clienta por tarjeta"
 
 ---
 
-### Tarea 5: Router público y lista en la tarjeta
+### Task 5: Router público y lista en la tarjeta
 
 **Files:**
 - Create: `src/routes/skinClient.js`
@@ -416,7 +416,7 @@ git commit -m "feat(skin): reportes Venus en la tarjeta de la clienta"
 
 ---
 
-### Tarea 6: Página `mi-piel` con el diseño aprobado
+### Task 6: Página `mi-piel` con el diseño aprobado
 
 **Files:**
 - Create: `public/mi-piel.html`, `public/mi-piel.css`, `public/mi-piel.js`
@@ -515,7 +515,7 @@ git commit -m "feat(skin): página mi-piel para la clienta con el diseño aproba
 
 ---
 
-### Tarea 7: Captura: consentimiento, bandera de secuencia, búsqueda para staff y entrega automática
+### Task 7: Captura: consentimiento, bandera de secuencia, búsqueda para staff y entrega automática
 
 **Files:**
 - Modify: `src/services/ai/skinAdvisor/config.js`, `src/services/ai/skinAdvisor/workflow.js` (`getConfig`)
@@ -580,7 +580,7 @@ git commit -m "feat(captura): consentimiento en cabina, bandera de secuencia y e
 
 ---
 
-### Tarea 8: Advisor: prellenado, borrador automático, plan al aprobar y vista de cabina
+### Task 8: Advisor: prellenado, borrador automático, plan al aprobar y vista de cabina
 
 **Files:**
 - Create: `src/services/ai/skinAdvisor/intakePrefill.js`
@@ -660,7 +660,7 @@ Añadir los nodos de la interfaz (ids exactos). `#cabina` contiene `<button id="
 - Cuerpo de `approve`: `plan`, `homeRoutine` (`null` si ambos vacíos), `nextVisitWeek` (`null` si vacío), `zoneProgress` (solo zonas con valor).
 - `#retire`: visible cuando `config.isOwner && row.approval && !row.retiredAt`; `confirm()` no (bloquea el WebView): usar un segundo clic "Confirmar retiro" en el mismo botón; llama `/assessments/<id>/retire` con `{ version }`; `approval-info` muestra "Retirado de la tarjeta el …".
 - `approval-info` tras aprobar: "Aprobada el {fecha}. Visible en la tarjeta de la clienta."
-- Modo cabina (`query.get('cabina') === '1'`): cuando `row.status === 'approved'` y no retirada, `current = row`, pedir `api('/assessments/<id>/client-view')` y `VenusMiPiel.render(byId('cabina-view'), data, { mode: 'cabina', onDone, onSendLink })`; ocultar `#review`, mostrar `#cabina`; `onDone` → `location.href = '/captura.html?modo=analisis'`; `onSendLink` → Tarea 9 (hasta entonces, `message('Envío por WhatsApp disponible en la siguiente tarea.')`).
+- Modo cabina (`query.get('cabina') === '1'`): cuando `row.status === 'approved'` y no retirada, `current = row`, pedir `api('/assessments/<id>/client-view')` y `VenusMiPiel.render(byId('cabina-view'), data, { mode: 'cabina', onDone, onSendLink })`; ocultar `#review`, mostrar `#cabina`; `onDone` → `location.href = '/captura.html?modo=analisis'`; `onSendLink` → Task 9 (hasta entonces, `message('Envío por WhatsApp disponible en la siguiente tarea.')`).
 - Errores de `api()` con `payload.error === 'unauthenticated' | 'auth_required' | 'invalid_token'` → `message('Inicia sesión en Venus para continuar. Vuelve a la captura e inicia sesión.', true)` y, en modo cabina, botón "Volver a la captura".
 
 - [ ] **Step 6: Correr**
@@ -682,7 +682,7 @@ git commit -m "feat(skin): borrador automático desde cabina, plan al aprobar y 
 
 ---
 
-### Tarea 9: Enlace por WhatsApp
+### Task 9: Enlace por WhatsApp
 
 **Files:**
 - Modify: `src/services/whatsapp-v2.js:303` (añadir `sendMiPielLink`)
@@ -724,7 +724,7 @@ git commit -m "feat(skin): enviar a la clienta el enlace de su reporte por Whats
 
 ---
 
-### Tarea 10: Camino a producción (migraciones, merge, variables)
+### Task 10: Camino a producción (migraciones, merge, variables)
 
 **Files:**
 - Create: `docs/superpowers/plans/2026-10-21-venus-skin-app-runbook.md`
@@ -742,7 +742,7 @@ git commit -m "docs(skin): runbook de migraciones, merge y variables para Venus 
 
 ---
 
-### Tarea 11: Prueba física en el Moji (con Said presente)
+### Task 11: Prueba física en el Moji (con Said presente)
 
 **Files:**
 - Create: `tools/moji-capture/android/VERIFICATION-<fecha>.md`
