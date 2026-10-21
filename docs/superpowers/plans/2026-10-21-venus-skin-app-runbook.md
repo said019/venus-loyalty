@@ -38,7 +38,7 @@ Con autorización de Said:
 ```bash
 DATABASE_URL="<DATABASE_PUBLIC_URL>" npx prisma migrate deploy
 ```
-OK: `All migrations have been successfully applied`. Repite `migrate status`: debe decir `up to date`.
+OK: `All migrations have been successfully applied`. Repite `migrate status`: debe decir `up to date`. Si el estado ya era `up to date`, `migrate deploy` no hace nada (no-op) y no es un error.
 
 ### 3b. Camino manual
 Con autorización de Said, ejecuta cada bloque con `psql "<DATABASE_PUBLIC_URL>"` (o el editor SQL de Railway, pestaña Data del servicio `Postgres`), en este orden, y después marca cada una:
@@ -120,8 +120,8 @@ OK: los cuatro archivos dan `200`; la tarjeta de prueba devuelve `200` con `{ "s
 ## 7. Cuentas
 
 Cada cosmetóloga tiene su propia cuenta con rol `staff`; nadie usa la cuenta del dueño.
-- Crear desde el admin (Usuarios) o con el script. Nota: `scripts/create-admin-user.js` NO está en esta rama; existe sin versionar como `server/scripts/create-admin-user.js` en la copia de trabajo de Said. Su línea de uso no se pudo citar desde aquí: ábrela (`head -20 server/scripts/create-admin-user.js`) y copia el "Usage" que trae, o usa el admin. Verifica que cree rol `staff` y no `admin`.
-- Retira la contraseña del dueño del login guardado del dispositivo (Moji): borra la credencial guardada en el navegador/gestor del dispositivo e inicia sesión con la cuenta `staff` de la cosmetóloga.
+- Con autorización de Said: crear la cuenta de cada cosmetóloga desde el admin (Usuarios) o con el script. Nota: `scripts/create-admin-user.js` NO está en esta rama; existe sin versionar como `server/scripts/create-admin-user.js` en la copia de trabajo de Said. Su línea de uso no se pudo citar desde aquí: ábrela (`head -20 server/scripts/create-admin-user.js`) y copia el "Usage" que trae, o usa el admin. Verifica que cree rol `staff` y no `admin`.
+- Con autorización de Said: retira la contraseña del dueño del login guardado del dispositivo (Moji): borra la credencial guardada en el navegador/gestor del dispositivo e inicia sesión con la cuenta `staff` de la cosmetóloga.
 
 OK: cada cosmetóloga entra con su cuenta y no ve funciones de dueño.
 
@@ -129,4 +129,4 @@ OK: cada cosmetóloga entra con su cuenta y no ve funciones de dueño.
 
 - Código: Railway > servicio `venus-loyalty` > Deployments > deployment anterior > "Rollback". Con autorización de Said.
 - Base de datos: no se necesita down-migration; las migraciones son aditivas (tabla nueva y dos columnas nulas) y el código anterior las ignora.
-- Secuencia de luz: pon `SKIN_SEQUENCE_ENABLED=false` en Railway; se apaga sin desplegar de nuevo.
+- Con autorización de Said, secuencia de luz: pon `SKIN_SEQUENCE_ENABLED=false` en Railway; se apaga sin desplegar de nuevo.
