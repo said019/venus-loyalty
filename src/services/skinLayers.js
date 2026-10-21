@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
 
 const runner = fileURLToPath(new URL('../../tools/skin-layers/run.py', import.meta.url));
-const allowed = ['poros', 'textura', 'manchas', 'lesiones', 'zonas_rojas', 'brillo'];
+const allowed = ['poros', 'textura', 'arrugas', 'manchas', 'lesiones', 'zonas_rojas', 'brillo'];
 const error = code => Object.assign(new Error(code), { code });
 
 function execute(python, args) {
@@ -51,7 +51,7 @@ export function createSkinLayersEngine({ python = process.env.SKIN_LAYERS_PYTHON
           if (!manifest.images?.includes(key + '.jpg')) continue;
           const image = await sharp(join(output, key + '.jpg')).resize({ width: 1224, height: 1632, fit: 'inside', withoutEnlargement: true }).jpeg({ quality: 86 }).toBuffer();
           const stats = manifest.layers?.[key === 'lesiones' ? 'lesiones_inflamadas' : key];
-          images.push({ key, dataUrl: 'data:image/jpeg;base64,' + image.toString('base64'), candidateCount: stats?.candidateCount ?? null });
+          images.push({ key, bytes: image, candidateCount: stats?.candidateCount ?? null });
         }
         if (!images.length) throw error('layers_invalid');
         return { method: manifest.method, validated: false, images,

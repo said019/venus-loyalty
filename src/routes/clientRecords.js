@@ -57,6 +57,23 @@ async function uploadToCloudinary(buffer, folder = 'venus-expedientes') {
   });
 }
 
+// Los mapas de Skin IA derivan de la foto: se borran con ella de Cloudinary
+async function destroySkinMaps(photoIds) {
+  if (!photoIds.length) return;
+  const sets = await prisma.skinLayerSet.findMany({ where: { sourcePhotoId: { in: photoIds } } });
+  for (const set of sets) {
+    for (const image of Array.isArray(set.images) ? set.images : []) {
+      if (!image?.publicId) continue;
+      try {
+        await cloudinary.uploader.destroy(image.publicId);
+      } catch (e) {
+        console.error('Error eliminando mapa de Cloudinary:', e);
+      }
+    }
+  }
+  await prisma.skinLayerSet.deleteMany({ where: { sourcePhotoId: { in: photoIds } } });
+}
+
 // ==================== EXPEDIENTES ====================
 
 // Obtener expediente de una clienta (o crear si no existe)
@@ -313,6 +330,7 @@ router.delete('/sessions/:sessionId', requireRole("admin"), async (req, res) => 
         }
       }
     }
+    await destroySkinMaps(photos.map(photo => photo.id));
 
     await prisma.treatmentSession.delete({
       where: { id: sessionId }
@@ -436,6 +454,7 @@ router.delete('/photos/:photoId', requireRole("admin"), async (req, res) => {
         console.error('Error eliminando de Cloudinary:', e);
       }
     }
+    await destroySkinMaps([photo.id]);
 
     // Eliminar de BD
     await prisma.clientPhoto.delete({

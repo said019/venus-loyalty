@@ -132,6 +132,7 @@ import { createOpenAIProvider } from './src/services/ai/skinAdvisor/openaiProvid
 import { createOllamaProvider } from './src/services/ai/skinAdvisor/ollamaProvider.js';
 import { createSkinPhotoLoader } from './src/services/ai/skinAdvisor/photoLoader.js';
 import { createSkinLayersEngine } from './src/services/skinLayers.js';
+import { createSkinLayerStore } from './src/services/skinLayerStore.js';
 import { checkoutGroup, sameClient, unpaid } from './src/services/groupedCheckout.js';
 import { skinAdvisorConfig } from './src/services/ai/skinAdvisor/config.js';
 import integrationsRouter from "./src/routes/integrations.js";
@@ -812,6 +813,8 @@ const skinWorkflow = createSkinAdvisorWorkflow({
   provider: (skinConfig.provider === 'ollama' ? createOllamaProvider : createOpenAIProvider)({ enabled: skinConfig.enabled && skinConfig.configured, apiKey: skinConfig.apiKey, model: skinConfig.model }),
   loadPhoto: createSkinPhotoLoader({ cloudName: process.env.CLOUDINARY_CLOUD_NAME }),
   layersEngine: createSkinLayersEngine(),
+  // cloudinaryV2.config() runs at module load, before any request can save a map.
+  layerStore: process.env.CLOUDINARY_CLOUD_NAME ? createSkinLayerStore({ cloudinary: cloudinaryV2 }) : undefined,
 });
 app.use('/api/skin-advisor', cookieParser(), createSkinAdvisorRouter({
   workflow: skinWorkflow,

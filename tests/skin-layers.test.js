@@ -19,12 +19,18 @@ test('local layers return whitelisted images and clean private files', async () 
     const output = args[args.indexOf('--out') + 1]; directory = dirname(output);
     await mkdir(output);
     await writeFile(join(output, 'poros.jpg'), bytes);
-    await writeFile(join(output, 'manifest.json'), JSON.stringify({ schemaVersion: 1, validated: false, score: null, method: 'test', images: ['poros.jpg', '../../secret.jpg'], layers: { poros: { candidateCount: 12 } } }));
+    await writeFile(join(output, 'arrugas.jpg'), bytes);
+    await writeFile(join(output, 'manifest.json'), JSON.stringify({ schemaVersion: 1, validated: false, score: null, method: 'test', images: ['poros.jpg', 'arrugas.jpg', '../../secret.jpg'], layers: { poros: { candidateCount: 12 }, arrugas: { candidateCount: 4 } } }));
   } });
   const result = await engine.generate(bytes);
-  assert.equal(result.images.length, 1);
+  assert.deepEqual(result.images.map(image => image.key), ['poros', 'arrugas']);
   assert.equal(result.images[0].candidateCount, 12);
-  assert.match(result.images[0].dataUrl, /^data:image\/jpeg;base64,/);
+  assert.equal(result.images[1].candidateCount, 4);
+  for (const image of result.images) {
+    assert.equal(image.dataUrl, undefined);
+    assert.ok(Buffer.isBuffer(image.bytes));
+    assert.equal((await sharp(image.bytes).metadata()).format, 'jpeg');
+  }
   await assert.rejects(access(directory));
 });
 

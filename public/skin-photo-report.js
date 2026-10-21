@@ -77,32 +77,50 @@
     if (options.layers) { var mapOption = node('option', 'Mapa procesado', filter); mapOption.value = 'map'; mapOption.disabled = true; }
     var visualNote = node('p', null, viewer, 'report-visual-note'); visualNote.setAttribute('role', 'status');
     var layerCache = Object.create(null), layersBusy = false;
-    var layerNames = { poros: 'Poros', textura: 'Textura', manchas: 'Contraste pigmentado', lesiones: 'Puntos rojos', zonas_rojas: 'Zonas rojas', brillo: 'Brillo' };
+    var layerNames = { poros: 'Poros', textura: 'Textura', arrugas: 'Líneas y arrugas', manchas: 'Contraste pigmentado', lesiones: 'Puntos rojos', zonas_rojas: 'Zonas rojas', brillo: 'Brillo' };
     var layerControls = node('div', null, viewer, 'report-visual-controls');
     var layerSelect = node('select', null, layerControls); layerSelect.setAttribute('aria-label', 'Mapa de la fotografía'); layerSelect.hidden = true;
+    function mapUrl(value) { var url = imageUrl(value); return url && new URL(url).hostname === 'res.cloudinary.com' ? url : ''; }
+    function validLayers(result, photo) { return !!result && result.sourcePhotoId === photo.id && result.sourceUrl === photo.url && Array.isArray(result.images); }
+    function showLayers(photo, result, display) {
+      layerSelect.textContent = '';
+      if (!display) node('option', 'Elegir mapa guardado', layerSelect).value = '';
+      result.images.forEach(function (entry) { if (layerNames[entry.key] && mapUrl(entry.url)) { var opt = node('option', layerNames[entry.key], layerSelect); opt.value = entry.key; } });
+      if (layerSelect.options.length < (display ? 1 : 2)) throw new Error('invalid_layers');
+      layerSelect.hidden = false;
+      layerButton.textContent = 'Regenerar mapas';
+      var saved = 'Mapas guardados el ' + date(result.createdAt) + '. ';
+      layerSelect.onchange = function () {
+        if (selected !== photo) return;
+        var entry = result.images.find(function (item) { return item.key === layerSelect.value; });
+        if (!entry || !mapUrl(entry.url)) { visualNote.textContent = saved + 'Elige uno para verlo; el original no se modifica.'; return; }
+        filter.value = 'map';
+        visualNote.textContent = saved + result.notice + (entry.candidateCount == null ? '' : ' Candidatos: ' + entry.candidateCount + '.');
+        caption.textContent = layerNames[entry.key] + ' · Pendiente de revisión';
+        setSource(mapUrl(entry.url), caption.textContent, ++requestVersion, false);
+      };
+      layerSelect.onchange();
+    }
+    async function loadSavedLayers(photo, version) {
+      if (!options.savedLayers || photo.mode !== 'image') return;
+      try {
+        var result = photo.id in layerCache ? layerCache[photo.id] : await options.savedLayers(photo.id);
+        if (result !== null && !validLayers(result, photo)) return;
+        layerCache[photo.id] = result;
+        if (result && alive(version)) showLayers(photo, result, false);
+      } catch (_) { /* Saved maps are optional; the original stays visible. */ }
+    }
     var layerButton = button('Generar mapas', layerControls, async function () {
       if (!selected || selected.mode !== 'image' || layersBusy || !options.layers) return;
       var photo = selected, version = ++requestVersion;
       layersBusy = true; layerButton.disabled = true;
       visualNote.textContent = 'Procesando mapas. Puede tardar hasta tres minutos.';
       try {
-        var result = layerCache[photo.id] || await options.layers(photo.id);
-        if (result.sourcePhotoId !== photo.id || result.sourceUrl !== photo.url || !Array.isArray(result.images)) throw new Error('invalid_layers');
+        var result = await options.layers(photo.id);
+        if (!validLayers(result, photo)) throw new Error('invalid_layers');
         layerCache[photo.id] = result;
         if (!alive(version)) return;
-        layerSelect.textContent = '';
-        result.images.forEach(function (entry) { if (layerNames[entry.key]) { var opt = node('option', layerNames[entry.key], layerSelect); opt.value = entry.key; } });
-        layerSelect.hidden = false;
-        layerSelect.onchange = function () {
-          if (selected !== photo) return;
-          var entry = result.images.find(function (item) { return item.key === layerSelect.value; });
-          if (!entry || !/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(entry.dataUrl)) return;
-          filter.value = 'map';
-          visualNote.textContent = result.notice + (entry.candidateCount == null ? '' : ' Candidatos: ' + entry.candidateCount + '.');
-          caption.textContent = layerNames[entry.key] + ' · Pendiente de revisión';
-          setSource(entry.dataUrl, caption.textContent, ++requestVersion, false);
-        };
-        layerSelect.onchange();
+        showLayers(photo, result, true);
       } catch (_) {
         if (alive(version)) visualNote.textContent = 'No se pudieron generar los mapas. El original se conserva; intenta de nuevo.';
       } finally { layersBusy = false; layerButton.disabled = !selected || selected.mode !== 'image'; }
@@ -163,7 +181,7 @@
     }
     function selectCapture(photo) {
       selected = photo; requestVersion++; filter.value = 'original'; visualNote.textContent = '';
-      layerSelect.hidden = true; layerButton.disabled = layersBusy || photo.mode !== 'image';
+      layerSelect.hidden = true; layerButton.disabled = layersBusy || photo.mode !== 'image'; layerButton.textContent = 'Generar mapas';
       modeSelect.value = photo.mode;
       filter.disabled = !options.preview || ['image', 'image_negative'].indexOf(photo.mode) === -1;
       var name = data && data.modes[photo.mode] || 'Modalidad no registrada';
@@ -185,6 +203,7 @@
       var url = imageUrl(photo.url); enlarge.disabled = !url;
       if (url) setSource(url, name + ' · Original', requestVersion, eligible && pins.childNodes.length > 0);
       else { mainImage.hidden = true; pins.hidden = true; loading.hidden = false; loading.textContent = 'Original no disponible.'; }
+      loadSavedLayers(photo, requestVersion);
     }
     modeSelect.onchange = function () { var photo = captures.find(function (p) { return p.mode === modeSelect.value; }); if (photo) selectCapture(photo); };
     filter.onchange = async function () {

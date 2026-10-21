@@ -236,6 +236,13 @@ def main():
         guardar("lesiones", rotulo(v1.render_circles(pol, bl, (60, 60, 255), fw),
                                    "Puntos rojos", f"{len(bl)} candidatos por revisar"))
         reporte["lesiones_inflamadas"] = {"conteo": len(bl)}
+        # Arrugas: crestas oscuras alargadas (Frangi del v1) sobre la luz blanca
+        m, lineas = v1.det_arrugas(ref, skin, fw)
+        guardar("arrugas", rotulo(v1.render_mask(ref, m, (0, 200, 255)),
+                                  "Lineas y arrugas: candidatos", f"{len(lineas)} lineas por revisar"))
+        reporte["arrugas"] = {"conteo": len(lineas),
+                              "por_zona": {z: sum(1 for x, y, _ in lineas if zm[int(y), int(x)])
+                                           for z, zm in zonas_v1.items()}}
         inten, _ = v1.det_rojez(pol, skin, fw)
         guardar("zonas_rojas", rotulo(v1.render_heat(pol, inten, (40, 40, 230)), "Zonas rojas"))
         reporte["zonas_rojas"] = {"porcentaje": round(100 * float((inten > 0).sum()) / (skin > 0).sum(), 2)}

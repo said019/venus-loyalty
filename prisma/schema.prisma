@@ -454,6 +454,7 @@ model ClientRecord {
   consents      ConsentDoc[]
   diagnoses     FacialDiagnosis[]
   skinAssessments SkinAdvisorAssessment[]
+  skinLayerSets   SkinLayerSet[]
   laserSessions LaserSessionLog[]
   documents     ClientDocument[]
 
@@ -516,7 +517,28 @@ model ClientPhoto {
   takenAt   DateTime @default(now())
   createdAt DateTime @default(now())
 
+  skinLayerSets SkinLayerSet[]
+
   @@map("client_photos")
+}
+
+// Mapas locales (OpenCV) generados desde una captura con luz blanca.
+// Son detecciones experimentales: candidatos por revisar, nunca hallazgos confirmados.
+model SkinLayerSet {
+  id            String       @id @default(cuid())
+  recordId      String
+  record        ClientRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  sourcePhotoId String
+  sourcePhoto   ClientPhoto  @relation(fields: [sourcePhotoId], references: [id], onDelete: Cascade)
+  method        String
+  notice        String
+  images        Json // [{ key, url, publicId, candidateCount }]
+  createdById   String
+  createdAt     DateTime     @default(now())
+
+  @@index([sourcePhotoId, createdAt])
+  @@index([recordId])
+  @@map("skin_layer_sets")
 }
 
 // Ficha Clínica digital (la llena la clienta desde su celular)

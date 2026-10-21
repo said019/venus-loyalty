@@ -27,7 +27,7 @@ const publicRow = (row) => {
   return safe;
 };
 
-export function createSkinAdvisorWorkflow({ prisma, provider, loadPhoto, layersEngine, config = {}, clock = () => new Date() }) {
+export function createSkinAdvisorWorkflow({ prisma, provider, loadPhoto, layersEngine, layerStore, config = {}, clock = () => new Date() }) {
   const now = () => new Date(clock());
   const previewActors = new Set();
   const pipelineTimeoutMs = config.pipelineTimeoutMs ?? 90_000;
@@ -108,25 +108,59 @@ export function createSkinAdvisorWorkflow({ prisma, provider, loadPhoto, layersE
       consent: { accepted: true, provider: config.provider || 'openai', version: config.consentVersion, acceptedAt: now().toISOString(), scope: { photoIds: selected.map(p => p.id) } },
       activeServices: structuredClone(config.activeServices || []), protocols: structuredClone(config.protocols || []) };
   }
+  const layersEnabled = () => layersEngine?.enabled === true && typeof layerStore?.save === 'function' && typeof layerStore?.remove === 'function';
+  async function whitePhoto(recordId, photoId) {
+    if (!idValid(photoId)) fail('invalid_input');
+    const photos = await prisma.clientPhoto.findMany({ where: { recordId, id: { in: [photoId] } } });
+    const photo = photos.find(p => p.id === photoId);
+    if (!photo) fail('photo_ownership', 404);
+    if (!/(?:^|\|)\s*modo=image\s*(?:\||$)/.test(photo.description || '')) fail('invalid_photo');
+    return photo;
+  }
+  // Storage identifiers stay server-side; the browser only receives image URLs.
+  const publicLayerSet = (row, photo) => ({ id: row.id, createdAt: iso(row.createdAt), method: row.method, validated: false, notice: row.notice,
+    sourcePhotoId: photo.id, sourceUrl: photo.url, images: row.images.map(({ key, url, candidateCount }) => ({ key, url, candidateCount })) });
+  const storedUrl = (value) => {
+    try { const u = new URL(value); return u.protocol === 'https:' && u.hostname === 'res.cloudinary.com' && !u.port && !u.username && !u.password; }
+    catch { return false; }
+  };
+  async function storeLayers(actorId, recordId, photo, result) {
+    const images = [];
+    try {
+      for (const image of result.images) {
+        const stored = await layerStore.save(image.bytes, { recordId, key: image.key });
+        if (stored?.publicId) images.push({ key: image.key, url: stored.url, publicId: stored.publicId, candidateCount: image.candidateCount ?? null });
+        if (!storedUrl(stored?.url) || typeof stored.publicId !== 'string' || !stored.publicId) throw new Error('invalid_stored_layer');
+      }
+      return await prisma.skinLayerSet.create({ data: { recordId, sourcePhotoId: photo.id, method: result.method, notice: result.notice, images, createdById: actorId } });
+    } catch {
+      await Promise.allSettled(images.map(image => layerStore.remove(image.publicId)));
+      fail('layers_storage_unavailable', 503);
+    }
+  }
   return Object.freeze({
     async photoLayers(actorId, recordId, photoId) {
       await account(prisma, actorId);
       await record(prisma, recordId);
-      if (!idValid(photoId)) fail('invalid_input');
-      if (!layersEngine?.enabled) fail('layers_disabled', 503);
-      const photos = await prisma.clientPhoto.findMany({ where: { recordId, id: { in: [photoId] } } });
-      const photo = photos.find(p => p.id === photoId);
-      if (!photo) fail('photo_ownership', 404);
-      if (!/(?:^|\|)\s*modo=image\s*(?:\||$)/.test(photo.description || '')) fail('invalid_photo');
+      if (!layersEnabled()) fail('layers_disabled', 503);
+      const photo = await whitePhoto(recordId, photoId);
+      let result;
       try {
         const media = await loadPhoto(photo);
-        const result = await layersEngine.generate(media.bytes);
-        return { ...result, sourcePhotoId: photo.id, sourceUrl: photo.url };
+        result = await layersEngine.generate(media.bytes);
       } catch (error) {
         if (error.code === 'layers_busy') fail('layers_busy', 429);
         if (error.code === 'layers_timeout') fail('layers_timeout', 504);
         fail('layers_unavailable', 422);
       }
+      return publicLayerSet(await storeLayers(actorId, recordId, photo, result), photo);
+    },
+    async savedLayers(actorId, recordId, photoId) {
+      await account(prisma, actorId);
+      await record(prisma, recordId);
+      const photo = await whitePhoto(recordId, photoId);
+      const row = await prisma.skinLayerSet.findFirst({ where: { recordId, sourcePhotoId: photo.id }, orderBy: { createdAt: 'desc' } });
+      return row ? publicLayerSet(row, photo) : null;
     },
     async previewPhoto(actorId, recordId, photoId, body = {}) {
       await account(prisma, actorId);
@@ -150,7 +184,7 @@ export function createSkinAdvisorWorkflow({ prisma, provider, loadPhoto, layersE
     },
     async getConfig(actorId) {
       const user = await account(prisma, actorId);
-      return { enabled: config.enabled === true, configured: config.configured === true, layersEnabled: layersEngine?.enabled === true, simulation: provider.metadata?.simulation === true, canApprove: user.role === 'admin' && user.id === config.approverId, consentVersion: config.consentVersion, consentText: config.consentText, userId: user.id };
+      return { enabled: config.enabled === true, configured: config.configured === true, layersEnabled: layersEnabled(), simulation: provider.metadata?.simulation === true, canApprove: user.role === 'admin' && user.id === config.approverId, consentVersion: config.consentVersion, consentText: config.consentText, userId: user.id };
     },
     async getRecord(actorId, recordId) {
       await account(prisma, actorId);
