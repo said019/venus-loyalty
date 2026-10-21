@@ -49,3 +49,4 @@ check_runtime.py during the build. SKIN_LAYERS_PYTHON selects that executable;
 an empty value disables the feature. One analysis at a time runs per process.
 Temporary photos/results are deleted on success and failure. The CPU operation
 has a 195-second deadline. No third-party image processing API is called.
+- Runbook de despliegue a producción: `docs/superpowers/plans/2026-10-21-venus-skin-app-runbook.md`.
