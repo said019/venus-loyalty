@@ -3,6 +3,8 @@ import { prepareContext } from './context.js';
 import { validateAssessment } from './contract.js';
 import { ANSWER_FIELDS, DECLARED_FLAG_FIELDS, ZONES, CATALOG_VERSION } from './catalog.js';
 import { PROMPT_VERSION } from './prompt.js';
+import { normalizeApprovalExtras } from './approvalExtras.js';
+import { SKIN_MENU_CATEGORIES } from '../skinMenu.js';
 import { createVisualPreview, VISUAL_MODES } from '../../skinVisualPreview.js';
 
 export class SkinWorkflowError extends Error {
@@ -46,6 +48,7 @@ export function createSkinAdvisorWorkflow({ prisma, provider, loadPhoto, layersE
     if (permission === 'owner' && (actorId !== config.approverId || user.role !== 'admin')) fail('not_authorized', 403);
     return user;
   }
+  const loadServices = (db) => db.service.findMany({ where: { isActive: true, category: { in: SKIN_MENU_CATEGORIES } }, select: { id: true, name: true, price: true, durationMinutes: true, category: true }, orderBy: [{ name: 'asc' }, { id: 'asc' }] });
   async function record(db, recordId) {
     if (!idValid(recordId)) fail('invalid_input');
     const row = await db.clientRecord.findUnique({ where: { id: recordId } });
@@ -268,7 +271,11 @@ export function createSkinAdvisorWorkflow({ prisma, provider, loadPhoto, layersE
         clearTimeout(timer);
       }
     },
-    async approve(actorId, id, { version, correctedAssessment = null, reviewNotes = null } = {}) {
+    async services(actorId) {
+      await account(prisma, actorId);
+      return (await loadServices(prisma)).map(({ id, name, price, durationMinutes, category }) => ({ id, name, price: Number(price), durationMinutes, category }));
+    },
+    async approve(actorId, id, { version, correctedAssessment = null, reviewNotes = null, plan, homeRoutine, nextVisitWeek, zoneProgress } = {}) {
       const correction = correctedAssessment === null ? null : structuredClone(correctedAssessment);
       await account(prisma, actorId, 'approve');
       const row = await assessment(prisma, id);
@@ -279,6 +286,11 @@ export function createSkinAdvisorWorkflow({ prisma, provider, loadPhoto, layersE
       if (context.inputFingerprint !== row.provenance?.inputFingerprint) fail('stale_input', 409);
       try { validateAssessment(correction || row.assessment, context); } catch { fail('invalid_assessment'); }
       if ((correction || row.assessment).quality.status === 'retake') fail('needs_information', 409);
+      let extras;
+      try {
+        const zones = [...new Set([...row.input.photos.map(p => p.zone), ...(correction || row.assessment).observations.map(o => o.zone)])];
+        extras = normalizeApprovalExtras({ plan, homeRoutine, nextVisitWeek, zoneProgress }, { services: await loadServices(prisma), zones });
+      } catch { fail('invalid_review'); }
       return tx(async db => {
         await account(db, actorId, 'approve');
         const current = await assessment(db, id);
@@ -287,7 +299,7 @@ export function createSkinAdvisorWorkflow({ prisma, provider, loadPhoto, layersE
         if (iso(currentRecord.updatedAt) !== context.record.version) fail('stale_input', 409);
         const photos = await db.clientPhoto.findMany({ where: { recordId: row.recordId, id: { in: row.input.photos.map(p => p.id) } } });
         if (photos.length !== row.input.photos.length || row.input.photos.some(p => !photos.some(q => q.id === p.id && q.url === p.sourceUrl && iso(q.takenAt) === p.sourceTakenAt))) fail('stale_input', 409);
-        const changed = await db.skinAdvisorAssessment.updateMany({ where: { id, version, status: 'pending_review' }, data: { status: 'approved', version: { increment: 1 }, approval: { actorId, approvedAt: now().toISOString(), inputFingerprint: context.inputFingerprint, correctedAssessment: correction, reviewNotes } } });
+        const changed = await db.skinAdvisorAssessment.updateMany({ where: { id, version, status: 'pending_review' }, data: { status: 'approved', version: { increment: 1 }, approval: { actorId, approvedAt: now().toISOString(), inputFingerprint: context.inputFingerprint, correctedAssessment: correction, reviewNotes, ...extras } } });
         if (changed.count !== 1) fail('stale_version', 409);
         return publicRow(await assessment(db, id));
       });

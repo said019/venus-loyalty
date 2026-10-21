@@ -28,6 +28,7 @@ export function createSkinAdvisorRouter({ workflow, authenticate, expectedOrigin
     catch (error) { res.status(error instanceof SkinWorkflowError ? error.status : 500).json({ success: false, error: error instanceof SkinWorkflowError ? error.code : 'internal_error' }); }
   };
   router.get('/config', handle(req => workflow.getConfig(req.admin.uid)));
+  router.get('/services', handle(req => workflow.services(req.admin.uid)));
   router.get('/records/:recordId', handle(req => workflow.getRecord(req.admin.uid, req.params.recordId)));
   router.get('/records/:recordId/photos/:photoId/layers', handle(req => workflow.savedLayers(req.admin.uid, req.params.recordId, req.params.photoId)));
   router.post('/records/:recordId/photos/:photoId/layers', handle(req => workflow.photoLayers(req.admin.uid, req.params.recordId, req.params.photoId)));

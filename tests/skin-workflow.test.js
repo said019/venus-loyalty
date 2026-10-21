@@ -29,6 +29,7 @@ async function fixture(overrides = {}) {
       create: async ({ data }) => { const row = { id: `assessment-${rows.length}`, version: 1, status: 'draft', createdAt: date, ...structuredClone(data) }; rows.push(row); return structuredClone(row); },
       updateMany: async ({ where, data }) => { const selected = rows.filter(p => match(p, where)); for (const row of selected) for (const [key, value] of Object.entries(data)) row[key] = value?.increment ? row[key] + value.increment : structuredClone(value); return { count: selected.length }; },
     },
+    service: { findMany: async () => [{ id: 's1', name: 'Hidratación profunda', price: '850.00', durationMinutes: 60, category: 'Básicos Venus', isActive: true }] },
     $transaction: async fn => fn(db),
   };
   let calls = 0;
@@ -249,4 +250,19 @@ test('unanswered questions do not block approval; a retake does', async () => {
   const g2 = await retake.workflow.generate('staff', d2.id, { version: 1 });
   assert.equal(g2.status, 'needs_information');
   await assert.rejects(retake.workflow.approve('staff', d2.id, { version: 2 }), { code: 'stale_version' });
+});
+
+test('approval stores plan, routine, next visit and zone progress; services list is private', async () => {
+  const f = await fixture();
+  const list = await f.workflow.services('staff');
+  assert.deepEqual(list, [{ id: 's1', name: 'Hidratación profunda', price: 850, durationMinutes: 60, category: 'Básicos Venus' }]);
+  await assert.rejects(f.workflow.services('nobody'), { code: 'unauthenticated' });
+  const draft = await f.workflow.createDraft('staff', f.current.id, f.body);
+  await f.workflow.generate('staff', draft.id, { version: 1 });
+  await assert.rejects(f.workflow.approve('staff', draft.id, { version: 2, plan: [{ serviceId: 'zzz', cadence: 'mensual' }] }), { code: 'invalid_review' });
+  await assert.rejects(f.workflow.approve('staff', draft.id, { version: 2, zoneProgress: { chin: 'mejoro' } }), { code: 'invalid_review' });
+  const approved = await f.workflow.approve('staff', draft.id, { version: 2, plan: [{ serviceId: 's1', cadence: 'mensual' }], homeRoutine: { morning: 'Limpiador', night: 'Crema' }, nextVisitWeek: '2026-11-09', zoneProgress: { forehead: 'mejoro' } });
+  assert.equal(approved.approval.plan[0].price, 850);
+  assert.equal(typeof approved.approval.plan[0].price, 'number');
+  assert.deepEqual(approved.approval.zoneProgress, { forehead: 'mejoro' });
 });
