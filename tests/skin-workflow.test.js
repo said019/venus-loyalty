@@ -236,3 +236,17 @@ test('pipeline deadline includes photo loading and prevents provider calls after
   assert.equal(f.calls(), 0);
   assert.equal(f.rows[0].failureCode, 'timeout');
 });
+
+test('unanswered questions do not block approval; a retake does', async () => {
+  const withMissing = await fixture({ provider: { generate: async context => ({ ...makeAssessment(context), missingInformation: ['Uso de protector solar'] }) } });
+  const d1 = await withMissing.workflow.createDraft('staff', withMissing.current.id, withMissing.body);
+  const g1 = await withMissing.workflow.generate('staff', d1.id, { version: 1 });
+  assert.equal(g1.status, 'pending_review');
+  const a1 = await withMissing.workflow.approve('staff', d1.id, { version: 2 });
+  assert.deepEqual(a1.assessment.missingInformation, ['Uso de protector solar']);
+  const retake = await fixture({ provider: { generate: async context => { const a = makeAssessment(context); a.quality.status = 'retake'; return a; } } });
+  const d2 = await retake.workflow.createDraft('staff', retake.current.id, retake.body);
+  const g2 = await retake.workflow.generate('staff', d2.id, { version: 1 });
+  assert.equal(g2.status, 'needs_information');
+  await assert.rejects(retake.workflow.approve('staff', d2.id, { version: 2 }), { code: 'stale_version' });
+});

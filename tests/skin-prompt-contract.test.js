@@ -15,8 +15,11 @@ test('import narrative uses the live menu, exact ids and a separately cached cat
 });
 
 test('live prompt explains strict zone coverage and protocol prerequisites', () => {
-  assert.equal(PROMPT_VERSION, 'venus-skin-prompt-v3');
+  assert.equal(PROMPT_VERSION, 'venus-skin-prompt-v4');
   assert.match(DEVELOPER_PROMPT, /exactly one entry for each distinct zone/);
   assert.match(DEVELOPER_PROMPT, /copied verbatim/);
   assert.match(DEVELOPER_PROMPT, /do not invent visible findings/);
+  assert.match(DEVELOPER_PROMPT, /Do not list photo views or lighting modes the protocol does not supply/);
+  assert.match(DEVELOPER_PROMPT, /plain Spanish, addressed to the client in second person/);
+  assert.doesNotMatch(DEVELOPER_PROMPT, /Mention absent views in missingInformation/);
 });

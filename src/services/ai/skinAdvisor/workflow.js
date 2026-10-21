@@ -248,7 +248,7 @@ export function createSkinAdvisorWorkflow({ prisma, provider, loadPhoto, layersE
           if (iso(latestRecord.updatedAt) !== context.record.version || latestPhotos.length !== row.input.photos.length || row.input.photos.some(p => !latestPhotos.some(q => q.id === p.id && q.url === p.sourceUrl && iso(q.takenAt) === p.sourceTakenAt))) fail('stale_input', 409);
           checkSignal(controller.signal);
           const saved = await db.skinAdvisorAssessment.updateMany({ where: { id, version, status: 'generating', attemptToken: token, leaseUntil: { gt: now() } }, data: {
-            status: output.quality.status === 'retake' || output.missingInformation.length ? 'needs_information' : 'pending_review', assessment: structuredClone(output),
+            status: output.quality.status === 'retake' ? 'needs_information' : 'pending_review', assessment: structuredClone(output),
             provenance: { provider: metadata.provider || 'custom', model: metadata.model || 'unspecified', simulation: metadata.simulation === true, inputFingerprint: context.inputFingerprint, photoIds: context.photos.map(p => p.id), generatedAt: now().toISOString(), catalogVersion: CATALOG_VERSION, promptVersion: PROMPT_VERSION, schemaVersion: 'venus-skin-assessment-v1' },
             attemptToken: null, leaseUntil: null, version: { increment: 1 } } });
           if (saved.count !== 1) fail('stale_version', 409);
@@ -278,7 +278,7 @@ export function createSkinAdvisorWorkflow({ prisma, provider, loadPhoto, layersE
       const context = await contextFor(row);
       if (context.inputFingerprint !== row.provenance?.inputFingerprint) fail('stale_input', 409);
       try { validateAssessment(correction || row.assessment, context); } catch { fail('invalid_assessment'); }
-      if ((correction || row.assessment).quality.status === 'retake' || (correction || row.assessment).missingInformation.length) fail('needs_information', 409);
+      if ((correction || row.assessment).quality.status === 'retake') fail('needs_information', 409);
       return tx(async db => {
         await account(db, actorId, 'approve');
         const current = await assessment(db, id);
