@@ -3744,7 +3744,8 @@
           const meta = [piel ? 'Piel ' + piel : '', a.ageBiological != null ? 'Edad de piel ' + a.ageBiological : ''].filter(Boolean).join(' · ');
           const venus = a.kind === 'venus';
           const score = a.overallScore != null ? a.overallScore : '—';
-          const href = a.href || '';
+          const href = /^\/(mi-piel|skin-report)\.html\?/.test(String(a.href || '')) ? a.href : '';
+          if (!href) return '';
           const title = venus ? (i === 0 ? 'Tu reporte Venus Skin' : 'Reporte Venus Skin') : 'Análisis anterior';
           const sparkle = '<svg viewBox="-10 -10 20 20" class="w-6 h-6 text-venus-olive" fill="currentColor" aria-hidden="true"><path d="M0 -9 C1.4 -2 2 -1.4 9 0 C2 1.4 1.4 2 0 9 C-1.4 2 -2 1.4 -9 0 C-2 -1.4 -1.4 -2 0 -9 Z"/></svg>';
           return `

@@ -52,6 +52,7 @@ test('client card lists Venus reports from the public router', () => {
   const index = read('public/index.html');
   assert.match(index, /\/skin-reports`/);
   assert.match(index, /Análisis anterior/);
+  assert.match(index, /mi-piel\|skin-report/);
   assert.match(read('server.js'), /app\.use\('\/api\/public\/card', createSkinClientRouter/);
 });
 
@@ -65,4 +66,18 @@ test('sequence flag is off by default and reaches the capture page', () => {
   assert.equal(capture.split("$('consent-captura').checked = false").length - 1, 3);
   assert.doesNotMatch(capture, /\?\.|\?\?|innerHTML/);
   assert.match(read('server.js'), /app\.get\("\/api\/admin\/cards-firebase", adminAuth, requireRole\("admin", "staff"\)/);
+});
+
+test('BASE_URL trailing slashes are stripped from the public base URL', () => {
+  assert.equal(skinAdvisorConfig({ BASE_URL: 'https://venus.example///' }).publicBaseUrl, 'https://venus.example');
+});
+
+test('approval plan retries a failed services load and keeps approve disabled until loaded', () => {
+  const script = read('public/skin-advisor.js');
+  assert.match(script, /'Reintentar'/);
+  assert.match(script, /extrasFor = null;/);
+  assert.match(script, /servicesReady/);
+  assert.doesNotMatch(script, /Solo el administrador autorizado puede aprobar/);
+  assert.match(script, /Tu cuenta no puede aprobar\. Pide a una cosmetóloga o al administrador\./);
+  assert.match(script, /Pendiente de aprobación por una cosmetóloga\./);
 });
