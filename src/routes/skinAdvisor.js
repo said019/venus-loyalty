@@ -1,7 +1,7 @@
 import express from 'express';
 import { SkinWorkflowError } from '../services/ai/skinAdvisor/workflow.js';
 
-export function createSkinAdvisorRouter({ workflow, authenticate, expectedOrigin }) {
+export function createSkinAdvisorRouter({ workflow, authenticate, expectedOrigin, sendLink }) {
   if (typeof authenticate !== 'function') throw new TypeError('authenticate is required');
   const router = express.Router();
   router.use((req, res, next) => { res.set('Cache-Control', 'private, no-store'); next(); });
@@ -36,6 +36,9 @@ export function createSkinAdvisorRouter({ workflow, authenticate, expectedOrigin
   router.post('/records/:recordId/assessments', handle(req => workflow.createDraft(req.admin.uid, req.params.recordId, req.body)));
   router.get('/assessments/:id', handle(req => workflow.getAssessment(req.admin.uid, req.params.id)));
   router.get('/assessments/:id/client-view', handle(req => workflow.clientView(req.admin.uid, req.params.id)));
+  router.post('/assessments/:id/send-link', typeof sendLink === 'function'
+    ? handle(async req => { const link = await workflow.clientLink(req.admin.uid, req.params.id); const result = await sendLink(link.card, link.url); if (result && result.success === false) throw new SkinWorkflowError('send_failed', 502); return { sent: true }; })
+    : (req, res) => res.status(503).json({ success: false, error: 'link_unavailable' }));
   router.post('/assessments/:id/generate', handle(req => workflow.generate(req.admin.uid, req.params.id, req.body)));
   router.post('/assessments/:id/approve', handle(req => workflow.approve(req.admin.uid, req.params.id, req.body)));
   router.post('/assessments/:id/retire', handle(req => workflow.retire(req.admin.uid, req.params.id, req.body)));

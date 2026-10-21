@@ -825,6 +825,7 @@ app.use('/api/skin-advisor', cookieParser(), createSkinAdvisorRouter({
   workflow: skinWorkflow,
   authenticate: adminAuth,
   expectedOrigin: process.env.SKIN_ADVISOR_ORIGIN || '',
+  sendLink: (card, url) => WhatsAppService.sendMiPielLink(card, url),
 }));
 // Reportes Venus Skin de la clienta: público, por id de tarjeta, solo lectura.
 app.use('/api/public/card', createSkinClientRouter({ report: skinClientReport }));

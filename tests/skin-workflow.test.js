@@ -29,6 +29,7 @@ async function fixture(overrides = {}) {
       create: async ({ data }) => { const row = { id: `assessment-${rows.length}`, version: 1, status: 'draft', createdAt: date, ...structuredClone(data) }; rows.push(row); return structuredClone(row); },
       updateMany: async ({ where, data }) => { const selected = rows.filter(p => match(p, where)); for (const row of selected) for (const [key, value] of Object.entries(data)) row[key] = value?.increment ? row[key] + value.increment : structuredClone(value); return { count: selected.length }; },
     },
+    card: { findUnique: async ({ where }) => where.id === 'card-1' ? { id: 'card-1', name: 'Daniela', phone: current.phone === undefined ? '5215512345678' : current.phone } : null },
     intakeForm: { findUnique: async () => ({ skinCondition: 'Brillo en zona T', routineDay: ['Limpiador'], interestData: { protectorSolar: { value: true, detail: '' } } }) },
     service: { findMany: async () => [{ id: 's1', name: 'Hidratación profunda', price: '850.00', durationMinutes: 60, category: 'Básicos Venus', isActive: true }] },
     $transaction: async fn => fn(db),
@@ -292,4 +293,23 @@ test('client view requires account, ownership and approval', async () => {
   assert.deepEqual(await f.workflow.clientView('staff', draft.id), { id: draft.id, clientName: 'Prueba' });
   f.current.cardId = 'card-2';
   await assert.rejects(f.workflow.clientView('staff', draft.id), { code: 'not_found' });
+});
+
+test('clientLink builds the report URL only for a current approval, a configured base URL and a card with phone', async () => {
+  const f = await fixture({ config: { publicBaseUrl: 'https://venus.example' } });
+  const draft = await f.workflow.createDraft('staff', f.current.id, f.body);
+  await assert.rejects(f.workflow.clientLink('staff', draft.id), { code: 'not_approved', status: 409 });
+  await f.workflow.generate('staff', draft.id, { version: 1 });
+  const approved = await f.workflow.approve('staff', draft.id, { version: 2 });
+  assert.deepEqual(await f.workflow.clientLink('staff', draft.id), { card: { name: 'Daniela', phone: '5215512345678' }, url: `https://venus.example/mi-piel.html?card=card-1&v=${draft.id}` });
+  f.current.phone = '';
+  await assert.rejects(f.workflow.clientLink('staff', draft.id), { code: 'no_phone', status: 409 });
+  f.current.phone = undefined;
+  await f.workflow.retire('owner', draft.id, { version: approved.version });
+  await assert.rejects(f.workflow.clientLink('staff', draft.id), { code: 'not_approved', status: 409 });
+  const bare = await fixture();
+  const d2 = await bare.workflow.createDraft('staff', bare.current.id, bare.body);
+  await bare.workflow.generate('staff', d2.id, { version: 1 });
+  await bare.workflow.approve('staff', d2.id, { version: 2 });
+  await assert.rejects(bare.workflow.clientLink('staff', d2.id), { code: 'link_unavailable', status: 503 });
 });

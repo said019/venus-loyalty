@@ -5,9 +5,12 @@ import { createSkinAdvisorRouter } from '../src/routes/skinAdvisor.js';
 
 test('router protects every endpoint and enforces exact origin, JSON, and trusted actor', async t => {
   const calls = [];
-  const workflow = Object.fromEntries(['getConfig', 'getRecord', 'createDraft', 'getAssessment', 'generate', 'approve', 'retire', 'services', 'clientView', 'previewPhoto', 'photoLayers', 'savedLayers'].map(name => [name, async (...args) => { calls.push({ name, args }); return { status: 'ok' }; }]));
+  const sent = [];
+  let outcome;
+  const workflow = Object.fromEntries(['getConfig', 'getRecord', 'createDraft', 'getAssessment', 'generate', 'approve', 'retire', 'services', 'clientView', 'clientLink', 'previewPhoto', 'photoLayers', 'savedLayers'].map(name => [name, async (...args) => { calls.push({ name, args }); return { status: 'ok' }; }]));
+  workflow.clientLink = async (...args) => { calls.push({ name: 'clientLink', args }); return { card: { name: 'Daniela', phone: '1' }, url: 'https://venus.example/mi-piel.html?card=c&v=a' }; };
   const app = express();
-  app.use('/api/skin-advisor', createSkinAdvisorRouter({ workflow, expectedOrigin: 'https://venus.example', authenticate: (req, res, next) => { if (req.get('x-test-user')) req.admin = { uid: req.get('x-test-user') }; next(); } }));
+  app.use('/api/skin-advisor', createSkinAdvisorRouter({ workflow, sendLink: async (card, url) => { sent.push({ card, url }); return outcome; }, expectedOrigin: 'https://venus.example', authenticate: (req, res, next) => { if (req.get('x-test-user')) req.admin = { uid: req.get('x-test-user') }; next(); } }));
   const server = app.listen(0, '127.0.0.1');
   await new Promise(resolve => server.once('listening', resolve));
   t.after(() => new Promise(resolve => server.close(resolve)));
@@ -67,4 +70,17 @@ test('router protects every endpoint and enforces exact origin, JSON, and truste
   assert.equal(saved.headers.get('cache-control'), 'private, no-store');
   assert.equal(calls.at(-1).name, 'savedLayers');
   assert.deepEqual(calls.at(-1).args, ['staff', 'r', 'p']);
+  const send = headers => fetch(base + '/assessments/a/send-link', { method: 'POST', headers: { 'x-test-user': 'staff', ...headers }, body: '{}' });
+  assert.equal((await send({ 'content-type': 'application/json' })).status, 403);
+  assert.equal(sent.length, 0);
+  const sentRes = await send({ origin: 'https://venus.example', 'content-type': 'application/json' });
+  assert.equal(sentRes.status, 200);
+  assert.deepEqual(await sentRes.json(), { success: true, data: { sent: true } });
+  assert.deepEqual(sent, [{ card: { name: 'Daniela', phone: '1' }, url: 'https://venus.example/mi-piel.html?card=c&v=a' }]);
+  assert.deepEqual(calls.at(-1).args, ['staff', 'a']);
+  assert.equal(calls.at(-1).name, 'clientLink');
+  outcome = { success: false };
+  const failed = await send({ origin: 'https://venus.example', 'content-type': 'application/json' });
+  assert.equal(failed.status, 502);
+  assert.equal((await failed.json()).error, 'send_failed');
 });

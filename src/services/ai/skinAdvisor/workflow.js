@@ -209,6 +209,17 @@ export function createSkinAdvisorWorkflow({ prisma, provider, loadPhoto, layersE
       if (!view) fail('not_found', 404);
       return view;
     },
+    async clientLink(actorId, id) {
+      await account(prisma, actorId);
+      const row = await assessment(prisma, id);
+      if (!row.approval || row.retiredAt) fail('not_approved', 409);
+      if (!config.publicBaseUrl) fail('link_unavailable', 503);
+      const current = await record(prisma, row.recordId);
+      const card = current.cardId ? await prisma.card.findUnique({ where: { id: current.cardId }, select: { id: true, name: true, phone: true } }) : null;
+      if (!card) fail('not_found', 404);
+      if (!card.phone) fail('no_phone', 409);
+      return { card: { name: card.name, phone: card.phone }, url: config.publicBaseUrl + '/mi-piel.html?card=' + encodeURIComponent(card.id) + '&v=' + encodeURIComponent(id) };
+    },
     async createDraft(actorId, recordId, body) {
       return tx(async db => {
         await account(db, actorId);

@@ -10,6 +10,7 @@ export function skinAdvisorConfig(env = {}) {
     enabled: env.SKIN_ADVISOR_ENABLED === 'true',
     configured: Boolean(model && apiKey.trim()),
     sequenceEnabled: env.SKIN_SEQUENCE_ENABLED === 'true',
+    publicBaseUrl: (env.BASE_URL || '').replace(/\/+$/, ''),
     approverId: env.SKIN_ADVISOR_APPROVER_ID || '',
     provider,
     consentVersion: provider === 'ollama' ? 'venus-ollama-photos-v1' : SKIN_CONSENT_VERSION,

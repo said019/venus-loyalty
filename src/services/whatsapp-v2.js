@@ -306,6 +306,13 @@ export const WhatsAppService = {
         return await sendViaEvolution(card.phone, mensaje);
     },
 
+    /** Link al reporte de piel (Venus Skin) de la clienta, ya aprobado */
+    async sendMiPielLink(card, url) {
+        const nombre = sanitizeForWhatsApp(card.name || 'bonita');
+        const mensaje = `🌸 Hola ${nombre}, tu reporte de piel de *Venus Cosmetología* ya está listo. Míralo aquí:\n\n${url}\n\nSolo tú puedes abrirlo desde tu tarjeta. ✨`;
+        return await sendViaEvolution(card.phone, mensaje);
+    },
+
     /** Link para firmar el consentimiento informado de depilación láser */
     async sendConsentimientoLink(card, url) {
         const nombre = sanitizeForWhatsApp(card.name || 'bonita');
