@@ -14,6 +14,7 @@ test('mi-piel page is Chrome 61 safe, self-hosted and private', () => {
   assert.match(html, /Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' https:\/\/res\.cloudinary\.com; connect-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'self'"/);
   assert.match(html, /<meta name="robots" content="noindex, nofollow">/);
   assert.doesNotMatch(html, /<script>|onclick=/);
+  assert.match(js, /!u\.port/);
   assert.match(js, /window\.VenusMiPiel = /);
   assert.match(js, /skin-reports/);
   assert.match(js, /Original no disponible/);

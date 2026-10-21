@@ -40,7 +40,7 @@
   }
   function imageUrl(value) {
     if (typeof value !== 'string' || !value) return '';
-    try { var u = new URL(value, location.origin); return (u.protocol === 'https:' && u.hostname === 'res.cloudinary.com' || u.origin === location.origin) && !u.username && !u.password ? u.href : ''; }
+    try { var u = new URL(value, location.origin); return (u.protocol === 'https:' && u.hostname === 'res.cloudinary.com' && !u.port || u.origin === location.origin) && !u.username && !u.password ? u.href : ''; }
     catch (_) { return ''; }
   }
   function fmtDate(value) {
@@ -99,8 +99,9 @@
     node('p', 'Fotografía con luz blanca del ' + fmtDate(data.approvedAt) + '. Los destellos marcan las zonas revisadas.', sec, 'mp-cap');
     node('h2', 'Lo que vimos', sec);
     obs.forEach(function (o) {
-      var row = node('div', null, sec, 'mp-obs');
-      node('b', zoneLabels[o.zone] || zoneLabels.unknown, row); node('span', o.description, row);
+      var row = node('div', null, sec, 'mp-obs'), dot = node('span', null, row, 'mp-obs-dot'), col = node('div', null, row, 'mp-obs-text');
+      svgIcon(['M12 2l2.2 7.8L22 12l-7.8 2.2L12 22l-2.2-7.8L2 12l7.8-2.2z'], dot);
+      node('b', zoneLabels[o.zone] || zoneLabels.unknown, col); node('span', o.description, col);
     });
     var rev = node('div', null, sec, 'mp-card mp-card-soft');
     node('h3', 'Revisado por tu cosmetóloga', rev);
@@ -198,7 +199,7 @@
     clear(root);
     var page = node('div', null, root, 'mp mp-' + mode);
     var head = node('header', null, page, 'mp-head');
-    var logo = node('img', null, head, 'mp-logo'); logo.src = '/assets/logo.png'; logo.alt = 'Venus Cosmetología';
+    var logo = node('img', null, head, 'mp-logo'); logo.src = '/assets/venus-logo-horizontal.png'; logo.alt = 'Venus Cosmetología';
     node('span', fmtDate(data.approvedAt), head, 'mp-date');
     if (mode === 'cabina' && (options.onDone || options.onSendLink)) {
       var bar = node('div', null, page, 'mp-bar');
