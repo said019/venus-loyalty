@@ -135,7 +135,7 @@ export function createAdvisorSession({ provider, authorizeReview, simulation = f
         const assessment = await Promise.race([providerTask, aborted]);
         validateAssessment(assessment, ownContext);
         if (ownRevision !== revision || context !== ownContext) return snapshot();
-        const needsInformation = assessment.quality.status === 'retake' || assessment.missingInformation.length > 0;
+        const needsInformation = assessment.quality.status === 'retake';
         const metadata = provider.metadata && typeof provider.metadata === 'object' ? provider.metadata : {};
         current = {
           ...current,
