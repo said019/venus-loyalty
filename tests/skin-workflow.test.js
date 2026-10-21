@@ -76,6 +76,9 @@ test('retire is owner-only, keeps the approval and bumps the version', async () 
   assert.equal((await f.workflow.getConfig('owner')).isOwner, true);
   assert.equal((await f.workflow.getConfig('staff')).isOwner, false);
   assert.equal((await f.workflow.getConfig('staff')).canApprove, true);
+  assert.equal((await f.workflow.getConfig('staff')).sequenceEnabled, false);
+  const on = await fixture({ config: { sequenceEnabled: true } });
+  assert.equal((await on.workflow.getConfig('staff')).sequenceEnabled, true);
 });
 
 test('retire rejects unapproved reports and stale versions', async () => {

@@ -189,7 +189,7 @@ export function createSkinAdvisorWorkflow({ prisma, provider, loadPhoto, layersE
     },
     async getConfig(actorId) {
       const user = await account(prisma, actorId);
-      return { enabled: config.enabled === true, configured: config.configured === true, layersEnabled: layersEnabled(), simulation: provider.metadata?.simulation === true, canApprove: ['admin', 'staff'].includes(user.role), isOwner: user.role === 'admin' && user.id === config.approverId, consentVersion: config.consentVersion, consentText: config.consentText, userId: user.id };
+      return { enabled: config.enabled === true, configured: config.configured === true, layersEnabled: layersEnabled(), sequenceEnabled: config.sequenceEnabled === true, simulation: provider.metadata?.simulation === true, canApprove: ['admin', 'staff'].includes(user.role), isOwner: user.role === 'admin' && user.id === config.approverId, consentVersion: config.consentVersion, consentText: config.consentText, userId: user.id };
     },
     async getRecord(actorId, recordId) {
       await account(prisma, actorId);

@@ -7,7 +7,7 @@
   var lightRequest = 0, pendingLight = null;
   var nativeStill = /VenusNativeStill\/1/.test(navigator.userAgent), pendingStill = null;
   var nativeSequence = /VenusNativeSequence\/1/.test(navigator.userAgent), pendingSequence = null;
-  var sessionPhotos = [];
+  var sessionPhotos = [], skinConfig = { sequenceEnabled: false, consentText: '', consentVersion: '' };
   var imported = [], importUrls = [];
   function clearImport() {
     imported = []; importUrls.forEach(function (url) { URL.revokeObjectURL(url); }); importUrls = [];
@@ -40,14 +40,16 @@
     }()), 25000);
   }
   function controls() {
+    var analysis = $('modo').value === 'analisis', consentMissing = analysis && !$('consent-captura').checked;
+    $('consent-wrap').hidden = !analysis;
     var bProtocolo = $('b-protocolo');
-    if (bProtocolo) { bProtocolo.hidden = !nativeSequence; bProtocolo.disabled = busy || !recordId; bProtocolo.textContent = busy ? 'Protocolo en curso…' : 'Protocolo completo · 8 capturas'; }
+    if (bProtocolo) { bProtocolo.hidden = !(nativeSequence && skinConfig.sequenceEnabled === true); bProtocolo.disabled = busy || !recordId || consentMissing; bProtocolo.textContent = busy ? 'Protocolo en curso…' : 'Protocolo completo · 8 capturas'; }
     $('capture-format').textContent = nativeStill ? 'JPEG nativo · Luz blanca' : 'Captura facial';
     $('b-tomar').textContent = busy ? 'Procesando captura…' : 'Capturar y guardar';
     $('s-camara').setAttribute('aria-busy', busy ? 'true' : 'false');
     $('b-import').disabled = busy || !recordId; $('b-import-save').disabled = busy || !recordId || !imported.length;
     ['b-cambiar', 'b-girar', 'modo', 'categoria', 'area', 'desc', 'b-otra', 'b-ficha'].forEach(function (id) { $(id).disabled = busy; });
-    $('b-tomar').disabled = busy || !stream || !recordId || ($('modo').value === 'analisis' && flow.photos().length >= 4);
+    $('b-tomar').disabled = busy || !stream || !recordId || consentMissing || (analysis && flow.photos().length >= 4);
     $('b-analizar').disabled = busy || !flow.photos().length || $('modo').value !== 'analisis';
     Array.prototype.forEach.call($('tipo').querySelectorAll('button'), function (b) { b.disabled = busy; });
     Array.prototype.forEach.call($('session-photos').querySelectorAll('button'), function (b) { b.disabled = busy; });
@@ -297,7 +299,7 @@
   }
   $('b-login').onclick = async function () {
     $('b-login').disabled = true; status('e-login', 'Entrando…');
-    try { await json('/api/admin/login', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: $('email').value.trim(), password: $('pass').value }) }); $('pass').value = ''; show('s-login', false); show('s-clienta', true); }
+    try { await json('/api/admin/login', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: $('email').value.trim(), password: $('pass').value }) }); $('pass').value = ''; show('s-login', false); await loadSkinConfig(); show('s-clienta', true); }
     catch (_) { status('e-login', 'No se pudo iniciar sesión. Revisa tus datos y conexión.', true); } finally { $('b-login').disabled = false; }
   };
   $('pass').onkeydown = function (e) { if (e.key === 'Enter') $('b-login').click(); };
@@ -349,13 +351,25 @@
   $('b-ficha').onclick = function () { if (clienta) { closeCamera(); location.href = '/admin/clientas/' + encodeURIComponent(clienta.id); } };
   $('modo').onchange = function () { flow.reset(recordId); renderSessionPhotos(); controls(); };
   Array.prototype.forEach.call($('tipo').querySelectorAll('button'), function (b) { b.onclick = function () { Array.prototype.forEach.call($('tipo').querySelectorAll('button'), function (x) { x.classList.toggle('on', x === b); }); }; });
-  $('b-analizar').onclick = function () { if (busy || !clienta) return; closeCamera(); location.href = flow.advisorUrl(clienta.id); };
+  $('consent-captura').onchange = controls;
+  $('b-analizar').onclick = function () {
+    if (busy || !clienta) return;
+    if (!$('consent-captura').checked) { status('e-tomar', 'Marca el consentimiento de la clienta antes de analizar.', true); return; }
+    closeCamera(); location.href = flow.advisorUrl(clienta.id, { auto: '1', cabina: '1', consent: skinConfig.consentVersion });
+  };
   window.addEventListener('pagehide', closeCamera);
   document.addEventListener('visibilitychange', function () { if (document.hidden) closeCamera(); });
   show('native-help', !native); $('b-apagar').hidden = !native;
   $('b-ficha').hidden = native;
   $('b-tomar').textContent = native ? 'Luz blanca + tomar foto' : 'Tomar foto (sin control de luces)';
-  var sequenceNote = $('e-luces'); if (nativeSequence) sequenceNote.textContent = 'Protocolo completo: 8 capturas con 6 luces (blanca, polarizada +, UV, Wood, polarizada −, azul). La clienta debe mantener los ojos cerrados durante todo el protocolo. Apagado automático tras cada captura con un límite total de 2 minutos.';
-  $('e-luces').textContent = native ? 'Luz blanca: pulso máximo de 2 segundos. Confirma físicamente que ilumina al tomar. No se utiliza UV.' : 'Chrome no controla los LEDs. Usa iluminación blanca comprobada o abre la app Venus para el pulso automático.';
-  (async function () { try { await json('/api/admin/me'); show('s-clienta', true); } catch (_) { show('s-login', true); } }());
+  var sequenceText = 'Protocolo completo: 8 capturas con 6 luces (blanca, polarizada +, UV, Wood, polarizada −, azul). La clienta debe mantener los ojos cerrados durante todo el protocolo. Apagado automático tras cada captura con un límite total de 2 minutos.';
+  var whiteText = native ? 'Luz blanca: pulso máximo de 2 segundos. Confirma físicamente que ilumina al tomar. No se utiliza UV.' : 'Chrome no controla los LEDs. Usa iluminación blanca comprobada o abre la app Venus para el pulso automático.';
+  async function loadSkinConfig() {
+    try { var cfg = await json('/api/skin-advisor/config'); skinConfig = cfg.data || skinConfig; } catch (_) { skinConfig = { sequenceEnabled: false, consentText: '', consentVersion: '' }; }
+    skinConfig.sequenceEnabled = skinConfig.sequenceEnabled === true;
+    $('consent-text').textContent = skinConfig.consentText || 'Consentimiento de la clienta registrado por la cosmetóloga.';
+    $('e-luces').textContent = nativeSequence ? (skinConfig.sequenceEnabled ? sequenceText : 'Protocolo de luces pendiente de validación física. Se usa solo luz blanca.') : whiteText;
+    controls();
+  }
+  (async function () { try { await json('/api/admin/me'); } catch (_) { show('s-login', true); return; } await loadSkinConfig(); show('s-clienta', true); }());
 }());

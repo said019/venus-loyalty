@@ -43,3 +43,14 @@ test('client card lists Venus reports from the public router', () => {
   assert.match(index, /Análisis anterior/);
   assert.match(read('server.js'), /app\.use\('\/api\/public\/card', createSkinClientRouter/);
 });
+
+test('sequence flag is off by default and reaches the capture page', () => {
+  assert.equal(skinAdvisorConfig().sequenceEnabled, false);
+  assert.equal(skinAdvisorConfig({ SKIN_SEQUENCE_ENABLED: 'true' }).sequenceEnabled, true);
+  const capture = read('public/moji-capture.js');
+  assert.match(capture, /sequenceEnabled/);
+  assert.match(capture, /consent-captura/);
+  assert.match(capture, /auto: '1', cabina: '1'/);
+  assert.doesNotMatch(capture, /\?\.|\?\?|innerHTML/);
+  assert.match(read('server.js'), /app\.get\("\/api\/admin\/cards-firebase", adminAuth, requireRole\("admin", "staff"\)/);
+});

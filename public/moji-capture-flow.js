@@ -19,9 +19,10 @@
         photos = photos.filter(function (p) { return p.id !== id; });
         return photos.length !== before;
       },
-      advisorUrl: function (cardId) {
+      advisorUrl: function (cardId, extra) {
         if (!record || !photos.length) throw new Error('Primero toma una foto.');
-        return '/skin-advisor.html?capture=1&recordId=' + encodeURIComponent(record) + '&cardId=' + encodeURIComponent(cardId) + '&photoIds=' + encodeURIComponent(photos.map(function (p) { return p.id; }).join(','));
+        return '/skin-advisor.html?capture=1&recordId=' + encodeURIComponent(record) + '&cardId=' + encodeURIComponent(cardId) + '&photoIds=' + encodeURIComponent(photos.map(function (p) { return p.id; }).join(','))
+          + ['auto', 'cabina', 'consent'].map(function (key) { return extra && typeof extra[key] === 'string' ? '&' + key + '=' + encodeURIComponent(extra[key]) : ''; }).join('');
       }
     };
   }

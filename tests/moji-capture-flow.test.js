@@ -48,3 +48,11 @@ test('capture and advisor prohibit frames; capture loads ES2018 external scripts
   assert.doesNotMatch(js, /\?\.|\?\?/);
   assert.match(js, /result\.request !== pendingLight\.request/);
 });
+
+test('advisorUrl appends only whitelisted string extras', () => {
+  const s = flow.session(); s.reset('r'); s.add(s.ticket(), { id: 'p1' });
+  const base = s.advisorUrl('card');
+  assert.equal(s.advisorUrl('card', {}), base);
+  assert.ok(s.advisorUrl('card', { auto: '1', cabina: '1', consent: 'venus-openai-photos-v1' }).endsWith('&auto=1&cabina=1&consent=venus-openai-photos-v1'));
+  assert.equal(s.advisorUrl('card', { evil: 'x', auto: 1 }), base);
+});

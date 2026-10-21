@@ -5988,7 +5988,7 @@ app.get("/api/admin/wallet-stats", adminAuth, requireRole("admin"), async (req, 
   }
 });
 
-app.get("/api/admin/cards-firebase", adminAuth, requireRole("admin"), async (req, res) => {
+app.get("/api/admin/cards-firebase", adminAuth, requireRole("admin", "staff"), async (req, res) => {
   try {
     // Lookup directo por id (usado por skin-analysis.html?cardId=... para
     // preseleccionar clienta) — antes se buscaba con .find() sobre las
