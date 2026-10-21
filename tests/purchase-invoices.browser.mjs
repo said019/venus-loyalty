@@ -22,13 +22,18 @@ try{
  assert.match(await page.locator('#panel-invoices').textContent(),/42%/);
  await page.locator(`[data-allocate="${invoice.lines[0].id}"]`).click();
  assert.equal(await page.locator('select[name=destination]').inputValue(),'');
- await page.locator('select[name=destination]').selectOption('sale');await page.locator('select[name=target]').selectOption('new');
+ await page.locator('select[name=destination]').selectOption('sale');
+ assert.equal(await page.locator('select[name=target]').inputValue(),'new');
+ assert.equal(await page.locator('[name=name]').inputValue(),'Crema de prueba 50 GR');
+ assert.equal(await page.locator('dialog details').evaluate(e=>e.open),false);
  assert.equal(await page.locator('[name=price]').inputValue(),'120');
 
  await page.locator('select[name=destination]').selectOption('clinic');await page.locator('select[name=target]').selectOption('new');
  assert.equal(await page.locator('input[name=bottleMl]').inputValue(),'');
  await page.locator('input[name=bottleMl]').fill('45.5');await page.locator('input[name=volumeConfirmed]').check();
  await page.screenshot({path:'/tmp/invoice-assignment-mobile.png'});
+ const buttonBox=await page.getByRole('button',{name:'Confirmar asignación'}).boundingBox();
+ assert(buttonBox.y>=0 && buttonBox.y+buttonBox.height<=900);
  assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
  await page.getByRole('button',{name:'Confirmar asignación'}).click();
  await page.locator('dialog').waitFor({state:'detached'});
