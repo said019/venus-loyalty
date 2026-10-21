@@ -652,12 +652,15 @@ model SkinAdvisorAssessment {
   failureCode   String?
   attemptToken  String?
   leaseUntil    DateTime?
+  retiredAt     DateTime?
+  retiredById   String?
   createdById   String
   generatedById String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   @@index([recordId, createdAt])
+  @@index([recordId, retiredAt])
   @@index([status, leaseUntil])
   @@map("skin_advisor_assessments")
 }

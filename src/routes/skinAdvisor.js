@@ -36,6 +36,7 @@ export function createSkinAdvisorRouter({ workflow, authenticate, expectedOrigin
   router.get('/assessments/:id', handle(req => workflow.getAssessment(req.admin.uid, req.params.id)));
   router.post('/assessments/:id/generate', handle(req => workflow.generate(req.admin.uid, req.params.id, req.body)));
   router.post('/assessments/:id/approve', handle(req => workflow.approve(req.admin.uid, req.params.id, req.body)));
+  router.post('/assessments/:id/retire', handle(req => workflow.retire(req.admin.uid, req.params.id, req.body)));
   router.use((error, req, res, next) => res.status(error.type === 'entity.too.large' ? 413 : 400).json({ success: false, error: 'invalid_json' }));
   return router;
 }

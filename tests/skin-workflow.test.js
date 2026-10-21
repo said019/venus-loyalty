@@ -51,13 +51,40 @@ test('private draft, generate and exact owner approval retain immutable original
   assert.equal(generated.status, 'pending_review');
   assert.equal(generated.version, 2);
   assert.equal(generated.attemptToken, undefined);
-  await assert.rejects(f.workflow.approve('other-admin', draft.id, { version: 2 }), { code: 'not_authorized' });
-  await assert.rejects(f.workflow.approve('staff', draft.id, { version: 2 }), { code: 'not_authorized' });
-  const approved = await f.workflow.approve('owner', draft.id, { version: 2, reviewNotes: 'Revisión ficticia' });
+  const approved = await f.workflow.approve('staff', draft.id, { version: 2, reviewNotes: 'Revisión ficticia' });
   assert.equal(approved.status, 'approved');
   assert.deepEqual(approved.assessment, generated.assessment);
-  assert.equal(approved.approval.actorId, 'owner');
+  assert.equal(approved.approval.actorId, 'staff');
   assert.equal(f.calls(), 1);
+});
+
+test('retire is owner-only, keeps the approval and bumps the version', async () => {
+  const f = await fixture();
+  const draft = await f.workflow.createDraft('staff', f.current.id, f.body);
+  await f.workflow.generate('staff', draft.id, { version: 1 });
+  const approved = await f.workflow.approve('staff', draft.id, { version: 2 });
+  await assert.rejects(f.workflow.retire('staff', draft.id, { version: approved.version }), { code: 'not_authorized' });
+  await assert.rejects(f.workflow.retire('other-admin', draft.id, { version: approved.version }), { code: 'not_authorized' });
+  const retired = await f.workflow.retire('owner', draft.id, { version: approved.version });
+  assert.equal(retired.retiredById, 'owner');
+  assert.ok(Number.isFinite(Date.parse(retired.retiredAt)));
+  assert.deepEqual(retired.approval, approved.approval);
+  assert.equal(retired.version, approved.version + 1);
+  await assert.rejects(f.workflow.retire('owner', draft.id, { version: retired.version }), { code: 'already_retired' });
+  await assert.rejects(f.workflow.retire('owner', draft.id, { version: 1 }), { code: 'already_retired' });
+  assert.equal((await f.workflow.getConfig('owner')).isOwner, true);
+  assert.equal((await f.workflow.getConfig('staff')).isOwner, false);
+  assert.equal((await f.workflow.getConfig('staff')).canApprove, true);
+});
+
+test('retire rejects unapproved reports and stale versions', async () => {
+  const f = await fixture();
+  const draft = await f.workflow.createDraft('staff', f.current.id, f.body);
+  const generated = await f.workflow.generate('staff', draft.id, { version: 1 });
+  await assert.rejects(f.workflow.retire('owner', draft.id, { version: generated.version }), { code: 'not_approved' });
+  const approved = await f.workflow.approve('staff', draft.id, { version: 2 });
+  await assert.rejects(f.workflow.retire('owner', draft.id, { version: 1 }), { code: 'stale_version' });
+  assert.equal((await f.workflow.retire('owner', draft.id, { version: approved.version })).version, approved.version + 1);
 });
 
 test('every public method checks the current database account', async () => {

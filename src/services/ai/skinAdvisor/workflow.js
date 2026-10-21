@@ -24,6 +24,7 @@ const active = ['draft', 'generating', 'pending_review', 'needs_information', 'a
 const safeCodes = new Set(['timeout', 'refused', 'network', 'provider_http', 'invalid_assessment', 'invalid_photo', 'photo_too_large', 'photo_mismatch', 'unresolved_laterality']);
 const publicRow = (row) => {
   const { attemptToken, leaseUntil, ...safe } = row;
+  if (safe.retiredAt) safe.retiredAt = new Date(safe.retiredAt).toISOString();
   return safe;
 };
 
@@ -37,11 +38,12 @@ export function createSkinAdvisorWorkflow({ prisma, provider, loadPhoto, layersE
     if (error?.code === 'P2034') fail('stale_version', 409);
     throw error;
   });
-  async function account(db, actorId, approve = false) {
+  async function account(db, actorId, permission) {
     if (!idValid(actorId)) fail('unauthenticated', 401);
     const user = await db.admin.findUnique({ where: { id: actorId } });
     if (!user || !['admin', 'staff', 'recepcion'].includes(user.role)) fail('unauthenticated', 401);
-    if (approve && (actorId !== config.approverId || user.role !== 'admin')) fail('not_authorized', 403);
+    if (permission === 'approve' && !['admin', 'staff'].includes(user.role)) fail('not_authorized', 403);
+    if (permission === 'owner' && (actorId !== config.approverId || user.role !== 'admin')) fail('not_authorized', 403);
     return user;
   }
   async function record(db, recordId) {
@@ -184,7 +186,7 @@ export function createSkinAdvisorWorkflow({ prisma, provider, loadPhoto, layersE
     },
     async getConfig(actorId) {
       const user = await account(prisma, actorId);
-      return { enabled: config.enabled === true, configured: config.configured === true, layersEnabled: layersEnabled(), simulation: provider.metadata?.simulation === true, canApprove: user.role === 'admin' && user.id === config.approverId, consentVersion: config.consentVersion, consentText: config.consentText, userId: user.id };
+      return { enabled: config.enabled === true, configured: config.configured === true, layersEnabled: layersEnabled(), simulation: provider.metadata?.simulation === true, canApprove: ['admin', 'staff'].includes(user.role), isOwner: user.role === 'admin' && user.id === config.approverId, consentVersion: config.consentVersion, consentText: config.consentText, userId: user.id };
     },
     async getRecord(actorId, recordId) {
       await account(prisma, actorId);
@@ -268,7 +270,7 @@ export function createSkinAdvisorWorkflow({ prisma, provider, loadPhoto, layersE
     },
     async approve(actorId, id, { version, correctedAssessment = null, reviewNotes = null } = {}) {
       const correction = correctedAssessment === null ? null : structuredClone(correctedAssessment);
-      await account(prisma, actorId, true);
+      await account(prisma, actorId, 'approve');
       const row = await assessment(prisma, id);
       checkVersion(row, version, 'pending_review');
       if (row.provenance?.simulation || provider.metadata?.simulation) fail('simulation_not_approvable', 403);
@@ -278,7 +280,7 @@ export function createSkinAdvisorWorkflow({ prisma, provider, loadPhoto, layersE
       try { validateAssessment(correction || row.assessment, context); } catch { fail('invalid_assessment'); }
       if ((correction || row.assessment).quality.status === 'retake' || (correction || row.assessment).missingInformation.length) fail('needs_information', 409);
       return tx(async db => {
-        await account(db, actorId, true);
+        await account(db, actorId, 'approve');
         const current = await assessment(db, id);
         checkVersion(current, version, 'pending_review');
         const currentRecord = await record(db, row.recordId);
@@ -286,6 +288,19 @@ export function createSkinAdvisorWorkflow({ prisma, provider, loadPhoto, layersE
         const photos = await db.clientPhoto.findMany({ where: { recordId: row.recordId, id: { in: row.input.photos.map(p => p.id) } } });
         if (photos.length !== row.input.photos.length || row.input.photos.some(p => !photos.some(q => q.id === p.id && q.url === p.sourceUrl && iso(q.takenAt) === p.sourceTakenAt))) fail('stale_input', 409);
         const changed = await db.skinAdvisorAssessment.updateMany({ where: { id, version, status: 'pending_review' }, data: { status: 'approved', version: { increment: 1 }, approval: { actorId, approvedAt: now().toISOString(), inputFingerprint: context.inputFingerprint, correctedAssessment: correction, reviewNotes } } });
+        if (changed.count !== 1) fail('stale_version', 409);
+        return publicRow(await assessment(db, id));
+      });
+    },
+    async retire(actorId, id, { version } = {}) {
+      await account(prisma, actorId, 'owner');
+      const row = await assessment(prisma, id);
+      if (!row.approval) fail('not_approved', 409);
+      if (row.retiredAt) fail('already_retired', 409);
+      if (!Number.isInteger(version) || version !== row.version) fail('stale_version', 409);
+      return tx(async db => {
+        await account(db, actorId, 'owner');
+        const changed = await db.skinAdvisorAssessment.updateMany({ where: { id, version }, data: { retiredAt: now(), retiredById: actorId, version: { increment: 1 } } });
         if (changed.count !== 1) fail('stale_version', 409);
         return publicRow(await assessment(db, id));
       });
