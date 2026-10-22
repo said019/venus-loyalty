@@ -48,6 +48,12 @@ try{
  assert.equal(Number((await prisma.product.findUnique({where:{id:product.targetId}})).price),130);
  await page.setViewportSize({width:390,height:900});await page.screenshot({path:'/tmp/purchase-grid-mobile.png'});
  assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+ for(const width of [390,800,1100,1440]){
+  await page.setViewportSize({width,height:1000});
+  assert(await page.locator('.pg-scroll').evaluate(e=>e.scrollWidth<=e.clientWidth+1),`Table overflows at ${width}`);
+  const ml=await row.locator('[data-field=bottleMl]').boundingBox();assert(ml.x>=0 && ml.x+ml.width<=width);
+ }
+ await page.setViewportSize({width:800,height:1000});await page.screenshot({path:'/tmp/purchase-grid-fit.png'});
  console.log('Grid passed: inline split, price, ml, atomic save, retry without duplicate stock, mobile containment, admin access.');
 
 }finally{

@@ -59,3 +59,32 @@ html[data-theme=dark] #panel-invoices{--purchase-paper:#242b23;--purchase-head:#
 #panel-invoices .pg-table input:not([type=checkbox]):focus-visible,#panel-invoices .pg-table select:focus-visible{outline:2px solid var(--purchase-accent)!important;outline-offset:2px;border-radius:2px!important}
 #panel-invoices .pg-discount strong{background:transparent!important;border:0!important;border-radius:0!important;padding:3px 0!important}
 #panel-invoices .pg-details-body{background:transparent!important;border:0!important;border-radius:0!important;padding:8px 0!important}
+/* Fit the available workspace, including the admin sidebar. */
+#panel-invoices .pg-table{min-width:0!important;width:100%!important}
+#panel-invoices .pg-table td:first-child{min-width:0!important}
+#panel-invoices .pg-table th:first-child{width:25%}
+#panel-invoices .pg-table th:nth-child(2){width:7%}
+#panel-invoices .pg-table th:nth-child(3),#panel-invoices .pg-table th:nth-child(4),#panel-invoices .pg-table th:nth-child(5){width:9%}
+#panel-invoices .pg-table th:nth-child(6){width:8%}
+#panel-invoices .pg-table th:nth-child(7){width:11%}
+#panel-invoices .pg-table th:nth-child(8){width:9%}
+#panel-invoices .pg-table th:nth-child(9){width:13%}
+#panel-invoices .pg-table td{min-width:0;overflow-wrap:anywhere;padding-left:7px;padding-right:7px}
+#panel-invoices .pg-table input:not([type=checkbox]),#panel-invoices .pg-table select{min-width:0!important;max-width:100%}
+#panel-invoices .pg-confirm{flex-wrap:wrap}
+#panel-invoices .pg-table th{padding-left:7px;padding-right:7px}
+#panel-invoices{container-type:inline-size}
+@container(max-width:980px){
+ #panel-invoices .pg-scroll{max-height:none;overflow:visible}
+ #panel-invoices .pg-table,#panel-invoices .pg-table tbody{display:block;width:100%}
+ #panel-invoices .pg-table thead{display:none}
+ #panel-invoices .pg-table tbody tr{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-bottom:1px solid var(--purchase-line);padding:10px 0;gap:4px 12px}
+ #panel-invoices .pg-table tbody td{display:block;width:auto!important;min-width:0!important;border:0!important;padding:8px!important;position:static!important;box-shadow:none!important}
+ #panel-invoices .pg-table tbody td:first-child{grid-column:1/-1}
+ #panel-invoices .pg-table td:not(:first-child)::before{content:attr(data-label);display:block;font-size:10px;font-weight:600;line-height:1.4;color:var(--purchase-muted);margin-bottom:6px}
+ #panel-invoices .pg-table td input:not([type=checkbox]){font-size:13px}
+ #panel-invoices .pg-bought,#panel-invoices .pg-remaining{text-align:left}
+ #panel-invoices .pg-table [data-field=name]{font-size:14px;height:32px;min-height:32px}
+}
+@container(max-width:520px){#panel-invoices .pg-table tbody tr{grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 8px}}
+#panel-invoices{width:100%;min-width:0;box-sizing:border-box}
