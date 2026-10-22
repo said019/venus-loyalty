@@ -50,6 +50,10 @@ test('public skin report routes: headers, status mapping, id validation and exac
 test('public skin report routes hide internal errors', async t => {
   const boom = async () => { throw new Error('secret db detail'); };
   const base = await start(t, { listForCard: boom, getForCard: boom });
+  const logged = [];
+  const original = console.error;
+  console.error = (...args) => { logged.push(args); };
+  t.after(() => { console.error = original; });
   for (const path of ['/card-a/skin-reports', '/card-a/skin-reports/v1']) {
     const res = await fetch(base + path);
     assert.equal(res.status, 500);
@@ -58,6 +62,8 @@ test('public skin report routes hide internal errors', async t => {
     assert.deepEqual(JSON.parse(text), { success: false, error: 'internal_error' });
     assert.doesNotMatch(text, /secret/);
   }
+  assert.equal(logged.length, 2);
+  assert.equal(logged[0][0], '[skin-client]');
 });
 
 test('router does not touch headers of legacy endpoints it falls through to', async t => {

@@ -4,13 +4,13 @@ import { createSkinClientReport } from '../src/services/skinClientReport.js';
 
 const url = name => `https://res.cloudinary.com/demo/image/upload/${name}.jpg`;
 
-function fixture() {
+function fixture(mutate = () => {}) {
   const cards = [{ id: 'card-a', name: 'Daniela Pérez', phone: '5551234567' }, { id: 'card-b', name: '', phone: null }];
   const records = [{ id: 'rec-a', cardId: 'card-a' }, { id: 'rec-b', cardId: 'other' }];
   const input = { answers: { secret: 'answers' }, patient: { name: 'patient' }, photos: [
     { id: 'white', zone: 'face', orientation: 'frontal', lateralityResolved: true, capturedAt: '2026-10-21T11:00:00Z', capturedAtConfirmed: true, sourceTakenAt: '2026-10-21T11:00:00Z', sourceUrl: url('white') },
   ] };
-  const approved = (at, extra = {}) => ({ actorId: 'staff', approvedAt: at, inputFingerprint: 'fp', correctedAssessment: null, reviewNotes: 'private notes', plan: [{ step: 1 }], homeRoutine: { am: ['limpiar'] }, nextVisitWeek: 6, zoneProgress: [{ zone: 'frente', trend: 'mejora' }], ...extra });
+  const approved = (at, extra = {}) => ({ actorId: 'staff', approvedAt: at, inputFingerprint: 'fp', correctedAssessment: null, reviewNotes: 'private notes', plan: [{ serviceId: 's1', name: 'Hidratación', price: 850, durationMinutes: 60, cadence: 'mensual', internalNote: 'costo interno' }], homeRoutine: { morning: 'Limpiar', night: 'Crema', extra: 'x' }, nextVisitWeek: '2026-11-09', zoneProgress: { frente: 'mejoro', nariz: 'peor' }, ...extra });
   const assessment = { summary: 'Piel equilibrada', observations: [{ zone: 'frente', areaId: 'A02', description: 'Brillo leve', score: 9 }], missingInformation: ['Rutina nocturna'] };
   const row = (id, status, approval, extra = {}) => ({ id, recordId: 'rec-a', status, input: structuredClone(input), assessment, provenance: { model: 'x' }, approval, retiredAt: null, createdAt: new Date('2026-08-01T00:00:00Z'), ...extra });
   const assessments = [
@@ -45,6 +45,8 @@ function fixture() {
     const [[k, dir]] = Object.entries(orderBy);
     return [...rows].sort((a, b) => (dir === 'desc' ? -1 : 1) * (new Date(a[k]) - new Date(b[k])));
   };
+  const raw = { cards, records, assessments, photos, sets, row, approved, input };
+  mutate(raw);
   const prisma = {
     card: { findUnique: async ({ where }) => structuredClone(cards.find(c => c.id === where.id) || null) },
     clientRecord: { findUnique: async ({ where }) => structuredClone(records.find(r => r.cardId === where.cardId) || null) },
@@ -56,7 +58,7 @@ function fixture() {
     clientPhoto: { findMany: async ({ where, orderBy }) => structuredClone(sort(photos.filter(p => match(p, where)), orderBy)) },
     skinLayerSet: { findMany: async ({ where, orderBy }) => structuredClone(sort(sets.filter(s => match(s, where)), orderBy)) },
   };
-  return createSkinClientReport({ prisma, clock: () => new Date('2026-10-21T12:00:00Z') });
+  return createSkinClientReport({ prisma });
 }
 
 test('list merges Venus and imported reports, newest first, hiding retired and drafts', async () => {
@@ -86,7 +88,7 @@ test('detail enforces card ownership and approval', async () => {
 test('detail never leaks private fields and keeps counts out', async () => {
   const d = await fixture().getForCard('card-a', 'v2');
   const json = JSON.stringify(d);
-  for (const word of ['answers', 'reviewNotes', 'publicId', 'candidateCount', 'provenance', 'patient', 'inputFingerprint', 'actorId', 'score', 'private notes']) {
+  for (const word of ['answers', 'reviewNotes', 'publicId', 'candidateCount', 'provenance', 'patient', 'inputFingerprint', 'actorId', 'score', 'private notes', 'internalNote', 'costo interno']) {
     assert.ok(!json.includes(word), word);
   }
 });
@@ -115,9 +117,80 @@ test('clientName is the first name and plan fields pass through', async () => {
   assert.equal(d.summary, 'Corregido');
   assert.deepEqual(d.observations, [{ zone: 'frente', areaId: 'A02', description: 'Brillo leve' }]);
   assert.deepEqual(d.pendingToConfirm, ['Rutina nocturna']);
-  assert.deepEqual(d.plan, [{ step: 1 }]);
-  assert.deepEqual(d.homeRoutine, { am: ['limpiar'] });
-  assert.equal(d.nextVisitWeek, 6);
-  assert.deepEqual(d.zoneProgress, [{ zone: 'frente', trend: 'mejora' }]);
+  assert.deepEqual(d.plan, [{ serviceId: 's1', name: 'Hidratación', price: 850, durationMinutes: 60, cadence: 'mensual' }]);
+  assert.deepEqual(d.homeRoutine, { morning: 'Limpiar', night: 'Crema' });
+  assert.equal(d.nextVisitWeek, '2026-11-09');
+  assert.deepEqual(d.zoneProgress, { frente: 'mejoro' });
   assert.equal(d.approvedAt, '2026-10-21T10:00:00.000Z');
+});
+
+test('nested whitelist: unknown plan keys, non-numeric prices and bad progress never reach the payload', async () => {
+  const svc = fixture(({ assessments }) => {
+    assessments[1].approval.plan = [{ serviceId: 's1', name: 'A', price: '850', durationMinutes: 60, cadence: 'mensual', secret: 1 }, 'basura', null];
+    assessments[1].approval.homeRoutine = 'texto';
+    assessments[1].approval.nextVisitWeek = 6;
+    assessments[1].approval.zoneProgress = ['x'];
+    assessments[1].assessment = { ...assessments[1].assessment, summary: 42 };
+    assessments[1].approval.correctedAssessment = null;
+  });
+  const d = await svc.getForCard('card-a', 'v2');
+  assert.deepEqual(d.plan, [{ serviceId: 's1', name: 'A', price: null, durationMinutes: 60, cadence: 'mensual' }]);
+  assert.equal(d.homeRoutine, null);
+  assert.equal(d.nextVisitWeek, null);
+  assert.equal(d.zoneProgress, null);
+  assert.equal(d.summary, '');
+  assert.ok(!JSON.stringify(d).includes('secret'));
+});
+
+test('complementary captures are capped at 24 and the ten minute window is inclusive', async () => {
+  const svc = fixture(({ photos }) => {
+    for (let i = 0; i < 40; i++) photos.push({ id: 'extra' + i, recordId: 'rec-a', url: url('e' + i), description: 'Skin | modo=image_uv', takenAt: new Date('2026-10-21T11:01:00Z') });
+    photos.push({ id: 'edge-in', recordId: 'rec-a', url: url('in'), description: 'Skin | modo=image_uv', takenAt: new Date(Date.parse('2026-10-21T11:00:00Z') + 600000) });
+    photos.push({ id: 'edge-out', recordId: 'rec-a', url: url('out'), description: 'Skin | modo=image_uv', takenAt: new Date(Date.parse('2026-10-21T11:00:00Z') + 600001) });
+  });
+  const d = await svc.getForCard('card-a', 'v2');
+  assert.equal(d.photos.length, 24);
+  const edge = fixture(({ photos }) => {
+    photos.length = 0;
+    photos.push({ id: 'edge-in', recordId: 'rec-a', url: url('in'), description: 'modo=image_uv', takenAt: new Date(Date.parse('2026-10-21T11:00:00Z') + 600000) });
+    photos.push({ id: 'edge-out', recordId: 'rec-a', url: url('out'), description: 'modo=image_uv', takenAt: new Date(Date.parse('2026-10-21T11:00:00Z') + 600001) });
+  });
+  const ids = (await edge.getForCard('card-a', 'v2')).photos.map(p => p.id);
+  assert.ok(ids.includes('edge-in'));
+  assert.ok(!ids.includes('edge-out'));
+});
+
+test('a card with only imported reports lists those rows; an empty name gives an empty clientName', async () => {
+  const svc = fixture(({ records, cards }) => { records.length = 0; cards[0].name = ''; });
+  const list = await svc.listForCard('card-a');
+  assert.deepEqual(list.map(i => i.id), ['imp1', 'imp2']);
+  assert.equal(await svc.getForCard('card-a', 'v2'), null);
+  const named = fixture(({ cards }) => { cards[0].name = ''; });
+  assert.equal((await named.getForCard('card-a', 'v2')).clientName, '');
+});
+
+test('previous carries its own photos, layers and filtered zone progress', async () => {
+  const svc = fixture(({ photos, sets, assessments }) => {
+    assessments[0].input.photos[0].id = 'oldwhite';
+    assessments[0].input.photos[0].sourceUrl = url('oldwhite');
+    assessments[0].input.photos[0].sourceTakenAt = '2026-08-12T09:00:00Z';
+    photos.push({ id: 'oldwhite', recordId: 'rec-a', url: url('oldwhite'), description: 'modo=image', takenAt: new Date('2026-08-12T09:00:00Z') });
+    sets.push({ id: 's3', recordId: 'rec-a', sourcePhotoId: 'oldwhite', method: 'm', notice: 'n', images: [{ key: 'poros', url: url('maps-prev'), publicId: 'z', candidateCount: 3 }], createdAt: new Date('2026-08-12T09:10:00Z') });
+  });
+  const d = await svc.getForCard('card-a', 'v2');
+  assert.deepEqual(d.previous.photos.map(p => p.id), ['oldwhite']);
+  assert.equal(d.previous.layers.oldwhite[0].url, url('maps-prev'));
+  assert.deepEqual(d.previous.zoneProgress, { frente: 'mejoro' });
+});
+
+test('analyzed photos without a source URL are omitted', async () => {
+  const svc = fixture(({ assessments }) => { delete assessments[1].input.photos[0].sourceUrl; });
+  const d = await svc.getForCard('card-a', 'v2');
+  assert.ok(!d.photos.some(p => p.id === 'white' && p.analyzed));
+});
+
+test('a draft or retired row is never visible even if it has an approval object', async () => {
+  const svc = fixture(({ assessments }) => { assessments[3].approval = { approvedAt: '2026-10-22T00:00:00Z' }; });
+  assert.equal(await svc.getForCard('card-a', 'v4'), null);
+  assert.ok(!(await svc.listForCard('card-a')).some(i => i.id === 'v4'));
 });

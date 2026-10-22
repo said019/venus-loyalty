@@ -14,7 +14,8 @@ export function createSkinClientRouter({ report }) {
       const data = await fn(req);
       if (data == null) return res.status(404).json({ success: false, error: 'not_found' });
       res.json({ success: true, data });
-    } catch {
+    } catch (error) {
+      console.error('[skin-client]', error);
       res.status(500).json({ success: false, error: 'internal_error' });
     }
   };

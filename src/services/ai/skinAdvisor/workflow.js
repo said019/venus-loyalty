@@ -332,7 +332,7 @@ export function createSkinAdvisorWorkflow({ prisma, provider, loadPhoto, layersE
       if (!Number.isInteger(version) || version !== row.version) fail('stale_version', 409);
       return tx(async db => {
         await account(db, actorId, 'owner');
-        const changed = await db.skinAdvisorAssessment.updateMany({ where: { id, version }, data: { retiredAt: now(), retiredById: actorId, version: { increment: 1 } } });
+        const changed = await db.skinAdvisorAssessment.updateMany({ where: { id, version, retiredAt: null }, data: { retiredAt: now(), retiredById: actorId, version: { increment: 1 } } });
         if (changed.count !== 1) fail('stale_version', 409);
         return publicRow(await assessment(db, id));
       });

@@ -18,6 +18,11 @@ async function fixture(overrides = {}) {
     }
     return row[key] === value;
   });
+  const catalogue = [
+    { id: 's9', name: 'Zeta inactivo', price: '100.00', durationMinutes: 30, category: 'Básicos Venus', isActive: false },
+    { id: 's8', name: 'Aparatología otra', price: '999.00', durationMinutes: 30, category: 'Otra categoría', isActive: true },
+    { id: 's1', name: 'Hidratación profunda', price: '850.00', durationMinutes: 60, category: 'Básicos Venus', isActive: true },
+  ];
   const db = {
     admin: { findUnique: async ({ where }) => users.find(u => u.id === where.id) || null },
     clientRecord: { findUnique: async ({ where }) => where.id === current.id ? structuredClone(current) : null },
@@ -26,12 +31,16 @@ async function fixture(overrides = {}) {
       findUnique: async ({ where }) => structuredClone(rows.find(p => p.id === where.id) || null),
       findMany: async ({ where }) => structuredClone(rows.filter(p => match(p, where))),
       count: async ({ where }) => rows.filter(p => match(p, where)).length,
-      create: async ({ data }) => { const row = { id: `assessment-${rows.length}`, version: 1, status: 'draft', createdAt: date, ...structuredClone(data) }; rows.push(row); return structuredClone(row); },
+      create: async ({ data }) => { const row = { id: `assessment-${rows.length}`, version: 1, status: 'draft', retiredAt: null, createdAt: date, ...structuredClone(data) }; rows.push(row); return structuredClone(row); },
       updateMany: async ({ where, data }) => { const selected = rows.filter(p => match(p, where)); for (const row of selected) for (const [key, value] of Object.entries(data)) row[key] = value?.increment ? row[key] + value.increment : structuredClone(value); return { count: selected.length }; },
     },
     card: { findUnique: async ({ where }) => where.id === 'card-1' ? { id: 'card-1', name: 'Daniela', phone: current.phone === undefined ? '5215512345678' : current.phone } : null },
     intakeForm: { findUnique: async () => ({ skinCondition: 'Brillo en zona T', routineDay: ['Limpiador'], interestData: { protectorSolar: { value: true, detail: '' } } }) },
-    service: { findMany: async () => [{ id: 's1', name: 'Hidratación profunda', price: '850.00', durationMinutes: 60, category: 'Básicos Venus', isActive: true }] },
+    service: { findMany: async ({ where = {}, orderBy } = {}) => {
+      let list = catalogue.filter(s => (where.isActive === undefined || s.isActive === where.isActive) && (!where.category || !where.category.in || where.category.in.includes(s.category)));
+      if (orderBy) list = [...list].sort((a, b) => a.name.localeCompare(b.name));
+      return structuredClone(list);
+    } },
     $transaction: async fn => fn(db),
   };
   let calls = 0;
@@ -312,4 +321,83 @@ test('clientLink builds the report URL only for a current approval, a configured
   await bare.workflow.generate('staff', d2.id, { version: 1 });
   await bare.workflow.approve('staff', d2.id, { version: 2 });
   await assert.rejects(bare.workflow.clientLink('staff', d2.id), { code: 'link_unavailable', status: 503 });
+});
+
+test('retire only matches a row that is not retired yet', async () => {
+  const f = await fixture();
+  const draft = await f.workflow.createDraft('staff', f.current.id, f.body);
+  await f.workflow.generate('staff', draft.id, { version: 1 });
+  const approved = await f.workflow.approve('staff', draft.id, { version: 2 });
+  const seen = [];
+  const original = f.db.skinAdvisorAssessment.updateMany;
+  f.db.skinAdvisorAssessment.updateMany = async args => { seen.push(args.where); return original(args); };
+  await f.workflow.retire('owner', draft.id, { version: approved.version });
+  assert.equal(seen[0].retiredAt, null);
+  await assert.rejects(f.workflow.retire('owner', draft.id, { version: approved.version + 1 }), { code: 'already_retired' });
+  await assert.rejects(f.workflow.retire('owner', draft.id, { version: approved.version + 1 }), { code: 'already_retired' });
+});
+
+test('a non-owner admin can approve; retiredAt reads back as an ISO string', async () => {
+  const f = await fixture();
+  const draft = await f.workflow.createDraft('staff', f.current.id, f.body);
+  await f.workflow.generate('staff', draft.id, { version: 1 });
+  const approved = await f.workflow.approve('other-admin', draft.id, { version: 2 });
+  assert.equal(approved.approval.actorId, 'other-admin');
+  assert.equal((await f.workflow.getAssessment('owner', draft.id)).retiredAt, null);
+  await f.workflow.retire('owner', draft.id, { version: approved.version });
+  const iso = /^\d{4}-\d{2}-\d{2}T[\d:.]+Z$/;
+  const single = await f.workflow.getAssessment('staff', draft.id);
+  assert.equal(typeof single.retiredAt, 'string');
+  assert.match(single.retiredAt, iso);
+  const listed = (await f.workflow.getRecord('staff', f.current.id)).assessments.find(a => a.id === draft.id);
+  assert.equal(typeof listed.retiredAt, 'string');
+  assert.match(listed.retiredAt, iso);
+});
+
+test('approving a corrected assessment that asks for a retake needs more information', async () => {
+  const f = await fixture();
+  const draft = await f.workflow.createDraft('staff', f.current.id, f.body);
+  const generated = await f.workflow.generate('staff', draft.id, { version: 1 });
+  const corrected = structuredClone(generated.assessment);
+  corrected.quality.status = 'retake';
+  await assert.rejects(f.workflow.approve('staff', draft.id, { version: 2, correctedAssessment: corrected }), { code: 'needs_information', status: 409 });
+  assert.equal((await f.workflow.getAssessment('staff', draft.id)).status, 'pending_review');
+});
+
+test('services excludes inactive and out-of-menu items, sorted by name, and reception can read it', async () => {
+  const f = await fixture();
+  f.users.push({ id: 'reception', role: 'recepcion' });
+  const list = await f.workflow.services('reception');
+  assert.deepEqual(list.map(s => s.id), ['s1']);
+  const extra = await fixture();
+  const all = await extra.db.service.findMany({ where: { isActive: true }, orderBy: [{ name: 'asc' }] });
+  assert.deepEqual(all.map(s => s.name), ['Aparatología otra', 'Hidratación profunda']);
+});
+
+test('approving without extras stores empty defaults', async () => {
+  const f = await fixture();
+  const draft = await f.workflow.createDraft('staff', f.current.id, f.body);
+  await f.workflow.generate('staff', draft.id, { version: 1 });
+  const approved = await f.workflow.approve('staff', draft.id, { version: 2 });
+  assert.deepEqual(approved.approval.plan, []);
+  assert.equal(approved.approval.homeRoutine, null);
+  assert.equal(approved.approval.nextVisitWeek, null);
+  assert.deepEqual(approved.approval.zoneProgress, {});
+  const full = await fixture();
+  const d2 = await full.workflow.createDraft('staff', full.current.id, full.body);
+  await full.workflow.generate('staff', d2.id, { version: 1 });
+  const a2 = await full.workflow.approve('staff', d2.id, { version: 2, homeRoutine: { morning: ' Limpiador ', night: '' }, nextVisitWeek: '2026-11-09' });
+  assert.deepEqual(a2.approval.homeRoutine, { morning: 'Limpiador', night: '' });
+  assert.equal(a2.approval.nextVisitWeek, '2026-11-09');
+});
+
+test('clientLink encodes the card and assessment ids in the URL', async () => {
+  const f = await fixture({ config: { publicBaseUrl: 'https://venus.example' } });
+  const draft = await f.workflow.createDraft('staff', f.current.id, f.body);
+  await f.workflow.generate('staff', draft.id, { version: 1 });
+  await f.workflow.approve('staff', draft.id, { version: 2 });
+  f.rows[0].id = 'v/2';
+  f.db.card.findUnique = async () => ({ id: 'card 1', name: 'Daniela', phone: '5215512345678' });
+  const link = await f.workflow.clientLink('staff', 'v/2');
+  assert.equal(link.url, 'https://venus.example/mi-piel.html?card=card%201&v=v%2F2');
 });

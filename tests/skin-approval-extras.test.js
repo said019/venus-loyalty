@@ -22,6 +22,10 @@ test('rejects unknown services, bad cadence, long text, bad dates and foreign zo
     { nextVisitWeek: '11/11/2026' },
     { zoneProgress: { chin: 'mejoro' } },
     { zoneProgress: { nose: 'peor' } },
+    { homeRoutine: { morning: 5, night: '' } },
+    { homeRoutine: { morning: '', night: ['x'] } },
+    { plan: 'x' },
+    { plan: {} },
   ]) assert.throws(() => normalizeApprovalExtras(extras, { services, zones }), /invalid_review/);
 });
 test('accepts a full set and trims text', () => {
@@ -33,4 +37,10 @@ test('empty routine becomes null and Decimal-like prices convert', () => {
   const out = normalizeApprovalExtras({ homeRoutine: { morning: ' ', night: '' }, plan: [{ serviceId: 's1', cadence: 'unica' }] }, { services: [{ ...services[0], price: { toString: () => '850.00' } }], zones });
   assert.equal(out.homeRoutine, null);
   assert.equal(out.plan[0].price, 850);
+});
+test('null or missing extras are treated as empty', () => {
+  for (const extras of [null, undefined, {}]) {
+    const out = normalizeApprovalExtras(extras, { services, zones });
+    assert.deepEqual(out, { plan: [], homeRoutine: null, nextVisitWeek: null, zoneProgress: {} });
+  }
 });

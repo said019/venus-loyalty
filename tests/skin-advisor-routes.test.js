@@ -20,6 +20,7 @@ test('router protects every endpoint and enforces exact origin, JSON, and truste
   assert.equal(calls.at(-1).name, 'services');
   for (const path of ['/records/r/assessments', '/assessments/a/generate', '/assessments/a/approve', '/records/r/photos/p/preview']) assert.equal((await fetch(base + path, { method: 'POST' })).status, 401);
   const post = headers => fetch(base + '/assessments/a/approve', { method: 'POST', headers: { 'x-test-user': 'staff', ...headers }, body: JSON.stringify({ actorId: 'owner', version: 2 }) });
+  assert.equal((await fetch(base + '/services', { headers: { 'x-test-user': 'staff', origin: 'https://evil.example' } })).status, 403);
   for (const path of ['/config', '/records/r', '/assessments/a']) {
     for (const method of ['GET', 'HEAD']) {
       assert.equal((await fetch(base + path, { method, headers: { 'x-test-user': 'staff', origin: 'https://sibling.venus.example' } })).status, 403);
