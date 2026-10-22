@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import express from 'express';
 import { createSkinClientRouter } from '../src/routes/skinClient.js';
 
-async function start(t, report) {
+async function start(t, report, access = { verify: async () => true }) {
   const app = express();
-  app.use('/api/public/card', createSkinClientRouter({ report }));
+  app.use('/api/public/card', createSkinClientRouter({ report, access }));
   const server = app.listen(0, '127.0.0.1');
   await new Promise(resolve => server.once('listening', resolve));
   t.after(() => new Promise(resolve => server.close(resolve)));
@@ -45,6 +45,18 @@ test('public skin report routes: headers, status mapping, id validation and exac
     assert.deepEqual(await res.json(), { success: false, error: 'invalid_input' });
   }
   assert.deepEqual(calls, []);
+});
+
+test('missing or invalid bearer never calls report service, even with a known timestamp card', async t => {
+  let calls = 0;
+  const base = await start(t, { listForCard: async () => { calls++; return []; }, getForCard: async () => { calls++; return {}; } }, { verify: async (card, token) => card === 'card_1763833069302' && token === 'valid-token' });
+  for (const path of ['/card_1763833069302/skin-reports', '/card_1763833069302/skin-reports/known-id']) {
+    assert.equal((await fetch(base + path)).status, 404);
+    assert.equal((await fetch(base + path, { headers: { Authorization: 'Bearer wrong' } })).status, 404);
+    assert.equal(calls, 0);
+  }
+  assert.equal((await fetch(base + '/card_1763833069302/skin-reports', { headers: { Authorization: 'Bearer valid-token' } })).status, 200);
+  assert.equal(calls, 1);
 });
 
 test('public skin report routes hide internal errors', async t => {

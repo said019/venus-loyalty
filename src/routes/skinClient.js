@@ -2,7 +2,7 @@ import express from 'express';
 
 const ID = /^[A-Za-z0-9_-]{1,128}$/;
 
-export function createSkinClientRouter({ report }) {
+export function createSkinClientRouter({ report, access }) {
   const router = express.Router();
   const handle = (ids, fn) => async (req, res) => {
     res.set('Cache-Control', 'private, no-store');
@@ -10,6 +10,10 @@ export function createSkinClientRouter({ report }) {
     try {
       if (!ids.every(name => typeof req.params[name] === 'string' && ID.test(req.params[name]))) {
         return res.status(400).json({ success: false, error: 'invalid_input' });
+      }
+      const token = (req.get('authorization') || '').replace(/^Bearer /, '');
+      if (!access || !await access.verify(req.params.cardId, token)) {
+        return res.status(404).json({ success: false, error: 'not_found' });
       }
       const data = await fn(req);
       if (data == null) return res.status(404).json({ success: false, error: 'not_found' });

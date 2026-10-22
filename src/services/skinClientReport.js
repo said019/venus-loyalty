@@ -58,10 +58,11 @@ function buildPhotos(row, catalog) {
 }
 
 export function createSkinClientReport({ prisma } = {}) {
-  async function layersFor(recordId, photos) {
+  async function layersFor(recordId, photos, approval) {
     const ids = photos.filter(p => p.analyzed).map(p => p.id);
-    if (!ids.length) return {};
-    const sets = await prisma.skinLayerSet.findMany({ where: { recordId, sourcePhotoId: { in: ids } }, orderBy: { createdAt: 'desc' } });
+    const approvedIds = asArray(approval && approval.layerSetIds).filter(validId);
+    if (!ids.length || !approvedIds.length) return {};
+    const sets = await prisma.skinLayerSet.findMany({ where: { id: { in: approvedIds }, recordId, sourcePhotoId: { in: ids } }, orderBy: { createdAt: 'desc' } });
     const layers = {};
     for (const set of sets) { // ya vienen del más reciente al más antiguo
       if (layers[set.sourcePhotoId]) continue;
@@ -72,7 +73,7 @@ export function createSkinClientReport({ prisma } = {}) {
 
   async function capturesOf(row, recordId, catalog) {
     const photos = buildPhotos(row, catalog);
-    return { photos, layers: await layersFor(recordId, photos) };
+    return { photos, layers: await layersFor(recordId, photos, row.approval) };
   }
 
   async function loadCard(cardId) {
@@ -94,7 +95,7 @@ export function createSkinClientReport({ prisma } = {}) {
         .filter(item => item.date)
       : [];
     const rows = await prisma.skinAnalysis.findMany({
-      where: { OR: [{ cardId: card.id }, ...(card.phone ? [{ clientPhone: card.phone }] : [])] },
+      where: { OR: [{ cardId: card.id }, ...(card.phone ? [{ cardId: null, clientPhone: card.phone }] : [])] },
       orderBy: { analyzedAt: 'desc' },
       take: MAX_LIST,
       select: { id: true, analyzedAt: true, overallScore: true, skinType: true, ageBiological: true },

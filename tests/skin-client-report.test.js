@@ -45,7 +45,9 @@ function fixture(mutate = () => {}) {
     const [[k, dir]] = Object.entries(orderBy);
     return [...rows].sort((a, b) => (dir === 'desc' ? -1 : 1) * (new Date(a[k]) - new Date(b[k])));
   };
-  const raw = { cards, records, assessments, photos, sets, row, approved, input };
+  assessments[1].approval.layerSetIds = ['s2'];
+  assessments[0].approval.layerSetIds = ['s3'];
+  const raw = { cards, records, assessments, photos, sets, imported, row, approved, input };
   mutate(raw);
   const prisma = {
     card: { findUnique: async ({ where }) => structuredClone(cards.find(c => c.id === where.id) || null) },
@@ -93,7 +95,7 @@ test('detail never leaks private fields and keeps counts out', async () => {
   }
 });
 
-test('detail adds complementary captures within ten minutes and the latest map set', async () => {
+test('detail adds complementary captures within ten minutes and the approved map set', async () => {
   const d = await fixture().getForCard('card-a', 'v2');
   assert.deepEqual(d.photos.map(p => p.id), ['white', 'uv']);
   assert.deepEqual(d.photos.map(p => [p.mode, p.analyzed]), [['image', true], ['image_uv', false]]);
@@ -101,6 +103,20 @@ test('detail adds complementary captures within ten minutes and the latest map s
   assert.equal(d.layers.white[0].url, url('maps-new'));
   assert.deepEqual(Object.keys(d.layers.white[0]).sort(), ['key', 'url']);
   assert.equal(d.layers.uv, undefined);
+});
+
+test('later maps never replace approved maps; legacy approvals expose no unreviewed maps', async () => {
+  const svc = fixture(({ sets }) => sets.push({ id: 'later', recordId: 'rec-a', sourcePhotoId: 'white', createdAt: new Date('2026-10-22'), images: [{ key: 'poros', url: url('unreviewed') }] }));
+  assert.equal((await svc.getForCard('card-a', 'v2')).layers.white[0].url, url('maps-new'));
+  const legacy = fixture(({ assessments }) => { delete assessments[1].approval.layerSetIds; });
+  assert.deepEqual((await legacy.getForCard('card-a', 'v2')).layers, {});
+});
+
+test('phone fallback cannot expose an imported report assigned to another card', async () => {
+  const svc = fixture(({ imported }) => imported.push({ id: 'foreign', cardId: 'other-card', clientPhone: '5551234567', analyzedAt: new Date('2026-10-22') }));
+  const list = await svc.listForCard('card-a');
+  assert.ok(!list.some(row => row.id === 'foreign'));
+  assert.ok(list.some(row => row.id === 'imp2'));
 });
 
 test('previous is the latest earlier approved report even if superseded', async () => {

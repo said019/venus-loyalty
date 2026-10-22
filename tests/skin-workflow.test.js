@@ -24,6 +24,7 @@ async function fixture(overrides = {}) {
     { id: 's1', name: 'Hidratación profunda', price: '850.00', durationMinutes: 60, category: 'Básicos Venus', isActive: true },
   ];
   const db = {
+    skinLayerSet: { findMany: async () => [] },
     admin: { findUnique: async ({ where }) => users.find(u => u.id === where.id) || null },
     clientRecord: { findUnique: async ({ where }) => where.id === current.id ? structuredClone(current) : null },
     clientPhoto: { findMany: async ({ where }) => structuredClone(photos.filter(p => match(p, where))) },
@@ -45,7 +46,7 @@ async function fixture(overrides = {}) {
   };
   let calls = 0;
   const provider = { metadata: { provider: 'openai', model: 'fictional', simulation: false }, generate: async context => { calls++; return makeAssessment(context); }, ...overrides.provider };
-  const workflow = createSkinAdvisorWorkflow({ prisma: db, provider, loadPhoto: overrides.loadPhoto || (async () => ({ bytes: raw.photos[0].bytes, mediaType: raw.photos[0].mediaType })), clientReport: { getForCard: async (cardId, id) => cardId === 'card-1' ? { id, clientName: 'Prueba' } : null }, config: { enabled: true, configured: true, approverId: 'owner', consentVersion: 'v1', consentText: 'Fictitious consent', activeServices: raw.activeServices, protocols: raw.protocols, ...overrides.config }, clock: () => date });
+  const workflow = createSkinAdvisorWorkflow({ prisma: db, provider, reportAccess: { issue: async () => 'a'.repeat(64) }, loadPhoto: overrides.loadPhoto || (async () => ({ bytes: raw.photos[0].bytes, mediaType: raw.photos[0].mediaType })), clientReport: { getForCard: async (cardId, id) => cardId === 'card-1' ? { id, clientName: 'Prueba' } : null }, config: { enabled: true, configured: true, approverId: 'owner', consentVersion: 'v1', consentText: 'Fictitious consent', activeServices: raw.activeServices, protocols: raw.protocols, ...overrides.config }, clock: () => date });
   const body = { photos: photos.map(p => ({ id: p.id, zone: 'forehead', orientation: 'upright', lateralityResolved: true, capturedAt: '2026-09-10T11:00:00.000Z', capturedAtConfirmed: true })), patient: { age: 30, objective: 'Rutina sencilla' }, answers: { goal: 'Rutina sencilla' }, consentAccepted: true, consentVersion: 'v1', whiteLightOriginalConfirmed: true };
   return { workflow, db, rows, users, photos, current, body, calls: () => calls, advance: () => { date = new Date(date.getTime() + 121_000); } };
 }
@@ -310,7 +311,7 @@ test('clientLink builds the report URL only for a current approval, a configured
   await assert.rejects(f.workflow.clientLink('staff', draft.id), { code: 'not_approved', status: 409 });
   await f.workflow.generate('staff', draft.id, { version: 1 });
   const approved = await f.workflow.approve('staff', draft.id, { version: 2 });
-  assert.deepEqual(await f.workflow.clientLink('staff', draft.id), { card: { name: 'Daniela', phone: '5215512345678' }, url: `https://venus.example/mi-piel.html?card=card-1&v=${draft.id}` });
+  assert.deepEqual(await f.workflow.clientLink('staff', draft.id), { card: { name: 'Daniela', phone: '5215512345678' }, url: `https://venus.example/mi-piel.html?card=card-1&v=${draft.id}#skinToken=${'a'.repeat(64)}` });
   f.current.phone = '';
   await assert.rejects(f.workflow.clientLink('staff', draft.id), { code: 'no_phone', status: 409 });
   f.current.phone = undefined;
@@ -399,5 +400,14 @@ test('clientLink encodes the card and assessment ids in the URL', async () => {
   f.rows[0].id = 'v/2';
   f.db.card.findUnique = async () => ({ id: 'card 1', name: 'Daniela', phone: '5215512345678' });
   const link = await f.workflow.clientLink('staff', 'v/2');
-  assert.equal(link.url, 'https://venus.example/mi-piel.html?card=card%201&v=v%2F2');
+  assert.equal(link.url, 'https://venus.example/mi-piel.html?card=card%201&v=v%2F2#skinToken=' + 'a'.repeat(64));
+});
+
+test('approval pins the latest map set per photo instead of a live pointer', async () => {
+  const f = await fixture();
+  const draft = await f.workflow.createDraft('staff', f.current.id, f.body);
+  await f.workflow.generate('staff', draft.id, { version: 1 });
+  f.db.skinLayerSet.findMany = async () => [{ id: 'new', sourcePhotoId: f.photos[0].id }, { id: 'old', sourcePhotoId: f.photos[0].id }];
+  const approved = await f.workflow.approve('staff', draft.id, { version: 2 });
+  assert.deepEqual(approved.approval.layerSetIds, ['new']);
 });

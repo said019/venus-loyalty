@@ -254,7 +254,15 @@
     if (!root) return;
     var params = new URLSearchParams(location.search), card = params.get('card'), v = params.get('v'), ok = /^[A-Za-z0-9_-]{1,128}$/;
     if (!card || !v || !ok.test(card) || !ok.test(v)) { message(root, 'Este reporte no está disponible.'); return; }
-    fetch('/api/public/card/' + card + '/skin-reports/' + v, { credentials: 'same-origin' }).then(function (res) {
+    var token = new URLSearchParams(location.hash.slice(1)).get('skinToken');
+    try {
+      if (token && /^[a-f0-9]{64}$/.test(token)) {
+        sessionStorage.setItem('skin-access:' + card, token);
+        history.replaceState(null, '', location.pathname + location.search);
+      } else token = sessionStorage.getItem('skin-access:' + card);
+    } catch (_) { /* The fragment still works when session storage is unavailable. */ }
+    if (!token || !/^[a-f0-9]{64}$/.test(token)) { message(root, 'Solicita a Venus un nuevo enlace privado para ver tu reporte.'); return; }
+    fetch('/api/public/card/' + card + '/skin-reports/' + v, { credentials: 'same-origin', headers: { Authorization: 'Bearer ' + token } }).then(function (res) {
       if (res.status === 404) { message(root, 'Este reporte no está disponible.'); return null; }
       if (!res.ok) throw new Error('http');
       return res.json();

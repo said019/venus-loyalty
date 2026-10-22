@@ -3733,7 +3733,9 @@
       const list = document.getElementById('skin-list');
       if (!block || !list || !cardId) return;
       try {
-        const res = await fetch(`/api/public/card/${encodeURIComponent(cardId)}/skin-reports`);
+        const skinToken = sessionStorage.getItem('skin-access:' + cardId);
+        if (!skinToken) { block.style.display = 'none'; return; }
+        const res = await fetch(`/api/public/card/${encodeURIComponent(cardId)}/skin-reports`, { headers: { Authorization: 'Bearer ' + skinToken } });
         const json = await res.json();
         const rows = (json && json.success && Array.isArray(json.data)) ? json.data : [];
         if (!rows.length) { block.style.display = 'none'; return; }

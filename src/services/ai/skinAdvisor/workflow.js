@@ -31,7 +31,7 @@ const publicRow = (row) => {
   return safe;
 };
 
-export function createSkinAdvisorWorkflow({ prisma, provider, loadPhoto, layersEngine, layerStore, clientReport, config = {}, clock = () => new Date() }) {
+export function createSkinAdvisorWorkflow({ prisma, provider, loadPhoto, layersEngine, layerStore, clientReport, reportAccess, config = {}, clock = () => new Date() }) {
   const now = () => new Date(clock());
   const previewActors = new Set();
   const pipelineTimeoutMs = config.pipelineTimeoutMs ?? 90_000;
@@ -218,7 +218,9 @@ export function createSkinAdvisorWorkflow({ prisma, provider, loadPhoto, layersE
       const card = current.cardId ? await prisma.card.findUnique({ where: { id: current.cardId }, select: { id: true, name: true, phone: true } }) : null;
       if (!card) fail('not_found', 404);
       if (!card.phone) fail('no_phone', 409);
-      return { card: { name: card.name, phone: card.phone }, url: config.publicBaseUrl + '/mi-piel.html?card=' + encodeURIComponent(card.id) + '&v=' + encodeURIComponent(id) };
+      if (!reportAccess) fail('link_unavailable', 503);
+      const token = await reportAccess.issue(card.id);
+      return { card: { name: card.name, phone: card.phone }, url: config.publicBaseUrl + '/mi-piel.html?card=' + encodeURIComponent(card.id) + '&v=' + encodeURIComponent(id) + '#skinToken=' + token };
     },
     async createDraft(actorId, recordId, body) {
       return tx(async db => {
@@ -319,7 +321,11 @@ export function createSkinAdvisorWorkflow({ prisma, provider, loadPhoto, layersE
         if (iso(currentRecord.updatedAt) !== context.record.version) fail('stale_input', 409);
         const photos = await db.clientPhoto.findMany({ where: { recordId: row.recordId, id: { in: row.input.photos.map(p => p.id) } } });
         if (photos.length !== row.input.photos.length || row.input.photos.some(p => !photos.some(q => q.id === p.id && q.url === p.sourceUrl && iso(q.takenAt) === p.sourceTakenAt))) fail('stale_input', 409);
-        const changed = await db.skinAdvisorAssessment.updateMany({ where: { id, version, status: 'pending_review' }, data: { status: 'approved', version: { increment: 1 }, approval: { actorId, approvedAt: now().toISOString(), inputFingerprint: context.inputFingerprint, correctedAssessment: correction, reviewNotes, ...extras } } });
+        const sets = await db.skinLayerSet.findMany({ where: { recordId: row.recordId, sourcePhotoId: { in: row.input.photos.map(p => p.id) } }, orderBy: { createdAt: 'desc' } });
+        const selected = new Map();
+        for (const set of sets) if (!selected.has(set.sourcePhotoId)) selected.set(set.sourcePhotoId, set.id);
+        const layerSetIds = [...selected.values()];
+        const changed = await db.skinAdvisorAssessment.updateMany({ where: { id, version, status: 'pending_review' }, data: { status: 'approved', version: { increment: 1 }, approval: { actorId, approvedAt: now().toISOString(), inputFingerprint: context.inputFingerprint, correctedAssessment: correction, reviewNotes, layerSetIds, ...extras } } });
         if (changed.count !== 1) fail('stale_version', 409);
         return publicRow(await assessment(db, id));
       });
