@@ -47,11 +47,18 @@
     return typeof value === 'string' && Number.isFinite(Date.parse(value)) ? new Date(value).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Fecha no registrada';
   }
   function fmtWeek(value) {
-    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value || '');
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(typeof value === 'string' ? value : '');
     if (!m) return 'Fecha no registrada';
-    return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
+    var y = Number(m[1]), mo = Number(m[2]) - 1, d = Number(m[3]), date = new Date(y, mo, d);
+    if (y < 2000 || y > 2100 || date.getFullYear() !== y || date.getMonth() !== mo || date.getDate() !== d) return 'Fecha no registrada';
+    return date.toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
   }
-  function fmtPrice(value) { return Number(value).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' }); }
+  function fmtPrice(value) {
+    return typeof value === 'number' && isFinite(value) ? value.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' }) : '';
+  }
+  function validDate(value) { return typeof value === 'string' && isFinite(Date.parse(value)); }
+  // Solo claves propias: un valor del servidor como "constructor" no debe resolver a Object.prototype.
+  function lookup(map, key) { return Object.prototype.hasOwnProperty.call(map, key) ? map[key] : undefined; }
   function lines(text) { return String(text || '').split('\n').map(function (s) { return s.trim(); }).filter(Boolean); }
   function firstAnalyzed(report) {
     var photos = report && Array.isArray(report.photos) ? report.photos : [];
@@ -68,12 +75,16 @@
     return LAYER_ORDER.filter(function (key) { return !!layerUrl(report, photo, key); });
   }
   // Marco en arco; si la imagen falla o no hay URL válida, queda el texto y el resto sigue.
-  function frame(parent, url) {
+  // opts: fail (texto si no carga), alt (descripción de la imagen), onLoad (solo si la imagen cargó).
+  function frame(parent, url, opts) {
+    opts = opts || {};
     var box = node('div', null, parent, 'mp-frame');
-    function empty() { while (box.firstChild) box.removeChild(box.firstChild); node('p', 'Original no disponible', box, 'mp-frame-empty'); }
+    function empty() { while (box.firstChild) box.removeChild(box.firstChild); node('p', opts.fail || 'Imagen no disponible', box, 'mp-frame-empty'); }
     if (!url) { empty(); return box; }
-    var img = document.createElement('img'); img.alt = ''; img.referrerPolicy = 'no-referrer'; img.decoding = 'async';
-    img.addEventListener('error', empty); img.src = url; box.appendChild(img);
+    var img = document.createElement('img'); img.alt = opts.alt || ''; img.referrerPolicy = 'no-referrer'; img.decoding = 'async';
+    img.addEventListener('error', empty);
+    if (opts.onLoad) img.addEventListener('load', function () { opts.onLoad(box); });
+    img.src = url; box.appendChild(img);
     return box;
   }
   function clear(el) { while (el.firstChild) el.removeChild(el.firstChild); }
@@ -88,20 +99,25 @@
     var photo = firstAnalyzed(data), obs = Array.isArray(data.observations) ? data.observations : [];
     node('h1', data.clientName ? 'Hola, ' + data.clientName : 'Hola', sec);
     node('p', 'Así se ve tu piel en la valoración de hoy. Tu cosmetóloga revisó cada punto antes de enviártelo.', sec, 'mp-lead');
-    var box = frame(sec, photo ? imageUrl(photo.url) : '');
-    var seen = {};
-    obs.forEach(function (o) {
-      if (!o || seen[o.zone] || !PINS[o.zone]) return;
-      seen[o.zone] = true;
-      var pin = node('span', null, box, 'mp-spark'); pin.style.left = PINS[o.zone][0] + '%'; pin.style.top = PINS[o.zone][1] + '%';
-      svgIcon(['M12 2l2.2 7.8L22 12l-7.8 2.2L12 22l-2.2-7.8L2 12l7.8-2.2z'], pin);
-    });
-    node('p', 'Fotografía con luz blanca del ' + fmtDate(data.approvedAt) + '. Los destellos marcan las zonas revisadas.', sec, 'mp-cap');
+    // Los destellos se añaden solo cuando la foto cargó; sin foto no hay nada que marcar.
+    frame(sec, photo ? imageUrl(photo.url) : '', { fail: 'Original no disponible', alt: 'Tu fotografía con luz blanca', onLoad: function (box) {
+      var seen = {};
+      obs.forEach(function (o) {
+        if (!o) return;
+        var at = lookup(PINS, o.zone);
+        if (!at || seen[o.zone]) return;
+        seen[o.zone] = true;
+        var pin = node('span', null, box, 'mp-spark'); pin.style.left = at[0] + '%'; pin.style.top = at[1] + '%';
+        svgIcon(['M12 2l2.2 7.8L22 12l-7.8 2.2L12 22l-2.2-7.8L2 12l7.8-2.2z'], pin);
+      });
+    } });
+    node('p', validDate(data.approvedAt) ? 'Fotografía con luz blanca del ' + fmtDate(data.approvedAt) + '. Los destellos marcan las zonas revisadas.' : 'Fotografía con luz blanca. Los destellos marcan las zonas revisadas.', sec, 'mp-cap');
     node('h2', 'Lo que vimos', sec);
     obs.forEach(function (o) {
+      if (!o) return;
       var row = node('div', null, sec, 'mp-obs'), dot = node('span', null, row, 'mp-obs-dot'), col = node('div', null, row, 'mp-obs-text');
       svgIcon(['M12 2l2.2 7.8L22 12l-7.8 2.2L12 22l-2.2-7.8L2 12l7.8-2.2z'], dot);
-      node('b', zoneLabels[o.zone] || zoneLabels.unknown, col); node('span', o.description, col);
+      node('b', lookup(zoneLabels, o.zone) || zoneLabels.unknown, col); node('span', o.description, col);
     });
     var rev = node('div', null, sec, 'mp-card mp-card-soft');
     node('h3', 'Revisado por tu cosmetóloga', rev);
@@ -123,11 +139,11 @@
       var holder = node('div', null, sec), info = node('div', null, sec);
       var draw = function () {
         clear(holder); clear(info);
-        frame(holder, layerUrl(data, photo, chosen));
-        var c = layerCopy[chosen], card = node('div', null, info, 'mp-card');
+        frame(holder, layerUrl(data, photo, chosen), { fail: 'Imagen no disponible' });
+        var c = lookup(layerCopy, chosen), card = node('div', null, info, 'mp-card');
         node('h3', c.name, card); node('p', c.text, card); node('p', c.care, card);
       };
-      chips(sec, keys.map(function (k) { return { key: k, label: layerCopy[k].name }; }), function () { return chosen; }, function (k) { chosen = k; draw(); });
+      chips(sec, keys.map(function (k) { return { key: k, label: lookup(layerCopy, k).name }; }), function () { return chosen; }, function (k) { chosen = k; draw(); });
       sec.appendChild(holder); sec.appendChild(info); draw();
     }
     node('p', 'Los mapas son una guía visual sobre tu fotografía, revisada por tu cosmetóloga. No son una medición médica.', sec, 'mp-note');
@@ -139,25 +155,26 @@
     if (!prev) { node('p', 'Esta es tu primera valoración. En tu próxima visita verás aquí la comparación.', sec, 'mp-lead'); return; }
     var cur = firstAnalyzed(data), old = firstAnalyzed(prev), mode = 'foto';
     var options = [{ key: 'foto', label: 'Foto' }];
-    LAYER_ORDER.forEach(function (k) { if (layerUrl(data, cur, k) && layerUrl(prev, old, k)) options.push({ key: k, label: layerCopy[k].name }); });
+    LAYER_ORDER.forEach(function (k) { if (layerUrl(data, cur, k) && layerUrl(prev, old, k)) options.push({ key: k, label: lookup(layerCopy, k).name }); });
     node('h2', 'Qué comparar', sec);
     var holder = node('div', null, sec);
     var draw = function () {
       clear(holder);
       var pair = node('div', null, holder, 'mp-pair'), a = node('div', null, pair), b = node('div', null, pair);
       var urlOf = function (rep, ph) { return mode === 'foto' ? imageUrl(ph && ph.url) : layerUrl(rep, ph, mode); };
-      node('p', fmtDate(prev.approvedAt), a, 'mp-cap'); frame(a, urlOf(prev, old));
-      node('p', fmtDate(data.approvedAt) + ', hoy', b, 'mp-cap'); frame(b, urlOf(data, cur));
+      node('p', fmtDate(prev.approvedAt), a, 'mp-cap'); frame(a, urlOf(prev, old), { fail: 'Imagen no disponible' });
+      node('p', fmtDate(data.approvedAt) + ', hoy', b, 'mp-cap'); frame(b, urlOf(data, cur), { fail: 'Imagen no disponible' });
     };
     chips(sec, options, function () { return mode; }, function (k) { mode = k; draw(); });
     sec.appendChild(holder); draw();
-    var zones = Object.keys(data.zoneProgress || {}).filter(function (z) { return PROGRESS[data.zoneProgress[z]]; });
+    var zp = data.zoneProgress && typeof data.zoneProgress === 'object' ? data.zoneProgress : {};
+    var zones = Object.keys(zp).filter(function (z) { return !!lookup(PROGRESS, zp[z]); });
     if (zones.length) {
       node('h2', 'Por zona', sec);
       var card = node('div', null, sec, 'mp-card');
       zones.forEach(function (z) {
-        var row = node('div', null, card, 'mp-row'); node('span', zoneLabels[z] || zoneLabels.unknown, row);
-        node('span', PROGRESS[data.zoneProgress[z]], row, 'mp-badge ' + data.zoneProgress[z]);
+        var row = node('div', null, card, 'mp-row'); node('span', lookup(zoneLabels, z) || zoneLabels.unknown, row);
+        node('span', lookup(PROGRESS, zp[z]), row, 'mp-badge ' + zp[z]);
       });
     }
   }
@@ -171,9 +188,11 @@
       node('h2', 'En cabina', sec);
       var card = node('div', null, sec, 'mp-card');
       plan.forEach(function (s) {
+        if (!s) return;
         var row = node('div', null, card, 'mp-row'), left = node('div', null, row);
-        node('span', s.name, left); node('small', cadences[s.cadence] || '', left);
-        node('span', fmtPrice(s.price), row, 'mp-price');
+        node('span', s.name, left); node('small', lookup(cadences, s.cadence) || '', left);
+        var price = fmtPrice(s.price);
+        if (price) node('span', price, row, 'mp-price');
       });
     }
     if (hasHome) {
@@ -224,7 +243,11 @@
     select(0);
   }
 
-  function message(root, text) { clear(root); node('p', text, root, 'mp-msg'); }
+  function message(root, text) {
+    clear(root);
+    var p = node('p', text, node('div', null, root, 'mp'), 'mp-msg');
+    p.setAttribute('aria-live', 'polite');
+  }
 
   function boot() {
     var root = document.getElementById('mi-piel');

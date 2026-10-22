@@ -19,6 +19,16 @@ test('mi-piel page is Chrome 61 safe, self-hosted and private', () => {
   assert.match(js, /skin-reports/);
   assert.match(js, /Original no disponible/);
   assert.match(js, /Este reporte no está disponible/);
+  assert.match(js, /Object\.prototype\.hasOwnProperty\.call/);
+  assert.match(js, /Imagen no disponible/);
+  assert.match(js, /Tu fotografía con luz blanca/);
+  assert.match(js, /Fotografía con luz blanca\. Los destellos/);
+  assert.match(js, /isFinite\(value\) \? value\.toLocale/);
+  assert.match(js, /if \(!o\) return;/);
+  assert.match(js, /if \(!s\) return;/);
+  assert.doesNotMatch(html, /<main[^>]*aria-live/);
+  assert.match(js, /setAttribute\('aria-live', 'polite'\)/);
+  assert.doesNotMatch(js, /\b(PROGRESS|zoneLabels|layerCopy|cadences)\[/);
   for (const f of ['prata-latin-400-normal', 'manrope-latin-400-normal', 'manrope-latin-700-normal']) assert.ok(existsSync(new URL('../public/fonts/' + f + '.woff2', import.meta.url)));
 });
 
