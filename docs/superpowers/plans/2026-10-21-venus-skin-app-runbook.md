@@ -108,7 +108,7 @@ OK: el deployment del servicio `venus-loyalty` termina en estado Active/Success.
 
 ## 6. Verificación post-despliegue
 
-Con autorización de Said (son solo lecturas contra el sitio público):
+Solo lecturas contra el sitio público; no cambian nada:
 ```bash
 for p in /mi-piel.html /fonts/prata-latin-400-normal.woff2 /mi-piel.js /mi-piel.css; do
   curl -s -o /dev/null -w "$p %{http_code}\n" "https://venuscosmetologia.com.mx$p"; done
