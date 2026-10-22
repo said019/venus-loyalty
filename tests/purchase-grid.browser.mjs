@@ -3,7 +3,7 @@ import express from 'express';import cookieParser from 'cookie-parser';import jw
 const {chromium}=await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 assert(process.env.CLINIC_TEST_DATABASE_URL);assert(['localhost','127.0.0.1'].includes(new URL(process.env.CLINIC_TEST_DATABASE_URL).hostname));process.env.DATABASE_URL=process.env.CLINIC_TEST_DATABASE_URL;process.env.ADMIN_JWT_SECRET='local-test';
 const {prisma}=await import('../src/db/index.js');const {default:router}=await import('../src/routes/purchaseInvoices.js');const {default:clinic}=await import('../src/routes/clinicInventory.js');
-const id=randomUUID();const invoice=await prisma.purchaseInvoice.create({data:{id,number:'TEST-UI',supplier:'Proveedor de prueba',issuedOn:'2026-10-20',subtotalCents:10000,discountCents:0,taxCents:1600,totalCents:11600,sourceFilename:'test.pdf',sourceHash:id,sourcePdf:Buffer.from('%PDF-test'),lines:{create:{lineNumber:1,sku:'TEST',description:'Crema de prueba 50 GR',quantity:2,netTotalCents:11600,volumeNote:'Presentación en gramos. Confirmar el volumen real.'}}},include:{lines:true}});
+const id=randomUUID();const invoice=await prisma.purchaseInvoice.create({data:{id,number:'TEST-UI',supplier:'Proveedor de prueba',issuedOn:'2026-10-20',subtotalCents:10000,discountCents:0,taxCents:1600,totalCents:11600,sourceFilename:'test.pdf',sourceHash:id,sourcePdf:Buffer.from('%PDF-test'),lines:{create:{lineNumber:1,sku:'TEST',description:'Crema de prueba 50 GR',quantity:2,netTotalCents:11600,listUnitCents:10000,volumeNote:'Presentación en gramos. Confirmar el volumen real.'}}},include:{lines:true}});
 const adminHead=readFileSync('public/admin.html','utf8').split('</head>')[0];
 const adminStyles=(adminHead.match(/<style[\s\S]*?<\/style>|<link[^>]*>/g)||[]).filter(s=>s.startsWith('<style')||(s.includes('stylesheet')&&!s.includes('https://'))).join('');
 const app=express();app.use(express.json(),cookieParser());app.use('/api/purchase-invoices',router);app.use('/api/clinic-inventory',clinic);app.get('/api/products',async(req,res)=>res.json({success:true,data:await prisma.product.findMany()}));app.use(express.static('public'));
@@ -18,6 +18,7 @@ try{
  const page=await browser.newPage({viewport:{width:390,height:900}});await page.context().addCookies([{name:'adm',value:jwt.sign({uid:'test',email:'test',role:'admin'},process.env.ADMIN_JWT_SECRET),url:base}]);
  await page.setViewportSize({width:1440,height:1000});await page.goto(base+'/test-ui');
  const row=page.locator('tbody tr').filter({has:page.locator('input[value="Crema de prueba 50 GR"]')});
+ assert.match(await row.locator('.pg-original').textContent(),/100.00/);assert.match(await row.locator('.pg-discount').textContent(),/42%/);assert.match(await row.locator('.pg-cost').textContent(),/58.00/);assert.equal(await row.locator('[data-field=price]').inputValue(),'');
  await row.locator('[data-field=saleQuantity]').fill('1');await row.locator('[data-field=price]').fill('120');
  await row.locator('[data-field=clinicQuantity]').fill('1');await row.locator('[data-field=bottleMl]').fill('45.5');
  await row.locator('[data-field=volumeConfirmed]').check();
