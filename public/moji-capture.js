@@ -243,6 +243,7 @@
     } finally { if (objectUrl) URL.revokeObjectURL(objectUrl); }
   }
   async function takeSequence() {
+    if (!nativeSequence || skinConfig.sequenceEnabled !== true || ($('modo').value === 'analisis' && !$('consent-captura').checked)) return;
     if (busy || !recordId || !nativeSequence || document.hidden) return;
     busy = true; controls(); var ticket = flow.ticket(); var saved = 0;
     var typeButton = $('tipo').querySelector('.on');
@@ -355,6 +356,7 @@
   $('b-analizar').onclick = function () {
     if (busy || !clienta) return;
     if (!$('consent-captura').checked) { status('e-tomar', 'Marca el consentimiento de la clienta antes de analizar.', true); return; }
+    if (!skinConfig.consentVersion) { status('e-tomar', 'No se pudo cargar la configuración del consentimiento. Recarga la página.', true); return; }
     var target = flow.advisorUrl(clienta.id, { auto: '1', cabina: '1', consent: skinConfig.consentVersion });
     $('consent-captura').checked = false; closeCamera(); location.href = target;
   };
@@ -366,7 +368,7 @@
   var sequenceText = 'Protocolo completo: 8 capturas con 6 luces (blanca, polarizada +, UV, Wood, polarizada −, azul). La clienta debe mantener los ojos cerrados durante todo el protocolo. Apagado automático tras cada captura con un límite total de 2 minutos.';
   var whiteText = native ? 'Luz blanca: pulso máximo de 2 segundos. Confirma físicamente que ilumina al tomar. No se utiliza UV.' : 'Chrome no controla los LEDs. Usa iluminación blanca comprobada o abre la app Venus para el pulso automático.';
   async function loadSkinConfig() {
-    try { var cfg = await json('/api/skin-advisor/config'); skinConfig = cfg.data || skinConfig; } catch (_) { skinConfig = { sequenceEnabled: false, consentText: '', consentVersion: '' }; }
+    try { var cfg = await bounded(json('/api/skin-advisor/config'), 5000); skinConfig = cfg.data || skinConfig; } catch (_) { skinConfig = { sequenceEnabled: false, consentText: '', consentVersion: '' }; }
     skinConfig.sequenceEnabled = skinConfig.sequenceEnabled === true;
     $('consent-text').textContent = skinConfig.consentText || 'Consentimiento de la clienta registrado por la cosmetóloga.';
     $('e-luces').textContent = nativeSequence ? (skinConfig.sequenceEnabled ? sequenceText : 'Protocolo de luces pendiente de validación física. Se usa solo luz blanca.') : whiteText;

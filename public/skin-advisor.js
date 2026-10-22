@@ -285,7 +285,8 @@
         });
         servicesReady = true; byId('approve').disabled = busy;
       }).catch(function (error) {
-        if (extrasFor === row.id) extrasFor = null;
+        if (extrasFor !== row.id && extrasFor !== null) return; // otra valoración ya está en pantalla
+        extrasFor = null;
         servicesReady = false; byId('approve').disabled = true;
         showError(error);
         var line = node('div', undefined, box); line.className = 'plan-row';
@@ -339,7 +340,6 @@
     action(async function () { current = await api('/assessments/' + encodeURIComponent(current.id) + '/retire', { version: current.version }); await refresh(); message('Valoración retirada de la tarjeta.'); });
   });
   function leaveCabina() { location.href = '/captura.html?modo=analisis'; }
-  byId('cabina-done').addEventListener('click', leaveCabina);
   async function renderCabina(row) {
     if (!window.VenusMiPiel) throw new Error('No se pudo cargar la vista de la clienta.');
     var data = await api('/assessments/' + encodeURIComponent(row.id) + '/client-view');
@@ -377,7 +377,8 @@
     byId('objective').value = record.record.objectives || '';
     var prefill = record.prefill || {};
     Object.keys(prefill).forEach(function (key) { var input = byId('answer-' + key); if (input && !input.value) input.value = prefill[key]; });
-    if (!byId('answer-goal').value) byId('answer-goal').value = record.record.objectives || '';
+    var goalInput = byId('answer-goal');
+    if (goalInput && !goalInput.value) goalInput.value = record.record.objectives || '';
     byId('consent').checked = query.get('consent') === config.consentVersion;
     byId('session-sides').checked = false;
     photoControls[0] && photoControls[0].box.dispatchEvent(new Event('change', { bubbles: true }));
@@ -429,7 +430,7 @@
       if (!recordId) throw new Error('Abre Venus Skin IA desde el expediente de una clienta.');
       config = await api('/config'); await refresh();
       if (record.assessments.length) { current = record.assessments[0]; render(current); }
-            var visiblePhotos = captureIds.length ? record.photos.filter(function (p) { return captureIds.indexOf(p.id) !== -1; }) : record.photos;
+      var visiblePhotos = captureIds.length ? record.photos.filter(function (p) { return captureIds.indexOf(p.id) !== -1; }) : record.photos;
       renderPhotos(visiblePhotos);
       byId('age').value = record.record.age === null || record.record.age === undefined ? '' : record.record.age;
       byId('objective').value = record.record.objectives || ''; byId('consent-text').textContent = config.consentText;

@@ -3738,7 +3738,7 @@
         const rows = (json && json.success && Array.isArray(json.data)) ? json.data : [];
         if (!rows.length) { block.style.display = 'none'; return; }
         const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
-        list.innerHTML = rows.map((a, i) => {
+        const html = rows.map((a, i) => {
           const fecha = a.date ? new Date(a.date).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
           const piel = a.skinType ? (SKIN_TYPE_ES[String(a.skinType).toLowerCase()] || a.skinType) : '';
           const meta = [piel ? 'Piel ' + piel : '', a.ageBiological != null ? 'Edad de piel ' + a.ageBiological : ''].filter(Boolean).join(' · ');
@@ -3761,6 +3761,8 @@
               <span class="text-venus-olive text-sm whitespace-nowrap">Ver reporte →</span>
             </a>`;
         }).join('');
+        if (!html) { block.style.display = 'none'; return; }
+        list.innerHTML = html;
         block.style.display = '';
       } catch (e) {
         console.warn('[skin] no se pudieron cargar los análisis:', e);

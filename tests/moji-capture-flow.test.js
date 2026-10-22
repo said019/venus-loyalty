@@ -56,3 +56,8 @@ test('advisorUrl appends only whitelisted string extras', () => {
   assert.ok(s.advisorUrl('card', { auto: '1', cabina: '1', consent: 'venus-openai-photos-v1' }).endsWith('&auto=1&cabina=1&consent=venus-openai-photos-v1'));
   assert.equal(s.advisorUrl('card', { evil: 'x', auto: 1 }), base);
 });
+
+test('advisorUrl exact URL for a known record and photo', () => {
+  const s = flow.session(); s.reset('r'); s.add(s.ticket(), { id: 'p1' });
+  assert.equal(s.advisorUrl('card'), '/skin-advisor.html?capture=1&recordId=r&cardId=card&photoIds=p1');
+});

@@ -81,3 +81,31 @@ test('approval plan retries a failed services load and keeps approve disabled un
   assert.match(script, /Tu cuenta no puede aprobar\. Pide a una cosmetóloga o al administrador\./);
   assert.match(script, /Pendiente de aprobación por una cosmetóloga\./);
 });
+
+test('capture page guards consent version, sequence and config load', () => {
+  const capture = read('public/moji-capture.js');
+  assert.match(capture, /No se pudo cargar la configuración del consentimiento\. Recarga la página\./);
+  assert.match(capture, /if \(!skinConfig\.consentVersion\)/);
+  assert.ok(capture.indexOf('if (!skinConfig.consentVersion)') < capture.indexOf("flow.advisorUrl(clienta.id"));
+  assert.match(capture, /async function takeSequence\(\) \{\n    if \(!nativeSequence \|\| skinConfig\.sequenceEnabled !== true \|\| \(\$\('modo'\)\.value === 'analisis' && !\$\('consent-captura'\)\.checked\)\) return;/);
+  assert.match(capture, /bounded\(json\('\/api\/skin-advisor\/config'\), 5000\)/);
+  const css = read('public/moji-capture.css');
+  assert.match(css, /#consent-wrap\{display:flex;align-items:flex-start;min-height:44px;padding:10px 0\}/);
+  assert.match(css, /#consent-wrap input\{[^}]*width:22px;height:22px/);
+  assert.match(css, /#consent-wrap\[hidden\]\{display:none\}/);
+});
+
+test('dead cabina buttons are gone and extras errors only surface for the current row', () => {
+  const html = read('public/skin-advisor.html'), script = read('public/skin-advisor.js');
+  assert.doesNotMatch(html + script, /cabina-done|cabina-send/);
+  assert.match(html, /id="cabina"/);
+  assert.match(html, /id="cabina-view"/);
+  assert.match(script, /extrasFor !== row\.id && extrasFor !== null\) return;/);
+  assert.match(script, /var goalInput = byId\('answer-goal'\);\n    if \(goalInput && !goalInput\.value\)/);
+  assert.match(script, /\n      var visiblePhotos = /);
+});
+
+test('client card hides the skin block when no row has a valid href', () => {
+  const index = read('public/index.html');
+  assert.match(index, /if \(!html\) \{ block\.style\.display = 'none'; return; \}\n\s+list\.innerHTML = html;/);
+});
