@@ -38,7 +38,7 @@ export async function moveStock(tx, supplyId, delta, data) {
   await tx.clinicStockMovement.create({ data: { ...data, supplyId, deltaMilliMl: delta, stockAfterMilliMl: supply.stockMilliMl } });
   return supply;
 }
-export async function saveUsage(db, appointmentId, body, actor, canEdit) {
+export async function saveUsage(db, appointmentId, body, actor, canEdit, assignedAdminId = null) {
   const key = requestKey(body.requestKey);
   const items = normalizeUsage(body.items, body.noProducts);
   const note = cleanNote(body.note);
@@ -46,6 +46,13 @@ export async function saveUsage(db, appointmentId, body, actor, canEdit) {
   if (!Number.isInteger(revision) || revision < 0) throw inventoryError('Versión de consumo inválida.');
   try {
     return await db.$transaction(async tx => {
+      if (assignedAdminId) {
+        const allowed = await tx.appointment.updateMany({
+          where: { id: appointmentId, assignedAdminId, status: { in: ['scheduled', 'confirmed', 'completed'] } },
+          data: { status: 'completed' }
+        });
+        if (allowed.count !== 1) throw inventoryError('Solo puedes completar tus citas asignadas y activas.', 403);
+      }
       const previous = await tx.clinicUsage.findUnique({ where: { appointmentId } });
       if (previous?.requestKey === key) return previous;
       if (previous && !canEdit) throw inventoryError('Solo administración puede corregir un consumo guardado.', 403);

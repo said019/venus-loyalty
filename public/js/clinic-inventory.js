@@ -87,7 +87,7 @@
       d.form.elements.sourceProductId.innerHTML = '<option value="">Selecciona el producto de venta</option>'+j.data.map(p=>`<option value="${esc(p.id)}">${esc(p.name)}${p.presentation ? ' · '+esc(p.presentation) : ''} · ${p.stock} unidades</option>`).join('');
     } catch (error) { d.error(error.message); }
   }
-  async function openUsage(id) {
+  async function openUsage(id, complete = false) {
     const d = dialog('¿Qué productos usaste en el servicio?', '<p id="ci-usage-content" class="ci-muted">Cargando productos…</p><footer><button type="button" class="btn ci-later">Dejar para después</button></footer>');
     d.el.querySelector('.ci-later').onclick = d.close;
     try {
@@ -98,6 +98,12 @@
       const requestKey = key();
       d.form.innerHTML = `<header><h2>${usage ? 'Consumo del servicio' : '¿Qué productos usaste?'}</h2><button type="button" class="ci-close" aria-label="Cerrar">×</button></header><p><strong>${esc(appointment.clientName)}</strong><br>${esc(appointment.serviceName)}</p><p class="ci-muted">${usage ? 'Al corregir se ajusta solo la diferencia y se conserva la bitácora.' : 'El pago ya está registrado. Descontaremos solo los ml que indiques, sin cambiar el cobro.'}</p>${!list.length ? '<p class="ci-help">Aún no tienes productos del consultorio. Agrégalos en Catálogo → Consultorio (ml) y vuelve a registrar este consumo.</p>' : ''}<fieldset ${readonly ? 'disabled' : ''}><div id="ci-use-rows"></div><button type="button" class="btn" id="ci-add-use" ${list.length ? '' : 'disabled'}>+ Producto utilizado</button><label class="ci-checkbox"><input type="checkbox" name="noProducts" ${usage && !usage.items.length ? 'checked' : ''}> No utilicé productos del inventario</label><label>Nota (opcional)<input name="note" maxlength="500" value="${esc(usage?.note || '')}" placeholder="Ej. Dosis aproximada utilizada"></label></fieldset><p class="ci-error" role="alert"></p><footer><button type="button" class="btn ci-later">${usage ? 'Cerrar' : 'Dejar para después'}</button>${readonly ? '' : '<button type="submit" class="btn primary">'+(usage ? 'Guardar corrección' : 'Guardar consumo')+'</button>'}</footer>`;
       const rows = d.el.querySelector('#ci-use-rows');
+      if (complete) {
+        d.form.querySelector('.ci-muted').textContent = 'Guarda los productos y los ml utilizados para completar la cita. No se modifica el cobro.';
+        const submit = d.form.querySelector('[type=submit]');
+        if (submit) submit.textContent = 'Guardar y completar cita';
+        d.form.querySelector('.ci-later').textContent = 'Cerrar';
+      }
       function addRow(item) {
         const row = document.createElement('div'); row.className = 'ci-use-row';
         row.innerHTML = `<label>Producto<select required><option value="">Selecciona un producto</option>${list.map(s=>`<option value="${esc(s.id)}">${esc(s.name)} · ${ml(s.stockMilliMl)} ml disponibles</option>`).join('')}</select></label><label>Ml usados<input type="number" min="0.001" max="1000000" step="0.001" required placeholder="Ej. 3.5"></label><button type="button" class="btn ci-remove" aria-label="Quitar producto">×</button><small class="ci-remaining"></small>`;

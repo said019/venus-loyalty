@@ -1,6 +1,7 @@
 // public/recepcion.js — Venus Recepción (standalone, spa boutique aesthetic)
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+let session = null;
 
 /* ============== SESIÓN ============== */
 async function guardSession() {
@@ -95,6 +96,7 @@ function fmtPhone(p) {
 }
 
 function citaItem(c) {
+  if (session?.assignedCompletionOnly && c.assignedAdminId !== session.uid) return '';
   const st = stateOf(c);
   const paid = c.totalPaid != null;
   const cancelBtn = paid
@@ -112,6 +114,9 @@ function citaItem(c) {
       <button class="btn btn-ghost" data-action="wa" data-phone="${esc(c.clientPhone)}"><i class="fa-brands fa-whatsapp"></i><span>WhatsApp</span></button>`;
   } else {
     actions = `<button class="btn btn-ghost" data-action="wa" data-phone="${esc(c.clientPhone)}"><i class="fa-brands fa-whatsapp"></i><span>WhatsApp</span></button>`;
+  }
+  if (session?.assignedCompletionOnly) {
+    actions = ['scheduled', 'confirmed', 'completed'].includes(c.status) ? `<button class="btn btn-primary" data-action="complete-usage" data-id="${esc(c.id)}"><i class="fa-solid fa-check"></i><span>${c.status === 'completed' ? 'Productos utilizados' : 'Completar cita'}</span></button>` : '';
   }
   const duration = c.durationMinutes ? `<span class="cita-meta-item"><i class="fa-regular fa-clock"></i>${c.durationMinutes} min</span>` : "";
   const phone = c.clientPhone ? `<a class="cita-meta-item cita-meta-link" href="${waLink(c.clientPhone)}" target="_blank" rel="noopener" data-stop><i class="fa-brands fa-whatsapp"></i>${esc(fmtPhone(c.clientPhone))}</a>` : "";
@@ -139,7 +144,7 @@ function renderKPIs(container, citas) {
 }
 
 async function fetchCitas(dateISO) {
-  const r = await fetch(`/api/appointments?date=${dateISO}`);
+  const r = await fetch(`${session?.assignedCompletionOnly ? '/api/assigned-appointments' : '/api/appointments'}?date=${dateISO}`);
   if (!r.ok) throw new Error("fetch citas " + r.status);
   const p = await r.json();
   return Array.isArray(p) ? p : (p.data || []);
@@ -194,7 +199,7 @@ function startOfWeekISO(iso) {
 
 async function fetchCitasRange(fromISO, toISO) {
   // /api/appointments/range con YYYY-MM-DD usa el campo `date` (string) directo
-  const r = await fetch(`/api/appointments/range?from=${fromISO}&to=${toISO}`);
+  const r = await fetch(`${session?.assignedCompletionOnly ? '/api/assigned-appointments' : '/api/appointments/range'}?from=${fromISO}&to=${toISO}`);
   if (!r.ok) throw new Error("fetch range " + r.status);
   const p = await r.json();
   return Array.isArray(p) ? p : (p.data || []);
@@ -376,6 +381,11 @@ async function handleCitaAction(ev) {
   const btn = ev.target.closest("[data-action]");
   if (!btn || btn.classList.contains("is-locked")) return;
   const { action, id, phone } = btn.dataset;
+  if (action === 'complete-usage') {
+    await window.clinicInventory.openUsage(id, true);
+    refreshCitasViews();
+    return;
+  }
   if (action === "wa") { window.open(waLink(phone), "_blank"); return; }
   if (action === "cobrar") { activateTab("cobrar"); return; }
   if (action === "checkin") {
@@ -692,10 +702,16 @@ initTheme();
 (async function init() {
   const me = await guardSession();
   if (!me) return;
+  session = me;
+  window.MI_ROL = me.role;
+  if (me.assignedCompletionOnly) {
+    document.querySelectorAll('[data-tab="cobrar"], [data-tab="clientas"], [data-tab="whatsapp"], [data-go="nueva-cita"]').forEach(el => el.remove());
+    STATE_LABEL.llego = 'Completada';
+  }
   tickClock(); setInterval(tickClock, 20000);
   wire();
   loadCitasHoy();
-  loadRequests();
+  if (!me.assignedCompletionOnly) loadRequests();
   setInterval(() => {
     loadCitasHoy();
     if ($('[data-pane="whatsapp"]').classList.contains("active")) loadRequests();

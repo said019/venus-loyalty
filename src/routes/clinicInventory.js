@@ -1,6 +1,7 @@
 import express from 'express';
 import { prisma } from '../db/index.js';
 import { adminAuth, requireRole } from '../../lib/auth.js';
+import { assignedCompletionOnly } from '../../lib/assigned-completion.js';
 import { cleanNote, inventoryError, milliMl, moveStock, requestKey, saveUsage } from '../services/clinicInventory.js';
 const router = express.Router();
 router.use(adminAuth, requireRole('admin', 'recepcion'));
@@ -82,12 +83,12 @@ router.get('/pending', run(async () => {
   return prisma.appointment.findMany({ where: { status: 'completed', updatedAt: { gte: startedAt }, id: { notIn: registered.map(u => u.appointmentId) } }, orderBy: { updatedAt: 'desc' }, select: { id: true, clientName: true, serviceName: true, date: true } });
 }));
 router.get('/usage/:appointmentId', run(async req => {
-  const appointment = await prisma.appointment.findUnique({ where: { id: req.params.appointmentId }, select: { id: true, clientName: true, serviceName: true, status: true } });
+  const appointment = await prisma.appointment.findFirst({ where: { id: req.params.appointmentId, ...(assignedCompletionOnly(req.admin) ? { assignedAdminId: req.admin.uid } : {}) }, select: { id: true, clientName: true, serviceName: true, status: true } });
   if (!appointment) throw inventoryError('Cita no encontrada.', 404);
   const usage = await prisma.clinicUsage.findUnique({ where: { appointmentId: appointment.id } });
   return { appointment, usage };
 }));
-router.put('/usage/:appointmentId', run(req => saveUsage(prisma, req.params.appointmentId, req.body, actor(req), req.admin.role === 'admin')));
+router.put('/usage/:appointmentId', run(req => saveUsage(prisma, req.params.appointmentId, req.body, actor(req), req.admin.role === 'admin', assignedCompletionOnly(req.admin) ? req.admin.uid : null)));
 router.get('/usages', run(async req => {
   const skip = Math.max(0, Math.min(100000, Number(req.query.offset) || 0));
   return prisma.clinicUsage.findMany({ orderBy: { updatedAt: 'desc' }, take: 50, skip: Math.floor(skip) });

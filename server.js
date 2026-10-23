@@ -102,6 +102,7 @@ import receivablesRouter from './src/routes/receivables.js';
 import {isReceivableSale,appointmentReceivableKey} from './src/services/receivables.js';
 import purchaseInvoicesRouter from './src/routes/purchaseInvoices.js';
 import clinicInventoryRouter from './src/routes/clinicInventory.js';
+import { assignedCompletionOnly } from './lib/assigned-completion.js';
 import creditsRouter, { aplicarCreditoEnCobro, registrarApartado } from './src/routes/credits.js';
 
 // Reglas para corregir un cobro ya registrado (ver tests/cajaEdits.test.js).
@@ -1391,6 +1392,19 @@ app.patch('/api/products/:id/stock', adminAuth, requireRole("admin"), async (req
 /* ========== APPOINTMENTS ========== */
 
 // GET /api/appointments - Obtener citas por fecha
+app.get('/api/assigned-appointments', adminAuth, async (req, res) => {
+  if (!assignedCompletionOnly(req.admin)) return res.status(403).json({ error: 'forbidden' });
+  const from = req.query.date || req.query.from, to = req.query.date || req.query.to;
+  if (![from, to].every(v => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v))) return res.status(400).json({ error: 'Fecha inválida' });
+  try {
+    const data = await prisma.appointment.findMany({
+      where: { assignedAdminId: req.admin.uid, date: { gte: from, lte: to } }, orderBy: [{ date: 'asc' }, { time: 'asc' }],
+      select: { id: true, assignedAdminId: true, clientName: true, serviceName: true, date: true, time: true, durationMinutes: true, status: true }
+    });
+    res.json({ success: true, data });
+  } catch (error) { res.status(500).json({ error: 'No se pudieron cargar las citas.' }); }
+});
+
 app.get('/api/appointments', adminAuth, async (req, res) => {
   try {
     const { date } = req.query;
@@ -2660,6 +2674,7 @@ app.post('/api/appointments/:id/reschedule-notification', adminAuth, async (req,
 // PATCH /api/appointments/:id/status - Actualizar estado de cita
 app.patch('/api/appointments/:id/status', adminAuth, async (req, res) => {
   try {
+    if (assignedCompletionOnly(req.admin)) return res.status(403).json({ success: false, error: 'Completa la cita desde Productos utilizados.' });
     const { id } = req.params;
     const { status } = req.body;
 
@@ -7413,7 +7428,7 @@ app.post("/api/admin/logout", (_req, res) => {
 });
 
 app.get("/api/admin/me", adminAuth, (req, res) => {
-  res.json({ uid: req.admin.uid, email: req.admin.email, role: req.admin.role });
+  res.json({ uid: req.admin.uid, email: req.admin.email, role: req.admin.role, assignedCompletionOnly: assignedCompletionOnly(req.admin) });
 });
 
 // GET /api/admin/staff — lista de admins disponibles para asignar citas.
