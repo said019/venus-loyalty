@@ -88,3 +88,46 @@ html[data-theme=dark] #panel-invoices{--purchase-paper:#242b23;--purchase-head:#
 }
 @container(max-width:520px){#panel-invoices .pg-table tbody tr{grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 8px}}
 #panel-invoices{width:100%;min-width:0;box-sizing:border-box}
+/* Match the bright, flat payment ledger across inventory workspaces. */
+#panel-invoices,#panel-products,#panel-clinic{--purchase-paper:#fff;--purchase-head:#fff;--purchase-ink:#24292f;--purchase-muted:#57606a;--purchase-line:#e3e5e8;--purchase-edit:#fff;--purchase-accent:#59652f;min-width:0;width:100%;box-sizing:border-box;color:var(--purchase-ink)}
+html[data-theme=dark] :is(#panel-invoices,#panel-products,#panel-clinic){--purchase-paper:#202428;--purchase-head:#292e33;--purchase-ink:#f0f2f4;--purchase-muted:#bdc5ce;--purchase-line:#41484f;--purchase-edit:#202428;--purchase-accent:#a8bd79}
+#panel-invoices .pg-table thead th{font-weight:500;color:var(--purchase-muted)!important;padding-block:16px}
+#panel-invoices .pg-table tbody td{padding-top:20px;padding-bottom:20px}
+#panel-invoices .pg-table td:first-child,#panel-invoices .pg-table :is(th,td):nth-child(6){border-left:0;border-right:0}
+#panel-invoices .pg-scroll{max-height:none;overflow:visible}
+#panel-invoices .pg-table th{position:static}
+#panel-invoices .pg-cost{font-weight:600}
+#panel-invoices .pg-table [data-field=name]{font-weight:500}
+#panel-invoices .pg-table input:not([type=checkbox]),#panel-invoices .pg-table select{border-bottom-color:var(--purchase-line)!important}
+#panel-invoices .pg-controls :is(input,select){background:var(--purchase-paper)!important;color:var(--purchase-ink)!important}
+#panel-products{container-type:inline-size}
+#panel-products .table-wrap{width:100%;max-width:100%;overflow:visible!important;border:0!important;border-radius:0!important;box-shadow:none!important;background:var(--purchase-paper)!important}
+#panel-products .data-table{width:100%!important;min-width:0!important;table-layout:fixed;border-collapse:collapse;background:var(--purchase-paper)!important}
+#panel-products .data-table :is(thead,tbody,tr,th,td){background:var(--purchase-paper)!important;color:var(--purchase-ink)!important;box-shadow:none!important;border-radius:0!important}
+#panel-products .data-table th{font-size:12px;font-weight:500;color:var(--purchase-muted)!important;text-transform:none;letter-spacing:0;padding:14px 12px;white-space:normal}
+#panel-products .data-table td{padding:20px 12px;font-size:14px;line-height:1.5;overflow-wrap:anywhere;white-space:normal!important;min-width:0}
+#panel-products .data-table :is(th,td){border:0!important;border-bottom:1px solid var(--purchase-line)!important}
+#panel-products .data-table th:first-child{width:34%}
+#panel-products .data-table th:nth-child(2){width:18%}
+#panel-products .data-table th:nth-child(3){width:16%}
+#panel-products .data-table th:nth-child(4){width:12%}
+#panel-products .data-table th:nth-child(5){width:20%}
+#panel-products .data-table td:nth-child(3){font-weight:600;font-variant-numeric:tabular-nums}
+#panel-products .data-table .svc-actions{flex-wrap:wrap;min-width:0}
+#panel-products #search-products{background:var(--purchase-paper)!important;border:1px solid var(--purchase-line)!important;border-radius:8px!important;box-shadow:none!important;color:var(--purchase-ink)!important}
+#panel-clinic .ci-supply{background:var(--purchase-paper);border:0;border-bottom:1px solid var(--purchase-line);border-radius:0;padding:20px 0;box-shadow:none;color:var(--purchase-ink);min-width:0;overflow-wrap:anywhere}
+#panel-clinic .ci-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:16px 32px}
+#panel-clinic .ci-muted{color:var(--purchase-muted)}
+#panel-clinic .ci-help{background:transparent;border:0;border-bottom:1px solid var(--purchase-line);border-radius:0;padding:12px 0}
+@container(max-width:620px){
+ #panel-products .data-table,#panel-products .data-table tbody{display:block;width:100%}
+ #panel-products .data-table thead{display:none}
+ #panel-products .data-table tbody tr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:20px 0;border-bottom:1px solid var(--purchase-line)!important}
+ #panel-products .data-table tbody td{display:block;width:auto!important;padding:0!important;border:0!important;text-align:left!important}
+ #panel-products .data-table tbody td:first-child,#panel-products .data-table tbody td:last-child{grid-column:1/-1}
+ #panel-products .data-table tbody td::before{content:attr(data-label);display:block;font-size:11px;font-weight:500;color:var(--purchase-muted);margin-bottom:5px}
+}
+#panel-invoices .pg-table tr[hidden]{display:none!important}
+#panel-products .product-cell,#panel-products .product-cell>div{min-width:0}
+#panel-products .actions{flex-wrap:wrap}
+html[data-theme=light] :is(#panel-invoices,#panel-products,#panel-clinic){background:#fff!important}
