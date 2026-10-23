@@ -99,7 +99,7 @@ import expedientesRouter from './src/routes/expedientes.js';
 import packagesRouter from './src/routes/packages.js';
 import cardSettlementsRouter from './src/routes/cardSettlements.js';
 import receivablesRouter from './src/routes/receivables.js';
-import {isReceivableSale} from './src/services/receivables.js';
+import {isReceivableSale,appointmentReceivableKey} from './src/services/receivables.js';
 import purchaseInvoicesRouter from './src/routes/purchaseInvoices.js';
 import clinicInventoryRouter from './src/routes/clinicInventory.js';
 import creditsRouter, { aplicarCreditoEnCobro, registrarApartado } from './src/routes/credits.js';
@@ -1547,6 +1547,9 @@ app.get('/api/appointments/:id', adminAuth, async (req, res) => {
       return res.json({ success: false, error: 'Cita no encontrada' });
     }
 
+    const linkedReceivable = await prisma.setting.findUnique({where:{key:appointmentReceivableKey(id)}});
+    if (linkedReceivable) appointment.receivableId = linkedReceivable.value.id;
+
     // Apartado de barra/anticipo heredado de la solicitud (Setting JSON):
     // la Caja lo usa para precargar la bebida y mostrar el anticipo al cobrar.
     try {
@@ -1613,6 +1616,7 @@ app.post('/api/appointments/:id/attendance-survey', adminAuth, async (req, res) 
 // POST /api/appointments/:id/payment - Registrar pago con productos y descuento
 app.post('/api/appointments/:id/payment', adminAuth, async (req, res) => {
   try {
+    if (await prisma.setting.findUnique({where:{key:appointmentReceivableKey(req.params.id)}})) return res.status(409).json({success:false,error:'Esta cita tiene un saldo vinculado. Registra los abonos desde Pagos pendientes; no vuelvas a cobrar la cita.'});
     const { id } = req.params;
     const {
       paymentMethod,
@@ -1821,6 +1825,7 @@ async function anotarEnBitacora({ entity, entityId, action, oldValue, newValue, 
 // "Pendientes de cobro" para volver a cobrarla bien.
 app.post('/api/appointments/:id/uncharge', adminAuth, requireRole('admin'), async (req, res) => {
   try {
+    if (await prisma.setting.findUnique({where:{key:appointmentReceivableKey(req.params.id)}})) return res.status(409).json({success:false,error:'Esta cita tiene un saldo vinculado. Registra los abonos desde Pagos pendientes; no vuelvas a cobrar la cita.'});
     const { id } = req.params;
     const appointment = await AppointmentsRepo.findById(id);
     if (!appointment) return res.status(404).json({ success: false, error: 'Cita no encontrada' });
@@ -2339,6 +2344,7 @@ app.get('/api/appointments/:id/checkout-group', adminAuth, async (req, res) => {
 
 app.patch('/api/appointments/:id', adminAuth, async (req, res) => {
   try {
+    if (req.body.totalPaid !== undefined && await prisma.setting.findUnique({where:{key:appointmentReceivableKey(req.params.id)}})) return res.status(409).json({success:false,error:'Esta cita tiene un saldo vinculado. Registra los abonos desde Pagos pendientes; no vuelvas a cobrar la cita.'});
     const { id } = req.params;
     if (req.body.groupItems !== undefined) {
       try {

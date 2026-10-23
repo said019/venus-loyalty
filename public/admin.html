@@ -148,11 +148,11 @@
        (re-auditoría perf: antes se descargaban y ejecutaban dos veces cada uno) -->
   <link rel="stylesheet" href="/css/clinic-inventory.css?v=6">
   <script defer src="/js/clinic-inventory.js?v=2"></script>
-  <script defer src="/js/purchase-invoices.js?v=3"></script>
-  <script defer src="/js/purchase-grid.js?v=7"></script>
+  <script defer src="/js/purchase-invoices.js?v=4"></script>
+  <script defer src="/js/purchase-grid.js?v=8"></script>
   <script defer src="/js/payment-detail-view.js?v=1"></script>
   <script defer src="/js/payment-product-picker.js?v=1"></script>
-  <script defer src="/js/receivables.js?v=2"></script>
+  <script defer src="/js/receivables.js?v=4"></script>
   <script defer src="/js/report-tabs.js?v=1"></script>
   <link rel="stylesheet" href="/css/report-tabs.css?v=1">
   <link rel="stylesheet" href="/css/receivables.css?v=3">
@@ -1238,7 +1238,7 @@
             </div>
             <div>
               <label for="bank-amount">Monto del anticipo ($)</label>
-              <input id="bank-amount" type="number" min="0" placeholder="100" inputmode="numeric">
+              <input step="1" data-money-whole id="bank-amount" type="number" min="0" placeholder="100" inputmode="numeric">
             </div>
           </div>
 
@@ -2660,7 +2660,7 @@
           </div>
           <div>
             <label for="pkg-price">Precio ($)<span class="req-mark" aria-hidden="true">*</span></label>
-            <input type="number" id="pkg-price" class="form-input" min="0" step="0.01" placeholder="3000" required>
+            <input type="number" id="pkg-price" class="form-input" min="0" step="1" data-money-whole placeholder="3000" required>
           </div>
         </div>
         <label for="pkg-validity" style="margin-top:10px;">Vigencia en días (vacío = no vence)</label>
@@ -2690,7 +2690,7 @@
           </div>
           <div>
             <label for="sell-pkg-price">Cobrado ($)</label>
-            <input type="number" id="sell-pkg-price" class="form-input" min="0" step="0.01" placeholder="precio de lista">
+            <input type="number" id="sell-pkg-price" class="form-input" min="0" step="1" data-money-whole placeholder="precio de lista">
           </div>
         </div>
         <p class="muted" style="margin:10px 0 0;font-size:11.5px;">La venta se registra en Reportes al instante.</p>
@@ -2714,7 +2714,7 @@
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
           <div>
             <label for="credit-amount">Monto ($)<span class="req-mark" aria-hidden="true">*</span></label>
-            <input type="number" id="credit-amount" class="form-input" min="1" step="0.01" required inputmode="decimal">
+            <input type="number" id="credit-amount" class="form-input" min="1" step="1" data-money-whole required inputmode="decimal">
           </div>
           <div>
             <label for="credit-method">Método<span class="req-mark" aria-hidden="true">*</span></label>
@@ -2825,7 +2825,7 @@
         <h3 style="font-size:16px;margin-bottom:8px;">Configuración de comisión</h3>
         <div style="display:flex;gap:8px;align-items:center;">
           <label for="mkt-commission-amount">Monto fijo por cita: $</label>
-          <input id="mkt-commission-amount" type="number" style="width:100px;padding:8px 10px;border:1px solid rgba(0,0,0,0.15);border-radius:8px;" placeholder="50">
+          <input step="1" data-money-whole id="mkt-commission-amount" type="number" style="width:100px;padding:8px 10px;border:1px solid rgba(0,0,0,0.15);border-radius:8px;" placeholder="50">
           <button class="btn small primary" onclick="saveCommissionConfig()">Guardar</button>
           <button class="btn small ghost" onclick="loadCommissionConfig()">Cargar</button>
         </div>
@@ -2903,7 +2903,7 @@
               <div style="position:relative;">
                 <span
                   style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);">$</span>
-                <input type="number" id="product-price" class="form-input" required min="0" step="any"
+                <input type="number" id="product-price" class="form-input" required min="0" step="1" data-money-whole
                   style="padding-left:25px;">
               </div>
             </div>
@@ -2912,7 +2912,7 @@
               <div style="position:relative;">
                 <span
                   style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);">$</span>
-                <input type="number" id="product-cost" class="form-input" min="0" step="any" style="padding-left:25px;">
+                <input type="number" id="product-cost" class="form-input" min="0" step="1" data-money-whole style="padding-left:25px;">
               </div>
             </div>
           </div>
@@ -3071,7 +3071,7 @@
                     <label for="new-appt-price" style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:8px;padding-left:4px;">Precio Final</label>
                     <div style="position:relative;">
                       <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--venus-soft);font-size:14px;font-weight:700;">$</span>
-                      <input type="number" id="new-appt-price" class="form-input" placeholder="0" min="0" step="any"
+                      <input type="number" id="new-appt-price" class="form-input" placeholder="0" min="0" step="1" data-money-whole
                         style="width:100%;padding:12px 14px 12px 28px;background:var(--bg-tertiary);border:1px solid var(--border-color);border-radius:10px;font-size:14px;font-weight:700;color:var(--venus-soft);">
                     </div>
                   </div>
@@ -3253,7 +3253,7 @@
               <div style="position:relative;">
                 <span
                   style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--venus-soft);font-size:14px;">$</span>
-                <input type="number" id="edit-appt-price" class="form-input" readonly style="padding-left:28px;">
+                <input step="1" data-money-whole type="number" id="edit-appt-price" class="form-input" readonly style="padding-left:28px;">
               </div>
             </div>
 
@@ -3349,7 +3349,7 @@
             <select id="payment-service-select" style="display:none;width:100%;margin-top:6px;font-size:13px;padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg-card);color:var(--ink);"></select>
             <div class="payment-price-row">
               <span class="payment-price-display" id="payment-price-display">$0</span>
-              <input type="number" class="payment-price-input" id="payment-price-input" min="0" step="any">
+              <input type="number" class="payment-price-input" id="payment-price-input" min="0" step="1" data-money-whole>
               <button class="btn-edit-price" onclick="togglePriceEdit()" title="Editar precio">
                 <i class="fas fa-pencil" aria-hidden="true" style="font-size:12px;"></i>
               </button>
@@ -3394,7 +3394,7 @@
               <button onclick="setDiscountType('fixed')" id="btn-discount-fixed">$</button>
             </div>
             <div class="discount-input-wrap">
-              <input type="number" id="payment-discount-value" placeholder="0" min="0" value="0"
+              <input step="1" data-money-whole type="number" id="payment-discount-value" placeholder="0" min="0" value="0"
                 oninput="calculateTotals()">
               <span class="discount-symbol" id="discount-symbol">%</span>
             </div>
@@ -3515,7 +3515,7 @@
               <button type="button" onclick="setDirectSaleDiscountType('fixed')" id="btn-ds-discount-fixed">$</button>
             </div>
             <div class="ds-discount-input">
-              <input type="number" id="direct-sale-discount-value" class="ds-input" placeholder="0" min="0" value="0"
+              <input step="1" data-money-whole type="number" id="direct-sale-discount-value" class="ds-input" placeholder="0" min="0" value="0"
                 oninput="calculateDirectSaleTotals()">
               <span id="ds-discount-symbol">%</span>
             </div>
@@ -3594,7 +3594,7 @@
               <label for="mi-amount" class="form-label">Monto<span class="req-mark" aria-hidden="true">*</span></label>
               <div style="position:relative;">
                 <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);">$</span>
-                <input type="number" id="mi-amount" class="form-input" required min="1" step="any" style="padding-left:26px;" placeholder="650">
+                <input type="number" id="mi-amount" class="form-input" required min="1" step="1" data-money-whole style="padding-left:26px;" placeholder="650">
               </div>
             </div>
             <div>
@@ -3667,7 +3667,7 @@
               <div style="position:relative;">
                 <span
                   style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--venus-soft);font-size:14px;">$</span>
-                <input type="number" id="expense-amount" class="form-input" placeholder="0.00" min="0" step="0.01"
+                <input type="number" id="expense-amount" class="form-input" placeholder="0" min="0" step="1" data-money-whole
                   style="padding-left:28px;" required>
               </div>
             </div>
@@ -4521,7 +4521,7 @@
             <div style="position:relative;">
               <span
                 style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px;">$</span>
-              <input type="number" id="service-price" class="form-input" required min="0" step="any"
+              <input type="number" id="service-price" class="form-input" required min="0" step="1" data-money-whole
                 style="padding-left:25px;">
             </div>
           </div>
@@ -15641,7 +15641,7 @@
               <option value="cabello">Cabello</option>
               <option value="otro" selected>Otro</option>
             </select>
-            <input type="number" id="ds-new-price" class="ds-input" placeholder="Precio *" aria-label="Precio del producto nuevo (obligatorio)" min="0" step="any" required>
+            <input type="number" id="ds-new-price" class="ds-input" placeholder="Precio *" aria-label="Precio del producto nuevo (obligatorio)" min="0" step="1" data-money-whole required>
           </div>
           <input type="number" id="ds-new-stock" class="ds-input" placeholder="Stock inicial *" aria-label="Stock inicial del producto nuevo (obligatorio)" min="0" required>
           <div class="ds-create-actions">
@@ -15792,7 +15792,7 @@
           <div class="ds-cart-item">
             <div class="ds-cart-info">
               <span class="ds-cart-name">${p.name}</span>
-              <span class="ds-cart-meta">$<input type="number" class="ds-cart-price" value="${p.price}" min="0" step="1" inputmode="decimal" aria-label="Precio unitario" title="Toca para ajustar el precio" oninput="updateDirectSalePrice('${p.id}', this.value)"> × ${p.qty}</span>
+              <span class="ds-cart-meta">$<input data-money-whole type="number" class="ds-cart-price" value="${p.price}" min="0" step="1" inputmode="decimal" aria-label="Precio unitario" title="Toca para ajustar el precio" oninput="updateDirectSalePrice('${p.id}', this.value)"> × ${p.qty}</span>
             </div>
             <div class="ds-cart-subtotal" id="ds-subtotal-${p.id}">$${subtotal.toLocaleString()}</div>
             <button onclick="removeProductFromDirectSale('${p.id}')" class="ds-cart-remove" title="Quitar">
@@ -19125,7 +19125,7 @@
             <input id="ei-client" class="input" value="${escHtml(t.cliente || '')}">
           </label>
           <label style="display:grid;gap:4px;font-size:12px;color:var(--muted);">Monto
-            <input id="ei-amount" class="input" type="number" step="0.01" min="0.01" value="${t.monto || 0}" required>
+            <input id="ei-amount" class="input" type="number" step="1" data-money-whole min="0.01" value="${t.monto || 0}" required>
           </label>
           <label style="display:grid;gap:4px;font-size:12px;color:var(--muted);">Método de pago
             <select id="ei-method" class="input">
@@ -19540,7 +19540,7 @@
                       <button type="button" class="toggle-btn active" onclick="cambiarTipoDescuento('porcentaje')" id="btn-desc-pct">%</button>
                       <button type="button" class="toggle-btn" onclick="cambiarTipoDescuento('fijo')" id="btn-desc-fijo">$</button>
                     </div>
-                    <input type="number" id="cobrar-descuento" value="0" min="0" class="cobro-input" style="flex:1;" onchange="actualizarTotalCobro()">
+                    <input step="1" data-money-whole type="number" id="cobrar-descuento" value="0" min="0" class="cobro-input" style="flex:1;" onchange="actualizarTotalCobro()">
                     <span id="label-descuento" style="color:#888;font-size:13px;min-width:30px;">%</span>
                   </div>
                 </div>
@@ -19577,7 +19577,7 @@
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
                       <div>
                         <label for="cobro-nuevo-apartado-monto" style="display:block;font-size:12px;color:#888;margin-bottom:6px;">Monto ($)</label>
-                        <input type="number" id="cobro-nuevo-apartado-monto" class="cobro-input" min="0" step="1" inputmode="decimal" placeholder="0" oninput="actualizarTotalCobro()">
+                        <input data-money-whole type="number" id="cobro-nuevo-apartado-monto" class="cobro-input" min="0" step="1" inputmode="decimal" placeholder="0" oninput="actualizarTotalCobro()">
                       </div>
                       <div>
                         <label for="cobro-nuevo-apartado-metodo" style="display:block;font-size:12px;color:#888;margin-bottom:6px;">Método</label>
@@ -19682,7 +19682,7 @@
           productosEnCobro.push(item);
           const row = document.createElement('div'); row.className = 'cobro-group-row'; row.style.gridTemplateColumns = 'minmax(0,1fr) 90px 36px';
           const name = document.createElement('span'); name.className = 'cobro-group-name'; name.textContent = item.nombre;
-          const price = document.createElement('input'); price.className = 'cobro-input'; price.type = 'number'; price.min = '0'; price.step = '.01'; price.inputMode = 'decimal'; price.value = item.precio; price.setAttribute('aria-label', 'Precio extra de ' + item.nombre);
+          const price = document.createElement('input'); price.className = 'cobro-input'; price.type = 'number'; price.min = '0'; price.step = '1'; price.dataset.moneyWhole = ''; price.inputMode = 'decimal'; price.value = item.precio; price.setAttribute('aria-label', 'Precio extra de ' + item.nombre);
           price.addEventListener('input', () => { item.precio = price.value === '' ? NaN : Number(price.value); actualizarTotalCobro(); });
           const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'btn'; remove.style.padding = '8px'; remove.title = 'Quitar servicio extra'; remove.setAttribute('aria-label', 'Quitar extra ' + item.nombre); remove.innerHTML = '<i class="fas fa-trash-alt" aria-hidden="true"></i>';
           remove.addEventListener('click', () => { productosEnCobro = productosEnCobro.filter(p => p !== item); row.remove(); actualizarTotalCobro(); });
@@ -19706,7 +19706,7 @@
             description.append(label, time); choice.append(check, description);
             const amount = document.createElement('div'); amount.className = 'cobro-group-price';
             const currency = document.createElement('span'); currency.textContent = '$'; currency.setAttribute('aria-hidden', 'true');
-            const price = document.createElement('input'); price.type = 'number'; price.inputMode = 'decimal'; price.min = '0'; price.step = '.01'; price.value = service ? Number(service.price) : ''; price.placeholder = '0.00'; price.className = 'cobro-input'; price.setAttribute('aria-label', 'Precio de ' + item.serviceName);
+            const price = document.createElement('input'); price.type = 'number'; price.inputMode = 'decimal'; price.min = '0'; price.step = '1'; price.dataset.moneyWhole = ''; price.value = service ? Number(service.price) : ''; price.placeholder = '0'; price.className = 'cobro-input'; price.setAttribute('aria-label', 'Precio de ' + item.serviceName);
             amount.append(currency, price); line.append(choice, amount); groupBox.appendChild(line);
             window.cobroGrupo.push({ id: item.id, version: item.updatedAt, check, price });
             check.addEventListener('change', () => { price.disabled = !check.checked; actualizarTotalCobro(); }); price.addEventListener('input', actualizarTotalCobro);
@@ -19760,6 +19760,12 @@
           }
         }
 
+        if (cita.receivableId) {
+          document.getElementById('modal-cobrar-cita')?.remove();
+          showNotification('Esta cita tiene un saldo vinculado. Registra los abonos en Caja → Pagos pendientes.', 'info');
+          return;
+        }
+
         // ── Corregir un cobro que ya se hizo ──
         // Si la cita ya estaba cobrada, el modal abre con lo que de verdad se
         // cobró —no con el precio de lista—, para que corregir un dedazo sea
@@ -19811,6 +19817,14 @@
                 <div style="color:var(--muted);">Al guardar, ese cobro se reemplaza por el nuevo. No se suma.</div>
                 ${(parseFloat(cita.creditApplied) || 0) > 0 ? `<div style="color:var(--muted);">Usó $${(parseFloat(cita.creditApplied) || 0).toLocaleString('es-MX')} de saldo apartado, y ese saldo ya se gastó. Si necesitas cambiarlo, mejor quita el cobro desde la Caja (🗑️) y vuelve a cobrar: así se le devuelve primero.</div>` : ''}
               </div>`);
+          }
+          if (pagado > 0 && resumenEl && window.receivables?.correctAppointment) {
+            const pendingButton = document.createElement('button');
+            pendingButton.type = 'button'; pendingButton.className = 'btn ghost';
+            pendingButton.textContent = 'Dejar saldo pendiente';
+            pendingButton.style.marginBottom = '12px';
+            pendingButton.onclick = () => window.receivables.correctAppointment(cita);
+            resumenEl.before(pendingButton);
           }
         }
 
@@ -22716,6 +22730,7 @@
   <script type="module" src="/js/card-settlements.js?v=4"></script>
   <link rel="stylesheet" href="/css/purchase-grid.css?v=4">
   <link rel="stylesheet" href="/css/admin/workspace-layout.css?v=1">
+<script src="/js/money-inputs.js?v=1"></script>
 </body>
 
 </html>
