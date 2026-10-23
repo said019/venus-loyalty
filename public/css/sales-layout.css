@@ -100,3 +100,69 @@ html[data-theme="light"] #tab-reports { background: #fafbf8 !important; }
   #tab-reports .report-filter-card > div > div { max-width: 100%; flex-wrap: wrap; }
   #tab-reports .report-sales-filters { grid-template-columns: minmax(0,1fr); }
 }
+
+/* Neutral payment ledger: keep the data clear without tinted panels. */
+#tab-reports .sales-ledger {
+  --ledger-surface: #ffffff;
+  --ledger-heading: #f3f4f5;
+  --ledger-hover: #f8f9fa;
+  --ledger-line: #e3e5e8;
+  --ledger-text: #24292f;
+  --ledger-muted: #57606a;
+}
+html[data-theme="dark"] #tab-reports .sales-ledger {
+  --ledger-surface: #202428;
+  --ledger-heading: #292e33;
+  --ledger-hover: #30363c;
+  --ledger-line: #41484f;
+  --ledger-text: #f0f2f4;
+  --ledger-muted: #bdc5ce;
+}
+#tab-reports .sales-ledger .table-wrap {
+  background: var(--ledger-surface) !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+#tab-reports .sales-ledger table,
+#tab-reports .sales-ledger tbody,
+#tab-reports .sales-ledger tbody tr,
+#tab-reports .sales-ledger td {
+  background: var(--ledger-surface) !important;
+  color: var(--ledger-text) !important;
+}
+#tab-reports .sales-ledger thead,
+#tab-reports .sales-ledger th,
+#tab-reports .sales-ledger tfoot,
+#tab-reports .sales-ledger tfoot td {
+  background: var(--ledger-heading) !important;
+  color: var(--ledger-text) !important;
+}
+#tab-reports .sales-ledger th,
+#tab-reports .sales-ledger td {
+  border-color: var(--ledger-line) !important;
+  border-radius: 0 !important;
+}
+#tab-reports .sales-ledger tbody tr:hover td {
+  background: var(--ledger-hover) !important;
+}
+#tab-reports .sales-ledger td strong,
+#tab-reports .sales-ledger td a {
+  color: var(--ledger-text) !important;
+}
+#tab-reports .report-sales-filters input,
+#tab-reports .report-sales-filters select {
+  background: var(--ledger-surface) !important;
+  color: var(--ledger-text) !important;
+  border: 1px solid var(--ledger-line) !important;
+  border-radius: 6px !important;
+  box-shadow: none !important;
+}
+#tab-reports .report-sales-filters input::placeholder {
+  color: var(--ledger-muted) !important;
+  opacity: 1;
+}
+#tab-reports .report-sales-filters :is(input, select):focus-visible {
+  outline: 2px solid var(--ledger-muted);
+  outline-offset: 2px;
+}
