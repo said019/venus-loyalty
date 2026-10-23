@@ -1238,7 +1238,7 @@
             </div>
             <div>
               <label for="bank-amount">Monto del anticipo ($)</label>
-              <input id="bank-amount" type="number" min="0" placeholder="100" inputmode="numeric">
+              <input step="1" data-money-whole id="bank-amount" type="number" min="0" placeholder="100" inputmode="numeric">
             </div>
           </div>
 
@@ -2825,7 +2825,7 @@
         <h3 style="font-size:16px;margin-bottom:8px;">Configuración de comisión</h3>
         <div style="display:flex;gap:8px;align-items:center;">
           <label for="mkt-commission-amount">Monto fijo por cita: $</label>
-          <input id="mkt-commission-amount" type="number" style="width:100px;padding:8px 10px;border:1px solid rgba(0,0,0,0.15);border-radius:8px;" placeholder="50">
+          <input step="1" data-money-whole id="mkt-commission-amount" type="number" style="width:100px;padding:8px 10px;border:1px solid rgba(0,0,0,0.15);border-radius:8px;" placeholder="50">
           <button class="btn small primary" onclick="saveCommissionConfig()">Guardar</button>
           <button class="btn small ghost" onclick="loadCommissionConfig()">Cargar</button>
         </div>
@@ -3253,7 +3253,7 @@
               <div style="position:relative;">
                 <span
                   style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--venus-soft);font-size:14px;">$</span>
-                <input type="number" id="edit-appt-price" class="form-input" readonly style="padding-left:28px;">
+                <input step="1" data-money-whole type="number" id="edit-appt-price" class="form-input" readonly style="padding-left:28px;">
               </div>
             </div>
 
@@ -3394,7 +3394,7 @@
               <button onclick="setDiscountType('fixed')" id="btn-discount-fixed">$</button>
             </div>
             <div class="discount-input-wrap">
-              <input type="number" id="payment-discount-value" placeholder="0" min="0" value="0"
+              <input step="1" data-money-whole type="number" id="payment-discount-value" placeholder="0" min="0" value="0"
                 oninput="calculateTotals()">
               <span class="discount-symbol" id="discount-symbol">%</span>
             </div>
@@ -3515,7 +3515,7 @@
               <button type="button" onclick="setDirectSaleDiscountType('fixed')" id="btn-ds-discount-fixed">$</button>
             </div>
             <div class="ds-discount-input">
-              <input type="number" id="direct-sale-discount-value" class="ds-input" placeholder="0" min="0" value="0"
+              <input step="1" data-money-whole type="number" id="direct-sale-discount-value" class="ds-input" placeholder="0" min="0" value="0"
                 oninput="calculateDirectSaleTotals()">
               <span id="ds-discount-symbol">%</span>
             </div>
@@ -15785,7 +15785,7 @@
           <div class="ds-cart-item">
             <div class="ds-cart-info">
               <span class="ds-cart-name">${p.name}</span>
-              <span class="ds-cart-meta">$<input type="number" class="ds-cart-price" value="${p.price}" min="0" step="1" inputmode="decimal" aria-label="Precio unitario" title="Toca para ajustar el precio" oninput="updateDirectSalePrice('${p.id}', this.value)"> × ${p.qty}</span>
+              <span class="ds-cart-meta">$<input data-money-whole type="number" class="ds-cart-price" value="${p.price}" min="0" step="1" inputmode="decimal" aria-label="Precio unitario" title="Toca para ajustar el precio" oninput="updateDirectSalePrice('${p.id}', this.value)"> × ${p.qty}</span>
             </div>
             <div class="ds-cart-subtotal" id="ds-subtotal-${p.id}">$${subtotal.toLocaleString()}</div>
             <button onclick="removeProductFromDirectSale('${p.id}')" class="ds-cart-remove" title="Quitar">
@@ -19533,7 +19533,7 @@
                       <button type="button" class="toggle-btn active" onclick="cambiarTipoDescuento('porcentaje')" id="btn-desc-pct">%</button>
                       <button type="button" class="toggle-btn" onclick="cambiarTipoDescuento('fijo')" id="btn-desc-fijo">$</button>
                     </div>
-                    <input type="number" id="cobrar-descuento" value="0" min="0" class="cobro-input" style="flex:1;" onchange="actualizarTotalCobro()">
+                    <input step="1" data-money-whole type="number" id="cobrar-descuento" value="0" min="0" class="cobro-input" style="flex:1;" onchange="actualizarTotalCobro()">
                     <span id="label-descuento" style="color:#888;font-size:13px;min-width:30px;">%</span>
                   </div>
                 </div>
@@ -19570,7 +19570,7 @@
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
                       <div>
                         <label for="cobro-nuevo-apartado-monto" style="display:block;font-size:12px;color:#888;margin-bottom:6px;">Monto ($)</label>
-                        <input type="number" id="cobro-nuevo-apartado-monto" class="cobro-input" min="0" step="1" inputmode="decimal" placeholder="0" oninput="actualizarTotalCobro()">
+                        <input data-money-whole type="number" id="cobro-nuevo-apartado-monto" class="cobro-input" min="0" step="1" inputmode="decimal" placeholder="0" oninput="actualizarTotalCobro()">
                       </div>
                       <div>
                         <label for="cobro-nuevo-apartado-metodo" style="display:block;font-size:12px;color:#888;margin-bottom:6px;">Método</label>
@@ -19675,7 +19675,7 @@
           productosEnCobro.push(item);
           const row = document.createElement('div'); row.className = 'cobro-group-row'; row.style.gridTemplateColumns = 'minmax(0,1fr) 90px 36px';
           const name = document.createElement('span'); name.className = 'cobro-group-name'; name.textContent = item.nombre;
-          const price = document.createElement('input'); price.className = 'cobro-input'; price.type = 'number'; price.min = '0'; price.step = '.01'; price.inputMode = 'decimal'; price.value = item.precio; price.setAttribute('aria-label', 'Precio extra de ' + item.nombre);
+          const price = document.createElement('input'); price.className = 'cobro-input'; price.type = 'number'; price.min = '0'; price.step = '1'; price.dataset.moneyWhole = ''; price.inputMode = 'decimal'; price.value = item.precio; price.setAttribute('aria-label', 'Precio extra de ' + item.nombre);
           price.addEventListener('input', () => { item.precio = price.value === '' ? NaN : Number(price.value); actualizarTotalCobro(); });
           const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'btn'; remove.style.padding = '8px'; remove.title = 'Quitar servicio extra'; remove.setAttribute('aria-label', 'Quitar extra ' + item.nombre); remove.innerHTML = '<i class="fas fa-trash-alt" aria-hidden="true"></i>';
           remove.addEventListener('click', () => { productosEnCobro = productosEnCobro.filter(p => p !== item); row.remove(); actualizarTotalCobro(); });
@@ -19699,7 +19699,7 @@
             description.append(label, time); choice.append(check, description);
             const amount = document.createElement('div'); amount.className = 'cobro-group-price';
             const currency = document.createElement('span'); currency.textContent = '$'; currency.setAttribute('aria-hidden', 'true');
-            const price = document.createElement('input'); price.type = 'number'; price.inputMode = 'decimal'; price.min = '0'; price.step = '.01'; price.value = service ? Number(service.price) : ''; price.placeholder = '0.00'; price.className = 'cobro-input'; price.setAttribute('aria-label', 'Precio de ' + item.serviceName);
+            const price = document.createElement('input'); price.type = 'number'; price.inputMode = 'decimal'; price.min = '0'; price.step = '1'; price.dataset.moneyWhole = ''; price.value = service ? Number(service.price) : ''; price.placeholder = '0'; price.className = 'cobro-input'; price.setAttribute('aria-label', 'Precio de ' + item.serviceName);
             amount.append(currency, price); line.append(choice, amount); groupBox.appendChild(line);
             window.cobroGrupo.push({ id: item.id, version: item.updatedAt, check, price });
             check.addEventListener('change', () => { price.disabled = !check.checked; actualizarTotalCobro(); }); price.addEventListener('input', actualizarTotalCobro);
