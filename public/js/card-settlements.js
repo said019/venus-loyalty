@@ -72,6 +72,13 @@ async function act(button){
 }
 window.cardSettlements={preview,load};
 if(panel){
+  document.getElementById('cs-title').textContent='Comisiones y depósitos';
+  const summaryLabel=document.getElementById('report-total-ingresos')?.previousElementSibling;
+  if(summaryLabel)summaryLabel.textContent='Ventas netas (incluye depósitos pendientes)';
+  const salesLabel=document.getElementById('report-total-sales')?.previousElementSibling?.querySelector('span');
+  if(salesLabel)salesLabel.textContent='Ventas netas, no saldo bancario';
+  const help=panel.querySelector('.cs-help');
+  if(help)help.textContent='Por recibir y recibido confirmado se muestran por separado. Una venta no se convierte en depósito recibido hasta que tú lo confirmes en tu banco. La comisión ya está descontada de las ventas netas; no se resta de nuevo.';
   panel.addEventListener('click',e=>{const b=e.target.closest('[data-cs-action]');if(b)act(b);});
   document.getElementById('cs-refresh').addEventListener('click',()=>load());
   document.getElementById('cs-status').addEventListener('change',render);
