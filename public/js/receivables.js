@@ -12,12 +12,21 @@
     if (!response.ok || !data.success) throw Object.assign(new Error(data.error || 'No se pudo completar la operación.'),{status:response.status});
     return data.data;
   }
-  function metrics(data) { return `<div class="ar-metrics"><div>Saldo pendiente actual<strong>${money(data.balanceCents)}</strong></div><div>Abonos recibidos en el período<strong>${money(data.receivedCents)}</strong></div><div>Cuentas abiertas<strong>${data.openCount}</strong></div></div>`; }
+  function metrics(data) { return `<div class="ar-metrics"><div><span>Por cobrar</span><strong>${money(data.balanceCents)}</strong></div><div><span>Abonos del período</span><strong>${money(data.receivedCents)}</strong></div><div><span>Cuentas abiertas</span><strong>${data.openCount}</strong></div></div>`; }
   const caja = document.getElementById('receivables-caja');
   const report = document.getElementById('receivables-report');
   if (!caja || !report) return;
   caja.innerHTML = `<header><h3>Pagos pendientes</h3><button type="button" data-new>Nuevo pendiente</button></header><div data-metrics></div><div class="ar-filters"><input type="search" aria-label="Buscar cuenta por cobrar" placeholder="Buscar clienta, teléfono o concepto"><select aria-label="Estado de cuenta"><option value="open">Pendientes</option><option value="all">Todas</option><option value="paid">Liquidadas</option><option value="cancelled">Canceladas</option></select><button type="button" data-refresh aria-label="Actualizar pagos pendientes" title="Actualizar"><i class="fas fa-sync-alt" aria-hidden="true"></i></button></div><p data-error role="status"></p><div data-list></div>`;
   report.innerHTML = '<h3>Cuentas por cobrar</h3><p data-period></p><p data-error role="status"></p><div data-metrics></div><div data-list></div>';
+  const newButton = caja.querySelector('[data-new]');
+  newButton.innerHTML = '<i class="fas fa-plus" aria-hidden="true"></i><span>Nuevo pendiente</span>';
+  const search = caja.querySelector('input[type=search]');
+  search.placeholder = 'Buscar clienta o concepto';
+  const searchLabel = document.createElement('label');
+  searchLabel.className = 'ar-search';
+  search.before(searchLabel);
+  searchLabel.innerHTML = '<i class="fas fa-search" aria-hidden="true"></i>';
+  searchLabel.append(search);
   const dialog = document.createElement('dialog');
   dialog.id = 'receivable-dialog'; document.body.append(dialog);
   function render() {
