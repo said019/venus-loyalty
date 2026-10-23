@@ -1,7 +1,7 @@
 import express from 'express';
 import { prisma } from '../db/index.js';
 import { adminAuth, requireRole } from '../../lib/auth.js';
-import { allocatePurchase, savePurchasePrices, assignPurchaseRow } from '../services/purchaseInvoices.js';
+import { allocatePurchase, savePurchasePrices, assignPurchaseRow, redistributePurchaseRow } from '../services/purchaseInvoices.js';
 const router=express.Router();
 router.use(adminAuth,requireRole('admin'));
 router.get('/',async(req,res)=>{
@@ -30,3 +30,7 @@ router.post('/lines/:id/assign-row',async(req,res)=>{
  catch(e){res.status(e.inventory?e.status:500).json({success:false,error:e.inventory?e.message:'No se guardó esta fila. Intenta de nuevo.'});}
 });
 export default router;
+router.post('/lines/:id/redistribute',async(req,res)=>{
+ try{res.json({success:true,data:await redistributePurchaseRow(prisma,req.params.id,req.body,req.admin.email || req.admin.uid)});}
+ catch(e){res.status(e.inventory?e.status:500).json({success:false,error:e.inventory?e.message:'No se guardó la distribución. Intenta de nuevo.'});}
+});

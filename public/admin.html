@@ -149,7 +149,7 @@
   <link rel="stylesheet" href="/css/clinic-inventory.css?v=5">
   <script defer src="/js/clinic-inventory.js?v=2"></script>
   <script defer src="/js/purchase-invoices.js?v=3"></script>
-  <script defer src="/js/purchase-grid.js?v=5"></script>
+  <script defer src="/js/purchase-grid.js?v=6"></script>
 </head>
 
 <body class="checking-auth">
@@ -3511,7 +3511,7 @@
         <!-- Método de pago -->
         <div class="ds-group">
           <label class="ds-label" for="direct-sale-payment-method">Método de pago</label>
-          <select id="direct-sale-payment-method" class="ds-input">
+          <select id="direct-sale-payment-method" class="ds-input" onchange="calculateDirectSaleTotals()">
             <option value="efectivo">Efectivo</option>
             <option value="tarjeta_credito">Tarjeta de crédito</option>
             <option value="tarjeta_debito">Tarjeta de débito</option>
@@ -3527,6 +3527,7 @@
           </div>
           <div class="ds-total-row ds-total-grand"><span>Total</span><span id="ds-total-grand">$0</span></div>
         </div>
+        <div id="direct-sale-card-preview" class="cs-preview" hidden aria-live="polite"></div>
       </div>
 
       <div class="ds-footer">
@@ -15891,6 +15892,10 @@
       document.getElementById('ds-total-discount-row').style.display = discountAmount > 0 ? 'flex' : 'none';
       document.getElementById('ds-total-grand').textContent = '$' + grandTotal.toLocaleString();
       document.getElementById('btn-ds-total').textContent = '$' + grandTotal.toLocaleString();
+      window.cardSettlements?.preview('direct-sale-card-preview', [{
+        amount: grandTotal,
+        method: document.getElementById('direct-sale-payment-method').value
+      }]);
     }
 
     async function saveDirectSale() {

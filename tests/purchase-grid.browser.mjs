@@ -33,19 +33,32 @@ try{
  await page.evaluate(()=>document.documentElement.dataset.theme='dark');
  const dark=await page.locator('.pg-table th').first().evaluate(el=>({fg:getComputedStyle(el).color,bg:getComputedStyle(el).backgroundColor}));assert(contrast(dark.fg,dark.bg)>=4.5);
  await page.evaluate(()=>document.documentElement.dataset.theme='light');
- let sent;page.on('request',r=>{if(r.url().endsWith('/assign-row'))sent=r.postDataJSON()});
+ let sent;page.on('request',r=>{if(r.url().endsWith('/redistribute'))sent=r.postDataJSON()});
  await page.getByRole('button',{name:'Guardar cambios'}).click();await page.locator('#pg-status').filter({hasText:'1 fila(s) guardadas.'}).waitFor();
  const line=await prisma.purchaseInvoiceLine.findUnique({where:{id:invoice.lines[0].id},include:{allocations:true}});
  assert.equal(line.assignedQuantity,2);assert.equal(line.retailUnitCents,12000);assert.equal(line.allocations.length,2);
  const product=line.allocations.find(a=>a.destination==='sale');const supply=line.allocations.find(a=>a.destination==='clinic');
  assert.equal((await prisma.product.findUnique({where:{id:product.targetId}})).stock,1);
  assert.equal((await prisma.clinicSupply.findUnique({where:{id:supply.targetId}})).stockMilliMl,45500);
- const repeat=await page.request.post(base+'/api/purchase-invoices/lines/'+line.id+'/assign-row',{data:sent});assert.equal(repeat.status(),200);
+ const repeat=await page.request.post(base+'/api/purchase-invoices/lines/'+line.id+'/redistribute',{data:sent});assert.equal(repeat.status(),200);
  assert.equal((await prisma.product.findUnique({where:{id:product.targetId}})).stock,1);
  assert.equal((await prisma.clinicSupply.findUnique({where:{id:supply.targetId}})).stockMilliMl,45500);
  await row.locator('[data-field=price]').fill('130');await page.getByRole('button',{name:'Guardar cambios'}).click();
  await page.waitForFunction(()=>[...document.querySelectorAll('tbody tr')].find(r=>r.querySelector('[data-field=name]').value==='Crema de prueba 50 GR').querySelector('.pg-row-status').textContent==='Guardado');
  assert.equal(Number((await prisma.product.findUnique({where:{id:product.targetId}})).price),130);
+ assert.equal(await row.locator('[data-field=saleQuantity]').inputValue(),'1');
+ assert.equal(await row.locator('[data-field=clinicQuantity]').inputValue(),'1');
+ await row.locator('[data-field=saleQuantity]').fill('2');
+ await row.locator('[data-field=clinicQuantity]').fill('0');
+ await page.getByRole('button',{name:'Guardar cambios'}).click();
+ await page.waitForFunction(()=>document.querySelector('.pg-row-status').textContent==='Guardado');
+ assert.equal((await prisma.product.findUnique({where:{id:product.targetId}})).stock,2);
+ assert.equal((await prisma.clinicSupply.findUnique({where:{id:supply.targetId}})).stockMilliMl,0);
+ await page.reload();
+ await row.locator('[data-field=saleQuantity]').waitFor();
+ assert.equal(await row.locator('[data-field=saleQuantity]').inputValue(),'2');
+ assert.equal(await row.locator('[data-field=clinicQuantity]').inputValue(),'0');
+ assert(await row.locator('[data-field=clinicQuantity]').isEnabled());
  await page.setViewportSize({width:390,height:900});await page.screenshot({path:'/tmp/purchase-grid-mobile.png'});
  assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
  for(const width of [390,800,1100,1440]){
@@ -58,6 +71,8 @@ try{
 
 }finally{
  await browser.close();const allocations=await prisma.purchaseAllocation.findMany({where:{lineId:invoice.lines[0].id}});
- for(const a of allocations){if(a.destination==='sale')await prisma.product.delete({where:{id:a.targetId}});if(a.destination==='clinic'){await prisma.clinicStockMovement.deleteMany({where:{supplyId:a.targetId}});await prisma.clinicSupply.delete({where:{id:a.targetId}});}}
+ for(const a of [...new Map(allocations.map(a=>[a.destination+':'+a.targetId,a])).values()]){if(a.destination==='sale')await prisma.product.delete({where:{id:a.targetId}});if(a.destination==='clinic'){await prisma.clinicStockMovement.deleteMany({where:{supplyId:a.targetId}});await prisma.clinicSupply.delete({where:{id:a.targetId}});}}
+ const audit=(await prisma.setting.findMany({where:{key:{startsWith:'purchase-correction:'}}})).filter(s=>s.value.line.id===invoice.lines[0].id);
+ await prisma.setting.deleteMany({where:{key:{in:audit.map(s=>s.key)}}});
  await prisma.purchaseAllocation.deleteMany({where:{lineId:invoice.lines[0].id}});await prisma.purchaseInvoiceLine.delete({where:{id:invoice.lines[0].id}});await prisma.purchaseInvoice.delete({where:{id}});await new Promise(r=>server.close(r));await prisma.$disconnect();
 }

@@ -1,4 +1,73 @@
 import { inventoryError, milliMl, moveStock, requestKey } from './clinicInventory.js';
+
+export function allocationVersion(allocations) {
+  return allocations.map(a => a.id).sort().join(',');
+}
+
+// Corrections append signed entries: original receipts and their actors remain intact.
+export async function redistributePurchaseRow(db, lineId, body, actor) {
+  const key = requestKey(body.requestKey);
+  const desired = { sale: Number(body.saleQuantity), clinic: Number(body.clinicQuantity) };
+  if (!Object.values(desired).every(n => Number.isSafeInteger(n) && n >= 0 && n <= 100000)) {
+    throw inventoryError('Indica cantidades enteras entre 0 y 100000.');
+  }
+  const auditKey = `purchase-correction:${key}`;
+  try {
+    return await db.$transaction(async tx => {
+      const saved = await tx.setting.findUnique({ where: { key: auditKey } });
+      if (saved) {
+        if (saved.value.line.id !== lineId) throw inventoryError('Referencia inválida.', 409);
+        return saved.value;
+      }
+      const line = await tx.purchaseInvoiceLine.findUnique({ where: { id: lineId }, include: { allocations: true } });
+      if (!line) throw inventoryError('Producto no encontrado.', 404);
+      if (body.allocationVersion !== allocationVersion(line.allocations)) throw inventoryError('La distribución cambió en otra sesión. Recarga antes de corregir.', 409);
+      if (desired.sale + desired.clinic > line.quantity) throw inventoryError('La distribución supera las piezas compradas.');
+      const current = { sale: 0, clinic: 0 };
+      const groups = new Map();
+      for (const a of line.allocations) {
+        current[a.destination] += a.quantity;
+        const groupKey = `${a.destination}:${a.targetId}:${a.bottleMilliMl || 0}`;
+        const group = groups.get(groupKey) || { ...a, quantity: 0 };
+        group.quantity += a.quantity;
+        groups.set(groupKey, group);
+      }
+      let index = 0;
+      for (const destination of ['sale', 'clinic']) {
+        let remove = current[destination] - desired[destination];
+        for (const group of groups.values()) {
+          if (remove <= 0) break;
+          if (group.destination !== destination || group.quantity <= 0) continue;
+          const quantity = Math.min(remove, group.quantity);
+          if (destination === 'sale') {
+            const changed = await tx.product.updateMany({ where: { id: group.targetId, stock: { gte: quantity } }, data: { stock: { decrement: quantity } } });
+            if (changed.count !== 1) throw inventoryError('No hay suficientes piezas disponibles para retirar de venta. Revisa las ventas realizadas.', 409);
+          } else {
+            await moveStock(tx, group.targetId, -quantity * group.bottleMilliMl, { kind: 'correction', note: `Corrección de compra ${lineId}: retirar ${quantity} envases`, requestKey: `${key}_undo${index}`, createdBy: actor });
+          }
+          await tx.purchaseAllocation.create({ data: { lineId, requestKey: `${key}_undo${index++}`, quantity: -quantity, destination, targetId: group.targetId, targetName: group.targetName, bottleMilliMl: group.bottleMilliMl, createdBy: actor } });
+          await tx.purchaseInvoiceLine.update({ where: { id: lineId }, data: { assignedQuantity: { decrement: quantity } } });
+          remove -= quantity;
+        }
+      }
+      const result = await assignPurchaseRow({ $transaction: fn => fn(tx) }, lineId, {
+        ...body,
+        saleQuantity: Math.max(0, desired.sale - current.sale),
+        clinicQuantity: Math.max(0, desired.clinic - current.clinic)
+      }, actor);
+      result.line = await tx.purchaseInvoiceLine.findUnique({ where: { id: lineId }, include: { allocations: true } });
+      await tx.setting.create({ data: { key: auditKey, value: JSON.parse(JSON.stringify(result)) } });
+      return result;
+    }, { isolationLevel: 'Serializable' });
+  } catch (error) {
+    if (['P2002', 'P2034'].includes(error.code)) {
+      const saved = await db.setting.findUnique({ where: { key: auditKey } });
+      if (saved?.value?.line?.id === lineId) return saved.value;
+      throw inventoryError('El inventario cambió en otra sesión. Recarga y vuelve a intentar.', 409);
+    }
+    throw error;
+  }
+}
 export async function allocatePurchase(db, lineId, body, actor) {
   const key=requestKey(body.requestKey), quantity=Number(body.quantity);
   if (!Number.isInteger(quantity) || quantity<1 || quantity>100000) throw inventoryError('Indica cuántas piezas completas quieres asignar.');

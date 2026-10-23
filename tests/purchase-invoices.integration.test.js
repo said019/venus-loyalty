@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
-import {allocatePurchase,savePurchasePrices,assignPurchaseRow} from '../src/services/purchaseInvoices.js';
+import {allocatePurchase,savePurchasePrices,assignPurchaseRow,redistributePurchaseRow,allocationVersion} from '../src/services/purchaseInvoices.js';
 const database=process.env.CLINIC_TEST_DATABASE_URL;
 test('invoice allocation is manual, precise and atomic',{skip:!database},async t=>{
  assert(['127.0.0.1','localhost'].includes(new URL(database).hostname));process.env.DATABASE_URL=database;
@@ -47,6 +47,32 @@ test('invoice allocation is manual, precise and atomic',{skip:!database},async t
    assert.equal(results.filter(r=>r.status==='fulfilled').length,1);
    assert.equal((await db.product.findUnique({where:{id:product}})).stock,2);
    assert.equal((await db.purchaseInvoiceLine.findUnique({where:{id:line.id}})).assignedQuantity,3);
+  });
+  await t.test('correction moves existing stock, retries once, rejects stale and consumed stock',async()=>{
+   const body=async(sale,clinic)=>({requestKey:randomUUID(),allocationVersion:allocationVersion(await db.purchaseAllocation.findMany({where:{lineId:line.id}})),saleQuantity:sale,clinicQuantity:clinic,saleTargetId:product,clinicTargetId:supply,name:'Test cream',price:'190',bottleMl:'49.5',volumeConfirmed:true});
+   const change=await body(1,2);
+   await redistributePurchaseRow(db,line.id,change,'test');
+   await redistributePurchaseRow(db,line.id,change,'test');
+   assert.equal((await db.product.findUnique({where:{id:product}})).stock,1);
+   assert.equal((await db.clinicSupply.findUnique({where:{id:supply}})).stockMilliMl,99000);
+   await assert.rejects(()=>redistributePurchaseRow(db,line.id,{...change,requestKey:randomUUID()},'test'),e=>e.status===409);
+   await assert.rejects(()=>redistributePurchaseRow(db,line.id, {...change,requestKey:randomUUID(),saleQuantity:4},'test'));
+   await db.product.update({where:{id:product},data:{stock:0}});
+   await assert.rejects(()=>body(0,3).then(b=>redistributePurchaseRow(db,line.id,b,'test')),e=>e.status===409);
+   assert.equal((await db.clinicSupply.findUnique({where:{id:supply}})).stockMilliMl,99000);
+   await db.product.update({where:{id:product},data:{stock:1}});
+   await db.clinicSupply.update({where:{id:supply},data:{stockMilliMl:1000}});
+   await assert.rejects(()=>body(3,0).then(b=>redistributePurchaseRow(db,line.id,b,'test')),e=>e.status===409);
+   assert.equal((await db.product.findUnique({where:{id:product}})).stock,1);
+   await db.clinicSupply.update({where:{id:supply},data:{stockMilliMl:99000}});
+   const back=await redistributePurchaseRow(db,line.id,await body(3,0),'test');
+   assert.equal((await db.product.findUnique({where:{id:product}})).stock,3);
+   assert.equal((await db.clinicSupply.findUnique({where:{id:supply}})).stockMilliMl,0);
+   assert.equal(back.line.assignedQuantity,3);
+   assert.equal(back.line.allocations.filter(a=>a.destination==='clinic').reduce((n,a)=>n+a.quantity,0),0);
+   assert(back.line.allocations.some(a=>a.quantity<0));
+   const keys=(await db.setting.findMany({where:{key:{startsWith:'purchase-correction:'}}})).filter(s=>s.value.line.id===line.id).map(s=>s.key);
+   await db.setting.deleteMany({where:{key:{in:keys}}});
   });
  }finally{
   await db.purchaseAllocation.deleteMany({where:{lineId:line.id}});await db.purchaseInvoiceLine.delete({where:{id:line.id}});await db.purchaseInvoice.delete({where:{id}});
