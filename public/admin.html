@@ -148,11 +148,11 @@
        (re-auditoría perf: antes se descargaban y ejecutaban dos veces cada uno) -->
   <link rel="stylesheet" href="/css/clinic-inventory.css?v=6">
   <script defer src="/js/clinic-inventory.js?v=2"></script>
-  <script defer src="/js/purchase-invoices.js?v=3"></script>
-  <script defer src="/js/purchase-grid.js?v=7"></script>
+  <script defer src="/js/purchase-invoices.js?v=4"></script>
+  <script defer src="/js/purchase-grid.js?v=8"></script>
   <script defer src="/js/payment-detail-view.js?v=1"></script>
   <script defer src="/js/payment-product-picker.js?v=1"></script>
-  <script defer src="/js/receivables.js?v=2"></script>
+  <script defer src="/js/receivables.js?v=3"></script>
   <script defer src="/js/report-tabs.js?v=1"></script>
   <link rel="stylesheet" href="/css/report-tabs.css?v=1">
   <link rel="stylesheet" href="/css/receivables.css?v=3">
@@ -2660,7 +2660,7 @@
           </div>
           <div>
             <label for="pkg-price">Precio ($)<span class="req-mark" aria-hidden="true">*</span></label>
-            <input type="number" id="pkg-price" class="form-input" min="0" step="0.01" placeholder="3000" required>
+            <input type="number" id="pkg-price" class="form-input" min="0" step="1" data-money-whole placeholder="3000" required>
           </div>
         </div>
         <label for="pkg-validity" style="margin-top:10px;">Vigencia en días (vacío = no vence)</label>
@@ -2690,7 +2690,7 @@
           </div>
           <div>
             <label for="sell-pkg-price">Cobrado ($)</label>
-            <input type="number" id="sell-pkg-price" class="form-input" min="0" step="0.01" placeholder="precio de lista">
+            <input type="number" id="sell-pkg-price" class="form-input" min="0" step="1" data-money-whole placeholder="precio de lista">
           </div>
         </div>
         <p class="muted" style="margin:10px 0 0;font-size:11.5px;">La venta se registra en Reportes al instante.</p>
@@ -2714,7 +2714,7 @@
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
           <div>
             <label for="credit-amount">Monto ($)<span class="req-mark" aria-hidden="true">*</span></label>
-            <input type="number" id="credit-amount" class="form-input" min="1" step="0.01" required inputmode="decimal">
+            <input type="number" id="credit-amount" class="form-input" min="1" step="1" data-money-whole required inputmode="decimal">
           </div>
           <div>
             <label for="credit-method">Método<span class="req-mark" aria-hidden="true">*</span></label>
@@ -2903,7 +2903,7 @@
               <div style="position:relative;">
                 <span
                   style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);">$</span>
-                <input type="number" id="product-price" class="form-input" required min="0" step="any"
+                <input type="number" id="product-price" class="form-input" required min="0" step="1" data-money-whole
                   style="padding-left:25px;">
               </div>
             </div>
@@ -2912,7 +2912,7 @@
               <div style="position:relative;">
                 <span
                   style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);">$</span>
-                <input type="number" id="product-cost" class="form-input" min="0" step="any" style="padding-left:25px;">
+                <input type="number" id="product-cost" class="form-input" min="0" step="1" data-money-whole style="padding-left:25px;">
               </div>
             </div>
           </div>
@@ -3071,7 +3071,7 @@
                     <label for="new-appt-price" style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:8px;padding-left:4px;">Precio Final</label>
                     <div style="position:relative;">
                       <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--venus-soft);font-size:14px;font-weight:700;">$</span>
-                      <input type="number" id="new-appt-price" class="form-input" placeholder="0" min="0" step="any"
+                      <input type="number" id="new-appt-price" class="form-input" placeholder="0" min="0" step="1" data-money-whole
                         style="width:100%;padding:12px 14px 12px 28px;background:var(--bg-tertiary);border:1px solid var(--border-color);border-radius:10px;font-size:14px;font-weight:700;color:var(--venus-soft);">
                     </div>
                   </div>
@@ -3349,7 +3349,7 @@
             <select id="payment-service-select" style="display:none;width:100%;margin-top:6px;font-size:13px;padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg-card);color:var(--ink);"></select>
             <div class="payment-price-row">
               <span class="payment-price-display" id="payment-price-display">$0</span>
-              <input type="number" class="payment-price-input" id="payment-price-input" min="0" step="any">
+              <input type="number" class="payment-price-input" id="payment-price-input" min="0" step="1" data-money-whole>
               <button class="btn-edit-price" onclick="togglePriceEdit()" title="Editar precio">
                 <i class="fas fa-pencil" aria-hidden="true" style="font-size:12px;"></i>
               </button>
@@ -3594,7 +3594,7 @@
               <label for="mi-amount" class="form-label">Monto<span class="req-mark" aria-hidden="true">*</span></label>
               <div style="position:relative;">
                 <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);">$</span>
-                <input type="number" id="mi-amount" class="form-input" required min="1" step="any" style="padding-left:26px;" placeholder="650">
+                <input type="number" id="mi-amount" class="form-input" required min="1" step="1" data-money-whole style="padding-left:26px;" placeholder="650">
               </div>
             </div>
             <div>
@@ -3667,7 +3667,7 @@
               <div style="position:relative;">
                 <span
                   style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--venus-soft);font-size:14px;">$</span>
-                <input type="number" id="expense-amount" class="form-input" placeholder="0.00" min="0" step="0.01"
+                <input type="number" id="expense-amount" class="form-input" placeholder="0" min="0" step="1" data-money-whole
                   style="padding-left:28px;" required>
               </div>
             </div>
@@ -4521,7 +4521,7 @@
             <div style="position:relative;">
               <span
                 style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px;">$</span>
-              <input type="number" id="service-price" class="form-input" required min="0" step="any"
+              <input type="number" id="service-price" class="form-input" required min="0" step="1" data-money-whole
                 style="padding-left:25px;">
             </div>
           </div>
@@ -15634,7 +15634,7 @@
               <option value="cabello">Cabello</option>
               <option value="otro" selected>Otro</option>
             </select>
-            <input type="number" id="ds-new-price" class="ds-input" placeholder="Precio *" aria-label="Precio del producto nuevo (obligatorio)" min="0" step="any" required>
+            <input type="number" id="ds-new-price" class="ds-input" placeholder="Precio *" aria-label="Precio del producto nuevo (obligatorio)" min="0" step="1" data-money-whole required>
           </div>
           <input type="number" id="ds-new-stock" class="ds-input" placeholder="Stock inicial *" aria-label="Stock inicial del producto nuevo (obligatorio)" min="0" required>
           <div class="ds-create-actions">
@@ -19118,7 +19118,7 @@
             <input id="ei-client" class="input" value="${escHtml(t.cliente || '')}">
           </label>
           <label style="display:grid;gap:4px;font-size:12px;color:var(--muted);">Monto
-            <input id="ei-amount" class="input" type="number" step="0.01" min="0.01" value="${t.monto || 0}" required>
+            <input id="ei-amount" class="input" type="number" step="1" data-money-whole min="0.01" value="${t.monto || 0}" required>
           </label>
           <label style="display:grid;gap:4px;font-size:12px;color:var(--muted);">Método de pago
             <select id="ei-method" class="input">
@@ -22722,6 +22722,7 @@
   <script type="module" src="/js/card-settlements.js?v=4"></script>
   <link rel="stylesheet" href="/css/purchase-grid.css?v=4">
   <link rel="stylesheet" href="/css/admin/workspace-layout.css?v=1">
+<script src="/js/money-inputs.js?v=1"></script>
 </body>
 
 </html>

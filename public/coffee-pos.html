@@ -56,7 +56,7 @@
             <button class="pay-btn" data-method="transferencia"><i class="fas fa-exchange-alt"></i> Transfer</button>
           </div>
           <div class="cash-input-row" id="cash-input-row">
-            <input type="number" id="cash-amount" placeholder="Monto recibido" step="0.01">
+            <input type="number" id="cash-amount" placeholder="Monto recibido" step="1" data-money-whole>
           </div>
           <div class="change-display" id="change-display"></div>
           <button class="charge-btn" id="charge-btn" disabled>COBRAR $0.00</button>
@@ -119,7 +119,7 @@
     <div class="modal">
       <h2>Abrir Caja</h2>
       <label>Monto inicial (fondo de caja)</label>
-      <input type="number" id="cash-open-amount" step="0.01" placeholder="500.00">
+      <input type="number" id="cash-open-amount" step="1" data-money-whole placeholder="500">
       <div class="modal-btns">
         <button class="btn-secondary" onclick="closeModal('modal-cash-open')">Cancelar</button>
         <button class="btn-primary" onclick="openCash()">Abrir Caja</button>
@@ -132,7 +132,7 @@
     <div class="modal">
       <h2>Cerrar Caja</h2>
       <label>Monto real contado en caja</label>
-      <input type="number" id="cash-close-amount" step="0.01" placeholder="1500.00">
+      <input type="number" id="cash-close-amount" step="1" data-money-whole placeholder="1500">
       <label>Notas (opcional)</label>
       <textarea id="cash-close-notes" rows="2" placeholder="Observaciones del turno..."></textarea>
       <div class="modal-btns">
@@ -147,7 +147,7 @@
     <div class="modal">
       <h2 id="movement-title">Registrar Movimiento</h2>
       <label>Monto</label>
-      <input type="number" id="movement-amount" step="0.01" placeholder="100.00">
+      <input type="number" id="movement-amount" step="1" data-money-whole placeholder="100">
       <label>Motivo</label>
       <input type="text" id="movement-reason" placeholder="Cambio de billete, pago proveedor...">
       <input type="hidden" id="movement-type">
@@ -173,7 +173,7 @@
         <option value="smoothies">🥤 Smoothies</option>
       </select>
       <label>Precio base</label>
-      <input type="number" id="product-price" step="0.01" placeholder="45.00">
+      <input type="number" id="product-price" step="1" data-money-whole placeholder="45">
       <div class="modal-btns">
         <button class="btn-secondary" onclick="closeModal('modal-product')">Cancelar</button>
         <button class="btn-primary" onclick="saveProduct()">Guardar</button>
@@ -208,5 +208,6 @@
   </div>
 
   <script src="/coffee-pos.js?v=2"></script>
+<script src="/js/money-inputs.js?v=1"></script>
 </body>
 </html>
