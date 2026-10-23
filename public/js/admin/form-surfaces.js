@@ -16,7 +16,7 @@
   }
   decorate(document.documentElement);
   // These editors were inside the page stacking context, behind the toolbar/FAB.
-  document.querySelectorAll('#modal-product, #modal-service').forEach(overlay => {
+  document.querySelectorAll('#modal-product, #modal-service, #card-modal-backdrop, #modal-giftcard-view').forEach(overlay => {
     if (overlay.parentElement !== document.body) document.body.appendChild(overlay);
   });
   new MutationObserver(records => {

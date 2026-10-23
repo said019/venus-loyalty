@@ -3,6 +3,12 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 const source = readFileSync(new URL('../public/js/admin/form-surfaces.js', import.meta.url), 'utf8');
+test('client and gift card overlays escape the page stacking context', () => {
+  const overlays = ['#card-modal-backdrop','#modal-giftcard-view'].map(id => ({id,parentElement:{}}));
+  const body = { appendChild: el => { el.parentElement = body; } };
+  vm.runInNewContext(source,{document:{body,documentElement:{nodeType:1,matches:()=>false,querySelectorAll:()=>[]},querySelectorAll:selector=>overlays.filter(el=>selector.includes(el.id))},MutationObserver:class {observe(){}}});
+  for(const overlay of overlays) assert.equal(overlay.parentElement,body);
+});
 test('form surfaces decorate static and inserted forms without touching viewer geometry or inputs', () => {
   function node(selector, children = []) {
     const classes = new Set();
