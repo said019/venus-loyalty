@@ -104,7 +104,7 @@ html[data-theme="light"] #tab-reports { background: #fafbf8 !important; }
 /* Neutral payment ledger: keep the data clear without tinted panels. */
 #tab-reports .sales-ledger {
   --ledger-surface: #ffffff;
-  --ledger-heading: #f3f4f5;
+  --ledger-heading: #ffffff;
   --ledger-hover: #f8f9fa;
   --ledger-line: #e3e5e8;
   --ledger-text: #24292f;
@@ -166,3 +166,56 @@ html[data-theme="dark"] #tab-reports .sales-ledger {
   outline: 2px solid var(--ledger-muted);
   outline-offset: 2px;
 }
+
+/* Payment list: typography and spacing carry the hierarchy, not heavy panels. */
+html[data-theme="light"] #tab-reports { background: #ffffff !important; }
+#tab-reports .sales-ledger .report-sales-head {
+  align-items: baseline;
+  margin: 0 0 24px;
+}
+#tab-reports .sales-ledger .report-sales-head h3 {
+  font-size: 26px !important;
+  font-weight: 500;
+  letter-spacing: -.5px;
+  color: var(--ledger-text);
+}
+#tab-reports .sales-ledger .report-sales-head h3 i { display: none; }
+#tab-reports .sales-ledger .report-sales-summary {
+  font-size: 13px;
+  color: var(--ledger-muted);
+}
+#tab-reports .report-sales-filters {
+  margin-bottom: 28px;
+  gap: 12px;
+}
+#tab-reports .report-sales-filters :is(input, select) {
+  min-height: 46px;
+  font-size: 14px;
+  border-radius: 8px !important;
+}
+#tab-reports .sales-ledger table { border-collapse: collapse; }
+#tab-reports .sales-ledger th {
+  padding: 14px 16px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ledger-muted) !important;
+  border-bottom: 1px solid var(--ledger-line) !important;
+}
+#tab-reports .sales-ledger td {
+  padding: 20px 16px;
+  font-size: 14px;
+  line-height: 1.5;
+  border-bottom: 1px solid var(--ledger-line) !important;
+}
+#tab-reports .sales-ledger td[data-label="Fecha de pago"] {
+  font-size: 13px;
+  color: var(--ledger-muted) !important;
+}
+#tab-reports .sales-ledger td[data-label="Cliente"] { font-weight: 500; }
+#tab-reports .sales-ledger td[data-label="Total"],
+#tab-reports .sales-ledger th:nth-child(10) {
+  text-align: right;
+  white-space: nowrap;
+}
+#tab-reports .sales-ledger td[data-label="Total"] { font-size: 16px; font-weight: 600; }
+#tab-reports .sales-ledger tfoot td { border-top: 2px solid var(--ledger-line); }
