@@ -59,6 +59,22 @@ try{
  assert.equal(await row.locator('[data-field=saleQuantity]').inputValue(),'2');
  assert.equal(await row.locator('[data-field=clinicQuantity]').inputValue(),'0');
  assert(await row.locator('[data-field=clinicQuantity]').isEnabled());
+ await page.selectOption('#pg-supplier','Proveedor de prueba');
+ await page.selectOption('#pg-invoice',invoice.id);
+ await page.selectOption('#pg-state','complete');
+ await page.selectOption('#pg-destination','sale');
+ await page.fill('#pg-search','CRÉMA');
+ assert(await row.isVisible());
+ assert.match(await page.locator('#pg-count').textContent(),/1 de 1/);
+ await row.locator('[data-field=price]').fill('140');
+ await page.selectOption('#pg-state','dirty');assert(await row.isVisible());
+ await page.selectOption('#pg-destination','clinic');assert(await row.isHidden());
+ assert(await page.locator('#pg-empty').isVisible());
+ await page.click('#pg-clear');assert(await row.isVisible());
+ assert.equal(await row.locator('[data-field=price]').inputValue(),'140');
+ assert.equal(await page.locator('#pg-search').inputValue(),'');
+ await page.selectOption('#pg-state','pending');assert(await row.isHidden());
+ await page.click('#pg-clear');
  await page.setViewportSize({width:390,height:900});await page.screenshot({path:'/tmp/purchase-grid-mobile.png'});
  assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
  for(const width of [390,800,1100,1440]){
