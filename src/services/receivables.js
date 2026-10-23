@@ -71,3 +71,36 @@ export async function listReceivables(db,from,to){
   .reduce((total,p)=>total+p.amountCents,0),0);
  return {accounts,from,to,balanceCents:accounts.reduce((s,a)=>s+a.balanceCents,0),receivedCents,openCount:accounts.filter(a=>a.balanceCents>0).length};
 }
+
+export const appointmentReceivableKey = id => 'receivable:appt_' + createHash('sha256').update(String(id)).digest('hex');
+// Correct only cash actually received; keep the appointment, products and stock intact.
+export async function deferAppointmentBalance(db, appointmentId, body, actor, now=new Date()) {
+ const receivedCents=cents(body.received,true),requestKey=key(body.requestKey);
+ const recordKey=appointmentReceivableKey(appointmentId);
+ return transact(db,async tx=>{
+  const existing=await tx.setting.findUnique({where:{key:recordKey}});
+  if(existing){
+   if(existing.value.correction.requestKey===requestKey && existing.value.correction.receivedCents===receivedCents)return receivableView(existing.value);
+   throw fail('Esta cita ya tiene una cuenta vinculada. Consulta Pagos pendientes.',409);
+  }
+  const appointment=await tx.appointment.findUnique({where:{id:appointmentId}});
+  if(!appointment)throw fail('Cita no encontrada.',404);
+  if(appointment.status!=='completed'||appointment.totalPaid==null)throw fail('La cita debe tener un cobro registrado.',409);
+  if(!body.version||new Date(appointment.updatedAt).toISOString()!==body.version)throw fail('El cobro cambió. Cierra y vuelve a abrir la cita.',409);
+  const originalCents=Math.round(Number(appointment.totalPaid)*100);
+  if(receivedCents>=originalCents)throw fail('Lo recibido debe ser menor al cobro registrado.');
+  const sales=await tx.sale.findMany({where:{appointmentId},orderBy:{date:'desc'}});
+  // Multiple payment records must be reconciled explicitly, never guessed.
+  if(sales.length>1)throw fail('La cita tiene varios registros de cobro. Revisa el historial antes de corregirla.',409);
+  if(sales.length && Math.round(Number(sales[0].totalAmount??sales[0].total)*100)!==originalCents)throw fail('Los importes del cobro no coinciden. Actualiza y revisa el historial.',409);
+  const account={id:recordKey.slice(prefix.length),clientName:appointment.clientName,clientPhone:appointment.clientPhone,
+   concept:`Saldo de cita · ${appointment.serviceName} · ${appointment.date}`,totalCents:originalCents-receivedCents,
+   createdAt:now.toISOString(),createdBy:actor,revision:0,payments:[],appointmentId,
+   correction:{requestKey,originalCents,receivedCents,at:now.toISOString(),by:actor,
+    before:JSON.parse(JSON.stringify({appointment,sales}))}};
+  await tx.appointment.update({where:{id:appointmentId},data:{totalPaid:receivedCents/100}});
+  if(sales.length)await tx.sale.update({where:{id:sales[0].id},data:{total:receivedCents/100,totalAmount:receivedCents/100}});
+  await tx.setting.create({data:{key:recordKey,value:account}});
+  return receivableView(account);
+ });
+}

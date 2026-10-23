@@ -24,7 +24,7 @@
     const query = caja.querySelector('input').value.toLocaleLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
     const state = caja.querySelector('select').value;
     const rows = accounts.filter(a => (state === 'all' || (state === 'open' ? a.balanceCents > 0 : a.status === state)) && `${a.clientName} ${a.clientPhone} ${a.concept}`.toLocaleLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').includes(query));
-    caja.querySelector('[data-list]').innerHTML = rows.map(a => `<article class="ar-account"><div class="ar-row"><div><strong>${esc(a.clientName)}</strong><p>${esc(a.concept)}</p><small>${esc(date(a.createdAt))} · ${esc(a.clientPhone)}</small></div><div><strong>${money(a.balanceCents)}</strong><small>${({pending:'Pendiente',partial:'Pago parcial',paid:'Liquidada',cancelled:'Cancelada'})[a.status]}</small></div></div><p>Total ${money(a.totalCents)} · Recibido ${money(a.paidCents)}</p><div class="ar-actions">${a.balanceCents > 0 ? `<button type="button" data-pay="${esc(a.id)}">Registrar abono</button>` : ''}${!a.paidCents && !a.cancelledAt ? `<button type="button" data-cancel="${esc(a.id)}">Cancelar cuenta</button>` : ''}</div><details><summary>Historial de abonos (${a.payments.length})</summary>${a.payments.map(p => `<div class="ar-row"><div>${money(p.amountCents)} · ${esc(methods[p.method])}<small>${esc(date(p.at))} · ${esc(p.by)}</small></div>${p.reversedAt ? '<span>Registro deshecho</span>' : `<button type="button" data-reverse="${esc(a.id)}" data-payment="${esc(p.id)}">Deshacer registro</button>`}</div>`).join('') || '<p>Sin abonos.</p>'}</details></article>`).join('') || '<p>No hay cuentas con estos filtros.</p>';
+    caja.querySelector('[data-list]').innerHTML = rows.map(a => `<article class="ar-account"><div class="ar-row"><div><strong>${esc(a.clientName)}</strong><p>${esc(a.concept)}</p><small>${esc(date(a.createdAt))} · ${esc(a.clientPhone)}</small></div><div><strong>${money(a.balanceCents)}</strong><small>${({pending:'Pendiente',partial:'Pago parcial',paid:'Liquidada',cancelled:'Cancelada'})[a.status]}</small></div></div><p>${a.correction ? `Cobro corregido: ${money(a.correction.originalCents)} · Recibido en la cita: ${money(a.correction.receivedCents)} · ${esc(date(a.correction.at))}<br>` : ""}Total ${money(a.totalCents)} · Recibido ${money(a.paidCents)}</p><div class="ar-actions">${a.balanceCents > 0 ? `<button type="button" data-pay="${esc(a.id)}">Registrar abono</button>` : ''}${!a.paidCents && !a.cancelledAt ? `<button type="button" data-cancel="${esc(a.id)}">Cancelar cuenta</button>` : ''}</div><details><summary>Historial de abonos (${a.payments.length})</summary>${a.payments.map(p => `<div class="ar-row"><div>${money(p.amountCents)} · ${esc(methods[p.method])}<small>${esc(date(p.at))} · ${esc(p.by)}</small></div>${p.reversedAt ? '<span>Registro deshecho</span>' : `<button type="button" data-reverse="${esc(a.id)}" data-payment="${esc(p.id)}">Deshacer registro</button>`}</div>`).join('') || '<p>Sin abonos.</p>'}</details></article>`).join('') || '<p>No hay cuentas con estos filtros.</p>';
   }
   async function loadCaja(day = today()) {
     selectedDay = day; const token = ++sequence.caja;
@@ -86,5 +86,26 @@
     catch(error){caja.querySelector('[data-error]').textContent=error.message;}
     finally{busy=false;button.disabled=false;}
   });
-  window.receivables={loadCaja,loadReport};
+  function correctAppointment(appointment) {
+    const total=Math.round(Number(appointment.totalPaid)*100);
+    const requestKey=crypto.randomUUID();
+    dialog.innerHTML=`<form class="ar-correction"><header><h3>Dejar saldo pendiente</h3><button type="button" data-close aria-label="Cerrar">×</button></header><p>${esc(appointment.clientName)} · ${esc(appointment.serviceName)}</p><p>Cobro registrado: <strong>${money(total)}</strong></p><label>Cuánto recibiste realmente en este cobro<input name="received" type="number" min="0" max="${(total-1)/100}" step="0.01" required placeholder="0.00"></label><p>Quedará pendiente: <strong data-balance>—</strong></p><p>Se corregirá el ingreso registrado y la diferencia aparecerá en Pagos pendientes. Los productos y apartados aplicados se conservan.</p><p data-error role="alert"></p><button type="submit">Corregir cobro y guardar pendiente</button></form>`;
+    const form=dialog.querySelector('form'),input=form.elements.received,button=form.querySelector('[type=submit]');
+    let submitting=false;
+    input.oninput=()=>{const n=Number(input.value);form.querySelector('[data-balance]').textContent=input.value!==''&&Number.isFinite(n)&&n>=0&&n*100<total?money(total-Math.round(n*100)):'—';};
+    form.querySelector('[data-close]').onclick=()=>{if(!submitting)dialog.close();};
+    form.onsubmit=async e=>{
+      e.preventDefault();if(submitting||!form.reportValidity())return;
+      submitting=true;button.disabled=true;form.querySelector('[data-error]').textContent='';
+      try{
+        await api('/appointment/'+encodeURIComponent(appointment.id),{received:input.value,version:appointment.updatedAt,requestKey});
+        dialog.close();document.getElementById('modal-cobrar-cita')?.remove();
+        window.showNotification?.('Cobro corregido. La diferencia quedó en Pagos pendientes.','success');
+        refresh();
+      }catch(error){form.querySelector('[data-error]').textContent=error.message;}
+      finally{submitting=false;button.disabled=false;}
+    };
+    dialog.showModal();input.focus();
+  }
+  window.receivables={loadCaja,loadReport,correctAppointment};
 })();
