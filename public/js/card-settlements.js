@@ -4,6 +4,20 @@ const dateLabel = day => new Date(`${day}T12:00:00-06:00`).toLocaleDateString('e
 const esc = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const statusLabel = {pending:'Por depositar',verify:'Revisar en banco',received:'Recibido'};
 let rows=[],range=null,request=0,busy=false;
+let salesSummary=null, loaded=false;
+function availableSummary() {
+  if(!salesSummary || salesSummary.range!==JSON.stringify(range))return;
+  const set=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=value;};
+  if(!loaded){for(const id of ['report-total-ingresos','report-total-sales','report-utilidad','report-card-total','report-bank-pending','net-profit'])set(id,'—');return;}
+  const confirmed=rows.filter(r=>r.status==='received').reduce((s,r)=>s+r.netCents,0);
+  const pending=rows.filter(r=>r.status!=='received').reduce((s,r)=>s+r.netCents,0);
+  const available=salesSummary.nonCardCents+confirmed;
+  set('report-total-ingresos',money(available));set('report-total-sales',money(available));
+  set('report-card-total',money(confirmed));set('report-bank-pending',money(pending));
+  set('report-utilidad',money(available-salesSummary.expenseCents));set('net-profit',money(available-salesSummary.expenseCents));
+  set('profit-margin',available?`${((available-salesSummary.expenseCents)/available*100).toFixed(1)}% margen`:'0% margen');
+}
+export function setSalesSummary(nonCard,expenses){salesSummary={nonCardCents:Math.round(nonCard*100),expenseCents:Math.round(expenses*100),range:JSON.stringify(range)};availableSummary();}
 const panel=document.getElementById('card-settlements');
 function notice(text){const el=document.getElementById('cs-notice');el.textContent=text;el.hidden=!text;}
 export function preview(id,parts,paidAt=new Date()) {
@@ -19,6 +33,7 @@ function ticketDetails(r) {
   return `${items.length ? `<ul class="cs-ticket-items" aria-label="Artículos del cobro">${r.serviceCents > 0 ? `<li><span>${esc(r.concept)}</span><b>${money(r.serviceCents)}</b></li>` : ''}${lines}</ul>` : '<small>Este registro no tiene artículos detallados guardados.</small>'}${r.discountCents > 0 ? `<small>Descuento del ticket: −${money(r.discountCents)}</small>` : ''}<small>Hora: ${esc(new Date(r.paidAt).toLocaleTimeString('es-MX',{timeZone:'America/Mexico_City',hour:'2-digit',minute:'2-digit'}))} · ${esc(window.etiquetaMetodoPago?.(r.method) || r.method || 'Tarjeta')}</small><small class="cs-reference">Referencia: ${esc(r.key)}</small>`;
 }
 function render(){
+  availableSummary();
   const pending=rows.filter(r=>r.status!=='received'),received=rows.filter(r=>r.status==='received');
   const sum=(list,key)=>list.reduce((s,r)=>s+r[key],0);
   document.getElementById('cs-pending').textContent=money(sum(pending,'netCents'));
@@ -41,7 +56,7 @@ export async function load(from,to){
   if(!from||!to){from=document.getElementById('cs-from').value;to=document.getElementById('cs-to').value;}
   if(!from||!to)return;
   if(busy)return;
-  const token=++request;range={from,to};
+  const token=++request;range={from,to};loaded=false;availableSummary();
   document.getElementById('cs-from').value=from;document.getElementById('cs-to').value=to;
   notice('');panel.setAttribute('aria-busy','true');
   document.getElementById('cs-list').innerHTML='<p class="cs-empty">Cargando depósitos…</p>';
@@ -49,7 +64,7 @@ export async function load(from,to){
     const res=await window.apiFetch(`/api/card-settlements?${new URLSearchParams({from,to})}`),json=await res.json();
     if(token!==request)return;
     if(!res.ok||!json.success)throw Error(json.error||'No se pudieron cargar los depósitos.');
-    rows=json.data;render();
+    rows=json.data;loaded=true;render();
   }catch(e){if(token!==request)return;rows=[];document.getElementById('cs-list').innerHTML='';for(const id of ['cs-pending','cs-received','cs-fees'])document.getElementById(id).textContent='—';document.getElementById('cs-gross').textContent='';notice(e.message);}
   finally{if(token===request)panel.setAttribute('aria-busy','false');}
 }
@@ -70,13 +85,15 @@ async function act(button){
   }catch(e){notice(e.message);}
   finally{busy=false;panel.querySelectorAll('button').forEach(b=>b.disabled=false);if(document.getElementById('cs-notice').hidden)render();}
 }
-window.cardSettlements={preview,load};
+window.cardSettlements={preview,load,setSalesSummary};
 if(panel){
   document.getElementById('cs-title').textContent='Comisiones y depósitos';
   const summaryLabel=document.getElementById('report-total-ingresos')?.previousElementSibling;
-  if(summaryLabel)summaryLabel.textContent='Ventas netas (incluye depósitos pendientes)';
+  if(summaryLabel)summaryLabel.textContent='Disponible del período (antes de gastos)';
+  const mainAmount=document.getElementById('report-total-ingresos');
+  if(mainAmount){const pending=document.createElement('div');pending.style.cssText='font-size:14px;margin-top:12px';pending.innerHTML='Tarjeta por recibir: <strong id="report-bank-pending">—</strong>';mainAmount.after(pending);}
   const salesLabel=document.getElementById('report-total-sales')?.previousElementSibling?.querySelector('span');
-  if(salesLabel)salesLabel.textContent='Ventas netas, no saldo bancario';
+  if(salesLabel)salesLabel.textContent='Disponible del período';
   const help=panel.querySelector('.cs-help');
   if(help)help.textContent='Por recibir y recibido confirmado se muestran por separado. Una venta no se convierte en depósito recibido hasta que tú lo confirmes en tu banco. La comisión ya está descontada de las ventas netas; no se resta de nuevo.';
   panel.addEventListener('click',e=>{const b=e.target.closest('[data-cs-action]');if(b)act(b);});

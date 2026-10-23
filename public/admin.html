@@ -20677,7 +20677,7 @@
         const lastDayStr = `${year}-${String(month).padStart(2, '0')}-${lastDay}`;
 
         console.log('[REPORTS] Cargando mes:', firstDay, 'a', lastDayStr);
-        window.cardSettlements?.load(firstDay, lastDayStr);
+        await window.cardSettlements?.load(firstDay, lastDayStr);
         window.receivables?.loadReport(firstDay, lastDayStr);
 
         // Un solo viaje: ventas y gastos en paralelo (el servidor vive en
@@ -20825,6 +20825,7 @@
       //    reportData ya está asignado en ambos flujos (mes y rango).
       if (Array.isArray(reportData) && reportData.length) filtrarTablaReporte();
       else renderExcelTable(ventas);
+      window.cardSettlements?.setSalesSummary(totalEfectivo + totalTransferencia, totalEgresos);
     }
 
     function renderIngresosEgresosChart(ingresos, egresos) {
@@ -21165,7 +21166,7 @@
       try {
         document.getElementById('report-current-month').textContent = 'Rango personalizado';
         console.log('[REPORTS] Cargando rango:', from, 'a', to);
-        window.cardSettlements?.load(from, to);
+        await window.cardSettlements?.load(from, to);
         window.receivables?.loadReport(from, to);
 
         const ventas = await fetchVentasRango(from, to);
@@ -22704,7 +22705,7 @@
   <link rel="stylesheet" href="/css/venus-calendar.css">
   <script src="/js/admin/appointment-search.js"></script>
   <link rel="stylesheet" href="/css/card-settlements.css?v=2">
-  <script type="module" src="/js/card-settlements.js?v=3"></script>
+  <script type="module" src="/js/card-settlements.js?v=4"></script>
   <link rel="stylesheet" href="/css/purchase-grid.css?v=4">
 </body>
 
