@@ -33,7 +33,18 @@
     const query = caja.querySelector('input').value.toLocaleLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
     const state = caja.querySelector('select').value;
     const rows = accounts.filter(a => (state === 'all' || (state === 'open' ? a.balanceCents > 0 : a.status === state)) && `${a.clientName} ${a.clientPhone} ${a.concept}`.toLocaleLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').includes(query));
-    caja.querySelector('[data-list]').innerHTML = rows.map(a => `<article class="ar-account"><div class="ar-row"><div><strong>${esc(a.clientName)}</strong><p>${esc(a.concept)}</p><small>${esc(date(a.createdAt))} · ${esc(a.clientPhone)}</small></div><div><strong>${money(a.balanceCents)}</strong><small>${({pending:'Pendiente',partial:'Pago parcial',paid:'Liquidada',cancelled:'Cancelada'})[a.status]}</small></div></div><p>${a.correction ? `Cobro corregido: ${money(a.correction.originalCents)} · Recibido en la cita: ${money(a.correction.receivedCents)} · ${esc(date(a.correction.at))}<br>` : ""}Total ${money(a.totalCents)} · Recibido ${money(a.paidCents)}</p><div class="ar-actions">${a.balanceCents > 0 ? `<button type="button" data-pay="${esc(a.id)}">Registrar abono</button>` : ''}${!a.paidCents && !a.cancelledAt ? `<button type="button" data-cancel="${esc(a.id)}">Cancelar cuenta</button>` : ''}</div><details><summary>Historial de abonos (${a.payments.length})</summary>${a.payments.map(p => `<div class="ar-row"><div>${money(p.amountCents)} · ${esc(methods[p.method])}<small>${esc(date(p.at))} · ${esc(p.by)}</small></div>${p.reversedAt ? '<span>Registro deshecho</span>' : `<button type="button" data-reverse="${esc(a.id)}" data-payment="${esc(p.id)}">Deshacer registro</button>`}</div>`).join('') || '<p>Sin abonos.</p>'}</details></article>`).join('') || '<p>No hay cuentas con estos filtros.</p>';
+    caja.querySelector('[data-list]').innerHTML = rows.map(a => `
+      <article class="ar-account ar-ledger-entry">
+        <div class="ar-person"><strong>${esc(a.clientName)}</strong><p>${esc(a.concept)}</p><small>${esc(a.clientPhone || 'Sin teléfono')}</small></div>
+        <div class="ar-balance"><span class="ar-status">${({pending:'Pendiente',partial:'Pago parcial',paid:'Liquidada',cancelled:'Cancelada'})[a.status]}</span><strong>${money(a.balanceCents)}</strong><small>Saldo por cobrar</small></div>
+        <div class="ar-entry-actions">${a.balanceCents > 0 ? `<button type="button" data-pay="${esc(a.id)}"><i class="fas fa-plus" aria-hidden="true"></i> Registrar abono</button>` : ''}</div>
+        <details class="ar-entry-history"><summary>Detalle e historial <span>${a.payments.filter(p=>!p.reversedAt).length} abonos</span></summary>
+          <div class="ar-entry-meta"><span>Creada ${esc(date(a.createdAt))}</span><span>Cuenta ${money(a.totalCents)} · Abonado ${money(a.paidCents)}</span></div>
+          ${a.correction ? `<p class="ar-correction-note">Cobro original: ${money(a.correction.originalCents)} · Recibido en la cita: ${money(a.correction.receivedCents)}<br>Corrección registrada ${esc(date(a.correction.at))}</p>` : ''}
+          ${a.payments.map(p => `<div class="ar-row"><div>${money(p.amountCents)} · ${esc(methods[p.method])}<small>${esc(date(p.at))} · ${esc(p.by)}</small></div>${p.reversedAt ? '<span>Registro deshecho</span>' : `<button type="button" data-reverse="${esc(a.id)}" data-payment="${esc(p.id)}">Deshacer registro</button>`}</div>`).join('') || '<p>Aún no hay abonos en esta cuenta.</p>'}
+          ${!a.paidCents && !a.cancelledAt ? `<button type="button" data-cancel="${esc(a.id)}">Cancelar cuenta</button>` : ''}
+        </details>
+      </article>`).join('') || '<p>No hay cuentas con estos filtros.</p>';
   }
   async function loadCaja(day = today()) {
     selectedDay = day; const token = ++sequence.caja;
