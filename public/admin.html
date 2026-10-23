@@ -3224,9 +3224,11 @@
 
     <!-- Modal: Modificar Cita -->
     <dialog id="editApptDialog">
+      <header class="vf-edit-header">
+        <h2><i class="fas fa-pen-to-square" aria-hidden="true"></i> Modificar cita</h2>
+        <button type="button" class="vf-icon-button" aria-label="Cerrar" onclick="document.getElementById('editApptDialog').close()"><i class="fas fa-xmark" aria-hidden="true"></i></button>
+      </header>
       <div class="dialog-content">
-        <h2><i class="fas fa-edit"></i> Modificar Cita</h2>
-        <button type="button" class="btn-secondary" onclick="openReschedule(document.getElementById('edit-appt-id').value)"><i class="fas fa-calendar-alt" aria-hidden="true"></i> Reagendar</button>
         <form id="form-edit-appt">
           <input type="hidden" id="edit-appt-id">
 
@@ -3289,7 +3291,7 @@
             </div>
 
             <!-- Asignación a admin/recepcionista -->
-            <div class="form-group" style="grid-column:1/3;">
+            <div class="form-group vf-assignment">
               <label for="edit-appt-assigned" class="form-label" style="display:flex;align-items:center;gap:8px;">
                 <i class="fas fa-user-tag" style="color:var(--venus-soft);"></i> ¿Quién atiende? <span class="muted" style="font-weight:400;font-size:11px;">(opcional)</span>
               </label>
@@ -3299,7 +3301,7 @@
             </div>
 
             <!-- Fuente / origen (marketing) -->
-            <div class="form-group" style="grid-column:1/3;">
+            <div class="form-group vf-source">
               <label for="edit-appt-source" class="form-label" style="display:flex;align-items:center;gap:8px;">
                 <i class="fas fa-bullhorn" style="color:var(--venus-soft);"></i> ¿Cómo llegó la clienta? <span class="muted" style="font-weight:400;font-size:11px;">(opcional)</span>
               </label>
@@ -3311,14 +3313,17 @@
             </div>
 
             <!-- Botones -->
-            <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:8px;grid-column:1/3;">
+            <div class="vf-edit-secondary" style="grid-column:1/-1;">
+              <button type="button" class="btn ghost" onclick="openReschedule(document.getElementById('edit-appt-id').value)"><i class="fas fa-calendar-alt" aria-hidden="true"></i> Reagendar</button>
               <button type="button" class="btn ghost" id="btn-edit-appt-anticipo" onclick="registrarAnticipoDesdeCita()" title="Registrar lo que ya pagó por esta cita" style="margin-right:auto;"><i class="fas fa-piggy-bank"></i> Ya pagó / anticipo</button>
-              <button type="button" class="btn ghost" id="btn-cancel-edit-appt">Cancelar</button>
-              <button type="submit" class="btn primary">Guardar Cambios</button>
             </div>
           </div>
         </form>
       </div>
+      <footer class="vf-edit-footer">
+        <button type="button" class="btn ghost" id="btn-cancel-edit-appt">Cancelar</button>
+        <button type="submit" form="form-edit-appt" class="btn primary"><i class="fas fa-check" aria-hidden="true"></i> Guardar cambios</button>
+      </footer>
     </dialog>
 
     <!-- PAYMENT DIALOG -->
@@ -11785,7 +11790,7 @@
     if (formEditAppt) {
       formEditAppt.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const btn = formEditAppt.querySelector('button[type="submit"]');
+        const btn = editApptDialog.querySelector('button[type="submit"][form="form-edit-appt"]');
         const originalText = btn.textContent;
         btn.disabled = true;
         btn.textContent = 'Guardando...';
@@ -22730,6 +22735,8 @@
   <script type="module" src="/js/card-settlements.js?v=4"></script>
   <link rel="stylesheet" href="/css/purchase-grid.css?v=4">
   <link rel="stylesheet" href="/css/admin/workspace-layout.css?v=1">
+  <link rel="stylesheet" href="/css/admin/form-surfaces.css?v=1">
+  <script src="/js/admin/form-surfaces.js?v=1" defer></script>
 <script src="/js/money-inputs.js?v=1"></script>
 </body>
 

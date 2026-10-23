@@ -1,0 +1,188 @@
+/* Shared form treatment, deliberately separate from scanners and record viewers. */
+html:root body .admin-form-surface {
+  --vf-surface: #fff;
+  --vf-subtle: #f3f5f1;
+  --vf-ink: #27342b;
+  --vf-muted: #657067;
+  --vf-line: #dbe1d9;
+  --vf-accent: #52653b;
+  background: var(--vf-surface) !important;
+  color: var(--vf-ink) !important;
+  border: 1px solid var(--vf-line) !important;
+  border-radius: 8px !important;
+  font-family: var(--font-body, 'DM Sans', Arial, sans-serif);
+  font-size: 14px;
+  line-height: 1.5;
+  box-shadow: 0 18px 64px #14251d30 !important;
+  animation: none !important;
+}
+html[data-theme="dark"] body .admin-form-surface {
+  --vf-surface: #242a26;
+  --vf-subtle: #2d352f;
+  --vf-ink: #edf2eb;
+  --vf-muted: #bcc7bb;
+  --vf-line: #465047;
+  --vf-accent: #60784a;
+}
+html:root body .admin-form-surface *,
+html:root body .admin-form-surface *::before,
+html:root body .admin-form-surface *::after { box-sizing: border-box; letter-spacing: 0 !important; }
+html:root body .admin-form-surface::backdrop { background: #15241d70; backdrop-filter: blur(3px); }
+html:root body .admin-form-surface :is(.dialog-content,.modal-body,.cobro-scroll) {
+  background: var(--vf-surface) !important;
+  color: var(--vf-ink) !important;
+}
+html:root body .admin-form-surface :is(.dialog-header,.modal-header,.dialog-footer,.modal-footer) {
+  background: var(--vf-surface) !important;
+  border-color: var(--vf-line) !important;
+  padding: 16px 24px !important;
+  gap: 12px;
+}
+html:root body .admin-form-surface :is(h1,h2,h3) {
+  font-family: var(--font-body, 'DM Sans', Arial, sans-serif) !important;
+  font-size: 20px !important;
+  font-weight: 600 !important;
+  line-height: 1.35 !important;
+  color: var(--vf-ink) !important;
+}
+html:root body .admin-form-surface :is(h4,.form-section-title) { font-size: 15px !important; color: var(--vf-ink) !important; }
+html:root body .admin-form-surface :is(.form-label,label[for]) {
+  font-size: 12px !important;
+  line-height: 1.5;
+  font-weight: 500 !important;
+  color: var(--vf-muted) !important;
+  text-transform: none !important;
+  margin-bottom: 6px;
+}
+html:root body .admin-form-surface :is(input:not([type]),input[type=text],input[type=search],input[type=number],input[type=email],input[type=tel],input[type=password],input[type=date],input[type=time],input[type=datetime-local],select,textarea) {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px !important;
+  height: 44px;
+  padding-top: 10px !important;
+  padding-bottom: 10px !important;
+  border: 1px solid var(--vf-line) !important;
+  border-radius: 6px !important;
+  background-color: var(--vf-surface) !important;
+  color: var(--vf-ink) !important;
+  font-family: inherit !important;
+  font-size: 14px !important;
+  font-weight: 400;
+  line-height: 22px !important;
+  box-shadow: none !important;
+  text-transform: none !important;
+  font-variant-numeric: tabular-nums;
+}
+html:root body .admin-form-surface textarea { height: auto !important; min-height: 88px !important; resize: vertical; }
+html:root body .admin-form-surface :is(input[readonly]:not(.date-picker-input),input:disabled,select:disabled,textarea:disabled) {
+  background-color: var(--vf-subtle) !important;
+  color: var(--vf-muted) !important;
+}
+html:root body .admin-form-surface :is(input,select,textarea)::placeholder { color: var(--vf-muted) !important; opacity: .85; }
+html:root body .admin-form-surface :is(input[type=checkbox],input[type=radio]) { accent-color: var(--vf-accent); flex-shrink: 0; }
+html:root body .admin-form-surface :is(input,select,textarea,button,summary):focus-visible {
+  outline: 2px solid var(--vf-accent) !important;
+  outline-offset: 2px !important;
+}
+html:root body .admin-form-surface :is(.btn,.btn-secondary,.cancel-btn,.submit-btn,.reschedule-submit,.vf-icon-button) {
+  min-height: 42px;
+  padding: 10px 16px !important;
+  border: 1px solid var(--vf-line) !important;
+  border-radius: 6px !important;
+  background: var(--vf-surface) !important;
+  color: var(--vf-ink) !important;
+  font: 500 13px/20px var(--font-body, 'DM Sans', Arial, sans-serif) !important;
+  text-transform: none !important;
+  box-shadow: none !important;
+  white-space: normal;
+  cursor: pointer;
+}
+html:root body .admin-form-surface :is(.btn.primary,.btn-primary,.submit-btn,.reschedule-submit) {
+  background: var(--vf-accent) !important;
+  border-color: var(--vf-accent) !important;
+  color: #fff !important;
+}
+html:root body .admin-form-surface :is(.btn,.btn-secondary,.cancel-btn,.submit-btn):hover:not(:disabled) { filter: brightness(.97); }
+html:root body .admin-form-surface button:disabled { opacity: .5; cursor: not-allowed; }
+html:root body .admin-form-surface .btn.danger { color: #a63f37 !important; }
+html:root body .admin-form-surface :is(.form-section,.payment-info-box) {
+  background: var(--vf-subtle) !important;
+  border-radius: 6px !important;
+  border-color: var(--vf-line) !important;
+  box-shadow: none !important;
+}
+html:root body #paymentDialog .payment-section {
+  padding: 16px 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-top: 1px solid var(--vf-line) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+html:root body #paymentDialog .payment-totals { background: var(--vf-subtle) !important; border: 1px solid var(--vf-line) !important; border-radius: 6px !important; }
+html:root body #modal-cobrar-cita .cobro-card {
+  padding: 16px 0 !important;
+  margin: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--vf-line) !important;
+  border-radius: 0 !important;
+}
+/* Reuse the app's overlay layer above quick actions; native confirmations use the top layer. */
+body > :is(#modal-product,#modal-service) { z-index: 100002 !important; background: #15241d70 !important; padding: 16px !important; align-items: center !important; }
+html:root body :is(#modal-product,#modal-service) .modal-card { width: 100% !important; max-width: 560px !important; max-height: calc(100dvh - 32px) !important; }
+/* Edit appointment: fixed actions, scrollable fields, no nested modal cards. */
+html:root body :is(#packageDialog,#sellPackageDialog,#creditDialog,#blocksDialog,#manualIncomeDialog,#expenseDialog,#editarIngresoDialog,.ci-dialog) {
+  inset: 0 !important;
+  margin: auto !important;
+  transform: none !important;
+  animation: none !important;
+  width: min(560px, calc(100vw - 32px)) !important;
+  height: fit-content !important;
+  max-height: calc(100dvh - 32px) !important;
+  overflow-y: auto !important;
+}
+html:root body :is(#manualIncomeDialog,#expenseDialog,#editarIngresoDialog) .dialog-content { max-height: none !important; padding: 24px !important; }
+html:root body #editarIngresoDialog form { min-width: 0 !important; }
+html:root body .ci-dialog .ci-form { padding: 24px !important; }
+html:root body .ci-dialog .ci-form footer { background: var(--vf-surface) !important; }
+html:root body #editApptDialog {
+  width: min(640px, calc(100vw - 32px)) !important;
+  max-width: 640px !important;
+  height: fit-content !important;
+  max-height: calc(100dvh - 32px) !important;
+  padding: 0 !important;
+  inset: 0 !important;
+  margin: auto !important;
+  transform: none !important;
+  animation: none !important;
+  overflow: hidden !important;
+}
+html:root body #editApptDialog[open] { display: flex !important; flex-direction: column; }
+#editApptDialog .vf-edit-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 24px; border-bottom: 1px solid var(--vf-line); flex: none; }
+#editApptDialog .vf-edit-header h2 { display: flex; align-items: center; gap: 12px; margin: 0; }
+#editApptDialog .vf-edit-header h2 i { color: var(--vf-accent); font-size: 18px; }
+html[data-theme="dark"] #editApptDialog .vf-edit-header h2 i { color: var(--vf-muted); }
+html:root body #editApptDialog .vf-icon-button { width: 40px; min-height: 40px; padding: 8px !important; flex: none; }
+html:root body #editApptDialog .dialog-content { padding: 20px 24px !important; max-height: none !important; min-height: 0; overflow-y: auto; flex: 1 1 auto; }
+html:root body #editApptDialog .form-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)) !important; gap: 16px !important; }
+#editApptDialog .form-grid > div { min-width: 0; }
+#editApptDialog .form-grid > .full-width { grid-column: 1 / -1; }
+html:root body #editApptDialog .grid-date-time { display: grid !important; grid-template-columns: 1.5fr .8fr .7fr 1fr !important; gap: 12px !important; }
+html:root body #editApptDialog .grid-date-time > div { min-width: 0; grid-column: auto !important; }
+html:root body #editApptDialog .grid-date-time :is(input,select) { width: 100% !important; }
+#editApptDialog .vf-edit-secondary { display: flex; flex-wrap: wrap; gap: 10px; padding-top: 4px; }
+#editApptDialog .vf-edit-footer { display: flex; align-items: center; justify-content: flex-end; gap: 10px; padding: 16px 24px; border-top: 1px solid var(--vf-line); background: var(--vf-surface); flex: none; }
+@media (max-width: 600px) {
+  html:root body .admin-form-surface :is(input:not([type]),input[type=text],input[type=search],input[type=number],input[type=email],input[type=tel],input[type=password],input[type=date],input[type=time],select,textarea) { font-size: 16px !important; }
+  html:root body .admin-form-surface :is(.dialog-header,.modal-header,.dialog-footer,.modal-footer) { padding: 14px 16px !important; flex-wrap: wrap; }
+  html:root body #editApptDialog { width: calc(100vw - 16px) !important; max-height: calc(100dvh - 16px) !important; }
+  #editApptDialog .vf-edit-header, #editApptDialog .vf-edit-footer { padding: 14px 16px; }
+  html:root body #editApptDialog .dialog-content { padding: 16px !important; }
+  html:root body #editApptDialog .grid-date-time { grid-template-columns: repeat(2,minmax(0,1fr)) !important; }
+  html:root body #editApptDialog .vf-assignment, html:root body #editApptDialog .vf-source { grid-column: 1/-1; }
+  #editApptDialog .vf-edit-footer > button { flex: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html:root body .admin-form-surface, html:root body .admin-form-surface * { animation: none !important; transition: none !important; }
+}
