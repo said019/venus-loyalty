@@ -1,0 +1,11 @@
+import express from 'express';
+import {prisma} from '../db/index.js';
+import {adminAuth,requireRole} from '../../lib/auth.js';
+import {createReceivable,changeReceivable,listReceivables} from '../services/receivables.js';
+const router=express.Router();
+router.use(adminAuth,requireRole('admin'));
+const handle=fn=>async(req,res)=>{res.set('Cache-Control','private, no-store');try{res.json({success:true,data:await fn(req)});}catch(e){console.error('[Receivables]',e.message);res.status(e.status||500).json({success:false,error:e.status?e.message:'No se pudo completar la operación. Reintenta para comprobar el registro.'});}};
+router.get('/',handle(req=>listReceivables(prisma,req.query.from,req.query.to)));
+router.post('/',handle(req=>createReceivable(prisma,req.body,req.admin.email||req.admin.uid)));
+router.post('/:id',handle(req=>changeReceivable(prisma,req.params.id,req.body,req.admin.email||req.admin.uid)));
+export default router;

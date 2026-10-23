@@ -32,6 +32,8 @@ function setup() {
     venusAlert: async message => alerts.push(message),
     console
   };
+  context.window = context;
+  vm.runInNewContext(readFileSync(new URL('../public/js/payment-detail-view.js', import.meta.url), 'utf8'), context);
   vm.runInNewContext(html.slice(start, end) + html.slice(wrapperStart, wrapperEnd), context);
   return { context, requests, notifications, alerts, content, opened: () => opened };
 }

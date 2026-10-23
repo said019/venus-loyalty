@@ -150,6 +150,14 @@
   <script defer src="/js/clinic-inventory.js?v=2"></script>
   <script defer src="/js/purchase-invoices.js?v=3"></script>
   <script defer src="/js/purchase-grid.js?v=7"></script>
+  <script defer src="/js/payment-detail-view.js?v=1"></script>
+  <script defer src="/js/payment-product-picker.js?v=1"></script>
+  <script defer src="/js/receivables.js?v=1"></script>
+  <script defer src="/js/report-tabs.js?v=1"></script>
+  <link rel="stylesheet" href="/css/report-tabs.css?v=1">
+  <link rel="stylesheet" href="/css/receivables.css?v=1">
+  <link rel="stylesheet" href="/css/payment-product-picker.css?v=1">
+  <link rel="stylesheet" href="/css/payment-detail.css?v=1">
 </head>
 
 <body class="checking-auth">
@@ -1967,6 +1975,10 @@
       </div>
 
       <!-- Selector de Mes (estilo Excel tabs) -->
+      <div class="report-view-tabs" role="tablist" aria-label="Tipo de reporte">
+        <button type="button" id="report-income-tab" role="tab" aria-selected="true" aria-controls="report-income-panel" tabindex="0"><i class="fas fa-chart-line" aria-hidden="true"></i> Ingresos</button>
+        <button type="button" id="report-expense-tab" role="tab" aria-selected="false" aria-controls="report-expense-panel" tabindex="-1"><i class="fas fa-receipt" aria-hidden="true"></i> Egresos</button>
+      </div>
       <div class="card report-month-card" style="padding:12px;margin-bottom:16px;">
         <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;" id="report-month-tabs">
           <!-- Se generan dinámicamente -->
@@ -2116,6 +2128,7 @@
         </div>
       </div>
 
+      <section id="receivables-report" class="ar-section" aria-label="Cuentas por cobrar"></section>
       <section id="card-settlements" class="card cs-panel" aria-labelledby="cs-title">
         <div class="cs-heading"><div><h3 id="cs-title">Depósitos de tarjeta</h3><p>Cobrar con tarjeta no significa que el dinero ya esté en tu cuenta. Comisión del 5%; depósito estimado al siguiente día hábil, cerca del mediodía. Viernes, sábado y domingo se agrupan el lunes.</p></div></div>
         <div class="cs-controls">
@@ -2421,6 +2434,7 @@
         </div>
       </div>
 
+      <section id="receivables-caja" class="ar-section" aria-label="Pagos pendientes"></section>
       <!-- Citas pendientes de cobro -->
       <div class="card" style="margin-bottom:20px;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
@@ -15412,78 +15426,7 @@
         if (!json.success) return await venusAlert('Error cargando detalles');
 
         const appt = json.data;
-        const productsSold = appt.productsSold || [];
-
-        let productsHtml = '';
-        if (productsSold.length > 0) {
-          const productsTotal = productsSold.reduce((sum, p) => sum + (p.subtotal || p.price * p.qty), 0);
-          productsHtml = `
-            <div style="margin:16px 0;background:rgba(139,92,246,0.1);border-radius:12px;padding:12px;">
-              <h4 style="margin:0 0 10px;font-size:14px;color:var(--muted);display:flex;align-items:center;gap:6px;">
-                <i class="fas fa-shopping-bag"></i> Productos Vendidos
-              </h4>
-              <table style="width:100%;font-size:12px;border-collapse:collapse;">
-                <thead>
-                  <tr style="border-bottom:1px solid rgba(255,255,255,0.1);">
-                    <th style="text-align:left;padding:6px 4px;color:var(--muted);">Producto</th>
-                    <th style="text-align:center;padding:6px 4px;color:var(--muted);">Cant.</th>
-                    <th style="text-align:right;padding:6px 4px;color:var(--muted);">Precio</th>
-                    <th style="text-align:right;padding:6px 4px;color:var(--muted);">Subtotal</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${productsSold.map(p => `
-                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
-                      <td style="padding:8px 4px;color:var(--ink);">${p.name}</td>
-                      <td style="text-align:center;padding:8px 4px;color:var(--muted);">${p.qty}</td>
-                      <td style="text-align:right;padding:8px 4px;color:var(--muted);">$${p.price.toLocaleString()}</td>
-                      <td style="text-align:right;padding:8px 4px;color:var(--ink);font-weight:600;">$${(p.subtotal || p.price * p.qty).toLocaleString()}</td>
-                    </tr>
-                  `).join('')}
-                </tbody>
-                <tfoot>
-                  <tr>
-                    <td colspan="3" style="text-align:right;padding:8px 4px;font-weight:600;color:var(--ink);">Total Productos:</td>
-                    <td style="text-align:right;padding:8px 4px;font-weight:700;color:var(--ink);">$${productsTotal.toLocaleString()}</td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          `;
-        }
-
-        const methodLabels = {
-          'efectivo': 'Efectivo',
-          'tarjeta_credito': 'Tarjeta de crédito',
-          'tarjeta_debito': 'Tarjeta de débito',
-          'transferencia': 'Transferencia'
-        };
-
-        document.getElementById('payment-detail-content').innerHTML = `
-          <div class="payment-info-row" style="margin-bottom:16px;">
-            <div class="payment-info-box">
-              <div class="payment-info-label">Cliente</div>
-              <div class="payment-info-value">${appt.clientName}</div>
-            </div>
-            <div class="payment-info-box">
-              <div class="payment-info-label">Servicio</div>
-              <div class="payment-info-value">${appt.serviceName}</div>
-            </div>
-          </div>
-          ${productsHtml}
-          <div class="payment-totals" style="margin-top:16px;">
-            <div class="payment-total-row sub"><span>Servicio</span><span>$${(appt.serviceAmount || 0).toLocaleString()}</span></div>
-            ${appt.productsAmount > 0 ? `<div class="payment-total-row sub"><span>Productos</span><span>$${appt.productsAmount.toLocaleString()}</span></div>` : ''}
-            ${appt.discountAmount > 0 ? `<div class="payment-total-row discount"><span>Descuento (${appt.discountType === 'percent' ? appt.discountValue + '%' : '$' + appt.discountValue})</span><span>-$${appt.discountAmount.toLocaleString()}</span></div>` : ''}
-            <div class="payment-total-row grand"><span>Total Pagado</span><span>$${(appt.totalPaid || 0).toLocaleString()}</span></div>
-          </div>
-          <div style="margin-top:16px;padding:12px;background:rgba(255,255,255,0.05);border-radius:8px;font-size:12px;color:var(--muted);">
-            <div style="display:flex;justify-content:space-between;">
-              <span><i class="fas fa-credit-card"></i> ${methodLabels[appt.paymentMethod] || appt.paymentMethod || 'N/A'}</span>
-              <span><i class="fas fa-clock"></i> ${appt.paidAt ? new Date(appt.paidAt).toLocaleString('es-MX') : 'N/A'}</span>
-            </div>
-          </div>
-        `;
+        document.getElementById('payment-detail-content').innerHTML = window.paymentDetailView.render(appt);
 
         document.getElementById('paymentDetailDialog').showModal();
       } catch (error) {
@@ -18701,6 +18644,7 @@
     // Cargar datos de la caja
     async function cargarCaja() {
       const fecha = cajaFechaActual;
+      globalThis.window?.receivables?.loadCaja(fecha);
       const fechaInput = document.getElementById('caja-fecha-select');
       const fechaLabel = document.getElementById('caja-fecha-hoy');
       
@@ -20414,7 +20358,7 @@
         const ingresosPorServicio = {};
 
         reportData.forEach(v => {
-          const amount = parseFloat(v.totalPaid) || 0;
+          const amount = ingresoNetoReporte(v);
           totalIngresos += amount;
           const serviceName = v.serviceName || 'Otro';
           if (!ingresosPorServicio[serviceName]) ingresosPorServicio[serviceName] = 0;
@@ -20455,7 +20399,7 @@
 
         wsData.push([null, null, null, serviciosPadded[0]?.[0] || '', serviciosPadded[0]?.[1] || 0]);
         wsData.push(['Resumen Financiero', null, null, serviciosPadded[1]?.[0] || '', serviciosPadded[1]?.[1] || 0]);
-        wsData.push(['TOTAL Ingresos', totalIngresos, null, serviciosPadded[2]?.[0] || '', serviciosPadded[2]?.[1] || 0]);
+        wsData.push(['Ingresos netos después de comisión', totalIngresos, null, serviciosPadded[2]?.[0] || '', serviciosPadded[2]?.[1] || 0]);
         wsData.push(['TOTAL Egresos', totalEgresos, null, serviciosPadded[3]?.[0] || '', serviciosPadded[3]?.[1] || 0]);
         wsData.push([null, null, null, serviciosPadded[4]?.[0] || '', serviciosPadded[4]?.[1] || 0]);
         wsData.push([null, totalIngresos - totalEgresos, null, serviciosPadded[5]?.[0] || '', serviciosPadded[5]?.[1] || 0]);
@@ -20734,6 +20678,7 @@
 
         console.log('[REPORTS] Cargando mes:', firstDay, 'a', lastDayStr);
         window.cardSettlements?.load(firstDay, lastDayStr);
+        window.receivables?.loadReport(firstDay, lastDayStr);
 
         // Un solo viaje: ventas y gastos en paralelo (el servidor vive en
         // Europa; encadenarlos costaba ~400ms extra por eslabón). Los mismos
@@ -20798,6 +20743,12 @@
 
     // Renderer ÚNICO del reporte de Ventas (vista por mes Y por rango):
     // resumen, tarjetas por método de pago, lista/gráficas de servicios y tabla.
+    function ingresoNetoReporte(venta) {
+      const cents = Math.round((parseFloat(venta.totalPaid) || 0) * 100);
+      const fee = normalizarMetodoPago(venta.paymentMethod) === 'tarjeta' ? Math.round(cents * 0.05) : 0;
+      return (cents - fee) / 100;
+    }
+
     function renderExcelReport(ventas, totalEgresos = 0) {
       // 1. Calcular totales (generales, por método de pago y por servicio)
       let totalIngresos = 0;
@@ -20807,7 +20758,7 @@
       const ingresosPorServicio = {};
 
       ventas.forEach(v => {
-        const amount = parseFloat(v.totalPaid) || 0;
+        const amount = ingresoNetoReporte(v);
         totalIngresos += amount;
 
         // Normalizado: si no, "tarjeta_credito"/"tarjeta_debito" no entraban en
@@ -21215,6 +21166,7 @@
         document.getElementById('report-current-month').textContent = 'Rango personalizado';
         console.log('[REPORTS] Cargando rango:', from, 'a', to);
         window.cardSettlements?.load(from, to);
+        window.receivables?.loadReport(from, to);
 
         const ventas = await fetchVentasRango(from, to);
         reportData = ventas;
@@ -21252,6 +21204,7 @@
     // Exponer funciones globalmente
     window.selectReportMonth = selectReportMonth;
     window.cargarReportesMes = cargarReportesMes;
+    window.cargarReportePorRango = cargarReportePorRango;
     window.filtrarTablaReporte = filtrarTablaReporte;
     window.filtrarReportePorFechas = filtrarReportePorFechas;
     window.limpiarFiltroFechas = limpiarFiltroFechas;
@@ -22751,7 +22704,7 @@
   <link rel="stylesheet" href="/css/venus-calendar.css">
   <script src="/js/admin/appointment-search.js"></script>
   <link rel="stylesheet" href="/css/card-settlements.css?v=2">
-  <script type="module" src="/js/card-settlements.js?v=2"></script>
+  <script type="module" src="/js/commissions.js?v=1"></script>
   <link rel="stylesheet" href="/css/purchase-grid.css?v=3">
 </body>
 

@@ -98,6 +98,8 @@ import clientRecordsRouter from './src/routes/clientRecords.js';
 import expedientesRouter from './src/routes/expedientes.js';
 import packagesRouter from './src/routes/packages.js';
 import cardSettlementsRouter from './src/routes/cardSettlements.js';
+import receivablesRouter from './src/routes/receivables.js';
+import {isReceivableSale} from './src/services/receivables.js';
 import purchaseInvoicesRouter from './src/routes/purchaseInvoices.js';
 import clinicInventoryRouter from './src/routes/clinicInventory.js';
 import creditsRouter, { aplicarCreditoEnCobro, registrarApartado } from './src/routes/credits.js';
@@ -1006,6 +1008,7 @@ app.use('/api/credits', creditsRouter);
 app.use('/api/clinic-inventory', clinicInventoryRouter);
 app.use('/api/purchase-invoices', purchaseInvoicesRouter);
 app.use('/api/card-settlements', cardSettlementsRouter);
+app.use('/api/receivables', receivablesRouter);
 
 // ☕ Venus The Coffee Bar - POS
 app.use('/api/pos', coffeePosRouter);
@@ -1884,6 +1887,7 @@ app.post('/api/appointments/:id/uncharge', adminAuth, requireRole('admin'), asyn
 // mostrador). Los cobros de cita NO se editan aquí: se corrigen volviendo a
 // cobrar la cita, que es donde vive su monto de verdad.
 app.put('/api/sales/:id', adminAuth, requireRole('admin'), async (req, res) => {
+  if(isReceivableSale(req.params.id))return res.status(409).json({success:false,error:'Corrige este abono desde Pagos pendientes en Caja.'});
   try {
     const { id } = req.params;
     const sale = await prisma.sale.findUnique({ where: { id } });
@@ -1919,6 +1923,7 @@ app.put('/api/sales/:id', adminAuth, requireRole('admin'), async (req, res) => {
 
 // DELETE /api/sales/:id — borrar un ingreso sin cita.
 app.delete('/api/sales/:id', adminAuth, requireRole('admin'), async (req, res) => {
+  if(isReceivableSale(req.params.id))return res.status(409).json({success:false,error:'Deshaz este abono desde Pagos pendientes en Caja para restaurar el saldo.'});
   try {
     const { id } = req.params;
     const sale = await prisma.sale.findUnique({ where: { id } });
