@@ -1,0 +1,79 @@
+/* Client portal only: neutral surfaces and readable, responsive panels. */
+#view-card {
+  background: #fff !important;
+  color: #29332d;
+  min-height: 100dvh;
+}
+#view-card header.sticky {
+  max-width: 1120px;
+  margin: 0 auto;
+  top: 0 !important;
+  width: 100%;
+  border: 0 !important;
+  border-bottom: 1px solid #e5e8e3 !important;
+  border-radius: 0;
+  background: rgba(255,255,255,.97) !important;
+  box-shadow: none;
+}
+#view-card header.sticky > div { max-width: none; }
+#view-card main { max-width: 1120px; padding: 32px 24px; }
+#view-card .client-layout { grid-template-columns: minmax(0, 1fr) 300px; gap: 48px; }
+#view-card .client-primary { grid-column: auto; min-width: 0; }
+#view-card .client-sidebar { min-width: 0; }
+#view-card .info-card {
+  background: #fff;
+  border: 0 !important;
+  border-top: 1px solid #e3e7e2 !important;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 24px 0;
+}
+#view-card .info-card h3 { font-size: 21px; margin-bottom: 20px; }
+#view-card .info-card p { line-height: 1.65; }
+#view-card .wallet-card { width: 100%; max-width: 480px; box-shadow: none !important; border: 1px solid #dce2d7; }
+#view-card .wallet-body { background: #fafbf8; }
+#view-card .stamp.inactive { background: #fff; border-color: #b6c1af !important; }
+#view-card .stamp.inactive::after { opacity: .6; filter: brightness(.5); }
+#view-card .wallet-footer { gap: 16px; }
+#view-card .wallet-footer-item { min-width: 0; }
+#view-card .wallet-footer-value { overflow-wrap: anywhere; }
+#view-card .client-wallet-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; max-width: 480px; margin: 20px auto 28px; }
+#view-card .client-wallet-actions > a { margin: 0; padding: 12px; font-size: 13px; min-height: 48px; box-shadow: none; }
+#view-card .client-sidebar .info-card:first-child { border-top: 0 !important; padding-top: 0; }
+#view-card .client-sidebar .info-card { margin-top: 0; }
+#view-card .client-sidebar .info-card > .space-y-3 > .flex {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 5px;
+  padding: 8px 0;
+}
+#view-card .client-sidebar [id^="profile-"] { font-weight: 600; overflow-wrap: anywhere; }
+#view-card #quick-actions > * { background: #fff; border-color: #e0e5dd !important; }
+#view-card #quick-actions > *:hover { background: #f3f6ef; }
+#view-card .appointment-item { background: transparent; border: 0; border-bottom: 1px solid #e7eae5; border-radius: 0; padding: 18px 0; gap: 16px; }
+#view-card .appointment-item:last-child { border-bottom: 0; }
+#view-card .appointment-item > .flex { min-width: 0; }
+#view-card .appointment-item .rounded-full { flex-shrink: 0; }
+#view-card .appointment-item p { overflow-wrap: anywhere; }
+#view-card .appointment-badge { flex-shrink: 0; font-weight: 600; }
+#view-card .badge-pending { background: #f5f0e3; color: #735419; }
+#view-card .badge-completed { background: #edf3e8; color: #405a35; }
+#view-card .badge-cancelled { background: #f8ece9; color: #934936; }
+#view-card #credit-info { font-variant-numeric: tabular-nums; }
+#view-card #massage-block .massage-card { background: #fff; border: 0; border-top: 3px solid #a96b49; border-radius: 0; box-shadow: none; padding: 24px 0; }
+#view-card footer { margin-top: 24px; border-top: 1px solid #e5e8e3; padding: 24px 16px; }
+#view-card footer p, #view-card footer a { color: #636f63 !important; }
+#view-card :is(a,button):focus-visible { outline: 2px solid #647341; outline-offset: 4px; }
+@media (max-width: 800px) {
+  #view-card .client-layout { grid-template-columns: minmax(0,1fr); gap: 24px; }
+  #view-card main { padding: 24px 20px; }
+  #view-card .client-sidebar { border-top: 1px solid #e3e7e2; padding-top: 24px; }
+}
+@media (max-width: 480px) {
+  #view-card main { padding: 24px 16px; }
+  #view-card .client-primary > .px-2 { padding: 0; }
+  #view-card .client-wallet-actions { grid-template-columns: 1fr; }
+  #view-card .appointment-item { flex-wrap: wrap; gap: 8px; }
+  #view-card .appointment-item > .flex { flex: 1 1 100%; }
+  #view-card .appointment-badge { margin-left: 56px; }
+}
