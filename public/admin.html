@@ -21009,7 +21009,7 @@
             <td data-label="Subtotal">$${subtotal.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
             <td data-label="IVA">${iva > 0 ? '$' + iva.toFixed(2) : '-'}</td>
             <td data-label="Descuento">${descuento > 0 ? '$' + descuento.toFixed(2) : '-'}</td>
-            <td style="font-weight:600;color:var(--venus-soft);" data-label="Total">$${total.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
+            <td style="font-weight:600;color:var(--venus-soft);" data-label="Total">$${total.toLocaleString('es-MX', { minimumFractionDigits: 2 })}${window.cardReportDetails?.(v.paymentMethod,total,v.paidAt||v.startDateTime)||''}</td>
             <td data-label="Comentarios"><textarea style="width:80px;padding:4px;font-size:10px;border:1px solid var(--line);border-radius:4px;background:transparent;color:var(--ink);resize:none;" rows="1" placeholder="..."></textarea></td>
           </tr>
         `;
@@ -22721,7 +22721,7 @@
 
   <link rel="stylesheet" href="/css/reschedule.css">
   <link rel="stylesheet" href="/css/caja-history.css">
-  <link rel="stylesheet" href="/css/sales-layout.css?v=5">
+  <link rel="stylesheet" href="/css/sales-layout.css?v=6">
   <link rel="stylesheet" href="/css/home-layout.css?v=3">
   <link rel="stylesheet" href="/css/appointment-layout.css?v=1">
   <script src="/js/home-journey.js?v=2"></script>
@@ -22738,6 +22738,7 @@
   <link rel="stylesheet" href="/css/admin/form-surfaces.css?v=2">
   <script src="/js/admin/form-surfaces.js?v=2" defer></script>
 <script src="/js/money-inputs.js?v=1"></script>
+<script type="module" src="/js/card-report-details.js?v=1"></script>
 </body>
 
 </html>
