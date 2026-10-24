@@ -1,0 +1,49 @@
+/* Shared light-mode data surfaces. Keep dark mode and semantic badges intact. */
+html[data-theme="light"] .main-content :is(.card,.today-card,.gc-stat,.clarity-card,.stats-bar) {
+  background: #fff !important;
+  box-shadow: none !important;
+  border-color: #e1e5df !important;
+}
+html[data-theme="light"] .main-content .table-wrap {
+  background: #fff !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+html[data-theme="light"] .main-content .data-table {
+  background: #fff;
+  color: #29332d;
+  border-collapse: collapse;
+}
+html[data-theme="light"] .main-content .data-table :is(thead,th) {
+  background: #f6f7f5 !important;
+  color: #5c665e;
+  border-color: #dfe4dd;
+}
+html[data-theme="light"] .main-content .data-table :is(tbody,tr,td) {
+  background-color: transparent;
+  border-color: #e5e8e2;
+}
+html[data-theme="light"] .main-content .data-table tbody tr:hover {
+  background: #f5f7f3 !important;
+}
+html[data-theme="light"] .main-content .data-table th {
+  font-weight: 600;
+  letter-spacing: .025em;
+}
+html[data-theme="light"] .main-content .data-table td {
+  font-variant-numeric: tabular-nums;
+}
+#panel-services .data-table { width: 100%; table-layout: fixed; }
+#panel-services .data-table th:nth-child(1) { width: 36%; }
+#panel-services .data-table th:nth-child(2) { width: 23%; }
+#panel-services .data-table th:nth-child(3) { width: 13%; }
+#panel-services .data-table th:nth-child(4) { width: 11%; }
+#panel-services .data-table th:nth-child(5) { width: 17%; }
+#panel-services .data-table :is(th,td) { padding: 16px 12px; overflow-wrap: anywhere; }
+#panel-services .data-table td:last-child > div { display: flex; gap: 8px; flex-wrap: wrap; }
+#panel-services .data-table td .btn { padding: 8px 12px; min-width: 40px; }
+@media (max-width: 600px) {
+  #panel-services .data-table :is(th,td) { padding: 12px 5px; font-size: 12px; }
+  #panel-services .data-table td .btn { padding: 8px; }
+}
