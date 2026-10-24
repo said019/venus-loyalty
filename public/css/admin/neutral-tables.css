@@ -47,3 +47,37 @@ html[data-theme="light"] .main-content .data-table td {
   #panel-services .data-table :is(th,td) { padding: 12px 5px; font-size: 12px; }
   #panel-services .data-table td .btn { padding: 8px; }
 }
+
+/* Catalog directory: hierarchy, quiet navigation, and editorial data rows. */
+#tab-services { --directory-ink: #27342b; --directory-muted: #69736b; --directory-line: #e3e7df; --directory-hover: #f5f7f2; }
+html[data-theme="dark"] #tab-services { --directory-ink: #edf2e9; --directory-muted: #b7c0b3; --directory-line: #414b40; --directory-hover: #2c352b; }
+#tab-services .tabs-header { gap: 28px; justify-content: flex-start; border-bottom: 1px solid var(--directory-line); }
+#tab-services .tabs-header .tab-btn {
+  flex: 0 1 auto; padding: 16px 0; background: transparent !important;
+  border-radius: 0 !important; box-shadow: none; font-size: 14px;
+}
+#tab-services .tabs-header .tab-btn.active { color: var(--directory-ink); font-weight: 700; }
+#tab-services .tabs-header .tab-btn.active::after { background: #74834f; height: 2px; }
+#tab-services .tab-count { background: transparent !important; color: var(--directory-muted) !important; padding: 0 3px; font-size: 12px; }
+#panel-services .service-directory-heading { padding: 28px 0 22px; }
+#panel-services .catalog-eyebrow { font-size: 10px; letter-spacing: .16em; font-weight: 700; color: var(--directory-muted); margin: 0 0 8px; }
+#panel-services .service-directory-heading h3 { font-family: var(--font-heading, 'Playfair Display', serif); font-size: clamp(25px,3vw,32px); font-weight: 500; margin: 0 0 8px; color: var(--directory-ink); }
+#panel-services .service-directory-heading p:last-child { margin: 0; font-size: 14px; color: var(--directory-muted); }
+#panel-services > .row { align-items: center; gap: 12px !important; padding-bottom: 24px; }
+#panel-services #search-services { flex: 1 1 240px !important; min-width: 160px !important; max-width: 480px; height: 46px; border-radius: 6px !important; font-size: 14px; }
+#panel-services > .row > .btn { min-height: 44px; padding: 10px 16px; font-size: 13px; border-radius: 6px !important; }
+#panel-services > .row > .ghost { margin-left: auto; border-color: transparent !important; color: var(--directory-muted); }
+#panel-services .data-table th { text-transform: none; font-size: 12px; letter-spacing: 0; padding-top: 13px; padding-bottom: 13px; }
+#panel-services .data-table .svc-row td { padding-top: 23px; padding-bottom: 23px; }
+#panel-services .svc-main { font-size: 15px; font-weight: 600; color: var(--directory-ink); }
+#panel-services .svc-meta { color: var(--directory-muted); font-size: 13px; }
+#panel-services .svc-meta[data-label="Precio"] { color: var(--directory-ink); font-size: 17px; font-weight: 600; letter-spacing: -.025em; }
+#panel-services .svc-cat > span { background: transparent !important; border: 0 !important; border-radius: 0 !important; padding: 0 !important; font-size: 12px !important; font-weight: 500 !important; color: var(--directory-muted) !important; }
+#panel-services .svc-actions .btn { border-color: transparent !important; background: transparent !important; width: 38px; min-width: 38px; min-height: 38px; padding: 8px; border-radius: 6px !important; }
+#panel-services .svc-actions .btn:hover { background: var(--directory-hover) !important; }
+#panel-services .svc-actions .btn:focus-visible { outline: 2px solid #74834f; outline-offset: 2px; }
+@media(max-width: 700px) {
+  #tab-services .tabs-header { gap: 16px; flex-wrap: wrap; }
+  #panel-services > .row > .ghost { margin-left: 0; }
+  #panel-services .data-table .svc-row td { padding-top: 14px; padding-bottom: 14px; }
+}
