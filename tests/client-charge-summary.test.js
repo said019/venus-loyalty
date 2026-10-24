@@ -1,0 +1,4 @@
+import test from 'node:test';import assert from 'node:assert/strict';import vm from 'node:vm';import {readFileSync} from 'node:fs';
+const context={window:{}};vm.runInNewContext(readFileSync('public/js/client-charge-summary.js','utf8'),context);const render=context.window.clientChargeSummary.render;
+test('client history exposes items, discount, applied credit and actual payment',()=>{const html=render({status:'completed',totalPaid:1330,paymentMethod:'tarjeta',discount:20,creditApplied:100,productsSold:[{name:'Crema <A>',quantity:2,price:400}]});for(const text of ['2 × Crema &lt;A&gt;','$800.00','Descuento','Apartado aplicado','$1,330.00','Tarjeta'])assert(html.includes(text));});
+test('unknown and zero amounts remain distinct, cancellation is not presented as charged',()=>{assert.match(render({status:'completed'}),/Importe no registrado/);assert.match(render({status:'completed',totalPaid:0}),/\$0.00/);assert.equal(render({status:'cancelled'}),'');});

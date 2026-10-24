@@ -5133,8 +5133,9 @@
             '<div class="exp-appt-main">' +
               '<span class="exp-appt-svc">' + expEsc(appt.serviceName || 'Servicio') + '</span>' +
               '<span class="exp-appt-status"><i class="fas ' + st.icon + '"></i> ' + expEsc(st.label) + '</span>' +
+              (window.clientChargeSummary?.render(appt) || '') +
             '</div>' +
-            (pagado > 0 ? '<div class="exp-appt-paid">$' + pagado.toLocaleString('es-MX') + '</div>' : '') +
+            (appt.totalPaid != null ? '<div class="exp-appt-paid"><button type="button" class="exp-charge-detail" data-appointment-id="' + expEsc(appt.id) + '">Ver desglose</button></div>' : '') +
           '</li>';
       }).join('');
 
@@ -5147,6 +5148,7 @@
       }
 
       listEl.innerHTML = '<ul class="exp-appt-list">' + filas + '</ul>' + toggle;
+      listEl.querySelectorAll('[data-appointment-id]').forEach(button => button.onclick = () => viewPaymentDetails(button.dataset.appointmentId));
     }
 
     function expToggleAppointments() {
@@ -22757,6 +22759,8 @@
   <script src="/js/admin/form-surfaces.js?v=2" defer></script>
 <script src="/js/money-inputs.js?v=1"></script>
 <script type="module" src="/js/card-report-details.js?v=1"></script>
+<script src="/js/client-charge-summary.js?v=1"></script>
+<link rel="stylesheet" href="/css/client-charge-summary.css?v=1">
 </body>
 
 </html>
