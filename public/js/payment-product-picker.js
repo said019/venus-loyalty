@@ -4,6 +4,7 @@
     if (select.dataset.pickerReady) return;
     select.dataset.pickerReady = 'true';
     select.hidden = true;
+    select.parentElement.classList.add('pp-product-row');
     const box = document.createElement('div');
     box.className = 'pp-picker';
     const input = document.createElement('input');
