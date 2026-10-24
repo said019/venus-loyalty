@@ -4,3 +4,11 @@
 .report-view-tabs [role=tab]:focus-visible{outline:2px solid var(--venus,#74804e);outline-offset:3px}
 #report-income-panel[hidden],#report-expense-panel[hidden]{display:none!important}
 #report-expense-panel .expenses-panel{margin-top:0}
+/* The shared period controls precede both report panels in the flex layout. */
+#tab-reports > .header-actions{order:-2}
+#tab-reports > .report-view-tabs{order:-1}
+#tab-reports > .report-month-card{order:0}
+#tab-reports > .report-filter-card{order:1}
+#tab-reports > #report-income-panel,
+#tab-reports > #report-expense-panel{order:2;min-width:0;width:100%}
+#report-income-panel:not([hidden]){display:flex;flex-direction:column;gap:24px}
