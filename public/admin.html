@@ -3843,6 +3843,24 @@
       #card-modal-backdrop .cmx-link:hover { color:var(--cm-ink); }
       #card-modal-backdrop .cmx-link.is-primary { color:var(--cm-olive-deep); font-weight:600; }
       #card-modal-backdrop .cmx-link.is-danger { color:var(--cm-err); }
+      #card-modal-backdrop .cmx-compact { padding:10px 0; margin-bottom:8px !important; border:0; border-bottom:1px solid var(--cm-line); border-radius:0; background:none; }
+      #card-modal-backdrop .cmx-compact .cmx-label { letter-spacing:0; text-transform:none; font-size:12px; }
+      #card-modal-backdrop .cmx-progress-num { font-family:inherit; font-size:17px; }
+      #card-modal-backdrop .cmx-compact .cmx-track { height:4px; }
+      #card-modal-backdrop .cmx-compact #cm-status-text { margin-top:5px !important; text-align:left !important; font-size:11px !important; }
+      #card-modal-backdrop .cmx-compact > div:first-child { margin-bottom:5px !important; }
+      #card-modal-backdrop .cmx-next { border:0; border-radius:6px; padding:10px 12px; margin-bottom:8px !important; }
+      #card-modal-backdrop #cm-next-appt-date { font-family:inherit !important; font-size:15px !important; }
+      #card-modal-backdrop .cmx-compact .btn { min-height:44px; padding:6px 10px !important; font-size:12px !important; border-radius:6px; background:none; box-shadow:none; }
+      #card-modal-backdrop .cmx-kpis { grid-template-columns:repeat(4,minmax(0,1fr)); gap:0; padding:10px 0; }
+      #card-modal-backdrop .cmx-kpi { min-width:0; padding:4px; }
+      #card-modal-backdrop .cmx-kpi-num { font-family:inherit; font-size:17px; line-height:1.3; }
+      #card-modal-backdrop #cm-last-visit { font-size:12px !important; }
+      #card-modal-backdrop .cmx-kpi-lbl { margin-top:3px; font-size:10px; }
+      @media(max-width:360px) {
+        #card-modal-backdrop .cmx-kpis { grid-template-columns:repeat(2,minmax(0,1fr)); row-gap:8px; }
+        #card-modal-backdrop .cmx-kpi:nth-child(3) { border-left:0; }
+      }
     </style>
     <div id="card-modal-backdrop" class="modal-backdrop hidden">
       <div class="modal-card cmx-card">
@@ -3884,7 +3902,7 @@
           </div>
 
           <!-- Sellos con barra de progreso -->
-          <div class="cmx-panel" style="margin-bottom:16px;">
+          <div class="cmx-panel cmx-compact" style="margin-bottom:16px;">
             <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;">
               <span class="cmx-label" style="margin:0;">Progreso</span>
               <span id="cm-stamps" class="cmx-progress-num">0 / 8</span>
@@ -3903,7 +3921,7 @@
           </div>
 
           <!-- Paquetes de sesiones -->
-          <div class="cmx-panel" style="margin-bottom:16px;">
+          <div class="cmx-panel cmx-compact" style="margin-bottom:16px;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
               <span class="cmx-label" style="margin:0;"><i class="fas fa-layer-group"></i> Paquetes</span>
               <button class="btn small ghost" onclick="openSellPackageDialog()" style="font-size:11px;padding:4px 10px;"><i class="fas fa-plus"></i> Vender</button>
@@ -3914,7 +3932,7 @@
           </div>
 
           <!-- Apartado: dinero que la clienta dejó a cuenta -->
-          <div class="cmx-panel" style="margin-bottom:16px;">
+          <div class="cmx-panel cmx-compact" style="margin-bottom:16px;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;">
               <span class="cmx-label" style="margin:0;"><i class="fas fa-piggy-bank"></i> Saldo a favor</span>
               <div style="display:flex;gap:6px;">
@@ -3928,7 +3946,7 @@
           </div>
 
           <!-- Stats rápidos -->
-          <div class="cmx-panel cmx-kpis" style="margin-bottom:16px;">
+          <div class="cmx-panel cmx-compact cmx-kpis" style="margin-bottom:16px;">
             <div class="cmx-kpi">
               <div id="cm-visited-count" class="cmx-kpi-num">0</div>
               <div class="cmx-kpi-lbl">Visitas</div>
@@ -13737,7 +13755,7 @@
         if (!json.success) throw new Error(json.error);
         const compras = (json.data || []).filter(c => c.status !== 'cancelled');
         if (!compras.length) {
-          list.innerHTML = '<span class="muted" style="font-size:12px;">Sin paquetes. Véndele uno con el botón de arriba.</span>';
+          list.innerHTML = '<span class="muted" style="font-size:12px;">Sin paquetes activos</span>';
           return;
         }
         const ETIQUETA = { active: '', exhausted: 'TERMINADO', expired: 'VENCIDO' };
@@ -13855,7 +13873,7 @@
         if (btnDevolver) btnDevolver.style.display = saldo > 0 ? '' : 'none';
 
         if (!saldo && !movs.length) {
-          body.innerHTML = '<span class="muted" style="font-size:12px;">Sin dinero apartado. Si te deja algo a cuenta, regístralo con «Apartar».</span>';
+          body.innerHTML = '<span class="muted" style="font-size:12px;">Sin saldo a favor</span>';
           return;
         }
 
